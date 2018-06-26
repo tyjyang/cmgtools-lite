@@ -162,7 +162,10 @@ def getGlobalBin(ix, iy, nbinsX, binFrom0=True):
     # same is expected for iy
     # If this is the case, global bin starts from 0
     #However, if binFrom0=False, it is expected that the bins start from 1 (like those of a TH1) and the globalbin that is returned will start from 1 as well
-    return (ix + iy * nbinsX)
+    if binFrom0:
+        return (ix + iy * nbinsX)
+    else:
+        return (ix-1 + (iy-1) * nbinsX) + 1  # trasform ix,iy in [1,N] to ix',iy' in [0,N-1], get global bin and sum 1 so that it starts from 1
 
 def getXYBinsFromGlobalBin(globalbin, nbinsX, binFrom0=True):
     # global bin goes from 0 to nbinX*nbinsY-1 

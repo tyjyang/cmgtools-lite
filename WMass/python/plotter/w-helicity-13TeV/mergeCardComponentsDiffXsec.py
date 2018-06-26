@@ -13,6 +13,7 @@ import sys,os,re,json,copy
 
 from mergeCardComponentsAbsY import mirrorShape
 from make_diff_xsec_cards import getArrayParsingString
+from make_diff_xsec_cards import getGlobalBin
 
 
 def get_ieta_ipt_from_process_name(name):
@@ -24,7 +25,7 @@ def get_ieta_ipt_from_process_name(name):
     return ieta,ipt
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
-def getXsecs(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
+def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
 
     # etaPtBins is a list of 4 things: Netabins, etabins, Nptbins,ptbins
 
@@ -107,15 +108,9 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    # fixYBins not used here
-    parser.add_option(     '--fix-YBins', dest='fixYBins', type='string', default='plusR=99;plusL=99;minusR=99;minusL=99', help='add here replacement of default rate-fixing. with format plusR=10,11,12;plusL=11,12;minusR=10,11,12;minusL=10,11 ')
-    parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
-    parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
-    parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
-    parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
+    #parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
+    #parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
-    parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
-    parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
@@ -174,7 +169,7 @@ if __name__ == "__main__":
                 print 'processing bin: {bin}'.format(bin=bin)
                 nominals = {}
                 for irf,rf in enumerate([rootfile]+rootfiles_syst):
-                    print '\twith nominal/systematic file: ',rf
+                    #print '\twith nominal/systematic file: ',rf
                     tf = ROOT.TFile.Open(rf)
                     tmpfile = os.path.join(options.inputdir,'tmp_{bin}_sys{sys}.root'.format(bin=bin,sys=irf))
                     of=ROOT.TFile(tmpfile,'recreate')
@@ -329,8 +324,6 @@ if __name__ == "__main__":
 
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
         
-        if options.scaleFile: options.absoluteRates = True
-        
         kpatt = " %7s "
     
         combinedCard = open(cardfile,'r')
@@ -389,12 +382,13 @@ if __name__ == "__main__":
         binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning]
  
         ## xsecfilename                                                                                                                                                    
-        hists = getXsecs(tmp_sigprocs,
-                         [i for i in sortedsystkeys if not 'wpt' in i],
-                         binning,
-                         #35.9 if channel == 'mu' else 30.9,  # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
-                         '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
-                         )
+        hists = getXsecs_etaPt(tmp_sigprocs,
+                               [i for i in sortedsystkeys if not 'wpt' in i],
+                               binning,
+                               # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
+                               # 35.9 if channel == 'mu' else 30.9,  
+                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
+                               )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
         for hist in hists:
