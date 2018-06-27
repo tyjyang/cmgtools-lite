@@ -110,14 +110,17 @@ if __name__ == "__main__":
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     #parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
     #parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
-    parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
+    parser.add_option(     '--pdf-shape-only', dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
+    parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
+    parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
+    parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
 
     cmssw = os.environ['CMSSW_VERSION']
     if cmssw != "":
-        if cmssw = "CMSSW_8_0_25":
+        if cmssw == "CMSSW_8_0_25":
             print "ERROR: you must be in CMSSW_10_X to run this command and use combine with tensorflow. Exit"
             print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
             quit()
@@ -129,7 +132,37 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
     channel = 'mu' if 'mu' in options.bin else 'el'
     Wcharge = ["Wplus","Wminus"]
-        
+
+    # get eta pt binning from file
+    etaPtBinningFile = options.inputdir + "/binningPtEta.txt"
+    with open(etaPtBinningFile) as f:
+        content = f.readlines()
+    for x in content:
+        etaPtBinning = str(x).strip() #if not str(x).startswith("#")                          
+    etabinning = etaPtBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                     
+    ptbinning  = etaPtBinning.split('*')[1]
+    etabinning = getArrayParsingString(etabinning,makeFloat=True)
+    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
+    binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning]
+
+    etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
+    for bin in range(len(etabinning)-1):
+        etaBinIsBackground.append(False)
+
+    etaRangesBkg = options.eta_range_bkg
+
+    if len(etaRangesBkg):
+        hasEtaRangeBkg = True
+        print "Signal bins with gen eta in the following ranges will be considered as background processes"
+        print options.eta_range_bkg            
+        for index in range(len(etabinning)-1):
+            for pair in etaRangesBkg:
+            #print pair
+                if etabinning[index] >= pair[0] and etabinning[index+1] <= pair[1]:
+                    etaBinIsBackground[index] = True
+    else:
+        hasEtaRangeBkg = False
+
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
@@ -298,8 +331,25 @@ if __name__ == "__main__":
                         isig = 0
                         for p in realprocesses:
                             if any(wcharge in p for wcharge in Wcharge):
-                                procBin[p] = isig
-                                isig += -1 
+                                # some bins might be treated as background
+                                if hasEtaRangeBkg:
+                                    tokens = p.split('_')
+                                    for i,tkn in enumerate(tokens):
+                                        #print "%d %s" % (i, tkn)      
+                                        if tkn == "ieta": 
+                                            etabinIndex = int(tokens[i + 1])
+                                            break  # exit loop on tokens
+                                    # now check if this eta bin belongs to region which should be considered as background
+                                    # if yes, increase the background bin index counter; if not, use the signal index as usual
+                                    if etaBinIsBackground[etabinIndex]:
+                                        procBin[p] = ibkg
+                                        ibkg += 1
+                                    else:
+                                        procBin[p] = isig
+                                        isig += -1 
+                                else:
+                                    procBin[p] = isig
+                                    isig += -1 
                             else:
                                 procBin[p] = ibkg
                                 ibkg += 1
@@ -320,7 +370,6 @@ if __name__ == "__main__":
             # combinedCard.write(('%-23s lnN' % "CMS_lumi_13TeV") + ' '.join([kpatt % ("-" if "data" in key else lumipar) for key in realprocesses]) + "\n")
             # not needed because it will be measured
             #combinedCard.write(('%-23s lnN' % "CMS_W") + ' '.join([kpatt % (Wxsec if any(x in key for x in Wcharge) else "-"    ) for key in realprocesses]) + "\n")
-
 
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
         
@@ -368,18 +417,6 @@ if __name__ == "__main__":
 
         ## first make a list of all the signal processes
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
-
-        # get eta pt binning
-        etaPtBinningFile = options.inputdir + "/binningPtEta.txt"
-        with open(etaPtBinningFile) as f:
-            content = f.readlines()
-        for x in content:
-            etaPtBinning = str(x).strip() #if not str(x).startswith("#")                          
-        etabinning = etaPtBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                     
-        ptbinning  = etaPtBinning.split('*')[1]
-        etabinning = getArrayParsingString(etabinning,makeFloat=True)
-        ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
-        binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning]
  
         ## xsecfilename                                                                                                                                                    
         hists = getXsecs_etaPt(tmp_sigprocs,
@@ -442,11 +479,12 @@ if __name__ == "__main__":
         print "Now merging the two"
         print ccCmd
         os.system(ccCmd)
-        ## then running the t2w command afterwards     
-        print txt2wsCmd
-        print '-- Now running text2tf (might take time) ---------------------'
-        print 'text2tf.py has some default options that might affect the result. You are invited to check them'
-        os.system(txt2tfCmd)
+        ## then running the text2tf command afterwards     
+        if not options.skip_text2tf:
+            print txt2tfCmd
+            print '-- Now running text2tf (might take time) ---------------------'
+            print 'text2tf.py has some default options that might affect the result. You are invited to check them'
+            os.system(txt2tfCmd)
  
 ########################################
     # end of loop over charges
