@@ -19,13 +19,14 @@ class util:
     
         return (bestfit, sol1, sol2)
     
-    def graphStyle(self, graph):
-        graph.SetMarkerStyle(20)
-        graph.SetMarkerColor(ROOT.kOrange+7)
+    def graphStyle(self, graph, style=20, color=ROOT.kOrange+7, size=1.0, titleY='-2 #Delta ln L', rangeY=(-0.01,4.0) ):
+        graph.SetMarkerStyle(style)
+        graph.SetMarkerColor(color)
         graph.SetLineWidth  (2)
-        graph.SetMarkerSize(1.0)
-        graph.GetYaxis().SetTitle('-2 #Delta ln L')
-        graph.GetYaxis().SetRangeUser(-0.01, 4.0)
+        graph.SetMarkerSize(size)
+        graph.GetYaxis().SetTitle(titleY)
+        if rangeY:
+            graph.GetYaxis().SetRangeUser(rangeY[0], rangeY[1])
     
     
     def getGraph(self, infile, par, norm, treename='limit'):
@@ -76,7 +77,7 @@ class util:
     def getXSecFromShapes(self, ybins, charge, infile, channel, ip):
         values = {}
         if not infile:
-            for pol in ['left','right']: #,'long']: 
+            for pol in ['left','right','long']: 
                 cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
                 xsecs = []
                 for iv in xrange(len(ybins[cp][:-1])):
@@ -88,7 +89,7 @@ class util:
     
         pstr = '' if not ip else '_pdf{ip}Up'.format(ip=ip)
     
-        for pol in ['left','right']: #,'long']
+        for pol in ['left','right','long']:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
             xsecs = []
             for iv, val in enumerate(ybins[cp][:-1]):
