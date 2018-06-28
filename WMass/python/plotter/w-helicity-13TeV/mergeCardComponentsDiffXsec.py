@@ -27,6 +27,7 @@ def get_ieta_ipt_from_process_name(name):
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
 def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
 
+    #print "Inside getXsecs_etaPt"
     # etaPtBins is a list of 4 things: Netabins, etabins, Nptbins,ptbins
 
     histo_file = ROOT.TFile(infile, 'READ')
@@ -40,6 +41,8 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
         # process has the form: Wplus_el_ieta_3_ipt_0_Wplus_el_group_0, where the number after group is not relevant (does not coincide with absolute bin number)
         # as it can be the same for many processes
         # one should use ieta and ipt, which identifies the template bin (first index is 0, not 1)
+        # generally, ieta,ipt in name should correspond to 2D histogram X and Y bins (after adding 1)
+        # However, one could use different definition for the gen level binning (used to cut and define a signal process) and the reco level one (defining the TH2)
 
         ieta,ipt = get_ieta_ipt_from_process_name(process)
         etabins = etaPtBins[1]
@@ -54,10 +57,15 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
         # there can be a precision issue which might induce the selection of the wrong bin (since yfirst and yvalue are actually bin boundaries)
         # It seems odd, but I noticed that with the fake rate graphs (I was getting events migrating between adjacent eta bins)
         epsilon = 0.00001
-        istart_eta = cen_hist.FindFixBin(etafirst + epsilon)
-        iend_eta   = cen_hist.FindFixBin(etalast + epsilon)
-        istart_pt  = cen_hist.FindFixBin(ptfirst + epsilon)
-        iend_pt    = cen_hist.FindFixBin(ptlast + epsilon)
+
+        # caution, we are using TH2, the logic below is slightly different than for TH1
+        istart_global = cen_hist.FindFixBin(etafirst + epsilon, ptfirst + epsilon)
+        iend_global   = cen_hist.FindFixBin(etalast  + epsilon, ptlast  + epsilon)
+        
+        istart_eta = cen_hist.GetXaxis().FindFixBin(etafirst + epsilon)
+        iend_eta   = cen_hist.GetXaxis().FindFixBin(etalast + epsilon)
+        istart_pt  = cen_hist.GetYaxis().FindFixBin(ptfirst + epsilon)
+        iend_pt    = cen_hist.GetYaxis().FindFixBin(ptlast + epsilon)
 
         ncen = cen_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
@@ -251,7 +259,8 @@ if __name__ == "__main__":
             #sys.exit()
             os.system(haddcmd)
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
-        
+            print "Merging of shape.root file finished.\n"
+
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
         tf = ROOT.TFile.Open(outfile)
@@ -462,7 +471,7 @@ if __name__ == "__main__":
         #combineCards.py Wel_plus=Wel_plus_card.txt Wel_plus_xsec=Wel_plus_xsec_card.txt > Wel_plus_card_withXsecMask.txt
         # text2tf.py Wel_plus_card_withXsecMask.txt --maskedChan Wel_plus_xsec --X-allow-no-background
 
-        print "merged datacard in ",cardfile
+        print "\nmerged datacard in ",cardfile
         print "datacard with xsection in ",tmp_xsec_dc_name
         cardfile_xsec = cardfile.replace('_card', '_card_withXsecMask')
         chname = options.bin+'_{ch}'.format(ch=charge)
@@ -476,12 +485,12 @@ if __name__ == "__main__":
             # masked chanel has no background, I need to use option --X-allow-no-background
             txt2tfCmd = 'text2tf.py --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec)
 
-        print "Now merging the two"
+        print "\nNow merging the two"
         print ccCmd
         os.system(ccCmd)
         ## then running the text2tf command afterwards     
         if not options.skip_text2tf:
-            print txt2tfCmd
+            print "\n" + txt2tfCmd
             print '-- Now running text2tf (might take time) ---------------------'
             print 'text2tf.py has some default options that might affect the result. You are invited to check them'
             os.system(txt2tfCmd)
