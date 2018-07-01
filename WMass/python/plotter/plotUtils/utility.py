@@ -68,7 +68,7 @@ def adjustSettings_CMS_lumi():
 
 #########################################################################
 
-
+# function to draw 2D histograms, can also plot profile along X on top
 def drawCorrelationPlot(h2D,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
                         canvasName="default", plotLabel="", outdir="./",
@@ -139,6 +139,25 @@ def drawCorrelationPlot(h2D,
     if (setYAxisRangeFromUser): h2DPlot.GetYaxis().SetRangeUser(ymin,ymax)
     if (setZAxisRangeFromUser): h2DPlot.GetZaxis().SetRangeUser(zmin,zmax)
 
+    # attempt to make Z axis title farther depending on how many digits are printed
+    maxZaxisVal = h2DPlot.GetBinContent(h2DPlot.GetMaximumBin())
+    if (setZAxisRangeFromUser): maxZaxisVal = zmax
+
+    if maxZaxisVal >= 1.0:
+        h2DPlot.GetZaxis().SetMaxDigits(3)
+    else:
+        i = 1
+        tryNext = True
+        while tryNext:
+            tmpVal = maxZaxisVal * pow(10,i)
+            if tmpVal >= 1.0: tryNext = False 
+            else: i += 1
+        if i > 1:            
+            print "Max Z axis < 1, will try to adjust distance of Z axis title to Z axis"
+            print "i = %d: will move Z axis offset by 0.45" % i
+            # for numbers like 0.025 or with more 0 after ., make increase distance between Z axis title and the Z axis
+            h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.45)
+
     h2DProfile = 0
     if drawProfileX:
         h2DProfile = h2D.ProfileX("%s_pfx" %h2D.GetName())
@@ -153,6 +172,10 @@ def drawCorrelationPlot(h2D,
 
     if plotLabel == "ForceTitle":
         ROOT.gStyle.SetOptTitle(1)        
+
+    #h2DPlot.GetZaxis().SetMaxDigits(1)  #for N>99, should use scientific notation, I'd like to make it work only with negative exponential but haven't succeeded yet
+    # canvas.Modified()
+    # canvas.Update()
 
     leg = ROOT.TLegend(0.39,0.75,0.89,0.95)
     leg.SetFillStyle(0)

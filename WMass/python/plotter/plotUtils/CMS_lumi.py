@@ -73,7 +73,7 @@ def setTDRStyle():
     ROOT.gStyle.SetLabelFont(42, "XYZ");
     ROOT.gStyle.SetLabelOffset(0.007, "XYZ");
     ROOT.gStyle.SetLabelSize(0.04, "XYZ");
-
+    
     ROOT.gStyle.SetAxisColor(1, "XYZ");
     ROOT.gStyle.SetStripDecimals(1); 
     ROOT.gStyle.SetTickLength(0.025, "XYZ");
