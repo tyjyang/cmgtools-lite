@@ -35,9 +35,6 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
     for process in processes:
 
-        cen_name = 'gen_ptl1_etal1_W'+charge+'_el_'  # by mistake, I didn't write central after last _, while variations have the name of the systematic uncertainty
-        cen_hist = histo_file.Get(cen_name)  # this is a TH2
-
         # process has the form: Wplus_el_ieta_3_ipt_0_Wplus_el_group_0, where the number after group is not relevant (does not coincide with absolute bin number)
         # as it can be the same for many processes
         # one should use ieta and ipt, which identifies the template bin (first index is 0, not 1)
@@ -52,16 +49,20 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
         ptfirst = ptbins[ipt]
         ptlast  = ptbins[ipt+1]
 
+        charge = "plus" if "plus" in process else "minus"
+        # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
+        etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
+        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_el_central' 
+        cen_hist = histo_file.Get(cen_name)  # this is a TH2
+        #print cen_name
+
         # before searching the bin, sum epsilon to the y value being inspected
         # Root assigns the lower bin edge to the bin, while the upper bin edge is assigned to the adjacent bin. However, depending on the number y being used,
         # there can be a precision issue which might induce the selection of the wrong bin (since yfirst and yvalue are actually bin boundaries)
         # It seems odd, but I noticed that with the fake rate graphs (I was getting events migrating between adjacent eta bins)
         epsilon = 0.00001
 
-        # caution, we are using TH2, the logic below is slightly different than for TH1
-        istart_global = cen_hist.FindFixBin(etafirst + epsilon, ptfirst + epsilon)
-        iend_global   = cen_hist.FindFixBin(etalast  + epsilon, ptlast  + epsilon)
-        
+        # caution, we are using TH2, the logic below is slightly different than for TH1        
         istart_eta = cen_hist.GetXaxis().FindFixBin(etafirst + epsilon)
         iend_eta   = cen_hist.GetXaxis().FindFixBin(etalast + epsilon)
         istart_pt  = cen_hist.GetYaxis().FindFixBin(ptfirst + epsilon)
@@ -80,8 +81,8 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
-            sys_upname = 'gen_ptl1_etal1_W'+charge+'_el_'+upn
-            sys_dnname = 'gen_ptl1_etal1_W'+charge+'_el_'+dnn
+            sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
+            sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
 
             sys_up_hist = histo_file.Get(sys_upname)
             sys_dn_hist = histo_file.Get(sys_dnname)
@@ -141,12 +142,15 @@ if __name__ == "__main__":
     channel = 'mu' if 'mu' in options.bin else 'el'
     Wcharge = ["Wplus","Wminus"]
 
-    # get eta pt binning from file
+    # get gen eta pt binning from file
     etaPtBinningFile = options.inputdir + "/binningPtEta.txt"
     with open(etaPtBinningFile) as f:
         content = f.readlines()
     for x in content:
-        etaPtBinning = str(x).strip() #if not str(x).startswith("#")                          
+        if str(x).startswith("gen"):
+            etaPtBinning = (x.split("gen:")[1]).strip()
+        else:
+            continue
     etabinning = etaPtBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                     
     ptbinning  = etaPtBinning.split('*')[1]
     etabinning = getArrayParsingString(etabinning,makeFloat=True)
@@ -433,7 +437,8 @@ if __name__ == "__main__":
                                binning,
                                # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
                                # 35.9 if channel == 'mu' else 30.9,  
-                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
+                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
+                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')

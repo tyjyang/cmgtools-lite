@@ -209,8 +209,8 @@ if __name__ == "__main__":
     ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
     ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
     ptEta_binfile.write("#Gen binning   : |eta|-pt on x-y axis\n")
-    ptEta_binfile.write("reco: "+binning)
-    ptEta_binfile.write("gen: "+genBinning)
+    ptEta_binfile.write("reco: "+binning+"\n")
+    ptEta_binfile.write("gen: "+genBinning+"\n")
     ptEta_binfile.write('\n')
     ptEta_binfile.close()
     

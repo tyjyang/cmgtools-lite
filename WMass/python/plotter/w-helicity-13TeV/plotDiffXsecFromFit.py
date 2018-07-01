@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python w-helicity-13TeV/plotDiffXsecFromFit.py fitresults_42.root -o plots/diffXsec/fitAsimov/diffXsec_2018_06_25_group5_coarsebin/ -c el -C plus -b file=cards/diffXsec_2018_06_25_group5_coarsebin/binningPtEta.txt
+
 import ROOT, os
 from array import array
 from make_diff_xsec_cards import getArrayParsingString
@@ -37,12 +39,16 @@ if __name__ == "__main__":
     addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outname)
 
+    # get gen binning from file or directly from option
     if options.etaPtbinning.startswith("file="):
         etaPtbinningFile = options.etaPtbinning.replace("file=","")
         with open(etaPtbinningFile) as f:
             content = f.readlines()
         for x in content:
-            tmpbinning = str(x).strip() #if not str(x).startswith("#")
+            if str(x).startswith("gen"):
+                tmpbinning = (x.split("gen:")[1]).strip()
+            else:
+                continue
         etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
         ptbinning  = tmpbinning.split('*')[1]
     else:
@@ -105,55 +111,65 @@ if __name__ == "__main__":
                     if name.endswith("_err"): hmu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
                     else:                     hmu    .SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
                 
-        xaxisTitle = '%s #eta' % lepton
-        yaxisTitle = '%s p_{T} [GeV]' % lepton
+        xaxisTitle = 'gen %s |#eta|' % lepton
+        yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
         #zaxisTitle = "#mu::%.3g,%.3g" % (hmu.GetMinimum(), hmu.GetMaximum())
 
         zaxisTitle = "#mu::0.99,1.01"
         drawCorrelationPlot(hmu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "uncertainty on #mu::%.3g,%.3g" % (hmu_err.GetMinimum(), hmu_err.GetMaximum())
         drawCorrelationPlot(hmu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu.GetMinimum(), h_pmaskedexpnorm_mu.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu_err.GetMinimum(), h_pmaskedexpnorm_mu_err.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "d#sigma/d#etadp_{T} [pb]::%.3g,%.3g" % (h_pmaskedexp_mu.GetMinimum(), h_pmaskedexp_mu.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         h_pmaskedexp_mu_relErr = h_pmaskedexp_mu_err.Clone("h_pmaskedexp_mu_relErr")
         h_pmaskedexp_mu_relErr.Divide(h_pmaskedexp_mu)
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.0,0.1" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.01,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+
+        h_pmaskedexpnorm_mu_relErr = h_pmaskedexpnorm_mu_err.Clone("h_pmaskedexpnorm_mu_relErr")
+        h_pmaskedexpnorm_mu_relErr.Divide(h_pmaskedexpnorm_mu)
+        h_pmaskedexpnorm_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
+
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.0,0.015" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        drawCorrelationPlot(h_pmaskedexpnorm_mu_relErr, 
+                            xaxisTitle, yaxisTitle, zaxisTitle, 
+                            h_pmaskedexpnorm_mu_relErr.GetName(),
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         infile.Close()
