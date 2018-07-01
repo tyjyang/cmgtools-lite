@@ -790,11 +790,12 @@ class PlotMaker:
                                   makeCanvas=makeCanvas,
                                   outputDir=dir,
                                   printDir=self._options.printDir+(("/"+subname) if subname else ""),
-                                  drawBox=self._options.drawBox)
+                                  drawBox=self._options.drawBox,
+                                  contentAxisTitle=self._options.contentAxisTitle)
 
             if elist: mca.clearCut()
 
-    def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None, drawBox=None):
+    def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None, drawBox=None, contentAxisTitle=None):
                 options = self._options
                 if printDir == None: printDir=self._options.printDir
                 if outputDir == None: outputDir = self._dir
@@ -891,6 +892,11 @@ class PlotMaker:
                 total.GetYaxis().SetTitle(pspec.getOption('YTitle',ytitle))
                 total.GetXaxis().SetTitle(pspec.getOption('XTitle',outputName))
                 total.GetXaxis().SetNdivisions(pspec.getOption('XNDiv',510))
+                if contentAxisTitle != None:
+                    if "TH2" in total.ClassName() or "TProfile2D" in total.ClassName():
+                        total.GetZaxis().SetTitle(contentAxisTitle)
+                    else:
+                        total.GetYaxis().SetTitle(contentAxisTitle)
                 if outputDir: outputDir.WriteTObject(stack)
                 # 
                 if not makeCanvas and not self._options.printPlots: return
@@ -1123,6 +1129,18 @@ class PlotMaker:
                                     # plot.SetMarkerColor(mca.getProcessOption(p,'FillColor',ROOT.kBlack))
                                     #plot.Draw(pspec.getOption("PlotMode","COLZ TEXT45"))
                                     plot.Draw(pspec.getOption("PlotMode","COLZ"))
+                                    # Z axis setting ######################
+                                    plot.GetZaxis().SetTitle(pspec.getOption('ZTitle',ytitle)) # use same content of default ytitle defined above, Events or Events/XX
+                                    plot.GetZaxis().SetTitleFont(42)
+                                    plot.GetZaxis().SetTitleSize(0.055)
+                                    plot.GetZaxis().SetTitleOffset(0.90 if doWide else 1.2)
+                                    plot.GetZaxis().SetLabelFont(42)
+                                    plot.GetZaxis().SetLabelSize(0.05)
+                                    plot.GetZaxis().SetLabelOffset(0.007)
+                                    #plot.GetZaxis().SetMaxDigits(2)  # avoid too many digits: with 2, for Nz > 99 the scientific notation is used, does not work in 8_0_25
+                                    if contentAxisTitle != None: plot.GetZaxis().SetTitle(contentAxisTitle)
+                                    else                       : plot.GetZaxis().SetTitle(contentAxisTitle)
+                                    #########################################
                                     if drawBox != None:
                                         liner = ROOT.TLine()
                                         liner.SetLineWidth(3)
@@ -1215,6 +1233,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--cmssqrtS", dest="cmssqrtS", type="string", default="13 TeV", help="Sqrt of s to be written in the official CMS text.")
     parser.add_option("--printBin", dest="printBinning", type="string", default=None, help="Write 'Events/xx' instead of 'Events' on the y axis")
     parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
+    parser.add_option("--contentAxisTitle", dest="contentAxisTitle", type="string", default=None, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
 
 if __name__ == "__main__":
