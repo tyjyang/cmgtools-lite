@@ -789,11 +789,12 @@ class PlotMaker:
                                   xblind=xblind,
                                   makeCanvas=makeCanvas,
                                   outputDir=dir,
-                                  printDir=self._options.printDir+(("/"+subname) if subname else ""))
+                                  printDir=self._options.printDir+(("/"+subname) if subname else ""),
+                                  drawBox=self._options.drawBox)
 
             if elist: mca.clearCut()
 
-    def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None):
+    def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None, drawBox=None):
                 options = self._options
                 if printDir == None: printDir=self._options.printDir
                 if outputDir == None: outputDir = self._dir
@@ -1122,6 +1123,14 @@ class PlotMaker:
                                     # plot.SetMarkerColor(mca.getProcessOption(p,'FillColor',ROOT.kBlack))
                                     #plot.Draw(pspec.getOption("PlotMode","COLZ TEXT45"))
                                     plot.Draw(pspec.getOption("PlotMode","COLZ"))
+                                    if drawBox != None:
+                                        liner = ROOT.TLine()
+                                        liner.SetLineWidth(3)
+                                        x1,x2,y1,y2 = (float(x) for x in drawBox.split(','))
+                                        liner.DrawLine(x1, y1, x1, y2)  # vertical at x=x1, y in [y1,y2]
+                                        liner.DrawLine(x2, y1, x2, y2)  # vertical at x=x2, y in [y1,y2]
+                                        liner.DrawLine(x1, y1, x2, y1)  # horizontal at y=y1, x in [x1,x2]
+                                        liner.DrawLine(x1, y2, x2, y2)  # horizontal at y=y2, x in [x1,x2]
                                     c1.Print("%s/%s_%s.%s" % (fdir, outputName, p, ext))
                                 if "data" in pmap and "TGraph" in pmap["data"].ClassName():
                                     pmap["data"].SetMarkerStyle(mca.getProcessOption('data','MarkerStyle',1))
@@ -1205,6 +1214,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--cmsprel", dest="cmsprel", type="string", default="Preliminary", help="Additional text (Simulation, Preliminary, Internal)")
     parser.add_option("--cmssqrtS", dest="cmssqrtS", type="string", default="13 TeV", help="Sqrt of s to be written in the official CMS text.")
     parser.add_option("--printBin", dest="printBinning", type="string", default=None, help="Write 'Events/xx' instead of 'Events' on the y axis")
+    parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
 
 if __name__ == "__main__":
