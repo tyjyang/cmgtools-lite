@@ -193,14 +193,14 @@ if __name__ == "__main__":
         allValues = {}
         for pol in ['left','right', 'long']:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
-            MAXYFORNORM = ybins[cp][-2] # exclude the outermost bin which has huge error due to acceptance
+            MAXYFORNORM = ybins[cp][-3] # exclude the outermost 2 bins which has huge error due to acceptance
             normsigma = sum([xsec_nominal[pol][iy] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigma)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
+                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                 tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                 if options.normxsec:
                     rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
                 else:
-                    rfit = valuesAndErrors[parname] # r values: contain all the common norm uncertainties (lumi, eff...)
+                    rfit = valuesAndErrors[parname+'_mu'] # r values: contain all the common norm uncertainties (lumi, eff...)
 
                 tmp_val.relv_fit .append(rfit[0])
                 tmp_val.rello_fit.append(abs(rfit[0]-rfit[1]))
@@ -311,7 +311,7 @@ if __name__ == "__main__":
         padUp.SetLeftMargin(0.15)
         padUp.SetBottomMargin(0.10)
 
-        yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{dN/dy}{dN^{exp}/dy}'
+        yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{d#sigma/dy}{d#sigma^{exp}/dy}'
 
         allValues['left'].mg.Draw('Pa')
         allValues['left'].mg.GetXaxis().SetRangeUser(0., 3.)
@@ -352,7 +352,7 @@ if __name__ == "__main__":
         padDown.SetBottomMargin(0.15)
         allValues['long'].mg.Draw('pa')
         allValues['long'].mg.GetXaxis().SetRangeUser(0., 3.)
-        allValues['long'].mg.GetYaxis().SetRangeUser(0.85, 1.15)
+        allValues['long'].mg.GetYaxis().SetRangeUser(0.50, 1.50)
         allValues['long'].mg.GetXaxis().SetTitle('|Y_{W}|')
         allValues['long'].mg.GetXaxis().SetTitleSize(0.06)
         allValues['long'].mg.GetXaxis().SetLabelSize(0.06)
