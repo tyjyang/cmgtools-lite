@@ -198,10 +198,15 @@ class util:
         ybins_expr = []
         for iv, val in enumerate(ybins[cp][:-1]):
             if abs(val)<absYmax:
-                ybins_expr.append('W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iv))
-        num = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iy)
+                ybins_expr.append('W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iv))
+        num = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iy)
         den = '('+'+'.join(ybins_expr)+')'        
         ret = self.getExprFromToys(charge+pol+channel+str(iy),'{num}/{den}'.format(num=num,den=den),infile)
+        return ret
+
+    def getAsymmetryFromToys(self, pol, channel, iy, infile):
+        expr = '(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp - Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)/(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp + Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)'.format(pol=pol,ch=channel,iy=iy)
+        ret = self.getExprFromToys('chargeAsym',expr,infile)
         return ret
 
     def getFromScans(self, indir):
