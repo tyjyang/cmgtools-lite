@@ -63,10 +63,12 @@ class util:
                     name = k.GetName()
             histo = histo_file.Get(name)# 'w{ch}_wy_W{ch}_{pol}'.format(ch=charge, pol=pol))
             conts = []
+            epsilon = 0.000001 
+            # val is a bin boundary, add epsilon to be sure to catch the correct bin (float can be truncated and findBin might return incorrect bin)
             for iv, val in enumerate(ybins[cp][:-1]):
                 err = ROOT.Double()
-                istart = histo.FindBin(val)
-                iend   = histo.FindBin(ybins[cp][iv+1])
+                istart = histo.FindBin(val+epsilon)
+                iend   = histo.FindBin(ybins[cp][iv+1]+epsilon)
                 val = histo.IntegralAndError(istart, iend-1, err) ## do not include next bin
                 conts.append(float(int(val)))
             histos[pol] = conts
