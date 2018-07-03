@@ -13,7 +13,8 @@ import sys,os,re,json,copy
 
 from mergeCardComponentsAbsY import mirrorShape
 from make_diff_xsec_cards import getArrayParsingString
-
+from make_diff_xsec_cards import getGlobalBin
+from make_diff_xsec_cards import getDiffXsecBinning
 
 def get_ieta_ipt_from_process_name(name):
     tokens = name.split('_')
@@ -24,8 +25,9 @@ def get_ieta_ipt_from_process_name(name):
     return ieta,ipt
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
-def getXsecs(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
+def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
 
+    #print "Inside getXsecs_etaPt"
     # etaPtBins is a list of 4 things: Netabins, etabins, Nptbins,ptbins
 
     histo_file = ROOT.TFile(infile, 'READ')
@@ -33,12 +35,11 @@ def getXsecs(processes, systs, etaPtBins, infile):  # in my case here, the histo
 
     for process in processes:
 
-        cen_name = 'gen_ptl1_etal1_W'+charge+'_el_'  # by mistake, I didn't write central after last _, while variations have the name of the systematic uncertainty
-        cen_hist = histo_file.Get(cen_name)  # this is a TH2
-
         # process has the form: Wplus_el_ieta_3_ipt_0_Wplus_el_group_0, where the number after group is not relevant (does not coincide with absolute bin number)
         # as it can be the same for many processes
         # one should use ieta and ipt, which identifies the template bin (first index is 0, not 1)
+        # generally, ieta,ipt in name should correspond to 2D histogram X and Y bins (after adding 1)
+        # However, one could use different definition for the gen level binning (used to cut and define a signal process) and the reco level one (defining the TH2)
 
         ieta,ipt = get_ieta_ipt_from_process_name(process)
         etabins = etaPtBins[1]
@@ -48,15 +49,24 @@ def getXsecs(processes, systs, etaPtBins, infile):  # in my case here, the histo
         ptfirst = ptbins[ipt]
         ptlast  = ptbins[ipt+1]
 
+        charge = "plus" if "plus" in process else "minus"
+        # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
+        etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
+        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_el_central' 
+        cen_hist = histo_file.Get(cen_name)  # this is a TH2
+        #print cen_name
+
         # before searching the bin, sum epsilon to the y value being inspected
         # Root assigns the lower bin edge to the bin, while the upper bin edge is assigned to the adjacent bin. However, depending on the number y being used,
         # there can be a precision issue which might induce the selection of the wrong bin (since yfirst and yvalue are actually bin boundaries)
         # It seems odd, but I noticed that with the fake rate graphs (I was getting events migrating between adjacent eta bins)
         epsilon = 0.00001
-        istart_eta = cen_hist.FindFixBin(etafirst + epsilon)
-        iend_eta   = cen_hist.FindFixBin(etalast + epsilon)
-        istart_pt  = cen_hist.FindFixBin(ptfirst + epsilon)
-        iend_pt    = cen_hist.FindFixBin(ptlast + epsilon)
+
+        # caution, we are using TH2, the logic below is slightly different than for TH1        
+        istart_eta = cen_hist.GetXaxis().FindFixBin(etafirst + epsilon)
+        iend_eta   = cen_hist.GetXaxis().FindFixBin(etalast + epsilon)
+        istart_pt  = cen_hist.GetYaxis().FindFixBin(ptfirst + epsilon)
+        iend_pt    = cen_hist.GetYaxis().FindFixBin(ptlast + epsilon)
 
         ncen = cen_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
@@ -71,8 +81,8 @@ def getXsecs(processes, systs, etaPtBins, infile):  # in my case here, the histo
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
-            sys_upname = 'gen_ptl1_etal1_W'+charge+'_el_'+upn
-            sys_dnname = 'gen_ptl1_etal1_W'+charge+'_el_'+dnn
+            sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
+            sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
 
             sys_up_hist = histo_file.Get(sys_upname)
             sys_dn_hist = histo_file.Get(sys_dnname)
@@ -107,22 +117,19 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    # fixYBins not used here
-    parser.add_option(     '--fix-YBins', dest='fixYBins', type='string', default='plusR=99;plusL=99;minusR=99;minusL=99', help='add here replacement of default rate-fixing. with format plusR=10,11,12;plusL=11,12;minusR=10,11,12;minusL=10,11 ')
-    parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
-    parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
-    parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
-    parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
-    parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
-    parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
-    parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
+    #parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
+    #parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
+    parser.add_option(     '--pdf-shape-only', dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
+    parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
+    parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
+    parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
 
     cmssw = os.environ['CMSSW_VERSION']
     if cmssw != "":
-        if cmssw = "CMSSW_8_0_25":
+        if cmssw == "CMSSW_8_0_25":
             print "ERROR: you must be in CMSSW_10_X to run this command and use combine with tensorflow. Exit"
             print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
             quit()
@@ -134,7 +141,40 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
     channel = 'mu' if 'mu' in options.bin else 'el'
     Wcharge = ["Wplus","Wminus"]
-        
+
+    # get gen eta pt binning from file
+    etaPtBinningFile = options.inputdir + "/binningPtEta.txt"
+    with open(etaPtBinningFile) as f:
+        content = f.readlines()
+    for x in content:
+        if str(x).startswith("gen"):
+            etaPtBinning = (x.split("gen:")[1]).strip()
+        else:
+            continue
+    etabinning = etaPtBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                     
+    ptbinning  = etaPtBinning.split('*')[1]
+    etabinning = getArrayParsingString(etabinning,makeFloat=True)
+    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
+    binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning]
+
+    etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
+    for bin in range(len(etabinning)-1):
+        etaBinIsBackground.append(False)
+
+    etaRangesBkg = options.eta_range_bkg
+
+    if len(etaRangesBkg):
+        hasEtaRangeBkg = True
+        print "Signal bins with gen eta in the following ranges will be considered as background processes"
+        print options.eta_range_bkg            
+        for index in range(len(etabinning)-1):
+            for pair in etaRangesBkg:
+            #print pair
+                if etabinning[index] >= pair[0] and etabinning[index+1] <= pair[1]:
+                    etaBinIsBackground[index] = True
+    else:
+        hasEtaRangeBkg = False
+
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
@@ -174,7 +214,7 @@ if __name__ == "__main__":
                 print 'processing bin: {bin}'.format(bin=bin)
                 nominals = {}
                 for irf,rf in enumerate([rootfile]+rootfiles_syst):
-                    print '\twith nominal/systematic file: ',rf
+                    #print '\twith nominal/systematic file: ',rf
                     tf = ROOT.TFile.Open(rf)
                     tmpfile = os.path.join(options.inputdir,'tmp_{bin}_sys{sys}.root'.format(bin=bin,sys=irf))
                     of=ROOT.TFile(tmpfile,'recreate')
@@ -223,7 +263,8 @@ if __name__ == "__main__":
             #sys.exit()
             os.system(haddcmd)
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
-        
+            print "Merging of shape.root file finished.\n"
+
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
         tf = ROOT.TFile.Open(outfile)
@@ -303,8 +344,25 @@ if __name__ == "__main__":
                         isig = 0
                         for p in realprocesses:
                             if any(wcharge in p for wcharge in Wcharge):
-                                procBin[p] = isig
-                                isig += -1 
+                                # some bins might be treated as background
+                                if hasEtaRangeBkg:
+                                    tokens = p.split('_')
+                                    for i,tkn in enumerate(tokens):
+                                        #print "%d %s" % (i, tkn)      
+                                        if tkn == "ieta": 
+                                            etabinIndex = int(tokens[i + 1])
+                                            break  # exit loop on tokens
+                                    # now check if this eta bin belongs to region which should be considered as background
+                                    # if yes, increase the background bin index counter; if not, use the signal index as usual
+                                    if etaBinIsBackground[etabinIndex]:
+                                        procBin[p] = ibkg
+                                        ibkg += 1
+                                    else:
+                                        procBin[p] = isig
+                                        isig += -1 
+                                else:
+                                    procBin[p] = isig
+                                    isig += -1 
                             else:
                                 procBin[p] = ibkg
                                 ibkg += 1
@@ -326,10 +384,7 @@ if __name__ == "__main__":
             # not needed because it will be measured
             #combinedCard.write(('%-23s lnN' % "CMS_W") + ' '.join([kpatt % (Wxsec if any(x in key for x in Wcharge) else "-"    ) for key in realprocesses]) + "\n")
 
-
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
-        
-        if options.scaleFile: options.absoluteRates = True
         
         kpatt = " %7s "
     
@@ -375,26 +430,16 @@ if __name__ == "__main__":
 
         ## first make a list of all the signal processes
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
-
-        # get eta pt binning
-        etaPtBinningFile = options.inputdir + "/binningPtEta.txt"
-        with open(etaPtBinningFile) as f:
-            content = f.readlines()
-        for x in content:
-            etaPtBinning = str(x).strip() #if not str(x).startswith("#")                          
-        etabinning = etaPtBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                     
-        ptbinning  = etaPtBinning.split('*')[1]
-        etabinning = getArrayParsingString(etabinning,makeFloat=True)
-        ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
-        binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning]
  
         ## xsecfilename                                                                                                                                                    
-        hists = getXsecs(tmp_sigprocs,
-                         [i for i in sortedsystkeys if not 'wpt' in i],
-                         binning,
-                         #35.9 if channel == 'mu' else 30.9,  # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
-                         '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
-                         )
+        hists = getXsecs_etaPt(tmp_sigprocs,
+                               [i for i in sortedsystkeys if not 'wpt' in i],
+                               binning,
+                               # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
+                               # 35.9 if channel == 'mu' else 30.9,  
+                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
+                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
+                               )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
         for hist in hists:
@@ -431,7 +476,7 @@ if __name__ == "__main__":
         #combineCards.py Wel_plus=Wel_plus_card.txt Wel_plus_xsec=Wel_plus_xsec_card.txt > Wel_plus_card_withXsecMask.txt
         # text2tf.py Wel_plus_card_withXsecMask.txt --maskedChan Wel_plus_xsec --X-allow-no-background
 
-        print "merged datacard in ",cardfile
+        print "\nmerged datacard in ",cardfile
         print "datacard with xsection in ",tmp_xsec_dc_name
         cardfile_xsec = cardfile.replace('_card', '_card_withXsecMask')
         chname = options.bin+'_{ch}'.format(ch=charge)
@@ -445,14 +490,15 @@ if __name__ == "__main__":
             # masked chanel has no background, I need to use option --X-allow-no-background
             txt2tfCmd = 'text2tf.py --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec)
 
-        print "Now merging the two"
+        print "\nNow merging the two"
         print ccCmd
         os.system(ccCmd)
-        ## then running the t2w command afterwards     
-        print txt2wsCmd
-        print '-- Now running text2tf (might take time) ---------------------'
-        print 'text2tf.py has some default options that might affect the result. You are invited to check them'
-        os.system(txt2tfCmd)
+        ## then running the text2tf command afterwards     
+        if not options.skip_text2tf:
+            print "\n" + txt2tfCmd
+            print '-- Now running text2tf (might take time) ---------------------'
+            print 'text2tf.py has some default options that might affect the result. You are invited to check them'
+            os.system(txt2tfCmd)
  
 ########################################
     # end of loop over charges

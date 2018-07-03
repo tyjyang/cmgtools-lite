@@ -28,8 +28,8 @@ pfmet: met_pt : 40,0,80 ; XTitle="PF E_{T}^{miss} [GeV]", Legend='TR', IncludeOv
 tkmet: met_trkPt : 30,0,60 ; XTitle="charged PF E_{T}^{miss} [GeV]", Legend='TR', IncludeOverflows=False
 trkmetEleCorr_dy: tkmetEleCorr_pt(met_trkPt,met_trkPhi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi, abs(LepGood1_dz) < 0.1) : 30,0,60 ; XTitle="charged PF E_{T}^{miss} [GeV]", Legend='TR', IncludeOverflows=False
 
-nVert: nVert : 20,0.5,40.5; XTitle="number of vertices", Legend='TR', IncludeOverflows=True 
-rho: rho : 20,0.5,40.5; XTitle="#rho", Legend='TR', IncludeOverflows=True 
+nVert: nVert : 40,0.5,40.5; XTitle="number of vertices", Legend='TR', IncludeOverflows=True 
+rho: rho : 40,0.5,40.5; XTitle="#rho", Legend='TR', IncludeOverflows=True 
 ele1ID: LepGood1_tightId : 5,-0.5,4.5 ; XTitle="electron ID (ele1)", Legend='TL', IncludeOverflows=True
 
 awayJet_pt: LepGood_awayJet_pt : 60,20,80; XTitle="away jet p_{T} [GeV]", Legend='TR', IncludeOverflows=False

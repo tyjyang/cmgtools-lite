@@ -3,7 +3,7 @@ from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 # import some parameters from wmass_parameters.py, they are also used by other scripts
-from wmass_parameters import *
+# from wmass_parameters import *
 
 # work only if make_helicity_cards.py has a __main__, otherwise it copies everything (not good, it copies also the body)
 # from make_helicity_cards import getMcaIncl
@@ -11,51 +11,6 @@ from wmass_parameters import *
 # from make_helicity_cards import writeQCDScaleSystsToMCA
 # from make_helicity_cards import writePdfSystsToSystFile
 # from make_helicity_cards import submitBatch
-
-
-def intermediateBinning(diff):
-
-    n25 = int(diff/0.25)
-
-    rest = diff - n25*0.25
-
-    if any([np.isclose(rest,0.2), np.isclose(rest,0.15)]):
-        bins = [rest]
-        bins += [0.25 for i in range(n25)]
-    elif rest < 0.15:
-        bins = [0.25 for i in range(n25-1)] + [0.25+rest]
-
-    return bins
-
-## infile should be the reco/gen efficiency file of the electrons
-def makeYWBinning(infile, cutoff=5000):
-    
-    histo_file = ROOT.TFile(infile, 'READ')
-    
-    yw_binning = {}
-    
-    for ch in ['plus', 'minus']:
-        for pol in ['left', 'right']:
-            cp = '{ch}_{pol}'.format(ch=ch,pol=pol)
-            yw_binning[cp] = [i*0.15 for i in range(11)]
-            hname = 'w{ch}_abswy_reco_W{ch}_{pol}'.format(ch=ch,pol=pol)
-            histo = histo_file.Get(hname)
-            nlast = 0.
-            for ibin in reversed(range(1,histo.GetNbinsX()+1)):
-                if not nlast > cutoff:
-                    nlast += histo.GetBinContent(ibin)
-                else:
-                    ilast = ibin
-                    ylast = histo.GetXaxis().GetBinUpEdge(ilast)
-                    diffTo1p5 = ylast - 1.5
-                    intermediate_binning = intermediateBinning(diffTo1p5)
-                    for i in intermediate_binning:
-                        yw_binning[cp] += [yw_binning[cp][-1]+i]
-                    yw_binning[cp] += [histo.GetXaxis().GetXmax()]
-                    yw_binning[cp] = [float('{n:.2f}'.format(n=n)) for n in yw_binning[cp] ]
-                    break
-    
-    return yw_binning
 
 NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
 pdfsysts=[] # array containing the PDFs signal variations
@@ -162,7 +117,10 @@ def getGlobalBin(ix, iy, nbinsX, binFrom0=True):
     # same is expected for iy
     # If this is the case, global bin starts from 0
     #However, if binFrom0=False, it is expected that the bins start from 1 (like those of a TH1) and the globalbin that is returned will start from 1 as well
-    return (ix + iy * nbinsX)
+    if binFrom0:
+        return (ix + iy * nbinsX)
+    else:
+        return (ix-1 + (iy-1) * nbinsX) + 1  # trasform ix,iy in [1,N] to ix',iy' in [0,N-1], get global bin and sum 1 so that it starts from 1
 
 def getXYBinsFromGlobalBin(globalbin, nbinsX, binFrom0=True):
     # global bin goes from 0 to nbinX*nbinsY-1 
@@ -189,6 +147,51 @@ def getArrayBinNumberFromValue(binEdgesArray,val):
     return ret
 
 
+class templateBinning:
+    def __init__(self,etaBins=[],ptBins=[]):
+        self.etaBins = etaBins
+        self.ptBins = ptBins
+        self.Neta = len(etaBins)-1
+        self.Npt  = len(ptBins)-1
+
+    def printBin(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis"
+        print "eta bins: %s" % str(self.Neta)
+        print "pt  bins: %s" % str(self.Npt)
+
+
+def getDiffXsecBinning(inputBins, whichBins="reco"):
+
+    # whichBins can be reco or gen
+    if whichBins not in ["reco", "gen"]:
+        print "Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        exit()
+
+    # case in which we are passing a file containing the binning and not directly the binning itself
+    if inputBins.startswith("file=") or "binningPtEta.txt" in inputBins:
+        etaPtbinningFile = inputBins.replace("file=","")
+        with open(etaPtbinningFile) as f:
+            content = f.readlines()
+        for x in content:
+            if str(x).startswith(whichBins):
+                tmpbinning = (x.split(whichBins+":")[1]).strip()
+            else:
+                continue
+        etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = tmpbinning.split('*')[1]
+    else:
+        etabinning = inputBins.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = inputBins.split('*')[1]
+    etabinning = getArrayParsingString(etabinning,makeFloat=True)
+    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
+    #binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning] 
+    binning = [etabinning, ptbinning] 
+    #print binning
+    return binning
+
+
+
 if __name__ == "__main__":
 
     from optparse import OptionParser
@@ -201,6 +204,7 @@ if __name__ == "__main__":
     parser.add_option("-W", "--weight", dest="weightExpr", default="1", help="Event weight expression (default 1)");
     parser.add_option("-P", "--path", dest="path", type="string",default=None, help="Path to directory with input trees and pickle files");
     parser.add_option("-C", "--channel", dest="channel", type="string", default='el', help="Channel. either 'el' or 'mu'");
+    parser.add_option(      "--gen-binning", dest="genBinning", type="string", default='', help="Pass gen |eta|-pt binning: format is [0,1.5,2.5]*[30,35,40,45]");
     parser.add_option("--groupSignalBy", dest="groupSignalBy", type="int", default='0', help="Group signal bins in bunches of N (pass N as argument). Default is 0, meaning not using this option. This option will reduce the number of chunk datacard for signal,but jobs will last for longer");
     parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
     parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
@@ -212,6 +216,9 @@ if __name__ == "__main__":
         parser.print_usage()
         quit()
 
+    if options.genBinning == "":
+        print "Warning: need to pass binning for gen |eta|-pt. Use option --gen-binning. Exit"
+        quit()
 
     FASTTEST=''
     #FASTTEST='--max-entries 1000 '
@@ -225,6 +232,7 @@ if __name__ == "__main__":
     binning = args[3]
     SYSTFILE = args[4]
 
+    genBinning = options.genBinning
     #print "MCA: ",MCA
     luminosity = options.integratedLuminosity
 
@@ -245,7 +253,9 @@ if __name__ == "__main__":
     ## save template binning (eta on X, pt on y axis)
     ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
     ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
-    ptEta_binfile.write(binning)
+    ptEta_binfile.write("#Gen binning   : |eta|-pt on x-y axis\n")
+    ptEta_binfile.write("reco: "+binning+"\n")
+    ptEta_binfile.write("gen: "+genBinning+"\n")
     ptEta_binfile.write('\n')
     ptEta_binfile.close()
     
@@ -276,26 +286,28 @@ if __name__ == "__main__":
                     queue = options.queue, dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0]
                 )
 
-    etabinning=binning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array
-    ptbinning=binning.split('*')[1]
+    etabinning=genBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array
+    ptbinning=genBinning.split('*')[1]
     etabinning = getArrayParsingString(etabinning)
     ptbinning = getArrayParsingString(ptbinning)
     #ptVarCutEl="ptElFull(LepGood1_calPt,LepGood1_eta)"
     #ptVarCutMu="LepGood1_pt"
-    ptVarCut = "GenLepDressed_pt[0]" #  ptVarCutEl if (options.channel == "el") else ptVarCutMu
-    etaVarCut = "GenLepDressed_eta[0]" #"LepGood1_eta"
+    #ptVarCut = "GenLepDressed_pt[0]" #  ptVarCutEl if (options.channel == "el") else ptVarCutMu
+    #etaVarCut = "abs(GenLepDressed_eta[0])" #"LepGood1_eta"
     nptbins = len(ptbinning)-1
     netabins = len(etabinning)-1
-    nBinsInTemplate = (netabins)*(nptbins)
+    nGenCategories = (netabins)*(nptbins)
+    print "There are %d * %d = %d gen |eta|*pt signal categories for each charge" % (netabins,nptbins,nGenCategories)
 
     ngroup = 0
     if options.groupSignalBy:
         ngroup = int(options.groupSignalBy)
-        # below, subtract 1 because nBinsInTemplate starts from 1 (but should start from 0 for this logic)
+        # below, subtract 1 because nGenCategories starts from 1 (minimum 1 gen bin, but for the following algorithm it should start from 0)
         # then add 1 because xrange excludes the last index
-        loopBins = int((nBinsInTemplate-1)/ngroup)+1 
+        loopBins = int((nGenCategories-1)/ngroup)+1 
+        print "They will be grouped in bunches of %d (%d groups)" % (ngroup, loopBins)
     elif options.xsec_sigcard_binned:
-        loopBins = nBinsInTemplate
+        loopBins = nGenCategories
     else:
         loopBins = 1
 
@@ -305,7 +317,7 @@ if __name__ == "__main__":
     ## The former treat all bins as the rapidity bin in the helicity fit, but the number of bins here can be huge (let alone the PDf variations ...)
     ## Another way is to make signal cards grouping bins in bunches with some criteria
     ## this is enabled by option.groupSignalBy
-    ## In this case, I set loopBins so to loop from 0 to int(nBinsInTemplate/ngroup) 
+    ## In this case, I set loopBins so to loop from 0 to int(nGenCategories/ngroup) 
 
     POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
     NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
@@ -332,11 +344,13 @@ if __name__ == "__main__":
 
                     if options.channel == "el":
                         scaleXP = "" if ivar == 0 else ",.*_elescale_.*"  # note comma in the beginning
+                        flips = ",Flips"
                     else:
                         print "### WARNING: muon scale systematic is not implemented yet."
                         scaleXP = ""
-                    xpsel=' --xp "W{antich}.*,Flips,Z,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP)      
-                    ycut = POSCUT if charge=='plus' else NEGCUT
+                        flips = ""
+                    xpsel=' --xp "W{antich}.*{flips},Z,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
+                    recoChargeCut = POSCUT if charge=='plus' else NEGCUT
 
                     if options.groupSignalBy:
                         # if we are here, loopBins is not the number of bins in 2D template
@@ -362,7 +376,7 @@ if __name__ == "__main__":
                         # would be equivalent to options.groupSignalBy == 1
                         # might be removed at some point
                         ieta,ipt = getXYBinsFromGlobalBin(ibin,netabins)
-                        print "Making card for %s<=pt<%s, %s<=eta<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
+                        print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
                                                                                                             etabinning[ieta],etabinning[ieta+1],
                                                                                                             charge)
                         ##########################
@@ -370,7 +384,7 @@ if __name__ == "__main__":
                         # (the cut is in the process definition inside the mca)
                         # ptcut=" -A alwaystrue pt%d '%s>=%s && %s<%s' " % (ipt,ptVarCut,ptbinning[ipt],ptVarCut,ptbinning[ipt+1])
                         # etacut=" -A alwaystrue eta%d '%s>=%s && %s<%s' " % (ieta,etaVarCut,etabinning[ieta],etaVarCut,etabinning[ieta+1])
-                        # ycut += (ptcut + etacut)
+                        # recoChargeCut += (ptcut + etacut)
 
                         # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                         # here we don't need regular expression there is just one bin
@@ -385,7 +399,7 @@ if __name__ == "__main__":
                     else:
                         dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge, channel=options.channel,gr=ibin,syst=syst)
 
-                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + ycut
+                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
                     if options.queue:
                         mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         submitBatch(dcname,outdir,mkShCardsCmd,options)

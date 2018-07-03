@@ -76,7 +76,7 @@ useDataGH="y"
 #useHLTpt27="y" # already in selection txt file
 runBatch="n"
 queueForBatch="cmscaf1nd"
-nameTag="_cutEqualLessMore" 
+nameTag="_Run2016C" 
 #nameTag="_varStudy"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -107,7 +107,8 @@ mcafileFRclosureMC="mca-80X-qcdClosureTest.txt"  # for FR closure test based on 
 # they are excluded depending on whether the fake rate is used or not
 #excludeprocesses="data,Z_LO,W_LO,Top,DiBosons,TauDecaysW,WFlips"
 excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGraph) MC, non both! In case you can add other samples (Top, Dibosons) to speed up things
-selectprocesses="W"
+#selectprocesses="W"
+selectprocesses=""
 #selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="nJetClean,ptl1,etal1,pfmet,tkmet,ele1ID,awayJet_pt,wpt_tk,ele1dxy"  # if empty it uses all plots in cfg file
 #selectplots="ptl1,etal1,pfmet,trkmt_trkmetEleCorr,pfmt,wpt_tk,nJetClean,ele1Iso04,ele1ID"  # if empty it uses all plots in cfg file
@@ -116,7 +117,7 @@ selectprocesses="W"
 #selectplots="ptl1,etal1_binFR,pfmt,pfmet"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
-selectplots="ptl1,etal1"
+selectplots="nVert,rho,etal1_binFR,ptl1"
 #selectplots="ptl1noCorr_granBin"
 #selectplots="dphiLepPFMET,diffPt_lepPFMET,diffPt_lepPFMET_v2"
 #maxentries="150000" # max int number is > 2*10^9
@@ -131,8 +132,8 @@ maxentries=""  # all events if ""
 #scaleAllMCtoData=" --scaleBkgToData QCD --scaleBkgToData W --scaleBkgToData Z --scaleBkgToData Top --scaleBkgToData DiBosons " # does not seem to work as expected
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
-ratioPlotDataOptions=""
-#ratioPlotDataOptions="--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions=""
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -227,7 +228,7 @@ scaleMCdata["WmassSignalRegion"]="--fitData"
 # WHELICITY SIGNAL REGION (avoid possibly all kinematic selections)
 #----------------------------
 regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
-runRegion["WhelicitySignalRegion"]="y"
+runRegion["WhelicitySignalRegion"]="n"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
@@ -279,15 +280,21 @@ scaleMCdata["FRclosureMC"]=""
 # Some random plots, they are here to exploit the batch submission
 #----------------------------
 regionKey["TestPlots"]="TestPlots"
-runRegion["TestPlots"]="n"
-regionName["TestPlots"]="dataErasTest_nostack"
-skimTreeDir["TestPlots"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
-outputDir["TestPlots"]="sigRegion_${today}"
-regionCuts["TestPlots"]=" -X nJet30 ${FRnumSel} ${WselAllpt}"
+runRegion["TestPlots"]="y"
+regionName["TestPlots"]="TestPlots"
+skimTreeDir["TestPlots"]="TREES_1LEP_80X_V3_WENUSKIM_V5"
+outputDir["TestPlots"]="sigRegion_${today}_testPU_data"
+regionCuts["TestPlots"]=""
 qcdFromFR["TestPlots"]="y"
 scaleMCdata["TestPlots"]=""
-mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
-optionsTest=" --plotmode nostack --xp data"
+#mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
+#optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
+mcafileTest="mca-80X_V5_TINY_testJson.txt"
+cutfileTest="wenu_80X.txt"
+#ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data --ratioNums data_withJson,data_noJson --ratioYLabel 'pred./data'"
+#optionsTest=" --sp 'data_noJson' --xp 'data_withJson' --noStackSig  --showIndivSigs"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
+ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange "
+optionsTest=" -p 'data,data_noJson' "  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #
 #############################
 
@@ -344,7 +351,7 @@ MCweightOption=""
 if [[ "${useDataGH}" == "y" ]]; then
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #luminosity="35.9"
-    luminosity="30.9" # if using filter to have L1 threshold always below HLT, see electronDataset.txt
+    luminosity="6.12" # if using filter to have L1 threshold always below HLT, see electronDataset.txt
     MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
 else 
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp data_G,data_H "
@@ -453,14 +460,15 @@ do
 	if [[ "${regionKey[${region}]}" == "FRclosureMC" ]]; then       
 	    
 	    regionCommand="${regionCommand/${mcafile}/${mcafileFRclosureMC}}"
-	    regionCommand="${regionCommand/${ratioPlotDataOptions}/${ratioPlotDataOptions_MCclosureTest}}"  # remove ratio plot options
-	    regionCommand="${regionCommand} --sp QCD --sp QCDandEWK_fullFR --noStackSig --showIndivSigs --rebin 4"		
+	    regionCommand="${regionCommand/${ratioPlotDataOptions}/}"  # remove ratio plot options
+	    regionCommand="${regionCommand} --sp QCD --sp QCDandEWK_fullFR --noStackSig --showIndivSigs --rebin 4 ${ratioPlotDataOptions_MCclosureTest}"		
 
 	elif [[ "${regionKey[${region}]}" == "TestPlots" ]]; then       
 	    
 	    regionCommand="${regionCommand/${mcafile}/${mcafileTest}}"
-	    regionCommand="${regionCommand/${ratioPlotDataOptions}/}"  # remove ratio plot options
-	    regionCommand="${regionCommand} ${optionsTest} "
+	    regionCommand="${regionCommand/${cutfile}/${cutfileTest}}"
+	    regionCommand="${regionCommand/${ratioPlotDataOptions}/}"  # remove ratio plot options (add new one later, to avoid problems in case match is not found
+	    regionCommand="${regionCommand} ${optionsTest} ${ratioPlotDataOptions_TestPlots}"
 
 	else
 
