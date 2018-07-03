@@ -147,6 +147,20 @@ def getArrayBinNumberFromValue(binEdgesArray,val):
     return ret
 
 
+def get_ieta_ipt_from_process_name(name):
+    # name is something like  Wplus_el_ieta_1_ipt_14_Wplus_el_group_18
+    if not all([x in name for x in ["ieta","ipt"]]):
+        print "Error in get_ieta_ipt_from_process_name(): 'ieta' or 'ipt' not found in %s. Exit" % name
+        quit()
+    tokens = name.split('_')
+    for i,tkn in enumerate(tokens):
+        #print "%d %s" % (i, tkn)                                                                                                                        
+        if tkn == "ieta": ieta = int(tokens[i + 1])
+        if tkn == "ipt":  ipt  = int(tokens[i + 1])
+    return ieta,ipt
+
+
+
 class templateBinning:
     def __init__(self,etaBins=[],ptBins=[]):
         self.etaBins = etaBins
