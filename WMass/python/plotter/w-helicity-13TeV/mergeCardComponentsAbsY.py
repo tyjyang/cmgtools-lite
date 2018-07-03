@@ -90,11 +90,18 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False):
 
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
-    datacards = [os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_{sfx}.txt'.format(ch=charge,sfx=suffix) for charge in ['plus','minus']]
-    if options.combineCharges and sum([os.path.exists(card) for card in datacards])==2:
+    datacards=[]; channels=[]
+    for charge in ['plus','minus']:
+        datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_card.txt'.format(ch=charge))
+        channels.append('{bin}_{ch}'.format(bin=options.bin,ch=charge))
+        if not options.freezePOIs:
+            datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_xsec_card.txt'.format(ch=charge))
+            channels.append('{bin}_{ch}_xsec'.format(bin=options.bin,ch=charge))
+
+    if options.combineCharges and sum([os.path.exists(card) for card in datacards])==len(datacards):
         print "Cards for W+ and W- done. Combining them now..."
         combinedCard = os.path.abspath(options.inputdir)+"/"+options.bin+'_'+suffix+'.txt'
-        ccCmd = 'combineCards.py '+' '.join(['{bin}_{ch}={inp}/{bin}_{ch}_{sfx}.txt'.format(inp=os.path.abspath(options.inputdir),bin=options.bin,ch=charge,sfx=suffix) for charge in ['plus','minus']])+' > '+combinedCard
+        ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
         if options.freezePOIs:
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
             txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=combinedCard)
