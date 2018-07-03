@@ -258,10 +258,7 @@ if __name__ == "__main__":
     elif options.type == 'scans':
         valuesAndErrors = utilities.getFromScans(options.infile)
     elif options.type == 'hessian':
-        tmp = eval(open(options.infile,'r').read())
-        valuesAndErrors = {}
-        for i,j in tmp.items():
-            valuesAndErrors[i] = (j[0], j[0]-j[1], j[0]+j[1])
+        valuesAndErrors = utilities.getFromHessian(options.infile)
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
