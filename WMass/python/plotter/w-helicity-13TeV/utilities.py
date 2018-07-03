@@ -153,12 +153,14 @@ class util:
             if '_gen'   in p.GetName(): continue
             if '_In'    in p.GetName(): continue
 
-            if not tree.GetEntries() > 1:
+            if not p.GetName()+'_err' in lok: continue
+
+            if tree.GetEntries() > 1:
                 print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
                 sys.exit()
             for ev in tree:
-                mean = getattr(ev, p)
-                err  = getattr(ev, p+'_err')
+                mean = getattr(ev, p.GetName())
+                err  = getattr(ev, p.GetName()+'_err')
 
             _dict[p.GetName()] = (mean, mean+err, mean-err)
      
