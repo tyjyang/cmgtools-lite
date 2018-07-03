@@ -6,6 +6,8 @@ import ROOT, os
 from array import array
 from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getArrayBinNumberFromValue
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
 
 import sys
 #sys.path.append(os.environ['CMSSW_BASE']+"/src/CMGTools/WMass/python/plotter/")
@@ -40,24 +42,10 @@ if __name__ == "__main__":
     createPlotDirAndCopyPhp(outname)
 
     # get gen binning from file or directly from option
-    if options.etaPtbinning.startswith("file="):
-        etaPtbinningFile = options.etaPtbinning.replace("file=","")
-        with open(etaPtbinningFile) as f:
-            content = f.readlines()
-        for x in content:
-            if str(x).startswith("gen"):
-                tmpbinning = (x.split("gen:")[1]).strip()
-            else:
-                continue
-        etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
-        ptbinning  = tmpbinning.split('*')[1]
-    else:
-        etabinning = options.etaPtbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
-        ptbinning  = options.etaPtbinning.split('*')[1]
-    etabinning = getArrayParsingString(etabinning,makeFloat=True)
-    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
-    binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning] 
+    binning = getDiffXsecBinning(options.etaPtbinning, "gen")
     #print binning
+    etabinning = binning[0]
+    ptbinning  = binning[1]
 
     lepton = "electron" if channel == "el" else " muon"
     charges = options.charge.split(',')
@@ -115,7 +103,7 @@ if __name__ == "__main__":
         yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
         #zaxisTitle = "#mu::%.3g,%.3g" % (hmu.GetMinimum(), hmu.GetMaximum())
 
-        zaxisTitle = "#mu::0.99,1.01"
+        zaxisTitle = "#mu::0.998,1.002"
         drawCorrelationPlot(hmu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu.GetName(),
@@ -139,13 +127,13 @@ if __name__ == "__main__":
                             h_pmaskedexpnorm_mu_err.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
-        zaxisTitle = "d#sigma/d#etadp_{T} [pb]::%.3g,%.3g" % (h_pmaskedexp_mu.GetMinimum(), h_pmaskedexp_mu.GetMaximum())
+        zaxisTitle = "d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu.GetMinimum(), h_pmaskedexp_mu.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
-        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
+        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_err.GetName(),
@@ -156,7 +144,7 @@ if __name__ == "__main__":
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.01,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.005,0.2" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
@@ -166,7 +154,7 @@ if __name__ == "__main__":
         h_pmaskedexpnorm_mu_relErr.Divide(h_pmaskedexpnorm_mu)
         h_pmaskedexpnorm_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.0,0.015" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.004,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_relErr.GetName(),

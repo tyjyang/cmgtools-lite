@@ -147,6 +147,51 @@ def getArrayBinNumberFromValue(binEdgesArray,val):
     return ret
 
 
+class templateBinning:
+    def __init__(self,etaBins=[],ptBins=[]):
+        self.etaBins = etaBins
+        self.ptBins = ptBins
+        self.Neta = len(etaBins)-1
+        self.Npt  = len(ptBins)-1
+
+    def printBin(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis"
+        print "eta bins: %s" % str(self.Neta)
+        print "pt  bins: %s" % str(self.Npt)
+
+
+def getDiffXsecBinning(inputBins, whichBins="reco"):
+
+    # whichBins can be reco or gen
+    if whichBins not in ["reco", "gen"]:
+        print "Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        exit()
+
+    # case in which we are passing a file containing the binning and not directly the binning itself
+    if inputBins.startswith("file=") or "binningPtEta.txt" in inputBins:
+        etaPtbinningFile = inputBins.replace("file=","")
+        with open(etaPtbinningFile) as f:
+            content = f.readlines()
+        for x in content:
+            if str(x).startswith(whichBins):
+                tmpbinning = (x.split(whichBins+":")[1]).strip()
+            else:
+                continue
+        etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = tmpbinning.split('*')[1]
+    else:
+        etabinning = inputBins.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = inputBins.split('*')[1]
+    etabinning = getArrayParsingString(etabinning,makeFloat=True)
+    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
+    #binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning] 
+    binning = [etabinning, ptbinning] 
+    #print binning
+    return binning
+
+
+
 if __name__ == "__main__":
 
     from optparse import OptionParser

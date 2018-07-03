@@ -14,7 +14,7 @@ import sys,os,re,json,copy
 from mergeCardComponentsAbsY import mirrorShape
 from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getGlobalBin
-
+from make_diff_xsec_cards import getDiffXsecBinning
 
 def get_ieta_ipt_from_process_name(name):
     tokens = name.split('_')
