@@ -346,7 +346,7 @@ if __name__ == "__main__":
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu'.format(charge=charge,pol=pol,ch=channel,iy=iy)
+                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                 tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
@@ -361,7 +361,13 @@ if __name__ == "__main__":
                 tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
                 
                 if options.normxsec:
-                    xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
+                    if   options.type == 'toys': 
+                        xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
+                    elif options.type == 'hessian':
+                        xsec_fit = valuesAndErrors[parname+'_pmaskedexpnorm']
+                    else: 
+                        print "--normxsec not implemented yet for scans."
+                        sys.exit()
                 else:
                     xsec_parname = parname+'_pmaskedexp'
                     xsec_fit = valuesAndErrors[xsec_parname]
