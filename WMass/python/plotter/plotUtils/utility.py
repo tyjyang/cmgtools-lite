@@ -144,7 +144,12 @@ def drawCorrelationPlot(h2D,
     if (setZAxisRangeFromUser): maxZaxisVal = zmax
 
     if maxZaxisVal >= 1.0:
-        h2DPlot.GetZaxis().SetMaxDigits(3)
+        rootYear = int(str(ROOT.gROOT.GetVersionDate())[:4])        
+        if (rootYear > 2016):
+            h2DPlot.GetZaxis().SetMaxDigits(3)
+        else:
+            print "Warning in drawCorrelationPlot: TAxis::SetMaxDigits() not implemented for ROOT versions before 2017 (rough estimate)"
+            print "Will not exit, but instruction will be neglected"
     else:
         i = 1
         tryNext = True
