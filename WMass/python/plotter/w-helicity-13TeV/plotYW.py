@@ -1,5 +1,8 @@
 #!/bin/env python
-# USAGE: python plotYW.py --type toys --infile toys_wplus.root -y cards_el/binningYW.txt -C plus -o plots --xsecfile Wel_plus_shapes_xsec.root [--normxsec]
+# USAGE: python plotYW.py --type toys --infile toys_wplus.root -y cards_el/binningYW.txt -C plus -o plots --xsecfiles Wel_plus_shapes_xsec.root [--normxsec]
+#
+# When run on the W+ W- combined fit it also makes charge asymmetry plot:
+# python plotYW.py --type toys --infile toys_wboth.root -y cards_el/binningYW.txt -C plus,minus -o plots --xsecfiles Wel_plus_shapes_xsec.root,Wel_minus_shapes_xsec.root
 
 import ROOT, datetime, array, os, math, re
 ROOT.gROOT.SetBatch(True)
