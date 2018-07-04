@@ -8,6 +8,7 @@ from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getArrayBinNumberFromValue
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 import sys
 #sys.path.append(os.environ['CMSSW_BASE']+"/src/CMGTools/WMass/python/plotter/")
@@ -81,10 +82,7 @@ if __name__ == "__main__":
                 if not "W{ch}".format(ch=charge) in name: continue
                 if any(x in name for x in ["_minosup", "_minosdown", "_gen"]): continue
                 # name should be like Wplus_el_ieta_4_ipt_1_Wplus_el_group_6_mu
-                tokens = name.split('_')
-                for i,tkn in enumerate(tokens):
-                    if tkn == "ieta": etabinIndex = int(tokens[i + 1])
-                    if tkn == "ipt": ptbinIndex = int(tokens[i + 1])
+                etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(name)
                     # eta and pt index start from 0, the corresponding histogram bin number is bin+1
 
                 print "%s = %f" % (name, p.GetValue())

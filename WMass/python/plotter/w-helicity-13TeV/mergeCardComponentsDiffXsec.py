@@ -15,14 +15,7 @@ from mergeCardComponentsAbsY import mirrorShape
 from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getGlobalBin
 from make_diff_xsec_cards import getDiffXsecBinning
-
-def get_ieta_ipt_from_process_name(name):
-    tokens = name.split('_')
-    for i,tkn in enumerate(tokens):
-        #print "%d %s" % (i, tkn)                                                                                                                        
-        if tkn == "ieta": ieta = int(tokens[i + 1])
-        if tkn == "ipt":  ipt  = int(tokens[i + 1])
-    return ieta,ipt
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
 def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi

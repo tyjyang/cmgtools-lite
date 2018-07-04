@@ -202,7 +202,7 @@ os.system("cp %s %s" % (MCA, outdir))
 ## save template binning (eta on X, pt on y axis)                                                                                                                       
 ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
 ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
-ptEta_binfile.write(binning)
+ptEta_binfile.write("reco: "+binning+"\n")
 ptEta_binfile.write('\n')
 ptEta_binfile.close()
 
