@@ -188,7 +188,7 @@ class util:
      
         return _dict
 
-    def getHistosFromToys(self, infile):
+    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -201,7 +201,7 @@ class util:
             if '_gen'   in p.GetName(): continue
             if '_In'    in p.GetName(): continue
             
-            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3., 3.)
+            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
             tree.Draw(p.GetName()+'>>'+p.GetName())
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
