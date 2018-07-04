@@ -20,7 +20,7 @@ from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getArrayBinNumberFromValue
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
-
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 import sys
 #sys.path.append(os.environ['CMSSW_BASE']+"/src/CMGTools/WMass/python/plotter/")
@@ -246,11 +246,7 @@ if __name__ == "__main__":
 
                         if name.split('_')[-2] == "group":
 
-                            tokens = name.split('_')
-                            for i,tkn in enumerate(tokens):                            
-                                #print "%d %s" % (i, tkn)
-                                if tkn == "ieta": etabinIndex = int(tokens[i + 1])
-                                if tkn == "ipt": ptbinIndex = int(tokens[i + 1])                                                    
+                            etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(name)
                             if options.draw_all_bins: drawThisBin = True
                             elif options.draw_selected_etaPt != '':
                                 if etabinIndex != ieta_sel or ptbinIndex != ipt_sel: drawThisBin = False                            
