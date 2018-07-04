@@ -76,7 +76,7 @@ useDataGH="y"
 #useHLTpt27="y" # already in selection txt file
 runBatch="n"
 queueForBatch="cmscaf1nd"
-nameTag="_Run2016C" 
+nameTag="_AllRun2016" 
 #nameTag="_varStudy"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -117,7 +117,7 @@ selectprocesses=""
 #selectplots="ptl1,etal1_binFR,pfmt,pfmet"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
-selectplots="nVert,rho,etal1_binFR,ptl1"
+selectplots="nVert,rho"
 #selectplots="ptl1noCorr_granBin"
 #selectplots="dphiLepPFMET,diffPt_lepPFMET,diffPt_lepPFMET_v2"
 #maxentries="150000" # max int number is > 2*10^9
@@ -289,12 +289,12 @@ qcdFromFR["TestPlots"]="y"
 scaleMCdata["TestPlots"]=""
 #mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
 #optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
-mcafileTest="mca-80X_V5_TINY_testJson.txt"
+mcafileTest="mca-data-testJSON.txt"  #"mca-80X_V5_TINY_testJson.txt"
 cutfileTest="wenu_80X.txt"
 #ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data --ratioNums data_withJson,data_noJson --ratioYLabel 'pred./data'"
 #optionsTest=" --sp 'data_noJson' --xp 'data_withJson' --noStackSig  --showIndivSigs"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
-ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange "
-optionsTest=" -p 'data,data_noJson' "  # --showIndivSigShapes or --showIndivSigs or --showSigShape
+ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen dataAll --ratioNums dataJson --ratioYLabel 'Json/All'"
+optionsTest=" --sp 'dataAll' --plotmode norm -X json --noLegendRatioPlot"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #
 #############################
 
@@ -350,8 +350,8 @@ dataOption=""
 MCweightOption=""
 if [[ "${useDataGH}" == "y" ]]; then
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
-    #luminosity="35.9"
-    luminosity="6.12" # if using filter to have L1 threshold always below HLT, see electronDataset.txt
+    luminosity="35.9"
+    #luminosity="30.9" # if using filter to have L1 threshold always below HLT, see electronDataset.txt
     MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
 else 
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp data_G,data_H "
