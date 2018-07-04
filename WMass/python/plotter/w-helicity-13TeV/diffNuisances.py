@@ -2,8 +2,6 @@
 ## USAGE:  python diffNuisances.py fitresults.root --type hessian --pois ".*maskedexpnorm" --outdir plots -a --format html > xsecnorm.html
 ## add "--abs" to show the absolute value of the fitted nuisance and not the shift wrt the prefit
 
-python diffNuisances.py multidimfit.root --outdir pdfsSyst/ --suffix plus -p 'pdf.*'
-
 import re
 from sys import argv, stdout, stderr, exit
 import datetime
