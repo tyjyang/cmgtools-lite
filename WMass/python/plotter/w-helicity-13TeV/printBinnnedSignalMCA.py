@@ -51,13 +51,18 @@ else:
 
 charges = [ "plus", "minus"]
 flav=options.channel
-
+if flav not in ["el","mu"]:
+    print "Error in printBinnnedSignalMCA.py: unknown lepton flavour, use -c el|mu. Exit"
+    exit(0)
 
 syst_suffix = ["_elescale_Up", "_elescale_Dn"] 
 labels = ["lep scale Up", "lep scale Dn"]  
 syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
-all_syst_suffix.extend(syst_suffix)
+if flav == "el": 
+    all_syst_suffix.extend(syst_suffix)
+else:
+    print "----- Warning: muon scale systematics is not implemented yet -----"
 
 for syst in all_syst_suffix:
 
@@ -82,12 +87,15 @@ for syst in all_syst_suffix:
                 fullcut = etacut + " && " + ptcut
                 fullcut = fullcut + " && genw_decayId == " + str(genDecayId) 
                 fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
-                fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
+                if flav == "el": 
+                    fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
 
-                line = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}{syst} : WJetsToLNu_NLO* : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
-                                                                                                                                               ieta=ieta,ipt=ipt,
-                                                                                                                                               cut=fullcut,lab=label,
-                                                                                                                                               syst=syst)
+                sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"
+                line = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
+                                                                                                                                            ieta=ieta,ipt=ipt,
+                                                                                                                                            cut=fullcut,lab=label,
+                                                                                                                                            syst=syst,
+                                                                                                                                            sigRegExpr=sigRegExpr)
                 if syst != "": line += ", SkipMe=True"
                 mcafile.write(line+"\n")
 
@@ -98,6 +106,3 @@ for syst in all_syst_suffix:
 
 mcafile.close()
 
-
-#Wplus   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge>0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2 , Label="W+"
-#Wminus  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge<0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2 , Label="W-"
