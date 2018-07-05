@@ -22,15 +22,19 @@ ROOT.gStyle.SetOptStat(0)
 #ROOT.gStyle.SetPadRightMargin(0.13)
 ROOT.gROOT.SetBatch()
 
-def getTH1fromTH2(h2D,h2Derr=0):
-    nbins = h2D.GetNbinsX() * h2D.GetNbinsY()
-    goodname = h2D.GetName()
-    h2D.SetName(goodname+"_unrollTo1D")
-    newh = ROOT.TH1D(goodname,h2D.GetTitle(),nbins,0.5,nbins+0.5)
+def getTH1fromTH2(h2D,h2Derr=0,unrollAlongX=True):  # unrollAlongX=True --> select rows, i.e. takes a stripe from x1 to xn at same y, then go to next stripe at next y
+    nX = h2D.GetNbinsX()
+    nY = h2D.GetNbinsY()
+    nbins = nX * nY
+    name = h2D.GetName() + "_unrollTo1D" 
+    newh = ROOT.TH1D(name,h2D.GetTitle(),nbins,0.5,nbins+0.5)
     if 'TH2' not in h2D.ClassName(): raise RuntimeError, "Calling getTH1fromTH2 on something that is not TH2"
-    for i in xrange(h2D.GetNbinsX()):
-        for j in xrange(h2D.GetNbinsY()):
-            bin = 1 + i + j*h2D.GetNbinsX()
+    for i in xrange(nX):
+        for j in xrange(nY):
+            if unrollAlongX:
+                bin = 1 + i + j * nX
+            else:
+                bin = 1 + j + i * nY
             newh.SetBinContent(bin,h2D.GetBinContent(i+1,j+1))
             if h2Derr: newh.SetBinError(bin,h2Derr.GetBinContent(i+1,j+1))
             else:      newh.SetBinError(bin,h2D.GetBinError(i+1,j+1))
@@ -217,7 +221,14 @@ if __name__ == "__main__":
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         # now drawing a TH1 unrolling TH2
-        h1D_pmaskedexp = getTH1fromTH2(h_pmaskedexp_mu, h_pmaskedexp_mu_err)
-        
+        unrollAlongEta = False
+        xaxisTitle = "template global bin"
+        if unrollAlongEta:
+            xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (len(etabinning)-2,0,len(ptbinning)-2,0,len(etabinning)-2)
+        else:
+            xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (len(ptbinning)-2,0,len(ptbinning)-2,0,len(etabinning)-2)
+        h1D_pmaskedexp = getTH1fromTH2(h_pmaskedexp_mu, h_pmaskedexp_mu_err, unrollAlongX=unrollAlongEta)        
+        drawSingleTH1(h1D_pmaskedexp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]","unrolledXsec_pmaskedexp_{ch}_{fl}".format(ch= charge,fl=channel),
+                      outname,draw_both0_noLog1_onlyLog2=1,canvasSize="3000,2000")
 
         #infile.Close()
