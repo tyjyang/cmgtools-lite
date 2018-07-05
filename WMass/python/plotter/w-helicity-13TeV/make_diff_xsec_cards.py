@@ -2,8 +2,6 @@
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
-# import some parameters from wmass_parameters.py, they are also used by other scripts
-# from wmass_parameters import *
 
 # work only if make_helicity_cards.py has a __main__, otherwise it copies everything (not good, it copies also the body)
 # from make_helicity_cards import getMcaIncl
@@ -346,6 +344,8 @@ if __name__ == "__main__":
             for ivar,var in enumerate(wsyst):
                 for charge in ['plus','minus']:
                     antich = 'plus' if charge == 'minus' else 'minus'
+                    # ivar == 0 --> nominal, root file should also contain lepton scale systematic if implemented
+                    # ivar != 0 --> shape systematics: pdf, qcd scales, wptSlope 
                     if ivar==0: 
                         IARGS = ARGS
                     else: 
@@ -378,7 +378,11 @@ if __name__ == "__main__":
                             # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                             # consider elescale separately (for systematics, i.e. ivar!=0, it is excluded with --xp)
                             if ivar == 0:
-                                selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*,'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                if options.channel == "el":
+                                    lepscale = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*,".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                else:
+                                    lepscale = ""
+                                selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},{lepscale}'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)
                             else:
                                 selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst},'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
                         if selectedSigProcess.endswith(','):
@@ -403,7 +407,11 @@ if __name__ == "__main__":
                         # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                         # here we don't need regular expression there is just one bin
                         if ivar == 0:
-                            selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)  
+                            if options.channel == "el":
+                                lepscale = ",W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                            else:
+                                lepscale = ""                            
+                            selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{lepscale}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)  
                         else:
                             selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)  
 
