@@ -28,14 +28,28 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
-runOnSignal = True
+runOnSignal = False
+doTriggerMatching = True
 keepLHEweights = False
+signalZ = False
 
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
 ttHLepSkim.maxLeptons = 999
 #ttHLepSkim.idCut  = ""
-ttHLepSkim.ptCuts = [25]
+ttHLepSkim.ptCuts = [23]
+
+if doTriggerMatching:
+    ttHLepSkim.minLeptons = 2
+    ttHLepSkim.maxLeptons = 999
+    #ttHLepSkim.idCut  = ""
+    ttHLepSkim.ptCuts = [23, 23]
+
+    print 'adding the trigger match analyzer'
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaEle )
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaTkMu)
+
 
 # Run miniIso
 lepAna.doMiniIsolation = True
@@ -217,6 +231,8 @@ triggerFlagsAna.unrollbits = True
 triggerFlagsAna.saveIsUnprescaled = True
 triggerFlagsAna.checkL1Prescale = True
 
+## do some trigger matching for the trigger efficiency studies
+
 from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv2 import *
 from CMGTools.RootTools.samples.samples_13TeV_DATA2016 import *
 from CMGTools.HToZZ4L.tools.configTools import printSummary, configureSplittingFromTime, cropToLumi, prescaleComponents, insertEventSelector, mergeExtensions
@@ -240,7 +256,9 @@ configureSplittingFromTime(samples_1prompt,50,6)
 configureSplittingFromTime(samples_signal,100,6)
 
 if runOnSignal:
-    selectedComponents = [WJetsToLNu_LO,WJetsToLNu_LO_ext]
+    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2, WJetsToLNu_LO,WJetsToLNu_LO_ext]
+elif doTriggerMatching:
+    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2] #WJetsToLNu_LO,WJetsToLNu_LO_ext]
 else:
     #selectedComponents = samples_1prompt + samples_1fake 
     selectedComponents = QCDPtbcToE
@@ -265,7 +283,7 @@ if runData and not isTest: # For running on data
     json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    processing = "Run2016B-07Aug17_ver2-v2"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+    processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
     for era in 'CDEFGH':
         processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
     
@@ -276,7 +294,7 @@ if runData and not isTest: # For running on data
     # DatasetsAndTriggers.append( ("DoubleMuon", triggers_mumu_iso + triggers_mumu_ss + triggers_mumu_ht + triggers_3mu + triggers_3mu_alt) )
     # DatasetsAndTriggers.append( ("DoubleEG",   triggers_ee + triggers_ee_ht + triggers_3e) )
     # DatasetsAndTriggers.append( ("MuonEG",     triggers_mue + triggers_mue_ht + triggers_2mu1e + triggers_2e1mu) )
-    #DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso + triggers_1mu_noniso) )
+    DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso + triggers_1mu_noniso) )
     DatasetsAndTriggers.append( ("SingleElectron", triggers_1e) )
 
     if runDataQCD: # for fake rate measurements in data
@@ -311,7 +329,7 @@ if runData and not isTest: # For running on data
                     from CMGTools.Production.promptRecoRunRangeFilter import filterComponent
                     filterComponent(comp, verbose=1)
                 print "Will process %s (%d files)" % (comp.name, len(comp.files))
-                comp.splitFactor = len(comp.files)/4
+                comp.splitFactor = len(comp.files)/3
                 comp.fineSplitFactor = 1
                 selectedComponents.append( comp )
             if exclusiveDatasets: vetos += triggers
@@ -433,13 +451,17 @@ test = getHeppyOption('test')
 if test == 'testw' or test=='testz' or test=='testdata':
     if test=='testw':
         comp = WJetsToLNu_LO
-        comp.files = ['/eos/cms/store/cmst3/user/psilva/Wmass/WJetsMG_test/0A85AA82-45BB-E611-8ACD-001E674FB063-9552f253c2fa2ae.root']
+        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/WJetsMG_test_0A85AA82-45BB-E611-8ACD-001E674FB063-9552f253c2fa2ae.root']
     elif test=='testz':
         comp=DYJetsToLL_M50
         comp.files=['/eos/cms/store/cmst3/user/psilva/Wmass/DYJetsMG_test/FCDD4D28-12C4-E611-8BFC-C4346BC8F6D0.root']
     else:
-        comp=MuonEG_Run2016B_18Apr2017
-        comp.files=['/eos/cms/store/data/Run2016G/SingleMuon/MINIAOD/18Apr2017-v1/120000/1C169863-7541-E711-81BD-1CC1DE1CEFE0.root']
+        #comp=MuonEG_Run2016B_18Apr2017
+        comp=SingleElectron_Run2016C_03Feb2017
+        #comp.files=['/eos/cms/store/data/Run2016G/SingleMuon/MINIAOD/18Apr2017-v1/120000/1C169863-7541-E711-81BD-1CC1DE1CEFE0.root']
+        #comp.files=['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/Run2016G-SingleMuon-MINIAOD-18Apr2017-v1-120000_1C169863-7541-E711-81BD-1CC1DE1CEFE0.root']
+        #comp.files=['/eos/cms/store/data/Run2016D/MuonEG/MINIAOD/03Feb2017-v1/80000/92E2F2D7-BAEA-E611-A725-0090FAA583C4.root']
+        comp.files=['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     print comp.files
     comp.splitFactor = 1
     comp.fineSplitFactor = 1
@@ -454,6 +476,7 @@ elif test == '2':
         comp.splitFactor = 1
         comp.fineSplitFactor = 1
 elif test == '3':
+    selectedComponents = selectedComponents[:1]
     for comp in selectedComponents:
         comp.files = comp.files[:1]
         comp.splitFactor = 1
@@ -532,7 +555,7 @@ if not keepLHEweights:
     if lheWeightAna in sequence: sequence.remove(lheWeightAna)
     histoCounter.doLHE = False
 
-if runOnSignal:
+if runOnSignal and not signalZ:
     if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
     if triggerAna in sequence: sequence.remove(triggerAna)
     if genAna in sequence: genAna.saveAllInterestingGenParticles = True

@@ -54,6 +54,37 @@ triggerFlagsAna = cfg.Analyzer(
     }
     )
 
+# Trigger match analyzer
+triggerMatchAnaEle = cfg.Analyzer(
+    TriggerMatchAnalyzer, name="TriggerMatchAnalyzerEle",
+    instance_label='wmassEle',
+    processName = 'PAT',
+    fallbackProcessName = 'RECO',
+    unpackPathNames = True,
+    trgObjSelectors = [ lambda t : t.path("HLT_Ele27_WPTight_Gsf_v*",1,0)],
+    collToMatch = 'selectedLeptons',
+    collMatchSelectors = [lambda l,t : abs(l.pdgId()) == 11 ],
+    collMatchDRCut = 0.3,
+    univoqueMatching = True,
+    verbose = False
+    )
+
+# Trigger match analyzer
+triggerMatchAnaMu = triggerMatchAnaEle.clone(
+    name="TriggerMatchAnalyzerMu",
+    instance_label='wmassMu',
+    trgObjSelectors = [ lambda t : t.path('HLT_IsoMu24_v*',1,0) ],
+    collMatchSelectors = [lambda l,t : abs(l.pdgId()) == 13 ],
+    )
+
+# Trigger match analyzer
+triggerMatchAnaTkMu = triggerMatchAnaMu.clone(
+    name="TriggerMatchAnalyzerTkMu",
+    instance_label='wmassTkMu',
+    trgObjSelectors = [ lambda t : t.path('HLT_IsoTkMu24_v*',1,0) ],
+    )
+
+
 # Create flags for MET filter bits
 eventFlagsAna = cfg.Analyzer(
     TriggerBitAnalyzer, name="EventFlags",
