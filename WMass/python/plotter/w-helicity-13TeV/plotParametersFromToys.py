@@ -22,7 +22,7 @@ from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 lat = ROOT.TLatex(); lat.SetNDC()
 
-def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir='./', suffix='', analysis='helicity', excludeName=None, paramFamily=None):
+def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir='./', suffix='', analysis='helicity', excludeName=None, paramFamily=None,plotPull=False):
  
     # get parameters: it will allow to understand if using W+ or W- and electron channel
     all_valuesAndErrors = utilities.getHistosFromToys(inputFile)
@@ -44,18 +44,18 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
     if paramFamily:
         if paramFamily == "pdf":
             pois="pdf.*"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
         elif paramFamily == "scale":
             pois="muR,muF,muRmuF,alphaS,wptSlope" 
             if channel == "el":
                 pois += ",CMS_We_elescale,CMS_We_FRe_pt,CMS_We_FRe_norm"
             else:
                 pois += ",CMS_We_elescale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_norm"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
         elif paramFamily == "signalStrength":
             pois="W{ch}.*_mu".format(ch=charge)
             isSignalStrength = True
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull)
     else:
         # warning: utilities.getHistosFromToys is working only for parameters centered around 0 (histogram is defined in -3,3)
         # this script will not work if using parameters with pmaskedexp
@@ -65,10 +65,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 print "You might want to change behaviour of function utilities.getHistosFromToys to use those parameters as well" 
                 exit(0)
         if any ([wc in poi for wc in ["Wplus","Wminus"] for poi in pois.split(",")]):
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull)
             isSignalStrength = True
         else:
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
             
 
     print "From the list of parameters it seems that you are plotting results for channel ",channel
@@ -114,7 +114,11 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
     for name in params:
 
         print "Making pull for parameter ",name
+        # look in utilities.py for getHistosFromToys(: if plotting pull, the histogram is defined as (x-x_gen)x_err,
+        # while valuesAndErrors[name][0] and valuesAndErrors[name][1] are defined as mean and rms of original histogram from x
+        # if option getPull of getHistosFromToys is False, then there is no difference
         mean_p, sigma_p = (valuesAndErrors[name][0],valuesAndErrors[name][1]-valuesAndErrors[name][0])
+        #mean_p, sigma_p = (valuesAndErrors[name][3].GetMean(),valuesAndErrors[name][3].GetStdDev())
 
         histo = valuesAndErrors[name][3]
         if isSignalStrength and histo.GetStdDev() > 0.05:
@@ -155,7 +159,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             
             # tlatex.SetTextSize(0.11);
             # tlatex.SetTextColor(1);
-            # tlatex.DrawLatex(0.65,0.33,"Post-fit #pm #sigma_{#theta}: %.3f #pm %.3f" % (mean_p, sigma_p))
+            # tlatex.DrawLatex(0.65,0.33,"Post-fit #pm #sigma_{#theta}: %.3f #pm %.3f" % (mean_P p), sigma_p))
 
             pullSummaryMap[name]=(histo.GetFunction("gaus").GetParameter(1),histo.GetFunction("gaus").GetParameter(2),
                                   histo.GetMean(),utilities.effSigma(histo))
@@ -174,7 +178,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             chi2distr.GetYaxis().SetTitle("Events")
             chi2distr.GetYaxis().SetTitleOffset(1.05)     
             chi2distr.GetYaxis().SetTitleSize(0.05)       
-            overflow = 100. * chi2distr.GetBinContent(chi2distr.GetNbinsX() + 1) / chi2distr.GetEntries()  # use as XX %, multiplying by 100
+            if chi2distr.GetEntries():
+                overflow = 100. * chi2distr.GetBinContent(chi2distr.GetNbinsX() + 1) / chi2distr.GetEntries()  # use as XX %, multiplying by 100
+            else:
+                overflow = 0
             lat.DrawLatex(0.12, 0.8, 'W{ch} #rightarrow {lep}#nu'.format(ch=chs,lep="e" if channel == "el" else "#mu"))
             lat.DrawLatex(0.12, 0.7, 'mean:  {me:.3f}'.format(me=chi2distr.GetMean()))
             lat.DrawLatex(0.12, 0.6, 'RMS :  {er:.2f}'.format(er=chi2distr.GetStdDev()))
@@ -269,7 +276,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             pull_rms.SetLabelSize(pullLabelSize)
             pull_rms.LabelsOption("v")
             yrange = 3. 
-            if isSignalStrength:
+            if isSignalStrength and not plotPull:
                 pull_rms.GetYaxis().SetRangeUser(0.9,1.1)
             else:
                pull_rms.GetYaxis().SetRangeUser(-yrange,yrange)
@@ -307,7 +314,7 @@ if __name__ == "__main__":
     parser.add_option(      '--pdir'        , dest='plotdir'  , default='./'   , type='string', help='directory to save the likelihood scans')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''     , type='string', help='suffix to give to the plot files')
     parser.add_option('-a', '--analysis'    , dest='analysis' , default='helicity', type='string', help='Which analysis: helicity or diffXsec') 
-
+    parser.add_option(      '--pull'    , dest="plotpull", action="store_true", default=False, help="When making the pull plot, get really the pull from histogram (define histogram using (x-x_gen)/x_err for parameter x");
     (options, args) = parser.parse_args()
 
     if len(args)<1: 
@@ -324,5 +331,5 @@ if __name__ == "__main__":
 
     toyfile = args[0]
     plotPars(toyfile,pois=options.pois,maxPullsPerPlot=30,plotdir=outname,suffix=options.suffix,analysis=options.analysis,
-             excludeName=options.excludeParam,paramFamily=options.poisFamily)
+             excludeName=options.excludeParam,paramFamily=options.poisFamily,plotPull=options.plotpull)
 
