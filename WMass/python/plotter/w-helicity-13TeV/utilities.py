@@ -188,7 +188,10 @@ class util:
      
         return _dict
 
-    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0):
+    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False):
+
+        # getPull = True will return a histogram centered at 0 and with expected rms=1, obtained as (x-x_gen)/x_err
+
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -201,10 +204,21 @@ class util:
             if '_gen'   in p.GetName(): continue
             if '_In'    in p.GetName(): continue
             
-            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
-            tree.Draw(p.GetName()+'>>'+p.GetName())
-            mean = tmp_hist.GetMean()
-            err  = tmp_hist.GetRMS()
+            if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
+                #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
+                tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
+                tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3, 3)
+                expression = "({p}-{pgen})/{perr}".format(p=p.GetName(),pgen=p.GetName()+"_gen",perr=p.GetName()+"_err")
+                tree.Draw(expression+'>>'+p.GetName())
+                tree.Draw(p.GetName()+'>>'+p.GetName()+"_tmp")
+                mean = tmp_hist_tmp.GetMean()
+                err  = tmp_hist_tmp.GetRMS()
+            else:
+                tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
+                tree.Draw(p.GetName()+'>>'+p.GetName())
+                mean = tmp_hist.GetMean()
+                err  = tmp_hist.GetRMS()
+
             tmp_hist.SetDirectory(None)
             _dict[p.GetName()] = (mean, mean+err, mean-err, tmp_hist)
      

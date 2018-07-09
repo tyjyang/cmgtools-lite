@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-# python w-helicity-13TeV/plotDiffXsecFromFit.py fitresults_42.root -o plots/diffXsec/fitAsimov/diffXsec_2018_06_25_group5_coarsebin/ -c el -C plus -b file=cards/diffXsec_2018_06_25_group5_coarsebin/binningPtEta.txt
+# python w-helicity-13TeV/plotDiffXsecFromFit.py fitresults_42.root -o plots/diffXsec/fitresults/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/ -c el -C plus -b cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/binningPtEta.txt -n
+# use -t toys to run of toys
 
 import ROOT, os
 from array import array
@@ -95,7 +96,7 @@ if __name__ == "__main__":
             valuesAndErrors = utilities.getFromHessian(args[0])
 
         #channel check
-        channel = 'mu' if any(re.match(param,'.*_mu_group_.*') for param in valuesAndErrors.keys()) else 'el'
+        channel = 'mu' if any(re.match('.*_mu_group_.*',param) for param in valuesAndErrors.keys()) else 'el'
         print "From the list of parameters it seems that you are plotting results for channel ",channel
         lepton = "electron" if channel == "el" else " muon"
 
@@ -169,7 +170,8 @@ if __name__ == "__main__":
                             hmu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
-        zaxisTitle = "uncertainty on #mu::%.3g,%.3g" % (hmu_err.GetMinimum(), hmu_err.GetMaximum())
+        #zaxisTitle = "uncertainty on #mu::%.3g,%.3g" % (hmu_err.GetMinimum(), hmu_err.GetMaximum())
+        zaxisTitle = "uncertainty on #mu::0,%.3g" % (hmu_err.GetMaximum())
         drawCorrelationPlot(hmu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu_err.GetName(),
@@ -204,7 +206,7 @@ if __name__ == "__main__":
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.005,0.2" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.2" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
@@ -214,7 +216,7 @@ if __name__ == "__main__":
         h_pmaskedexpnorm_mu_relErr.Divide(h_pmaskedexpnorm_mu)
         h_pmaskedexpnorm_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.004,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.000,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_relErr.GetName(),
@@ -229,6 +231,6 @@ if __name__ == "__main__":
             xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (len(ptbinning)-2,0,len(ptbinning)-2,0,len(etabinning)-2)
         h1D_pmaskedexp = getTH1fromTH2(h_pmaskedexp_mu, h_pmaskedexp_mu_err, unrollAlongX=unrollAlongEta)        
         drawSingleTH1(h1D_pmaskedexp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]","unrolledXsec_pmaskedexp_{ch}_{fl}".format(ch= charge,fl=channel),
-                      outname,draw_both0_noLog1_onlyLog2=1,canvasSize="3000,2000")
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",draw_both0_noLog1_onlyLog2=1,canvasSize="3000,2000")
 
         #infile.Close()
