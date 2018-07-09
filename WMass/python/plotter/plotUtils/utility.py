@@ -260,10 +260,12 @@ def drawSingleTH1(h1,
                   draw_both0_noLog1_onlyLog2=0,                  
                   leftMargin=0.12,
                   rightMargin=0.04,
+                  labelRatioTmp="Rel.Unc.::0.5,1.5",
                   drawStatBox=False,
                   legendCoords="0.15,0.35,0.3,0.45",  # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
-                  lowerPanelHeight = 0.3  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+                  lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+                  drawLineLowerPanel="lumi. uncertainty::0.026" # if not empty, draw band at 1+ number after ::, and add legend with title
                   ):
 
     if (rebinFactorX): 
@@ -273,6 +275,7 @@ def drawSingleTH1(h1,
 
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -280,10 +283,11 @@ def drawSingleTH1(h1,
     cw,ch = canvasSize.split(',')
     #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
     canvas = ROOT.TCanvas("canvas","",int(cw),int(ch))
-    canvas.SetLeftMargin(leftMargin)
-    canvas.SetRightMargin(rightMargin)
     canvas.SetTickx(1)
     canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
     canvas.cd()
 
     pad2 = 0
@@ -375,11 +379,11 @@ def drawSingleTH1(h1,
         pad2.cd()
 
         frame.Reset("ICES")
-        #if setYAxisRatioRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+        if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
         #else:                          
-        frame.GetYaxis().SetRangeUser(0.75,1.25)
+        #frame.GetYaxis().SetRangeUser(0.5,1.5)
         frame.GetYaxis().SetNdivisions(5)
-        frame.GetYaxis().SetTitle("Rel.Unc.")
+        frame.GetYaxis().SetTitle(yRatioAxisName)
         frame.GetYaxis().SetTitleOffset(1.15)
         frame.GetYaxis().SetTitleSize(0.05)
         frame.GetYaxis().SetLabelSize(0.04)
@@ -406,6 +410,25 @@ def drawSingleTH1(h1,
         line.SetLineColor(ROOT.kRed)
         line.SetLineWidth(2)
         line.Draw("Lsame")
+
+        if drawLineLowerPanel:
+            legEntry,yline = drawLineLowerPanel.split('::')
+            line2 = ROOT.TF1("horiz_line_2",str(1+float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line3 = ROOT.TF1("horiz_line_3",str(1-float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line2.SetLineColor(ROOT.kBlue)
+            line2.SetLineWidth(2)
+            line2.Draw("Lsame")
+            line3.SetLineColor(ROOT.kBlue)
+            line3.SetLineWidth(2)
+            line3.Draw("Lsame")
+            leg2 = ROOT.TLegend(0.15,0.22,0.35,0.32)
+            leg2.SetFillColor(0)
+            leg2.SetFillStyle(0)
+            leg2.SetBorderSize(0)
+            leg2.AddEntry(line2,legEntry,"L")
+            leg2.Draw("same")
+
+        
         pad2.RedrawAxis("sameaxis")
 
 
