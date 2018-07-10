@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ## USAGE
-## python plotParametersFromToys.py toys_wminus.root --pdir plots --suffix minus [--param-family signalStrength -a diffXsec]
+## python plotParametersFromToys.py toys_wminus.root --pdir plots -c minus -f el [--param-family signalStrength -a diffXsec]
 ## use option ' -a diffXsec ' for differential cross section analysis
 ## It is better to use  option --param-family to specify a class of POIS, it is almost equivalent to  --parameters.
 
@@ -22,20 +22,11 @@ from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 lat = ROOT.TLatex(); lat.SetNDC()
 
-def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir='./', suffix='', analysis='helicity', excludeName=None, paramFamily=None,plotPull=False):
+def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir='./', suffix='', analysis='helicity', 
+             excludeName=None, paramFamily=None,plotPull=False,
+             channel='el', charge='plus'):
  
-    # get parameters: it will allow to understand if using W+ or W- and electron channel
-    all_valuesAndErrors = utilities.getHistosFromToys(inputFile)
-    # check channel
-    matchString = ".*_mu_Ybin_.*" if analysis == "helicity" else ".*_mu_group_.*"
-    channel = 'mu' if any(re.match(param,matchString) for param in all_valuesAndErrors.keys()) else 'el'
-    # check charge
-    if "plus" in suffix: 
-        charge = "plus"
-    elif "minus" in suffix: 
-        charge = "minus"
-    else:
-        charge = "plus" if any(re.match("^Wplus.*_mu",param) for param in all_valuesAndErrors.keys()) else "minus"
+    
 
     chs = "+" if charge == "plus" else "-"
 
@@ -44,18 +35,18 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
     if paramFamily:
         if paramFamily == "pdf":
             pois="pdf.*"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
         elif paramFamily == "scale":
             pois="muR,muF,muRmuF,alphaS,wptSlope" 
             if channel == "el":
                 pois += ",CMS_We_elescale,CMS_We_FRe_pt,CMS_We_FRe_norm"
             else:
                 pois += ",CMS_We_elescale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_norm"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
         elif paramFamily == "signalStrength":
             pois="W{ch}.*_mu".format(ch=charge)
             isSignalStrength = True
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
     else:
         # warning: utilities.getHistosFromToys is working only for parameters centered around 0 (histogram is defined in -3,3)
         # this script will not work if using parameters with pmaskedexp
@@ -65,10 +56,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 print "You might want to change behaviour of function utilities.getHistosFromToys to use those parameters as well" 
                 exit(0)
         if any ([wc in poi for wc in ["Wplus","Wminus"] for poi in pois.split(",")]):
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
             isSignalStrength = True
         else:
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
             
 
     print "From the list of parameters it seems that you are plotting results for channel ",channel
@@ -148,7 +139,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         distrdir = plotdir+'/pulldistr'
         createPlotDirAndCopyPhp(distrdir)
         for ext in ['png', 'pdf']:
-            c.SaveAs("{pdir}/{name}_postfit_{suffix}_{channel}.{ext}".format(pdir=distrdir,name=name,suffix=suffix,channel=channel,ext=ext))
+            c.SaveAs("{pdir}/{name}_postfit_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,name=name,ch=charge,suffix="_"+suffix,channel=channel,ext=ext))
 
         if fitPull:
             # tlatex = ROOT.TLatex(); tlatex.SetNDC(); 
@@ -202,7 +193,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             # else:
             #     print "Warning: no stat box found for Chi^2" 
             for ext in ['png', 'pdf']:
-                canvas_Chi2.SaveAs("{pdir}/chi2_{suffix}_{channel}.{ext}".format(pdir=distrdir,suffix=suffix,channel=channel,ext=ext))
+                canvas_Chi2.SaveAs("{pdir}/chi2_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,ch=charge,suffix="_"+suffix,channel=channel,ext=ext))
         
 
         print "Generating Pull Summaries...\n"
@@ -295,7 +286,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             leg.Draw("same")
             param_group=pois.replace('.*','').replace(',','_')
             for ext in ['png', 'pdf']:
-                hc.SaveAs("{pdir}/pullSummaryToys_{params}_{igroup}_{suffix}_{c}.{ext}".format(pdir=plotdir,suffix=suffix,params=param_group,igroup=pullPlots,c=channel,ext=ext))
+                hc.SaveAs("{pdir}/pullSummaryToys_{params}_{igroup}_{ch}_{c}.{ext}".format(pdir=plotdir,ch=charge,suffix="_"+suffix,params=param_group,igroup=pullPlots,c=channel,ext=ext))
             pullPlots += 1
 
 
@@ -311,6 +302,8 @@ if __name__ == "__main__":
     parser.add_option(      '--parameters'  , dest='pois'     , default='pdf.*', type='string', help='comma separated list of regexp parameters to run. default is all parameters! Better to select parameters belonging to the same family, like, pdfs, qcd scales, signal strengths ...')
     parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, signalStrength')
     parser.add_option(      '--exclude-param'  , dest='excludeParam'     , default=None, type='string', help='Work as --parameters, but matches will be excluded from the list of parameters (e.g., can exclude a given pdf, pmaskednorm to match only pmasked and so on)')
+    parser.add_option('-c', '--charge'      , dest='charge'  , default=''      , type='string', help='Specify charge (plus,minus)')
+    parser.add_option('-f', '--flavour'     , dest='flavour'  , default=''      , type='string', help='Specify flavour (el,mu)')
     parser.add_option(      '--pdir'        , dest='plotdir'  , default='./'   , type='string', help='directory to save the likelihood scans')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''     , type='string', help='suffix to give to the plot files')
     parser.add_option('-a', '--analysis'    , dest='analysis' , default='helicity', type='string', help='Which analysis: helicity or diffXsec') 
@@ -324,12 +317,20 @@ if __name__ == "__main__":
     if options.analysis not in ["helicity", "diffXsec"]:
         print "Warning: analysis not recognized, must be either \"helicity\" or \"diffXsec\""
         exit(0)
- 
+
+    if not options.flavour:
+        print "Warning: you must specify lepton flavour. Use -f el|mu. Exit"
+        exit(0)
+    if not options.charge:
+        print "Warning: you must specify lepton charge. Use -c plus|minus. Exit"
+        exit(0)
+        
+
     outname = options.plotdir
     addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outname)
 
     toyfile = args[0]
     plotPars(toyfile,pois=options.pois,maxPullsPerPlot=30,plotdir=outname,suffix=options.suffix,analysis=options.analysis,
-             excludeName=options.excludeParam,paramFamily=options.poisFamily,plotPull=options.plotpull)
+             excludeName=options.excludeParam,paramFamily=options.poisFamily,plotPull=options.plotpull,channel=options.flavour,charge=options.charge)
 
