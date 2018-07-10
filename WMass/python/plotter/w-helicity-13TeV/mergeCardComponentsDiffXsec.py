@@ -34,9 +34,18 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
         charge = "plus" if "plus" in process else "minus"
         # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
         etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
-        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_el_central' 
+        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_central' 
         cen_hist = histo_file.Get(cen_name)  # this is a TH2
+        useEleXsec = False
+        if not cen_hist:
+            cen_name = cen_name.replace("_mu_","_el_")
+            cen_hist = histo_file.Get(cen_name)
+            useEleXsec = True
         #print cen_name
+
+        if not cen_hist:
+            print "Error in getXsecs_etaPt(): histogram %s not found in file %s. Exit" % (cen_name, infile)
+            quit()
 
         # before searching the bin, sum epsilon to the y value being inspected
         # Root assigns the lower bin edge to the bin, while the upper bin edge is assigned to the adjacent bin. However, depending on the number y being used,
@@ -83,11 +92,22 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
-            sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
-            sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
+            if useEleXsec:
+                sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
+                sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
+            else:
+                sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_'+upn
+                sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_'+dnn
 
             sys_up_hist = histo_file.Get(sys_upname)
             sys_dn_hist = histo_file.Get(sys_dnname)
+
+            if not sys_up_hist:
+                print "Error in getXsecs_etaPt(): histogram %s not found in file %s" % (sys_upname, infile)
+                quit()
+            if not sys_dn_hist:
+                print "Error in getXsecs_etaPt(): histogram %s not found in file %s" % (sys_dnname, infile)
+                quit()
 
             if "outliers" in process:
                 totxsec = sys_up_hist.Integral(0, sys_up_hist.GetNbinsX()+1, 0, sys_up_hist.GetNbinsY()+1)
@@ -466,7 +486,8 @@ if __name__ == "__main__":
                                # 35.9 if channel == 'mu' else 30.9,  
                                #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
                                #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
-                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
+                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
+                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5_withMuons_varEtaGap.root' ## hard coded for now
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
