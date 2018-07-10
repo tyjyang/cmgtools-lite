@@ -2,7 +2,7 @@
 
 # usage: python submitToys.py cards_el/Wel_card_withXsecMask.meta 10000 --tf -n 5 --outdir output
 #
-# python w-helicity-13TeV/submitToys.py cards/diffXsec_mu_2018_07_04_group10_absGenEta/Wmu_plus_card_withXsecMask.meta 10500 -n 1 --outdir toys/diffXsec_mu_2018_07_04_group10_absGenEta/ -t 1 -q cmscaf1nd
+# python w-helicity-13TeV/submitToys.py cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/Wel_plus_card_withXsecMask.meta 11000 -n 2 --outdir toys/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin_newGenXsec/ -t 1 -q cmscaf1nd
 
 jobstring  = '''#!/bin/sh
 ulimit -c 0 -S
