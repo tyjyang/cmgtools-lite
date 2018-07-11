@@ -29,17 +29,20 @@ if not options.initialQueue or not options.finalQueue:
     quit()
 
 # use grep -e "<queue>": for queue 1nd, pass option -i " 1nd", otherwise also cmscaf1nd would match
-countCmd = "bjobs | grep PEND | grep -e \"%s\" | wc -l" % options.initialQueue  
+countCmd = "bjobs | grep PEND | grep -e \" %s\" | wc -l" % options.initialQueue.strip()
 countPendingJobs = subprocess.Popen([countCmd], stdout=subprocess.PIPE, shell=True);
 nPendQueue = countPendingJobs.communicate()[0]
 nPendQueue = int(nPendQueue)
 print "-----------------------------------------------"
 print "I see %d pending jobs on queue %s" % (nPendQueue, options.initialQueue)
 print "-----------------------------------------------"
+if nPendQueue == 0:
+    print "There are no pending jobs in the queue you selected."
+    quit()
 
 if options.nJob > nPendQueue: options.nJob = nPendQueue
 
-cmd = "bjobs | grep PEND | grep -e \"%s\" |awk '{print $1}' | " % options.initialQueue
+cmd = "bjobs | grep PEND | grep -e \" %s\" |awk '{print $1}' | " % options.initialQueue.strip()
 if options.nJob:
     cmd = cmd + "head -n %s | " % options.nJob
 cmd = cmd + "xargs -n 1 bmod -q %s" % options.finalQueue
