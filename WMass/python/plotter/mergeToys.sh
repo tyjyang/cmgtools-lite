@@ -4,7 +4,7 @@
 # merge file will be created in toys/<name>/ and will have <charge> in its name
 
 charge="plus"
-outdir="toys/diffXsec_mu_2018_07_04_group10_absGenEta/"
+outdir="toys/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin_newGenXsec/"
 toydir="${outdir}${charge}/"
 outname="toys_${charge}.root"
 sizemin="1000"
@@ -27,7 +27,7 @@ do
 done
 
 
-hadd -k -n ${maxFilePerHadd} ${outdir}${outname} ${goodfiles}
+hadd -k -O -n ${maxFilePerHadd} ${outdir}${outname} ${goodfiles}
 
 echo "--------------------------------------------------------------"
 echo "THE END"
