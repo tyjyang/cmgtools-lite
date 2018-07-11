@@ -137,6 +137,42 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
     return hists
 
 
+def combCharges(options):
+    suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
+    datacards=[]; channels=[]
+    for charge in ['plus','minus']:
+        datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_card.txt'.format(ch=charge))
+        channels.append('{bin}_{ch}'.format(bin=options.bin,ch=charge))
+        if not options.freezePOIs:
+            datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_xsec_card.txt'.format(ch=charge))
+            channels.append('{bin}_{ch}_xsec'.format(bin=options.bin,ch=charge))
+
+    if options.combineCharges and sum([os.path.exists(card) for card in datacards])==len(datacards):
+        print "Cards for W+ and W- done. Combining them now..."
+        combinedCard = os.path.abspath(options.inputdir)+"/"+options.bin+'_'+suffix+'.txt'
+        ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        if options.freezePOIs:
+            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
+            txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=combinedCard)
+        else:
+            maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
+            txt2tfCmd = 'text2tf.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        ## here running the combine cards command first 
+        print ccCmd
+        os.system(ccCmd)
+        ## here making the TF meta file
+        print "The following command makes the .meta file used by combine"
+        print txt2tfCmd
+        if not options.skip_text2tf:
+            print '--- will run text2tf for the combined charges ---------------------'
+            os.system(txt2tfCmd)
+            ## print out the command to run in combine
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            print "Use the following command to run combine"
+            print combineCmd
+
+    else:
+        print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
 
 if __name__ == "__main__":
     
@@ -155,9 +191,15 @@ if __name__ == "__main__":
     parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
     parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+    parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
+    parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
+
+    if options.combineCharges and options.combineChannels:
+        print "ERROR: you are trying to combine both charges and channels, which is not supported. Exit"
+        quit()
 
     cmssw = os.environ['CMSSW_VERSION']
     if cmssw != "":
@@ -168,6 +210,11 @@ if __name__ == "__main__":
     else:
         print "ERROR: need to set cmssw environment. Run cmsenv from CMSSW_10_X to run this command and use combine with tensorflow. Exit"
         print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
+        quit()
+
+    if options.combineCharges:
+        combCharges(options)
+        print "I combined the datacards for both charges."
         quit()
 
     charges = options.charge.split(',')
@@ -235,7 +282,6 @@ if __name__ == "__main__":
                     if re.match('bin.*',l):
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
-                        binn = int(bin.split('_')[-1]) if 'group_' in bin else -1
                     rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
                     if ifile==0:
                         rootfiles_syst += filter(lambda x: re.match('Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), os.listdir(options.inputdir))
@@ -325,7 +371,6 @@ if __name__ == "__main__":
         combineCmd="combineCards.py "
         for f in files:
             basename = os.path.basename(f).split(".")[0]
-            binn = int(basename.split('_')[-1]) if 'group_' in basename else -999
             binname = ''
             if re.match('Wplus|Wminus',basename): binname=basename
             elif re.match('Z.*{charge}'.format(charge=charge),basename): binname='Z'
