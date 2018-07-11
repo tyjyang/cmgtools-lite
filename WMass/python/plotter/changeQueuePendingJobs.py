@@ -28,7 +28,8 @@ if not options.initialQueue or not options.finalQueue:
     print "Error: you must specify both the initial and final queues. Exit"
     quit()
 
-countCmd = "bjobs | grep PEND | grep %s | wc -l" % options.initialQueue
+# use grep -e "<queue>": for queue 1nd, pass option -i " 1nd", otherwise also cmscaf1nd would match
+countCmd = "bjobs | grep PEND | grep -e \"%s\" | wc -l" % options.initialQueue  
 countPendingJobs = subprocess.Popen([countCmd], stdout=subprocess.PIPE, shell=True);
 nPendQueue = countPendingJobs.communicate()[0]
 nPendQueue = int(nPendQueue)
@@ -36,9 +37,9 @@ print "-----------------------------------------------"
 print "I see %d pending jobs on queue %s" % (nPendQueue, options.initialQueue)
 print "-----------------------------------------------"
 
-if options.nJob > nPendQueue: options.nJob = 0
+if options.nJob > nPendQueue: options.nJob = nPendQueue
 
-cmd = "bjobs | grep PEND | grep %s |awk '{print $1}' | " % options.initialQueue
+cmd = "bjobs | grep PEND | grep -e \"%s\" |awk '{print $1}' | " % options.initialQueue
 if options.nJob:
     cmd = cmd + "head -n %s | " % options.nJob
 cmd = cmd + "xargs -n 1 bmod -q %s" % options.finalQueue
@@ -46,7 +47,7 @@ cmd = cmd + "xargs -n 1 bmod -q %s" % options.finalQueue
 print "============================"
 print cmd
 print "----------------------------"
-print "I will move %s jobs from queue '%s' to '%s'" % (str(options.nJob) if options.nJob else "all", options.initialQueue, options.finalQueue)
+print "I will move %s jobs from queue '%s' to '%s'" % (str(options.nJob) if options.nJob else "all", options.initialQueue.strip(), options.finalQueue.strip())
 print "============================"
 if not options.dryRun:
     os.system(cmd)
