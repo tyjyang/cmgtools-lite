@@ -2,8 +2,6 @@
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
-# import some parameters from wmass_parameters.py, they are also used by other scripts
-# from wmass_parameters import *
 
 # work only if make_helicity_cards.py has a __main__, otherwise it copies everything (not good, it copies also the body)
 # from make_helicity_cards import getMcaIncl
@@ -340,12 +338,18 @@ if __name__ == "__main__":
 
         print "MAKING SIGNAL PART: "
 
-        for ibin in xrange(loopBins):
+        # we will use a trick to make the outliers (gen bins outside the reco template)
+        # in the loop below ibin should be in range(loopBins): we actually do it up to loopBins+1 and treat the last one in a special way
+        # In this way, when ibin == loopBins we know we are considering the outliers
+
+        for ibin in xrange(loopBins + 1):
 
             wsyst = ['']+[x for x in pdfsysts+qcdsysts if 'sig' in x]
             for ivar,var in enumerate(wsyst):
                 for charge in ['plus','minus']:
                     antich = 'plus' if charge == 'minus' else 'minus'
+                    # ivar == 0 --> nominal, root file should also contain lepton scale systematic if implemented
+                    # ivar != 0 --> shape systematics: pdf, qcd scales, wptSlope 
                     if ivar==0: 
                         IARGS = ARGS
                     else: 
@@ -366,52 +370,86 @@ if __name__ == "__main__":
                     xpsel=' --xp "W{antich}.*{flips},Z,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
                     recoChargeCut = POSCUT if charge=='plus' else NEGCUT
 
-                    if options.groupSignalBy:
-                        # if we are here, loopBins is not the number of bins in 2D template
-                        # rather, it is the number of groups with ngroup bins each (+1 because xrange will exclude the last number)
-                        # to get the ieta,ipt we must obtain again the real globalbin number
-                        # the cut for this bin is directly in the MCA file (in the process definition)
-                        selectedSigProcess = ' -p '
-                        for n in xrange(ngroup):
-                            tmpGlobalBin = n + ibin * ngroup
-                            ieta,ipt = getXYBinsFromGlobalBin(tmpGlobalBin,netabins)
-                            # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
-                            # consider elescale separately (for systematics, i.e. ivar!=0, it is excluded with --xp)
-                            if ivar == 0:
-                                selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*,'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
-                            else:
-                                selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst},'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
-                        if selectedSigProcess.endswith(','):
-                            selectedSigProcess = selectedSigProcess[:-1]  # remove comma at the end
-                        selectedSigProcess += " "    # add some space to separate this option to possible following commands
-                        dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge, channel=options.channel,gr=ibin,syst=syst)
-
-                    elif options.xsec_sigcard_binned:
-                        # would be equivalent to options.groupSignalBy == 1
-                        # might be removed at some point
-                        ieta,ipt = getXYBinsFromGlobalBin(ibin,netabins)
-                        print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
-                                                                                                            etabinning[ieta],etabinning[ieta+1],
-                                                                                                            charge)
-                        ##########################
-                        # I don't need anymore to change the cut, because I am already running with an mca file having one process for each bin
-                        # (the cut is in the process definition inside the mca)
-                        # ptcut=" -A alwaystrue pt%d '%s>=%s && %s<%s' " % (ipt,ptVarCut,ptbinning[ipt],ptVarCut,ptbinning[ipt+1])
-                        # etacut=" -A alwaystrue eta%d '%s>=%s && %s<%s' " % (ieta,etaVarCut,etabinning[ieta],etaVarCut,etabinning[ieta+1])
-                        # recoChargeCut += (ptcut + etacut)
-
+                    if ibin == loopBins:
+                        # do outliers
+                        
+                        print "Making card for pt<%s || pt>=%s || |eta|>=%s and signal process with charge %s " % (ptbinning[0],ptbinning[nptbins],
+                                                                                                                   etabinning[netabins],charge)
                         # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                         # here we don't need regular expression there is just one bin
                         if ivar == 0:
-                            selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)  
+                            if options.channel == "el":
+                                lepscale = ",W{charge}_{channel}_outliers_elescale.*".format(charge=charge, channel=options.channel)
+                            else:
+                                lepscale = ""                            
+                            selectedSigProcess = ' -p W{charge}_{channel}_outliers{lepscale}  '.format(charge=charge, channel=options.channel,lepscale=lepscale)  
                         else:
-                            selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)  
+                            selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
 
-                        ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
+                        ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,syst=syst)
                         ## keep same logic as before for the datacard name
-                        dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge,channel=options.channel,gr=ibin,syst=syst)
+                        dcname = "W{charge}_{channel}_outliers_group_{gr}{syst}".format(charge=charge,channel=options.channel,gr=ibin,syst=syst)
+
+
                     else:
-                        dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge, channel=options.channel,gr=ibin,syst=syst)
+                        # do bins inside the gen binning
+                        if options.groupSignalBy:
+                            # if we are here, loopBins is not the number of bins in 2D template
+                            # rather, it is the number of groups with ngroup bins each (+1 because xrange will exclude the last number)
+                            # to get the ieta,ipt we must obtain again the real globalbin number
+                            # the cut for this bin is directly in the MCA file (in the process definition)
+                            selectedSigProcess = ' -p '
+                            for n in xrange(ngroup):
+                                tmpGlobalBin = n + ibin * ngroup
+                                ieta,ipt = getXYBinsFromGlobalBin(tmpGlobalBin,netabins)
+                                # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
+                                # consider elescale separately (for systematics, i.e. ivar!=0, it is excluded with --xp)
+                                if ivar == 0:
+                                    if options.channel == "el":
+                                        lepscale = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*,".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                    else:
+                                        lepscale = ""
+                                    selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},{lepscale}'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)
+                                else:
+                                    selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst},'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
+                            if selectedSigProcess.endswith(','):
+                                selectedSigProcess = selectedSigProcess[:-1]  # remove comma at the end
+                            selectedSigProcess += " "    # add some space to separate this option to possible following commands
+                            dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge, channel=options.channel,gr=ibin,syst=syst)
+
+                        elif options.xsec_sigcard_binned:
+                            # would be equivalent to options.groupSignalBy == 1
+                            # might be removed at some point
+                            ieta,ipt = getXYBinsFromGlobalBin(ibin,netabins)
+                            print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
+                                                                                                                etabinning[ieta],etabinning[ieta+1],
+                                                                                                                charge)
+                            ##########################
+                            # I don't need anymore to change the cut, because I am already running with an mca file having one process for each bin
+                            # (the cut is in the process definition inside the mca)
+                            # ptcut=" -A alwaystrue pt%d '%s>=%s && %s<%s' " % (ipt,ptVarCut,ptbinning[ipt],ptVarCut,ptbinning[ipt+1])
+                            # etacut=" -A alwaystrue eta%d '%s>=%s && %s<%s' " % (ieta,etaVarCut,etabinning[ieta],etaVarCut,etabinning[ieta+1])
+                            # recoChargeCut += (ptcut + etacut)
+
+                            # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
+                            # here we don't need regular expression there is just one bin
+                            if ivar == 0:
+                                if options.channel == "el":
+                                    lepscale = ",W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                else:
+                                    lepscale = ""                            
+                                selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{lepscale}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)  
+                            else:
+                                selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)  
+
+                            ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
+                            ## keep same logic as before for the datacard name
+                            dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge,channel=options.channel,gr=ibin,syst=syst)
+                        else:
+                            dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge, channel=options.channel,gr=ibin,syst=syst)
+
+                    # end of -> if ibin == loopBins:
+                    ####################
 
                     BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
                     if options.queue:

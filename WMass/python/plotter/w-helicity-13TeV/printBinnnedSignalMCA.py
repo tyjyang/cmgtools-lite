@@ -18,7 +18,7 @@ parser.add_option('-n','--name', dest='mcaName',   default='mca-80X-wenu-sigIncl
 parser.add_option('-c','--channel', dest='channel',   default='el', type='string', help='Channel (el or mu)')
 parser.add_option('-x','--xvar', dest='xvar',   default='LepGood1_eta', type='string', help='Name of variable in x axis of the template')
 parser.add_option('-y','--yvar', dest='yvar',   default='ptElFull(LepGood1_calPt,LepGood1_eta)', type='string', help='Name of variable in y axis of the template')
-parser.add_option('-b','--binning', dest='binning', default='[-2.5,-2.1,-1.566,-1.4442,-1.0,-0.5,0,0.5,1.0,1.4442,1.566,2.1,2.5]*[30,33,36,39,42,45]', type='string', help='Binning (use same format as for histogram definition for mcPlots.py (to be implemented correctly)')
+parser.add_option('-b','--binning', dest='binning', default='[-2.5,-2.1,-1.566,-1.4442,-1.0,-0.5,0,0.5,1.0,1.4442,1.566,2.1,2.5]*[30,33,36,39,42,45]', type='string', help='Gen binning (use same format as for histogram definition for mcPlots.py (to be implemented correctly)')
 (options, args) = parser.parse_args()
 
 outdir = options.outdir
@@ -51,13 +51,18 @@ else:
 
 charges = [ "plus", "minus"]
 flav=options.channel
-
+if flav not in ["el","mu"]:
+    print "Error in printBinnnedSignalMCA.py: unknown lepton flavour, use -c el|mu. Exit"
+    exit(0)
 
 syst_suffix = ["_elescale_Up", "_elescale_Dn"] 
 labels = ["lep scale Up", "lep scale Dn"]  
 syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
-all_syst_suffix.extend(syst_suffix)
+if flav == "el": 
+    all_syst_suffix.extend(syst_suffix)
+else:
+    print "----- Warning: muon scale systematics is not implemented yet -----"
 
 for syst in all_syst_suffix:
 
@@ -66,13 +71,14 @@ for syst in all_syst_suffix:
         if syst == "":
             print "Writing charge ",charge
             mcafile.write("## CHARGE %s\n\n" % charge)
-            label = " Label=\"W%s\"" % "+" if charge == "plus" else "-"
+            label = " Label=\"W%s\"" % ("+" if charge == "plus" else "-")
         else:
             print "Writing syst '%s' for charge %s" % (syst,charge)
             mcafile.write("## CHARGE %s   SYST %s \n\n" % (charge, syst))
             label = " Label=\"W%s %s\"" % ("+" if charge == "plus" else "-", syst_label[syst])
 
         chargeSignCut = ">" if charge == "plus" else "<"
+        sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"
 
         for ipt in xrange(nptbins):
             for ieta in xrange(netabins):
@@ -82,15 +88,37 @@ for syst in all_syst_suffix:
                 fullcut = etacut + " && " + ptcut
                 fullcut = fullcut + " && genw_decayId == " + str(genDecayId) 
                 fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
-                fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
+                if flav == "el": 
+                    fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
 
-                line = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}{syst} : WJetsToLNu_NLO* : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
-                                                                                                                                               ieta=ieta,ipt=ipt,
-                                                                                                                                               cut=fullcut,lab=label,
-                                                                                                                                               syst=syst)
+                line = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
+                                                                                                                                            ieta=ieta,ipt=ipt,
+                                                                                                                                            cut=fullcut,lab=label,
+                                                                                                                                            syst=syst,
+                                                                                                                                            sigRegExpr=sigRegExpr)
                 if syst != "": line += ", SkipMe=True"
                 mcafile.write(line+"\n")
 
+        ##################################
+        # now add bins outside range (could also split them somehow, for now there is just one template
+        #########
+        etacut = "%s>=%s" % (etaVarCut,etabinning[netabins])
+        ptcut = "%s<%s || %s>=%s" % (ptVarCut,ptbinning[0],ptVarCut,ptbinning[nptbins])
+        fullcut = etacut + " || " + ptcut
+        fullcut = fullcut + " && genw_decayId == " + str(genDecayId) 
+        fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
+        if flav == "el": 
+            fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
+            
+        sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"
+        line = "W{ch}_{fl}_outliers{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
+                                                                                                                       cut=fullcut,lab=label,
+                                                                                                                       syst=syst,
+                                                                                                                       sigRegExpr=sigRegExpr)
+        if syst != "": line += ", SkipMe=True"
+        mcafile.write(line+"\n")
+
+        ############
 
         mcafile.write("\n\n")
 
@@ -98,6 +126,3 @@ for syst in all_syst_suffix:
 
 mcafile.close()
 
-
-#Wplus   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge>0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2 , Label="W+"
-#Wminus  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge<0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2 , Label="W-"

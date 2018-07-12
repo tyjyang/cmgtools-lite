@@ -17,6 +17,44 @@ def addStringToEnd(name, matchToAdd, notAddIfEndswithMatch=False):
 
 #########################################################################
 
+def getMinMaxHisto(h, excludeEmpty=True, sumError=True):
+    
+    dim = h.GetDimension()
+    nbins = 0
+    if   dim == 1: nbins = h.GetNbinsX()
+    elif dim == 2: nbins = h.GetNbinsX() * h.GetNbinsY()
+    elif dim == 3: nbins = h.GetNbinsX() * h.GetNbinsY() * h.GetNbinsZ()
+    else:
+        print "Error in getMaxHisto(): dim = %d is not supported. Exit" % dim
+        quit()
+
+    maxval = 0
+    minval = 0
+    firstValidBin = -1
+    for ibin in range (1,nbins+1):
+        tmpmax = h.GetBinContent(ibin)
+        tmpmin = h.GetBinContent(ibin)
+        if excludeEmpty and tmpmin == 0.0: continue
+        if firstValidBin < 0: 
+            #print "ibin %d:   tmpmin,tmpmax = %.2f, %.2f" % (ibin,tmpmin,tmpmax)
+            firstValidBin = ibin
+        if sumError:
+            tmpmin -= h.GetBinError(ibin)
+            tmpmax += h.GetBinError(ibin)
+        if firstValidBin > 0 and ibin == firstValidBin:
+            #the first time we pick a non empty bin, we set min and max to the histogram content in that bin
+            minval = tmpmin
+            maxval = tmpmax
+            #print "#### ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval)
+        else:
+            minval = min(minval,tmpmin)
+            maxval = max(maxval,tmpmax)
+        #print "ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval)
+    
+    return minval,maxval
+
+#########################################################################
+
 
 def createPlotDirAndCopyPhp(outdir):
     if outdir != "./":
@@ -72,8 +110,8 @@ def adjustSettings_CMS_lumi():
 def drawCorrelationPlot(h2D,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
                         canvasName="default", plotLabel="", outdir="./",
-                        rebinFactorY=1,
-                        rebinFactorX=1,
+                        rebinFactorY=0,
+                        rebinFactorX=0,
                         smoothPlot=True,
                         drawProfileX=True,
                         scaleToUnitArea=True,
@@ -81,11 +119,17 @@ def drawCorrelationPlot(h2D,
                         leftMargin=0.16,
                         rightMargin=0.20,
                         nContours=50,
-                        palette=57):
+                        palette=57,
+                        canvasSize="700,625"):
 
 
-    if (rebinFactorY > 1): h2D.RebinY(rebinFactorY)
-    if (rebinFactorX > 1): h2D.RebinX(rebinFactorX)
+    if (rebinFactorX): 
+        if isinstance(rebinFactorX, int): h2D.RebinY(rebinFactorX)
+        else:                             h2D.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
+
+    if (rebinFactorY): 
+        if isinstance(rebinFactorY, int): h2D.RebinY(rebinFactorY)
+        else:                             h2D.RebinY(len(rebinFactorY)-1,"",array('d',rebinFactorY)) # case in which rebinFactorX is a list of bin edges
 
     ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
     ROOT.gStyle.SetNumberContours(nContours) # default is 20 
@@ -94,13 +138,15 @@ def drawCorrelationPlot(h2D,
     labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     labelZ,setZAxisRangeFromUser,zmin,zmax = getAxisRangeFromUser(labelZtmp)
     
+    cw,ch = canvasSize.split(',')
     #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
-    canvas = ROOT.TCanvas("canvas","",700,625)
+    canvas = ROOT.TCanvas("canvas","",int(cw),int(ch))
     canvas.SetLeftMargin(leftMargin)
     canvas.SetRightMargin(rightMargin)
     canvas.cd()
 
-    os.system("mkdir -p "+outdir)
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
     # normalize to 1
     if (scaleToUnitArea): h2D.Scale(1./h2D.Integral())
 
@@ -150,6 +196,8 @@ def drawCorrelationPlot(h2D,
         else:
             print "Warning in drawCorrelationPlot: TAxis::SetMaxDigits() not implemented for ROOT versions before 2017 (rough estimate)"
             print "Will not exit, but instruction will be neglected"
+        if maxZaxisVal > 9999.:
+            h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.15)
     else:
         i = 1
         tryNext = True
@@ -203,3 +251,200 @@ def drawCorrelationPlot(h2D,
 
 
 ##########################################################
+
+
+def drawSingleTH1(h1,
+                  labelXtmp="xaxis", labelYtmp="yaxis",
+                  canvasName="default", outdir="./",
+                  rebinFactorX=0,
+                  draw_both0_noLog1_onlyLog2=0,                  
+                  leftMargin=0.12,
+                  rightMargin=0.04,
+                  labelRatioTmp="Rel.Unc.::0.5,1.5",
+                  drawStatBox=False,
+                  legendCoords="0.15,0.35,0.3,0.45",  # x1,x2,y1,y2
+                  canvasSize="600,700",  # use X,Y to pass X and Y size     
+                  lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+                  drawLineLowerPanel="lumi. uncertainty::0.026" # if not empty, draw band at 1+ number after ::, and add legend with title
+                  ):
+
+    if (rebinFactorX): 
+        if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
+        # case in which rebinFactorX is a list of bin edges
+        else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+
+    xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
+
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+
+    cw,ch = canvasSize.split(',')
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
+    canvas = ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
+    canvas.cd()
+
+    pad2 = 0
+    if lowerPanelHeight: 
+        canvas.SetBottomMargin(lowerPanelHeight)
+        pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+        pad2.SetTopMargin(1-lowerPanelHeight)
+        pad2.SetRightMargin(rightMargin)
+        pad2.SetLeftMargin(leftMargin)
+        pad2.SetFillColor(0)
+        pad2.SetGridy(1)
+        pad2.SetFillStyle(0)
+
+
+    frame = h1.Clone("frame")
+    frame.GetXaxis().SetLabelSize(0.04)
+    frame.SetStats(0)
+
+    h1.SetLineColor(ROOT.kBlack)
+    h1.SetMarkerColor(ROOT.kBlack)
+    h1.SetMarkerStyle(20)
+    h1.SetMarkerSize(0)
+
+    #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
+    # if min and max were not set, set them based on histogram content
+    if ymin == ymax == 0.0:
+        ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)    
+        #print "Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+
+    print "#### WARNING ####"
+    print "Hardcoding ymin = 0: change it if it is not what you need"
+    print "#################"
+    ymin = 0 # hardcoded
+
+    if lowerPanelHeight:
+        h1.GetXaxis().SetLabelSize(0)
+        h1.GetXaxis().SetTitle("")  
+    else:
+        h1.GetXaxis().SetTitle(xAxisName)
+        h1.GetXaxis().SetTitleOffset(1.2)
+        h1.GetXaxis().SetTitleSize(0.05)
+        h1.GetXaxis().SetLabelSize(0.04)
+    h1.GetYaxis().SetTitle(yAxisName)
+    h1.GetYaxis().SetTitleOffset(1.15)
+    h1.GetYaxis().SetTitleSize(0.05)
+    h1.GetYaxis().SetLabelSize(0.04)
+    h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.1)
+    if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
+    h1.Draw("HIST")
+    h1err = h1.Clone("h1err")
+    h1err.SetFillColor(ROOT.kRed+2)
+    h1err.SetFillStyle(3005)
+    h1err.Draw("E2same")
+
+    legcoords = [float(x) for x in legendCoords.split(',')]
+    lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
+    leg.SetFillColor(0)
+    leg.SetFillStyle(0)
+    leg.SetBorderSize(0)
+    leg.AddEntry(h1,"Value","L")
+    leg.AddEntry(h1err,"Uncertainty","F")
+    leg.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    if drawStatBox:
+        ROOT.gPad.Update()
+        ROOT.gStyle.SetOptStat(1110)
+        ROOT.gStyle.SetOptFit(1102)
+    else:
+        h1.SetStats(0)
+
+  # TPaveText *pvtxt = NULL;
+  # if (yAxisName == "a.u.") {
+  #   pvtxt = new TPaveText(0.6,0.6,0.95,0.7, "BR NDC")
+  #   pvtxt.SetFillColor(0)
+  #   pvtxt.SetFillStyle(0)
+  #   pvtxt.SetBorderSize(0)
+  #   pvtxt.AddText(Form("norm num/den = %.2f +/- %.2f",IntegralRatio,ratioError))
+  #   pvtxt.Draw()
+  # }
+
+    #if lumi < 0: CMS_lumi(canvas,"",false,false)
+    #else: CMS_lumi(canvas,Form("%.1f",lumi),false,false)
+    setTDRStyle()
+
+    if lowerPanelHeight:
+        pad2.Draw()
+        pad2.cd()
+
+        frame.Reset("ICES")
+        if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+        #else:                          
+        #frame.GetYaxis().SetRangeUser(0.5,1.5)
+        frame.GetYaxis().SetNdivisions(5)
+        frame.GetYaxis().SetTitle(yRatioAxisName)
+        frame.GetYaxis().SetTitleOffset(1.15)
+        frame.GetYaxis().SetTitleSize(0.05)
+        frame.GetYaxis().SetLabelSize(0.04)
+        frame.GetYaxis().CenterTitle()
+        frame.GetXaxis().SetTitle(xAxisName)
+        if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
+        frame.GetXaxis().SetTitleOffset(1.2)
+        frame.GetXaxis().SetTitleSize(0.05)
+
+        ratio = h1.Clone("ratio")
+        den_noerr = h1.Clone("den_noerr")
+        for iBin in range (1,den_noerr.GetNbinsX()+1):
+            den_noerr.SetBinError(iBin,0.)
+
+        ratio.Divide(den_noerr)
+        ratio.SetFillColor(ROOT.kGray)
+        #den_noerr.SetFillColor(ROOT.kGray)
+        frame.Draw()
+        ratio.SetMarkerSize(0)
+        ratio.SetMarkerStyle(0) # important to remove dots at y = 1
+        ratio.Draw("E2same")
+    
+        line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+        line.SetLineColor(ROOT.kRed)
+        line.SetLineWidth(2)
+        line.Draw("Lsame")
+
+        if drawLineLowerPanel:
+            legEntry,yline = drawLineLowerPanel.split('::')
+            line2 = ROOT.TF1("horiz_line_2",str(1+float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line3 = ROOT.TF1("horiz_line_3",str(1-float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line2.SetLineColor(ROOT.kBlue)
+            line2.SetLineWidth(2)
+            line2.Draw("Lsame")
+            line3.SetLineColor(ROOT.kBlue)
+            line3.SetLineWidth(2)
+            line3.Draw("Lsame")
+            leg2 = ROOT.TLegend(0.15,0.22,0.35,0.32)
+            leg2.SetFillColor(0)
+            leg2.SetFillStyle(0)
+            leg2.SetBorderSize(0)
+            leg2.AddEntry(line2,legEntry,"L")
+            leg2.Draw("same")
+
+        
+        pad2.RedrawAxis("sameaxis")
+
+
+    if draw_both0_noLog1_onlyLog2 != 2:
+        canvas.SaveAs(outdir + canvasName + ".png")
+        canvas.SaveAs(outdir + canvasName + ".pdf")
+
+    if draw_both0_noLog1_onlyLog2 != 1:        
+        if yAxisName == "a.u.": 
+            h1.GetYaxis().SetRangeUser(max(0.0001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        else:
+            h1.GetYaxis().SetRangeUser(max(0.001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        canvas.SetLogy()
+        canvas.SaveAs(outdir + canvasName + "_logY.png")
+        canvas.SaveAs(outdir + canvasName + "_logY.pdf")
+        canvas.SetLogy(0)
+        
+          
+  
