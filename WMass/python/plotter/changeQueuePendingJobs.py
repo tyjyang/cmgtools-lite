@@ -42,9 +42,9 @@ if nPendQueue == 0:
 
 if options.nJob > nPendQueue: options.nJob = nPendQueue
 
-cmd = "bjobs | grep PEND | grep -e \" %s\" |awk '{print $1}' | " % options.initialQueue.strip()
+cmd = "bjobs | grep PEND | grep -e ' %s' | awk '{print $1}' | " % options.initialQueue.strip()
 if options.nJob:
-    cmd = cmd + "head -n %s | " % options.nJob
+    cmd = cmd + "tail -n %s | " % options.nJob
 cmd = cmd + "xargs -n 1 bmod -q %s" % options.finalQueue
 
 print "============================"
