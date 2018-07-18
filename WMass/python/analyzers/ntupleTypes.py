@@ -46,3 +46,13 @@ leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType
     NTupleVariable("matchedTrgObjTkMuPt", lambda x: x.matchedTrgObjwmassTkMu.pt() if  x.matchedTrgObjwmassTkMu else -999.      , help="Matched trigger object (cone dR<0.3) pT to IsoTkMu24"),
     NTupleVariable("matchedTrgObjTkMuDR", lambda x: deltaR(x, x.matchedTrgObjwmassTkMu) if  x.matchedTrgObjwmassTkMu else -999., help="Matched trigger object (cone dR<0.3) dR to IsoTkMu24"),
 ])
+
+
+##------------------------------------------  
+## LHE weights with a reduced precision
+##------------------------------------------  
+lightWeightsInfoType = NTupleObjectType("LightWeightsInfo", mcOnly=True, variables = [
+#    NTupleVariable("id",   lambda x : x.id, int),
+    NTupleVariable("wgt",   lambda x : x.wgt, storageType="H"),
+])
+
