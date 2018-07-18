@@ -28,10 +28,11 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
-runOnSignal = False
+runOnSignal = True
 doTriggerMatching = True
-keepLHEweights = False
+keepLHEweights = True
 signalZ = False
+diLeptonSkim = False
 
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
@@ -39,12 +40,13 @@ ttHLepSkim.maxLeptons = 999
 #ttHLepSkim.idCut  = ""
 ttHLepSkim.ptCuts = [23]
 
-if doTriggerMatching:
+if diLeptonSkim:
     ttHLepSkim.minLeptons = 2
     ttHLepSkim.maxLeptons = 999
     #ttHLepSkim.idCut  = ""
     ttHLepSkim.ptCuts = [23, 23]
 
+if doTriggerMatching:
     print 'adding the trigger match analyzer'
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaEle )
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
@@ -228,8 +230,8 @@ triggerFlagsAna.triggerBits = {
     'SingleEl'     : triggers_1e,
 }
 triggerFlagsAna.unrollbits = True
-triggerFlagsAna.saveIsUnprescaled = True
-triggerFlagsAna.checkL1Prescale = True
+triggerFlagsAna.saveIsUnprescaled = False
+triggerFlagsAna.checkL1Prescale = False
 
 ## do some trigger matching for the trigger efficiency studies
 
@@ -448,10 +450,18 @@ preprocessor = None
 #-------- HOW TO RUN -----------
 
 test = getHeppyOption('test')
-if test == 'testw' or test=='testz' or test=='testdata':
+if test.startswith('testw') or test.startswith('testz') or test=='testdata':
     if test=='testw':
         comp = WJetsToLNu_LO
         comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/WJetsMG_test_0A85AA82-45BB-E611-8ACD-001E674FB063-9552f253c2fa2ae.root']
+    elif test=='testw_nnpdf31':
+        comp = WJetsToLNu
+        # comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/34F84C69-917E-E811-BB1F-FA163EB2ABE6.root'] # we+
+        # comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/WminusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/2C26E10C-CE7F-E811-924B-FA163EE6807E.root'] # we-
+        comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToMuNuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v4/10000/04783B3A-B57D-E811-B421-FA163EF059FC.root'] # wm+
+    elif test=='testz_nnpdf31':
+        comp = DYJetsToLL_M50
+        comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/ZJToEEJ_M-50_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/70000/F22FBFAF-0179-E811-9038-FA163E54DF16.root']
     elif test=='testz':
         comp=DYJetsToLL_M50
         comp.files=['/eos/cms/store/cmst3/user/psilva/Wmass/DYJetsMG_test/FCDD4D28-12C4-E611-8BFC-C4346BC8F6D0.root']
@@ -505,13 +515,18 @@ elif test == '80X-MC':
         comp.files = [ tmpfil ]
         comp.splitFactor = 1
         if not getHeppyOption("single"): comp.fineSplitFactor = 4
-    elif what == "WJets":
-        WJetsToLNu = kreator.makeMCComponent("WJetsToLNu", "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM", "CMS", ".*root", 3* 20508.9)
+    elif what == "WJets" or what == "WJetsNNPDF31":
+        if what == "WJetsNNPDF31":
+            WJetsToLNu = kreator.makeMCComponent("WJetsToLNu_NNPDF31", "/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/MINIAODSIM", "CMS", ".*root", 3* 20508.9)            
+            comp.files = [ '/store/mc/RunIISummer16MiniAODv2/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/B64A576F-7466-E811-8744-0025905A60B6.root' ]
+            tmpfil = os.path.expandvars("/tmp/$USER/B64A576F-7466-E811-8744-0025905A60B6.root")
+        else:
+            WJetsToLNu = kreator.makeMCComponent("WJetsToLNu", "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM", "CMS", ".*root", 3* 20508.9)
+            comp.files = [ '/store/mc/RunIISummer16MiniAODv2/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/160DFF65-E8BF-E611-A4AD-0CC47AC08C1A.root' ]
+            tmpfil = os.path.expandvars("/tmp/$USER/160DFF65-E8BF-E611-A4AD-0CC47AC08C1A.root")
         selectedComponents = [ WJetsToLNu ]
         comp = selectedComponents[0]
         comp.triggers = []
-        comp.files = [ '/store/mc/RunIISummer16MiniAODv2/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/160DFF65-E8BF-E611-A4AD-0CC47AC08C1A.root' ]
-        tmpfil = os.path.expandvars("/tmp/$USER/160DFF65-E8BF-E611-A4AD-0CC47AC08C1A.root")
         if not os.path.exists(tmpfil):
             os.system("xrdcp root://eoscms//eos/cms%s %s" % (comp.files[0],tmpfil))
         comp.files = [ tmpfil ]
