@@ -140,34 +140,33 @@ class util:
      
         return -1
 
-    def getFromHessian(self, infile):
+    def getFromHessian(self, infile, keepGen=False):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')
         lok  = tree.GetListOfLeaves()
-        
         for p in lok:
             if '_err'   in p.GetName(): continue
             if '_minos' in p.GetName(): continue
-            if '_gen'   in p.GetName(): continue
+            if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
 
-            if not p.GetName()+'_err' in lok: continue
+            if not p.GetName()+'_err' in lok and not keepGen: continue
 
             if tree.GetEntries() > 1:
                 print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
                 sys.exit()
             for ev in tree:
                 mean = getattr(ev, p.GetName())
-                err  = getattr(ev, p.GetName()+'_err')
+                err  = getattr(ev, p.GetName()+'_err') if hasattr(ev, p.GetName()+'_err') else 0
 
             _dict[p.GetName()] = (mean, mean+err, mean-err)
      
         return _dict
 
 
-    def getFromToys(self, infile):
+    def getFromToys(self, infile, keepGen=False):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -177,7 +176,7 @@ class util:
         for p in lok:
             if '_err'   in p.GetName(): continue
             if '_minos' in p.GetName(): continue
-            if '_gen'   in p.GetName(): continue
+            if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
             
             tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
