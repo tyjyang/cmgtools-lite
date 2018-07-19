@@ -1,7 +1,13 @@
 #!/bin/env python
 
+# Author: Marco Cipriani
+# Mail: marco.cipriani@cern.ch
+# cern user: mciprian
+
+# This script basically run a command like the following to move jobs from a queue to another one 
 # bjobs | grep PEND | grep cmscaf1nd |awk '{print $1}' | head -n 50 | xargs -n 1 bmod -q 2nd
 
+# Usage
 # python changeQueuePendingJobs.py -i cmscaf1nd -f 2nd -n 50
 import sys,os
 import subprocess
@@ -9,7 +15,7 @@ import subprocess
 from optparse import OptionParser
 parser = OptionParser(usage='%prog [options]')
 parser.add_option('-d', '--dry-run'     , dest="dryRun"      , action="store_true", default=False, help="Do not run the command, just print it");
-parser.add_option('-i','--initial-queue', dest='initialQueue', default='', type='string', help='Queue from which jobs should be moved from') 
+parser.add_option('-i','--initial-queue', dest='initialQueue', default='', type='string', help='Queue which jobs should be moved from') 
 parser.add_option('-f','--final-queue'  , dest='finalQueue'  , default='', type='string', help='Queue which jobs should be moved to') 
 parser.add_option('-n','--n-job'        , dest="nJob"        , default='0',type='int'   , help="Specify a number of jobs to be moved (default is all). If there are less pending jobs than this options's argument, all are moved");
 (options, args) = parser.parse_args()

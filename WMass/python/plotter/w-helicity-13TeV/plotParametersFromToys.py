@@ -47,6 +47,9 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             pois="W{ch}.*_mu".format(ch=charge)
             isSignalStrength = True
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
+        elif paramFamily == "absxsec":
+            pois="W{ch}.*_pmaskedexp".format(ch=charge)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,200,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
     else:
         # warning: utilities.getHistosFromToys is working only for parameters centered around 0 (histogram is defined in -3,3)
         # this script will not work if using parameters with pmaskedexp
@@ -57,7 +60,8 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 exit(0)
         if any ([wc in poi for wc in ["Wplus","Wminus"] for poi in pois.split(",")]):
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
-            isSignalStrength = True
+            if not any("pmaskedexp" in poi for poi in pois.split(",")):
+                isSignalStrength = True
         else:
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
             
@@ -212,7 +216,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             # following condition should not happen (parameter is not centered around 0)
             #elif 'masked' in pois:
             #elif any([x in pois for x in ["Wplus","Wminus"]]) and not "masked" in pois:
-            elif isSignalStrength:
+            elif isSignalStrength or paramFamily == "absxsec":
                 keys = pullSummaryMap.keys()
                 if analysis == "helicity":
                     keys_l = list(k for k in keys if 'left' in k)
@@ -222,7 +226,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                     sortedpulls = norms_r + norms_l
                 else:
                     # differential xsection: get ieta, ipt index and use them as keys to sort
-                    sortedpulls = sorted(keys, key = lambda x: get_ieta_ipt_from_process_name(x))
+                    tmpkeys = [x for x in keys if "outliers" not in x]
+                    sortedpulls = sorted(tmpkeys, key = lambda x: get_ieta_ipt_from_process_name(x))
+                    for x in keys:
+                        if "outliers" in x: sortedpulls.append(x) 
             else:
                 sortedpulls = sorted(pullSummaryMap.keys(), key=lambda k: k[0])  # alphabetic order
             if len(sortedpulls)==0: break
@@ -234,11 +241,12 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 pull_rms     .SetBinContent(3*pi+0,pull[0]);  pull_rms     .SetBinError(3*pi+0,pull[1])
                 pull_effsigma.SetBinContent(3*pi+1,pull[2]);  pull_effsigma.SetBinError(3*pi+1,pull[3])
 
+                newname = name
                 if isSignalStrength:
                     newname = "_".join(name.split("_")[:6])
-                    pull_rms.GetXaxis().SetBinLabel(3*pi,newname)
-                else:
-                    pull_rms.GetXaxis().SetBinLabel(3*pi,name)
+                elif paramFamily == "absxsec":
+                    newname = "_".join(name.split("_")[:6]) + "_xsec"
+                pull_rms.GetXaxis().SetBinLabel(3*pi,newname)
                 pull_rms.GetXaxis().SetTickSize(0.)
                 
                 max2=max(pull[1],pull[3])
@@ -271,7 +279,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 pull_rms.GetYaxis().SetRangeUser(0.9,1.1)
             else:
                pull_rms.GetYaxis().SetRangeUser(-yrange,yrange)
-            pull_rms.GetYaxis().SetTitle("pull summary (n#sigma)")
+            if plotPull:
+                pull_rms.GetYaxis().SetTitle("pull summary (n#sigma)")
+            else:
+                pull_rms.GetYaxis().SetTitle("POI summary")
             pull_rms.Draw("p")
             pull_effsigma.Draw("p same")
 
@@ -300,7 +311,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage='%prog toys.root [options] ')
     parser.add_option(      '--parameters'  , dest='pois'     , default='pdf.*', type='string', help='comma separated list of regexp parameters to run. default is all parameters! Better to select parameters belonging to the same family, like, pdfs, qcd scales, signal strengths ...')
-    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, signalStrength')
+    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, signalStrength, absxsec')
     parser.add_option(      '--exclude-param'  , dest='excludeParam'     , default=None, type='string', help='Work as --parameters, but matches will be excluded from the list of parameters (e.g., can exclude a given pdf, pmaskednorm to match only pmasked and so on)')
     parser.add_option('-c', '--charge'      , dest='charge'  , default=''      , type='string', help='Specify charge (plus,minus)')
     parser.add_option('-f', '--flavour'     , dest='flavour'  , default=''      , type='string', help='Specify flavour (el,mu)')
@@ -325,6 +336,12 @@ if __name__ == "__main__":
         print "Warning: you must specify lepton charge. Use -c plus|minus. Exit"
         exit(0)
         
+    allowedPOIfamily = ["pdf", "scale", "signalStrength", "absxsec"]
+    if options.poisFamily and not (options.poisFamily in allowedPOIfamily):
+        print "Warning: POI family not recognized, must be one of %s" % ",".join(allowedPOIfamily)
+        exit(0)
+
+
 
     outname = options.plotdir
     addStringToEnd(outname,"/",notAddIfEndswithMatch=True)

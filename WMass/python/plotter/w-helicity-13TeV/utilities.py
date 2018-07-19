@@ -255,6 +255,41 @@ class util:
         ret = self.getExprFromToys('chargeAsym',expr,infile)
         return ret
 
+    def getDiffXsecAsymmetryFromToys(self, channel, ieta, ipt, netabins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromToys('chargeAsym',expr,infile)
+        return ret
+
+    def getDenExpressionForNormDiffXsec(self, channel, charge, netabins, nptbins, ngroup):
+        binsToNormalize = []
+        for ieta in range(netabins):
+            for ipt in range(nptbins):
+                igroup = int(int(ieta + ipt * netabins)/ngroup)
+                denChunk = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+                binsToNormalize.append(denChunk)
+        den = "+".join(x for x in binsToNormalize)
+        den = "(" + den + ")"
+        return den
+
+    def getNormalizedDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile,den):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        expr = '{num}/{den}'.format(num=num,den=den)
+        ret = self.getExprFromToys('normDiffXsec',expr,infile)
+        return ret
+
+    def getDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        ret = self.getExprFromToys('normDiffXsec',expr,infile)
+        return ret
+
+
+
     def getFromScans(self, indir):
         _dict = {}
         

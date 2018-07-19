@@ -3,8 +3,8 @@
 # assume root files with trees are in folder toys/<name>/<charge>
 # merge file will be created in toys/<name>/ and will have <charge> in its name
 
-charge="plus"
-outdir="toys/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin_newGenXsec/"
+charge="comb_WchargeAsymmetry"
+outdir="toys/diffXsec_mu_2018_07_11_group10_coarseBin_outliersBackground/"
 toydir="${outdir}${charge}/"
 outname="toys_${charge}.root"
 sizemin="1000"

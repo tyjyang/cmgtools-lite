@@ -123,6 +123,13 @@ def drawCorrelationPlot(h2D,
                         canvasSize="700,625"):
 
 
+    # if h2D.GetName() == "scaleFactor_origBinPt":
+    #     print "="*20
+    #     print "Check: hist %s: Z axis title = %s" % (h2D.GetName(),labelZtmp)
+    #     print "="*20
+
+    ROOT.TH1.SetDefaultSumw2()
+
     if (rebinFactorX): 
         if isinstance(rebinFactorX, int): h2D.RebinY(rebinFactorX)
         else:                             h2D.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
@@ -185,6 +192,12 @@ def drawCorrelationPlot(h2D,
     if (setYAxisRangeFromUser): h2DPlot.GetYaxis().SetRangeUser(ymin,ymax)
     if (setZAxisRangeFromUser): h2DPlot.GetZaxis().SetRangeUser(zmin,zmax)
 
+
+    # if h2D.GetName() == "scaleFactor_origBinPt":
+    #     print "="*20
+    #     print "Check: hist %s: Z axis title = %s" % (h2DPlot.GetName(),h2DPlot.GetZaxis().GetTitle())
+    #     print "="*20
+
     # attempt to make Z axis title farther depending on how many digits are printed
     maxZaxisVal = h2DPlot.GetBinContent(h2DPlot.GetMaximumBin())
     if (setZAxisRangeFromUser): maxZaxisVal = zmax
@@ -198,6 +211,7 @@ def drawCorrelationPlot(h2D,
             print "Will not exit, but instruction will be neglected"
         if maxZaxisVal > 9999.:
             h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.15)
+            print "Changing title offset by 0.15"
     else:
         i = 1
         tryNext = True

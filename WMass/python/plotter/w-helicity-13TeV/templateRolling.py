@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
     parser.add_option('-p','--postfix', dest='postfix', default='', type='string', help='Postfix for input file with shapes (e.g: "_addInclW" in "Wel_plus_shapes_addInclW.root"). Default is ""')
-    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates (will have to implement reading it from file). Use -b file=<name> to read binning from file <name>. If passing the array, for the moment it is supposed to be the same for reco and gen')
+    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates. Use -b file=<name> or simply -b <name> to read binning from file <name>. If passing the array, for the moment it is supposed to be the same for reco and gen')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--has-inclusive-signal', dest="hasInclusiveSignal", default=False, action='store_true', help="Use this option if the file already contains the inclusive signal template and you want to plot it as well (obsolete, it refers to the days when I was manually adding inclusive signal to shapes.root file");
     parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
@@ -88,6 +88,8 @@ if __name__ == "__main__":
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
     parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)')
     (options, args) = parser.parse_args()
+
+    ROOT.TH1.SetDefaultSumw2()
 
     if len(args) < 1:
         parser.print_usage()
@@ -130,7 +132,7 @@ if __name__ == "__main__":
         else:
             print "Selecting gen bins ieta,ipt = %d,%d" % (ieta_sel,ipt_sel)
 
-    lepton = "electron" if channel == "el" else " muon"
+    lepton = "electron" if channel == "el" else "muon"
 
     charges = options.charge.split(',')
 
