@@ -184,18 +184,16 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
 
 
     // 4) Tag and probe selection
-    bool atLeastOneTag = false;
     std::vector<int> acceptLep;
     
-    // leptons in the acceptance
+    // full selection, ID+ISO, but not trigger match requirement
     for(int jj=0; jj<nLepGood; jj++){
       if ( isTagLepton(jj) ) acceptLep.push_back(jj);
     }
 
-    // full selection for tags and probes
-    //for (unsigned int iLep=0; iLep<acceptLep.size(); iLep++) {
+    bool atLeastOneTag = false;
+    // loop on all the ID+ISO leptons
     for (std::vector<int>::const_iterator ilep = acceptLep.begin(); ilep !=acceptLep.end(); ++ilep){ 
-      //int theOrigIndex = acceptLep.at(iLep);
       int theOrigIndex = *ilep;
 
       // kine 
