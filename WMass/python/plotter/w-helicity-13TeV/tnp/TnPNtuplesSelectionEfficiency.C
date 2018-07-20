@@ -285,7 +285,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
         // invariant mass
         pair_mass = (thisLep1+thisLep2).M();
-        if (pair_mass<70 || pair_mass>110) continue;
+        if (pair_mass<60 || pair_mass>120) continue;
         
         // both matching mc truth?
         mcTrue = cand_matchMC[iLep1] && cand_matchMC[iLep2];
