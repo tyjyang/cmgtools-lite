@@ -5,8 +5,8 @@
 // found on file: /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-07-06-2l_triggerMatch_ELECTRONS/SingleElectron_Run2016C/treeProducerWMass/tree.root
 //////////////////////////////////////////////////////////
 
-#ifndef TnPNtuplesTriggerEfficiency_h
-#define TnPNtuplesTriggerEfficiency_h
+#ifndef TnPNtuplesBase_h
+#define TnPNtuplesBase_h
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -16,7 +16,7 @@
 
 // Header file for the classes stored in the TTree if any.
 
-class TnPNtuplesTriggerEfficiency {
+class TnPNtuplesBase {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
    Int_t           fCurrent; //!current Tree number in a TChain
@@ -34,7 +34,7 @@ public :
   float probe_lep_pt, probe_lep_eta, probe_sc_eta, probe_lep_phi;
   float probe_eleTrgPt, probe_muTrgPt, probe_tkMuTrgPt;
   int probe_lep_matchMC;
-  int probe_lep_hltSafeId, probe_lep_customId;
+  int probe_lep_hltSafeId, probe_lep_customId, probe_lep_tightCharge;
   int probe_lep_alsoTag;
   float pair_mass;
   int nvtx;
@@ -720,8 +720,8 @@ public :
   TBranch        *b_LepGood_customId;   //!
   TBranch        *b_LepGood_calPt;  //!
 
-  TnPNtuplesTriggerEfficiency(TTree *tree=0, TTree *ftree=0);
-  virtual ~TnPNtuplesTriggerEfficiency();
+  TnPNtuplesBase(TTree *tree=0, TTree *ftree=0);
+  virtual ~TnPNtuplesBase();
 
   virtual Int_t    Cut(Long64_t entry);
   virtual Int_t    GetEntry(Long64_t entry);
@@ -744,8 +744,8 @@ public :
 
 #endif
 
-#ifdef TnPNtuplesTriggerEfficiency_cxx
-TnPNtuplesTriggerEfficiency::TnPNtuplesTriggerEfficiency(TTree *tree, TTree *ftree) : fChain(0) 
+#ifdef TnPNtuplesBase_cxx
+TnPNtuplesBase::TnPNtuplesBase(TTree *tree, TTree *ftree) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -761,19 +761,19 @@ TnPNtuplesTriggerEfficiency::TnPNtuplesTriggerEfficiency(TTree *tree, TTree *ftr
    Init(tree);
 }
 
-TnPNtuplesTriggerEfficiency::~TnPNtuplesTriggerEfficiency()
+TnPNtuplesBase::~TnPNtuplesBase()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
-Int_t TnPNtuplesTriggerEfficiency::GetEntry(Long64_t entry)
+Int_t TnPNtuplesBase::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
-Long64_t TnPNtuplesTriggerEfficiency::LoadTree(Long64_t entry)
+Long64_t TnPNtuplesBase::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
@@ -786,7 +786,7 @@ Long64_t TnPNtuplesTriggerEfficiency::LoadTree(Long64_t entry)
    return centry;
 }
 
-void TnPNtuplesTriggerEfficiency::Init(TTree *tree)
+void TnPNtuplesBase::Init(TTree *tree)
 {
    // The Init() function is called when the selector needs to initialize
    // a new tree or chain. Typically here the branch addresses and branch
@@ -1142,7 +1142,7 @@ void TnPNtuplesTriggerEfficiency::Init(TTree *tree)
    Notify();
 }
 
-Bool_t TnPNtuplesTriggerEfficiency::Notify()
+Bool_t TnPNtuplesBase::Notify()
 {
    // The Notify() function is called when a new file is opened. This
    // can be either for a new TTree in a TChain or when when a new TTree
@@ -1153,18 +1153,18 @@ Bool_t TnPNtuplesTriggerEfficiency::Notify()
    return kTRUE;
 }
 
-void TnPNtuplesTriggerEfficiency::Show(Long64_t entry)
+void TnPNtuplesBase::Show(Long64_t entry)
 {
 // Print contents of entry.
 // If entry is not specified, print current entry
    if (!fChain) return;
    fChain->Show(entry);
 }
-Int_t TnPNtuplesTriggerEfficiency::Cut(Long64_t entry)
+Int_t TnPNtuplesBase::Cut(Long64_t entry)
 {
 // This function may be called from Loop.
 // returns  1 if entry is accepted.
 // returns -1 otherwise.
    return 1;
 }
-#endif // #ifdef TnPNtuplesTriggerEfficiency_cxx
+#endif // #ifdef TnPNtuplesBase_cxx

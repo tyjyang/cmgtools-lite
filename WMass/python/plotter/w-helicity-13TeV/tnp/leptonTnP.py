@@ -7,8 +7,6 @@ import ROOT, os
 ## option -c       : has to be mu or el
 
 
-ROOT.gROOT.ProcessLine(".L TnPNtuplesTriggerEfficiency.C+" )
-
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] mc.txt cuts.txt treeDir outputDirSkims ")
@@ -16,6 +14,7 @@ if __name__ == "__main__":
     parser.add_option("-i", "--indir"     ,  dest="indir"  , type='string', default=''  ,  help="directory with the trees")
     parser.add_option("-m", "--maxentries",  type='int'    , default=-1  ,  help="run only these many entries.")
     parser.add_option("-o", "--outdir"    ,  type='string'    , default='./'  ,  help="save the files in this outdir")
+    parser.add_option("-a", "--analyzer"  ,  dest="analyzer", type='string', default='trigger',  help="run tnp ntuples for trigger/selection. default trigger")
     (options, args) = parser.parse_args() 
 
 
@@ -32,12 +31,26 @@ if __name__ == "__main__":
         tmp_tree = tmp_file.Get('tree')
         
         ## make the instance of the worker
+        if 'el' in options.channel:
+            ffile = options.indir+'/friends/tree_Friend_'+sd+'.root'
+            tmp_friend_file = ROOT.TFile(ffile)
+            tmp_friend_tree = tmp_friend_file.Get('Friends')
+        else: 
+            tmp_friend_tree = None
+    
+        if options.analyzer=='trigger'     : 
+            ROOT.gROOT.ProcessLine(".L TnPNtuplesTriggerEfficiency.C+" )
+            tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree,tmp_friend_tree)
+        elif options.analyzer=='selection' : 
+            ROOT.gROOT.ProcessLine(".L TnPNtuplesSelectionEfficiency.C+" )
+            tnp_worker = ROOT.TnPNtuplesSelectionEfficiency(tmp_tree,tmp_friend_tree)
+        else: 
+            print "analyzer can be either trigger/selection."
+            exit(1)
+
         if 'mu' in options.channel:
-            tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree)
             tnp_worker.setFlavor(13)
         else: 
-            ffile = options.indir+'/friends/+'+os.path.basename(treefile) ## FIX THIS
-            tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree)
             tnp_worker.setFlavor(11)
 
         tnp_worker.setOutfile(options.outdir+'/'+'triggerTnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
