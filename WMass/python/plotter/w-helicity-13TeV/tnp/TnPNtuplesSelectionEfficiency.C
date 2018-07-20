@@ -1,5 +1,5 @@
-#ifndef TnPNtuplesTriggerEfficiency_cxx
-#define TnPNtuplesTriggerEfficiency_cxx
+#ifndef TnPNtuplesSelectionEfficiency_cxx
+#define TnPNtuplesSelectionEfficiency_cxx
 #include "TnPNtuplesBase.C"
 #include <TH2.h>
 #include <TStyle.h>
@@ -7,14 +7,15 @@
 #include <iostream>
 #include <TLorentzVector.h>
 
-class TnPNtuplesTriggerEfficiency : public TnPNtuplesBase {
+class TnPNtuplesSelectionEfficiency : public TnPNtuplesBase {
 public:
 
-  TnPNtuplesTriggerEfficiency(TTree *tree=0, TTree *ftree=0);
-  virtual ~TnPNtuplesTriggerEfficiency();  
+  TnPNtuplesSelectionEfficiency(TTree *tree=0, TTree *ftree=0);
+  virtual ~TnPNtuplesSelectionEfficiency();  
 
   void Loop(int maxentries = -1);
-  bool     isTagLepton(int);
+  bool isTagLepton(int);
+  bool isLeptonInAcceptance(int jj);
 
 protected:
 
@@ -22,12 +23,10 @@ protected:
 
 #endif
 
-
-#ifdef TnPNtuplesTriggerEfficiency_cxx
+#ifdef TnPNtuplesSelectionEfficiency_cxx
 using namespace std;
 
-
-TnPNtuplesTriggerEfficiency::TnPNtuplesTriggerEfficiency(TTree *tree, TTree *ftree) : TnPNtuplesBase(tree,ftree)
+TnPNtuplesSelectionEfficiency::TnPNtuplesSelectionEfficiency(TTree *tree, TTree *ftree) : TnPNtuplesBase(tree,ftree)
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -43,14 +42,28 @@ TnPNtuplesTriggerEfficiency::TnPNtuplesTriggerEfficiency(TTree *tree, TTree *ftr
    Init(tree);
 }
 
-TnPNtuplesTriggerEfficiency::~TnPNtuplesTriggerEfficiency()
+TnPNtuplesSelectionEfficiency::~TnPNtuplesSelectionEfficiency()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
+bool TnPNtuplesSelectionEfficiency::isLeptonInAcceptance(int jj) {
+  if(fFlavor == 11){
+    if (abs(LepGood_pdgId[jj])!=11)                                      return false;
+    if (LepGood_calPt[jj]<25)                                            return false;
+    if (fabs(LepGood_etaSc[jj])>1.4442 && fabs(LepGood_etaSc[jj])<1.566) return false;
+    if (fabs(LepGood_etaSc[jj])>2.5)                                     return false;
+  }
+  else {
+    if (abs(LepGood_pdgId[jj])!=13)   return false;
+    if (LepGood_pt[jj]<26)            return false;
+    if (fabs(LepGood_eta[jj])> 2.4)   return false;
+  }
+  return true;
+}
 
-bool TnPNtuplesTriggerEfficiency::isTagLepton(int jj){
+bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   if(fFlavor == 11){
     if (abs(LepGood_pdgId[jj])!=11)                                  return false;
@@ -73,7 +86,7 @@ bool TnPNtuplesTriggerEfficiency::isTagLepton(int jj){
 
 }
 
-void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
+void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 {
   // skim
   // HLT_SingleEL : HLT_SingleEl == 1
@@ -109,6 +122,7 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
   vector <int>   cand_matchMC   = {};
   vector <int>   cand_hltSafeId = {};
   vector <int>   cand_customId  = {};
+  vector <int>   cand_tightCharge = {};
   vector <int>   cand_alsoTag   = {};
   vector <int>   cand_isZero    = {};
 
@@ -168,11 +182,11 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
             float ptgen  = GenPart_pt[ii];
             float etagen = GenPart_eta[ii];
             float phigen = GenPart_phi[ii];
-            if (pdgid>0)  { //marc: is this correct? i though 11 was a negatively charged lepton. shouldn't matter though
+            if (pdgid<0)  {
               myGenPos.SetPtEtaPhiM(ptgen, etagen, phigen, 0.);
               genPosFound = true;
             }
-            if (pdgid<0) {
+            if (pdgid>0) {
               myGenLep.SetPtEtaPhiM(ptgen, etagen, phigen, 0.);
               genLepFound = true;
             }
@@ -189,7 +203,7 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
     
     // leptons in the acceptance
     for(int jj=0; jj<nLepGood; jj++){
-      if ( isTagLepton(jj) ) acceptLep.push_back(jj);
+      if ( isLeptonInAcceptance(jj) ) acceptLep.push_back(jj);
     }
 
     // full selection for tags and probes
@@ -224,29 +238,27 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       // Full ID 
       int customId = LepGood_customId[theOrigIndex];
 
+      // Tight Charge
+      int tightCharge = LepGood_tightChargeFix[theOrigIndex];
+
       // Is this a tag:
       int isThisTag = 0;
-      if (fFlavor == 11){
-        if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
-      }
-      else{
-        if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjMuPt[theOrigIndex] > -1. && LepGood_matchedTrgObjTkMuPt[theOrigIndex] > -1.) isThisTag =1; // require muon tag to fire both triggers.
-      }
-
+      if (isTagLepton(theOrigIndex)) isThisTag =1;
       if (isThisTag) atLeastOneTag = true;
 
       // Infos to be kept
-      cand_pt        . push_back(lepPt);
-      cand_eta       . push_back(lepEta);
-      cand_etaSc     . push_back(lepScEta);
-      cand_phi       . push_back(lepPhi);
-      cand_eleTrgPt  . push_back(LepGood_matchedTrgObjElePt[theOrigIndex]);
-      cand_muTrgPt   . push_back(LepGood_matchedTrgObjMuPt[theOrigIndex]);
-      cand_tkMuTrgPt . push_back(LepGood_matchedTrgObjTkMuPt[theOrigIndex]);
-      cand_matchMC   . push_back(matchMC);
-      cand_hltSafeId . push_back(hltSafeId);
-      cand_customId  . push_back(customId);
-      cand_alsoTag   . push_back(isThisTag);
+      cand_pt          . push_back(lepPt);
+      cand_eta         . push_back(lepEta);
+      cand_etaSc       . push_back(lepScEta);
+      cand_phi         . push_back(lepPhi);
+      cand_eleTrgPt    . push_back(LepGood_matchedTrgObjElePt[theOrigIndex]);
+      cand_muTrgPt     . push_back(LepGood_matchedTrgObjMuPt[theOrigIndex]);
+      cand_tkMuTrgPt   . push_back(LepGood_matchedTrgObjTkMuPt[theOrigIndex]);
+      cand_matchMC     . push_back(matchMC);
+      cand_hltSafeId   . push_back(hltSafeId);
+      cand_customId    . push_back(customId);
+      cand_tightCharge . push_back(tightCharge);
+      cand_alsoTag     . push_back(isThisTag);
 
       if (theOrigIndex==0) cand_isZero.push_back(1);
       else cand_isZero.push_back(0);    
@@ -257,18 +269,19 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
     //--- 4) at least one tag candidate - should be there by definition of the skim
     if (!atLeastOneTag) {
       // cleaning vectors
-      cand_pt        . clear();
-      cand_eta       . clear();
-      cand_etaSc     . clear();
-      cand_phi       . clear();
-      cand_eleTrgPt  . clear();
-      cand_muTrgPt   . clear();
-      cand_tkMuTrgPt . clear();
-      cand_matchMC   . clear();
-      cand_hltSafeId . clear();
-      cand_customId  . clear();
-      cand_alsoTag   . clear();
-      cand_isZero    . clear();
+      cand_pt          . clear();
+      cand_eta         . clear();
+      cand_etaSc       . clear();
+      cand_phi         . clear();
+      cand_eleTrgPt    . clear();
+      cand_muTrgPt     . clear();
+      cand_tkMuTrgPt   . clear();
+      cand_matchMC     . clear();
+      cand_hltSafeId   . clear();
+      cand_customId    . clear();
+      cand_tightCharge . clear();
+      cand_alsoTag     . clear();
+      cand_isZero      . clear();
       continue;
     }
     h_selection->Fill(3.);    
@@ -289,26 +302,27 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
         // invariant mass
         pair_mass = (thisLep1+thisLep2).M();
         if (pair_mass<60 || pair_mass>120) continue;
-        
+
         // both matching mc truth?
         mcTrue = cand_matchMC[iLep1] && cand_matchMC[iLep2];
         
         // first as tag, second as probe
-        tag_lep_pt          = cand_pt        [iLep1];
-        tag_lep_eta         = cand_eta       [iLep1];
-        tag_lep_matchMC     = cand_matchMC   [iLep1];
+        tag_lep_pt             = cand_pt          [iLep1];
+        tag_lep_eta            = cand_eta         [iLep1];
+        tag_lep_matchMC        = cand_matchMC     [iLep1];
 
-        probe_lep_pt        = cand_pt        [iLep2];
-        probe_lep_eta       = cand_eta       [iLep2];
-        probe_sc_eta        = cand_etaSc     [iLep2];
-        probe_lep_phi       = cand_phi       [iLep2];
-        probe_eleTrgPt      = cand_eleTrgPt  [iLep2];
-        probe_muTrgPt       = cand_muTrgPt   [iLep2];
-        probe_tkMuTrgPt     = cand_tkMuTrgPt [iLep2];
-        probe_lep_matchMC   = cand_matchMC   [iLep2];
-        probe_lep_hltSafeId = cand_hltSafeId [iLep2];
-        probe_lep_customId  = cand_customId  [iLep2];
-        probe_lep_alsoTag   = cand_alsoTag   [iLep2];
+        probe_lep_pt           = cand_pt          [iLep2];
+        probe_lep_eta          = cand_eta         [iLep2];
+        probe_sc_eta           = cand_etaSc       [iLep2];
+        probe_lep_phi          = cand_phi         [iLep2];
+        probe_eleTrgPt         = cand_eleTrgPt    [iLep2];
+        probe_muTrgPt          = cand_muTrgPt     [iLep2];
+        probe_tkMuTrgPt        = cand_tkMuTrgPt   [iLep2];
+        probe_lep_matchMC      = cand_matchMC     [iLep2];
+        probe_lep_hltSafeId    = cand_hltSafeId   [iLep2];
+        probe_lep_customId     = cand_customId    [iLep2];
+        probe_lep_tightCharge  = cand_tightCharge [iLep2];
+        probe_lep_alsoTag      = cand_alsoTag     [iLep2];
         
         // Tree filling
         outFile_->cd();
@@ -319,18 +333,19 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
     }   // tags
   
     // cleaning vectors
-    cand_pt        . clear();
-    cand_eta       . clear();
-    cand_etaSc     . clear();
-    cand_phi       . clear();
-    cand_matchMC   . clear();
-    cand_hltSafeId . clear();
-    cand_customId  . clear();
-    cand_alsoTag   . clear();
-    cand_isZero    . clear();
-    cand_eleTrgPt  . clear();
-    cand_muTrgPt   . clear();
-    cand_tkMuTrgPt . clear();
+    cand_pt          . clear();
+    cand_eta         . clear();
+    cand_etaSc       . clear();
+    cand_phi         . clear();
+    cand_matchMC     . clear();
+    cand_hltSafeId   . clear();
+    cand_customId    . clear();
+    cand_tightCharge . clear();
+    cand_alsoTag     . clear();
+    cand_isZero      . clear();
+    cand_eleTrgPt    . clear();
+    cand_muTrgPt     . clear();
+    cand_tkMuTrgPt   . clear();
 
   }  // Loop over entries
 
@@ -340,8 +355,8 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
   h_selection -> Write();
   cddir       -> cd();
   outTree_    -> Write();
+  outFile_    -> Close();
 
 } // Loop method
-
 
 #endif
