@@ -339,14 +339,15 @@ if __name__ == "__main__":
         allValues = {}
         for pol in ['left','right', 'long']:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
-            MAXYFORNORM = ybins[cp][-3] # exclude the outermost 2 bins which has huge error due to acceptance
+            nOuterBinsToExclude = 2
+            MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
             normsigma = sum([xsec_nominal[pol][iy] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigma)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu'.format(charge=charge,pol=pol,ch=channel,iy=iy)
+                parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                 tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
@@ -360,15 +361,24 @@ if __name__ == "__main__":
                 tmp_val.rello.append(systematics[pol][iy]/nominal[pol][iy])
                 tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
                 
+                scale = 1.
                 if options.normxsec:
-                    xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
+                    if   options.type == 'toys': 
+                        xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
+                    elif options.type == 'hessian':
+                        xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
+                        xsecnorm = sum(valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=tmpiy)][0] for tmpiy in xrange(len(ybins[cp])-nOuterBinsToExclude-1))
+                        scale = 1./xsecnorm
+                    else:
+                        print "--normxsec not implemented yet for scans."
+                        sys.exit()
                 else:
                     xsec_parname = parname+'_pmaskedexp'
                     xsec_fit = valuesAndErrors[xsec_parname]
                 
-                tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy])
-                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy])
-                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidths[cp][iy])
+                tmp_val.val_fit.append(xsec_fit[0]*scale/ybinwidths[cp][iy])
+                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])*scale/ybinwidths[cp][iy])
+                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])*scale/ybinwidths[cp][iy])
 
                 units = '' if options.normxsec else '(pb)'
                 print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
@@ -376,7 +386,7 @@ if __name__ == "__main__":
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
 
                 if options.normxsec:
-                    rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
+                    rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma*scale for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
                 else:
                     rfit = valuesAndErrors[parname+'_mu'] # r values: contain all the common norm uncertainties (lumi, eff...)
 

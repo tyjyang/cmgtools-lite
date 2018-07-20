@@ -7,11 +7,8 @@
 
 # python w-helicity-13TeV/templateRolling.py cards/diffXsec_2018_05_24_diffXsec_GenPtEtaSigBin/ -o plots/diffXsec/templates/diffXsec_2018_05_24_GenPtEtaSigBin/  -c el -b [-2.5,-2.3,-2.1,-1.9,-1.7,-1.566,-1.4442,-1.2,-1.0,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1.0,1.2,1.4442,1.566,1.7,1.9,2.1,2.3,2.5]*[30,33,36,39,42,45] --plot-binned-signal -a diffXsec [--has-inclusive-signal]
 
-# python w-helicity-13TeV/templateRolling.py cards/diffXsec_2018_06_20_10/ -o plots/diffXsec/templates/diffXsec_2018_06_20_10/ -c el -b file=cards/diffXsec_2018_06_20_10/binningPtEta.txt --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5
+# python w-helicity-13TeV/templateRolling.py cards/diffXsec_2018_06_20_10/ -o plots/diffXsec/templates/diffXsec_2018_06_20_10/ -c el -b cards/diffXsec_2018_06_20_10/binningPtEta.txt --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 --skipSyst
 
-# can pass eta/pt binning as -b file=cards/diffXsec_2018_05_24_diffXsec_GenPtEtaSigBin/binningPtEta.txt
-
-# will implement taking 2D template binning from a file
 
 
 import ROOT, os
@@ -20,7 +17,7 @@ from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getArrayBinNumberFromValue
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
-
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 import sys
 #sys.path.append(os.environ['CMSSW_BASE']+"/src/CMGTools/WMass/python/plotter/")
@@ -80,7 +77,7 @@ if __name__ == "__main__":
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
     parser.add_option('-p','--postfix', dest='postfix', default='', type='string', help='Postfix for input file with shapes (e.g: "_addInclW" in "Wel_plus_shapes_addInclW.root"). Default is ""')
-    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates (will have to implement reading it from file). Use -b file=<name> to read binning from file <name>. If passing the array, for the moment it is supposed to be the same for reco and gen')
+    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates. Use -b file=<name> or simply -b <name> to read binning from file <name>. If passing the array, for the moment it is supposed to be the same for reco and gen')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--has-inclusive-signal', dest="hasInclusiveSignal", default=False, action='store_true', help="Use this option if the file already contains the inclusive signal template and you want to plot it as well (obsolete, it refers to the days when I was manually adding inclusive signal to shapes.root file");
     parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
@@ -91,6 +88,8 @@ if __name__ == "__main__":
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
     parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)')
     (options, args) = parser.parse_args()
+
+    ROOT.TH1.SetDefaultSumw2()
 
     if len(args) < 1:
         parser.print_usage()
@@ -133,7 +132,7 @@ if __name__ == "__main__":
         else:
             print "Selecting gen bins ieta,ipt = %d,%d" % (ieta_sel,ipt_sel)
 
-    lepton = "electron" if channel == "el" else " muon"
+    lepton = "electron" if channel == "el" else "muon"
 
     charges = options.charge.split(',')
 
@@ -239,29 +238,35 @@ if __name__ == "__main__":
                     name=k.GetName()
                     obj=k.ReadObj()
                     # example of name in shapes.root: x_Wplus_el_ieta_3_ipt_0_Wplus_el_group_0
-                    signalMatch = "{ch}_{flav}_ieta".format(ch=charge,flav=channel)                      
+                    # example of name in shapes.root: x_Wplus_mu_outliers_Wplus_mu_outliers_group_37
+                    signalMatch = "{ch}_{flav}_".format(ch=charge,flav=channel)                      
                     # name.split('_')[-2] == "group" : this condition excludes systematics
 
                     if obj.InheritsFrom("TH1") and signalMatch in name:
 
                         if name.split('_')[-2] == "group":
 
-                            tokens = name.split('_')
-                            for i,tkn in enumerate(tokens):                            
-                                #print "%d %s" % (i, tkn)
-                                if tkn == "ieta": etabinIndex = int(tokens[i + 1])
-                                if tkn == "ipt": ptbinIndex = int(tokens[i + 1])                                                    
-                            if options.draw_all_bins: drawThisBin = True
-                            elif options.draw_selected_etaPt != '':
-                                if etabinIndex != ieta_sel or ptbinIndex != ipt_sel: drawThisBin = False                            
-                                else: drawThisBin = True
-                            else: drawThisBin = False
-                            name2D = 'W{ch}_{flav}_ieta_{ieta}_ipt_{ipt}'.format(ch=charge,flav=channel,ieta=etabinIndex,ipt=ptbinIndex)
-                            title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})#; p_{{T}} #in [{ptmin:.0f},{ptmax:.0f})'.format(etamin=genBins.etaBins[etabinIndex],
-                                                                                                                              etamax=genBins.etaBins[etabinIndex+1],
-                                                                                                                              ptmin=genBins.ptBins[ptbinIndex],
-                                                                                                                              ptmax=genBins.ptBins[ptbinIndex+1],
-                                                                                                                              chs=chs)
+                            if "outliers" in name:
+                                drawThisBin = True
+                                name2D = 'W{ch}_{flav}_outliers'.format(ch=charge,flav=channel)
+                                title2D = 'W{chs}: |#eta| > {etamax}#; p_{{T}} #notin [{ptmin:.0f},{ptmax:.0f})'.format(etamax=genBins.etaBins[-1],
+                                                                                                                        ptmin=genBins.ptBins[0],
+                                                                                                                        ptmax=genBins.ptBins[-1],
+                                                                                                                        chs=chs)
+                            else:
+                                etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(name)
+                                if options.draw_all_bins: drawThisBin = True
+                                elif options.draw_selected_etaPt != '':
+                                    if etabinIndex != ieta_sel or ptbinIndex != ipt_sel: drawThisBin = False                            
+                                    else: drawThisBin = True
+                                else: drawThisBin = False
+                                name2D = 'W{ch}_{flav}_ieta_{ieta}_ipt_{ipt}'.format(ch=charge,flav=channel,ieta=etabinIndex,ipt=ptbinIndex)
+                                title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})#; p_{{T}} #in [{ptmin:.0f},{ptmax:.0f})'.format(etamin=genBins.etaBins[etabinIndex],
+                                                                                                                                  etamax=genBins.etaBins[etabinIndex+1],
+                                                                                                                                  ptmin=genBins.ptBins[ptbinIndex],
+                                                                                                                                  ptmax=genBins.ptBins[ptbinIndex+1],
+                                                                                                                                  chs=chs)
+
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
                             h2_backrolled_1.Write(name2D)
                             hSigInclusive.Add(h2_backrolled_1)

@@ -47,3 +47,13 @@ leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType
     NTupleVariable("matchedTrgObjTkMuDR", lambda x: deltaR(x, x.matchedTrgObjwmassTkMu) if  x.matchedTrgObjwmassTkMu else -999., help="Matched trigger object (cone dR<0.3) dR to IsoTkMu24"),
     NTupleVariable("nLayersInner", lambda lepton: lepton.innerTrack().hitPattern().trackerLayersWithMeasurement() if abs(lepton.pdgId()) == 13 else -999., help="Number of layers with measurements in inner track hit pattern for muons."),
 ])
+
+
+##------------------------------------------  
+## LHE weights with a reduced precision
+##------------------------------------------  
+lightWeightsInfoType = NTupleObjectType("LightWeightsInfo", mcOnly=True, variables = [
+#    NTupleVariable("id",   lambda x : x.id, int),
+    NTupleVariable("wgt",   lambda x : x.wgt, storageType="H"),
+])
+

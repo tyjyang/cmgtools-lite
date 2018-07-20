@@ -16,30 +16,40 @@ TH2 * helicityFractions_0 = 0;
 TH2 * helicityFractions_L = 0;
 TH2 * helicityFractions_R = 0;
 
+// Index 0 is for nominal, 1-4 is for variation of FR linear fit parameters (1,2 for up/dn offset, 3,4 for slope)
+// 5-6 is used for normalization systematic variation implemented through an eta(-pt) dependent lnN nuisance. 
+// Actually index 5 or 6 are used to store the histogram for FR without any variation, to avoid clashes with FRi_mu[0] or FRi_el[0] used when running the nominal FR
+// see for example: w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt 
 TH2 * FR_mu = 0;
-TH2 * FRi_mu[30] = {0};
+TH2 * FRi_mu[7] = {0};  
 TH2 * FR_el = 0;
-TH2 * FRi_el[30] = {0};
+TH2 * FRi_el[7] = {0};
 
 // FR for QCD MC, needed not to clash with that on data (above) in case they are used together
 TH2 * FR_mu_qcdmc = 0;
-TH2 * FRi_mu_qcdmc[30] = {0}; 
+TH2 * FRi_mu_qcdmc[5] = {0}; 
 TH2 * FR_el_qcdmc = 0;
-TH2 *FRi_el_qcdmc[30] = {0};
+TH2 * FRi_el_qcdmc[5] = {0};
 
 // prompt rate
 TH2 * PR_mu = 0;
-TH2 * PRi_mu[30] = {0};
+TH2 * PRi_mu[7] = {0};
 TH2 * PR_el = 0;
-TH2 * PRi_el[30] = {0};
+TH2 * PRi_el[7] = {0};
 
 TH2 * FRcorrection = 0;
 TH2 * FRcorrection_i[5];
+
+TH2 * FRnormSyst_el = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)
+TH2 * FRnormSyst_el_i[3] = {0}; // will only have up and down, but let's use 3 to include a nominal variation
+TH2 * FRnormSyst_mu = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)
+TH2 * FRnormSyst_mu_i[3] = {0};
 
 bool loadFRHisto(const std::string &histoName, const std::string file, const char *name) {
 
   TH2 **histo = 0, **hptr2 = 0;
   TH2 * FR_temp = 0;
+  TH2 * FR_normSyst_temp = 0;
   TH2 * PR_temp = 0;
   TH2 * FRcorr_temp = 0;
   if (histoName == "FR_mu")  { histo = & FR_mu;  hptr2 = & FRi_mu[0]; }
@@ -55,6 +65,10 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
   else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
   else if (TString(histoName).BeginsWith("PR_mu_i")) {histo = & PR_temp; hptr2 = & PRi_mu[TString(histoName).ReplaceAll("PR_mu_i","").Atoi()];}
   else if (TString(histoName).BeginsWith("PR_el_i")) {histo = & PR_temp; hptr2 = & PRi_el[TString(histoName).ReplaceAll("PR_el_i","").Atoi()];}
+  else if (histoName == "FRnormSyst_el")  { histo = & FRnormSyst_el;  hptr2 = & FRnormSyst_el_i[0];}
+  else if (histoName == "FRnormSyst_mu")  { histo = & FRnormSyst_mu;  hptr2 = & FRnormSyst_mu_i[0];}
+  else if (TString(histoName).BeginsWith("FRnormSyst_el_i")) {histo = & FR_normSyst_temp; hptr2 = & FRnormSyst_el_i[TString(histoName).ReplaceAll("FRnormSyst_el_i","").Atoi()];}
+  else if (TString(histoName).BeginsWith("FRnormSyst_mu_i")) {histo = & FR_normSyst_temp; hptr2 = & FRnormSyst_mu_i[TString(histoName).ReplaceAll("FRnormSyst_mu_i","").Atoi()];}
   else if (histoName == "FR_correction")  { histo = & FRcorrection; hptr2 = & FRcorrection_i[0]; }
   else if (TString(histoName).BeginsWith("FR_correction_i")) {histo = & FRcorr_temp; hptr2 = & FRcorrection_i[TString(histoName).ReplaceAll("FRcorrection_i","").Atoi()];}
   if (histo == 0)  {
@@ -97,6 +111,39 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
 
 }
 
+//===============================================================
+
+float getFakeRatenormWeight(float lpt, float leta, int lpdgId, int ivar = 0) {
+
+  if (!ivar) return 1.0; // this is a special case: the "nominal" FRnormSyst TH1 was never created (it would be FR_el or FR_mu)
+  // only the variations are considered here
+  // ivar == 1: up variation
+  // ivar == 2: down variation
+
+  if (FRnormSyst_el_i[ivar] == 0 && FRnormSyst_mu_i[ivar] == 0) {
+    std::cout << "Error in getFakeRatenormWeight(): both histograms are 0. Returning 0" << std::endl;	
+    return 0;
+  } 
+
+  int fid = abs(lpdgId);   
+  TH2 *hist = (fid == 11 ? FRnormSyst_el_i[ivar] : FRnormSyst_mu_i[ivar]);
+  if (hist == 0) {
+    std::cout << "Error in getFakeRatenormWeight(): hist == 0. Returning 0" << std::endl;	
+    return 0;
+  } 
+
+  // do we need a weight just as a function of eta or pt as well?
+  float absleta = std::abs(leta);
+  int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindBin(absleta)));
+  int ptbin  = std::max(1, std::min(hist->GetNbinsX(), hist->GetYaxis()->FindBin(lpt)));
+  
+  // TH1 content is a fraction, like 30%, so we return 1 +/- var
+  float var = hist->GetBinContent(etabin, ptbin);
+  return (ivar == 1) ? (1 + var) : (1 - var);
+  
+}
+
+//===============================================================
 
 float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { //, int expected_pdgId=11) {
 
@@ -135,7 +182,7 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   if (hist_fr == 0 || hist_pr == 0) {
     // this is the case where you expect electrons but get a muon, or viceversa
     // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
-    // do not issue warnign mewssages here, unless it is for testing
+    // do not issue warning messages here, unless it is for testing
     //std::cout << "Error in fakeRateWeight_promptRateCorr_1l_i_smoothed: hist_fr == 0. It seems the flavour is not what you expect. Returning 0" << std::endl;	
     return 0;
   }
@@ -164,13 +211,18 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   if (pr > 0.98) pr = 0.98; // safety thing
 
+  // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
+  float FRnormWgt = 1.0; 
+  if      (iFR==5) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 1);
+  else if (iFR==6) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 2);
+
   if (passWP) {
     // tight
     // returning a negative weight
-    return fr*(pr-1)/(pr-fr); // pr=1 --> return 0
+    return FRnormWgt*fr*(pr-1)/(pr-fr); // pr=1 --> return 0
   } else {
     // not tight (but still loose)
-    return fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
+    return FRnormWgt*fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
   }
 
 }

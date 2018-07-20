@@ -91,6 +91,7 @@ class GenQEDJetProducer(Module):
         self.pdfWeightOffset = 9 #index of first mc replica weight (careful, this should not be the nominal weight, which is repeated in some mc samples).  The majority of run2 LO madgraph_aMC@NLO samples with 5fs matrix element and pdf would use index 10, corresponding to pdf set 263001, the first alternate mc replica for the nominal pdf set 263000 used for these samples
         self.nMCReplicasWeights = 100 #number of input weights (100 for NNPDF 3.0)
         self.nHessianWeights = 60 #number of output weights
+        self.massWeights = range(80300, 80505, 5) #masses in MeV
         if "PDFWeightsHelper_cc.so" not in ROOT.gSystem.GetLibraries():
             ROOT.gROOT.ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include")
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/PDFWeightsHelper.cc+" % os.environ['CMSSW_BASE'])
@@ -121,6 +122,8 @@ class GenQEDJetProducer(Module):
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "F")
+        for imass in self.massWeights:
+            self.out.branch("mass_{mass}".format(mass=imass), "F")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 
@@ -157,6 +160,13 @@ class GenQEDJetProducer(Module):
         idx_map[("Dn","Dn")] = 8
         if (mur,muf) not in idx_map: raise Exception('Scale variation muR={mur},muF={muf}'.format(mur=mur,muf=muf))
         return idx_map[(mur,muf)]
+
+    def bwWeight(self,genMass,imass):
+        # default mass calculated from MG5 inputs
+        # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 ± 7.65e-06 (GeV)
+        (m0,gamma) = (80419.,2050.0) # MeV
+        s_hat = pow(genMass,2)
+        return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - imass*imass,2) + pow(gamma*imass,2))
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
@@ -226,6 +236,8 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("genw_phics",kv.phiCS(lplus,lminus))
             self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
             self.out.fillBranch("genw_decayId", abs(nuPdgIds[0]))
+            for imass in self.massWeights:
+                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass))
         else:
             ##if not len(dressedLeptons): 
             ##    print '================================'
@@ -236,6 +248,8 @@ class GenQEDJetProducer(Module):
             ##    print 'no neutrinos found, in run:lumi:evt: {a}:{b}:{c}'.format(a=getattr(event, "run"),b=getattr(event, "lumi"),c=getattr(event, "evt"))
             for V in self.genwvars:
                 self.out.fillBranch("genw_"+V, -999)
+            for imass in self.massWeights:
+                self.out.fillBranch("mass_{mass}".format(mass=imass), 1.)
 
         lheweights = [w.wgt for w in lhe_wgts]
         lhewgtIDs  = [w.id  for w in lhe_wgts]

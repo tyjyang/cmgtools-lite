@@ -140,34 +140,33 @@ class util:
      
         return -1
 
-    def getFromHessian(self, infile):
+    def getFromHessian(self, infile, keepGen=False):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')
         lok  = tree.GetListOfLeaves()
-        
         for p in lok:
             if '_err'   in p.GetName(): continue
             if '_minos' in p.GetName(): continue
-            if '_gen'   in p.GetName(): continue
+            if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
 
-            if not p.GetName()+'_err' in lok: continue
+            if not p.GetName()+'_err' in lok and not keepGen: continue
 
             if tree.GetEntries() > 1:
                 print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
                 sys.exit()
             for ev in tree:
                 mean = getattr(ev, p.GetName())
-                err  = getattr(ev, p.GetName()+'_err')
+                err  = getattr(ev, p.GetName()+'_err') if hasattr(ev, p.GetName()+'_err') else 0
 
             _dict[p.GetName()] = (mean, mean+err, mean-err)
      
         return _dict
 
 
-    def getFromToys(self, infile):
+    def getFromToys(self, infile, keepGen=False):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -177,7 +176,7 @@ class util:
         for p in lok:
             if '_err'   in p.GetName(): continue
             if '_minos' in p.GetName(): continue
-            if '_gen'   in p.GetName(): continue
+            if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
             
             tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
@@ -188,7 +187,10 @@ class util:
      
         return _dict
 
-    def getHistosFromToys(self, infile):
+    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None):
+
+        # getPull = True will return a histogram centered at 0 and with expected rms=1, obtained as (x-x_gen)/x_err
+
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -200,11 +202,26 @@ class util:
             if '_minos' in p.GetName(): continue
             if '_gen'   in p.GetName(): continue
             if '_In'    in p.GetName(): continue
+            if matchBranch and not any(re.match(poi,p.GetName()) for poi in matchBranch.split(',')): continue
+            if excludeBranch and any(re.match(excl,p.GetName()) for excl in excludeBranch.split(',')): continue
             
-            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3., 3.)
-            tree.Draw(p.GetName()+'>>'+p.GetName())
-            mean = tmp_hist.GetMean()
-            err  = tmp_hist.GetRMS()
+            #print "Loading parameter --> %s " % p.GetName()
+
+            if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
+                #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
+                tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
+                tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3, 3)
+                expression = "({p}-{pgen})/{perr}".format(p=p.GetName(),pgen=p.GetName()+"_gen",perr=p.GetName()+"_err")
+                tree.Draw(expression+'>>'+p.GetName())
+                tree.Draw(p.GetName()+'>>'+p.GetName()+"_tmp")
+                mean = tmp_hist_tmp.GetMean()
+                err  = tmp_hist_tmp.GetRMS()
+            else:
+                tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
+                tree.Draw(p.GetName()+'>>'+p.GetName())
+                mean = tmp_hist.GetMean()
+                err  = tmp_hist.GetRMS()
+
             tmp_hist.SetDirectory(None)
             _dict[p.GetName()] = (mean, mean+err, mean-err, tmp_hist)
      
@@ -236,6 +253,41 @@ class util:
         expr = '(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp - Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)/(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp + Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)'.format(pol=pol,ch=channel,iy=iy)
         ret = self.getExprFromToys('chargeAsym',expr,infile)
         return ret
+
+    def getDiffXsecAsymmetryFromToys(self, channel, ieta, ipt, netabins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromToys('chargeAsym',expr,infile)
+        return ret
+
+    def getDenExpressionForNormDiffXsec(self, channel, charge, netabins, nptbins, ngroup):
+        binsToNormalize = []
+        for ieta in range(netabins):
+            for ipt in range(nptbins):
+                igroup = int(int(ieta + ipt * netabins)/ngroup)
+                denChunk = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+                binsToNormalize.append(denChunk)
+        den = "+".join(x for x in binsToNormalize)
+        den = "(" + den + ")"
+        return den
+
+    def getNormalizedDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile,den):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        expr = '{num}/{den}'.format(num=num,den=den)
+        ret = self.getExprFromToys('normDiffXsec',expr,infile)
+        return ret
+
+    def getDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        ret = self.getExprFromToys('normDiffXsec',expr,infile)
+        return ret
+
+
 
     def getFromScans(self, indir):
         _dict = {}

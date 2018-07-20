@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# python w-helicity-13TeV/mergeCardComponentsDiffXsec.py -i cards/diffXsec_2018_05_24_diffXsec_GenPtEtaSigBin/ -b Wel -C plus -p CMS_We_flips -m
+# python w-helicity-13TeV/mergeCardComponentsDiffXsec.py -i cards/diffXsec_2018_05_24_diffXsec_GenPtEtaSigBin/ -b Wel -C plus -m --eta-range-bkg 1.44 1.57 --sig-out-bkg
 
 ####################
 ###################
@@ -15,14 +15,7 @@ from mergeCardComponentsAbsY import mirrorShape
 from make_diff_xsec_cards import getArrayParsingString
 from make_diff_xsec_cards import getGlobalBin
 from make_diff_xsec_cards import getDiffXsecBinning
-
-def get_ieta_ipt_from_process_name(name):
-    tokens = name.split('_')
-    for i,tkn in enumerate(tokens):
-        #print "%d %s" % (i, tkn)                                                                                                                        
-        if tkn == "ieta": ieta = int(tokens[i + 1])
-        if tkn == "ipt":  ipt  = int(tokens[i + 1])
-    return ieta,ipt
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
 def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
@@ -35,26 +28,24 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
     for process in processes:
 
-        # process has the form: Wplus_el_ieta_3_ipt_0_Wplus_el_group_0, where the number after group is not relevant (does not coincide with absolute bin number)
-        # as it can be the same for many processes
-        # one should use ieta and ipt, which identifies the template bin (first index is 0, not 1)
-        # generally, ieta,ipt in name should correspond to 2D histogram X and Y bins (after adding 1)
-        # However, one could use different definition for the gen level binning (used to cut and define a signal process) and the reco level one (defining the TH2)
-
-        ieta,ipt = get_ieta_ipt_from_process_name(process)
         etabins = etaPtBins[1]
         ptbins = etaPtBins[3]
-        etafirst = etabins[ieta]
-        etalast  = etabins[ieta+1]
-        ptfirst = ptbins[ipt]
-        ptlast  = ptbins[ipt+1]
 
         charge = "plus" if "plus" in process else "minus"
         # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
         etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
-        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_el_central' 
+        cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_central' 
         cen_hist = histo_file.Get(cen_name)  # this is a TH2
+        useEleXsec = False
+        if not cen_hist:
+            cen_name = cen_name.replace("_mu_","_el_")
+            cen_hist = histo_file.Get(cen_name)
+            useEleXsec = True
         #print cen_name
+
+        if not cen_hist:
+            print "Error in getXsecs_etaPt(): histogram %s not found in file %s. Exit" % (cen_name, infile)
+            quit()
 
         # before searching the bin, sum epsilon to the y value being inspected
         # Root assigns the lower bin edge to the bin, while the upper bin edge is assigned to the adjacent bin. However, depending on the number y being used,
@@ -62,13 +53,33 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
         # It seems odd, but I noticed that with the fake rate graphs (I was getting events migrating between adjacent eta bins)
         epsilon = 0.00001
 
-        # caution, we are using TH2, the logic below is slightly different than for TH1        
-        istart_eta = cen_hist.GetXaxis().FindFixBin(etafirst + epsilon)
-        iend_eta   = cen_hist.GetXaxis().FindFixBin(etalast + epsilon)
-        istart_pt  = cen_hist.GetYaxis().FindFixBin(ptfirst + epsilon)
-        iend_pt    = cen_hist.GetYaxis().FindFixBin(ptlast + epsilon)
+        # process has the form: Wplus_el_ieta_3_ipt_0_Wplus_el_group_0, where the number after group is not relevant (does not coincide with absolute bin number)
+        # as it can be the same for many processes
+        # one should use ieta and ipt, which identifies the template bin (first index is 0, not 1)
+        # generally, ieta,ipt in name should correspond to 2D histogram X and Y bins (after adding 1)
+        # However, one could use different definition for the gen level binning (used to cut and define a signal process) and the reco level one (defining the TH2)
 
-        ncen = cen_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
+        if "outliers" in process:
+            # cross section for outliers = Integral(all) - integral(acceptance)
+            totxsec = cen_hist.Integral(0, cen_hist.GetNbinsX()+1, 0, cen_hist.GetNbinsY()+1)
+            ieta_low_acc = cen_hist.GetXaxis().FindFixBin(etabins[0]+epsilon)
+            ieta_high_acc = cen_hist.GetXaxis().FindFixBin(etabins[-1]+epsilon) -1
+            ipt_low_acc = cen_hist.GetYaxis().FindFixBin(ptbins[0]+epsilon)
+            ipt_high_acc = cen_hist.GetYaxis().FindFixBin(ptbins[-1]+epsilon) -1
+            xsecAccept = cen_hist.Integral(ieta_low_acc, ieta_high_acc, ipt_low_acc, ipt_high_acc)
+            ncen = totxsec - xsecAccept 
+        else:
+            ieta,ipt = get_ieta_ipt_from_process_name(process)
+            etafirst = etabins[ieta]
+            etalast  = etabins[ieta+1]
+            ptfirst = ptbins[ipt]
+            ptlast  = ptbins[ipt+1]            
+            # caution, we are using TH2, the logic below is slightly different than for TH1        
+            istart_eta = cen_hist.GetXaxis().FindFixBin(etafirst + epsilon)
+            iend_eta   = cen_hist.GetXaxis().FindFixBin(etalast + epsilon)
+            istart_pt  = cen_hist.GetYaxis().FindFixBin(ptfirst + epsilon)
+            iend_pt    = cen_hist.GetYaxis().FindFixBin(ptlast + epsilon)
+            ncen = cen_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
         tmp_hist = ROOT.TH1F('x_'+process,'x_'+process, 1, 0., 1.)
         ## normalize back to cross section
@@ -81,14 +92,33 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
-            sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
-            sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
+            if useEleXsec:
+                sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
+                sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+dnn
+            else:
+                sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_'+upn
+                sys_dnname = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_'+dnn
 
             sys_up_hist = histo_file.Get(sys_upname)
             sys_dn_hist = histo_file.Get(sys_dnname)
 
-            nup = sys_up_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
-            ndn = sys_dn_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
+            if not sys_up_hist:
+                print "Error in getXsecs_etaPt(): histogram %s not found in file %s" % (sys_upname, infile)
+                quit()
+            if not sys_dn_hist:
+                print "Error in getXsecs_etaPt(): histogram %s not found in file %s" % (sys_dnname, infile)
+                quit()
+
+            if "outliers" in process:
+                totxsec = sys_up_hist.Integral(0, sys_up_hist.GetNbinsX()+1, 0, sys_up_hist.GetNbinsY()+1)
+                xsecAccept = sys_up_hist.Integral(ieta_low_acc, ieta_high_acc, ipt_low_acc, ipt_high_acc)
+                nup = totxsec - xsecAccept
+                totxsec = sys_dn_hist.Integral(0, sys_dn_hist.GetNbinsX()+1, 0, sys_dn_hist.GetNbinsY()+1)
+                xsecAccept = sys_dn_hist.Integral(ieta_low_acc, ieta_high_acc, ipt_low_acc, ipt_high_acc)
+                ndn = totxsec - xsecAccept
+            else:
+                nup = sys_up_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
+                ndn = sys_dn_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
             if 'pdf' in sys:
                 ndn = 2.*ncen-nup ## or ncen/nup?
@@ -107,6 +137,42 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
     return hists
 
 
+def combCharges(options):
+    suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
+    datacards=[]; channels=[]
+    for charge in ['plus','minus']:
+        datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_card.txt'.format(ch=charge))
+        channels.append('{bin}_{ch}'.format(bin=options.bin,ch=charge))
+        if not options.freezePOIs:
+            datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_xsec_card.txt'.format(ch=charge))
+            channels.append('{bin}_{ch}_xsec'.format(bin=options.bin,ch=charge))
+
+    if options.combineCharges and sum([os.path.exists(card) for card in datacards])==len(datacards):
+        print "Cards for W+ and W- done. Combining them now..."
+        combinedCard = os.path.abspath(options.inputdir)+"/"+options.bin+'_'+suffix+'.txt'
+        ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        if options.freezePOIs:
+            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
+            txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=combinedCard)
+        else:
+            maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
+            txt2tfCmd = 'text2tf.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        ## here running the combine cards command first 
+        print ccCmd
+        os.system(ccCmd)
+        ## here making the TF meta file
+        print "The following command makes the .meta file used by combine"
+        print txt2tfCmd
+        if not options.skip_text2tf:
+            print '--- will run text2tf for the combined charges ---------------------'
+            os.system(txt2tfCmd)
+            ## print out the command to run in combine
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            print "Use the following command to run combine"
+            print combineCmd
+
+    else:
+        print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
 
 if __name__ == "__main__":
     
@@ -115,17 +181,29 @@ if __name__ == "__main__":
     parser = OptionParser(usage='%prog [options]')
     parser.add_option('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
-    parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
+    parser.add_option('-b','--bin', dest='bin', default='Wel', type='string', help='name of the bin (Wmu or Wel)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    #parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
+    parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=-9.9, type='float', help='Log-normal constraint to be added to all the fixed MC processes')
+    parser.add_option(     '--zXsecLnN'   , dest='zLnN'       , default=-9.9, type='float', help='Log-normal constraint to be added to all the fixed Z processes')
     #parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
+    parser.add_option(     '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will tret signal bins corresponding to outliers as background processes')
     parser.add_option(     '--pdf-shape-only', dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
     parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+    parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
+    #parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
+
+    if not options.inputdir:
+        print "Error: you must use option -i to specify the name of folder with cards. Exit"
+        quit()
+
+    #if options.combineCharges and options.combineChannels:
+    #    print "ERROR: you are trying to combine both charges and channels, which is not supported. Exit"
+    #    quit()
 
     cmssw = os.environ['CMSSW_VERSION']
     if cmssw != "":
@@ -138,7 +216,15 @@ if __name__ == "__main__":
         print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
         quit()
 
+    if options.combineCharges:
+        combCharges(options)
+        print "I combined the datacards for both charges."
+        quit()
+
     charges = options.charge.split(',')
+    if options.bin not in ["Wmu", "Wel"]:
+        print "ERROR: option -b only support 'Wmu' or 'Wel'. Exit"
+        quit()
     channel = 'mu' if 'mu' in options.bin else 'el'
     Wcharge = ["Wplus","Wminus"]
 
@@ -200,7 +286,6 @@ if __name__ == "__main__":
                     if re.match('bin.*',l):
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
-                        binn = int(bin.split('_')[-1]) if 'group_' in bin else -1
                     rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
                     if ifile==0:
                         rootfiles_syst += filter(lambda x: re.match('Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), os.listdir(options.inputdir))
@@ -290,7 +375,6 @@ if __name__ == "__main__":
         combineCmd="combineCards.py "
         for f in files:
             basename = os.path.basename(f).split(".")[0]
-            binn = int(basename.split('_')[-1]) if 'group_' in basename else -999
             binname = ''
             if re.match('Wplus|Wminus',basename): binname=basename
             elif re.match('Z.*{charge}'.format(charge=charge),basename): binname='Z'
@@ -345,24 +429,32 @@ if __name__ == "__main__":
                         for p in realprocesses:
                             if any(wcharge in p for wcharge in Wcharge):
                                 # some bins might be treated as background
-                                if hasEtaRangeBkg:
-                                    tokens = p.split('_')
-                                    for i,tkn in enumerate(tokens):
-                                        #print "%d %s" % (i, tkn)      
-                                        if tkn == "ieta": 
-                                            etabinIndex = int(tokens[i + 1])
-                                            break  # exit loop on tokens
-                                    # now check if this eta bin belongs to region which should be considered as background
-                                    # if yes, increase the background bin index counter; if not, use the signal index as usual
-                                    if etaBinIsBackground[etabinIndex]:
+                                if "outliers" in p:
+                                    if options.sig_out_bkg:
                                         procBin[p] = ibkg
                                         ibkg += 1
                                     else:
                                         procBin[p] = isig
-                                        isig += -1 
+                                        isig += -1
                                 else:
-                                    procBin[p] = isig
-                                    isig += -1 
+                                    if hasEtaRangeBkg:
+                                        tokens = p.split('_')
+                                        for i,tkn in enumerate(tokens):
+                                            #print "%d %s" % (i, tkn)      
+                                            if tkn == "ieta": 
+                                                etabinIndex = int(tokens[i + 1])
+                                                break  # exit loop on tokens
+                                        # now check if this eta bin belongs to region which should be considered as background
+                                        # if yes, increase the background bin index counter; if not, use the signal index as usual
+                                        if etaBinIsBackground[etabinIndex]:
+                                            procBin[p] = ibkg
+                                            ibkg += 1
+                                        else:
+                                            procBin[p] = isig
+                                            isig += -1 
+                                    else:
+                                        procBin[p] = isig
+                                        isig += -1 
                             else:
                                 procBin[p] = ibkg
                                 ibkg += 1
@@ -378,11 +470,15 @@ if __name__ == "__main__":
                     # copy all the rest after rate from the temporary card
                     combinedCard.write(l)
             # now luminosity uncertainty and CMS_W, in case  they are not in systfile 
-            # lumipar = "{0:.3f}".format(1.0 + options.lumiLnN) #"1.026"  # 2.6% 
-            # Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
-            # combinedCard.write(('%-23s lnN' % "CMS_lumi_13TeV") + ' '.join([kpatt % ("-" if "data" in key else lumipar) for key in realprocesses]) + "\n")
+            if options.lumiLnN > 0:
+                lumipar = "{0:.3f}".format(1.0 + options.lumiLnN) #"1.026"  # 2.6% 
+                combinedCard.write(('%-23s lnN' % "CMS_lumi_13TeV") + ' '.join([kpatt % ("-" if "data" in key else lumipar) for key in realprocesses]) + "\n")
             # not needed because it will be measured
+            # Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
             #combinedCard.write(('%-23s lnN' % "CMS_W") + ' '.join([kpatt % (Wxsec if any(x in key for x in Wcharge) else "-"    ) for key in realprocesses]) + "\n")
+            if options.zLnN > 0:
+                Zxsec   = "{0:.3f}".format(1.0 + options.zLnN)    #"1.038"  # 3.8%
+                combinedCard.write(('%-23s lnN' % "CMS_DY") + ' '.join([kpatt % (Zxsec if key == "Z" else "-" ) for key in realprocesses]) + "\n")
 
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
         
@@ -438,7 +534,9 @@ if __name__ == "__main__":
                                # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
                                # 35.9 if channel == 'mu' else 30.9,  
                                #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
-                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
+                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
+                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
+                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5_withMuons_varEtaGap.root' ## hard coded for now
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')

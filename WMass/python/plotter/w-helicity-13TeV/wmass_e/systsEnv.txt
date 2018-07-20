@@ -28,7 +28,9 @@ CMS_We_elescale      :  W.*: .* : elescale         : templates
 # 1+2) Measurement of the fake rate: normalization and shapes
 # ==================================================================
 # flat normalization uncertainty
-CMS_We_FRe_norm      : data_fakes  : .* : 1.30
+#CMS_We_FRe_norm      : data_fakes  : .* : 1.30
+# non-flat normalization uncertainty
+CMS_We_FRe_norm      : data_fakes  : .* : FRe_norm : templates
 # shape uncertainty (slope of FR with pt)
 CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
 
