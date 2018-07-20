@@ -14,7 +14,8 @@ public:
   virtual ~TnPNtuplesSelectionEfficiency();  
 
   void Loop(int maxentries = -1);
-  bool     isTagLepton(int);
+  bool isTagLepton(int);
+  bool isLeptonInAcceptance(int jj);
 
 protected:
 
@@ -45,6 +46,21 @@ TnPNtuplesSelectionEfficiency::~TnPNtuplesSelectionEfficiency()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
+}
+
+bool TnPNtuplesSelectionEfficiency::isLeptonInAcceptance(int jj) {
+  if(fFlavor == 11){
+    if (abs(LepGood_pdgId[jj])!=11)                                      return false;
+    if (LepGood_calPt[jj]<25)                                            return false;
+    if (fabs(LepGood_etaSc[jj])>1.4442 && fabs(LepGood_etaSc[jj])<1.566) return false;
+    if (fabs(LepGood_etaSc[jj])>2.5)                                     return false;
+  }
+  else {
+    if (abs(LepGood_pdgId[jj])!=13)   return false;
+    if (LepGood_pt[jj]<26)            return false;
+    if (fabs(LepGood_eta[jj])> 2.4)   return false;
+  }
+  return true;
 }
 
 bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
@@ -187,7 +203,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
     
     // leptons in the acceptance
     for(int jj=0; jj<nLepGood; jj++){
-      if ( isTagLepton(jj) ) acceptLep.push_back(jj);
+      if ( isLeptonInAcceptance(jj) ) acceptLep.push_back(jj);
     }
 
     // full selection for tags and probes
@@ -286,7 +302,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
         // invariant mass
         pair_mass = (thisLep1+thisLep2).M();
         if (pair_mass<60 || pair_mass>120) continue;
-        
+
         // both matching mc truth?
         mcTrue = cand_matchMC[iLep1] && cand_matchMC[iLep2];
         
@@ -339,6 +355,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
   h_selection -> Write();
   cddir       -> cd();
   outTree_    -> Write();
+  outFile_    -> Close();
 
 } // Loop method
 
