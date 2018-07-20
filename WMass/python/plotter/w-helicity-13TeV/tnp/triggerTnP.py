@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
         print 'runing on file', treefile
 
-        tmp_file = ROOT.TFile(treefile)
+        tmp_file = ROOT.TFile(treefile, 'read')
         tmp_tree = tmp_file.Get('tree')
         
         ## make the instance of the worker
@@ -36,8 +36,9 @@ if __name__ == "__main__":
             tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree)
             tnp_worker.setFlavor(13)
         else: 
-            ffile = options.indir+'/friends/+'+os.path.basename(treefile) ## FIX THIS
-            tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree)
+            ffile = ROOT.TFile(options.indir+'/friends/tree_Friend_'+os.path.basename(sd)+'.root', 'read')
+            ftree = ffile.Get('Friends')
+            tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree, ftree)
             tnp_worker.setFlavor(11)
 
         tnp_worker.setOutfile(options.outdir+'/'+'triggerTnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
