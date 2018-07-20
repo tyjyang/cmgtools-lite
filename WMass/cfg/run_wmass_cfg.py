@@ -28,7 +28,7 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
-runOnSignal = False
+runOnSignal = True
 doTriggerMatching = True
 keepLHEweights = False
 signalZ = False
@@ -38,17 +38,6 @@ ttHLepSkim.minLeptons = 1
 ttHLepSkim.maxLeptons = 999
 #ttHLepSkim.idCut  = ""
 ttHLepSkim.ptCuts = [23]
-
-if doTriggerMatching:
-    ttHLepSkim.minLeptons = 2
-    ttHLepSkim.maxLeptons = 999
-    #ttHLepSkim.idCut  = ""
-    ttHLepSkim.ptCuts = [23, 23]
-
-    print 'adding the trigger match analyzer'
-    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaEle )
-    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
-    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaTkMu)
 
 
 # Run miniIso
@@ -61,6 +50,46 @@ lepAna.doIsolationScan = False
 # Lepton Preselection
 lepAna.loose_electron_id = "POG_Cuts_ID_SPRING16_25ns_v1_HLT"
 isolation = None
+
+if doTriggerMatching:
+    lepAna.inclusive_muon_id  = None
+    lepAna.inclusive_muon_pt  = 23
+    lepAna.inclusive_muon_eta = 2.4
+    lepAna.inclusive_muon_dxy = 1000.
+    lepAna.inclusive_muon_dz  = 1000.
+    # loose muon selection
+    lepAna.loose_muon_id     = None
+    lepAna.loose_muon_pt     = 23
+    lepAna.loose_muon_eta    = 2.4
+    lepAna.loose_muon_dxy    = 1000.
+    lepAna.loose_muon_dz     = 1000.
+    lepAna.loose_muon_relIso = 1000.
+    # inclusive very loose electron selection
+    lepAna.inclusive_electron_id  = None
+    lepAna.inclusive_electron_pt  = 25
+    lepAna.inclusive_electron_eta = 2.5
+    lepAna.inclusive_electron_dxy = 1000.
+    lepAna.inclusive_electron_dz  = 1000.
+    lepAna.inclusive_electron_lostHits = 100
+    # loose electron selection
+    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5",
+    lepAna.loose_electron_pt     = 25
+    lepAna.loose_electron_eta    = 2.5
+    lepAna.loose_electron_dxy    = 1000.
+    lepAna.loose_electron_dz     = 1000.
+    lepAna.loose_electron_relIso = 1000.
+    lepAna.loose_electron_lostHits = 100
+
+    ttHLepSkim.minLeptons = 1
+    ttHLepSkim.maxLeptons = 999
+    #ttHLepSkim.idCut  = ""
+    ttHLepSkim.ptCuts = [23]#, 23]
+
+    print 'adding the trigger match analyzer'
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaEle )
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaTkMu)
+
 
 jetAna.lepSelCut = lambda lep : False # no cleaning of jets with leptons
 jetAnaScaleDown.lepSelCut = lambda lep : False # no cleaning of jets with leptons
@@ -259,6 +288,8 @@ if runOnSignal:
     selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2, WJetsToLNu_LO,WJetsToLNu_LO_ext]
 elif doTriggerMatching:
     selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2] #WJetsToLNu_LO,WJetsToLNu_LO_ext]
+    for c in selectedComponents:
+        c.splitFactor = len(c.files)/3
 else:
     #selectedComponents = samples_1prompt + samples_1fake 
     selectedComponents = QCDPtbcToE
@@ -283,7 +314,7 @@ if runData and not isTest: # For running on data
     json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+    processing = "Run2016B-07Aug17_ver2-v2"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
     for era in 'CDEFGH':
         processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
     
@@ -294,7 +325,7 @@ if runData and not isTest: # For running on data
     # DatasetsAndTriggers.append( ("DoubleMuon", triggers_mumu_iso + triggers_mumu_ss + triggers_mumu_ht + triggers_3mu + triggers_3mu_alt) )
     # DatasetsAndTriggers.append( ("DoubleEG",   triggers_ee + triggers_ee_ht + triggers_3e) )
     # DatasetsAndTriggers.append( ("MuonEG",     triggers_mue + triggers_mue_ht + triggers_2mu1e + triggers_2e1mu) )
-    DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso + triggers_1mu_noniso) )
+    ##DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso + triggers_1mu_noniso) )
     DatasetsAndTriggers.append( ("SingleElectron", triggers_1e) )
 
     if runDataQCD: # for fake rate measurements in data
@@ -448,13 +479,16 @@ preprocessor = None
 #-------- HOW TO RUN -----------
 
 test = getHeppyOption('test')
-if test == 'testw' or test=='testz' or test=='testdata':
+if test == 'testw' or test=='testz' or test=='testdata' or test=='testwnew':
     if test=='testw':
         comp = WJetsToLNu_LO
         comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/WJetsMG_test_0A85AA82-45BB-E611-8ACD-001E674FB063-9552f253c2fa2ae.root']
     elif test=='testz':
         comp=DYJetsToLL_M50
         comp.files=['/eos/cms/store/cmst3/user/psilva/Wmass/DYJetsMG_test/FCDD4D28-12C4-E611-8BFC-C4346BC8F6D0.root']
+    elif test=='testwnew':
+        comp=WJetsToLNu_LO
+        comp.files=['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToMuNuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v4/10000/04783B3A-B57D-E811-B421-FA163EF059FC.root']
     else:
         #comp=MuonEG_Run2016B_18Apr2017
         comp=SingleElectron_Run2016C_03Feb2017
