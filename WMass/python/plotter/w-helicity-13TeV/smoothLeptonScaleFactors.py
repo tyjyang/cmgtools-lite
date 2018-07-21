@@ -225,23 +225,35 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     tf1_erf2.SetParameter(0,1.0); #tf1_erf2.SetParLimits(0,0.1,1e12)
     tf1_erf2.SetParameter(1,32)
     tf1_erf2.SetParameter(2,3.0)
-    if not isEle and isTrigger: 
-        tf1_erf2.SetParameter(1,30)
-        if mc == "Data":
-            if key == 27:
-                tf1_erf2.SetParameter(1,32)
-            # elif key == 13:
-            #     tf1_erf2.SetParameter(1,29.5)
-            elif any(key == x for x in [11,13,14,26]):
-                tf1_erf2.SetParameter(1,29.5)
-            elif any(key == x for x in [10,23]):
-                tf1_erf2.SetParameter(1,30.5)
-                tf1_erf2.SetParameter(2,4.0)
-        if mc == "MC":
-            if any(key == x for x in [0,8,26,27,37]):
-                tf1_erf2.SetParameter(1,29.5)
-            elif key == 33:
-                tf1_erf2.SetParameter(1,27)
+    if isTrigger:
+        if isEle:
+            if mc =="Data":
+                if key == 29:
+                    tf1_erf2.SetParameter(1,31)
+            elif mc == "MC":
+                if any(key == x for x in [20,29]):
+                    tf1_erf2.SetParameter(1,31)                
+                elif key == 12:
+                    tf1_erf2.SetParameter(1,32)
+                elif key == 17:
+                    tf1_erf2.SetParameter(1,31.2)
+        else:
+            tf1_erf2.SetParameter(1,30)
+            if mc == "Data":
+                if key == 27:
+                    tf1_erf2.SetParameter(1,32)
+                # elif key == 13:
+                #     tf1_erf2.SetParameter(1,29.5)
+                elif any(key == x for x in [11,13,14,26]):
+                    tf1_erf2.SetParameter(1,29.5)
+                elif any(key == x for x in [10,23]):
+                    tf1_erf2.SetParameter(1,30.5)
+                    tf1_erf2.SetParameter(2,4.0)
+            if mc == "MC":
+                if any(key == x for x in [0,8,26,27,37]):
+                    tf1_erf2.SetParameter(1,29.5)
+                elif key == 33:
+                    tf1_erf2.SetParameter(1,27)
             
     tf1_erf2.SetParameter(3,0.0); #tf1_erf2.SetParLimits(3,0,1e12)
     tf1_erf2.SetParameter(4,0)
@@ -251,8 +263,8 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     # fit and draw (if required)
     if isTrigger:
         hist.Fit(tf1_erf,fitopt)        
-        hist.Fit(tf1_ln,fitopt)        
         # hist.Fit(tf1_ln2,fitopt)        
+        hist.Fit(tf1_ln,fitopt)
         hist.Fit(tf1_erf2,fitopt)        
         # hist.Fit(tf1_sqrt,fitopt)        
         # hist.Fit(tf1_exp,fitopt)        
@@ -353,7 +365,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     yhi = 0.85
 
     if isEle==False and isIso:
-        hist_chosenFunc.Fill(tf1_erf.GetName(),1)
+        if hist_chosenFunc: hist_chosenFunc.Fill(tf1_erf.GetName(),1)
         retFunc = fit_erf
     else:
         chi2 = 1000000.0
@@ -372,7 +384,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             print "="*20
             print "Warning: no function had more than 0 degrees of freedom. Returning pol2 function"
             print "="*20
-            hist_chosenFunc.Fill(fit_pol2.GetName(),1) 
+            if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol2.GetName(),1) 
             #return fit_pol3
             line = "Best fit: pol2 (forced)"
             retFunc = fit_pol2
@@ -738,7 +750,8 @@ if __name__ == "__main__":
         #     ptval = hsfSmoothCheck_origBinPt.GetYaxis().GetBinCenter(ipt)
         #     hsfSmoothCheck_origBinPt.SetBinContent(key+1,ipt, a0 + a1 * ptval + a2 * ptval * ptval)
 
-        bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=hist_chosenFunc, 
+        # do not fill control histogram when fitting scale factors (these fits are not really used, sf are actually obtained dividing the fitted efficiencies)
+        bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=0, 
                                 isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
