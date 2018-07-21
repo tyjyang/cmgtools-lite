@@ -2,7 +2,8 @@
     gSystem->Load("libFWCoreFWLite");
     // TFile h("/eos/cms/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_Pt-100To250_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v2/60000/BA7F98C8-5AD6-E611-A066-FA163EA7BEB3.root");
     //TFile h("root://cms-xrd-global.cern.ch//store/mc/RunIISummer16MiniAODv2/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext2-v2/70000/5A56C70D-9029-E711-907D-002590DE3A92.root");
-    TFile h("5A56C70D-9029-E711-907D-002590DE3A92.root");
+    //TFile h("5A56C70D-9029-E711-907D-002590DE3A92.root");
+    TFile h("/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/34F84C69-917E-E811-BB1F-FA163EB2ABE6.root");
     
     fwlite::Run run(&h);
     
