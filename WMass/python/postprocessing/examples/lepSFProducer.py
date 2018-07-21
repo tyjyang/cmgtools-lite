@@ -235,11 +235,7 @@ class lep2016SFProducer(Module):
         sf_id_err  = []
         sf_iso_err = []
         sf_trg_err = []
-        #print ">>>>>>> check"
-        #i = 0
         for l in leps:
-            #print "Inside loop: %d" % i
-            #i += 1
             if event.isData:
                 sf_trg.append(1.)
                 sf_id.append(1.)
@@ -249,7 +245,6 @@ class lep2016SFProducer(Module):
                 sf_iso_err.append(0.)
             else:
                 if abs(l.pdgId)==11:
-                    #print "Electron found"
                     sf_trg.append(float(self.trgSF_manager_el.getSF(l.pt,l.eta)))                    
                     sf_id.append(1.)
                     sf_iso.append(1.)
@@ -257,11 +252,6 @@ class lep2016SFProducer(Module):
                     sf_id_err.append(1.)
                     sf_iso_err.append(1.)
                 else:
-                    # print "Muon found"
-                    # print "SF: trg - id - iso --> %.3f - %.3f - %.3f " % (float(self.trgSF_manager_mu.getSF(l.pt,l.eta)),
-                    #                                                       float(self.idSF_manager_mu.getSF(l.pt,l.eta)),
-                    #                                                       float(self.isoSF_manager_mu.getSF(l.pt,l.eta))
-                    #                                                       )                
                     sf_trg.append(    float(self.trgSF_manager_mu.getSF(l.pt,l.eta)))
                     sf_id.append(     float(self.idSF_manager_mu.getSF(l.pt,l.eta)))
                     sf_iso.append(    float(self.isoSF_manager_mu.getSF(l.pt,l.eta)))
@@ -274,7 +264,6 @@ class lep2016SFProducer(Module):
         self.out.fillBranch("LepGood_IDeffSF_err",  sf_id_err)
         self.out.fillBranch("LepGood_ISOeffSF_err", sf_iso_err)
         self.out.fillBranch("LepGood_trgSF_err",    sf_trg_err)
-        #print ">>>>>>> check after fill branch"        
         return True
 
 #########################################################
