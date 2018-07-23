@@ -8,7 +8,8 @@ import re, pickle, math
 from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
-                   ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lepSF,trgSF"),
+                   #("CMGTools.WMass.postprocessing.examples.lepSFProducer","lepSF,trgSF"),
+                   ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
                    ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
                    ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),

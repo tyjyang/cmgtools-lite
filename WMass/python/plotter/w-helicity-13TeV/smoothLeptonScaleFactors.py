@@ -1,5 +1,27 @@
 #!/bin/env python
 
+# Path of some root files
+# /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root
+# official_muon_ScaleFactors_2016/
+# /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/
+
+################################
+# Exaples
+################################
+
+# muon trigger scale factors
+#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root -o ~/www/wmass/13TeV/scaleFactors/muon/trigger/ -c mu -n smoothEfficiency.root -t
+
+# muon isolation (replace ISO with ID for ID scale factors)
+#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/efficienciesISO.root -o ~/www/wmass/13TeV/scaleFactors/muon/efficiency_ISO_GH/ -c mu -n smoothEfficiency.root -e GH -v ISO
+
+# electron trigger
+#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i ~mdunser/public/electronTriggerEfficiencies_allEras.root -o ~/www/wmass/13TeV/scaleFactors/electron/trigger/ -c el -n smoothEfficiency.root -t
+
+################################
+################################
+
+
 import ROOT, os, sys, re, array, math
 
 sys.path.append(os.getcwd() + "/plotUtils/")
@@ -9,6 +31,65 @@ ROOT.gROOT.SetBatch(True)
 
 import utilities
 utilities = utilities.util()
+
+def makeSFweightedAverage(f1, f2, w1, w2, hname, hnewname, uncertaintyRule="max"):
+
+    # uncertaintyRule can be max, weight, diff
+    # max takes the largest of the two uncertainties as the uncertainty on the mean
+    # weight compute the usual uncertainty on the weighted mean
+    # diff takes 1/2 of the difference as uncertainty (so the difference is the full error bars)
+
+    tf = ROOT.TFile.Open(f1)        
+    h1 =   tf.Get(hname).Clone(hname+"_1")
+    if (h1 == 0):
+        print "Error in makeSFweightedAverage(): could not retrieve histogram from input file %s. Exit" % f1
+        quit()
+    h1.SetDirectory(0)
+    tf.Close()
+
+    tf = ROOT.TFile.Open(f2)        
+    h2 =   tf.Get(hname).Clone(hname+"_2")
+    if (h2 == 0):
+        print "Error in makeSFweightedAverage(): could not retrieve histogram from input file %s. Exit" % f2
+        quit()
+    h2.SetDirectory(0)
+    tf.Close()
+
+    #if not ROOT.TH1.CheckConsistency(h1,h2):
+    #    print "Error in makeSFweightedAverage(): input histograms are not consistent. Exit"
+    #    quit()
+    xbins = h1.GetXaxis().GetXbins()
+    ybins = [h1.GetYaxis().GetBinLowEdge(i) for i in range(1,h1.GetNbinsY()+2)]
+    #ybins = h1.GetYaxis().GetXbins() # does not work, maybe because it has 500 elements and the maximum allowed is 255
+    #print "nybins = %d" % h1.GetNbinsY()
+    #print "xbins = %s (%d bins)" % (",".join(str(x) for x in xbins),len(xbins)-1)
+    #print "ybins = %s" % ",".join(str(x) for x in ybins)
+    hnew = ROOT.TH2D(hnewname,"",len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
+    #hnew.SetDirectory(0)
+
+    hnew.GetZaxis().SetTitle(h1.GetZaxis().GetTitle())
+    hnew.SetTitle(h1.GetTitle())
+
+    for ix in range(1,hnew.GetNbinsX()+1):
+        for iy in range(1,hnew.GetNbinsY()+1):
+            val1 = h1.GetBinContent(ix,iy)
+            val2 = h2.GetBinContent(ix,iy)
+            err1 = h1.GetBinError(ix,iy)
+            err2 = h2.GetBinError(ix,iy)
+            newval = (w1*val1 + w2*val2)/(w1+w2)
+            if uncertaintyRule == "max":
+                newerr = max(err1,err2)
+            elif uncertaintyRule == "weight":
+                newerr = math.sqrt(w1**2 * err1**2 + w2**2 * err2**2)/(w1+w2)
+            elif uncertaintyRule == "diff":
+                newerr = 0.5 * abs(val1-val2)
+            else:
+                print "Error in makeSFweightedAverage(): unknown uncertainty rule %s. Exit" % uncertaintyRule
+                quit()
+            hnew.SetBinContent(ix,iy,newval)
+            hnew.SetBinError(ix,iy,newerr)
+
+    return hnew
 
 def copyHisto(h1, h2):
 
@@ -30,7 +111,7 @@ def copyHisto(h1, h2):
         quit()        
 
 
-def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, isIso=False):
+def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, isIso=False, isTrigger=False):
 
     #drawFit = False
     # isIso is mainly for muons, for which ID ad ISO are separate
@@ -68,7 +149,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.GetYaxis().SetTitleOffset(1.2)
     hist.GetYaxis().SetTitleSize(0.05)
     hist.GetYaxis().SetLabelSize(0.04)
-    if isEle: hist.GetYaxis().SetRangeUser(0.95*hist.GetMinimum(), 1.05* hist.GetMaximum())
+    if isTrigger: hist.GetYaxis().SetRangeUser(0.98*hist.GetMinimum(), 1.02* hist.GetMaximum())
     else: 
         diff = hist.GetMaximum() - hist.GetMinimum()
         hist.GetYaxis().SetRangeUser(hist.GetMinimum() - diff, diff + hist.GetMaximum())
@@ -76,14 +157,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.SetStats(0)
     hist.Draw("EP")
 
-    if isEle:
+    if isTrigger:
         fitopt = "QMFS+"  
         maxFitRange = hist.GetXaxis().GetBinLowEdge(1+hist.GetNbinsX())
         minFitRange = hist.GetXaxis().GetBinLowEdge(1)
     else:
         #print "check"
         fitopt = "RQMFS+"
-        maxFitRange = 120 if isIso else 60
+        maxFitRange = 120 #if isIso else 60
         minFitRange = 20
 
     ###################
@@ -113,6 +194,10 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     # tf1_ln2.SetLineWidth(2)
     # tf1_ln2.SetLineColor(ROOT.kOrange+1)
 
+    tf1_pol1 = ROOT.TF1("tf1_pol1","pol1",minFitRange,maxFitRange)
+    tf1_pol1.SetLineWidth(2)
+    tf1_pol1.SetLineColor(ROOT.kBlue)
+
     tf1_pol2 = ROOT.TF1("tf1_pol2","pol2",minFitRange,maxFitRange)
     tf1_pol2.SetLineWidth(2)
     tf1_pol2.SetLineColor(ROOT.kGreen+2)
@@ -140,16 +225,46 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     tf1_erf2.SetParameter(0,1.0); #tf1_erf2.SetParLimits(0,0.1,1e12)
     tf1_erf2.SetParameter(1,32)
     tf1_erf2.SetParameter(2,3.0)
+    if isTrigger:
+        if isEle:
+            if mc =="Data":
+                if key == 29:
+                    tf1_erf2.SetParameter(1,31)
+            elif mc == "MC":
+                if any(key == x for x in [20,29]):
+                    tf1_erf2.SetParameter(1,31)                
+                elif key == 12:
+                    tf1_erf2.SetParameter(1,32)
+                elif key == 17:
+                    tf1_erf2.SetParameter(1,31.2)
+        else:
+            tf1_erf2.SetParameter(1,30)
+            if mc == "Data":
+                if key == 27:
+                    tf1_erf2.SetParameter(1,32)
+                # elif key == 13:
+                #     tf1_erf2.SetParameter(1,29.5)
+                elif any(key == x for x in [11,13,14,26]):
+                    tf1_erf2.SetParameter(1,29.5)
+                elif any(key == x for x in [10,23]):
+                    tf1_erf2.SetParameter(1,30.5)
+                    tf1_erf2.SetParameter(2,4.0)
+            if mc == "MC":
+                if any(key == x for x in [0,8,26,27,37]):
+                    tf1_erf2.SetParameter(1,29.5)
+                elif key == 33:
+                    tf1_erf2.SetParameter(1,27)
+            
     tf1_erf2.SetParameter(3,0.0); #tf1_erf2.SetParLimits(3,0,1e12)
     tf1_erf2.SetParameter(4,0)
     tf1_erf2.SetLineWidth(2)
     tf1_erf2.SetLineColor(ROOT.kRed+1)
 
     # fit and draw (if required)
-    if isEle:
+    if isTrigger:
         hist.Fit(tf1_erf,fitopt)        
-        hist.Fit(tf1_ln,fitopt)        
         # hist.Fit(tf1_ln2,fitopt)        
+        hist.Fit(tf1_ln,fitopt)
         hist.Fit(tf1_erf2,fitopt)        
         # hist.Fit(tf1_sqrt,fitopt)        
         # hist.Fit(tf1_exp,fitopt)        
@@ -158,9 +273,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     else:
         if isIso: hist.Fit(tf1_erf,fitopt)        
         else:
-            tf1_pol1 = ROOT.TF1("tf1_pol1","pol1",minFitRange,maxFitRange)
-            tf1_pol1.SetLineWidth(2)
-            tf1_pol1.SetLineColor(ROOT.kBlue)
             tf1_pol3.SetLineColor(ROOT.kRed+1)
             hist.Fit(tf1_pol1,fitopt)        
             hist.Fit(tf1_pol2,fitopt)        
@@ -170,7 +282,16 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     leg.SetFillColor(0)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
-    if isEle:
+
+    legEntry = {}
+    legEntry[tf1_erf2.GetName()] = "Erf[x] + ax + b"
+    legEntry[tf1_erf.GetName()]  = "Erf[x]"
+    legEntry[tf1_pol2.GetName()] = "pol2"
+    legEntry[tf1_pol3.GetName()] = "pol3"
+    legEntry[tf1_ln.GetName()]   = "a ln(bx + c)"
+    legEntry[tf1_pol1.GetName()] = "pol1"
+
+    if isTrigger:
         leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
         leg.AddEntry(tf1_ln,  "a ln(bx + c)", "LF")
         #leg.AddEntry(tf1_ln2, "a ln(bx + c) + dx + e", "LF")
@@ -195,13 +316,13 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     setTDRStyle()
     ROOT.gStyle.SetOptTitle(1)  # use histogram title with binning as canvas title
 
-    for ext in ["pdf","png"]:
-        if mc == "SF":
-            canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
-        else:
-            canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
+    # for ext in ["pdf","png"]:
+    #     if mc == "SF":
+    #         canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
+    #     else:
+    #         canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
 
-    if isEle:
+    if isTrigger:
         fit_pol2 = hist.GetFunction(tf1_pol2.GetName())
         fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
         fit_erf =  hist.GetFunction(tf1_erf.GetName())
@@ -218,7 +339,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
 
     functions = {}
-    if isEle:
+    if isTrigger:
         functions[tf1_pol2.GetName()] = fit_pol2
         functions[tf1_pol3.GetName()] = fit_pol3
         functions[tf1_erf.GetName()] = fit_erf
@@ -234,81 +355,123 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             functions[tf1_pol2.GetName()] = fit_pol2
             functions[tf1_pol3.GetName()] = fit_pol3
 
+    lat = ROOT.TLatex()
+    line = ""
+    lat.SetNDC();
+    lat.SetTextSize(0.045);
+    lat.SetTextFont(42);
+    lat.SetTextColor(1);
+    xmin = 0.20 
+    yhi = 0.85
+
     if isEle==False and isIso:
-        hist_chosenFunc.Fill(tf1_erf.GetName(),1)
-        return fit_erf
-
-    chi2 = 1000000.0
-    funcMinChi2 = 0
-    for name,f in functions.iteritems():        
-        #print "Name: %s func %s" % (name, f) 
-        if f.GetNDF() == 0: continue
-        if name == tf1_pol3.GetName(): continue
-        if f.GetChisquare() < chi2: 
-            chi2 = f.GetChisquare()
-            funcMinChi2 = f
-    #print "Function %s had the best Chi2/Ndof: %.3f/%d among non-pol3" % (funcMinChi2.GetName(),funcMinChi2.GetChisquare(),funcMinChi2.GetNDF())
-    #print "pol3 Chi2/Ndof: %.3f/%d" % (fit_pol3.GetChisquare(),fit_pol3.GetNDF())
-    
-    if funcMinChi2 == 0:
-        print "="*20
-        print "Warning: no function had more than 0 degrees of freedom. Returning pol2 function"
-        print "="*20
-        hist_chosenFunc.Fill(fit_pol2.GetName(),1) 
-        #return fit_pol3
-        return fit_pol2
-    
+        if hist_chosenFunc: hist_chosenFunc.Fill(tf1_erf.GetName(),1)
+        retFunc = fit_erf
     else:
-        nChi2Sigma = abs(funcMinChi2.GetChisquare()-funcMinChi2.GetNDF())/math.sqrt(2.0*funcMinChi2.GetNDF())  # Chi2 variance is 2*Ndof
-        nChi2Sigma_pol3 = abs(fit_pol3.GetChisquare()-fit_pol3.GetNDF())/math.sqrt(2.0*fit_pol3.GetNDF()) if fit_pol3.GetNDF() else 999
+        chi2 = 1000000.0
+        funcMinChi2 = 0
+        for name,f in functions.iteritems():        
+            #print "Name: %s func %s" % (name, f) 
+            if f.GetNDF() == 0: continue
+            if name == tf1_pol3.GetName(): continue
+            if f.GetChisquare() < chi2: 
+                chi2 = f.GetChisquare()
+                funcMinChi2 = f
+        #print "Function %s had the best Chi2/Ndof: %.3f/%d among non-pol3" % (funcMinChi2.GetName(),funcMinChi2.GetChisquare(),funcMinChi2.GetNDF())
+        #print "pol3 Chi2/Ndof: %.3f/%d" % (fit_pol3.GetChisquare(),fit_pol3.GetNDF())
 
-        # pol3 will generally fit very well also in case of weird points
-        # for good looking points, pol3 might be better because it can change curvature, while other functions cannot (which would be more physical)
-        # allow non-pol3 fit to have Chi2 within 2 standard deviation from the expected one
-        # in this case choose that value, otherwise use the one closer to expected Chisquare
-        if nChi2Sigma < 3:  
-            if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
-            return funcMinChi2
-        elif nChi2Sigma_pol3 < nChi2Sigma:
-            if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
-            return fit_pol3
+        if funcMinChi2 == 0:
+            print "="*20
+            print "Warning: no function had more than 0 degrees of freedom. Returning pol2 function"
+            print "="*20
+            if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol2.GetName(),1) 
+            #return fit_pol3
+            line = "Best fit: pol2 (forced)"
+            retFunc = fit_pol2
+
         else:
-            if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
-            return funcMinChi2
+            nChi2Sigma = abs(funcMinChi2.GetChisquare()-funcMinChi2.GetNDF())/math.sqrt(2.0*funcMinChi2.GetNDF())  # Chi2 variance is 2*Ndof
+            nChi2Sigma_pol3 = abs(fit_pol3.GetChisquare()-fit_pol3.GetNDF())/math.sqrt(2.0*fit_pol3.GetNDF()) if fit_pol3.GetNDF() else 999
 
-    #return funcMinChi2
+            # pol3 will generally fit very well also in case of weird points
+            # for good looking points, pol3 might be better because it can change curvature, while other functions cannot (which would be more physical)
+            # allow non-pol3 fit to have Chi2 within 2 standard deviation from the expected one
+            # in this case choose that value, otherwise use the one closer to expected Chisquare
+            if nChi2Sigma < 3:  
+                if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
+                retFunc = funcMinChi2
+            elif nChi2Sigma_pol3 < nChi2Sigma:
+                if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
+                retFunc = fit_pol3
+            else:
+                if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
+                retFunc = funcMinChi2                
+            line = "Best fit: " + legEntry[retFunc.GetName()]
 
-    # get pol2 parameters (parameter number 0,1,2 correspond to constant term, x, x^2 respectively)
-    #return fit.GetParameter(0),fit.GetParError(0),fit.GetParameter(1),fit.GetParError(1),fit.GetParameter(2),fit.GetParError(2)    
-    return fit_pol2
+        #return funcMinChi2
 
+            
+    lat.DrawLatex(xmin,yhi,line);
+    for ext in ["pdf","png"]:
+        if mc == "SF":
+            canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
+        else:
+            canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))                            
+            
+    return retFunc
+        
+        # get pol2 parameters (parameter number 0,1,2 correspond to constant term, x, x^2 respectively)
+        #return fit.GetParameter(0),fit.GetParError(0),fit.GetParameter(1),fit.GetParError(1),fit.GetParameter(2),fit.GetParError(2)    
+        #return fit_pol2
+        
 if __name__ == "__main__":
-
-
+            
     from optparse import OptionParser
     parser = OptionParser(usage='%prog [options]')
-    parser.add_option('-i','--input', dest='inputfile', default='', type='string', help='input root file with TH2')
+    parser.add_option('-i','--input', dest='inputfile', default='', type='string', help='input root file with TH2. Not needed when using --make-weighted-average')
     parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='output directory to save things')
     parser.add_option('-n','--outfilename', dest='outfilename', default='', type='string', help='Name of output file to save fit results')
     parser.add_option('-c','--channel', dest='channel', default='', type='string', help='name of the channel (mu or el)')
     parser.add_option('-e','--era',     dest='era',     default='', type='string', help='For muons: select data era GtoH or BtoF as -e GH or -e BF')
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
+    parser.add_option('-w','--width-pt',     dest='widthPt',default='0.2', type='float', help='Pt bin width for the smoothed histogram')
+    parser.add_option('-t','--trigger', dest='isTriggerScaleFactor',action="store_true", default=False, help='Says if using trigger scale factors (electron and muon share the same root file content)')
+    parser.add_option(     '--save-TF1', dest='saveTF1',action="store_true", default=False, help='Save TF1 as well, not just TH2 with many bins (note that they are not saved when making averages between eras')
+    parser.add_option(     '--make-weighted-average', dest='isWeightedAverage',action="store_true", default=False, help='To be used if you are averaging the scale factors (must use other options to pass the inputs. For example, muons have two sets of ID and ISO scale factors for different eras')
+    parser.add_option(    '--files-average', dest='filesAverage',default='', type='string', help='Comma separated list of two files')
+    parser.add_option(    '--weights-average', dest='weightsAverage',default='', type='string', help='Comma separated list of two weights (can be luminosity for era BF and GH, they are 19.91/fb and 16.30/fb respectively)')
+    parser.add_option(    '--average-uncertainty-mode', dest='averageUncertaintyMode',default='max', type='string', help='Can be max, weight, diff (see function makeSFweightedAverage)')
+    parser.add_option(    '--hists-average', dest='histsAverage',default='', type='string', help='Comma separated list of histograms to average (pass names, one for each average, it is assumed the names in each file are the same)')
     (options, args) = parser.parse_args()
 
+
     ROOT.TH1.SetDefaultSumw2()
+
+    if options.isTriggerScaleFactor:
+        if options.era or options.variable:
+            print "Error: option -t is incompatible with -e and -v. Exit"
+            quit()
     
     channel = options.channel
     if channel not in ["el","mu"]:
         print "Error: unknown channel %s (select 'el' or 'mu')" % channel
         quit()
     isEle = True if channel == "el" else False
-    if not isEle:
-        if options.era not in ["BF","GH"]:
-            print "Error: you should specify a data range for muons using option -e BF|GH. Exit"                                
+    lepton = "electron" if channel == "el" else "muon"
+
+    if not isEle and not options.isTriggerScaleFactor:
+        print "Warning: you didn't use option -t, so I assume these are not trigger scale factors"
+        if not options.isWeightedAverage:
+            if options.era not in ["BF","GH"]:
+                print "Error: you should specify a data range for muons using option -e BF|GH. Exit"                                
+                quit()                                                          
+        elif options.era:
+            print "Error: option --make-weighted-average is incompatible with -e. Exit"                                
             quit()                                                          
+
         if options.variable not in ["ID","ISO",]:
             print "Error: you should specify a variable with option -v ID|ISO. Exit"                                
-            quit()                                                          
+            quit()                                    
 
     if options.outdir:
         outname = options.outdir
@@ -321,23 +484,61 @@ if __name__ == "__main__":
     if not options.outfilename:
         print "Error: you should specify an output file name using option -n <name>. Exit"
         quit()
+    outfilename = ".".join(options.outfilename.split('.')[:-1]) + "_{lep}".format(lep="electrons" if channel=="el" else "muons")
+    if options.era: outfilename = outfilename + "_" + options.era
+    if options.isWeightedAverage: outfilename = outfilename + "_full2016"
+    if options.variable: outfilename = outfilename + "_" + options.variable
+    if options.isTriggerScaleFactor: outfilename = outfilename + "_trigger"
+    outfilename += ".root"
 
+    #########################################    
+    #########################################    
+
+    if options.isWeightedAverage:
+
+        hists = options.histsAverage.split(",")
+        f1,f2 = options.filesAverage.split(",")
+        w1,w2 = list(float(x) for x in options.weightsAverage.split(","))
+        hlist = {}
+        for h in hists:
+            hScaleFactorAverage = makeSFweightedAverage(f1,f2,w1,w2,str(h),"new_"+str(h),uncertaintyRule=options.averageUncertaintyMode)
+            hScaleFactorAverage.SetDirectory(0)
+            hlist[str(h)] = hScaleFactorAverage
+        tf = ROOT.TFile.Open(outname+outfilename,'recreate')
+        for k in hlist:
+            hlist[k].Write(k)            
+            zaxisName = hlist[k].GetZaxis().GetTitle()
+            if options.variable == "ID" and "scaleFactor" in k:
+                zaxisName += "::0.98,1.01"
+            drawCorrelationPlot(hlist[k],"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),zaxisName,
+                                "combinedFull2016_{n}".format(n=k),"ForceTitle",outname,1,1,False,False,False,1,palette=55)
+        tf.Close()
+        print ""
+        print "Created file %s" % (outname+outfilename)
+        print ""
+        quit()
+    #########################################    
+    #########################################    
 
     hmc = 0
     hdata = 0
     hsf = 0
     if options.inputfile:
         tf = ROOT.TFile.Open(options.inputfile)        
-        if isEle:
+        if options.isTriggerScaleFactor:
             hmc =   tf.Get("EGamma_EffMC2D")
             hdata = tf.Get("EGamma_EffData2D")
             hsf = tf.Get("EGamma_SF2D")
             if (hsf == 0):
                 print "Error: could not retrieve hsf from input file %s. Exit" % options.inputfile
                 quit()
-        else:            
+        elif not isEle:            
             hmc   = tf.Get("eff%s_mc_%s" % (options.variable,options.era))
             hdata = tf.Get("eff%s_data_%s" % (options.variable,options.era))            
+        else:
+            print "Error: you are doing electrons, but you didn't specify option -t for trigger. This setup is currently not implemented. Exit"
+            quit()
+
         if (hmc == 0 or hdata == 0):
             print "Error: could not retrieve hdata or hmc from input file %s. Exit" % options.inputfile
             quit()
@@ -368,7 +569,7 @@ if __name__ == "__main__":
     hist_chosenFunc = ROOT.TH1D("chosenFitFunc","Best fit function for each eta bin",5,0,5)
     hist_chosenFunc.GetXaxis().SetBinLabel(1,"tf1_erf")
     hist_chosenFunc.GetXaxis().SetBinLabel(2,"tf1_erf2")
-    if isEle:        
+    if isEle or options.isTriggerScaleFactor:        
         hist_chosenFunc.GetXaxis().SetBinLabel(3,"tf1_ln")
     else:
         hist_chosenFunc.GetXaxis().SetBinLabel(3,"tf1_pol1")
@@ -412,15 +613,18 @@ if __name__ == "__main__":
     ###############
     hdataSmoothCheck = ROOT.TH2D("hdataSmoothCheck","Data smoothed efficiency",
                                  len(etabins)-1,array('d',etabins),
-                                 60,hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
+                                 int(math.ceil(hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY()) - hdata.GetYaxis().GetBinLowEdge(1))/options.widthPt), # bins of 0.2 GeV
+                                 hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
                                  )
     hmcSmoothCheck = ROOT.TH2D("hmcSmoothCheck","MC smoothed efficiency",
                                len(etabins)-1,array('d',etabins),
-                               60,hmc.GetYaxis().GetBinLowEdge(1),hmc.GetYaxis().GetBinLowEdge(1+hmc.GetNbinsY())
+                               int(math.ceil(hmc.GetYaxis().GetBinLowEdge(1+hmc.GetNbinsY()) - hmc.GetYaxis().GetBinLowEdge(1))/options.widthPt),
+                               hmc.GetYaxis().GetBinLowEdge(1),hmc.GetYaxis().GetBinLowEdge(1+hmc.GetNbinsY())
                                )
     hsfSmoothCheck = ROOT.TH2D("hsfSmoothCheck","Data/MC smoothed scale factor",
                                len(etabins)-1,array('d',etabins),
-                               60,hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
+                               int(math.ceil(hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY()) - hdata.GetYaxis().GetBinLowEdge(1))/options.widthPt),
+                               hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
                                )
     hdataSmoothCheck_origBinPt = ROOT.TH2D("hdataSmoothCheck_origBinPt","Data smoothed efficiency",
                                            len(etabins)-1,array('d',etabins),
@@ -480,13 +684,14 @@ if __name__ == "__main__":
     bestFit_MC = {}
     for key in hmcpt:
 
-        #fitpol2 = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc)
+        #fitpol2 = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc,isTrigger=options.isTriggerScaleFactor)
         # for pol2 only
         # for ipar in range(3):
         #     hmcSmoothEff.SetBinContent(key+1,fitpol2.GetParameter(ipar))
         #     hmcSmoothEff.SetBinError(key+1,fitpol2.GetParError(ipar))
         # a0,a1,a2 = fitpol2.GetParameter(0),fitpol2.GetParameter(1),fitpol2.GetParameter(2)
-        bestFitFunc = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc, isIso=True if options.variable=="ISO" else False)
+        bestFitFunc = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc, 
+                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -515,7 +720,8 @@ if __name__ == "__main__":
         #     ptval = hdataSmoothCheck_origBinPt.GetYaxis().GetBinCenter(ipt)
         #     hdataSmoothCheck_origBinPt.SetBinContent(key+1,ipt, a0 + a1 * ptval + a2 * ptval * ptval)
 
-        bestFitFunc = fitTurnOn(hdatapt[key],key,outname, "Data",channel=channel,hist_chosenFunc=hist_chosenFunc, isIso=True if options.variable=="ISO" else False)
+        bestFitFunc = fitTurnOn(hdatapt[key],key,outname, "Data",channel=channel,hist_chosenFunc=hist_chosenFunc, 
+                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -544,7 +750,9 @@ if __name__ == "__main__":
         #     ptval = hsfSmoothCheck_origBinPt.GetYaxis().GetBinCenter(ipt)
         #     hsfSmoothCheck_origBinPt.SetBinContent(key+1,ipt, a0 + a1 * ptval + a2 * ptval * ptval)
 
-        bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=hist_chosenFunc, isIso=True if options.variable=="ISO" else False)
+        # do not fill control histogram when fitting scale factors (these fits are not really used, sf are actually obtained dividing the fitted efficiencies)
+        bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=0, 
+                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -558,13 +766,13 @@ if __name__ == "__main__":
     #################################
     # start to make plots
     #################################
-    lepton = "electron" if channel == "el" else "muon"
-    zaxisRange = "0.4,1.1" if channel == "el" else "0.96,1.01"
+    zaxisRange = "0.4,1.1" if isEle else "0.96,1.01"
+    if not isEle and options.isTriggerScaleFactor: zaxisRange = "0.8,1.01"
     if options.variable == "ISO":
         zaxisRange = "0.85,1.01"
 
     # for muons, plot also official scale factors
-    if not isEle:        
+    if not isEle and not options.isTriggerScaleFactor:        
         tf = ROOT.TFile.Open("official_muon_ScaleFactors_2016/Run{era}_SF_{var}.root".format(era=options.era,var=options.variable))        
         if options.variable == "ISO":
             hsf_official = tf.Get("NUM_TightRelIso_DEN_MediumID_eta_pt")
@@ -609,7 +817,8 @@ if __name__ == "__main__":
     # scale factor: data/MC
     scaleFactor = ROOT.TH2D("scaleFactor","Scale factor",
                             len(etabins)-1,array('d',etabins),
-                            60,hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
+                            int(math.ceil((hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY()) - hdata.GetYaxis().GetBinLowEdge(1))/options.widthPt)),
+                            hdata.GetYaxis().GetBinLowEdge(1),hdata.GetYaxis().GetBinLowEdge(1+hdata.GetNbinsY())
                             )
 
     copyHisto(scaleFactor, hdataSmoothCheck)
@@ -697,22 +906,34 @@ if __name__ == "__main__":
     for ext in ["png","pdf"]:
         c.SaveAs("{out}bestFitFunction{ch}.{ext}".format(out=outname,ch=channel,ext=ext))
 
+    # before saving things, assign an uncertainty from the original input (will need to devise a better way to estimate them)
+    # following histograms have same eta-pt binning
+    for ix in range(1,hdataSmoothCheck.GetNbinsX()+1):
+        for iy in range(1,hdataSmoothCheck.GetNbinsY()+1):
+            ieta = hdata.GetXaxis().FindFixBin(hdataSmoothCheck.GetXaxis().GetBinCenter(ix))
+            ipt = hdata.GetYaxis().FindFixBin(hdataSmoothCheck.GetYaxis().GetBinCenter(ix))
+            hdataSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
+            hmcSmoothCheck.SetBinError(ix,iy,0.5*hdata.GetBinError(ieta,ipt))
+            scaleFactor.SetBinError(ix,iy,hsf.GetBinError(ieta,ipt))
+
     ###########################
     # Now save things
     ###########################
-    tf = ROOT.TFile.Open(outname+options.outfilename,'recreate')
+    tf = ROOT.TFile.Open(outname+outfilename,'recreate')
     # hdataSmoothEff.Write()    
     # hmcSmoothEff.Write()    
     hdataSmoothCheck.Write()
     hmcSmoothCheck.Write()
     scaleFactor.Write()
-    for key in bestFit_MC:
-        bestFit_MC[key].Write(key)
-    for key in bestFit_Data:
-        bestFit_Data[key].Write(key)
+    hsf.Write("scaleFactorOriginal")
+    if options.saveTF1:
+        for key in bestFit_MC:
+            bestFit_MC[key].Write(key)
+        for key in bestFit_Data:
+            bestFit_Data[key].Write(key)
     tf.Close()
     print ""
-    print "Created file %s" % (outname+options.outfilename)
+    print "Created file %s" % (outname+outfilename)
     print ""
 
                                

@@ -115,11 +115,176 @@ class lepTrgSFProducer(Module):
                     wgt = self._worker.getWeight(l.pt,l.eta)
                     sf.append(wgt if wgt>0 else 1.)
                 else:
-                    sf.append(self._worker.getWeight(getattr(l,sef.var)))
+                    sf.append(self._worker.getWeight(getattr(l,self.var)))
         self.out.fillBranch("LepGood_trgSF", sf)
         return True
+
+####################################################################
+####################################################################
+
+class scaleFactorManager:
+    def __init__(self,filename,path,hname):
+        self.hname = hname
+        self.fname = path + ("" if path.endswith("/") else "/") + filename
+        self.hist = 0
+        self.epsilon = 0.0001 # used to get correct bin number given value on axis (just in case we are picking a value on a bin edge)
+        self.hasLoadedHisto = False
+
+    def printFile():
+        tf = ROOT.TFile.Open(self.fname)
+        print "-"*20
+        tf.Print()
+        tf.Close()
+        print "-"*20
+
+    def loadHist(self,newfname=None,newhname=None):
+        # can also change file and/or histogram name with this method
+        if newfname:
+            self.fname = newfname
+        if newhname:
+            self.hname = newhname
+        tf = ROOT.TFile.Open(self.fname)
+        self.hist = tf.Get(self.hname)
+        self.hist.SetDirectory(0)
+        tf.Close()
+        if not self.hist:
+            print "*"*20
+            print "WARNING: could not load histogram {n} from file {f}. Will return 1".format(n=self.hname,f=self.fname)
+            print "*"*20
+            self.printFile()
+        else:
+            print "Histogram {n} successfully loaded from file {f}  ;-)".format(n=self.hname,f=self.fname)
+            self.hasLoadedHisto = True
+
+    def getSF(self,pt,eta):
+        if not self.hist:
+            #print "Warning in scaleFactorManager.getSF(): histogram not found, I will try to load it now. If not successfull, I will return 1."
+            # just in case it was not loaded explicitly
+            if not self.hasLoadedHisto:
+                self.loadHist()
+                return self.getSF(pt,eta)
+            else: 
+                return 1.
+        else:
+            ieta = self.hist.GetXaxis().FindFixBin(eta+self.epsilon)
+            ipt =  self.hist.GetYaxis().FindFixBin(pt +self.epsilon)
+            # protect against underflow and overflow
+            return self.hist.GetBinContent(min(max(1,ieta),self.hist.GetNbinsX()),min(max(1,ipt),self.hist.GetNbinsY()))
+
+    def getSF_err(self,pt,eta):
+        if not self.hist:
+            #print "Warning in scaleFactorManager.getSF_err(): histogram not found, I will try to load it now. If not successfull, I will return 1."
+            # just in case it was not loaded explicitly
+            if not self.hasLoadedHisto:
+                self.loadHist()
+                return self.getSF_err(pt,eta)
+            else: 
+                return 1.
+        else:
+            ieta = self.hist.GetXaxis().FindFixBin(eta+self.epsilon)
+            ipt =  self.hist.GetYaxis().FindFixBin(pt +self.epsilon)
+            return self.hist.GetBinError(min(max(1,ieta),self.hist.GetNbinsX()),min(max(1,ipt),self.hist.GetNbinsY()))
+        
+#-----------------------------------------
+
+class lep2016SFProducer(Module):
+    def __init__(self):
+
+        # muons have scale factors for trigger, ID and isolation
+        # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
+        # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
+
+        self.mu_f = {"trigger"       :"smoothEfficiency_muons_trigger.root", 
+                     "identification":"smoothEfficiency_muons_full2016_ID.root", 
+                     "isolation"     :"smoothEfficiency_muons_full2016_ISO.root"
+                     }
+        self.el_f = {"trigger"               :"smoothEfficiency_electrons_trigger.root",
+                     "reco"                  :"",  # to be implemented
+                     "full_ID_iso_convVeto"  :""   # to be implemented
+                     }
+        self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
+
+    def beginJob(self):
+        # create muon scale factor manager: pass file name and location, and then the name of histogram to read
+        # for muon ID, might also want to use "scaleFactorOriginal" which has the unsmoothed version of the scale factors
+        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor")
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactor")  
+        self.sf3_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
+
+        # create electron scale factor manager        
+        self.sf1_manager_el = scaleFactorManager(self.el_f["trigger"],             self.filePath,"scaleFactor")
+        #self.sf2_manager_el = scaleFactorManager(self.el_f["reco"],                self.filePath,"scaleFactor")
+        #self.sf3_manager_el = scaleFactorManager(self.el_f["full_ID_iso_convVeto"],self.filePath,"scaleFactor")
+
+        # load histograms
+        self.sf1_manager_mu.loadHist()
+        self.sf2_manager_mu.loadHist()
+        self.sf3_manager_mu.loadHist()
+        self.sf1_manager_el.loadHist()
+        #self.sf2_manager_el.loadHist()
+        #self.sf3_manager_el.loadHist()
+
+    def endJob(self):
+        pass
+    def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        self.out = wrappedOutputTree
+        self.out.branch("LepGood_sf1",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf2",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf3",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf1_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf2_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf3_err", "F", lenVar="nLepGood")
+    def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        pass
+    def analyze(self, event):
+        """process event, return True (go to next module) or False (fail, go to next event)"""
+        leps = Collection(event, "LepGood")
+        sf_1 = []
+        sf_2  = []
+        sf_3 = []
+        sf_1_err = []
+        sf_2_err  = []
+        sf_3_err = []
+        for l in leps:
+            if event.isData:
+                sf_1.append(1.)
+                sf_2.append(1.)
+                sf_3.append(1.)
+                sf_1_err.append(0.)
+                sf_2_err.append(0.)
+                sf_3_err.append(0.)
+            else:
+                if abs(l.pdgId)==11:
+                    sf_1.append(float(self.sf1_manager_el.getSF(l.pt,l.eta)))                    
+                    #sf_2.append(float(self.sf2_manager_el.getSF(l.pt,l.eta)))                    
+                    #sf_3.append(float(self.sf3_manager_el.getSF(l.pt,l.eta)))                    
+                    sf_2.append(1.)
+                    sf_3.append(1.)
+                    sf_1_err.append(float(self.sf1_manager_el.getSF_err(l.pt,l.eta)))                    
+                    #sf_2_err.append(float(self.sf2_manager_el.getSF_err(l.pt,l.eta)))                    
+                    #sf_3_err.append(float(self.sf3_manager_el.getSF_err(l.pt,l.eta)))                    
+                    sf_2_err.append(1.)
+                    sf_3_err.append(1.)
+                else:
+                    sf_1.append(    float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
+                    sf_2.append(     float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
+                    sf_3.append(    float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
+                    sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_2_err.append( float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
+        self.out.fillBranch("LepGood_sf1", sf_1)
+        self.out.fillBranch("LepGood_sf2", sf_2)
+        self.out.fillBranch("LepGood_sf3", sf_3)
+        self.out.fillBranch("LepGood_sf1_err", sf_1_err)
+        self.out.fillBranch("LepGood_sf2_err", sf_2_err)
+        self.out.fillBranch("LepGood_sf3_err", sf_3_err)
+        return True
+
+#########################################################
+
 
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
 lepSF = lambda : lepSFProducer( "TightWP_2016", "CutBasedTight_2016")
 trgSF = lambda : lepTrgSFProducer()
+lep2016SF = lambda : lep2016SFProducer()
