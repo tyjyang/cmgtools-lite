@@ -177,7 +177,7 @@ class scaleFactorManager:
             # just in case it was not loaded explicitly
             if not self.hasLoadedHisto:
                 self.loadHist()
-                return self.getSF(pt,eta)
+                return self.getSF_err(pt,eta)
             else: 
                 return 1.
         else:
@@ -190,80 +190,94 @@ class scaleFactorManager:
 class lep2016SFProducer(Module):
     def __init__(self):
 
+        # muons have scale factors for trigger, ID and isolation
+        # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
+        # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
+
         self.mu_f = {"trigger"       :"smoothEfficiency_muons_trigger.root", 
                      "identification":"smoothEfficiency_muons_full2016_ID.root", 
                      "isolation"     :"smoothEfficiency_muons_full2016_ISO.root"
                      }
-        self.el_f = {"trigger"       :"smoothEfficiency_electrons_trigger.root"
+        self.el_f = {"trigger"               :"smoothEfficiency_electrons_trigger.root",
+                     "reco"                  :"",  # to be implemented
+                     "full_ID_iso_convVeto"  :""   # to be implemented
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
         # for muon ID, might also want to use "scaleFactorOriginal" which has the unsmoothed version of the scale factors
-        self.trgSF_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor")
-        self.idSF_manager_mu  = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactor")  
-        self.isoSF_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
+        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor")
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactor")  
+        self.sf3_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
 
         # create electron scale factor manager        
-        self.trgSF_manager_el = scaleFactorManager(self.el_f["trigger"],       self.filePath,"scaleFactor")
+        self.sf1_manager_el = scaleFactorManager(self.el_f["trigger"],             self.filePath,"scaleFactor")
+        #self.sf2_manager_el = scaleFactorManager(self.el_f["reco"],                self.filePath,"scaleFactor")
+        #self.sf3_manager_el = scaleFactorManager(self.el_f["full_ID_iso_convVeto"],self.filePath,"scaleFactor")
 
         # load histograms
-        self.trgSF_manager_mu.loadHist()
-        self.idSF_manager_mu.loadHist()
-        self.isoSF_manager_mu.loadHist()
-        self.trgSF_manager_el.loadHist()
+        self.sf1_manager_mu.loadHist()
+        self.sf2_manager_mu.loadHist()
+        self.sf3_manager_mu.loadHist()
+        self.sf1_manager_el.loadHist()
+        #self.sf2_manager_el.loadHist()
+        #self.sf3_manager_el.loadHist()
 
     def endJob(self):
         pass
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
-        self.out.branch("LepGood_IDeffSF",      "F", lenVar="nLepGood")
-        self.out.branch("LepGood_ISOeffSF",     "F", lenVar="nLepGood")
-        self.out.branch("LepGood_trgSF",        "F", lenVar="nLepGood")
-        self.out.branch("LepGood_IDeffSF_err",  "F", lenVar="nLepGood")
-        self.out.branch("LepGood_ISOeffSF_err", "F", lenVar="nLepGood")
-        self.out.branch("LepGood_trgSF_err",    "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf1",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf2",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf3",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf1_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf2_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_sf3_err", "F", lenVar="nLepGood")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         leps = Collection(event, "LepGood")
-        sf_id  = []
-        sf_iso = []
-        sf_trg = []
-        sf_id_err  = []
-        sf_iso_err = []
-        sf_trg_err = []
+        sf_1 = []
+        sf_2  = []
+        sf_3 = []
+        sf_1_err = []
+        sf_2_err  = []
+        sf_3_err = []
         for l in leps:
             if event.isData:
-                sf_trg.append(1.)
-                sf_id.append(1.)
-                sf_iso.append(1.)
-                sf_trg_err.append(0.)
-                sf_id_err.append(0.)
-                sf_iso_err.append(0.)
+                sf_1.append(1.)
+                sf_2.append(1.)
+                sf_3.append(1.)
+                sf_1_err.append(0.)
+                sf_2_err.append(0.)
+                sf_3_err.append(0.)
             else:
                 if abs(l.pdgId)==11:
-                    sf_trg.append(float(self.trgSF_manager_el.getSF(l.pt,l.eta)))                    
-                    sf_id.append(1.)
-                    sf_iso.append(1.)
-                    sf_trg_err.append(float(self.trgSF_manager_el.getSF_err(l.pt,l.eta)))                    
-                    sf_id_err.append(1.)
-                    sf_iso_err.append(1.)
+                    sf_1.append(float(self.sf1_manager_el.getSF(l.pt,l.eta)))                    
+                    #sf_2.append(float(self.sf2_manager_el.getSF(l.pt,l.eta)))                    
+                    #sf_3.append(float(self.sf3_manager_el.getSF(l.pt,l.eta)))                    
+                    sf_2.append(1.)
+                    sf_3.append(1.)
+                    sf_1_err.append(float(self.sf1_manager_el.getSF_err(l.pt,l.eta)))                    
+                    #sf_2_err.append(float(self.sf2_manager_el.getSF_err(l.pt,l.eta)))                    
+                    #sf_3_err.append(float(self.sf3_manager_el.getSF_err(l.pt,l.eta)))                    
+                    sf_2_err.append(1.)
+                    sf_3_err.append(1.)
                 else:
-                    sf_trg.append(    float(self.trgSF_manager_mu.getSF(l.pt,l.eta)))
-                    sf_id.append(     float(self.idSF_manager_mu.getSF(l.pt,l.eta)))
-                    sf_iso.append(    float(self.isoSF_manager_mu.getSF(l.pt,l.eta)))
-                    sf_trg_err.append(float(self.trgSF_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_id_err.append( float(self.idSF_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_iso_err.append(float(self.isoSF_manager_mu.getSF_err(l.pt,l.eta)))
-        self.out.fillBranch("LepGood_IDeffSF",  sf_id)
-        self.out.fillBranch("LepGood_ISOeffSF", sf_iso)
-        self.out.fillBranch("LepGood_trgSF",    sf_trg)
-        self.out.fillBranch("LepGood_IDeffSF_err",  sf_id_err)
-        self.out.fillBranch("LepGood_ISOeffSF_err", sf_iso_err)
-        self.out.fillBranch("LepGood_trgSF_err",    sf_trg_err)
+                    sf_1.append(    float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
+                    sf_2.append(     float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
+                    sf_3.append(    float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
+                    sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_2_err.append( float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
+        self.out.fillBranch("LepGood_sf1", sf_1)
+        self.out.fillBranch("LepGood_sf2", sf_2)
+        self.out.fillBranch("LepGood_sf3", sf_3)
+        self.out.fillBranch("LepGood_sf1_err", sf_1_err)
+        self.out.fillBranch("LepGood_sf2_err", sf_2_err)
+        self.out.fillBranch("LepGood_sf3_err", sf_3_err)
         return True
 
 #########################################################
