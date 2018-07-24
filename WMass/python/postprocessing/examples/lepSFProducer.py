@@ -194,13 +194,13 @@ class lep2016SFProducer(Module):
         # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
         # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
 
-        self.mu_f = {"trigger"       :"smoothEfficiency_muons_trigger.root", 
-                     "identification":"smoothEfficiency_muons_full2016_ID.root", 
-                     "isolation"     :"smoothEfficiency_muons_full2016_ISO.root"
+        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger.root", 
+                     "identification": "smoothEfficiency_muons_full2016_ID.root", 
+                     "isolation"     : "smoothEfficiency_muons_full2016_ISO.root"
                      }
-        self.el_f = {"trigger"               :"smoothEfficiency_electrons_trigger.root",
-                     "reco"                  :"",  # to be implemented
-                     "full_ID_iso_convVeto"  :""   # to be implemented
+        self.el_f = {"trigger"               : "smoothEfficiency_electrons_trigger.root",
+                     "reco"                  : "EGM2D_eleGSF.root",  # to be implemented
+                     "full_ID_iso_convVeto"  : "smoothEfficiency_electrons_fullID.root"  
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
@@ -211,18 +211,19 @@ class lep2016SFProducer(Module):
         self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactor")  
         self.sf3_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
 
+        self.filePathTmp = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/" % os.environ['CMSSW_BASE']
         # create electron scale factor manager        
         self.sf1_manager_el = scaleFactorManager(self.el_f["trigger"],             self.filePath,"scaleFactor")
-        #self.sf2_manager_el = scaleFactorManager(self.el_f["reco"],                self.filePath,"scaleFactor")
-        #self.sf3_manager_el = scaleFactorManager(self.el_f["full_ID_iso_convVeto"],self.filePath,"scaleFactor")
+        self.sf2_manager_el = scaleFactorManager(self.el_f["reco"],                self.filePathTmp,"EGamma_SF2D") # still using the old prompt-Reco scale factors
+        self.sf3_manager_el = scaleFactorManager(self.el_f["full_ID_iso_convVeto"],self.filePath,"scaleFactor")
 
         # load histograms
         self.sf1_manager_mu.loadHist()
         self.sf2_manager_mu.loadHist()
         self.sf3_manager_mu.loadHist()
         self.sf1_manager_el.loadHist()
-        #self.sf2_manager_el.loadHist()
-        #self.sf3_manager_el.loadHist()
+        self.sf2_manager_el.loadHist()
+        self.sf3_manager_el.loadHist()
 
     def endJob(self):
         pass
@@ -256,21 +257,21 @@ class lep2016SFProducer(Module):
             else:
                 if abs(l.pdgId)==11:
                     sf_1.append(float(self.sf1_manager_el.getSF(l.pt,l.eta)))                    
-                    #sf_2.append(float(self.sf2_manager_el.getSF(l.pt,l.eta)))                    
-                    #sf_3.append(float(self.sf3_manager_el.getSF(l.pt,l.eta)))                    
+                    sf_2.append(float(self.sf2_manager_el.getSF(l.pt,l.eta)))                    
+                    sf_3.append(float(self.sf3_manager_el.getSF(l.pt,l.eta)))                    
                     sf_2.append(1.)
-                    sf_3.append(1.)
+                    #sf_3.append(1.)
                     sf_1_err.append(float(self.sf1_manager_el.getSF_err(l.pt,l.eta)))                    
-                    #sf_2_err.append(float(self.sf2_manager_el.getSF_err(l.pt,l.eta)))                    
-                    #sf_3_err.append(float(self.sf3_manager_el.getSF_err(l.pt,l.eta)))                    
+                    sf_2_err.append(float(self.sf2_manager_el.getSF_err(l.pt,l.eta)))                    
+                    sf_3_err.append(float(self.sf3_manager_el.getSF_err(l.pt,l.eta)))                    
                     sf_2_err.append(1.)
-                    sf_3_err.append(1.)
+                    #sf_3_err.append(1.)
                 else:
                     sf_1.append(    float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
-                    sf_2.append(     float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
+                    sf_2.append(    float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
                     sf_3.append(    float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
                     sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_2_err.append( float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_2_err.append(float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
         self.out.fillBranch("LepGood_sf1", sf_1)
         self.out.fillBranch("LepGood_sf2", sf_2)

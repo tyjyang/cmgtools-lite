@@ -111,12 +111,13 @@ def copyHisto(h1, h2):
         quit()        
 
 
-def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, isIso=False, isTrigger=False):
+def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, isIso=False, isTrigger=False, isFullID=False):
 
     #drawFit = False
     # isIso is mainly for muons, for which ID ad ISO are separate
 
     isEle = True if channel == "el" else False
+    if not isEle: isFullID = False
     #print "isEle",str(isEle)
     #mc = "MC" if isMC else "Data"
     outdir = "{out}{mc}/".format(out=outname,mc=mc)
@@ -149,7 +150,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.GetYaxis().SetTitleOffset(1.2)
     hist.GetYaxis().SetTitleSize(0.05)
     hist.GetYaxis().SetLabelSize(0.04)
-    if isTrigger: hist.GetYaxis().SetRangeUser(0.98*hist.GetMinimum(), 1.02* hist.GetMaximum())
+    if isTrigger or isFullID: hist.GetYaxis().SetRangeUser(0.98*hist.GetMinimum(), 1.02* hist.GetMaximum())
     else: 
         diff = hist.GetMaximum() - hist.GetMinimum()
         hist.GetYaxis().SetRangeUser(hist.GetMinimum() - diff, diff + hist.GetMaximum())
@@ -157,7 +158,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.SetStats(0)
     hist.Draw("EP")
 
-    if isTrigger:
+    if isTrigger or isFullID:
         fitopt = "QMFS+"  
         maxFitRange = hist.GetXaxis().GetBinLowEdge(1+hist.GetNbinsX())
         minFitRange = hist.GetXaxis().GetBinLowEdge(1)
@@ -261,11 +262,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     tf1_erf2.SetLineColor(ROOT.kRed+1)
 
     # fit and draw (if required)
-    if isTrigger:
+    if isTrigger or isFullID:
         hist.Fit(tf1_erf,fitopt)        
         # hist.Fit(tf1_ln2,fitopt)        
         hist.Fit(tf1_ln,fitopt)
-        hist.Fit(tf1_erf2,fitopt)        
+        if isFullID: 
+            tf1_pol3.SetLineColor(ROOT.kRed+1)
+        else:
+            hist.Fit(tf1_erf2,fitopt)        
         # hist.Fit(tf1_sqrt,fitopt)        
         # hist.Fit(tf1_exp,fitopt)        
         hist.Fit(tf1_pol2,fitopt)        
@@ -291,8 +295,8 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     legEntry[tf1_ln.GetName()]   = "a ln(bx + c)"
     legEntry[tf1_pol1.GetName()] = "pol1"
 
-    if isTrigger:
-        leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
+    if isTrigger or isFullID:
+        if not isFullID: leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
         leg.AddEntry(tf1_ln,  "a ln(bx + c)", "LF")
         #leg.AddEntry(tf1_ln2, "a ln(bx + c) + dx + e", "LF")
         #leg.AddEntry(tf1_sqrt,"a #sqrt{bx +c} +cx", "LF")
@@ -322,11 +326,11 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     #     else:
     #         canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
 
-    if isTrigger:
+    if isTrigger or isFullID:
         fit_pol2 = hist.GetFunction(tf1_pol2.GetName())
         fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
         fit_erf =  hist.GetFunction(tf1_erf.GetName())
-        fit_erf2 =  hist.GetFunction(tf1_erf2.GetName())
+        if not isFullID: fit_erf2 =  hist.GetFunction(tf1_erf2.GetName())
         fit_ln =   hist.GetFunction(tf1_ln.GetName())
         #fit_ln2 = hist.GetFunction(tf1_ln2.GetName())
         #fit_sqrt = hist.GetFunction(tf1_sqrt.GetName())
@@ -339,14 +343,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
 
     functions = {}
-    if isTrigger:
+    if isTrigger or isFullID:
         functions[tf1_pol2.GetName()] = fit_pol2
         functions[tf1_pol3.GetName()] = fit_pol3
         functions[tf1_erf.GetName()] = fit_erf
         functions[tf1_ln.GetName()] = fit_ln
         #functions[tf1_ln2.GetName()] = fit_ln2
         #functions[tf1_sqrt.GetName()] = fit_sqrt
-        functions[tf1_erf2.GetName()] = fit_erf2
+        if not isFullID: functions[tf1_erf2.GetName()] = fit_erf2
         #functions[tf1_exp.GetName()] = fit_exp
     else:
         if isIso: functions[tf1_erf.GetName()] = fit_erf
@@ -436,6 +440,7 @@ if __name__ == "__main__":
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
     parser.add_option('-w','--width-pt',     dest='widthPt',default='0.2', type='float', help='Pt bin width for the smoothed histogram')
     parser.add_option('-t','--trigger', dest='isTriggerScaleFactor',action="store_true", default=False, help='Says if using trigger scale factors (electron and muon share the same root file content)')
+    parser.add_option(     '--fullID', dest='isFullIDScaleFactor',action="store_true", default=False, help='For electrons: says if using fullID scale factor')
     parser.add_option(     '--save-TF1', dest='saveTF1',action="store_true", default=False, help='Save TF1 as well, not just TH2 with many bins (note that they are not saved when making averages between eras')
     parser.add_option(     '--make-weighted-average', dest='isWeightedAverage',action="store_true", default=False, help='To be used if you are averaging the scale factors (must use other options to pass the inputs. For example, muons have two sets of ID and ISO scale factors for different eras')
     parser.add_option(    '--files-average', dest='filesAverage',default='', type='string', help='Comma separated list of two files')
@@ -450,6 +455,9 @@ if __name__ == "__main__":
     if options.isTriggerScaleFactor:
         if options.era or options.variable:
             print "Error: option -t is incompatible with -e and -v. Exit"
+            quit()
+        if options.isFullIDScaleFactor:
+            print "Error: option -t is incompatible with --fullID. Exit"
             quit()
     
     channel = options.channel
@@ -473,6 +481,12 @@ if __name__ == "__main__":
             print "Error: you should specify a variable with option -v ID|ISO. Exit"                                
             quit()                                    
 
+    if not isEle and options.isFullIDScaleFactor:
+        print "Error: option --fullID is only for electrons. Exit"
+        quit()
+
+
+
     if options.outdir:
         outname = options.outdir
         addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
@@ -489,6 +503,7 @@ if __name__ == "__main__":
     if options.isWeightedAverage: outfilename = outfilename + "_full2016"
     if options.variable: outfilename = outfilename + "_" + options.variable
     if options.isTriggerScaleFactor: outfilename = outfilename + "_trigger"
+    if options.isFullIDScaleFactor: outfilename = outfilename + "_fullID"
     outfilename += ".root"
 
     #########################################    
@@ -525,7 +540,7 @@ if __name__ == "__main__":
     hsf = 0
     if options.inputfile:
         tf = ROOT.TFile.Open(options.inputfile)        
-        if options.isTriggerScaleFactor:
+        if options.isTriggerScaleFactor or options.isFullIDScaleFactor:
             hmc =   tf.Get("EGamma_EffMC2D")
             hdata = tf.Get("EGamma_EffData2D")
             hsf = tf.Get("EGamma_SF2D")
@@ -536,7 +551,7 @@ if __name__ == "__main__":
             hmc   = tf.Get("eff%s_mc_%s" % (options.variable,options.era))
             hdata = tf.Get("eff%s_data_%s" % (options.variable,options.era))            
         else:
-            print "Error: you are doing electrons, but you didn't specify option -t for trigger. This setup is currently not implemented. Exit"
+            print "Error: you are doing electrons, but you didn't specify option -t for trigger or --fullID for full ID. This setup is currently not implemented. Exit"
             quit()
 
         if (hmc == 0 or hdata == 0):
@@ -545,7 +560,7 @@ if __name__ == "__main__":
         else:
             hmc.SetDirectory(0)
             hdata.SetDirectory(0)
-            if isEle: hsf.SetDirectory(0)
+            if isEle or options.isTriggerScaleFactor: hsf.SetDirectory(0)
         tf.Close()
     else:
         print "Error: you should specify an input file using option -i <name>. Exit"
@@ -556,8 +571,10 @@ if __name__ == "__main__":
     ptbins = hdata.GetYaxis().GetXbins()
     #etaBinHisto = ROOT.TH1F("etaBinEdges","The x axis of this histogram has the eta binning",len(etabins)-1,array('d',etabins))
         
-    # for muons must create original scale factor as well
-    if not isEle:
+    # for muons must create original scale factor as well, unless it was trigger (which also have the SF in the input file)
+    if isEle or options.isTriggerScaleFactor:
+        pass
+    else:
         hsf = ROOT.TH2D("hsf","",
                         len(etabins)-1,array('d',etabins),
                         len(ptbins)-1,array('d',ptbins)
@@ -691,7 +708,9 @@ if __name__ == "__main__":
         #     hmcSmoothEff.SetBinError(key+1,fitpol2.GetParError(ipar))
         # a0,a1,a2 = fitpol2.GetParameter(0),fitpol2.GetParameter(1),fitpol2.GetParameter(2)
         bestFitFunc = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc, 
-                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
+                                isIso=True if options.variable=="ISO" else False,
+                                isTrigger=options.isTriggerScaleFactor,
+                                isFullID=options.isFullIDScaleFactor)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -721,7 +740,9 @@ if __name__ == "__main__":
         #     hdataSmoothCheck_origBinPt.SetBinContent(key+1,ipt, a0 + a1 * ptval + a2 * ptval * ptval)
 
         bestFitFunc = fitTurnOn(hdatapt[key],key,outname, "Data",channel=channel,hist_chosenFunc=hist_chosenFunc, 
-                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
+                                isIso=True if options.variable=="ISO" else False,
+                                isTrigger=options.isTriggerScaleFactor,
+                                isFullID=options.isFullIDScaleFactor)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -752,7 +773,9 @@ if __name__ == "__main__":
 
         # do not fill control histogram when fitting scale factors (these fits are not really used, sf are actually obtained dividing the fitted efficiencies)
         bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=0, 
-                                isIso=True if options.variable=="ISO" else False,isTrigger=options.isTriggerScaleFactor)
+                                isIso=True if options.variable=="ISO" else False,
+                                isTrigger=options.isTriggerScaleFactor,
+                                isFullID=options.isFullIDScaleFactor)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
