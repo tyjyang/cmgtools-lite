@@ -163,7 +163,7 @@ class GenQEDJetProducer(Module):
 
     def bwWeight(self,genMass,imass):
         # default mass calculated from MG5 inputs
-        # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 ± 7.65e-06 (GeV)
+        # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 +/- 7.65e-06 (GeV)
         (m0,gamma) = (80419.,2050.0) # MeV
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - imass*imass,2) + pow(gamma*imass,2))
