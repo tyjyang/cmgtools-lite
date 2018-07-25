@@ -1,4 +1,5 @@
 import ROOT, os
+ROOT.gROOT.SetBatch(True)
 
 ## USAGE:
 ## python triggerTnP.py -i /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-07-06-2l_triggerMatch_MUONS/ -c mu -o indir
