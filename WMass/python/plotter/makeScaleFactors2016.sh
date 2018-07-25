@@ -41,3 +41,7 @@ python w-helicity-13TeV/smoothLeptonScaleFactors.py -i ~mdunser/public/electronT
 
 echo ""
 echo ""
+python w-helicity-13TeV/smoothLeptonScaleFactors.py -i electron_fullID_scaleFactor/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors/electron/fullID/ -c el -n smoothEfficiency.root --fullID
+
+echo ""
+echo ""
