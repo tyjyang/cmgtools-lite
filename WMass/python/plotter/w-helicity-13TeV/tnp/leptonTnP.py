@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
         print 'runing on file', treefile
 
-        tmp_file = ROOT.TFile(treefile)
+        tmp_file = ROOT.TFile(treefile, 'read')
         tmp_tree = tmp_file.Get('tree')
         
         ## make the instance of the worker

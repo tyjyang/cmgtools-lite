@@ -1,8 +1,9 @@
 import ROOT
-import os
+import os, array, copy
 import numpy as np
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 from math import *
+from ctypes import c_float
 
 from CMGTools.WMass.postprocessing.framework.datamodel import Collection 
 from CMGTools.WMass.postprocessing.framework.eventloop import Module
@@ -15,8 +16,9 @@ class lepIsoEAProducer(Module):
         if "/EffectiveAreas_cc.so" not in ROOT.gSystem.GetLibraries():
             ROOT.gSystem.Load("$CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/libFWCoreParameterSet.so")
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/EffectiveAreas.cc+" % os.environ['CMSSW_BASE'])
+
     def beginJob(self):
-        self._worker = ROOT.EffectiveAreas(self.EAinputfile)
+        self._worker         = ROOT.EffectiveAreas(self.EAinputfile)
     def endJob(self):
         pass
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
@@ -105,14 +107,50 @@ class lepCalibratedEnergyProducer(Module):
         self.seed = seed
         self.synchronization = synchronization
         if "/EnergyScaleCorrection_class_cc.so" not in ROOT.gSystem.GetLibraries():
+            print 'did not find EnergyScaleCorrection shared object, rebuilding'
+            ROOT.gSystem.Load("$CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/libFWCoreParameterSet.so")
             ROOT.gROOT.ProcessLine(".L %s/src/EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class.cc+" % os.environ['CMSSW_BASE'])
+
+        print 'trying to load all the rochester correction libraries'
+        if "/RoccoR_cc.so" not in ROOT.gSystem.GetLibraries():
+            print 'did not find legacy data roccor. rebuilding...'
+            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR.cc+" % os.environ['CMSSW_BASE'])
+            print 'done building legacy data roccor.'
+        if "/RoccoR80XMC_cc.so" not in ROOT.gSystem.GetLibraries():
+            print 'did not find 80X mc roccor. rebuilding the first'
+            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR80XMC.cc+" % os.environ['CMSSW_BASE'])
+            print 'done building 80X MC roccor part 1.'
+        if "/rochcor201680XMC_cc.so" not in ROOT.gSystem.GetLibraries():
+            print 'did not find 80X mc roccor. rebuilding the second'
+            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/rochcor201680XMC.cc+" % os.environ['CMSSW_BASE'])
+            print 'done building 80X MC roccor part 2.'
+
+        ##ROOT.gSystem.Load("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR_cc.so")
+        ##ROOT.gSystem.Load("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR80XMC_cc.so")
+        ##ROOT.gSystem.Load("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/helpers/rochcor201680XMC_cc.so")
+
     def beginJob(self):
+        print 'begin job of lepCalProducer'
+
+        print 'initializing all the rochester correction objects'
+        ## rochester corrections for data on legacy rereco
+        self._rochester2016  = ROOT.RoccoR()
+        self._rochester2016.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016v1.txt')
+        ## rochester corrections for 80X MC
+        self._rochester201680XMC  = ROOT.rochcor201680XMC()
+    
+        nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
+        self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
+
+        print 'initializing the egamma calibrator'
+        ROOT.gSystem.Load(os.environ['CMSSW_BASE']+"/src/EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class_cc.so")
         self._worker = ROOT.EnergyScaleCorrection_class(self.corrFile,self.seed)
         self.rng = ROOT.TRandom3()
         self.rng.SetSeed(self.seed)
         f_resCorr = ROOT.TFile.Open("%s/src/CMGTools/WMass/python/postprocessing/data/leptonScale/el/plot_dm_diff.root" % os.environ['CMSSW_BASE'])
         self.h_resCorr = f_resCorr.Get("plot_dm_diff").Clone("dm_diff")
         self.h_resCorr.SetDirectory(None)
+
     def endJob(self):
         pass
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
@@ -142,9 +180,20 @@ class lepCalibratedEnergyProducer(Module):
         calPt_step1 = []
         calPt = []
         for l in leps:
-            if abs(l.pdgId)!=11: # implemented only for electrons
-                calPt.append(-999.) 
-                calPt_step1.append(-999.) 
+            if abs(l.pdgId)==13: # implemented only for electrons
+                if event.isData:
+                    scale = self._rochester2016.kScaleDT(l.charge, l.pt, l.eta, l.phi)
+                    calPt_step1.append(scale)
+                    calPt.append(l.pt * scale)
+                else:
+                    mu=ROOT.TLorentzVector(0,0,0,0)
+                    mu.SetPtEtaPhiM(l.pt, l.eta, l.phi, l.mass)
+                    qter = c_float(1.0)
+                    ## ATTENTION. THE NTRK IS RANDOMLY CHOSEN FROM A HISTOGRAM DISTRIBUTED LIKE THE SIGNAL MC
+                    tmp_nlayers = int(self._nLayersHist.GetRandom())
+                    scale = self._rochester201680XMC.momcor_mc(mu, l.charge, tmp_nlayers, qter)
+                    calPt_step1.append(scale)
+                    calPt.append(l.pt * scale )
             else:
                 if event.isData:
                     scale = self._worker.ScaleCorrection(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt)

@@ -191,15 +191,19 @@ if __name__ == "__main__":
     parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
     parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
-    parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
-    parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
+    parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
+    #parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
 
-    if options.combineCharges and options.combineChannels:
-        print "ERROR: you are trying to combine both charges and channels, which is not supported. Exit"
+    if not options.inputdir:
+        print "Error: you must use option -i to specify the name of folder with cards. Exit"
         quit()
+
+    #if options.combineCharges and options.combineChannels:
+    #    print "ERROR: you are trying to combine both charges and channels, which is not supported. Exit"
+    #    quit()
 
     cmssw = os.environ['CMSSW_VERSION']
     if cmssw != "":
