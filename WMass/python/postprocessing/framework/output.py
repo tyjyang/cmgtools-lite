@@ -1,15 +1,17 @@
 from array import array
+import numpy
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-_rootBranchType2PythonArray = { 'b':'B', 'B':'b', 'i':'I', 'I':'i', 'F':'f', 'D':'d', 'l':'L', 'L':'l', 'O':'B' }
+_rootBranchType2PythonArray = { 'b':'B', 'B':'b', 'i':'I', 'I':'i', 'F':'f', 'D':'d', 'l':'L', 'L':'l', 'O':'B', 'H':'f' }
 
 class OutputBranch:
     def __init__(self, tree, name, rootBranchType, n=1, lenVar=None, title=None):
         n = int(n)
-        self.buff   = array(_rootBranchType2PythonArray[rootBranchType], n*[0. if rootBranchType in 'FD' else 0])
+        self.buff   = array(_rootBranchType2PythonArray[rootBranchType], n*[0. if rootBranchType in 'FDH' else 0])
         self.lenVar = lenVar
         self.n = n
+        rootBranchType = rootBranchType.replace("H","F")
         if lenVar != None:
             self.branch = tree.Branch(name, self.buff, "%s[%s]/%s" % (name,lenVar,rootBranchType))
         elif n == 1:
@@ -35,6 +37,7 @@ class OutputTree:
         self._tree = ttree
         self._branches = {} 
     def branch(self, name, rootBranchType, n=1, lenVar=None, title=None):
+        self.rootBranchType = rootBranchType
         if (lenVar != None) and (lenVar not in self._branches) and (not self._tree.GetBranch(lenVar)):
             self._branches[lenVar] = OutputBranch(self._tree, lenVar, "i")
         self._branches[name] = OutputBranch(self._tree, name, rootBranchType, n=n, lenVar=lenVar, title=title)
@@ -43,7 +46,7 @@ class OutputTree:
         br = self._branches[name]
         if br.lenVar and (br.lenVar in self._branches):
             self._branches[br.lenVar].buff[0] = len(val)
-        br.fill(val)
+        br.fill(numpy.float16(val) if self.rootBranchType=="H" else val)
     def tree(self):
         return self._tree
     def fill(self):
