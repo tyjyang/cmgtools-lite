@@ -147,8 +147,8 @@ class lepCalibratedEnergyProducer(Module):
         self._worker = ROOT.EnergyScaleCorrection_class(self.corrFile,self.seed)
         self.rng = ROOT.TRandom3()
         self.rng.SetSeed(self.seed)
-        f_resCorr = ROOT.TFile.Open("%s/src/CMGTools/WMass/python/postprocessing/data/leptonScale/el/plot_dm_diff.root" % os.environ['CMSSW_BASE'])
-        self.h_resCorr = f_resCorr.Get("plot_dm_diff").Clone("dm_diff")
+        f_resCorr = ROOT.TFile.Open("%s/src/CMGTools/WMass/python/postprocessing/data/leptonScale/el/smoothPtScale_electrons_residualPtCorr.root" % os.environ['CMSSW_BASE'])
+        self.h_resCorr = f_resCorr.Get("histSmooth").Clone("dm_diff")
         self.h_resCorr.SetDirectory(None)
 
     def endJob(self):
