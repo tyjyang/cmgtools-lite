@@ -235,7 +235,8 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                 if any(key == x for x in [20,29]):
                     tf1_erf2.SetParameter(1,31)                
                 elif key == 12:
-                    tf1_erf2.SetParameter(1,32)
+                    tf1_erf2.SetParameter(1,30.545)
+                    tf1_erf2.SetParameter(2,5.0)
                 elif key == 17:
                     tf1_erf2.SetParameter(1,31.2)
         else:
@@ -245,10 +246,16 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                     tf1_erf2.SetParameter(1,32)
                 # elif key == 13:
                 #     tf1_erf2.SetParameter(1,29.5)
-                elif any(key == x for x in [11,13,14,26]):
+                elif any(key == x for x in [11,14,26]):
                     tf1_erf2.SetParameter(1,29.5)
-                elif any(key == x for x in [10,23]):
+                elif any(key == x for x in [10]):
                     tf1_erf2.SetParameter(1,30.5)
+                    tf1_erf2.SetParameter(2,4.0)
+                elif key == 23:
+                    tf1_erf2.SetParameter(1,31.2)
+                    tf1_erf2.SetParameter(2,4.0)
+                elif key == 13:
+                    tf1_erf2.SetParameter(1,29.65)
                     tf1_erf2.SetParameter(2,4.0)
             if mc == "MC":
                 if any(key == x for x in [0,8,26,27,37]):
@@ -266,10 +273,40 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         hist.Fit(tf1_erf,fitopt)        
         # hist.Fit(tf1_ln2,fitopt)        
         hist.Fit(tf1_ln,fitopt)
-        if isFullID: 
-            tf1_pol3.SetLineColor(ROOT.kRed+1)
-        else:
-            hist.Fit(tf1_erf2,fitopt)        
+        # if isFullID: 
+        #     # TSpline
+        #     # tf1_pol3.SetLineColor(ROOT.kRed+1)
+        #     # xval = []
+        #     # yval = []
+        #     # for i in range(1,hist.GetNbinsX()+1):
+        #     #     xval.append(hist.GetBinCenter(i))
+        #     #     yval.append(hist.GetBinContent(i))
+        #     # spl = ROOT.TSpline3("spline3",array('d',xval),array('d',yval),len(xval),"b1e1")
+        #     # spl.SetLineWidth(2)
+        #     # spl.SetLineColor(ROOT.kCyan)
+        #     # spl.Draw("pclsame")
+        #     #
+        #     # doesn't seem to work, it apparently uses a single pol2 anyway. It was working with 3 gaussian, probably because they have different mean
+        #     # fit with two pol2 in different ranges
+        #     pol2low = ROOT.TF1("pol2low","pol2",minFitRange,36)
+        #     pol2high = ROOT.TF1("pol2high","pol2",36,maxFitRange)
+        #     combpol2 = ROOT.TF1("pol2high","pol2(0)+pol2(3)",minFitRange,maxFitRange)
+        #     combpol2.SetLineWidth(2)
+        #     combpol2.SetLineColor(ROOT.kViolet)
+        #     hist.Fit(pol2low,"R0+") # use range of function, store the function but do not draw
+        #     hist.Fit(pol2high,"R0+") # use range of function, store the function but do not draw
+        #     params = array('d',[0,0,0])
+        #     pol2low.GetParameters(params)
+        #     params2 = array('d',[0,0,0])
+        #     pol2high.GetParameters(params2)
+        #     params = params + params2
+        #     # print params
+        #     # quit()
+        #     combpol2.SetParameters(params)
+        #     hist.Fit(combpol2,fitopt)
+        # else:
+        #     hist.Fit(tf1_erf2,fitopt)                    
+        hist.Fit(tf1_erf2,fitopt)        
         # hist.Fit(tf1_sqrt,fitopt)        
         # hist.Fit(tf1_exp,fitopt)        
         hist.Fit(tf1_pol2,fitopt)        
@@ -281,6 +318,17 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             hist.Fit(tf1_pol1,fitopt)        
             hist.Fit(tf1_pol2,fitopt)        
             hist.Fit(tf1_pol3,fitopt)        
+            # TSpline
+            xval = []
+            yval = []
+            for i in range(1,hist.GetNbinsX()+1):
+                xval.append(hist.GetBinCenter(i))
+                yval.append(hist.GetBinContent(i))
+            #spl = ROOT.TSpline3("spline3",array('d',xval),array('d',yval),len(xval),"b1e1")
+            spl = ROOT.TSpline3(hist,"b1e1")
+            spl.SetLineWidth(2)
+            spl.SetLineColor(ROOT.kRed+3)
+            spl.Draw("pclsame")
 
     leg = ROOT.TLegend(0.5, 0.2, 0.9, 0.45 if isEle else 0.3 if isIso else 0.4)
     leg.SetFillColor(0)
@@ -296,7 +344,9 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     legEntry[tf1_pol1.GetName()] = "pol1"
 
     if isTrigger or isFullID:
-        if not isFullID: leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
+        # if not isFullID: leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
+        # else           : leg.AddEntry(combpol2, "2 pol2", 'LF')
+        leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
         leg.AddEntry(tf1_ln,  "a ln(bx + c)", "LF")
         #leg.AddEntry(tf1_ln2, "a ln(bx + c) + dx + e", "LF")
         #leg.AddEntry(tf1_sqrt,"a #sqrt{bx +c} +cx", "LF")
@@ -310,6 +360,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             leg.AddEntry(tf1_pol1,"pol1", "LF")
             leg.AddEntry(tf1_pol2,"pol2", "LF")
             leg.AddEntry(tf1_pol3,"pol3", "LF")
+            leg.AddEntry(spl,"spline", "LF")
     leg.Draw('same')
     ###################
     # fits
@@ -330,7 +381,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         fit_pol2 = hist.GetFunction(tf1_pol2.GetName())
         fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
         fit_erf =  hist.GetFunction(tf1_erf.GetName())
-        if not isFullID: fit_erf2 =  hist.GetFunction(tf1_erf2.GetName())
+        fit_erf2 =  hist.GetFunction(tf1_erf2.GetName())
         fit_ln =   hist.GetFunction(tf1_ln.GetName())
         #fit_ln2 = hist.GetFunction(tf1_ln2.GetName())
         #fit_sqrt = hist.GetFunction(tf1_sqrt.GetName())
@@ -350,7 +401,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         functions[tf1_ln.GetName()] = fit_ln
         #functions[tf1_ln2.GetName()] = fit_ln2
         #functions[tf1_sqrt.GetName()] = fit_sqrt
-        if not isFullID: functions[tf1_erf2.GetName()] = fit_erf2
+        functions[tf1_erf2.GetName()] = fit_erf2
         #functions[tf1_exp.GetName()] = fit_exp
     else:
         if isIso: functions[tf1_erf.GetName()] = fit_erf
@@ -427,6 +478,123 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         # get pol2 parameters (parameter number 0,1,2 correspond to constant term, x, x^2 respectively)
         #return fit.GetParameter(0),fit.GetParError(0),fit.GetParameter(1),fit.GetParError(1),fit.GetParameter(2),fit.GetParError(2)    
         #return fit_pol2
+
+
+def smoothSpline(hist, key, outname, channel="el", drawFit=True):
+
+    #drawFit = False
+
+    isEle = True if channel == "el" else False
+    outdir = "{out}spline/".format(out=outname)
+    createPlotDirAndCopyPhp(outdir)
+
+    canvas = ROOT.TCanvas("canvas_%s" % key,"",700,700)
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(0.14)
+    canvas.SetBottomMargin(0.12)
+    canvas.SetRightMargin(0.06)
+    canvas.cd()                           
+
+    setTDRStyle()
+
+    hist.SetLineColor(ROOT.kBlack)
+    hist.SetMarkerColor(ROOT.kBlack)
+    hist.SetMarkerStyle(20)
+    hist.SetMarkerSize(1)
+
+    hist.GetXaxis().SetTitle("%s p_{T} [GeV]" % ("electron" if channel == "el" else "muon"))
+    hist.GetXaxis().SetTitleOffset(1.2)
+    hist.GetXaxis().SetTitleSize(0.05)
+    hist.GetXaxis().SetLabelSize(0.04)
+    hist.GetYaxis().SetTitle("Correction")
+    hist.GetYaxis().SetTitleOffset(1.2)
+    hist.GetYaxis().SetTitleSize(0.05)
+    hist.GetYaxis().SetLabelSize(0.04)
+    miny = 0.95*hist.GetMinimum() if hist.GetMinimum() > 0 else 1.1*hist.GetMinimum()
+    hist.GetYaxis().SetRangeUser(miny, 1.05* hist.GetMaximum())
+    #hist.GetYaxis().SetRangeUser(0.3,1.2)
+    hist.SetStats(0)
+    hist.Draw("EP")
+
+    # TSpline
+    xval = []
+    yval = []
+    for i in range(1,hist.GetNbinsX()+1):
+        xval.append(hist.GetBinCenter(i))
+        yval.append(hist.GetBinContent(i))
+    #spl = ROOT.TSpline3("spline3",array('d',xval),array('d',yval),len(xval),"b1e1")
+    spl = ROOT.TSpline3(hist,"b1e1")
+    spl.SetLineWidth(2)
+    spl.SetLineColor(ROOT.kRed+1)
+    spl.Draw("pclsame")
+
+    leg = ROOT.TLegend(0.5, 0.2, 0.9, 0.45 if isEle else 0.3 if isIso else 0.4)
+    leg.SetFillColor(0)
+    leg.SetFillStyle(0)
+    leg.SetBorderSize(0)
+    leg.AddEntry(spl, "spline", 'LF')
+
+    for ext in ["pdf","png"]:
+        canvas.SaveAs("{out}CorrectionFactorVsPt_{ch}_eta{b}.{ext}".format(out=outdir,ch=channel,b=key,ext=ext))            
+
+    return spl
+
+def smoothSomeFile(fname,hname,outname,outfilename,channel,widthPt):
+
+    tf = ROOT.TFile.Open(fname)        
+    hist = tf.Get(hname)
+    if (hist == 0):
+        print "Error: could not retrieve hist from input file %s. Exit" % options.inputfile
+        quit()
+    hist.SetDirectory(0)
+    tf.Close()
+
+    etabins = hist.GetXaxis().GetXbins()
+    ptbins  = hist.GetYaxis().GetXbins()
+    hist.SetTitle("")
+    histSmooth = ROOT.TH2D("histSmooth","",
+                           len(etabins)-1,array('d',etabins),
+                           int(math.ceil(hist.GetYaxis().GetBinLowEdge(1+hist.GetNbinsY()) - hist.GetYaxis().GetBinLowEdge(1))/widthPt), # bins of 0.2 GeV
+                           hist.GetYaxis().GetBinLowEdge(1),hist.GetYaxis().GetBinLowEdge(1+hist.GetNbinsY())        
+                           )
+
+    histpt = {}
+    for x in range(1,hist.GetNbinsX()+1):
+        bin = x-1
+        histpt[bin] = ROOT.TH1D("histpt_{b}".format(b=str(bin)),
+                                "%.4g <= #eta < %.4g" % (hist.GetXaxis().GetBinLowEdge(x), hist.GetXaxis().GetBinLowEdge(x+1)),
+                                len(ptbins)-1,array('d',ptbins)
+                                )
+        for y in range(1,hist.GetNbinsY()+1):
+            histpt[bin].SetBinContent(y,hist.GetBinContent(x,y))         
+            histpt[bin].SetBinError(y,hist.GetBinError(x,y))
+            
+    bestFit_hist = {}
+    for key in histpt:
+
+        spline = smoothSpline(histpt[key],key,outname,channel=channel)
+        for ipt in range(1,histSmooth.GetNbinsY()+1):
+            ptval = histSmooth.GetYaxis().GetBinCenter(ipt)
+            histSmooth.SetBinContent(key+1,ipt, spline.Eval(ptval))
+
+    
+    setTDRStyle()
+    lepton = "electron" if channel == "el" else "muon"
+    drawCorrelationPlot(hist,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Original value::-0.2,1.2",
+                        "original_{hn}".format(hn=hname),"ForceTitle",outname,1,1,False,False,False,1,palette=55)
+    drawCorrelationPlot(histSmooth,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Smoothed value::-0.2,1.2",
+                        "smooth_{hn}".format(hn=hname),"ForceTitle",outname,1,1,False,False,False,1,palette=55)
+
+    tf = ROOT.TFile.Open(outname+outfilename,'recreate')
+    histSmooth.Write()
+    hist.Write("histOriginal")
+    tf.Close()
+    print ""
+    print "Created file %s" % (outname+outfilename)
+    print ""
+
         
 if __name__ == "__main__":
             
@@ -440,6 +608,7 @@ if __name__ == "__main__":
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
     parser.add_option('-w','--width-pt',     dest='widthPt',default='0.2', type='float', help='Pt bin width for the smoothed histogram')
     parser.add_option('-t','--trigger', dest='isTriggerScaleFactor',action="store_true", default=False, help='Says if using trigger scale factors (electron and muon share the same root file content)')
+    parser.add_option(     '--residualPtCorr', dest='isResidualPtCorrScaleFactor',action="store_true", default=False, help='For electrons: pt correction residual scale factor')
     parser.add_option(     '--fullID', dest='isFullIDScaleFactor',action="store_true", default=False, help='For electrons: says if using fullID scale factor')
     parser.add_option(     '--save-TF1', dest='saveTF1',action="store_true", default=False, help='Save TF1 as well, not just TH2 with many bins (note that they are not saved when making averages between eras')
     parser.add_option(     '--make-weighted-average', dest='isWeightedAverage',action="store_true", default=False, help='To be used if you are averaging the scale factors (must use other options to pass the inputs. For example, muons have two sets of ID and ISO scale factors for different eras')
@@ -504,11 +673,21 @@ if __name__ == "__main__":
     if options.variable: outfilename = outfilename + "_" + options.variable
     if options.isTriggerScaleFactor: outfilename = outfilename + "_trigger"
     if options.isFullIDScaleFactor: outfilename = outfilename + "_fullID"
+    if options.isResidualPtCorrScaleFactor: outfilename = outfilename + "_residualPtCorr"
     outfilename += ".root"
 
     #########################################    
     #########################################    
+    if options.isResidualPtCorrScaleFactor:
+        if options.inputfile:
+            smoothSomeFile(options.inputfile,"plot_dm_diff",outname,outfilename,channel,options.widthPt)  # generic function to smooth stuff
+        else:
+            print "Error: you should specify an input file using option -i <name>. Exit"
+            quit()
 
+        quit()
+    #########################################    
+    #########################################    
     if options.isWeightedAverage:
 
         hists = options.histsAverage.split(",")
