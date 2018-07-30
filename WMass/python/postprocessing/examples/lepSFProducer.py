@@ -259,13 +259,9 @@ class lep2016SFProducer(Module):
                     sf_1.append(float(self.sf1_manager_el.getSF(l.pt,l.eta)))                    
                     sf_2.append(float(self.sf2_manager_el.getSF(l.pt,l.eta)))                    
                     sf_3.append(float(self.sf3_manager_el.getSF(l.pt,l.eta)))                    
-                    sf_2.append(1.)
-                    #sf_3.append(1.)
                     sf_1_err.append(float(self.sf1_manager_el.getSF_err(l.pt,l.eta)))                    
                     sf_2_err.append(float(self.sf2_manager_el.getSF_err(l.pt,l.eta)))                    
                     sf_3_err.append(float(self.sf3_manager_el.getSF_err(l.pt,l.eta)))                    
-                    sf_2_err.append(1.)
-                    #sf_3_err.append(1.)
                 else:
                     sf_1.append(    float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
                     sf_2.append(    float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
