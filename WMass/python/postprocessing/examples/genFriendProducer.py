@@ -118,12 +118,12 @@ class GenQEDJetProducer(Module):
         for V in self.genwvars:
             self.out.branch("genw_"+V, "F")
         for N in range(1,self.nHessianWeights+1):
-            self.out.branch("hessWgt"+str(N), "F")
+            self.out.branch("hessWgt"+str(N), "H")
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
-                self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "F")
+                self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
         for imass in self.massWeights:
-            self.out.branch("mass_{mass}".format(mass=imass), "F")
+            self.out.branch("mass_{mass}".format(mass=imass), "H")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 

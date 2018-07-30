@@ -27,12 +27,13 @@ for F in $(ls ${dir}/*_Friend_*.chunk*.root | sed 's/\.chunk[0-9]\+//' | sort | 
     for c in `seq 0 $NCHUNKS`; do
         ftest=$(echo $F | awk -F "." '{print $1 ".chunk"}');
         ftest2=$ftest$c".root"
-        if [ ! -f $ftest2 ]; then 
+        if [ ! -f $ftest2 ]; then
             echo "$ftest2 # not present";
-        fi;
-        ftest3=$(stat --printf="%s" $ftest2)
-        if [ $ftest3 == "0" ]; then
-            echo "$ftest2 # has zero size";
+        else
+            ftest3=$(stat --printf="%s" $ftest2)
+            if [ $ftest3 == "0" ]; then
+                echo "$ftest2 # has zero size";
+            fi;
         fi;
     done
 done
