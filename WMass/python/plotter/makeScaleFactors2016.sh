@@ -37,7 +37,7 @@ echo ""
 
 echo ""
 echo ""
-python w-helicity-13TeV/smoothLeptonScaleFactors.py -i ~mdunser/public/electronTriggerEfficiencies_allEras.root -o ~/www/wmass/13TeV/scaleFactors/electron/trigger/ -c el -n smoothEfficiency.root -t
+python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mdunser/public/electronTriggerEfficiencies_allEras.root -o ~/www/wmass/13TeV/scaleFactors/electron/trigger/ -c el -n smoothEfficiency.root -t
 
 echo ""
 echo ""
