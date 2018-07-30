@@ -208,7 +208,7 @@ class lep2016SFProducer(Module):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
         # for muon ID, might also want to use "scaleFactorOriginal" which has the unsmoothed version of the scale factors
         self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor")
-        self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactor")  
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactorOriginal")  # use unsmoothed version here  
         self.sf3_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
 
         self.filePathTmp = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/" % os.environ['CMSSW_BASE']
@@ -229,12 +229,12 @@ class lep2016SFProducer(Module):
         pass
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
-        self.out.branch("LepGood_sf1",     "F", lenVar="nLepGood")
-        self.out.branch("LepGood_sf2",     "F", lenVar="nLepGood")
-        self.out.branch("LepGood_sf3",     "F", lenVar="nLepGood")
-        self.out.branch("LepGood_sf1_err", "F", lenVar="nLepGood")
-        self.out.branch("LepGood_sf2_err", "F", lenVar="nLepGood")
-        self.out.branch("LepGood_sf3_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF1",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF2",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF3",     "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF1_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF2_err", "F", lenVar="nLepGood")
+        self.out.branch("LepGood_SF3_err", "F", lenVar="nLepGood")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
     def analyze(self, event):
@@ -269,12 +269,12 @@ class lep2016SFProducer(Module):
                     sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_2_err.append(float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
-        self.out.fillBranch("LepGood_sf1", sf_1)
-        self.out.fillBranch("LepGood_sf2", sf_2)
-        self.out.fillBranch("LepGood_sf3", sf_3)
-        self.out.fillBranch("LepGood_sf1_err", sf_1_err)
-        self.out.fillBranch("LepGood_sf2_err", sf_2_err)
-        self.out.fillBranch("LepGood_sf3_err", sf_3_err)
+        self.out.fillBranch("LepGood_SF1", sf_1)
+        self.out.fillBranch("LepGood_SF2", sf_2)
+        self.out.fillBranch("LepGood_SF3", sf_3)
+        self.out.fillBranch("LepGood_SF1_err", sf_1_err)
+        self.out.fillBranch("LepGood_SF2_err", sf_2_err)
+        self.out.fillBranch("LepGood_SF3_err", sf_3_err)
         return True
 
 #########################################################
