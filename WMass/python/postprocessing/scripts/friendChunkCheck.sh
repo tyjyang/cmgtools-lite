@@ -31,7 +31,7 @@ for F in $(ls ${dir}/*_Friend_*.chunk*.root | sed 's/\.chunk[0-9]\+//' | sort | 
             echo "$ftest2 # not present";
         else
             ftest3=$(stat --printf="%s" $ftest2)
-            if [ $ftest3 == "0" ]; then
+            if [ $ftest3 -lt 1000 ]; then
                 echo "$ftest2 # has zero size";
             fi;
         fi;
@@ -41,16 +41,17 @@ done
 if [[ "$Z" != "0" ]]; then
     echo "# Testing for zombies or not correctly closed files";
     FILES=$(ls ${dir}/*_Friend_*.chunk*.root);
+    id=`shuf -i 1-100 -n 1`
     for Z in $FILES; do
         if test -s $Z; then # empty files have already been found
-            root -b -l -q $Z >& uuu.log 
-            result=$(grep -E "(nullptr|recover|Zombie)" uuu.log | wc -l)
+            root -b -l -q $Z >& check_$id.log 
+            result=$(grep -E "(nullptr|recover|Zombie)" check_$id.log | wc -l)
             if [ $result -ne 0 ]; then
                 echo "$Z     # zombie";
             else
                 echo "$Z     # OK";
             fi;
-            rm uuu.log
+            rm check_$id.log
         fi;
     done
 fi;
