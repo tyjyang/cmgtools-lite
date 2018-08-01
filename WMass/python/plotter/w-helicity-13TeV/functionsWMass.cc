@@ -145,6 +145,31 @@ float _get_electronSF_recoToCustomTight(int pdgid, float pt, float eta, float va
 
 }
 
+TFile *_file_anyWP_leptonSF_el = NULL;
+TH2F *_histo_anyWP_leptonSF_el = NULL;
+
+float _get_electronSF_anyWP(float pt, float eta, const char* infile="EGM2D_eleCutBasedVetoWP.root") {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+    
+  if (!_histo_anyWP_leptonSF_el) {
+    _file_anyWP_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/%s",_cmssw_base_.c_str(),infile),"read");
+    _histo_anyWP_leptonSF_el = (TH2F*)(_file_anyWP_leptonSF_el->Get("EGamma_SF2D"));
+  }
+
+  TH2F *hist = _histo_anyWP_leptonSF_el;
+  int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
+  int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
+  float out = 0;
+  out = hist->GetBinContent(etabin,ptbin);
+
+  return out;
+
+}
+
 TFile *_file_eltrg_leptonSF_2D = NULL;
 TH2F *_histo_eltrg_leptonSF_2D = NULL;
 TFile *_file_eltrg_leptonSF_1D = NULL;
