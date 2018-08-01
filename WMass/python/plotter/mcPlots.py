@@ -1139,7 +1139,6 @@ class PlotMaker:
                                     plot.GetZaxis().SetLabelOffset(0.007)
                                     #plot.GetZaxis().SetMaxDigits(2)  # avoid too many digits: with 2, for Nz > 99 the scientific notation is used, does not work in 8_0_25
                                     if contentAxisTitle != None: plot.GetZaxis().SetTitle(contentAxisTitle)
-                                    else                       : plot.GetZaxis().SetTitle(contentAxisTitle)
                                     #########################################
                                     if drawBox != None:
                                         liner = ROOT.TLine()
