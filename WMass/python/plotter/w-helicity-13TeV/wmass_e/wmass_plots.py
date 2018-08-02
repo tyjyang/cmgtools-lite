@@ -30,7 +30,7 @@ def base(selection,useSkim=True):
     CORE=' '.join([TREES,TREESONLYSKIM if useSkim else TREESONLYFULL])
     if 'cmsphys06' in os.environ['HOSTNAME']: CORE = CORE.replace('/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/','/data1/emanuele/wmass/')
 
-    CORE+=" -f -j 8 -l 36.814 --s2v "+FASTTEST
+    CORE+=" -f -j 8 -l 35.9 --s2v "+FASTTEST
     if dowhat == "plots": 
         CORE+=" --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.20 --legendFontSize 0.035 "
         if selection != "wgen":
