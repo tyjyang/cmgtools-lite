@@ -175,7 +175,7 @@ def reMax(hist,hist2,islog,factorLin=1.3,factorLog=2.0,doWide=False):
           else:
               tmpvalue = hist2.GetBinContent(b) + 1.3*hist2.GetBinError(b)
           max2 = max(max2, tmpvalue*(factorLog if islog else factorLin))
-    if max2 > max0:
+    if max2 > max0 and not "TH2" in hist.ClassName():
         max0 = max2;
         if islog: hist.GetYaxis().SetRangeUser(0.1 if doWide else 0.9, max0)
         else:     hist.GetYaxis().SetRangeUser(0,max0)
@@ -576,6 +576,65 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     legendratio0_ = leg0
     legendratio1_ = leg1
     return (ratios, unity, unity0, line)
+
+def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred."):
+    numkeys = [ "data" ]
+    if "data" not in pmap: 
+        #print str(pmap)
+        # >= 3 instead of 4 because I might have no signal process, 
+        # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
+        if len(pmap) >= 3 and ratioDen in pmap:   
+            numkeys = []
+            for p in pmap.iterkeys():                
+                for s in ratioNums.split(","):
+                    #print "p, s : %s,%s" % (p,s)
+                    # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
+                    # if re.match(s,p): 
+                    if s==p: 
+                        numkeys.append(p)
+                        break
+            if len(numkeys) == 0:
+                return (None,None,None,None)
+            # then we can overwrite total with background
+            numkey = 'signal'
+            total     = pmap[ratioDen]
+            totalSyst = pmap[ratioDen]
+        else:    
+            return (None,None,None,None)
+    rmin, rmax =  1,1
+    if fixRange: rmin = maxRange[0] 
+    if fixRange: rmax = maxRange[1]
+    rmin = float(pspec.getOption("RMin",rmin))
+    rmax = float(pspec.getOption("RMax",rmax))
+
+    ratios = [] #None
+    for numkey in numkeys:
+        # clone and divide should be enough, but cloning keeps the palette and the zaxis title of the cloned
+        # ratio = pmap[numkey].Clone("data_div"); 
+        # build in the hard way
+        xbins, ybins = pmap[numkey].GetXaxis().GetXbins(), pmap[numkey].GetYaxis().GetXbins()
+        ratio = ROOT.TH2D("data_div","data_div",len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
+        ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
+        ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
+        for ix in xrange(1,ratio.GetNbinsX()+1):
+            for iy in xrange(1,ratio.GetNbinsY()+1):
+                r = 0 if total.GetBinContent(ix, iy)==0 else pmap[numkey].GetBinContent(ix, iy)/total.GetBinContent(ix, iy)
+                ratio.SetBinContent(ix, iy, r)
+                ratio.SetBinError  (ix, iy, r*hypot(pmap[numkey].GetBinError(ix, iy)/pmap[numkey].GetBinContent(ix, iy) if pmap[numkey].GetBinContent(ix, iy) else 0,
+                                                    total.GetBinError(ix, iy)/total.GetBinContent(ix, iy) if total.GetBinContent(ix, iy) else 0))
+        ratio.SetMinimum(rmin)
+        ratio.SetMaximum(rmax)
+        ratio.GetZaxis().SetRangeUser(rmin,rmax)
+        ratio.GetZaxis().SetTitle(ylabel)
+        ratio.GetZaxis().SetTitleFont(42)
+        ratio.GetZaxis().SetTitleSize(0.055)
+        ratio.GetZaxis().SetTitleOffset(1.2)
+        ratio.GetZaxis().SetLabelFont(42)
+        ratio.GetZaxis().SetLabelSize(0.05)
+        ratio.GetZaxis().SetLabelOffset(0.007)
+        ratios.append(ratio)
+
+    return ratios
 
 def doStatTests(total,data,test,legendCorner):
     #print "Stat tests for %s:" % total.GetName()
@@ -1161,6 +1220,12 @@ class PlotMaker:
                                         plot.Draw(pspec.getOption("PlotMode","COLZ"))
                                         pmap["data"].Draw("P SAME")
                                         c1.Print("%s/%s_data_%s.%s" % (fdir, outputName, p, ext))
+                                if self._options.showRatio and ("TH2" in total.ClassName()):
+                                    rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
+                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
+                                    for r in rdata:
+                                        r.Draw(pspec.getOption("PlotMode","COLZ"))
+                                        c1.Print("%s/%s_ratio.%s" % (fdir, outputName, ext))
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))
                             ROOT.gErrorIgnoreLevel = savErrorLevel;
