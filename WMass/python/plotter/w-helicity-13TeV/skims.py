@@ -36,6 +36,13 @@
 ## ELECTRONS
 #        python w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_wenu.txt TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V2 -f w-helicity-13TeV/wmass_e/varsSkim_80X_helicity_friends.txt --fo
 
+# DY 2l skim:
+# first data and MC backgrounds excluding W:
+#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims-zee.txt w-helicity-13TeV/wmass_e/zee.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7 -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt --mo
+# then W MC 
+#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims-zee-wonly.txt w-helicity-13TeV/wmass_e/zee.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_NoSkim5 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7_W -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt --mo
+# then do the friends skim
+
 import os, subprocess
 
 if __name__ == "__main__":

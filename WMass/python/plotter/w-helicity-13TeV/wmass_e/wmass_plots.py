@@ -16,7 +16,7 @@ dowhat = "plots"
 
 TREES = "-F Friends '{P}/friends/tree_Friend_{cname}.root' "
 TREESONLYSKIMW = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
-TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V5"
+TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7"
 TREESONLYFULL  = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3"
 
 def base(selection,useSkim=True):
@@ -48,8 +48,8 @@ def base(selection,useSkim=True):
         GO="%s --sP wplus_wy "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
     elif selection=='zee':
-        GO="%s w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_zee.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)*leptonSF_We(LepGood2_pdgId,LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
+        GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt "%CORE
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood1_SF1*LepGood1_SF3*_get_electronSF_anyWP(LepGood1_pt,LepGood1_eta)' --sp 'Z' "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/zee_plots.txt "
     else:
         raise RuntimeError, 'Unknown selection'
