@@ -9,6 +9,7 @@ parser.add_option("--qcdmc", dest="addQCDMC", default=False, action='store_true'
 parser.add_option("--full2016data", dest="useFullData2016", default=False, action='store_true', help="Use all 2016 data (B to H, 35.5/fb). By default, only B to F are used (19.3/fb. Luminosity is automatically set depending on this choice");
 parser.add_option("--etaRange", dest="etaRange", default="0.0,1.479,2.5", type='string', help="Pass 2 or more numbers separated by comma. They are the boundaries of the eta ranges to use.");
 parser.add_option("--charge", dest="charge", default="", type='string', help="Select charge: p for positive, n for negative");
+parser.add_option("--lumi", dest="lumi", default=35.9 , type='float', help="Integrated luminosity");
 parser.add_option("--test", dest="test", default="", type='string', help="pass the name of a folder (mandatory) to store test FR plots. It is created in plots/fake-rate/test/");
 parser.add_option("--fqcd-ranges", dest="fqcd_ranges", default="0,40,50,120", type='string', help="Pass a list of 4 comma separated numbers that represents the ranges for the two mT regions to compute the fake rate");
 parser.add_option("--mt", dest="fitvar", default="trkmtfix", type='string', help="Select mT definition: pfmt, trkmt, pfmtfix, trkmtfix");
@@ -35,6 +36,9 @@ skipStack = options.skipStack
 skipMCGO = options.skipMCGO
 addOpts = options.addOpts
 etaRange = options.etaRange.split(",");
+luminosity = options.lumi
+
+print "useFullData2016 = " + str(useFullData2016)
 
 if options.makeTH3_eta_pt_passID:
     if useSignedEta:
@@ -83,22 +87,22 @@ if charge != "":
 T="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/" 
 if useSkim:
     #T="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_FRELSKIM_V5/"
-    T="/eos/cms/store/cmst3/group/wmass/mciprian/links/TREES_1LEP_80X_V3_FRELSKIM_V7/"
+    T="/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V8/"
 objName='tree' # name of TTree object in Root file, passed to option --obj in tree2yield.py
 # if 'pccmsrm29' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/u2/emanuele')
 # elif 'lxplus' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/afs/cern.ch/work/e/emanuele/TREES/')
 # elif 'cmsrm-an' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/t3/users/dimarcoe/')
 print "used trees from: ",T
 
-luminosity = 19.3
 #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp 'data_G,data_H' "
 ptcorr = "ptElFull(LepGood1_calPt,LepGood1_eta)"
 ptForScaleFactors =  "LepGood_pt"  # or ptcorr
-MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
+#MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
+MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*LepGood1_SF1" ' # SF1 is trigger scale factor
 if useFullData2016:
     #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
-    luminosity = 30.9
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
+    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*LepGood1_SF1" ' # SF1 is trigger scale factor
 
 J=4
 

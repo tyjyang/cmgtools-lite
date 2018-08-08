@@ -5,6 +5,9 @@
 
 #
 plotterPath="${CMSSW_BASE}/src/CMGTools/WMass/python/plotter"
+lumi_full2016="35.9" # this is the value reported in https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM
+lumi_full2016_json="31.3" # 31.351 with brilcalc using option --normtag:
+lumi_2016BF="19.7"  # to be checked, but we will never use it probably 
 #
 ######################
 # options to set
@@ -13,11 +16,12 @@ plotterPath="${CMSSW_BASE}/src/CMGTools/WMass/python/plotter"
 # choose the dataset to use (2016 B to F or 2016 B to H)
 makeTH3_eta_pt_passID="y"  # special option to make the code create only TH3D histograms |eta| vs pt vs passID. It overrides other options
 useSignedEta="y" # distinguish bins of positive and negative rapidity (if passing binning with just positive values below, it will just skip the negative, so you are actually using half statistics)
-usefull2016dataset="y"
+useFull2016dataset="y"
+useJson="n"
 useSkimmedTrees="y" 
 skipStackPlots="y" # skip stack plots made by make_fake_rates_data.py
 skipMCGO="y"  # if "y", will just run print MCEFF, which is the command to create the root file with TH3D only
-onlypack="n" # just pack an already existing fake-rate 
+onlypack="n" # just pack an already existing fake-rate (obsolete: if you run this script with makeTH3_eta_pt_passID="y", then that part is not needed)
 # if onlypack='n', the packing might still be done at the end of FR computation, see options below
 # else, if onlypack='y', it overrides the packFRfromTest option below
 #--------------------------
@@ -29,9 +33,20 @@ mtDefinition="pfmtfix"  # trkmtfix, trkmt, pfmtfix, pfmt: even though we no long
 ptDefinition="pt_granular"  # pt_coarse, pt_granular (first is mainly for QCD MC)
 #ptDefinition="pt_coarse"
 #-------------------------
+
+if [[ "${useFull2016dataset}" == "y" ]]; then
+    lumi="${lumi_full2016}"
+    if [[ "${useJson}" == "y" ]]; then
+	lumi="${lumi_full2016_json}"
+    fi
+else
+    lumi="${lumi_2016BF}"
+fi
+
+
 istest="y"
-# following option testdit is used only if istest is 'y'
-testdir="SRtrees_new/fakeRate_${mtDefinition}_${ptDefinition}_mT40_json30p9fb_signedEta_pt65_fullWMC"
+# following option testdir is used only if istest is 'y'
+testdir="SRtrees_new/fakeRate_${mtDefinition}_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_pt65_fullWMC_newTrigSF"
 if [[ "${makeTH3_eta_pt_passID}" == "y" ]]; then
     #if [[ "${useSignedEta}" == "y" ]]; then
 	testdir="${testdir/${mtDefinition}/eta}"
@@ -53,8 +68,11 @@ packFRfromTest="n"
 #addOption=" -A eleKin pfmet 'met_pt<20' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40'"
 #addOption=" -A eleKin pfmet 'met_pt<20' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
 #addOption=" -A eleKin pfmet 'met_pt<20' "
-addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
-
+#addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
+addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
+if [[ "${useJson}" == "y" ]]; then
+    addOption="${addOption} -A eleKin json 'isGoodRunLS(isData,run,lumi)'"
+fi
 
 # check we are on lxplus  
 host=`echo "$HOSTNAME"`
@@ -77,7 +95,7 @@ if [[ "${istest}" == "y" ]]; then
     packdir="test/${testdir}/${frGraphDir}"
 fi
 
-cmdComputeFR="python ${plotterPath}/w-helicity-13TeV/make_fake_rates_data.py --qcdmc --mt ${mtDefinition} ${testoption} --fqcd-ranges ${mtRanges} --pt ${ptDefinition} "
+cmdComputeFR="python ${plotterPath}/w-helicity-13TeV/make_fake_rates_data.py --qcdmc --mt ${mtDefinition} ${testoption} --fqcd-ranges ${mtRanges} --pt ${ptDefinition} --lumi ${lumi}"
 if [[ "${useFull2016dataset}" == "y" ]]; then
     cmdComputeFR="${cmdComputeFR} --full2016data "
 fi
@@ -116,7 +134,7 @@ if [[ "${onlypack}" == "y" ]]; then
 else
     echo "Running: ${cmdComputeFR}"
     echo "${cmdComputeFR} | grep python > commands4fakeRate.sh" | bash
-    #echo "${cmdComputeFR} > commands4fakeRate.sh"
+    #echo "${cmdComputeFR} > commands4fakeRate.sh" | bash
     echo "The commands used for fake-rate are stored in commands4fakeRate.sh"
     cat commands4fakeRate.sh | bash  # here we really run the commands saved in commands4fakeRate.sh
 fi
