@@ -61,8 +61,8 @@ ptMin=" -A eleKin ptMin 'ptElFull(LepGood1_calPt,LepGood1_eta) >= XX' "
 ptMax=" -A eleKin ptMax 'ptElFull(LepGood1_calPt,LepGood1_eta) <= XX' "
 mtMin=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) >= XX' "
 mtMax=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) <= XX' "
-WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} ${json_L1_HLT27} "
-WselAllpt=" ${mtMin/XX/40} ${fiducial} ${json_L1_HLT27} "
+WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} "
+WselAllpt=" ${mtMin/XX/40} ${fiducial} "
 ##############################################################
 ##############################################################
 
@@ -78,6 +78,7 @@ lumi_full2016_json="31.3" # 31.351 with brilcalc using option --normtag:
 lumi_2016BF="19.7" # to be checked, but we will never use it probably
 useDataGH="y"
 useJson="n"
+#useWinclusive="y" # do not distinguish W, W->tau, flips, automatic choice for TINY or FR skimmed ntuples
 luminosity=""
 if [[ "${useDataGH}" == "y" ]]; then
     luminosity="${lumi_full2016}"
@@ -89,9 +90,9 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runBatch="n"
-queueForBatch="2nd"
-nameTag="" 
+runBatch="y"
+queueForBatch="cmscaf1nd"
+nameTag="_floatFakes_Wincl" 
 #nameTag="_varStudy"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -100,18 +101,19 @@ usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: u
 #etaBinBoundaries=("0.0" "1.479" "2.5")
 etaBinBoundaries=("0.0" "2.5")
 #etaBinBoundaries=("1.479" "2.1" "2.5")
+#etaBinBoundaries=("0.0" "1.479")
 today=`date +"%d_%m_%Y"`
 batchDirName="plots_${today}${nameTag}"  # name of directory to create inside jobsLog
 ##################################
 ##################################
 # MCA files
 ##################################
-mcafile="mca-80X_V5.txt"
+mcafile="mca-80X_forPlots.txt"
 cutfile="qcd1l_SRtrees.txt" # we start from it and add or remove cuts
 plotfile="test_plots.txt"
 # following 2 are used depending on the used trees because the samples are named differently
-mcafileFRskim="mca-80X_V5_FRskim.txt"
-mcafileTINY="mca-80X_V5_TINY.txt"
+mcafileFRskim="mca-80X_V5_FRskim.txt"  # with the above mcafile this should not be needed anymore
+mcafileTINY="mca-80X_V5_TINY.txt"      # with the above mcafile this should not be needed anymore
 mcafileFRclosureMC="mca-80X-qcdClosureTest.txt"  # for FR closure test based on MC
 #
 ##################################
@@ -128,8 +130,10 @@ selectprocesses=""
 #selectplots="nJetClean,ptl1,etal1,pfmet,tkmet,ele1ID,awayJet_pt,wpt_tk,ele1dxy"  # if empty it uses all plots in cfg file
 #selectplots="ptl1,etal1,pfmet,trkmt_trkmetEleCorr,pfmt,wpt_tk,nJetClean,ele1Iso04,ele1ID"  # if empty it uses all plots in cfg file
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
-selectplots="etal1_binFR"
+#selectplots="etal1_binFR"
 #selectplots="ptl1,pfmt,pfmet"
+#selectplots="ptl1"
+selectplots="etal1_binFR,ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
 #selectplots="ptl1,pfmt,pfmet,awayJet_pt,ele1Iso04,ele1ID"
@@ -148,7 +152,7 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=""
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -204,13 +208,13 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="y"
+runRegion["FRcheckRegion"]="n"
 regionName["FRcheckRegion"]="FR_check_region"
 skimTreeDir["FRcheckRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
-outputDir["FRcheckRegion"]="full2016data_${today}_ptMax45"
+outputDir["FRcheckRegion"]="full2016data_${today}_ptMax45_BarePtForSF3"
 regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${ptMax/XX/45} ${mtMax/XX/30} ${fiducial}"
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" " # --fitData
+scaleMCdata["FRcheckRegion"]="" #" --scaleSigToData --sp data_fakes " # --fitData
 #
 #############################
 #############################
@@ -243,13 +247,13 @@ scaleMCdata["WmassSignalRegion"]="--fitData"
 # WHELICITY SIGNAL REGION (avoid possibly all kinematic selections)
 #----------------------------
 regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
-runRegion["WhelicitySignalRegion"]="n"
+runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
-outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${FRnumSel} ${WselFull}" #${WselAllPt} "
+outputDir["WhelicitySignalRegion"]="full2016data_${today}_ptMax45_BarePtForSF3"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${WselFull} ${FRnumSel} " #${WselAllPt} "
 qcdFromFR["WhelicitySignalRegion"]="y"
-scaleMCdata["WhelicitySignalRegion"]="" #--fitData"
+scaleMCdata["WhelicitySignalRegion"]=" --scaleSigToData --sp data_fakes " #--fitData"
 #
 #############################
 #############################
@@ -260,7 +264,7 @@ runRegion["SignalRegionDenominator"]="n"
 regionName["SignalRegionDenominator"]="signal_region_denominator"
 skimTreeDir["SignalRegionDenominator"]="TREES_1LEP_80X_V3_WENUSKIM_V5"
 outputDir["SignalRegionDenominator"]="full2016data_${today}"
-regionCuts["SignalRegionDenominator"]=" -X nJet30"
+regionCuts["SignalRegionDenominator"]=" -X nJet30 ${mtMax/XX/40} ${FRnumSel} ${fiducial}"
 qcdFromFR["SignalRegionDenominator"]="n"
 scaleMCdata["SignalRegionDenominator"]=""
 #
@@ -271,11 +275,11 @@ scaleMCdata["SignalRegionDenominator"]=""
 regionKey["FRclosureCompRegion"]="FRclosureCompRegion"
 runRegion["FRclosureCompRegion"]="n"
 regionName["FRclosureCompRegion"]="FR_computationClosure_region"
-skimTreeDir["FRclosureCompRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5"
+skimTreeDir["FRclosureCompRegion"]="TREES_1LEP_80X_V3_FRELSKIM_V8" #"TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
 outputDir["FRclosureCompRegion"]="full2016data_${today}"
-regionCuts["FRclosureCompRegion"]=" -A eleKin pfmet20 'met_pt < 20' ${FRnumSel}"
+regionCuts["FRclosureCompRegion"]=" ${mtMax/XX/40} ${FRnumSel} ${fiducial}"
 qcdFromFR["FRclosureCompRegion"]="y"
-scaleMCdata["FRclosureCompRegion"]=""
+scaleMCdata["FRclosureCompRegion"]=""  # --scaleSigToData --sp data_fakes
 #
 #############################
 #############################
@@ -371,7 +375,7 @@ if [[ "${useDataGH}" == "y" ]]; then
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
-    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF3[0]' "
+    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
     FR_MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]' "		
 else 
     #MCweigthOption=" -W 'puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
@@ -412,6 +416,12 @@ fi
 if [[ "${excludeprocesses}" != *"data"* ]]; then
     commonCommand="${commonCommand} ${ratioPlotDataOptions} "
 fi
+
+# if [[ "${useWinclusive}" == "y" ]]; then
+#     commonCommand="${commonCommand} --xp W,WFlips,TauDecaysW "
+# else
+#   commonCommand="${commonCommand} --xp Wincl "
+# fi
 
 if [[ "X${selectplots}" != "X" ]]; then
     commonCommand="${commonCommand} --sP ${selectplots}"
@@ -499,10 +509,13 @@ do
 	    fi
 
 	    if [[ "${skimTreeDir[${region}]}" == "TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ]]; then
-		regionCommand="${regionCommand/${mcafile}/${mcafileTINY}}"
+		#regionCommand="${regionCommand/${mcafile}/${mcafileTINY}}"
+		regionCommand="${regionCommand} --xp Wincl"	
 	    elif [[ "${skimTreeDir[${region}]}" == *"TREES_1LEP_80X_V3_FRELSKIM_V"* ]]; then
-		regionCommand="${regionCommand/${mcafile}/${mcafileFRskim}}"
-		regionCommand="${regionCommand} --xp WandZ,TauDecaysW,WFlips"	
+		#regionCommand="${regionCommand/${mcafile}/${mcafileFRskim}}"
+		regionCommand="${regionCommand} --xp W,TauDecaysW,WFlips"	
+	    else
+		regionCommand="${regionCommand} --xp Wincl"		
 	    fi
 
 	fi

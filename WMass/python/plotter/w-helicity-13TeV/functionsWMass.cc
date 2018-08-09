@@ -170,6 +170,32 @@ float _get_electronSF_anyWP(float pt, float eta, const char* infile="EGM2D_eleCu
 
 }
 
+TFile *_file_anyWP_leptonSF_el_v2 = NULL;
+TH2F *_histo_anyWP_leptonSF_el_v2 = NULL;
+
+float _get_electronSF_anyWP_v2(float pt, float eta, const char* infile="smoothEfficiency_electrons_fullID_pt25to55.root") {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+    
+  if (!_histo_anyWP_leptonSF_el_v2) {
+    _file_anyWP_leptonSF_el_v2 = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/%s",_cmssw_base_.c_str(),infile),"read");
+    _histo_anyWP_leptonSF_el_v2 = (TH2F*)(_file_anyWP_leptonSF_el_v2->Get("scaleFactor"));
+  }
+
+  TH2F *hist = _histo_anyWP_leptonSF_el_v2;
+  int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
+  int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
+  float out = 0;
+  out = hist->GetBinContent(etabin,ptbin);
+
+  return out;
+
+}
+
+
 TFile *_file_eltrg_leptonSF_2D = NULL;
 TH2F *_histo_eltrg_leptonSF_2D = NULL;
 TFile *_file_eltrg_leptonSF_1D = NULL;
