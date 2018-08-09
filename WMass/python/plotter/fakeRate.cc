@@ -189,9 +189,12 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   Bool_t hasNegativeEta = (hist_fr->GetXaxis()->GetBinLowEdge(1) < 0) ? true : false;
   int etabin = std::max(1, std::min(hist_fr->GetNbinsX(), hist_fr->GetXaxis()->FindBin(hasNegativeEta ? leta : feta)));
+  int nFRfitParam = hist_fr->GetNbinsY();
+  int nPRfitParam = hist_pr->GetNbinsY();
   // FR
   float p0 = hist_fr->GetBinContent(etabin, 1);
   float p1 = hist_fr->GetBinContent(etabin, 2);
+  float p2 = (nFRfitParam > 2) ? hist_fr->GetBinContent(etabin, 3) : 0.0;
   if      (iFR==1) p0 += hist_fr->GetBinError(etabin, 1);
   else if (iFR==2) p0 -= hist_fr->GetBinError(etabin, 1);
   else if (iFR==3) p1 += hist_fr->GetBinError(etabin, 2);
@@ -201,6 +204,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   etabin = std::max(1, std::min(hist_pr->GetNbinsX(), hist_pr->GetXaxis()->FindBin(hasNegativeEta ? leta : feta)));
   float p0_pr = hist_pr->GetBinContent(etabin, 1);
   float p1_pr = hist_pr->GetBinContent(etabin, 2);
+  float p2_pr = (nPRfitParam > 2) ? hist_pr->GetBinContent(etabin, 3) : 0.0;
+
   if      (iPR==1) p0_pr += hist_pr->GetBinError(etabin, 1);
   else if (iPR==2) p0_pr -= hist_pr->GetBinError(etabin, 1);
   else if (iPR==3) p1_pr += hist_pr->GetBinError(etabin, 2);
@@ -208,8 +213,11 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   if (lpt > 50.) lpt = 50.;
 
-  float fr = p0    + p1   *lpt;
-  float pr = p0_pr + p1_pr*lpt;
+  // p2=0 if the saved histogram has only 2 bins
+  // in case on is fitting with a straight line and not a parabola, the histogram might still have 3 bins for the parameters, but the last one should be set as 0
+  // this saves backward compatibility
+  float fr = p0    + p1   *lpt + p2   *lpt*lpt; 
+  float pr = p0_pr + p1_pr*lpt + p2_pr*lpt*lpt;
 
   if (pr > 0.98) pr = 0.98; // safety thing
 

@@ -236,6 +236,7 @@ def drawCorrelationPlot(h2D,
     # not yet implemented
     if not plotLabel == "ForceTitle": CMS_lumi(canvas,"",True,False)
     setTDRStyle()
+    #print ">>>>>>>>>>>>>> check <<<<<<<<<<<<<<<<<<<"
 
     if plotLabel == "ForceTitle":
         ROOT.gStyle.SetOptTitle(1)        
