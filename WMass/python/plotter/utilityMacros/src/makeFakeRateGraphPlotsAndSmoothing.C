@@ -1,6 +1,7 @@
 #include "../interface/utility.h"
 
-const static int smoothPolinDegree = 1; 
+const static int smoothPolinDegree = 2; 
+const static Bool_t addfitpol2 = false;  // will also fit with a pol2 and draw 
 // when I search for a bin given the boundary, the lower boundary should belong to the bin, the upper not, but rounding could ruin this logic 
 // so I add an epsilon
 const static Double_t epsilon = 0.0001;  
@@ -108,11 +109,12 @@ void fillFakeRateTH2(TH2* h2 = nullptr, const Int_t etaBin = 0, const TH1* hpass
 
 void fillFakeRateTH2smooth(TH2* h2 = nullptr, const TH2* h2fit = nullptr) {
 
-  // the TH1 passed to this function might have less xbins than TH2, becasue TH2 has the original bins of pt in the input root file
+  // the TH1 passed to this function might have less xbins than TH2, because TH2 has the original bins of pt in the input root file
   // TH1 might have been rebinned, but since the new binning is a subset of the original, we can just fill two or more consecutive bins of TH2 with same values
 
   Double_t offset = 0.0;
   Double_t slope  = 0.0;
+  Double_t concavity = 0.0;
   Double_t pt = 0.0;
 
   for (Int_t ipt = 1; ipt <= h2->GetNbinsX(); ++ipt) {
@@ -122,7 +124,8 @@ void fillFakeRateTH2smooth(TH2* h2 = nullptr, const TH2* h2fit = nullptr) {
       pt = h2->GetXaxis()->GetBinCenter(ipt);
       offset = h2fit->GetBinContent(ieta, 1);
       slope = h2fit->GetBinContent(ieta, 2);
-      h2->SetBinContent(ipt,ieta, std::max(0.0, offset + slope * pt));
+      if (smoothPolinDegree > 1) concavity = h2fit->GetBinContent(ieta, 3);
+      h2->SetBinContent(ipt,ieta, std::max(0.0, offset + slope * pt + concavity * pt * pt));
       
     }
 
@@ -184,40 +187,44 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   // TF1 * f1 = new TF1("f1","[0] * (x - 25.) + [1]",25,60);
   // TF1 * f2 = new TF1("f2","[0] * (x - 25.) + [1]",30,46);
 
-  Double_t maxslope = isData ? 0.0005 : 0.015;  
+  TF1 * pol2 = new TF1("pol2","pol2",30,60); // used when one wants to overlay pol2 to fits made with pol1 (addfitpol2 = True and smoothPolinDegree = 1)
+
+  Double_t maxslope = isData ? 0.0005 : 0.015;  // was used only to fix parameters, but better not doing it
+
+  // avoid fixing the parameters, at least if using pol2, but it is not needed even for pol1: the risk is to overconstrain the fit, leading to absurd uncertainties
 
   if (isEB) {
 
     if (isPromptRate) {
 
-      f1->SetParLimits(0,0.0,1.5);
-      f1->SetParLimits(1,-0.02,maxslope);
-      f2->SetParLimits(0,0.0,1.5);
-      f2->SetParLimits(1,-0.02,maxslope);      
+      //f1->SetParLimits(0,0.0,1.5);
+      //f1->SetParLimits(1,-0.02,maxslope);
+      //f2->SetParLimits(0,0.0,1.5);
+      //f2->SetParLimits(1,-0.02,maxslope);      
       if (smoothPolinDegree > 1) {
-	f1->SetParameters(0.95,0.0,0.0);
-	f2->SetParameters(0.95,0.0,0.0);
-	f1->SetParLimits(2,-0.05,0.05);
-	f2->SetParLimits(2,-0.05,0.05);
+  	f1->SetParameters(0.95,0.0,0.0);
+  	f2->SetParameters(0.95,0.0,0.0);
+  	//f1->SetParLimits(2,-0.05,0.05);
+  	//f2->SetParLimits(2,-0.05,0.05);
       } else {
-	f1->SetParameters(0.95,0.0);
-	f2->SetParameters(0.95,0.0);
+  	f1->SetParameters(0.95,0.0);
+  	f2->SetParameters(0.95,0.0);
       }
 
     } else {
 
-      f1->SetParLimits(0,0.0,1.0);
-      f1->SetParLimits(1,-0.03,maxslope);
-      f2->SetParLimits(0,0.0,1.0);
-      f2->SetParLimits(1,-0.03,maxslope);
+      //f1->SetParLimits(0,0.0,1.0);
+      //f1->SetParLimits(1,-0.03,maxslope);
+      //f2->SetParLimits(0,0.0,1.0);
+      //f2->SetParLimits(1,-0.03,maxslope);
       if (smoothPolinDegree > 1) {
-	f1->SetParameters(0.8,0.0,0.0);
-	f2->SetParameters(0.8,0.0,0.0);
-	f1->SetParLimits(2,-0.05,0.05);
-	f2->SetParLimits(2,-0.05,0.05);
+  	f1->SetParameters(0.8,0.0,0.0);
+  	f2->SetParameters(0.8,0.0,0.0);
+  	//f1->SetParLimits(2,-0.05,0.05);
+  	//f2->SetParLimits(2,-0.05,0.05);
       } else {
-	f1->SetParameters(0.8,0.0);
-	f2->SetParameters(0.8,0.0);
+  	f1->SetParameters(0.8,0.0);
+  	f2->SetParameters(0.8,0.0);
       }
 
     }
@@ -226,36 +233,36 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
 
     if (isPromptRate) {
 
-      f1->SetParLimits(0,0.0,1.5);
-      f1->SetParLimits(1,-0.02,maxslope);
-      f2->SetParLimits(0,0.0,1.5);
-      f2->SetParLimits(1,-0.02,maxslope);      
+      //f1->SetParLimits(0,0.0,1.5);
+      //f1->SetParLimits(1,-0.02,maxslope);
+      //f2->SetParLimits(0,0.0,1.5);
+      //f2->SetParLimits(1,-0.02,maxslope);      
 
       if (smoothPolinDegree > 1) {
-	f1->SetParameters(0.8,0.0,0.0);	
-	f1->SetParLimits(2,-0.02,0.02);
-	f2->SetParameters(0.8,0.0,0.0);	
-	f2->SetParLimits(2,-0.02,0.02);
+  	f1->SetParameters(0.8,0.0,0.0);	
+  	//f1->SetParLimits(2,-0.02,0.02);
+  	f2->SetParameters(0.8,0.0,0.0);	
+  	//f2->SetParLimits(2,-0.02,0.02);
       } else {
-	f1->SetParameters(0.8,0.0);
-	f2->SetParameters(0.8,0.0); 
+  	f1->SetParameters(0.8,0.0);
+  	f2->SetParameters(0.8,0.0); 
       }
 
     } else {
    
-      f1->SetParLimits(0,0.0,1.5);
-      f1->SetParLimits(1,-0.03,maxslope);
-      f2->SetParLimits(0,0.0,1.5);
-      f2->SetParLimits(1,-0.03,maxslope);      
+      //f1->SetParLimits(0,0.0,1.5);
+      //f1->SetParLimits(1,-0.03,maxslope);
+      //f2->SetParLimits(0,0.0,1.5);
+      //f2->SetParLimits(1,-0.03,maxslope);      
 
       if (smoothPolinDegree > 1) {
-	f1->SetParameters(0.3,0.0,0.0);	
-	f1->SetParLimits(2,-0.02,0.02);
-	f2->SetParameters(0.3,0.0,0.0);	
-	f2->SetParLimits(2,-0.01,0.01);
+  	f1->SetParameters(0.3,0.0,0.0);	
+  	//f1->SetParLimits(2,-0.02,0.02);
+  	f2->SetParameters(0.3,0.0,0.0);	
+  	//f2->SetParLimits2(2,-0.01,0.01);
       } else {
-	f1->SetParameters(0.3,0.0);
-	f2->SetParameters(0.3,0.0); 
+  	f1->SetParameters(0.3,0.0);
+  	f2->SetParameters(0.3,0.0); 
       }
 
     }
@@ -308,8 +315,15 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   linefit2_p0up->SetLineWidth(3);
   linefit2_p0dn->SetLineWidth(3);
 
+  TF1 *pol2fit = nullptr;
+  TFitResultPtr fitrespol2 = gr->Fit("pol2",addfitpol2 ? "EMFRS+": "0EMFRS+"); // fit with pol2
+  if (addfitpol2) {
+    pol2fit = gr->GetFunction("pol2");
+    pol2fit->SetLineWidth(3);
+    pol2fit->SetLineColor(kAzure+2);
+  }
 
-  TCanvas* canvas = new TCanvas("canvas","",600,600);
+  TCanvas* canvas = new TCanvas("canvas","",700,700);
   canvas->cd();
   canvas->SetFillColor(0);
   canvas->SetGrid();
@@ -330,10 +344,11 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   gr->Draw("ap");
   leg.AddEntry(gr,legEntry.c_str(),"PLE");
   //leg.AddEntry(linefit,"fit: p_{0} + p_{1}#upointx","L");
-  if (smoothPolinDegree > 1) leg.AddEntry(linefit,"fit: p_{0} + p_{1}#upointx + p_{2}#upointx^{2}","L");
+  if (smoothPolinDegree > 1) leg.AddEntry(linefit,"fit: pol2","L");
   else leg.AddEntry(linefit,Form("fit: %.2g %s %.2g #upoint x",fitres->Parameter(0),((fitres->Parameter(1) > 0) ? "+":"-"), fabs(fitres->Parameter(1))),"L");
   leg.AddEntry(linefit_p0dn,"offset up/down (1#sigma)","L");
-  leg.AddEntry(linefit2,Form("fit: %.2g %s %.2g #upoint x",fitres2->Parameter(0),((fitres2->Parameter(1) > 0) ? "+":"-"), fabs(fitres2->Parameter(1))),"L");
+  if (smoothPolinDegree > 1) leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
+  else leg.AddEntry(linefit2,Form("fit: %.2g %s %.2g #upoint x",fitres2->Parameter(0),((fitres2->Parameter(1) > 0) ? "+":"-"), fabs(fitres2->Parameter(1))),"L");
   leg.AddEntry(linefit2_p0dn,"offset up/down (1#sigma)","L");
   leg.Draw("same");
   // draw envelope
@@ -357,6 +372,15 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   gr->GetYaxis()->SetTitle(yAxisName.c_str());
   if (setXAxisRangeFromUser) gr->GetXaxis()->SetRangeUser(xmin,xmax);
   if (setYAxisRangeFromUser) gr->GetYaxis()->SetRangeUser(ymin,ymax);
+
+  TLegend legpol2(0.6,0.8,0.9,0.9);
+  if (addfitpol2) {
+    legpol2.SetFillColor(0);
+    legpol2.SetFillStyle(0);
+    legpol2.SetBorderSize(0);
+    legpol2.AddEntry(pol2fit,"fit: pol2","L");
+    legpol2.Draw("same");    
+  }
 
   //  CMS_lumi(canvas,Form("%.1f",lumi));
   if (lumi < 0) CMS_lumi(canvas,"",true,false);
@@ -660,18 +684,18 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
   // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-  frSmoothParameter_data->SetBinContent(etaBinTH1,1,ptr_data->Parameter(0));
-  frSmoothParameter_data->SetBinError(etaBinTH1,1,ptr_data->ParError(0));
-  frSmoothParameter_data->SetBinContent(etaBinTH1,2,ptr_data->Parameter(1));
-  frSmoothParameter_data->SetBinError(etaBinTH1,2,ptr_data->ParError(1));
+
+  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+    frSmoothParameter_data->SetBinContent(etaBinTH1,ipar+1,ptr_data->Parameter(ipar)); // param. number from 0, bin number from 1
+    frSmoothParameter_data->SetBinError(etaBinTH1,ipar+1,ptr_data->ParError(ipar));
+  }
 
   // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-  frSmoothParameter_data_fitNarrowRange->SetBinContent(etaBinTH1,1,ptr_data_fitNarrowRange->Parameter(0));
-  frSmoothParameter_data_fitNarrowRange->SetBinError(etaBinTH1,1,ptr_data_fitNarrowRange->ParError(0));
-  frSmoothParameter_data_fitNarrowRange->SetBinContent(etaBinTH1,2,ptr_data_fitNarrowRange->Parameter(1));
-  frSmoothParameter_data_fitNarrowRange->SetBinError(etaBinTH1,2,ptr_data_fitNarrowRange->ParError(1));
-
+  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+    frSmoothParameter_data_fitNarrowRange->SetBinContent(etaBinTH1,ipar+1,ptr_data_fitNarrowRange->Parameter(ipar));
+    frSmoothParameter_data_fitNarrowRange->SetBinError(etaBinTH1,ipar+1,ptr_data_fitNarrowRange->ParError(ipar));
+  }
 
   TFitResultPtr ptr_w = nullptr;
   TFitResultPtr ptr_z = nullptr;
@@ -682,28 +706,28 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     ptr_ewk = fitGraph(fr_ewk, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_ewk_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
     // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    frSmoothParameter_ewk->SetBinContent(etaBinTH1,1,ptr_ewk->Parameter(0));
-    frSmoothParameter_ewk->SetBinError(etaBinTH1,1,ptr_ewk->ParError(0));
-    frSmoothParameter_ewk->SetBinContent(etaBinTH1,2,ptr_ewk->Parameter(1));
-    frSmoothParameter_ewk->SetBinError(etaBinTH1,2,ptr_ewk->ParError(1));
+    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+      frSmoothParameter_ewk->SetBinContent(etaBinTH1,ipar+1,ptr_ewk->Parameter(ipar));
+      frSmoothParameter_ewk->SetBinError(etaBinTH1,ipar+1,ptr_ewk->ParError(ipar));
+    }
 
   } else {
 
     ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
     // fit is Y=a*X+b
     // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    frSmoothParameter_w->SetBinContent(etaBinTH1,1,ptr_w->Parameter(0));
-    frSmoothParameter_w->SetBinError(etaBinTH1,1,ptr_w->ParError(0));
-    frSmoothParameter_w->SetBinContent(etaBinTH1,2,ptr_w->Parameter(1));
-    frSmoothParameter_w->SetBinError(etaBinTH1,2,ptr_w->ParError(1));
+    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {        
+      frSmoothParameter_w->SetBinContent(etaBinTH1,ipar+1,ptr_w->Parameter(ipar));
+      frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
+    }
 
     ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
     // fit is Y=a*X+b
     // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    frSmoothParameter_z->SetBinContent(etaBinTH1,1,ptr_z->Parameter(0));
-    frSmoothParameter_z->SetBinError(etaBinTH1,1,ptr_z->ParError(0));
-    frSmoothParameter_z->SetBinContent(etaBinTH1,2,ptr_z->Parameter(1));
-    frSmoothParameter_z->SetBinError(etaBinTH1,2,ptr_z->ParError(1));
+    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+      frSmoothParameter_z->SetBinContent(etaBinTH1,ipar+1,ptr_z->Parameter(ipar));
+      frSmoothParameter_z->SetBinError(etaBinTH1,ipar+1,ptr_z->ParError(ipar));
+    }
 
   }
 
@@ -713,10 +737,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     
     ptr_qcd = fitGraph(fr_qcd, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_qcdmc.c_str()), Form("fr_qcd_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "QCD MC            ", legCoordFit,inputLuminosity,false, false);
 
-    frSmoothParameter_qcd->SetBinContent(etaBinTH1,1,ptr_qcd->Parameter(0));
-    frSmoothParameter_qcd->SetBinError(etaBinTH1,1,ptr_qcd->ParError(0));
-    frSmoothParameter_qcd->SetBinContent(etaBinTH1,2,ptr_qcd->Parameter(1));
-    frSmoothParameter_qcd->SetBinError(etaBinTH1,2,ptr_qcd->ParError(1));
+    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+      frSmoothParameter_qcd->SetBinContent(etaBinTH1,ipar+1,ptr_qcd->Parameter(ipar));
+      frSmoothParameter_qcd->SetBinError(etaBinTH1,ipar+1,ptr_qcd->ParError(ipar));
+    }
 
   }
   //////////////////////////////////////////////////////////
@@ -728,11 +752,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_json30p9fb_signedEta_pt65_fullWMC/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_json30p9fb_signedEta_pt65_fullWMC/", 
-					const string& outfileTag = "mT40_json30p9fb_signedEta_pt65_fullWMC",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF_fitpol2/", 
+					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true,
@@ -743,7 +766,7 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 					const vector<Int_t> ptBinIndexQCD = {2},  // should be a number for each eta bin (if only one is given, use it for all)
 					const vector<Int_t> ptBinIndexEWK = {2},  // should be a number for each eta bin (if only one is given, use it for all)
 					const vector<Int_t> ptBinIndexData = {2},  // should be a number for each eta bin (if only one is given, use it for all)
-					const Double_t inputLuminosity = 30.9, // -1 in case luminosity should not be printed
+					const Double_t inputLuminosity = 35.9, // -1 in case luminosity should not be printed
 					const Bool_t scan_vs_eta = true, // see below
 					const Bool_t hasSignedEta = true, // see below
 					const Bool_t noDrawQCD = true
@@ -789,15 +812,15 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 
   etaBoundariesGlobal = etaBoundaries;
   Int_t NetaBins = (Int_t) etaBoundaries.size() - 1;
-  vector<Double_t> parNumberBoundaries = {-0.5,0.5,1.5}; // bin center is 0 or 1 for a 2 parameter fit (we used a straight line to fit FR, so we have 2 parameters)
+  vector<Double_t> parNumberBoundaries = {-0.5,0.5,1.5,2.5}; // bin center is 0 or 1 for a 2 parameter fit (we used a straight line to fit FR, so we have 2 parameters)
   Int_t Nparam = (Int_t) parNumberBoundaries.size() - 1;
 
-  frSmoothParameter_data = new TH2D("frSmoothParameter_data","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_data_fitNarrowRange = new TH2D("frSmoothParameter_data_fitNarrowRange","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_qcd = new TH2D("frSmoothParameter_qcd","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_w = new TH2D("frSmoothParameter_w","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_z = new TH2D("frSmoothParameter_z","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk","straight line fit parameters (offset, slope) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_data = new TH2D("frSmoothParameter_data","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_data_fitNarrowRange = new TH2D("frSmoothParameter_data_fitNarrowRange","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_qcd = new TH2D("frSmoothParameter_qcd","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_w = new TH2D("frSmoothParameter_w","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_z = new TH2D("frSmoothParameter_z","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
 
   string outDir = (outDir_tmp == "SAME") ? (inputFilePath + "FR_graphs/") : outDir_tmp;
 
@@ -959,8 +982,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 
   cout << endl;
   cout << "Plotting TH2 with relative uncertainty on FR parameters" << endl;
-  plotFRparamRelUncertainty(frSmoothParameter_data,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),"0 offset : 1 slope","relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_relUnc");
-  plotFRparamRelUncertainty(frSmoothParameter_data_fitNarrowRange,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),"0 offset : 1 slope","relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange_relUnc");
+  string relUncYaxisTitle = "0 offset : 1 slope";
+  if (smoothPolinDegree > 1) relUncYaxisTitle += " : 2 concavity";  
+  plotFRparamRelUncertainty(frSmoothParameter_data,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_relUnc");
+  plotFRparamRelUncertainty(frSmoothParameter_data_fitNarrowRange,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange_relUnc");
 
   // parameters of linear fit
   cout << endl;

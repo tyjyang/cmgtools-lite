@@ -200,7 +200,7 @@ class lep2016SFProducer(Module):
                      }
         self.el_f = {"trigger"               : "smoothEfficiency_electrons_trigger.root",
                      "reco"                  : "EGM2D_eleGSF.root",  # to be implemented
-                     "full_ID_iso_convVeto"  : "smoothEfficiency_electrons_fullID.root"  
+                     "full_ID_iso_convVeto"  : "smoothEfficiency_electrons_fullID_pt25to55.root"  
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
