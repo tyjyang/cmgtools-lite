@@ -67,7 +67,7 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   if(fFlavor == 11){
     if (abs(LepGood_pdgId[jj])!=11)                                  return false;
-    if (LepGood_calPt[jj]<30)                                        return false;
+    if (LepGood_calPt[jj]<25)                                        return false;
     if (fabs(LepGood_eta[jj])>1.4442 && fabs(LepGood_eta[jj])<1.566) return false;
     if (fabs(LepGood_eta[jj])>2.5)                                   return false;
     if (LepGood_customId[jj] < 1)                                    return false;
@@ -245,7 +245,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
       // Is this a tag:
       int isThisTag = 0;
-      if (isTagLepton(theOrigIndex)) isThisTag =1;
+      if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
       if (isThisTag) atLeastOneTag = true;
 
       // Infos to be kept
@@ -297,7 +297,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
       // second as probe 
       for(unsigned int iLep2=0; iLep2<cand_pt.size(); ++iLep2) {
-        if (cand_isZero[iLep2]) continue;
+        // if (cand_isZero[iLep2]) continue; # consider 2 candidates as possible probes with same minv, otherwise biases minv for high pt probe
         TLorentzVector thisLep2(0,0,0,0);
         thisLep2.SetPtEtaPhiM(cand_pt[iLep2],cand_eta[iLep2],cand_phi[iLep2],0);
 
