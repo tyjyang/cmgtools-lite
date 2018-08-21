@@ -622,8 +622,6 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
                 ratio.SetBinContent(ix, iy, r)
                 ratio.SetBinError  (ix, iy, r*hypot(pmap[numkey].GetBinError(ix, iy)/pmap[numkey].GetBinContent(ix, iy) if pmap[numkey].GetBinContent(ix, iy) else 0,
                                                     total.GetBinError(ix, iy)/total.GetBinContent(ix, iy) if total.GetBinContent(ix, iy) else 0))
-        ratio.SetMinimum(rmin)
-        ratio.SetMaximum(rmax)
         ratio.GetZaxis().SetRangeUser(rmin,rmax)
         ratio.GetZaxis().SetTitle(ylabel)
         ratio.GetZaxis().SetTitleFont(42)
@@ -632,6 +630,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         ratio.GetZaxis().SetLabelFont(42)
         ratio.GetZaxis().SetLabelSize(0.05)
         ratio.GetZaxis().SetLabelOffset(0.007)
+        ratio.SetContour(100)
         ratios.append(ratio)
 
     return ratios
@@ -1224,7 +1223,7 @@ class PlotMaker:
                                     rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
                                                              ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
                                     for r in rdata:
-                                        r.Draw(pspec.getOption("PlotMode","COLZ"))
+                                        r.Draw(pspec.getOption("PlotMode","COLZ0"))
                                         c1.Print("%s/%s_ratio.%s" % (fdir, outputName, ext))
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))
