@@ -2,10 +2,11 @@ import ROOT, os
 ROOT.gROOT.SetBatch(True)
 
 ## USAGE:
-## python triggerTnP.py -i /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-07-06-2l_triggerMatch_MUONS/ -c mu -o indir
+## python leptonTnP.py -i /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-07-06-2l_triggerMatch_MUONS/ -c mu -o indir
 
 ## option -o indir : saves the output trees in the input directory. if none given it saves it where it's run
 ## option -c       : has to be mu or el
+## option -a       : either "trigger" or "selection"
 
 
 if __name__ == "__main__":
@@ -32,12 +33,13 @@ if __name__ == "__main__":
         tmp_tree = tmp_file.Get('tree')
         
         ## make the instance of the worker
-        if 'el' in options.channel:
-            ffile = options.indir+'/friends/tree_Friend_'+sd+'.root'
-            tmp_friend_file = ROOT.TFile(ffile)
-            tmp_friend_tree = tmp_friend_file.Get('Friends')
-        else: 
-            tmp_friend_tree = None
+        ##if 'el' in options.channel or 'mu' in options.channel:
+        ## friends now also for muons!
+        ffile = options.indir+'/friends/tree_Friend_'+sd+'.root'
+        tmp_friend_file = ROOT.TFile(ffile)
+        tmp_friend_tree = tmp_friend_file.Get('Friends')
+        ##else: 
+        ##    tmp_friend_tree = None
     
         if options.analyzer=='trigger'     : 
             ROOT.gROOT.ProcessLine(".L TnPNtuplesTriggerEfficiency.C+" )
@@ -54,7 +56,7 @@ if __name__ == "__main__":
         else: 
             tnp_worker.setFlavor(11)
 
-        tnp_worker.setOutfile(options.outdir+'/'+'triggerTnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
+        tnp_worker.setOutfile(options.outdir+'/'+options.analyzer+'TnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
         tnp_worker.Loop(options.maxentries)
     
         del tnp_worker ## this segfaults otherwise

@@ -211,6 +211,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   else if (iPR==3) p1_pr += hist_pr->GetBinError(etabin, 2);
   else if (iPR==4) p1_pr -= hist_pr->GetBinError(etabin, 2);
 
+  if (lpt > 50.) lpt = 50.;
+
   // p2=0 if the saved histogram has only 2 bins
   // in case on is fitting with a straight line and not a parabola, the histogram might still have 3 bins for the parameters, but the last one should be set as 0
   // this saves backward compatibility
@@ -224,14 +226,21 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   if      (iFR==5) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 1);
   else if (iFR==6) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 2);
 
+  float weight;
+
   if (passWP) {
     // tight
     // returning a negative weight
-    return FRnormWgt*fr*(pr-1)/(pr-fr); // pr=1 --> return 0
+    weight = FRnormWgt*fr*(pr-1)/(pr-fr); // pr=1 --> return 0
   } else {
     // not tight (but still loose)
-    return FRnormWgt*fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
+    weight = FRnormWgt*fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
   }
+
+  // if (weight != weight)   std::cout << "weight is NaN" << std::endl;
+  // if (fabs(weight) > 10.) std::cout << "event with large weight: " << weight << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+
+  return weight;
 
 }
 

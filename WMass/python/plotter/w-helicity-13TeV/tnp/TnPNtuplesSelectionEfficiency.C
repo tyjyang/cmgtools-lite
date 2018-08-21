@@ -57,7 +57,7 @@ bool TnPNtuplesSelectionEfficiency::isLeptonInAcceptance(int jj) {
   }
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_pt[jj]<26)            return false;
+    if (LepGood_calPt[jj]<25)         return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
   }
   return true;
@@ -77,10 +77,12 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_pt[jj]<26)            return false;
+    if (LepGood_calPt[jj]<26)         return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
     if (LepGood_relIso04[jj] > 0.15)  return false;
     if (LepGood_mediumMuonId[jj] < 1) return false;
+    //if (LepGood_matchedTrgObjMuPt[jj] < -1.)   return false;
+    //if (LepGood_matchedTrgObjTkMuPt[jj] < -1.) return false;
   }
   return true;
 
@@ -128,7 +130,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
   // To compute the lumi weight
   float sigma=1921.8*3.;
-  float count_getentries = doElectrons ? 123847915 : 99999999999;    // madgraph, ext1+ext2 //MARC THIS NUMBER IS WRONG FOR MUONS
+  float count_getentries = doElectrons ? 123847915 : 99999999999;    // madgraph, ext1+ext2 //MARC THIS NUMBER IS WRONG FOR MUONS. doesn't matter, it's a constant
   float SetLumi=35.9;     
 
 
@@ -213,7 +215,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       int theOrigIndex = *ilep;
 
       // kine 
-      float lepPt    = fFlavor == 11 ? LepGood_calPt [theOrigIndex] : LepGood_pt[theOrigIndex];     // calibrated pT for electrons
+      float lepPt    = LepGood_calPt [theOrigIndex];     // calibrated pT for electrons and muons now
       float lepEta   = LepGood_eta   [theOrigIndex];
       float lepScEta = LepGood_etaSc [theOrigIndex];
       float lepPhi   = LepGood_phi   [theOrigIndex];
