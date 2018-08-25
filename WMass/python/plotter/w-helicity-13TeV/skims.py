@@ -8,7 +8,7 @@
 ## MUONS
 ##============================================
 # DATA:
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts.txt /eos/user/m/mdunser/w-helicity-13TeV/trees/2017_12_12_legacy_singlemu/ /eos/user/m/mdunser/w-helicity-13TeV/trees/2017_12_12_legacy_singlemu/skims/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt --mo
+#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts.txt /eos/cms/store/cmst3/user/mdunser/wMassTrees/2018-02-03-legacySingleMu/ /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018_07_16_DATA_legacy/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt --mo -q 8nh --log skim_logs/
 # MC:  
 #       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/ /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-03-21_MC_1muskim/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt --mo
 

@@ -57,7 +57,7 @@ bool TnPNtuplesSelectionEfficiency::isLeptonInAcceptance(int jj) {
   }
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_pt[jj]<26)            return false;
+    if (LepGood_calPt[jj]<25)         return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
   }
   return true;
@@ -67,7 +67,7 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   if(fFlavor == 11){
     if (abs(LepGood_pdgId[jj])!=11)                                  return false;
-    if (LepGood_calPt[jj]<30)                                        return false;
+    if (LepGood_calPt[jj]<25)                                        return false;
     if (fabs(LepGood_eta[jj])>1.4442 && fabs(LepGood_eta[jj])<1.566) return false;
     if (fabs(LepGood_eta[jj])>2.5)                                   return false;
     if (LepGood_customId[jj] < 1)                                    return false;
@@ -77,10 +77,12 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_pt[jj]<26)            return false;
+    if (LepGood_calPt[jj]<26)         return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
     if (LepGood_relIso04[jj] > 0.15)  return false;
     if (LepGood_mediumMuonId[jj] < 1) return false;
+    //if (LepGood_matchedTrgObjMuPt[jj] < -1.)   return false;
+    //if (LepGood_matchedTrgObjTkMuPt[jj] < -1.) return false;
   }
   return true;
 
@@ -128,7 +130,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
   // To compute the lumi weight
   float sigma=1921.8*3.;
-  float count_getentries = doElectrons ? 123847915 : 99999999999;    // madgraph, ext1+ext2 //MARC THIS NUMBER IS WRONG FOR MUONS
+  float count_getentries = doElectrons ? 123847915 : 99999999999;    // madgraph, ext1+ext2 //MARC THIS NUMBER IS WRONG FOR MUONS. doesn't matter, it's a constant
   float SetLumi=35.9;     
 
 
@@ -213,7 +215,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       int theOrigIndex = *ilep;
 
       // kine 
-      float lepPt    = fFlavor == 11 ? LepGood_calPt [theOrigIndex] : LepGood_pt[theOrigIndex];     // calibrated pT for electrons
+      float lepPt    = LepGood_calPt [theOrigIndex];     // calibrated pT for electrons and muons now
       float lepEta   = LepGood_eta   [theOrigIndex];
       float lepScEta = LepGood_etaSc [theOrigIndex];
       float lepPhi   = LepGood_phi   [theOrigIndex];
@@ -243,7 +245,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
       // Is this a tag:
       int isThisTag = 0;
-      if (isTagLepton(theOrigIndex)) isThisTag =1;
+      if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
       if (isThisTag) atLeastOneTag = true;
 
       // Infos to be kept
@@ -295,7 +297,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
       // second as probe 
       for(unsigned int iLep2=0; iLep2<cand_pt.size(); ++iLep2) {
-        if (cand_isZero[iLep2]) continue;
+        // if (cand_isZero[iLep2]) continue; # consider 2 candidates as possible probes with same minv, otherwise biases minv for high pt probe
         TLorentzVector thisLep2(0,0,0,0);
         thisLep2.SetPtEtaPhiM(cand_pt[iLep2],cand_eta[iLep2],cand_phi[iLep2],0);
 
