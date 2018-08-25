@@ -2,8 +2,11 @@
 
 # Path of some root files
 # /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root
+# /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData/triggerMu/egammaEffi.txt_EGM2D.root
 # official_muon_ScaleFactors_2016/
 # /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/
+
+# reco -> selection (muons): /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData_RecoToSelection/selectionMu/egammaEffi.txt_EGM2D.root
 
 ################################
 # Exaples
@@ -111,12 +114,16 @@ def copyHisto(h1, h2):
         quit()        
 
 
-def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, isIso=False, isTrigger=False, isFullID=False):
+def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, 
+              isIso=False, isTrigger=False, isFullID=False, isMuonRecoToSel=False):
+
+    forcePol3 = False
 
     #drawFit = False
     # isIso is mainly for muons, for which ID ad ISO are separate
 
     isEle = True if channel == "el" else False
+    if isEle: isMuonRecoToSel == False
     if not isEle: isFullID = False
     #print "isEle",str(isEle)
     #mc = "MC" if isMC else "Data"
@@ -150,7 +157,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.GetYaxis().SetTitleOffset(1.2)
     hist.GetYaxis().SetTitleSize(0.05)
     hist.GetYaxis().SetLabelSize(0.04)
-    if isTrigger or isFullID: hist.GetYaxis().SetRangeUser(0.98*hist.GetMinimum(), 1.02* hist.GetMaximum())
+    if isTrigger or isFullID or isMuonRecoToSel: hist.GetYaxis().SetRangeUser(0.98*hist.GetMinimum(), 1.02* hist.GetMaximum())
     else: 
         diff = hist.GetMaximum() - hist.GetMinimum()
         hist.GetYaxis().SetRangeUser(hist.GetMinimum() - diff, diff + hist.GetMaximum())
@@ -158,7 +165,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.SetStats(0)
     hist.Draw("EP")
 
-    if isTrigger or isFullID:
+    if isTrigger or isFullID or isMuonRecoToSel:
         fitopt = "QMFS+"  
         maxFitRange = hist.GetXaxis().GetBinLowEdge(1+hist.GetNbinsX())
         minFitRange = hist.GetXaxis().GetBinLowEdge(1)
@@ -242,21 +249,42 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         else:
             tf1_erf2.SetParameter(1,30)
             if mc == "Data":
-                if key == 27:
-                    tf1_erf2.SetParameter(1,32)
-                # elif key == 13:
+                # with narrow pt range [26,45]
+                # if key == 27:
+                #     tf1_erf2.SetParameter(1,32)
+                # # elif key == 13:
+                # #     tf1_erf2.SetParameter(1,29.5)
+                # elif any(key == x for x in [11,14,26]):
                 #     tf1_erf2.SetParameter(1,29.5)
-                elif any(key == x for x in [11,14,26]):
-                    tf1_erf2.SetParameter(1,29.5)
-                elif any(key == x for x in [10]):
-                    tf1_erf2.SetParameter(1,30.5)
+                # elif any(key == x for x in [10]):
+                #     tf1_erf2.SetParameter(1,30.5)
+                #     tf1_erf2.SetParameter(2,4.0)
+                # elif key == 23:
+                #     tf1_erf2.SetParameter(1,31.2)
+                #     tf1_erf2.SetParameter(2,4.0)
+                # elif key == 13:
+                #     tf1_erf2.SetParameter(1,29.65)
+                #     tf1_erf2.SetParameter(2,4.0)                
+                # with broader pt range [24,55]
+                # if key == 27:
+                #     tf1_erf2.SetParameter(1,32)
+                # # elif key == 13:
+                # #     tf1_erf2.SetParameter(1,29.5)
+                # elif any(key == x for x in [11,14,26]):
+                #     tf1_erf2.SetParameter(1,29.5)
+                # elif any(key == x for x in [10]):
+                #     tf1_erf2.SetParameter(1,30.5)
+                #     tf1_erf2.SetParameter(2,4.0)
+                # elif key == 23:
+                #     tf1_erf2.SetParameter(1,31.2)
+                #     tf1_erf2.SetParameter(2,4.0)
+                if key == 13:
+                    tf1_erf2.SetParameter(1,26.4)
                     tf1_erf2.SetParameter(2,4.0)
-                elif key == 23:
-                    tf1_erf2.SetParameter(1,31.2)
+                elif key == 26:
+                    tf1_erf2.SetParameter(1,26.35)
                     tf1_erf2.SetParameter(2,4.0)
-                elif key == 13:
-                    tf1_erf2.SetParameter(1,29.65)
-                    tf1_erf2.SetParameter(2,4.0)
+                    forcePol3 = True
             if mc == "MC":
                 if any(key == x for x in [0,8,26,27,37]):
                     tf1_erf2.SetParameter(1,29.5)
@@ -312,7 +340,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         hist.Fit(tf1_pol2,fitopt)        
         hist.Fit(tf1_pol3,fitopt)        
     else:
-        if isIso: hist.Fit(tf1_erf,fitopt)        
+        if isIso or isMuonRecoToSel: hist.Fit(tf1_erf,fitopt)        
         else:
             tf1_pol3.SetLineColor(ROOT.kRed+1)
             hist.Fit(tf1_pol1,fitopt)        
@@ -355,7 +383,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         leg.AddEntry(tf1_pol2,"pol2", "LF")
         leg.AddEntry(tf1_pol3,"pol3", "LF")
     else:
-        if isIso: leg.AddEntry(tf1_erf, "Erf[x]", 'LF')
+        if isIso or isMuonRecoToSel: leg.AddEntry(tf1_erf, "Erf[x]", 'LF')
         else:
             leg.AddEntry(tf1_pol1,"pol1", "LF")
             leg.AddEntry(tf1_pol2,"pol2", "LF")
@@ -387,7 +415,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         #fit_sqrt = hist.GetFunction(tf1_sqrt.GetName())
         #fit_exp = hist.GetFunction(tf1_exp.GetName())
     else:
-        if isIso: fit_erf = hist.GetFunction(tf1_erf.GetName())
+        if isIso or isMuonRecoToSel: fit_erf = hist.GetFunction(tf1_erf.GetName())
         else:
             fit_pol1 = hist.GetFunction(tf1_pol1.GetName())
             fit_pol2 = hist.GetFunction(tf1_pol2.GetName())
@@ -404,7 +432,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         functions[tf1_erf2.GetName()] = fit_erf2
         #functions[tf1_exp.GetName()] = fit_exp
     else:
-        if isIso: functions[tf1_erf.GetName()] = fit_erf
+        if isIso or isMuonRecoToSel: functions[tf1_erf.GetName()] = fit_erf
         else:
             functions[tf1_pol1.GetName()] = fit_pol1
             functions[tf1_pol2.GetName()] = fit_pol2
@@ -419,7 +447,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     xmin = 0.20 
     yhi = 0.85
 
-    if isEle==False and isIso:
+    if isEle==False and (isIso or isMuonRecoToSel):
         if hist_chosenFunc: hist_chosenFunc.Fill(tf1_erf.GetName(),1)
         retFunc = fit_erf
     else:
@@ -445,23 +473,27 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             retFunc = fit_pol2
 
         else:
-            nChi2Sigma = abs(funcMinChi2.GetChisquare()-funcMinChi2.GetNDF())/math.sqrt(2.0*funcMinChi2.GetNDF())  # Chi2 variance is 2*Ndof
-            nChi2Sigma_pol3 = abs(fit_pol3.GetChisquare()-fit_pol3.GetNDF())/math.sqrt(2.0*fit_pol3.GetNDF()) if fit_pol3.GetNDF() else 999
-
-            # pol3 will generally fit very well also in case of weird points
-            # for good looking points, pol3 might be better because it can change curvature, while other functions cannot (which would be more physical)
-            # allow non-pol3 fit to have Chi2 within 2 standard deviation from the expected one
-            # in this case choose that value, otherwise use the one closer to expected Chisquare
-            if nChi2Sigma < 3:  
-                if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
-                retFunc = funcMinChi2
-            elif nChi2Sigma_pol3 < nChi2Sigma:
-                if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
+            if forcePol3:
                 retFunc = fit_pol3
+                if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
             else:
-                if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
-                retFunc = funcMinChi2                
-            line = "Best fit: " + legEntry[retFunc.GetName()]
+                nChi2Sigma = abs(funcMinChi2.GetChisquare()-funcMinChi2.GetNDF())/math.sqrt(2.0*funcMinChi2.GetNDF())  # Chi2 variance is 2*Ndof
+                nChi2Sigma_pol3 = abs(fit_pol3.GetChisquare()-fit_pol3.GetNDF())/math.sqrt(2.0*fit_pol3.GetNDF()) if fit_pol3.GetNDF() else 999
+
+                # pol3 will generally fit very well also in case of weird points
+                # for good looking points, pol3 might be better because it can change curvature, while other functions cannot (which would be more physical)
+                # allow non-pol3 fit to have Chi2 within 2 standard deviation from the expected one
+                # in this case choose that value, otherwise use the one closer to expected Chisquare
+                if nChi2Sigma < 3:  
+                    if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
+                    retFunc = funcMinChi2
+                elif nChi2Sigma_pol3 < nChi2Sigma:
+                    if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
+                    retFunc = fit_pol3
+                else:
+                    if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
+                    retFunc = funcMinChi2                
+            line = "Best fit: " + legEntry[retFunc.GetName()] + (" (forced)" if forcePol3 else "")
 
         #return funcMinChi2
 
@@ -608,6 +640,7 @@ if __name__ == "__main__":
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
     parser.add_option('-w','--width-pt',     dest='widthPt',default='0.2', type='float', help='Pt bin width for the smoothed histogram')
     parser.add_option('-t','--trigger', dest='isTriggerScaleFactor',action="store_true", default=False, help='Says if using trigger scale factors (electron and muon share the same root file content)')
+    parser.add_option(     '--muonRecoToSel', dest='isMuonRecoToSel',action="store_true", default=False, help='Says if using muon reco->selection scale factors')
     parser.add_option(     '--residualPtCorr', dest='isResidualPtCorrScaleFactor',action="store_true", default=False, help='For electrons: pt correction residual scale factor')
     parser.add_option(     '--fullID', dest='isFullIDScaleFactor',action="store_true", default=False, help='For electrons: says if using fullID scale factor')
     parser.add_option(     '--save-TF1', dest='saveTF1',action="store_true", default=False, help='Save TF1 as well, not just TH2 with many bins (note that they are not saved when making averages between eras')
@@ -636,24 +669,32 @@ if __name__ == "__main__":
     isEle = True if channel == "el" else False
     lepton = "electron" if channel == "el" else "muon"
 
-    if not isEle and not options.isTriggerScaleFactor:
-        print "Warning: you didn't use option -t, so I assume these are not trigger scale factors"
-        if not options.isWeightedAverage:
-            if options.era not in ["BF","GH"]:
-                print "Error: you should specify a data range for muons using option -e BF|GH. Exit"                                
+    if options.isMuonRecoToSel:
+        if channel == "el":
+            print "Error: option --muonRecoToSel is only for muons. Exit"
+            quit()
+        else:
+            if options.era or options.variable:
+                print "Error: option --muonRecoToSel is incompatible with -e and -v. Exit"
+                quit()
+
+    if not isEle:
+        if not options.isTriggerScaleFactor and not options.isMuonRecoToSel:
+            print "Warning: you didn't use option -t and --muonRecoToSel, so I assume these are not trigger scale factors or for full reco->sel"
+            if not options.isWeightedAverage:
+                if options.era not in ["BF","GH"]:
+                    print "Error: you should specify a data range for muons using option -e BF|GH. Exit"                                
+                    quit()                                                          
+            elif options.era:
+                print "Error: option --make-weighted-average is incompatible with -e. Exit"                                
                 quit()                                                          
-        elif options.era:
-            print "Error: option --make-weighted-average is incompatible with -e. Exit"                                
-            quit()                                                          
 
-        if options.variable not in ["ID","ISO",]:
-            print "Error: you should specify a variable with option -v ID|ISO. Exit"                                
-            quit()                                    
-
-    if not isEle and options.isFullIDScaleFactor:
-        print "Error: option --fullID is only for electrons. Exit"
-        quit()
-
+            if options.variable not in ["ID","ISO",]:
+                print "Error: you should specify a variable with option -v ID|ISO. Exit"                                
+                quit()                                    
+        if options.isFullIDScaleFactor:
+            print "Error: option --fullID is only for electrons. Exit"
+            quit()
 
 
     if options.outdir:
@@ -673,6 +714,7 @@ if __name__ == "__main__":
     if options.variable: outfilename = outfilename + "_" + options.variable
     if options.isTriggerScaleFactor: outfilename = outfilename + "_trigger"
     if options.isFullIDScaleFactor: outfilename = outfilename + "_fullID"
+    if options.isMuonRecoToSel: outfilename = outfilename + "_recoToSel"
     if options.isResidualPtCorrScaleFactor: outfilename = outfilename + "_residualPtCorr"
     outfilename += ".root"
 
@@ -719,7 +761,7 @@ if __name__ == "__main__":
     hsf = 0
     if options.inputfile:
         tf = ROOT.TFile.Open(options.inputfile)        
-        if options.isTriggerScaleFactor or options.isFullIDScaleFactor:
+        if options.isTriggerScaleFactor or options.isFullIDScaleFactor or options.isMuonRecoToSel:
             hmc =   tf.Get("EGamma_EffMC2D")
             hdata = tf.Get("EGamma_EffData2D")
             hsf = tf.Get("EGamma_SF2D")
@@ -889,7 +931,8 @@ if __name__ == "__main__":
         bestFitFunc = fitTurnOn(hmcpt[key],key,outname, "MC",channel=channel,hist_chosenFunc=hist_chosenFunc, 
                                 isIso=True if options.variable=="ISO" else False,
                                 isTrigger=options.isTriggerScaleFactor,
-                                isFullID=options.isFullIDScaleFactor)
+                                isFullID=options.isFullIDScaleFactor,
+                                isMuonRecoToSel=options.isMuonRecoToSel)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -921,7 +964,8 @@ if __name__ == "__main__":
         bestFitFunc = fitTurnOn(hdatapt[key],key,outname, "Data",channel=channel,hist_chosenFunc=hist_chosenFunc, 
                                 isIso=True if options.variable=="ISO" else False,
                                 isTrigger=options.isTriggerScaleFactor,
-                                isFullID=options.isFullIDScaleFactor)
+                                isFullID=options.isFullIDScaleFactor,
+                                isMuonRecoToSel=options.isMuonRecoToSel)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -954,7 +998,8 @@ if __name__ == "__main__":
         bestFitFunc = fitTurnOn(hsfpt[key],key,outname, "SF",channel=channel,hist_chosenFunc=0, 
                                 isIso=True if options.variable=="ISO" else False,
                                 isTrigger=options.isTriggerScaleFactor,
-                                isFullID=options.isFullIDScaleFactor)
+                                isFullID=options.isFullIDScaleFactor,
+                                isMuonRecoToSel=options.isMuonRecoToSel)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -969,12 +1014,14 @@ if __name__ == "__main__":
     # start to make plots
     #################################
     zaxisRange = "0.4,1.1" if isEle else "0.96,1.01"
-    if not isEle and options.isTriggerScaleFactor: zaxisRange = "0.8,1.01"
+    if not isEle:
+        if options.isTriggerScaleFactor: zaxisRange = "0.8,1.01"
+        if options.isMuonRecoToSel: zaxisRange = "0.4,1.01"
     if options.variable == "ISO":
         zaxisRange = "0.85,1.01"
 
     # for muons, plot also official scale factors
-    if not isEle and not options.isTriggerScaleFactor:        
+    if not isEle and not options.isTriggerScaleFactor and not options.isMuonRecoToSel:        
         tf = ROOT.TFile.Open("official_muon_ScaleFactors_2016/Run{era}_SF_{var}.root".format(era=options.era,var=options.variable))        
         if options.variable == "ISO":
             hsf_official = tf.Get("NUM_TightRelIso_DEN_MediumID_eta_pt")

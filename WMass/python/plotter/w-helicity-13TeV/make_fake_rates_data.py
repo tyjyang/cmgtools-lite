@@ -150,7 +150,7 @@ else:
 EWKSPLIT="-p 'W_fake,W,Z,data'"
 EWKEXCLUDE="--xp 'W_LO,Z_LO'"
 if addQCDMC:
-    EWKSPLIT="-p 'QCD,W,Z,data'"
+    EWKSPLIT="-p 'QCD,W,Z,Top,DiBosons,data'"
 
 MCEFF = "python " + plotterPath + "w-helicity-13TeV/dataFakeRate.py " + OPTIONS + " " + EWKSPLIT + " " + EWKEXCLUDE +" --groupBy cut " + plotterPath + "w-helicity-13TeV/make_fake_rates_sels.txt " + plotterPath + "w-helicity-13TeV/make_fake_rates_xvars.txt  "
 if addQCDMC:

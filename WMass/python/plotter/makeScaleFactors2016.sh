@@ -5,7 +5,15 @@
 
 echo ""
 echo ""
-python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root -o ~/www/wmass/13TeV/scaleFactors/muon/trigger/ -c mu -n smoothEfficiency.root -t
+#python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root -o ~/www/wmass/13TeV/scaleFactors/muon/trigger/ -c mu -n smoothEfficiency.root -t
+
+python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData/triggerMu/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors/muon/trigger_extPt/ -c mu -n smoothEfficiency.root -t 
+
+echo ""
+echo ""
+
+# this should have ID+iso together, without separating eras. It would therefore substitute the following ID and ISO scale factors for muons
+python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData_RecoToSelection/selectionMu/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors/muon/recoToSelection_pt25to55/ -c mu -n smoothEfficiency.root --muonRecoToSel
 
 echo ""
 echo ""
@@ -41,7 +49,9 @@ python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mduns
 
 echo ""
 echo ""
-python w-helicity-13TeV/smoothLeptonScaleFactors.py -i electron_fullID_scaleFactor/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors/electron/fullID/ -c el -n smoothEfficiency.root --fullID
+#python w-helicity-13TeV/smoothLeptonScaleFactors.py -i electron_fullID_scaleFactor/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors/electron/fullID/ -c el -n smoothEfficiency.root --fullID
+
+python w-helicity-13TeV/smoothLeptonScaleFactors.py -i electron_fullID_scaleFactor/egammaEffi.txt_EGM2D_extPt.root -o ~/www/wmass/13TeV/scaleFactors/electron/fullID_extPt/ -c el -n smoothEfficiency.root --fullID
 
 echo ""
 echo ""

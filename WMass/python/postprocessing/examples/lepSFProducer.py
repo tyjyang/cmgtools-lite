@@ -194,7 +194,7 @@ class lep2016SFProducer(Module):
         # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
         # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
 
-        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger.root", 
+        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger_pt25to55.root", 
                      "identification": "smoothEfficiency_muons_full2016_ID.root", 
                      "isolation"     : "smoothEfficiency_muons_full2016_ISO.root"
                      }

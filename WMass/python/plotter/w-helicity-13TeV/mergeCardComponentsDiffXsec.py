@@ -332,6 +332,14 @@ if __name__ == "__main__":
                                             if alt.GetName() not in plots:
                                                 plots[alt.GetName()] = alt.Clone()
                                                 plots[alt.GetName()].Write()
+                                    elif 'data_fakes' in newname and 'awayJetPt' in newname:
+                                        tokens = newname.split("_") 
+                                        pfx = '_'.join(tokens[:-2]) # name is like data_fakes_FRe_awayJetPt45, we need to isolate data_fakes
+                                        (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
+                                        for alt in [alternate,mirror]:
+                                            if alt.GetName() not in plots:
+                                                plots[alt.GetName()] = alt.Clone()
+                                                plots[alt.GetName()].Write()
                                     elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*',newname): # these changes by default shape and normalization
                                         tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
                                         newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)

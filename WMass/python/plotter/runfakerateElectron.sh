@@ -46,7 +46,7 @@ fi
 
 istest="y"
 # following option testdir is used only if istest is 'y'
-testdir="SRtrees_new/fakeRate_${mtDefinition}_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_pt65_fullWMC_newTrigSF"
+testdir="SRtrees_new/fakeRate_${mtDefinition}_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_jetPt45"
 if [[ "${makeTH3_eta_pt_passID}" == "y" ]]; then
     #if [[ "${useSignedEta}" == "y" ]]; then
 	testdir="${testdir/${mtDefinition}/eta}"
@@ -69,7 +69,7 @@ packFRfromTest="n"
 #addOption=" -A eleKin pfmet 'met_pt<20' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
 #addOption=" -A eleKin pfmet 'met_pt<20' "
 #addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
-addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
+addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
 if [[ "${useJson}" == "y" ]]; then
     addOption="${addOption} -A eleKin json 'isGoodRunLS(isData,run,lumi)'"
 fi
