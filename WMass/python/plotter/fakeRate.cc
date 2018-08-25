@@ -18,13 +18,14 @@ TH2 * helicityFractions_R = 0;
 
 // Index 0 is for nominal, 1-4 is for variation of FR linear fit parameters (1,2 for up/dn offset, 3,4 for slope)
 // 5-6 is used for normalization systematic variation implemented through an eta(-pt) dependent lnN nuisance. 
-// Actually index 5 or 6 are used to store the histogram for FR without any variation, to avoid clashes with FRi_mu[0] or FRi_el[0] used when running the nominal FR
+// Actually index 5 or 6 are used to store the histogram for FR without any variation, to avoid clashes with FRi_mu[0] or FRi_el[0] used when running the nominal FR,
+// since the variation is implemented inside fakeRateWeight_promptRateCorr_1l_i_smoothed 
 // see for example: w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt 
-// Index 7 is the shape variation when awayJetPt > 45
+// Index 7 is the shape variation when awayJetPt > 45 (one could add other systematics, adding other indices
 TH2 * FR_mu = 0;
-TH2 * FRi_mu[8] = {0};  
+TH2 * FRi_mu[7] = {0};  
 TH2 * FR_el = 0;
-TH2 * FRi_el[8] = {0};
+TH2 * FRi_el[7] = {0};
 
 // FR for QCD MC, needed not to clash with that on data (above) in case they are used together
 TH2 * FR_mu_qcdmc = 0;
@@ -158,7 +159,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   // If p=1, then N(QCD in T) = f/(1-f) * N(NLT), which is the formula used in function fakeRateWeight_1l_i_smoothed()
 
 
-  double fpt = lpt; double feta = std::fabs(leta); int fid = abs(lpdgId); 
+  // double fpt = lpt; // what was the purpose of this line?
+  double feta = std::fabs(leta); int fid = abs(lpdgId); 
 
   // int fAbsExpected_pdgId = abs(expected_pdgId);
   // if (fid != fAbsExpected_pdgId) {
@@ -212,7 +214,9 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   else if (iPR==3) p1_pr += hist_pr->GetBinError(etabin, 2);
   else if (iPR==4) p1_pr -= hist_pr->GetBinError(etabin, 2);
 
-  if (lpt > 50.) lpt = 50.;
+  // Marc added the crop at pt=50, but for electrons I think it is not needed
+  // I will make so to have it only for muon channel
+  if (fid == 13 && lpt > 50.) lpt = 50.;
 
   // p2=0 if the saved histogram has only 2 bins
   // in case on is fitting with a straight line and not a parabola, the histogram might still have 3 bins for the parameters, but the last one should be set as 0
@@ -224,8 +228,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
-  if      (iFR==5) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 1);
-  else if (iFR==6) FRnormWgt = getFakeRatenormWeight(fpt, feta, fid, 2);
+  if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
+  else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
 
   float weight;
 
