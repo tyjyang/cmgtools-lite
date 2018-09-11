@@ -16,7 +16,9 @@ dowhat = "plots"
 
 TREES = "-F Friends '{P}/friends/tree_Friend_{cname}.root' "
 TREESONLYSKIMW = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
-TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7"
+#TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7"
+#TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_1LEP_80X_V3_ZEESKIM_V7/"
+TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_2018-07-17-recoLeptons" # trees with the Trigger Match object
 TREESONLYFULL  = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3"
 
 def base(selection,useSkim=True):
@@ -34,7 +36,7 @@ def base(selection,useSkim=True):
     if dowhat == "plots": 
         CORE+=" --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.20 --legendFontSize 0.035 "
         if selection != "wgen":
-            CORE+=" --showRatio --maxRatioRange 0.75 1.25 --fixRatioRange "
+            CORE+=" --showRatio --maxRatioRange 0.90 1.10 --fixRatioRange "
 
     if selection=='wenu':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
@@ -49,7 +51,7 @@ def base(selection,useSkim=True):
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
     elif selection=='zee':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood1_SF1*LepGood1_SF3*_get_electronSF_anyWP(LepGood1_pt,LepGood1_eta)' --sp 'Z' "%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2l(LepGood1_matchedTrgObjElePt,LepGood1_pt,LepGood1_eta,LepGood2_matchedTrgObjElePt,LepGood2_pt,LepGood2_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood2_pt,LepGood2_eta)*eleSF_FullID(LepGood2_pt,LepGood2_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/zee_plots.txt "
     else:
         raise RuntimeError, 'Unknown selection'
