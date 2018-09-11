@@ -52,5 +52,5 @@ WFlips  : WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId == 12 && LepGood1_mcMat
 
 data: SingleElectron_07Aug17_Run2016*
 
-WandZ   : WJetsToLNu_NLO* :  3.*20508.9 ; FillColor=ROOT.kRed+2, Label="W (amc@NLO)", NormSystematic=0.026
-WandZ   : DYJetsToLL_M50_* : 1921.8*3; FillColor=ROOT.kAzure+2, Label="Z (amc@NLO)", NormSystematic=0.04
+#WandZ   : WJetsToLNu_NLO* :  3.*20508.9 ; FillColor=ROOT.kRed+2, Label="W (amc@NLO)", NormSystematic=0.026
+#WandZ   : DYJetsToLL_M50_* : 1921.8*3; FillColor=ROOT.kAzure+2, Label="Z (amc@NLO)", NormSystematic=0.04
