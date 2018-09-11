@@ -123,7 +123,7 @@ class GenQEDJetProducer(Module):
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
         for imass in self.massWeights:
-            self.out.branch("mass_{mass}".format(mass=imass), "H")
+            self.out.branch("mass_{mass}".format(mass=imass), "F")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 

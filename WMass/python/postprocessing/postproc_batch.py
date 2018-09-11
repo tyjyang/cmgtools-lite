@@ -22,6 +22,39 @@ RECOILTEST_MODULES=[("CMGTools.WMass.postprocessing.examples.puWeightProducer", 
                     ("CMGTools.WMass.postprocessing.examples.eventRecoilAnalyzer","eventRecoilAnalyzer"),
                    ]
 
+def writeCondorCfg(srcfile, flavour=None, maxRunTime=None):
+    #base=''.join(srcfile.split('.')[:-1])
+    base = os.path.splitext(srcfile)[0]
+    print "srcfile = ",srcfile,"  base = ",base
+    maxruntime="-t" # time in minutes
+    if maxRunTime:
+        if flavour:
+            print "Can't set both flavour and maxruntime"
+            sys.exit(1)
+        maxruntime = str(60 * int(maxRunTime))
+    job_desc = """Universe = vanilla
+Executable = {scriptName}
+Log        = {pid}.log
+Output     = {pid}.out
+Error      = {pid}.error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 2000
+""".format(scriptName=srcfile,
+           pid=base,
+           here=os.environ['PWD'])
+    if flavour:
+        job_desc += '+JobFlavour = "%s"\n' % flavour
+    if maxruntime!="":
+        job_desc += '+MaxRuntime = %s\n' % maxruntime
+    job_desc += 'queue 1\n'
+
+    jobdesc_file = base+'.condor'
+    with open(jobdesc_file,'w') as outputfile:
+        outputfile.write(job_desc)
+        outputfile.close()
+    return jobdesc_file
+
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] inputDir outputDir")
@@ -43,7 +76,7 @@ if __name__ == "__main__":
     parser.add_option("-q", "--queue",   dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
     parser.add_option("-t", "--tree",    dest="tree",      default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
-    parser.add_option("--env",   dest="env", type="string", default="lxbatch", help="Give the environment on which you want to use the batch system (lxbatch, psi, oviedo)");
+    parser.add_option("--env",   dest="env", type="string", default="lxbatch", help="Give the environment on which you want to use the batch system (lsf,condor). Default: lsf");
     parser.add_option("--run",   dest="runner",  type="string", default="lxbatch_runner.sh", help="Give the runner script (default: lxbatch_runner.sh)");
     parser.add_option("--mconly", dest="mconly",  action="store_true", default=False, help="Run only on MC samples");
     parser.add_option("--signals", dest="signals", default="WJetsToLNu", help="declare signals (CSV list) [%default]",type='string');
@@ -118,38 +151,54 @@ if __name__ == "__main__":
     if options.queue:
         import os, sys
 
+        writelog = ""
+        logdir   = ""
+        if options.logdir: 
+            logdir = os.environ['PWD']+'/'+options.logdir
+            logdir = logdir.rstrip("/")
+            if not os.path.exists(logdir):
+                os.system("mkdir -p "+logdir)
+
         runner = ""
         super = ""
-        if options.env == "lxbatch": # Only lxbatch for now
+        if options.env == "lxbatch":
             runner = options.runner
             super  = "bsub -q {queue}".format(queue = options.queue)
+        elif  options.env == "condor":
+            runner = options.runner
+        else:
+            print "ERROR. Scheduler ",options.env," not implemented. Choose either 'lsf' or 'condor'."
+            sys.exit(1)
 
         basecmd = "{dir}/{runner} {dir} {cmssw} python {self} -N {chunkSize} -t {tree} --signals {signals} --moduleList {moduleList} {data} {output}".format(
                     dir = os.getcwd(), runner=runner, cmssw = os.environ['CMSSW_BASE'], 
                     self=sys.argv[0], chunkSize=options.chunkSize, tree=options.tree, signals=options.signals, moduleList=options.moduleList, data=treedir, output=outdir)
 
-        writelog = ""
-        logdir   = ""
-        if options.logdir: 
-            logdir = options.logdir.rstrip("/")
-            if not os.path.exists(logdir):
-                os.system("mkdir -p "+logdir)
         friendPost = ""
         if options.friend: 
             friendPost += " --friend " 
         for (name,fin,sample_nevt,fout,data,range,chunk) in jobs:
             if chunk != -1:
-                if options.logdir: writelog = "-o {logdir}/{data}_{chunk}.out -e {logdir}/{data}_{chunk}.err".format(logdir=logdir, data=name, chunk=chunk)
-                cmd = "{super} {writelog} {base} -d {data} -c {chunk} {post}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
-                if options.queue == "batch":
-                    cmd = "echo \"{base} -d {data} -c {chunk} {post}\" | {super} {writelog}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
+                if options.logdir: 
+                    writelog = ""
+                    if options.env == "lxbatch":
+                        writelog = "-o {logdir}/{data}_{chunk}.out -e {logdir}/{data}_{chunk}.err".format(logdir=logdir, data=name, chunk=chunk)
+                if options.env == 'lxbatch':
+                    cmd = "{super} {writelog} {base} -d {data} -c {chunk} {post}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
+                elif options.env == 'condor':
+                    condor_exec="{logdir}/{data}_{chunk}.sh".format(logdir=logdir, data=name, chunk=chunk)
+                    os.system("echo {base} -d {data} -c {chunk} {post} > {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, chunk=chunk, post=friendPost, condor_exec=condor_exec))
+                    condor_jobdesc = writeCondorCfg(condor_exec,options.queue)
+                    cmd = 'condor_submit ' + condor_jobdesc
             else:
                 if options.logdir: writelog = "-o {logdir}/{data}.out -e {logdir}/{data}.err".format(logdir=logdir, data=name)
-                cmd = "{super} {writelog} {base} -d {data} {post}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
-     
-                if options.env == "lxbatch":
+                if options.env == 'lxbatch':
                     cmd = "echo \"{base} -d {data} {post}\" | {super} {writelog}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
-
+                elif options.env == 'condor':
+                    condor_exec="{logdir}/{data}.sh".format(logdir=logdir, data=name)
+                    os.system("echo {base} -d {data} {post} > {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, post=friendPost, condor_exec=condor_exec))
+                    condor_jobdesc = writeCondorCfg(condor_exec,options.queue)
+                    cmd = 'condor_submit ' + condor_jobdesc
                 print "{base} -d {data}".format(base=basecmd, data=name, chunk=chunk)
             print cmd
             if not options.pretend:
