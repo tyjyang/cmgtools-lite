@@ -450,6 +450,124 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 
 }
 
+float triggerSF_2l(float l11pass, float l12pass, float l21pass, float l22pass, float l1sf, float l2sf, int randomize=0){
+  float weight = -999.;
+
+  bool l1pass = (l11pass > -1. || l12pass > -1.);
+  bool l2pass = (l21pass > -1. || l22pass > -1.);
+
+  if      ( l1pass && !l2pass) weight = l1sf;
+  else if (!l1pass &&  l2pass) weight = l2sf;
+  else if ( l1pass &&  l2pass) {
+    if   (!randomize) weight = (l1sf+l2sf)/2.;
+    else {
+      if(!rng) rng = new TRandom3();
+      float randy = rng->Uniform(-1.,1.);
+      if (randy < 0.) weight = l1sf;
+      else            weight = l2sf;
+    }
+  }
+
+  //else return -999.; // this should never happen
+
+  return weight;
+}
+
+TFile *_file_trigger_leptonSF_mu = NULL;
+TH2F *_histo_trigger_leptonSF_mu = NULL;
+TFile *_file_recoToSelection_leptonSF_mu = NULL;
+TH2F *_histo_recoToSelection_leptonSF_mu = NULL;
+
+static string basedirSF_mu = string("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_mu/scaleFactors/");
+
+float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  if (!_histo_recoToSelection_leptonSF_mu) {
+    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_smooth.root",basedirSF_mu.c_str()),"read");
+    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+  }
+
+  if(abs(pdgid)==13) {
+    TH2F *histSelection = _histo_recoToSelection_leptonSF_mu;
+
+    int etabin = std::max(1, std::min(histSelection->GetNbinsX(), histSelection->GetXaxis()->FindFixBin(eta)));
+    int ptbin  = std::max(1, std::min(histSelection->GetNbinsY(), histSelection->GetYaxis()->FindFixBin(pt)));
+
+    float out = histSelection->GetBinContent(etabin,ptbin);
+
+    return out;
+  }
+
+  return 0;
+
+}
+float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  if (!_histo_trigger_leptonSF_mu) {
+    _file_trigger_leptonSF_mu = new TFile(Form("%s/results/muFullData_trigger/triggerMu/egammaEffi.txt_EGM2D.root",basedirSF_mu.c_str()),"read");
+    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("EGamma_SF2D"));
+    _histo_trigger_leptonSF_mu->Smooth(1,"k3a");
+  }
+
+  if(abs(pdgid)==13) {
+    TH2F *histTrigger = _histo_trigger_leptonSF_mu;
+
+    int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
+    int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
+
+    float out = histTrigger->GetBinContent(etabin,ptbin);
+
+    return out;
+  }
+
+  return 0;
+
+}
+
+float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, float l2pt, float l2eta, float l21pass, float l22pass){
+  float weight = -999.;
+
+  bool l1pass = (l11pass > -1. || l12pass > -1.);
+  bool l2pass = (l21pass > -1. || l22pass > -1.);
+
+  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+  float l2sf = _get_muonSF_selectionToTrigger(13,l2pt,l2eta);
+
+  int randomize = 0;
+
+  if      ( l1pass && !l2pass) weight = l1sf;
+  else if (!l1pass &&  l2pass) weight = l2sf;
+  else if ( l1pass &&  l2pass) {
+    if   (!randomize) weight = (l1sf+l2sf)/2.;
+    else {
+      if(!rng) rng = new TRandom3();
+      float randy = rng->Uniform(-1.,1.);
+      if (randy < 0.) weight = l1sf;
+      else            weight = l2sf;
+    }
+  }
+
+  //else return -999.; // this should never happen
+
+  return weight;
+}
+
+float triggerSF_1l_histo(float l1pt, float l1eta){
+
+  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+
+  return l1sf;
+}
 
 
 #endif
