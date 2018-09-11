@@ -20,11 +20,18 @@
 
 # python w-helicity-13TeV/makeRatioTH2.py ~/www/wmass/13TeV/scaleFactors/electron/fullID_extPt/smoothEfficiency_electrons_fullID.root scaleFactor ~/www/wmass/13TeV/scaleFactors/electron/fullID_noErfPlusLine/smoothEfficiency_electrons_fullID.root scaleFactor -o ~/www/wmass/13TeV/scaleFactors/ratio/electron/fullID_extPt__over__fullID/ -f ratio.root -n ratio2D -t "full ID scale factor ratio" -z ratio --ratioRange 0.9 1.1
 
+# python w-helicity-13TeV/makeRatioTH2.py ../../data/fakerate/fakeRateSmoothed_el_mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF_fitpol2.root fr_pt_eta_ewk ~/www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2/fakeRateSmoothed_el_mT40_35p9fb_signedEta_pt65_subtrAlllMC_newTrigSF_fitpol2.root fr_pt_eta_ewk -o ~/www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2/ -f ratio_PR_WZ_allMC.root -n ratioPR_WZ_allMC -t "PR W,Z MC / all MC" -z "PR ratio" -r 0.98 1.02
+
+# python w-helicity-13TeV/makeRatioTH2.py ../../data/fakerate/fakeRateSmoothed_el_mT40_35p9fb_signedEta_pt65_subtrAlllMC_newTrigSF_fitpol2.root fr_pt_eta_ewk ~/www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/fakeRateSmoothed_el_mT40_35p9fb_signedEta_pt65_subtrAlllMC_newTrigSF_fitpol2_testTrigSF.root fr_pt_eta_ewk -o ~/www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2/ -f ratioPR_nomi_test.root -n FILE -t "PR nomi / test" -z "PR ratio" -r 0.99 1.01
+
+# python w-helicity-13TeV/makeRatioTH2.py /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/scaleFactors/electron/trigger_extPt_30_45/smoothEfficiency_electrons_trigger.root scaleFactor /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/scaleFactors/electron/trigger_extPt/smoothEfficiency_electrons_trigger.root scaleFactor -o /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/scaleFactors/ratio/electron/trigger_ptUpTo45__Over__ptUpTo55/ -f trgSF_pt45_pt55.root -n FILE -t "p_{T} < 45 / p_{T} < 55" -z "trigger scale factor ratio" -r 0.95 1.05
+
 ################################
 ################################
 
 
 import ROOT, os, sys, re, array, math
+import time
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
@@ -37,7 +44,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage='%prog [options] file1 hist1 file2 hist2')
     parser.add_option('-o','--outdir',      dest='outdir',      default='', type='string', help='output directory to save things')
     parser.add_option('-f','--outfilename', dest='outfilename', default='', type='string', help='Name of output file to save results')
-    parser.add_option('-n','--outhistname', dest='outhistname', default='', type='string', help='Name of output histogram saved in output file')
+    parser.add_option('-n','--outhistname', dest='outhistname', default='', type='string', help='Name of output histogram saved in output file. If FILE is used, take same name as the output file, removing the extension')
     parser.add_option('-x','--xAxisTitle',  dest='xAxisTitle',  default='', type='string', help='X axis title. If not given, use the one from hist1')
     parser.add_option('-y','--yAxisTitle',  dest='yAxisTitle',  default='', type='string', help='Y axis title. If not given, use the one from hist1')
     parser.add_option('-z','--zAxisTitle',  dest='zAxisTitle',  default='', type='string', help='Z axis title. If not given, use the one from hist1')
@@ -50,6 +57,18 @@ if __name__ == "__main__":
     if len(sys.argv) < 4:
         parser.print_usage()
         quit()
+
+    cmssw_version = os.environ['CMSSW_VERSION']
+    if int(cmssw_version.split('_')[1]) < 10:
+        print ""
+        print ">>>> WARNING:" 
+        print "current version of CMSSW ({version}) might lead to segmentation fault when running this script!".format(version=cmssw_version) 
+        print "Or, the Z axis range might not be set properly"
+        print "If you experience any of these issues, try running the script from a release CMSSW_X_Y_Z with X > 8 (10_2 suggested)"
+        print "Versions with Y > 2 seems to work, but lead to some warnings and print garbage on stdout"
+        print "Continuing in 3 seconds ..."
+        print ""
+        time.sleep(3)
 
     f1 = args[0]
     h1 = args[1]
@@ -71,9 +90,14 @@ if __name__ == "__main__":
         print "Error: you should specify an output file name using option -f <name>. Exit"
         quit()
     if not options.outhistname:
-        print "Error: you should specify an output histogram name using option -n <name>. Exit"
+        print "Error: you should specify an output histogram name using option -n <name>. "
+        print "If FILE is used, take same name as the output file, removing the extension"
+        print "Exit"
         quit()
 
+
+    if options.outhistname == "FILE":
+        options.outhistname = options.outfilename.split('.')[0]
 
     hratio = 0
 
@@ -162,7 +186,7 @@ if __name__ == "__main__":
     ROOT.gStyle.SetOptFit(1102)
     #
     for ext in ["png","pdf"]:
-        canvas.SaveAs(outname + "ratioDistribution.{ext}".format(ext=ext))
+        canvas.SaveAs(outname + "ratioDistribution_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
  
     ###########################
     # Now save things

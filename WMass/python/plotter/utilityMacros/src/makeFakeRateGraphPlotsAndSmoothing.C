@@ -25,6 +25,8 @@ TH2D* frSmoothParameter_qcd = nullptr;
 TH2D* frSmoothParameter_w = nullptr;
 TH2D* frSmoothParameter_z = nullptr;
 TH2D* frSmoothParameter_ewk = nullptr;
+TH2D* frSmoothParameter_top_vv = nullptr;
+TH2D* frSmoothParameter_wz = nullptr;
 
 // the core of this macro is makeFakeRateGraphPlotsAndSmoothing(), which is at the bottom of this code and calls all the rest
 
@@ -424,7 +426,9 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 			  const Double_t etaLow = 0.0, // used only if scan_vs_eta = true
 			  const Double_t etaHigh = 2.5, // used only if scan_vs_eta = true
 			  const Bool_t hasSignedEta = true,
-			  const Bool_t noDrawQCD = false
+			  const Bool_t noDrawQCD = false,
+			  const Bool_t showMergedWZ = true,   // overriden if showMergedEWK=true, else it draws W and Z together
+			  const Bool_t showTopVV = true // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
 			  ) 
 {
 
@@ -466,8 +470,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   TGraphAsymmErrors* fr_data_subEWKMC = nullptr;
   TGraphAsymmErrors* fr_w = nullptr;
   TGraphAsymmErrors* fr_z = nullptr;
+  TGraphAsymmErrors* fr_vv = nullptr;
+  TGraphAsymmErrors* fr_top = nullptr;
   TGraphAsymmErrors* fr_qcd = nullptr;
-  TGraphAsymmErrors* fr_ewk = nullptr;
+  TGraphAsymmErrors* fr_ewk = nullptr; // all EWK
+  TGraphAsymmErrors* fr_top_vv = nullptr; // Top+DiBosons
+  TGraphAsymmErrors* fr_wz = nullptr; // W+Z
 
   string detId = isEB ? "EB" : "EE";
   string yrange = isEB ? "0.25,1.4" : "0,1.4";  // range for plotting all graphs
@@ -477,7 +485,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   createPlotDirAndCopyPhp(outDir);
   adjustSettings_CMS_lumi(outDir);
 
-  vector<string> processes = {"data", "data_sub", "QCD", "W", "Z"};
+  vector<string> processes = {"data", "data_sub", "QCD", "W", "Z", "DiBosons", "Top"};
 
   vector<TH1*> hpass;
   vector<TH1*> hntot;
@@ -486,6 +494,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
   TH1* hpass_ewk = nullptr;
   TH1* hntot_ewk = nullptr;
+
+  TH1* hpass_top_vv = nullptr;
+  TH1* hntot_top_vv = nullptr;
+
+  TH1* hpass_wz = nullptr;
+  TH1* hntot_wz = nullptr;
 
   ///////////////////////////////////////
   // open file with inputs
@@ -587,6 +601,14 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       hpass_ewk = new TH1D("ewk_pass","", nBinsEWK, ptBinBoundariesEWK.data());
       hntot_ewk = new TH1D("ewk_ntot","", nBinsEWK, ptBinBoundariesEWK.data());
     }
+    if (hpass_top_vv == nullptr && hntot_top_vv == nullptr) {
+      hpass_top_vv = new TH1D("top_vv_pass","", nBinsEWK, ptBinBoundariesEWK.data());
+      hntot_top_vv = new TH1D("top_vv_ntot","", nBinsEWK, ptBinBoundariesEWK.data());
+    }
+    if (hpass_wz == nullptr && hntot_wz == nullptr) {
+      hpass_wz = new TH1D("wz_pass","", nBinsEWK, ptBinBoundariesEWK.data());
+      hntot_wz = new TH1D("wz_ntot","", nBinsEWK, ptBinBoundariesEWK.data());
+    }
 
     Double_t error = 0.0;
     for (Int_t ix = 1; ix <= h3tmp->GetNbinsX(); ++ix) {
@@ -603,6 +625,15 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       hntot.back() = hntot.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
       hpass_ewk->Add(hpass.back());
       hntot_ewk->Add(hntot.back());
+      hpass_wz->Add(hpass.back());
+      hntot_wz->Add(hntot.back());
+    } else if (processes[j] == "Top" || processes[j] == "DiBoson") {
+      hpass.back() = hpass.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
+      hntot.back() = hntot.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
+      hpass_ewk->Add(hpass.back());
+      hntot_ewk->Add(hntot.back());
+      hpass_top_vv->Add(hpass.back());
+      hntot_top_vv->Add(hntot.back());
     } else if (processes[j] == "data" || processes[j] == "data_sub") {
       hpass.back() = hpass.back()->Rebin(nBinsData,"",ptBinBoundariesData.data());
       hntot.back() = hntot.back()->Rebin(nBinsData,"",ptBinBoundariesData.data());
@@ -618,6 +649,14 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
       fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
       //fillFakeRateTH2(fr_pt_eta_z,etaBinTH1,hpass.back(),hntot.back());
+
+    } else if (processes[j] == "DiBosons") {
+
+      fr_vv = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
+    } else if (processes[j] == "Top") {
+
+      fr_top = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
     } else if (processes[j] == "data_sub") {
 	fr_data_subEWKMC = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode"); 
@@ -642,21 +681,35 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     legendEntries.push_back("QCD MC");
   }
 
+
   fr_ewk = new TGraphAsymmErrors(hpass_ewk, hntot_ewk, "cl=0.683 b(1,1) mode");
+  fr_top_vv = new TGraphAsymmErrors(hpass_top_vv, hntot_top_vv, "cl=0.683 b(1,1) mode");
+  fr_wz = new TGraphAsymmErrors(hpass_wz, hntot_wz, "cl=0.683 b(1,1) mode");
 
   if (showMergedEWK) {
     gr.push_back(fr_ewk);
     colorList.push_back(kBlue);
-    legendEntries.push_back("W,Z MC (prompt rate)");
+    legendEntries.push_back("EWK MC (prompt rate)");
   } else {
-    gr.push_back(fr_w);
-    gr.push_back(fr_z);
-    colorList.push_back(kBlue);
-    colorList.push_back(kAzure+2);    
-    legendEntries.push_back("W MC (prompt rate)");
-    legendEntries.push_back("Z MC (prompt rate)");
+    if (showMergedWZ) {
+      gr.push_back(fr_wz);
+      colorList.push_back(kBlue);
+      legendEntries.push_back("W,Z MC (prompt rate)");
+    } else {
+      gr.push_back(fr_w);
+      gr.push_back(fr_z);
+      colorList.push_back(kBlue);
+      colorList.push_back(kAzure+2);    
+      legendEntries.push_back("W MC (prompt rate)");
+      legendEntries.push_back("Z MC (prompt rate)");
+    }
+    if (showTopVV) {
+      gr.push_back(fr_top_vv);
+      if (noDrawQCD) colorList.push_back(kGreen+2);
+      else               colorList.push_back(kPink);
+      legendEntries.push_back("Top,VV MC (prompt rate)");
+    }
   }
-
 
   //fillFakeRateTH2(fr_pt_eta_ewk,etaBinTH1,hpass_ewk,hntot_ewk);
 
@@ -700,6 +753,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   TFitResultPtr ptr_w = nullptr;
   TFitResultPtr ptr_z = nullptr;
   TFitResultPtr ptr_ewk = nullptr;
+  TFitResultPtr ptr_top_vv = nullptr;
+  TFitResultPtr ptr_wz = nullptr;
 
   if (showMergedEWK) {
 
@@ -713,23 +768,50 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
   } else {
 
-    ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
-    // fit is Y=a*X+b
-    // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {        
-      frSmoothParameter_w->SetBinContent(etaBinTH1,ipar+1,ptr_w->Parameter(ipar));
-      frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
-    }
+    if (showMergedWZ) {
+      
+      ptr_wz = fitGraph(fr_wz, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_wz_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      // fit is Y=a*X+b
+      // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
+      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+	frSmoothParameter_wz->SetBinContent(etaBinTH1,ipar+1,ptr_wz->Parameter(ipar));
+	frSmoothParameter_wz->SetBinError(etaBinTH1,ipar+1,ptr_wz->ParError(ipar));
+      }
+      
+    } else {
 
-    ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
-    // fit is Y=a*X+b
-    // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
-      frSmoothParameter_z->SetBinContent(etaBinTH1,ipar+1,ptr_z->Parameter(ipar));
-      frSmoothParameter_z->SetBinError(etaBinTH1,ipar+1,ptr_z->ParError(ipar));
+      ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      // fit is Y=a*X+b
+      // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
+      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {        
+	frSmoothParameter_w->SetBinContent(etaBinTH1,ipar+1,ptr_w->Parameter(ipar));
+	frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
+      }
+
+      ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      // fit is Y=a*X+b
+      // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
+      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+	frSmoothParameter_z->SetBinContent(etaBinTH1,ipar+1,ptr_z->Parameter(ipar));
+	frSmoothParameter_z->SetBinError(etaBinTH1,ipar+1,ptr_z->ParError(ipar));
+      }
+
+      if (showTopVV) {
+
+	ptr_top_vv = fitGraph(fr_top_vv, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_top_vv_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Top,VV MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+	// fit is Y=a*X+b
+	// bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
+	for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+	  frSmoothParameter_top_vv->SetBinContent(etaBinTH1,ipar+1,ptr_top_vv->Parameter(ipar));
+	  frSmoothParameter_top_vv->SetBinError(etaBinTH1,ipar+1,ptr_top_vv->ParError(ipar));
+	}
+      
+      }
+
     }
 
   }
+
 
   TFitResultPtr ptr_qcd = nullptr;
 
@@ -752,10 +834,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF_fitpol2/", 
-					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_fullWMC_newTrigSF",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/", 
+					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true,
@@ -769,7 +851,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 					const Double_t inputLuminosity = 35.9, // -1 in case luminosity should not be printed
 					const Bool_t scan_vs_eta = true, // see below
 					const Bool_t hasSignedEta = true, // see below
-					const Bool_t noDrawQCD = true
+					const Bool_t noDrawQCD = true,
+					const Bool_t showMergedWZ = true,   // overriden if showMergedEWK=true, else it draws W and Z together
+					const Bool_t showTopVV = true // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
+					//const Bool_t addTopVVtoWZ = true  // will not draw W,Z and Top,VV separately, but altogether
 			   ) 
 {
 
@@ -821,6 +906,8 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   frSmoothParameter_w = new TH2D("frSmoothParameter_w","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
   frSmoothParameter_z = new TH2D("frSmoothParameter_z","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
   frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_top_vv = new TH2D("frSmoothParameter_top_vv","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_wz = new TH2D("frSmoothParameter_wz","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
 
   string outDir = (outDir_tmp == "SAME") ? (inputFilePath + "FR_graphs/") : outDir_tmp;
 
@@ -854,7 +941,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			 etabinPostFix,
 			 i,
 			 scan_vs_eta,etaBoundaries[i],etaBoundaries[i+1],hasSignedEta,
-			 noDrawQCD); 
+			 noDrawQCD,
+			 showMergedWZ,
+			 showTopVV
+			 ); 
 
   }
 
@@ -916,8 +1006,12 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 				  70, 30, 65, NetaBins, etaBoundaries.data());
   TH2D* fr_pt_eta_z    = new TH2D("fr_pt_eta_z",Form("prompt rate for Z MC;electron p_{T};%s",etaYaxisName.c_str()), 
 				  70, 30, 65, NetaBins, etaBoundaries.data());
-  TH2D* fr_pt_eta_ewk  = new TH2D("fr_pt_eta_ewk",Form("prompt rate for W,Z MC;electron p_{T};%s",etaYaxisName.c_str()), 
+  TH2D* fr_pt_eta_ewk  = new TH2D("fr_pt_eta_ewk",Form("prompt rate for EWK MC;electron p_{T};%s",etaYaxisName.c_str()), 
 				  70, 30, 65, NetaBins, etaBoundaries.data());
+  TH2D* fr_pt_eta_top_vv  = new TH2D("fr_pt_eta_top_vv",Form("prompt rate for Top,VV MC;electron p_{T};%s",etaYaxisName.c_str()), 
+				     70, 30, 65, NetaBins, etaBoundaries.data());
+  TH2D* fr_pt_eta_wz  = new TH2D("fr_pt_eta_wz",Form("prompt rate for W,Z MC;electron p_{T};%s",etaYaxisName.c_str()), 
+				 70, 30, 65, NetaBins, etaBoundaries.data());
 
   cout << "Creating TH2 fr_pt_eta_* with smoothed fake or prompt rate (pT vs |eta|)" << endl;
   cout << endl;
@@ -927,8 +1021,15 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   if (showMergedEWK) {
     fillFakeRateTH2smooth(fr_pt_eta_ewk, frSmoothParameter_ewk);
   } else {
-    fillFakeRateTH2smooth(fr_pt_eta_w, frSmoothParameter_w);
-    fillFakeRateTH2smooth(fr_pt_eta_z, frSmoothParameter_z);
+    if (showMergedWZ) {
+      fillFakeRateTH2smooth(fr_pt_eta_wz, frSmoothParameter_wz);    
+    } else {
+      fillFakeRateTH2smooth(fr_pt_eta_w, frSmoothParameter_w);
+      fillFakeRateTH2smooth(fr_pt_eta_z, frSmoothParameter_z);
+    }
+    if (showTopVV) {
+      fillFakeRateTH2smooth(fr_pt_eta_top_vv, frSmoothParameter_top_vv);
+    }
   }
 
   // draw some TH2
@@ -958,19 +1059,39 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			"smoothed_promptRate_pt_vs_eta_ewk",
 			"", outDir, 1,1, false,false,false,1);
   } else {
-    drawCorrelationPlot(fr_pt_eta_w, 
-			fr_pt_eta_w->GetXaxis()->GetTitle(),
-			fr_pt_eta_w->GetYaxis()->GetTitle(),
-			"prompt rate",
-			"smoothed_promptRate_pt_vs_eta_w",
-			"", outDir, 1,1, false,false,false,1);
-    drawCorrelationPlot(fr_pt_eta_z, 
-			fr_pt_eta_z->GetXaxis()->GetTitle(),
-			fr_pt_eta_z->GetYaxis()->GetTitle(),
-			"prompt rate",
-			"smoothed_promptRate_pt_vs_eta_z",
-			"", outDir, 1,1, false,false,false,1);
+    if (showMergedWZ) {
+      drawCorrelationPlot(fr_pt_eta_wz, 
+			  fr_pt_eta_wz->GetXaxis()->GetTitle(),
+			  fr_pt_eta_wz->GetYaxis()->GetTitle(),
+			  "prompt rate",
+			  "smoothed_promptRate_pt_vs_eta_wz",
+			  "", outDir, 1,1, false,false,false,1);
+
+    } else {
+      drawCorrelationPlot(fr_pt_eta_w, 
+			  fr_pt_eta_w->GetXaxis()->GetTitle(),
+			  fr_pt_eta_w->GetYaxis()->GetTitle(),
+			  "prompt rate",
+			  "smoothed_promptRate_pt_vs_eta_w",
+			  "", outDir, 1,1, false,false,false,1);
+      drawCorrelationPlot(fr_pt_eta_z, 
+			  fr_pt_eta_z->GetXaxis()->GetTitle(),
+			  fr_pt_eta_z->GetYaxis()->GetTitle(),
+			  "prompt rate",
+			  "smoothed_promptRate_pt_vs_eta_z",
+			  "", outDir, 1,1, false,false,false,1);
+    }
+    if (showTopVV) {
+      drawCorrelationPlot(fr_pt_eta_top_vv, 
+			  fr_pt_eta_top_vv->GetXaxis()->GetTitle(),
+			  fr_pt_eta_top_vv->GetYaxis()->GetTitle(),
+			  "prompt rate",
+			  "smoothed_promptRate_pt_vs_eta_top_vv",
+			  "", outDir, 1,1, false,false,false,1);
+    }
+
   }
+
   if (not noDrawQCD) 
     drawCorrelationPlot(fr_pt_eta_qcd, 
 			fr_pt_eta_qcd->GetXaxis()->GetTitle(),
@@ -996,8 +1117,15 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   if (showMergedEWK) {
     frSmoothParameter_ewk->Write();
   } else{
-    frSmoothParameter_w->Write();
-    frSmoothParameter_z->Write();
+    if (showMergedWZ) {
+      frSmoothParameter_wz->Write();
+    } else {
+      frSmoothParameter_w->Write();
+      frSmoothParameter_z->Write();
+    }
+    if (showTopVV) {
+      frSmoothParameter_top_vv->Write();
+    }
   }
   // fake or prompt rate points (no errors)
   cout << "Writing TH2 fr_pt_eta_* with smoothed fake or prompt rate in file" << endl;
@@ -1007,8 +1135,15 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   if (showMergedEWK) {
     fr_pt_eta_ewk->Write();
   } else {
-    fr_pt_eta_w->Write();
-    fr_pt_eta_z->Write();
+    if (showMergedWZ) {
+      fr_pt_eta_wz->Write();     
+    } else {
+      fr_pt_eta_w->Write();
+      fr_pt_eta_z->Write();
+    }
+    if (showTopVV) {
+      fr_pt_eta_top_vv->Write();
+    }
   }
 
   frSmoothFile->Close();
