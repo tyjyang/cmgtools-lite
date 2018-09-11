@@ -194,25 +194,25 @@ class lep2016SFProducer(Module):
         # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
         # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
 
-        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger.root", 
-                     "identification": "smoothEfficiency_muons_full2016_ID.root", 
-                     "isolation"     : "smoothEfficiency_muons_full2016_ISO.root"
+        self.mu_f = {"trigger"       : "etaptSmooth_muons_trigger.root", 
+                     "reco"          : "muons_reco.root",
+                     "idiso"         : "etaptSmooth_muons_idiso.root", 
                      }
         self.el_f = {"trigger_barrel"  : "etaptSmooth_electrons_trigger_30_55_onlyErf.root",
                      "trigger_endcap"  : "electrons_trigger_endcap0p1.root",
                      "reco"            : "electrons_reco_pt30to45.root",
-                     "clustering"      : "electrons_clustering.root",
                      "full_ID_barrel"  : "etaptSmooth_electrons_fullID_V2_pt25to55.root",
-                     "full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root"
+                     "full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root",
+                     "clustering"      : "electrons_clustering.root",
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
         # for muon ID, might also want to use "scaleFactorOriginal" which has the unsmoothed version of the scale factors
-        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor")
-        self.sf2_manager_mu = scaleFactorManager(self.mu_f["identification"],self.filePath,"scaleFactorOriginal")  # use unsmoothed version here  
-        self.sf3_manager_mu = scaleFactorManager(self.mu_f["isolation"],     self.filePath,"scaleFactor")
+        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"EGamma_SF2D")
+        self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
 
         # create electron scale factor manager        
         self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
