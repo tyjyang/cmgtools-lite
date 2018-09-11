@@ -145,217 +145,160 @@ float _get_electronSF_recoToCustomTight(int pdgid, float pt, float eta, float va
 
 }
 
-TFile *_file_anyWP_leptonSF_el = NULL;
-TH2F *_histo_anyWP_leptonSF_el = NULL;
+TFile *_file_trigger_wmass_leptonEff_el = NULL;
+TH2F *_histo_trigger_wmass_leptonEff_DATA_el = NULL;
+TH2F *_histo_trigger_wmass_leptonEff_MC_el = NULL;
 
-float _get_electronSF_anyWP(float pt, float eta, const char* infile="EGM2D_eleCutBasedVetoWP.root") {
-
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+float _get_electronEff_HLT(float pt, float eta, bool isData) {
+  if (!_histo_trigger_wmass_leptonEff_DATA_el || !_histo_trigger_wmass_leptonEff_MC_el) {
+    _file_trigger_wmass_leptonEff_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_trigger_pt30to55.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_wmass_leptonEff_DATA_el = (TH2F*)(_file_trigger_wmass_leptonEff_el->Get("EGamma_EffData2D"));
+    _histo_trigger_wmass_leptonEff_MC_el = (TH2F*)(_file_trigger_wmass_leptonEff_el->Get("EGamma_EffMC2D")) ;
+    //_histo_trigger_wmass_leptonEff_DATA_el->Smooth(1,"k3a");
+    //_histo_trigger_wmass_leptonEff_MC_el->Smooth(1,"k3a");
   }
-    
-  if (!_histo_anyWP_leptonSF_el) {
-    _file_anyWP_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/%s",_cmssw_base_.c_str(),infile),"read");
-    _histo_anyWP_leptonSF_el = (TH2F*)(_file_anyWP_leptonSF_el->Get("EGamma_SF2D"));
-  }
-
-  TH2F *hist = _histo_anyWP_leptonSF_el;
+  TH2F *hist = isData ? _histo_trigger_wmass_leptonEff_DATA_el : _histo_trigger_wmass_leptonEff_MC_el;
   int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
   int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
-  float out = 0;
-  out = hist->GetBinContent(etabin,ptbin);
-
+  float out = hist->GetBinContent(etabin,ptbin);
   return out;
-
 }
 
-TFile *_file_eltrg_leptonSF_2D = NULL;
-TH2F *_histo_eltrg_leptonSF_2D = NULL;
-TFile *_file_eltrg_leptonSF_1D = NULL;
-TH1F *_histo_eltrg_leptonSF_1D = NULL;
-std::vector<TSpline3*> _splines_trg;
-bool _cache_splines = false;
 
-float _get_electronSF_trg_top(int pdgid, float pt, float eta, int ndim, float var) {
+TFile *_file_trigger_wmass_leptonSF_el = NULL;
+TH2F *_histo_trigger_wmass_leptonSF_el = NULL;
+TFile *_file_trigger_ee0p1_wmass_leptonSF_el = NULL;
+TH2F *_histo_trigger_ee0p1_wmass_leptonSF_el = NULL;
+TFile *_file_reco_wmass_leptonSF_el = NULL;
+TH2F *_histo_reco_wmass_leptonSF_el = NULL;
+TFile *_file_fullid_wmass_leptonSF_el = NULL;
+TH2F *_histo_fullid_wmass_leptonSF_el = NULL;
+TFile *_file_fullid_ee0p1_wmass_leptonSF_el = NULL;
+TH2F *_histo_fullid_ee0p1_wmass_leptonSF_el = NULL;
+TFile *_file_cluster_wmass_leptonSF_el = NULL;
+TH2F *_histo_cluster_wmass_leptonSF_el = NULL;
 
+float _get_electronSF_anyStep(float pt, float eta, int step) {
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
     
-  if (!_histo_eltrg_leptonSF_2D) {
-    _file_eltrg_leptonSF_2D = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/el_trg/HLT_Ele32_eta2p1_WPTight_Gsf_FullRunRange.root",_cmssw_base_.c_str()),"read");
-    _histo_eltrg_leptonSF_2D = (TH2F*)(_file_eltrg_leptonSF_2D->Get("SF"));
+  if (!_histo_trigger_wmass_leptonSF_el) {
+    _file_trigger_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/etaptSmooth_electrons_trigger_30_55_onlyErf.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_wmass_leptonSF_el = (TH2F*)(_file_trigger_wmass_leptonSF_el->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+  }
+  if (!_histo_trigger_ee0p1_wmass_leptonSF_el) {
+    _file_trigger_ee0p1_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_trigger_endcap0p1.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_ee0p1_wmass_leptonSF_el = (TH2F*)(_file_trigger_ee0p1_wmass_leptonSF_el->Get("EGamma_SF2D"));
+  }
+  if (!_histo_reco_wmass_leptonSF_el) {
+    _file_reco_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_reco_pt30to45.root",_cmssw_base_.c_str()),"read");
+    _histo_reco_wmass_leptonSF_el = (TH2F*)(_file_reco_wmass_leptonSF_el->Get("EGamma_SF2D"));
+  }
+  if (!_histo_fullid_wmass_leptonSF_el) {
+    _file_fullid_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/etaptSmooth_electrons_fullID_V2_pt25to55.root",_cmssw_base_.c_str()),"read");
+    _histo_fullid_wmass_leptonSF_el = (TH2F*)(_file_fullid_wmass_leptonSF_el->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+  }
+  if (!_histo_fullid_ee0p1_wmass_leptonSF_el) {
+    _file_fullid_ee0p1_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_fullID_V2_endcap0p1.root",_cmssw_base_.c_str()),"read");
+    _histo_fullid_ee0p1_wmass_leptonSF_el = (TH2F*)(_file_fullid_ee0p1_wmass_leptonSF_el->Get("EGamma_SF2D"));
+  }
+  if (!_histo_cluster_wmass_leptonSF_el) {
+    _file_cluster_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_clustering.root",_cmssw_base_.c_str()),"read");
+    _histo_cluster_wmass_leptonSF_el = (TH2F*)(_file_cluster_wmass_leptonSF_el->Get("scaleFactor"));
   }
 
-  if(abs(pdgid)==11) {
-    TH2F *hist = _histo_eltrg_leptonSF_2D;
-    int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
-    int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
-    float out = hist->GetBinContent(etabin,ptbin)+var*hist->GetBinError(etabin,ptbin);
-    return out;
+  TH2F *hist = 0;
+  if (step==1) {
+    hist = fabs(eta)<1.566 ? _histo_trigger_wmass_leptonSF_el : _histo_trigger_ee0p1_wmass_leptonSF_el;
+  }
+  else if (step==2) hist = _histo_reco_wmass_leptonSF_el;
+  else if (step==3) {
+    hist = fabs(eta)<1.566 ? _histo_fullid_wmass_leptonSF_el : _histo_fullid_ee0p1_wmass_leptonSF_el;
+  }
+  else if (step==4) hist = _histo_cluster_wmass_leptonSF_el;
+  else {
+    std::cout << "Step " << step << " of the efficiency corrections not foreseen. Returning 0" << std::endl;
+    return 0.;
   }
 
-  return 0.;
-  
-}
-
-void _smoothTrgSF(TH2F* hist) {
-  if(_cache_splines) return;
-  _splines_trg.clear();
-  double *x=0, *y=0;
-  //  TCanvas c1;
-  for(int ptbin=0; ptbin<hist->GetNbinsX()+1; ++ptbin) {
-    int nbinseta = hist->GetNbinsY();
-    if(x) delete x;
-    x = new double[nbinseta];
-    if(y) delete y;
-    y = new double[nbinseta];
-    for(int etabin=1; etabin<hist->GetNbinsY()+1; ++etabin) {
-      x[etabin-1] = hist->GetYaxis()->GetBinCenter(etabin);
-      y[etabin-1] = hist->GetBinContent(ptbin,etabin);
-    }
-    char name[50];
-    sprintf(name,"smooth_ptbin_%d",ptbin);
-    TSpline3 *spline = new TSpline3(name,x,y,hist->GetNbinsY());
-    // spline->Draw();
-    // c1.SaveAs((std::string(name)+".png").c_str());
-    _splines_trg.push_back(spline);
-  }
-  _cache_splines = true;
-}
-
-float _get_electronSF_trg(int pdgid, float pt, float eta, int ndim, float var, bool smooth=true) {
-
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
-  if (!_histo_eltrg_leptonSF_2D) {
-    _file_eltrg_leptonSF_2D = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/el_trg/v5/sf/passHLT/eff2D.root",_cmssw_base_.c_str()),"read");
-    _histo_eltrg_leptonSF_2D = (TH2F*)(_file_eltrg_leptonSF_2D->Get("s2c_eff"));
-  }
-
-  if (!_histo_eltrg_leptonSF_1D) {
-    _file_eltrg_leptonSF_1D = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/el_trg/v5/eta/passHLT/eff1D.root",_cmssw_base_.c_str()),"read");
-    _histo_eltrg_leptonSF_1D = (TH1F*)(_file_eltrg_leptonSF_1D->Get("s1c_eff"));
-  }
-
-  // WARNING: the 2D histogram has bin content close to 0 for pT < 25 (it is defined for pT > 10
-  // when we use pT with scale corrections, we can have pT < 25 (like 24.7 for example)
-  // therefore, force pT to be >= 25, otherwise 'out' can get negative when using the spline to interpolate, because the histogram has bin content 0
-  // on the other hand, we could just force 'out' to be 0 when using the spline, which means we reject events with pT < 25 (even if very close to 25)
-  // this is probably done anyway, because we cut away events with pT_corr < 25 in the selection 
-  // the histogram content is available here: /afs/cern.ch/user/m/mciprian/public/WMassTools/trgSF_2D_histoBins.txt 
-
-  if(abs(pdgid)==11) {
-    float out=0;
-    if(ndim==2) {
-      TH2F *hist = _histo_eltrg_leptonSF_2D;
-      int ptbin  = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(std::max(pt,(float)25.1)))); // different convention for axes
-      int etabin = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(eta)));
-      if (!smooth) out = hist->GetBinContent(ptbin,etabin)+var*hist->GetBinError(ptbin,etabin);
-      else {
-        if(!_cache_splines) _smoothTrgSF(hist);
-        TSpline3 *spline = _splines_trg[ptbin];
-        out = spline->Eval(eta)+var*hist->GetBinError(ptbin,etabin);
-	// if (out < 0) {
-	//   cout << endl;
-	//   cout << "eta boundaries: ";
-	//   for (Int_t i = 1; i <= hist->GetNbinsY()+1; i++) {
-	//     cout << Form("%.2f  ",hist->GetYaxis()->GetBinLowEdge(i));
-	//   }
-	//   cout << endl;
-	//   cout << "pt boundaries:  ";
-	//   for (Int_t i = 1; i <= hist->GetNbinsY()+1; i++) {
-	//     cout << Form("%.2f  ",hist->GetXaxis()->GetBinLowEdge(i));
-	//   }
-	//   cout << endl;
-	//   cout << endl;
-	//   for (Int_t i = 1; i <= hist->GetNbinsY(); i++) {
-	//     for (Int_t j = 1; j <= hist->GetNbinsX(); j++) {
-	//       cout << Form("%.3f  ",hist->GetBinContent(j,i));
-	//     }
-	//     cout << endl;
-	//   }
-	//   cout << endl;
-	//   cout <<"nbinsX,nbinsY = " << hist->GetNbinsX() << "," << hist->GetNbinsY() << endl;
-	//   cout <<"lowerX,lowerY = " << hist->GetXaxis()->GetBinLowEdge(1) << "," << hist->GetYaxis()->GetBinLowEdge(1) << endl;
-	//   cout << "ptbin,etabin,hist->GetBinContent(ptbin,etabin) = " << ptbin << "," << etabin << "," << hist->GetBinContent(ptbin,etabin) << endl;
-	//   cout << "pt,eta,out = " << pt << "," << eta << "," << out << endl;
-	// }
-      }
-      // if (fabs(eta)>1.479) out = std::min(double(out),1.1); // crazy values in EE- 
-      // // correct way would do a weighted average of the run-dep SFs. Here something rough from slide 5 of HLT eff talk
-      // if (fabs(eta)>1.479) out *= 0.96;
-      // if (pt<40 && fabs(eta)<1.479) out *= (0.00887*pt + 0.637); // measured turn on on Z->ee after v6 SFs
-      // if (pt<35 && fabs(eta)>1.479) out *= (0.032*pt - 0.117); // measured turn on on Z->ee after v6 SFs
-      
-      ///////////////////////////////
-      // slight optimization of the lines above: no need to assess the same condition several times
-      // by the way, for EE out cannot be bigger than ~1.06: is it really what we want?
-      // correct way would do a weighted average of the run-dep SFs. Here something rough from slide 5 of HLT eff talk                                                      
-      if (fabs(eta)>1.479) {
-	//if (out > 1.1) cout << "_get_electronSF_trg(): eta = " << eta << ",   out = "  << out << ". Setting it to 1.1!" << endl;
-	out = 0.96 * std::min(double(out),1.1); // crazy values in EE- 
-	if (pt<35) out *= (0.032*pt - 0.117);   // measured turn on on Z->ee after v6 SFs   
-      } else {
-	if (pt<40) out *= (0.00887*pt + 0.637); // measured turn on on Z->ee after v6 SFs
-      }
-      ////////////////////////////////
-      // if (out < 0) {
-      // 	cout << "WARNING in _get_electronSF_trg() function: out < 0, pt was " << pt << "" << endl;
-      // }
-    } else {
-      TH1F *hist = _histo_eltrg_leptonSF_1D;
-      int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
-      out = hist->GetBinContent(etabin)+var*hist->GetBinError(etabin);
-    }
-    return out;
-  }
-
-  return 0;
-
-}
-
-TFile *_file_elofflineWP_1D = NULL;
-TH2F *_histo_elofflineWP_1D = NULL;
-
-float _get_electronSF_offlineWP_residual(float eta) {
-
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
-  if (!_histo_elofflineWP_1D) {
-    _file_elofflineWP_1D = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/el_eta_offlineWP_SF.root",_cmssw_base_.c_str()));
-    _histo_elofflineWP_1D = (TH2F*)(_file_elofflineWP_1D->Get("hsf_offlineWP"));
-  }
-  TH2F *hist = _histo_elofflineWP_1D;
   int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
-  float out = sqrt(hist->GetBinContent(etabin));
+  int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
+  float out = hist->GetBinContent(etabin,ptbin);
   return out;
-
 }
 
-float leptonSF_We(int pdgid, float pt, float eta, float var=0) {
-
-  float recoToStdWP = _get_electronSF_recoToCustomTight(pdgid,pt,eta,var);
-  float stdWPToAnaWP = _get_electronSF_offlineWP_residual(eta);
-  float res = std::max(0.,double(recoToStdWP*stdWPToAnaWP));
-  return res;
-
+float eleSF_HLT(float pt, float eta) {
+  return _get_electronSF_anyStep(pt,eta,1);
 }
 
-float trgSF_We(int pdgid, float pt, float eta, int ndim, float var=0) {
+float eleSF_HLT_2l(float matchpt1, float pt1, float eta1, float matchpt2, float pt2, float eta2) {
+  if (matchpt1>-1 && matchpt2>-1) {
+    float sf1 = _get_electronSF_anyStep(pt1,eta1,1);
+    float sf2 = _get_electronSF_anyStep(pt2,eta2,1);
+    return 0.5*(sf1+sf2);
+  } else if (matchpt1>-1) 
+    return _get_electronSF_anyStep(pt1,eta1,1);
+  else
+    return _get_electronSF_anyStep(pt2,eta2,1);
+}
 
-  double trg = _get_electronSF_trg(pdgid,pt,eta,ndim,var);
-  float res = std::max(0.,trg);
-  return res;
+float eleSF_HLT_2lAvg(float matchpt1, float pt1, float eta1, float matchpt2, float pt2, float eta2) {
+  if (matchpt1>-1 && matchpt2>-1) {
+    double eff1_DATA = _get_electronEff_HLT(pt1,eta1,true);
+    double eff2_DATA = _get_electronEff_HLT(pt2,eta2,true);
+    float sf1 = _get_electronSF_anyStep(pt1,eta1,1);
+    float sf2 = _get_electronSF_anyStep(pt2,eta2,1);
+    return (eff1_DATA*sf1 + eff2_DATA*sf2) / (eff1_DATA+eff2_DATA);
+  } else if (matchpt1>-1) {
+    return _get_electronSF_anyStep(pt1,eta1,1);
+  }
+  else {
+    return _get_electronSF_anyStep(pt2,eta2,1);
+  }
+}
 
+float eleEff_HLT_2l_DATA(float pt1, float eta1, float pt2, float eta2) {
+  float eff1 = _get_electronEff_HLT(pt1,eta1,true);
+  float eff2 = _get_electronEff_HLT(pt2,eta2,true);
+  return eff1 + eff2 - eff1*eff2;
+}
+
+float eleSF_HLT_2lComb(float matchpt1, float pt1, float eta1, float matchpt2, float pt2, float eta2) {
+  double eff1_DATA = _get_electronEff_HLT(pt1,eta1,true);
+  double eff2_DATA = _get_electronEff_HLT(pt2,eta2,true);
+  double eff1_MC = _get_electronEff_HLT(pt1,eta1,false);
+  double eff2_MC = _get_electronEff_HLT(pt2,eta2,false);
+  double eff_DATA,eff_MC;
+  if (matchpt1>-1 && matchpt2>-1) {
+    eff_DATA = std::min(1., eff1_DATA + eff2_DATA - eff1_DATA*eff2_DATA);
+    eff_MC =   std::min(1., eff1_MC + eff2_MC - eff1_MC*eff2_MC);
+  } else if (matchpt1>-1) {
+    eff_DATA = eff1_DATA * (1-eff2_DATA);
+    eff_MC = eff1_MC * (1-eff2_MC);
+    //    return _get_electronSF_anyStep(pt1,eta1,1);
+  } else {
+    eff_DATA = eff2_DATA * (1-eff1_DATA);
+    eff_MC = eff2_MC * (1-eff1_MC);
+    //    return _get_electronSF_anyStep(pt2,eta2,1);
+  }
+  if (eff_DATA>1 || eff_MC>1) 
+    std::cout << pt1 << " "<< eta1 << "   2 = " << pt2 << " " << eta2 << "  eff  = " << eff_DATA << " " << eff_MC << std::endl;
+  return eff_DATA / eff_MC;
+}
+
+
+float eleSF_GSFReco(float pt, float eta) {
+  return _get_electronSF_anyStep(pt,eta,2);
+}
+
+float eleSF_FullID(float pt, float eta) {
+  return _get_electronSF_anyStep(std::min(pt,float(45.)),eta,3);
+}
+
+float eleSF_Clustering(float pt, float eta) {
+  return _get_electronSF_anyStep(pt,eta,4);
 }
 
 #include "TRandom.h"

@@ -32,7 +32,7 @@ CMS_We_elescale      :  W.*: .* : elescale         : templates
 # non-flat normalization uncertainty
 CMS_We_FRe_norm      : data_fakes  : .* : FRe_norm : templates
 # shape uncertainty (slope of FR with pt)
-CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
+#CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
 
 # ==================================================================
 # Charge flips (uncertainty from T&P. Take the max(EB,EE) )
