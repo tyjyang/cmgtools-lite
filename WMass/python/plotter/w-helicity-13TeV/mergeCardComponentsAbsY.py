@@ -104,19 +104,22 @@ def combCharges(options):
         ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
         if options.freezePOIs:
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-            txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=combinedCard)
+            txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=combinedCard,sp="--sparse" if options.sparse else "")
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
-            txt2tfCmd = 'text2tf.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+            txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard,sp="--sparse" if options.sparse else "")
         ## here running the combine cards command first 
         print ccCmd
         os.system(ccCmd)
         ## here making the TF meta file
-        print '--- will run text2tf for the combined charges ---------------------'
-        print txt2tfCmd
-        os.system(txt2tfCmd)
+        print '--- will run text2hdf5 for the combined charges ---------------------'
+        print txt2hdf5Cmd
+        os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
-        combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+        if options.freezePOIs:
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+        else:
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
         print combineCmd
 
 
@@ -139,6 +142,7 @@ if __name__ == "__main__":
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
+    parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -276,7 +280,7 @@ if __name__ == "__main__":
                                                     plots[alt.GetName()].Write()
                                         elif 'data_fakes' in newname and 'awayJetPt' in newname:
                                             tokens = newname.split("_") 
-                                            pfx = '_'.join(tokens[:-2]) # name is like data_fakes_FRe_awayJetPt45, we need to isolate data_fakes
+                                            pfx = '_'.join(tokens[:-4]) # name is like data_fakes_CMS_We_FRe_awayJetPt45, we need to isolate data_fakes
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
@@ -612,9 +616,9 @@ if __name__ == "__main__":
             txt2wsCmd_noXsec = 'text2workspace.py {cf} -o {ws} --X-no-check-norm -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose {pos} '.format(cf=cardfile, ws=ws, pos=multisig)
             if options.freezePOIs:
                 # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-                txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(maskch=chname_xsec,cf=cardfile)
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(maskch=chname_xsec,cf=cardfile,sp="--sparse" if options.sparse else "")
             else:
-                txt2tfCmd = 'text2tf.py --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec)
+                txt2hdf5Cmd = 'text2hdf5.py {sp} --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec,sp="--sparse" if options.sparse else "")
             #combineCmd = 'combine {ws} -M MultiDimFit    -t -1 -m 999 --saveFitResult --keepFailures --cminInitialHesse 1 --cminFinalHesse 1 --cminPreFit 1       --redefineSignalPOIs {pois} --floatOtherPOIs=0 -v 9'.format(ws=ws, pois=','.join(['r_'+p for p in signals]))
             # combineCmd = 'combine {ws} -M MultiDimFit -t -1 -m 999 --saveFitResult {minOpts} --redefineSignalPOIs {pois} -v 9 --setParameters mask_{xc}=1 '.format(ws=newws, pois=','.join(['r_'+p for p in signals]),minOpts=minimizerOpts, xc=chname_xsec)
         ## here running the combine cards command first
@@ -627,10 +631,13 @@ if __name__ == "__main__":
         # print "NOT doing the noXsec workspace..."
         # os.system(txt2wsCmd_noXsec)
         ## here making the TF meta file
-        print '--- will run text2tf ---------------------'
-        os.system(txt2tfCmd)
+        print '--- will run text2hdf5 ---------------------'
+        os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
-        combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+        if options.freezePOIs:
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+        else:
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
         print combineCmd
     # end of loop over charges
 

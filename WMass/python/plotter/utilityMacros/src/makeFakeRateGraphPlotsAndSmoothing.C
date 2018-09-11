@@ -834,10 +834,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_jetPt45/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_jetPt45/", 
-					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAlllMC_newTrigSF_fitpol2_jetPt45",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/", 
+					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true,

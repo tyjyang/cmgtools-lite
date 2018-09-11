@@ -151,24 +151,26 @@ def combCharges(options):
         print "Cards for W+ and W- done. Combining them now..."
         combinedCard = os.path.abspath(options.inputdir)+"/"+options.bin+'_'+suffix+'.txt'
         ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
-        if options.freezePOIs:
-            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-            txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=combinedCard)
-        else:
-            maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
-            txt2tfCmd = 'text2tf.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
         ## here running the combine cards command first 
         print ccCmd
         os.system(ccCmd)
         ## here making the TF meta file
+        if options.freezePOIs:
+            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
+            txt2hdf5Cmd = 'text2hdf5.py --sparse {cf}'.format(cf=combinedCard)
+        else:
+            maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
+            txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
         print "The following command makes the .meta file used by combine"
-        print txt2tfCmd
+        print txt2hdf5Cmd
         if not options.skip_text2tf:
             print '--- will run text2tf for the combined charges ---------------------'
-            os.system(txt2tfCmd)
+            os.system(txt2hdf5Cmd)
             ## print out the command to run in combine
             combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
-            print "Use the following command to run combine"
+            if options.freezePOIs:
+                combineCmd += " --POIMode none"
+            print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
             print combineCmd
 
     else:
@@ -189,7 +191,7 @@ if __name__ == "__main__":
     parser.add_option(     '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will tret signal bins corresponding to outliers as background processes')
     parser.add_option(     '--pdf-shape-only', dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
-    parser.add_option(       '--no-text2tf'  , dest='skip_text2tf', default=False, action='store_true', help='skip running text2tf.py at the end')
+    parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end')
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
     parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
     #parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
@@ -209,11 +211,11 @@ if __name__ == "__main__":
     if cmssw != "":
         if cmssw == "CMSSW_8_0_25":
             print "ERROR: you must be in CMSSW_10_X to run this command and use combine with tensorflow. Exit"
-            print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
+            print "If X < 3, remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
             quit()
     else:
         print "ERROR: need to set cmssw environment. Run cmsenv from CMSSW_10_X to run this command and use combine with tensorflow. Exit"
-        print "Remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
+        print "If X < 3, remember to do 'source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate'"
         quit()
 
     if options.combineCharges:
@@ -334,7 +336,7 @@ if __name__ == "__main__":
                                                 plots[alt.GetName()].Write()
                                     elif 'data_fakes' in newname and 'awayJetPt' in newname:
                                         tokens = newname.split("_") 
-                                        pfx = '_'.join(tokens[:-2]) # name is like data_fakes_FRe_awayJetPt45, we need to isolate data_fakes
+                                        pfx = '_'.join(tokens[:-4]) # name is like data_fakes_CMS_We_FRe_awayJetPt45, we need to isolate data_fakes
                                         (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
                                         for alt in [alternate,mirror]:
                                             if alt.GetName() not in plots:
@@ -541,10 +543,10 @@ if __name__ == "__main__":
                                binning,
                                # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
                                # 35.9 if channel == 'mu' else 30.9,  
-                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
-                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
-                               #'/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
-                               '/afs/cern.ch/user/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5_withMuons_varEtaGap.root' ## hard coded for now
+                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
+                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
+                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
+                               '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5_withMuons_varEtaGap.root' ## hard coded for now
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
@@ -588,23 +590,23 @@ if __name__ == "__main__":
         chname = options.bin+'_{ch}'.format(ch=charge)
         chname_xsec = chname+'_xsec'
         ccCmd = 'combineCards.py {oc}={odc} {xc}={xdc} > {out}'.format(oc=chname,odc=cardfile,xc=chname_xsec,xdc=tmp_xsec_dc_name,out=cardfile_xsec)
-
         if options.freezePOIs:
-            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either                                               
-            txt2tfCmd = 'text2tf.py --POIMode none {cf}'.format(cf=cardfile)
+            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either            
+            txt2hdf5Cmd = 'text2hdf5.py --sparse {cf}'.format(cf=combinedCard)
         else:
-            # masked chanel has no background, I need to use option --X-allow-no-background
-            txt2tfCmd = 'text2tf.py --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec)
+            # masked channel has no background, I need to use option --X-allow-no-background
+            txt2hdf5Cmd = 'text2hdf5.py --sparse --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec)
 
         print "\nNow merging the two"
         print ccCmd
         os.system(ccCmd)
-        ## then running the text2tf command afterwards     
-        if not options.skip_text2tf:
-            print "\n" + txt2tfCmd
-            print '-- Now running text2tf (might take time) ---------------------'
-            print 'text2tf.py has some default options that might affect the result. You are invited to check them'
-            os.system(txt2tfCmd)
+        ## then running the text2hdf5 command afterwards     
+        print "\nThe following is the command to run text2hdf5.py"
+        print "\n" + txt2hdf5Cmd
+        if not options.skip_text2hdf5:
+            print '-- Now running text2hdf5 (might take time) ---------------------'
+            print 'text2hdf5.py has some default options that might affect the result. You are invited to check them'
+            os.system(txt2hdf5Cmd)
  
 ########################################
     # end of loop over charges

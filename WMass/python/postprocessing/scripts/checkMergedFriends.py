@@ -20,7 +20,13 @@ class CheckOneFriend:
             print "File %s does not exist!" % self.file
             return False
         tf = ROOT.TFile.Open(self.file)
+        if not tf:
+            print "ERROR! Unable to open file %s" % (self.file)
+            return False
         tree = tf.Get(self.tree)
+        if not tree:
+            print "ERROR! Base tree in file %s is missing" % (self.file)
+            return False
         tentries = tree.GetEntries()
         tf.Close()
         if self.skipFriend:
@@ -32,7 +38,13 @@ class CheckOneFriend:
                 print "Friend file %s does not exist!" % self.friendfile
                 return False
             ff = ROOT.TFile.Open(self.friendfile)
+            if not ff:
+                print "ERROR! Unable to open file %s" % (self.friendfile)
+                return False
             ftree = ff.Get(self.ftree)
+            if not ftree:
+                print "ERROR! Friend tree in file %s is missing" % (self.friendfile)
+                return False
             fentries = ftree.GetEntries()
             ff.Close()
             if tentries != fentries:

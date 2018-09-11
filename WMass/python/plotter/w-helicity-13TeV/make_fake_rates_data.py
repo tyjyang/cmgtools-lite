@@ -102,7 +102,7 @@ MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*LepGood1_SF1" ' # SF1 is tr
 if useFullData2016:
     #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*LepGood1_SF1" ' # SF1 is trigger scale factor
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]" ' # SF1 is trigger scale factor
 
 J=4
 
