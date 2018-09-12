@@ -190,8 +190,8 @@ class scaleFactorManager:
 class lep2016SFProducer(Module):
     def __init__(self):
 
-        # muons have scale factors for trigger, ID and isolation
-        # electrons have scale factors for trigger, Reco, full ID+iso+ConversionRejection
+        # muons have scale factors for trigger, Reco and ID+isolation
+        # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and some additional parts in EE to correct for differences in clustering efficiency
         # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
 
         self.mu_f = {"trigger"       : "etaptSmooth_muons_trigger.root", 

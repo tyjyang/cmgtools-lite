@@ -1,7 +1,8 @@
 # ==================================================================
 # luminosity
 # ==================================================================
-## remove for now lumi_13TeV           : W.*|Z|Top|DiBosons|TaudecaysW : .* : 1.026
+## remove for now 
+lumi_13TeV           : W.*|Z|Top|DiBosons|TaudecaysW : .* : 1.026
 
 
 # ==================================================================
@@ -17,7 +18,8 @@ CMS_Wmu_lepVeto      : Z                            : .* : 1.03
 # Top (take a conservative value as the maximum uncertainty among single-t and ttbar (ttbar from: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO)
 # ==================================================================
 ## no longer needed. all scales etc are there now CMS_DY               : Z                            : .* : 1.038
-#CMS_DY               : Z                            : .* : 1.038
+#
+CMS_DY               : Z                            : .* : 1.038
 CMS_VV               : DiBosons                     : .* : 1.16
 CMS_W                : TaudecaysW                   : .* : 1.038
 CMS_Top              : Top                          : .* : 1.06 

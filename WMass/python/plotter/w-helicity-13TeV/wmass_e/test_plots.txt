@@ -23,6 +23,7 @@ etal1_binFR: LepGood1_eta: [-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1
 ptl1_range: ptElFull(LepGood1_calPt,LepGood1_eta): 100,40,50 ; XTitle="leading electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
 ptl1_granBin: ptElFull(LepGood1_calPt,LepGood1_eta): 140,30,65 ; XTitle="leading electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
 ptl1noCorr_granBin: LepGood1_pt: 140,30,65 ; XTitle="leading electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+ptl1noCorr: LepGood1_pt: 35,30,65 ; XTitle="leading electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
 
 pfmet: met_pt : 40,0,80 ; XTitle="PF E_{T}^{miss} [GeV]", Legend='TR', IncludeOverflows=False
 tkmet: met_trkPt : 30,0,60 ; XTitle="charged PF E_{T}^{miss} [GeV]", Legend='TR', IncludeOverflows=False
@@ -46,3 +47,9 @@ ele1dxy: abs(LepGood1_dxy) : 40,0,0.4 ; XTitle="#Deltaxy (ele1) [cm]", Legend='T
 
 ## should define a corrected trkMet before using it, like I am doing with trkMt
 #dphiLepTrkMET : abs(deltaPhi(LepGood1_phi,met_trkPhi)) : 32,0.0,3.2; XTitle="#Delta#phi(electron\,Trk E_{T}^{miss} [GeV])", Legend='TL', IncludeOverflows=True
+
+
+ptl1__etal1_binFR: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: [-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.4442,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5]*[30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45]; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
+
+
+pfmt_ptl1: mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood_phi)\:ptElFull(LepGood1_calPt,LepGood1_eta) : 35,30,65,50,0,100 ; XTitle='electron #p_{T} [GeV]', YTitle='PF m_{T} [GeV]', Legend='TR'

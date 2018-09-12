@@ -102,7 +102,7 @@ MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*LepGood1_SF1" ' # SF1 is tr
 if useFullData2016:
     #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*LepGood1_SF1" ' # SF1 is trigger scale factor
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]" ' # SF1 is trigger scale factor
 
 J=4
 
@@ -150,7 +150,7 @@ else:
 EWKSPLIT="-p 'W_fake,W,Z,data'"
 EWKEXCLUDE="--xp 'W_LO,Z_LO'"
 if addQCDMC:
-    EWKSPLIT="-p 'QCD,W,Z,data'"
+    EWKSPLIT="-p 'QCD,W,Z,Top,DiBosons,data'"
 
 MCEFF = "python " + plotterPath + "w-helicity-13TeV/dataFakeRate.py " + OPTIONS + " " + EWKSPLIT + " " + EWKEXCLUDE +" --groupBy cut " + plotterPath + "w-helicity-13TeV/make_fake_rates_sels.txt " + plotterPath + "w-helicity-13TeV/make_fake_rates_xvars.txt  "
 if addQCDMC:
