@@ -116,14 +116,6 @@ class lepCalibratedEnergyProducer(Module):
             print 'did not find legacy data roccor. rebuilding...'
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR.cc+" % os.environ['CMSSW_BASE'])
             print 'done building legacy data roccor.'
-        if "/RoccoR80XMC_cc.so" not in ROOT.gSystem.GetLibraries():
-            print 'did not find 80X mc roccor. rebuilding the first'
-            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR80XMC.cc+" % os.environ['CMSSW_BASE'])
-            print 'done building 80X MC roccor part 1.'
-        if "/rochcor201680XMC_cc.so" not in ROOT.gSystem.GetLibraries():
-            print 'did not find 80X mc roccor. rebuilding the second'
-            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/rochcor201680XMC.cc+" % os.environ['CMSSW_BASE'])
-            print 'done building 80X MC roccor part 2.'
 
         ##ROOT.gSystem.Load("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR_cc.so")
         ##ROOT.gSystem.Load("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/helpers/RoccoR80XMC_cc.so")
@@ -133,14 +125,12 @@ class lepCalibratedEnergyProducer(Module):
         print 'begin job of lepCalProducer'
 
         print 'initializing all the rochester correction objects'
-        ## rochester corrections for data on legacy rereco
-        self._rochester2016  = ROOT.RoccoR()
-        self._rochester2016.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016v1.txt')
-        ## rochester corrections for 80X MC
-        self._rochester201680XMC  = ROOT.rochcor201680XMC()
+        ## rochester corrections for data and mc on legacy rereco
+        self._rochester  = ROOT.RoccoR()
+        self._rochester.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016.txt')
     
-        nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
-        self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
+        ## not needed at the moment nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
+        ## not needed at the moment self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
 
         print 'initializing the egamma calibrator'
         ROOT.gSystem.Load(os.environ['CMSSW_BASE']+"/src/EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class_cc.so")
@@ -182,16 +172,13 @@ class lepCalibratedEnergyProducer(Module):
         for l in leps:
             if abs(l.pdgId)==13: # implemented only for electrons
                 if event.isData:
-                    scale = self._rochester2016.kScaleDT(l.charge, l.pt, l.eta, l.phi)
+                    scale = self._rochester.kScaleDT(l.charge, l.pt, l.eta, l.phi)
                     calPt_step1.append(scale)
                     calPt.append(l.pt * scale)
                 else:
-                    mu=ROOT.TLorentzVector(0,0,0,0)
-                    mu.SetPtEtaPhiM(l.pt, l.eta, l.phi, l.mass)
-                    qter = c_float(1.0)
                     ## ATTENTION. THE NTRK IS RANDOMLY CHOSEN FROM A HISTOGRAM DISTRIBUTED LIKE THE SIGNAL MC
-                    tmp_nlayers = int(self._nLayersHist.GetRandom())
-                    scale = self._rochester201680XMC.momcor_mc(mu, l.charge, tmp_nlayers, qter)
+                    ## tmp_nlayers = int(self._nLayersHist.GetRandom())
+                    scale = self._rochester.kSpreadMC(l.charge, l.pt, l.eta, l.phi, l.mcPt, 0, 0)
                     calPt_step1.append(scale)
                     calPt.append(l.pt * scale )
             else:
