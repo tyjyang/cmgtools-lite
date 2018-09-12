@@ -177,7 +177,6 @@ class MCAnalysis:
                     # Heppy calls the tree just 'tree.root'
                     rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
                     rootfile = open(rootfile+".url","r").readline().strip()
-                pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
                 tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname); ttys.append(tty)
                 if signal: 
@@ -191,12 +190,17 @@ class MCAnalysis:
                 if pname in self._allData: self._allData[pname].append(tty)
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
-                    pckobj  = pickle.load(open(pckfile,'r'))
-                    counters = dict(pckobj)
-                    if ('Sum Weights' in counters) and options.weight:
+                    ## get the counts from the histograms instead of pickle file
+                    tmp_rootfile = ROOT.TFile(rootfile, 'READ')
+                    histo_count        = tmp_rootfile.Get('Count')
+                    histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                    n_count        = histo_count       .GetBinContent(1)
+                    n_sumgenweight = histo_sumgenweight.GetBinContent(1)
+                    tmp_rootfile.Close()
+                    if ( n_count != n_sumgenweight ) and options.weight:
                         if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 1; 
-                        total_w += counters['Sum Weights']
+                        total_w += n_sumgenweight
                         scale = "genWeight*(%s)" % field[2]
                     elif not options.weight:
                         scale = 1
@@ -206,7 +210,7 @@ class MCAnalysis:
                     else:
                         if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 0;
-                        total_w += counters['All Events']
+                        total_w += n_count
                         scale = "(%s)" % field[2]
                     if len(field) == 4: scale += "*("+field[3]+")"
                     for p0,s in options.processesToScale:
