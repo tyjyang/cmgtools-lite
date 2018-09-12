@@ -1,2 +1,1 @@
 W    : WJetsToLNu_* : 3.*20508.9  ; FillColor=ROOT.kGray+1   , Label="W"
-#W    : WJetsToLNu_ext_part14+WJetsToLNu_ext_part8 : 3.*20508.9  ; FillColor=ROOT.kGray+1   , Label="W"
