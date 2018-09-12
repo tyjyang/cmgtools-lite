@@ -232,6 +232,15 @@ float eleSF_HLT(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,1);
 }
 
+float eleSF_HLT_2lfriends(float matchpt1, float sf1, float matchpt2, float sf2) {
+  if (matchpt1>-1 && matchpt2>-1) {
+    return 0.5*(sf1+sf2);
+  } else if (matchpt1>-1) 
+    return sf1;
+  else
+    return sf2;
+}
+
 float eleSF_HLT_2l(float matchpt1, float pt1, float eta1, float matchpt2, float pt2, float eta2) {
   if (matchpt1>-1 && matchpt2>-1) {
     float sf1 = _get_electronSF_anyStep(pt1,eta1,1);
