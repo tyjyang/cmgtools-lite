@@ -65,14 +65,16 @@ class PostProcessor :
                         pass
                 inFile = ROOT.TFile.Open(fname)
             elif "root://" in fname:
+                print 'OPENING FILE WITH XROOTD!!!'
                 ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                ROOT.gEnv.SetValue("XNet.Debug", 0); # suppress output about opening connections
-                ROOT.gEnv.SetValue("XrdClientDebug.kUSERDEBUG", 0); # suppress output about opening connections
-                inFile   = ROOT.TXNetFile(fname+"?readaheadsz=65535&DebugLevel=0")
-                os.environ["XRD_DEBUGLEVEL"]="0"
-                os.environ["XRD_DebugLevel"]="0"
-                os.environ["DEBUGLEVEL"]="0"
-                os.environ["DebugLevel"]="0"
+                ## no longer needed to suppress ROOT.gEnv.SetValue("XNet.Debug", 0); # suppress output about opening connections
+                ## no longer needed to suppress ROOT.gEnv.SetValue("XrdClientDebug.kUSERDEBUG", 0); # suppress output about opening connections
+                ## no longer needed to suppress inFile   = ROOT.TXNetFile(fname+"?readaheadsz=65535&DebugLevel=0")
+                inFile   = ROOT.TXNetFile(fname+"?readaheadsz=65535")
+                ## no longer needed to suppress os.environ["XRD_DEBUGLEVEL"]="0"
+                ## no longer needed to suppress os.environ["XRD_DebugLevel"]="0"
+                ## no longer needed to suppress os.environ["DEBUGLEVEL"]="0"
+                ## no longer needed to suppress os.environ["DebugLevel"]="0"
             else:
                 inFile = ROOT.TFile.Open(fname)
 
