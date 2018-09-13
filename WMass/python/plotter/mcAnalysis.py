@@ -173,6 +173,11 @@ class MCAnalysis:
                 elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
                     # Heppy calls the tree just 'tree.root'
                     rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
+                    prepath = ''
+                    if not 'root:/' in rootfile:
+                        if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
+                        elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
+                    rootfile = prepath+rootfile
                 elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
                     # Heppy calls the tree just 'tree.root'
                     rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
