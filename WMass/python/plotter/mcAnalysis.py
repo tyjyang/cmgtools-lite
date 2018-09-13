@@ -200,7 +200,7 @@ class MCAnalysis:
                     histo_count        = tmp_rootfile.Get('Count')
                     histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
                     n_count        = histo_count       .GetBinContent(1)
-                    n_sumgenweight = histo_sumgenweight.GetBinContent(1)
+                    n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
                     tmp_rootfile.Close()
                     if ( n_count != n_sumgenweight ) and options.weight:
                         if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames

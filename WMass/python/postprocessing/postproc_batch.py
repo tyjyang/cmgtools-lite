@@ -137,7 +137,7 @@ if __name__ == "__main__":
             histo_count        = f.Get('Count')
             histo_sumgenweight = f.Get('SumGenWeights')
             n_count        = histo_count       .GetBinContent(1)
-            n_sumgenweight = histo_sumgenweight.GetBinContent(1)
+            n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
 
             sample_nevt = n_count if n_sumgenweight == n_count else n_sumgenweight
             ## done. but as of now sample_nevt is not used...
