@@ -7,17 +7,13 @@ parser = OptionParser(usage="%prog testname ")
 parser.add_option("--mu", dest="useMuon", default=False, action='store_true', help="Do fake rate for muons");
 parser.add_option("--qcdmc", dest="addQCDMC", default=False, action='store_true', help="Add QCD MC in plots (but do not subtract from data)");
 parser.add_option("--full2016data", dest="useFullData2016", default=False, action='store_true', help="Use all 2016 data (B to H, 35.5/fb). By default, only B to F are used (19.3/fb. Luminosity is automatically set depending on this choice");
-parser.add_option("--etaRange", dest="etaRange", default="0.0,1.479,2.5", type='string', help="Pass 2 or more numbers separated by comma. They are the boundaries of the eta ranges to use.");
 parser.add_option("--charge", dest="charge", default="", type='string', help="Select charge: p for positive, n for negative");
 parser.add_option("--lumi", dest="lumi", default=35.9 , type='float', help="Integrated luminosity");
 parser.add_option("--test", dest="test", default="", type='string', help="pass the name of a folder (mandatory) to store test FR plots. It is created in plots/fake-rate/test/");
 parser.add_option("--fqcd-ranges", dest="fqcd_ranges", default="0,40,50,120", type='string', help="Pass a list of 4 comma separated numbers that represents the ranges for the two mT regions to compute the fake rate");
-parser.add_option("--mt", dest="fitvar", default="trkmtfix", type='string', help="Select mT definition: pfmt, trkmt, pfmtfix, trkmtfix");
 parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse");
 parser.add_option("--useSkim", dest="useSkim", default=False, action='store_true', help="Use skimmed sample for fake rates");
 parser.add_option("--useSignedEta", dest="useSignedEta", default=False, action='store_true', help="Make fake rate for eta bins distinguishing eta sign");
-parser.add_option("--skipStack", dest="skipStack", default=False, action='store_true', help="Skip stack plots");
-parser.add_option("--skipMCGO", dest="skipMCGO", default=False, action='store_true', help="Skip MCGO (will just print MCEFF, i.e. create root file with TH3D)");
 parser.add_option("--makeTH3-eta-pt-passID", dest="makeTH3_eta_pt_passID", default=False, action='store_true', help="This option is special. It will make the following create only the TH3D histograms with |eta|, pt and passID. This will allow to compute the FR in any binning of pt and eta (using another macro). It overrides some other options");
 parser.add_option("--addOpts", dest="addOpts", default="", type='string', help="Options to pass some other options from outside to build the command");
 (options, args) = parser.parse_args()
@@ -27,42 +23,21 @@ addQCDMC = options.addQCDMC  # trying to add QCD MC to graphs to be compared
 charge = str(options.charge)
 testDir = str(options.test)
 fqcd_ranges = str(options.fqcd_ranges)
-fitvar = str(options.fitvar)
 ptvar = str(options.ptvar)
 useFullData2016 = options.useFullData2016
 useSkim = options.useSkim
 useSignedEta = options.useSignedEta
-skipStack = options.skipStack
-skipMCGO = options.skipMCGO
 addOpts = options.addOpts
-etaRange = options.etaRange.split(",");
 luminosity = options.lumi
 
 print "useFullData2016 = " + str(useFullData2016)
 
-if options.makeTH3_eta_pt_passID:
-    if useSignedEta:
-        fitvar = "etal1"
-        etaRange = [ '-2.5', '2.5']
-    else:
-        fitvar = "absetal1"
-        etaRange = [ '0.0', '2.5']
-    skipMCGO = True
-    skipStack = True
+if useSignedEta:
+    fitvar = "etal1"
+    etaRange = [ '-2.5', '2.5']
 else:
-    if fqcd_ranges.count(",") != 3:
-        print "warning: options --fqcd-ranges requires 4 numbers separated by commas (3 commas expected), but %s was passed" % fqcd_ranges
-        quit()
-
-    if len(etaRange)<2:
-        print "warning: must specify at least 1 eta bin (2 numbers for the boundary). Use option --etaRange '<arg1,arg2,...argN>'"
-        quit()
-
-    if fitvar not in ["pfmt", "trkmt", "pfmtfix", "trkmtfix"]:
-        print "warning: unknown mt definition %s, use pfmt, trkmt, pfmtfix, trkmtfix" % fitvar
-        quit()
-
-
+    fitvar = "absetal1"
+    etaRange = [ '0.0', '2.5']
 
 if not useMuon and ptvar not in ["pt_coarse", "pt_granular"]:
     print "warning: unknown pt definition %s, use pt_coarse, pt_granular" % ptvar
@@ -178,18 +153,4 @@ for i in range(0,len(etaRange)-1):
         print MCEFF + " -o " + PBASE + "/fr_sub_eta_" + thisRange + ".root --bare -A onelep eta 'abs(LepGood1_eta)>" + str(etaRange[i]) + " && abs(LepGood1_eta)<" + str(etaRange[i+1]) + "' " + str(chargeSelection) + "\n"
 
     print "\n\n"
-    if (not skipMCGO):
-        print MCGO + " -i " + PBASE + "/fr_sub_eta_" + thisRange + ".root -o " + PBASE + "/fr_sub_eta_" + thisRange + "_fQCD.root --subSyst 0.2\n" 
 
-STACK = "python " + plotterPath + "w-helicity-13TeV/stack_fake_rates_data.py "+ RANGES + LEGEND + " --comb-mode=midpoint " # :_fit
-
-if addQCDMC:
-    procToCompare="QCD_prefit,data_fqcd"
-else:
-    procToCompare="W_fake_prefit,data_fqcd"
-
-for i in range(0,len(etaRange)-1):
-    PATT=NUM[i]+"_vs_"+XVAR+"_"+FITVAR+"_%s"
-    thisRange = etaRange[i].replace(".","p") + "_" + etaRange[i+1].replace(".","p")
-    if not skipStack:
-        print STACK + "-o " + PBASE + "fr_sub_eta_" + str(thisRange) + "_comp.root " + PBASE + "/fr_sub_eta_" + str(thisRange) + "_fQCD.root:" + PATT + ":" + procToCompare
