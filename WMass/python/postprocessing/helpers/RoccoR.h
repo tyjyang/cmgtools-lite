@@ -132,21 +132,30 @@ class RoccoR{
 	double DPHI;
 	std::vector<double> etabin;
 
+	// marc struct CorParams{double M; double A;};
+
+	// marc struct RocOne{
+	// marc     RocRes RR;
+	// marc     std::vector<std::vector<CorParams>> CP[2];
+	// marc };
+
 	int nset;
 	std::vector<int> nmem;
 	std::vector<int> tvar;
+	// marc std::vector<std::vector<RocOne>> RC;
 	int etaBin(double eta) const;
 	int phiBin(double phi) const;
 	template <typename T> double error(T f) const;
 
     public:
+    // added the next two things here in public
 	struct CorParams{double M; double A;};
 	struct RocOne{
 	    RocRes RR;
 	    std::vector<std::vector<CorParams>> CP[2];
 	};
 	std::vector<std::vector<RocOne>> RC;
-
+    // end marc
 
 	RoccoR(); 
 	RoccoR(std::string filename); 

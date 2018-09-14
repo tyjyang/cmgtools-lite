@@ -120,13 +120,28 @@ if __name__ == "__main__":
                 if not any(re.match(rgx,short) for rgx in regexps): continue
             data = any(x in short for x in "DoubleMu DoubleEG MuEG MuonEG SingleMuon SingleElectron".split())
             if data and options.mconly: continue
-            pckobj  = pickle.load(open(pckfile,'r'))
-            counters = dict(pckobj)
-            if ('Sum Weights' in counters):
-                sample_nevt = counters['Sum Weights']
-            else:
-                sample_nevt = counters['All Events']
-            f = ROOT.TFile.Open(fname);
+            ## construct proper xrootd file path
+            prepath = ''
+            if not 'root:/' in fname:
+                if   '/eos/user/'      in fname: prepath = 'root://eosuser.cern.ch//'
+                elif '/eos/cms/store/' in fname: prepath = 'root://eoscms.cern.ch//'
+            fname = prepath+fname
+            ## fname is now xrootd compatible
+            ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+            
+            ## open the file
+            #f = ROOT.TFile.Open(fname);
+            f = ROOT.TFile.Open(fname+"?readaheadsz=65535");
+
+            ## get the counters from the histograms
+            histo_count        = f.Get('Count')
+            histo_sumgenweight = f.Get('SumGenWeights')
+            n_count        = histo_count       .GetBinContent(1)
+            n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+
+            sample_nevt = n_count if n_sumgenweight == n_count else n_sumgenweight
+            ## done. but as of now sample_nevt is not used...
+
             t = f.Get(treename)
             entries = t.GetEntries()
             f.Close()

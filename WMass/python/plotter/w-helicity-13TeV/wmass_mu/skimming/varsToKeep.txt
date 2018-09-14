@@ -130,6 +130,7 @@ LepGood_miniRelIso
 LepGood_tightCharge 
 LepGood_pdgId 
 LepGood_pt 
+LepGood_mcPt 
 LepGood_eta 
 LepGood_phi 
 LepGood_mass 
