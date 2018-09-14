@@ -398,6 +398,17 @@ void setContentBelowScaleToZmin(TH2* h2 = NULL, Double_t zmin = 0.0) {
 
 //======================================================
 
+void copyHisto(TH1* hnew = nullptr, const TH1* hold = nullptr) {
+
+  for (Int_t ix = 0; ix <= (1+hold->GetNbinsX()); ++ix) {
+    hnew->SetBinContent(ix, hold->GetBinContent(ix));
+    hnew->SetBinError(ix, hold->GetBinError(ix));
+  }
+
+}
+
+//======================================================
+
 
 void addOverflowInLastBin(TH1D *h) {
 
@@ -2009,11 +2020,12 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
   for (UInt_t i = 0; i < vecHist1d.size(); i++) {
     myRebinHisto(vecHist1d[i],rebinFactor);
     if (yAxisName == "a.u.") vecHist1d[i]->Scale(1./vecHist1d[i]->Integral());
+    if (yAxisName.find("Events/bin") != string::npos) vecHist1d[i]->Scale(1.,"width");
     vecHist1d[i]->SetStats(0);
   }
 
   Int_t canvasWidth = 700;
-  Int_t canvasHeight = 600;
+  Int_t canvasHeight = 700;
   if (drawRatioWithNominal) {
     canvasWidth = 600;
     canvasHeight = 700;
@@ -2040,7 +2052,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
   frame->GetXaxis()->SetLabelSize(0.04);
   frame->SetStats(0);
 
-  Int_t colorList[] = {kBlack, kRed, kBlue, kGreen+2, kOrange+1, kCyan, kGreen, kCyan+2, kGray+1, kViolet, kYellow+2};
+  Int_t colorList[] = {kBlack, kRed, kBlue, kGreen+2, kOrange+7, kCyan, kGreen, kCyan+2, kGray+1, kViolet, kYellow+2};
   vector<Int_t> histColor;
   for (UInt_t i = 0; i < vecHist1d.size(); i++) {   // now color are assigned in reverse order (the main contribution is the last object in the sample array)         
     vecHist1d[i]->SetLineColor(colorList[i]);
@@ -2058,7 +2070,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
     vecHist1d[0]->GetXaxis()->SetTitleSize(0.05);    
   }
   vecHist1d[0]->GetYaxis()->SetTitle(yAxisName.c_str());
-  vecHist1d[0]->GetYaxis()->SetTitleOffset(1.2);
+  vecHist1d[0]->GetYaxis()->SetTitleOffset(1.4);
   // vecHist1d[0]->GetYaxis()->SetTitleOffset(0.8);  // was 1.03 without setting also the size
   vecHist1d[0]->GetYaxis()->SetTitleSize(0.05);
   vecHist1d[0]->GetYaxis()->SetLabelSize(0.04);
@@ -2111,9 +2123,9 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
     vecHist1d[i]->Draw("hist same");
   }
 
-  double legLowY = 0.75;
-  if (vecHist1d.size() > 4) legLowY = max( 0.5, legLowY - 0.4 * (vecHist1d.size() - 4) );
-  TLegend leg (0.58,0.70,0.95,0.9);
+  double legLowY = 0.70;
+  if (vecHist1d.size() > 4) legLowY = max( 0.5, legLowY - 0.5 * (vecHist1d.size() - 4) );
+  TLegend leg (0.58,legLowY,0.95,0.9);
   leg.SetFillColor(0);
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
@@ -2138,7 +2150,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
     frame->GetYaxis()->SetRangeUser(0.9,1.1);
     frame->GetYaxis()->SetNdivisions(5);
     frame->GetYaxis()->SetTitle(yAxisNameRatio.c_str());
-    frame->GetYaxis()->SetTitleOffset(1.2);
+    frame->GetYaxis()->SetTitleOffset(1.4);
     frame->GetYaxis()->SetTitleSize(0.05);
     frame->GetYaxis()->SetLabelSize(0.04);
     frame->GetYaxis()->CenterTitle();
@@ -2982,7 +2994,7 @@ void drawSingleTH1(TH1* h1 = NULL,
   canvas->SetTickx(1);
   canvas->SetTicky(1);
   canvas->cd();
-  canvas->SetBottomMargin(0.12);
+  canvas->SetLeftMargin(0.16);
   canvas->SetRightMargin(0.06);
 
   h1->Draw("HE");
@@ -3007,10 +3019,11 @@ void drawSingleTH1(TH1* h1 = NULL,
   // h1->GetXaxis()->SetTitleOffset(0.8);
   h1->GetXaxis()->SetTitleSize(0.05);
   h1->GetYaxis()->SetTitle(yAxisName.c_str());
-  h1->GetYaxis()->SetTitleOffset(1.1);
+  h1->GetYaxis()->SetTitleOffset(1.2);
   // h1->GetYaxis()->SetTitleOffset(0.8);  // was 1.03 without setting also the size
   h1->GetYaxis()->SetTitleSize(0.05);
-  h1->GetYaxis()->SetRangeUser(0.0, h1->GetMaximum() * 1.5);
+  /* if (h1->GetMinimum() < 0) h1->GetYaxis()->SetRangeUser(1.5*h1->GetMinimum(), h1->GetMaximum() * 1.5); */
+  /* else h1->GetYaxis()->SetRangeUser(std::max(0, 0.8*h1->GetMinimum()), h1->GetMaximum() * 1.5); */
   canvas->RedrawAxis("sameaxis");
   canvas->Update();
 

@@ -224,7 +224,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   float fr = p0    + p1   *lpt + p2   *lpt*lpt; 
   float pr = p0_pr + p1_pr*lpt + p2_pr*lpt*lpt;
 
-  if (pr > 0.98) pr = 0.98; // safety thing
+  if (fid == 13 && pr > 0.98) pr = 0.98; // safety thing, not needed for electrons
+  else if (pr > 1.0) pr = 1.0;  // just in case
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 

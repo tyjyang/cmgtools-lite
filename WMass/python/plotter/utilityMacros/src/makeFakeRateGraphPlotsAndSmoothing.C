@@ -1,7 +1,10 @@
 #include "../interface/utility.h"
 
-const static int smoothPolinDegree = 2; 
-const static Bool_t addfitpol2 = false;  // will also fit with a pol2 and draw 
+// see https://root.cern.ch/doc/master/classTGraphPainter.html
+// for Graph painting options in root
+
+const static int smoothPolinDegree = 1; 
+const static Bool_t addfitpol2 = false;  // will also fit with a pol2 and draw (this is needed only when smoothPolinDegree = 1)
 // when I search for a bin given the boundary, the lower boundary should belong to the bin, the upper not, but rounding could ruin this logic 
 // so I add an epsilon
 const static Double_t epsilon = 0.0001;  
@@ -12,10 +15,12 @@ using namespace std;
 // the higher the index, the less granular is the array
 static const vector<Double_t> ptBinBoundariesQCD_1 = {30,34,38,42,46,50,55,60,65};
 static const vector<Double_t> ptBinBoundariesQCD_2 = {30,35,40,45,50,55,60,65};
-static const vector<Double_t> ptBinBoundariesEWK_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,55,60,65};
-static const vector<Double_t> ptBinBoundariesEWK_2 = {30,32,34,36,38,40,42,44,46,48,50,55,60,65};
-static const vector<Double_t> ptBinBoundariesData_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,55,60,65};
-static const vector<Double_t> ptBinBoundariesData_2 = {30,32,34,36,38,40,42,44,46,48,50,55,60,65};
+static const vector<Double_t> ptBinBoundariesEWK_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,52,54,57,60,65};
+static const vector<Double_t> ptBinBoundariesEWK_2 = {30,32,34,36,38,40,42,44,46,48,50,52,54,57,60,65};
+static const vector<Double_t> ptBinBoundariesData_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,52,54,57,60,65};
+static const vector<Double_t> ptBinBoundariesData_2 = {30,32,34,36,38,40,42,44,46,48,50,52,54,57,60,65};
+static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
+//static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
 
 vector<Double_t> etaBoundariesGlobal;
 
@@ -27,6 +32,11 @@ TH2D* frSmoothParameter_z = nullptr;
 TH2D* frSmoothParameter_ewk = nullptr;
 TH2D* frSmoothParameter_top_vv = nullptr;
 TH2D* frSmoothParameter_wz = nullptr;
+TH2D* frSmoothParameter_data_subScaledUpEWKMC = nullptr;
+TH2D* frSmoothParameter_data_subScaledDownEWKMC = nullptr;
+
+// define some factors to rescale some MC before subtracting to data. These must be taken from outside this script
+map <string,Double_t> scaleFactor;
 
 // the core of this macro is makeFakeRateGraphPlotsAndSmoothing(), which is at the bottom of this code and calls all the rest
 
@@ -71,13 +81,15 @@ void plotFRparamRelUncertainty(TH2* h2 = nullptr,
 void fillTH2fromTH3zrange(TH2* h2 = nullptr, const TH3* h3 = nullptr, const Int_t zbinLow = 1, const Int_t zbinHigh = 1) {
 
   // assume TH2 is a slice of TH3 with same binning
+  Double_t error = 0;
 
   for (Int_t ix = 1; ix <= h2->GetNbinsX(); ++ix) {
 
     for (Int_t iy = 1; iy <= h2->GetNbinsY(); ++iy) {
-      
-      h2->SetBinContent(ix,iy,h3->Integral(ix,ix,iy,iy,zbinLow,zbinHigh));
-      
+            
+      h2->SetBinContent(ix,iy,h3->IntegralAndError(ix,ix,iy,iy,zbinLow,zbinHigh,error));
+      h2->SetBinError(ix,iy,error);
+
     }
     
   }
@@ -135,13 +147,40 @@ void fillFakeRateTH2smooth(TH2* h2 = nullptr, const TH2* h2fit = nullptr) {
 
 }
 
+
+//============================================
+
+void fillTH1fromTH2bin(TH1* h1 = nullptr, const TH2* h2 = nullptr, const Bool_t constantX = 1, const Int_t binFixed = 1) {
+
+  // assume TH1 is a slice of TH2 with same binning
+  Int_t nbins = constantX ? h2->GetNbinsY() : h2->GetNbinsX();
+  Int_t xbin = 0;
+  Int_t ybin = 0;
+
+  for (Int_t ix = 1; ix <= nbins; ++ix) {
+
+    if (constantX) {
+      xbin = binFixed;
+      ybin = ix;
+    } else {
+      ybin = binFixed;
+      xbin = ix;
+    }
+    h1->SetBinContent(ix, h2->GetBinContent(xbin,ybin));
+    h1->SetBinError(  ix, h2->GetBinError(xbin,ybin));
+    
+  }
+
+}
+
+
 //============================================
 
 // following part is for the smoothing of the fake rate
 
 //============================================
 
-TFitResultPtr fitGraph(TGraph* gr = NULL, 
+TFitResultPtr fitGraph(TGraph* gr_tmp = NULL, 
 		       const Bool_t isEB = true,
 		       const string& xAxisNameTmp = "xAxis", 
 		       const string& yAxisNameTmp = "yAxis", 
@@ -153,7 +192,11 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
 		       const Bool_t isData = true,
 		       const Bool_t isPromptRate = false,
 		       const Double_t nSigmaVarInPlot = 1.0,
-		       TFitResultPtr* fitPtr_fitNarrowRange = nullptr
+		       const Bool_t saveCanvas = true,
+		       TFitResultPtr* fitPtr_fitNarrowRange = nullptr,
+		       const Bool_t excludePoints = false,
+		       const Double_t excludeRange_min = -1,  // used only if excludePoints = true
+		       const Double_t excludeRange_max = -1
 		       ) 
 {
 
@@ -167,11 +210,16 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   Double_t ymax = 0;
   Bool_t setYAxisRangeFromUser = getAxisRangeFromUser(yAxisName, ymin, ymax, yAxisNameTmp);
 
+  createPlotDirAndCopyPhp(outDir);
+
   // override function above
-  Int_t n = gr->GetN();
-  Double_t* y = gr->GetY();
-  Double_t* yerrup = gr->GetEYhigh();
-  Double_t* yerrdn = gr->GetEYlow();
+  Int_t n = gr_tmp->GetN();
+  Double_t* x = gr_tmp->GetX();
+  Double_t* xerrup = gr_tmp->GetEXhigh();
+  Double_t* xerrdn = gr_tmp->GetEXlow();
+  Double_t* y = gr_tmp->GetY();
+  Double_t* yerrup = gr_tmp->GetEYhigh();
+  Double_t* yerrdn = gr_tmp->GetEYlow();
   Int_t loc = TMath::LocMax(n,y);
   Double_t tmax = y[loc]+yerrup[loc];
   loc = TMath::LocMin(n,y);
@@ -180,6 +228,28 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
 
   ymin = std::max(0.0, tmin - 0.5 * ydiff);
   ymax = std::min(1.4, tmax + 1.0 * ydiff);
+
+  // create a new graph excluding points in a given range
+  TGraphAsymmErrors* gr = nullptr;
+  TGraphAsymmErrors* gr_excl = nullptr;
+  if (excludePoints) {
+    gr = new TGraphAsymmErrors();
+    gr_excl = new TGraphAsymmErrors();
+    Int_t ip_good = 0;
+    Int_t ip_excl = 0;
+    for (Int_t ip = 0; ip < n; ++ip) {
+      if ( (x[ip] < excludeRange_min) or (x[ip] > excludeRange_max) ) {
+	gr->SetPoint(ip_good,x[ip],y[ip]);
+	gr->SetPointError(ip_good,xerrdn[ip],xerrup[ip],yerrdn[ip],yerrup[ip]);
+	ip_good++;
+      } else {
+	gr_excl->SetPoint(ip_excl,x[ip],y[ip]);
+        gr_excl->SetPointError(ip_excl,xerrdn[ip],xerrup[ip],yerrdn[ip],yerrup[ip]);
+	ip_excl++;
+      }
+    }    
+  } else gr = (TGraphAsymmErrors*) gr_tmp;
+  
 
   string polN = string(Form("pol%d",smoothPolinDegree));
   // see fit options here: https://root.cern.ch/doc/master/classTGraph.html#aa978c8ee0162e661eae795f6f3a35589
@@ -272,7 +342,7 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   }
 
   TFitResultPtr fitres = gr->Fit("f1","EMFRS+"); // fit with straigth line
-  TFitResultPtr fitres2 = gr->Fit("f2","EMFRS+"); // fit with straigth line
+  TFitResultPtr fitres2 = gr->Fit("f2","0EMFRS+"); // fit with straigth line in narrow range, but don't draw
   TF1 *linefit = gr->GetFunction("f1");
   linefit->SetLineWidth(3);
   Double_t xminfit = 0.0;
@@ -295,34 +365,52 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   linefit_p0up->SetLineWidth(3);
   linefit_p0dn->SetLineWidth(3);
 
-  TF1 *linefit2 = gr->GetFunction("f2");
-  linefit2->SetLineWidth(3);
-  linefit2->SetLineColor(kBlue);
-  Double_t xminfit2 = 0.0;
-  Double_t xmaxfit2 = 0.0;
-  linefit2->GetRange(xminfit2,xmaxfit2);
-  TF1 * linefit2_p0up = new TF1("linefit2_p0up",polN.c_str(),xminfit2,xmaxfit2);
-  linefit2_p0up->SetNpx(10000);
-  linefit2_p0up->SetParameter(0, linefit2->GetParameter(0)+nSigmaVarInPlot*linefit2->GetParError(0));
-  linefit2_p0up->SetParameter(1, linefit2->GetParameter(1));
-  if (smoothPolinDegree > 1) linefit2_p0up->SetParameter(2, linefit2->GetParameter(2));
-  TF1 * linefit2_p0dn = new TF1("linefit2_p0dn",polN.c_str(),xminfit2,xmaxfit2);
-  linefit2_p0dn->SetNpx(10000);
-  linefit2_p0dn->SetParameter(0, linefit2->GetParameter(0)-nSigmaVarInPlot*linefit2->GetParError(0));
-  linefit2_p0dn->SetParameter(1, linefit2->GetParameter(1));
-  if (smoothPolinDegree > 1) linefit2_p0dn->SetParameter(2, linefit2->GetParameter(2));
+  // for slope (in case of pol1 only), try scaling slope up and offset down or viceversa, otherwise the fit goes out of the points
+  TF1 * linefit_p1up = new TF1("linefit_p1up",polN.c_str(),xminfit,xmaxfit);
+  linefit_p1up->SetNpx(10000);
+  linefit_p1up->SetParameter(0, linefit->GetParameter(0)-nSigmaVarInPlot*linefit->GetParError(0));
+  linefit_p1up->SetParameter(1, linefit->GetParameter(1)+nSigmaVarInPlot*linefit->GetParError(1));
+  TF1 * linefit_p1dn = new TF1("linefit_p1dn",polN.c_str(),xminfit,xmaxfit);
+  linefit_p1dn->SetNpx(10000);
+  linefit_p1dn->SetParameter(0, linefit->GetParameter(0)+nSigmaVarInPlot*linefit->GetParError(0));
+  linefit_p1dn->SetParameter(1, linefit->GetParameter(1)-nSigmaVarInPlot*linefit->GetParError(1));
 
-  linefit2_p0up->SetLineColor(kOrange+2);
-  linefit2_p0dn->SetLineColor(kOrange+2);
-  linefit2_p0up->SetLineWidth(3);
-  linefit2_p0dn->SetLineWidth(3);
+  linefit_p1up->SetLineColor(kBlue);
+  linefit_p1dn->SetLineColor(kBlue);
+  linefit_p1up->SetLineWidth(3);
+  linefit_p1dn->SetLineWidth(3);
+
+
+  // TF1 *linefit2 = gr->GetFunction("f2");
+  // linefit2->SetLineWidth(3);
+  // linefit2->SetLineColor(kBlue);
+  // Double_t xminfit2 = 0.0;
+  // Double_t xmaxfit2 = 0.0;
+  // linefit2->GetRange(xminfit2,xmaxfit2);
+  // TF1 * linefit2_p0up = new TF1("linefit2_p0up",polN.c_str(),xminfit2,xmaxfit2);
+  // linefit2_p0up->SetNpx(10000);
+  // linefit2_p0up->SetParameter(0, linefit2->GetParameter(0)+nSigmaVarInPlot*linefit2->GetParError(0));
+  // linefit2_p0up->SetParameter(1, linefit2->GetParameter(1));
+  // if (smoothPolinDegree > 1) linefit2_p0up->SetParameter(2, linefit2->GetParameter(2));
+  // TF1 * linefit2_p0dn = new TF1("linefit2_p0dn",polN.c_str(),xminfit2,xmaxfit2);
+  // linefit2_p0dn->SetNpx(10000);
+  // linefit2_p0dn->SetParameter(0, linefit2->GetParameter(0)-nSigmaVarInPlot*linefit2->GetParError(0));
+  // linefit2_p0dn->SetParameter(1, linefit2->GetParameter(1));
+  // if (smoothPolinDegree > 1) linefit2_p0dn->SetParameter(2, linefit2->GetParameter(2));
+
+  // linefit2_p0up->SetLineColor(kOrange+2);
+  // linefit2_p0dn->SetLineColor(kOrange+2);
+  // linefit2_p0up->SetLineWidth(3);
+  // linefit2_p0dn->SetLineWidth(3);
 
   TF1 *pol2fit = nullptr;
-  TFitResultPtr fitrespol2 = gr->Fit("pol2",addfitpol2 ? "EMFRS+": "0EMFRS+"); // fit with pol2
+  TFitResultPtr fitrespol2 = 0;
   if (addfitpol2) {
+    fitrespol2 = gr->Fit("pol2", "EMFRS+"); // fit with pol2
     pol2fit = gr->GetFunction("pol2");
     pol2fit->SetLineWidth(3);
-    pol2fit->SetLineColor(kAzure+2);
+    if (excludePoints) pol2fit->SetLineColor(kGreen+2);
+    else               pol2fit->SetLineColor(kAzure+2);
   }
 
   TCanvas* canvas = new TCanvas("canvas","",700,700);
@@ -343,21 +431,36 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
   gr->SetLineColor(kBlack);
   gr->SetFillColor(kBlack);
   gr->SetLineWidth(2);
-  gr->Draw("ap");
+  gr->Draw("ap");  
   leg.AddEntry(gr,legEntry.c_str(),"PLE");
-  //leg.AddEntry(linefit,"fit: p_{0} + p_{1}#upointx","L");
-  if (smoothPolinDegree > 1) leg.AddEntry(linefit,"fit: pol2","L");
-  else leg.AddEntry(linefit,Form("fit: %.2g %s %.2g #upoint x",fitres->Parameter(0),((fitres->Parameter(1) > 0) ? "+":"-"), fabs(fitres->Parameter(1))),"L");
-  leg.AddEntry(linefit_p0dn,"offset up/down (1#sigma)","L");
-  if (smoothPolinDegree > 1) leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
-  else leg.AddEntry(linefit2,Form("fit: %.2g %s %.2g #upoint x",fitres2->Parameter(0),((fitres2->Parameter(1) > 0) ? "+":"-"), fabs(fitres2->Parameter(1))),"L");
-  leg.AddEntry(linefit2_p0dn,"offset up/down (1#sigma)","L");
+  if (excludePoints) {
+    //gr_tmp->Draw("p same"); // draw all points, but not all of them were used for the fit
+    gr_excl->SetMarkerColor(kRed+1);
+    gr_excl->SetMarkerStyle(47);
+    gr_excl->SetMarkerSize(3);
+    gr_excl->SetLineColor(kRed+1);
+    gr_excl->SetFillColor(kRed+1);
+    gr_excl->SetLineWidth(2);
+    gr_excl->Draw("p same");
+    leg.AddEntry(gr_excl,"excluded points","PLE");
+  }
+
+  if (smoothPolinDegree == 1) {
+    leg.AddEntry(linefit,Form("fit: %.2g %s %.2g #upoint x",fitres->Parameter(0),((fitres->Parameter(1) > 0) ? "+":"-"), fabs(fitres->Parameter(1))),"L");
+    //leg.AddEntry(linefit2,Form("fit: %.2g %s %.2g #upoint x",fitres2->Parameter(0),((fitres2->Parameter(1) > 0) ? "+":"-"), fabs(fitres2->Parameter(1))),"L");
+    leg.AddEntry(linefit_p0dn,"offset up/down (1#sigma)","L");
+    leg.AddEntry(linefit_p1dn,"slope  up/down (1#sigma)","L");
+    // draw envelope
+    linefit_p0up->Draw("Lsame");
+    linefit_p0dn->Draw("Lsame");
+    linefit_p1up->Draw("Lsame");
+    linefit_p1dn->Draw("Lsame");
+  } else {
+    leg.AddEntry(linefit,"fit: pol2","L");
+    //leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
+  }
+
   leg.Draw("same");
-  // draw envelope
-  linefit_p0up->Draw("Lsame");
-  linefit_p0dn->Draw("Lsame");
-  linefit2_p0up->Draw("Lsame");
-  linefit2_p0dn->Draw("Lsame");
   // linefit_p0up->Print();
   // Double_t *params = linefit_p0up->GetParameters();
   // cout << "p0 = " << params[0] << "    p1 = " << params[1] << endl;
@@ -391,8 +494,10 @@ TFitResultPtr fitGraph(TGraph* gr = NULL,
 
   canvas->RedrawAxis("sameaxis");
 
-  canvas->SaveAs((outDir+canvasName+".png").c_str());
-  canvas->SaveAs((outDir+canvasName+".pdf").c_str());
+  if (saveCanvas) {
+    canvas->SaveAs((outDir+canvasName+".png").c_str());
+    canvas->SaveAs((outDir+canvasName+".pdf").c_str());
+  }
 
   delete canvas;
 
@@ -428,8 +533,9 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 			  const Bool_t hasSignedEta = true,
 			  const Bool_t noDrawQCD = false,
 			  const Bool_t showMergedWZ = true,   // overriden if showMergedEWK=true, else it draws W and Z together
-			  const Bool_t showTopVV = true // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
-			  ) 
+			  const Bool_t showTopVV = true, // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
+			  const Double_t subtrEWK_nSigma = 1			  
+		  ) 
 {
 
   gROOT->SetBatch(kTRUE);
@@ -442,9 +548,11 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   if (ptBinIndexData.size() == 1) {
     if      (ptBinIndexData[0] == 1) ptBinBoundariesData = ptBinBoundariesData_1;
     else if (ptBinIndexData[0] == 2) ptBinBoundariesData = ptBinBoundariesData_2;
+    else if (ptBinIndexData[0] == 3) ptBinBoundariesData = ptBinBoundariesData_3;
   } else {
     if      (ptBinIndexData[etaBinNumber] == 1) ptBinBoundariesData = ptBinBoundariesData_1;
     else if (ptBinIndexData[etaBinNumber] == 2) ptBinBoundariesData = ptBinBoundariesData_2;
+    else if (ptBinIndexData[etaBinNumber] == 3) ptBinBoundariesData = ptBinBoundariesData_3;
   }
 
   vector<Double_t> ptBinBoundariesEWK;
@@ -468,6 +576,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
   TGraphAsymmErrors* fr_data = nullptr;
   TGraphAsymmErrors* fr_data_subEWKMC = nullptr;
+  TGraphAsymmErrors* fr_data_subScaledUpEWKMC = nullptr;
+  TGraphAsymmErrors* fr_data_subScaledDownEWKMC = nullptr;
   TGraphAsymmErrors* fr_w = nullptr;
   TGraphAsymmErrors* fr_z = nullptr;
   TGraphAsymmErrors* fr_vv = nullptr;
@@ -492,6 +602,16 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   TH3* h3tmp = nullptr;
   vector<TGraph*> gr;
 
+  TH1* hpass_ewk_scaledUp = nullptr;
+  TH1* hntot_ewk_scaledUp = nullptr;
+  TH1* hpass_ewk_scaledDown = nullptr;
+  TH1* hntot_ewk_scaledDown = nullptr;
+
+  TH1* hpass_data_subtr_scaledUpEWK = nullptr;
+  TH1* hntot_data_subtr_scaledUpEWK = nullptr;
+  TH1* hpass_data_subtr_scaledDownEWK = nullptr;
+  TH1* hntot_data_subtr_scaledDownEWK = nullptr;
+
   TH1* hpass_ewk = nullptr;
   TH1* hntot_ewk = nullptr;
 
@@ -500,6 +620,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
   TH1* hpass_wz = nullptr;
   TH1* hntot_wz = nullptr;
+
+  // // these 2D histograms are not in the file as a TH3D, we must create them summing/subtracting the inputs
+  // TH2* hpass2D_ewk = nullptr;
+  // TH2* hntot2D_ewk = nullptr;
+  // TH2* hpass2D_data_subScaledEWKMC = nullptr;
+  // TH2* hntot2D_data_subScaledEWKMC = nullptr;
 
   ///////////////////////////////////////
   // open file with inputs
@@ -518,6 +644,9 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   Double_t ptMin = 0.0;
   Double_t ptMax = 0.0;
 
+  vector<TH1*> pt_num_proc;
+  vector<TH1*> pt_den_proc;
+  vector<string> leg_pt_proc;
 
   for (UInt_t j = 0; j < processes.size(); ++j) {
 
@@ -536,52 +665,74 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     // do this only once
     if (etaBinNumber == 0 && scan_vs_eta) {
 
-      if (processes[j] == "data_sub") {
-      
-	// pt vs eta
-	TH2D* hpass2D = new TH2D(Form("hpass2D_%s",processes[j].c_str()),"",
-				 nBins, ptBins, 
-				 h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
-	TH2D* hntot2D = new TH2D(Form("hntot2D_%s",processes[j].c_str()),"",
-				 nBins, ptBins, 
-				 h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      // if (j == 0) {
+      // 	hpass2D_ewk = new TH2D("hpass2D_ewk","",
+      // 			       nBins, ptBins,
+      // 			       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      // 	hntot2D_ewk = new TH2D("hntot2D_ewk","",
+      // 			       nBins, ptBins,
+      // 			       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      // 	hpass2D_data_subScaledEWKMC = new TH2D("hpass2D_data_subScaledEWKMC","",
+      // 					       nBins, ptBins,
+      // 					       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      // 	hntot2D_data_subScaledEWKMC = new TH2D("hntot2D_data_subScaledEWKMC","",
+      // 					       nBins, ptBins,
+      // 					       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      // }
+
+      string outDir_num_den = outDir + "/num_den_yields/" + processes[j] + "/";
+      createPlotDirAndCopyPhp(outDir_num_den);
+
+      // pt vs eta
+      TH2D* hpass2D = new TH2D(Form("hpass2D_%s",processes[j].c_str()),"",
+			       nBins, ptBins, 
+			       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
+      TH2D* hntot2D = new TH2D(Form("hntot2D_%s",processes[j].c_str()),"",
+			       nBins, ptBins, 
+			       h3tmp->GetNbinsY(), (Double_t*) h3tmp->GetYaxis()->GetXbins()->GetArray());
 	  
-	fillTH2fromTH3zrange(hntot2D,h3tmp,1,2);
-	fillTH2fromTH3zrange(hpass2D,h3tmp,2,2);
-	hpass2D->SetMinimum(0.0);
-	hntot2D->SetMinimum(0.0);
-	TH2D* hFR2D = (TH2D*) hpass2D->Clone(Form("hFR2D_%s",processes[j].c_str()));
-	if (!hFR2D->Divide(hntot2D)) {	  
-	  cout << "Error in doing hFR2D->Divide(hntot2D). Exiting" << endl;
-	  exit(EXIT_FAILURE);
-	}
-
-	string etaYaxisName = hasSignedEta ? "electron #eta" : "electron |#eta|";
-	string ptXaxisName = "electron p_{T} [GeV]";
-
-	drawCorrelationPlot(hpass2D, 
-			    ptXaxisName,
-			    etaYaxisName,
-			    "Events (fake-rate numerator)",
-			    "events_FRnumerator_data",
-			    "", outDir, 1, 1, false,false,false,1,0.12,0.24);
-	drawCorrelationPlot(hntot2D, 
-			    ptXaxisName,
-			    etaYaxisName,
-			    "Events (fake-rate denominator)",
-			    "events_FRdenominator_data",
-			    "", outDir, 1, 1, false,false,false,1,0.12,0.24);
-
-	// hFR2D->SetMinimum(0.0);
-	// hFR2D->SetMaximum(1.0);
-	drawCorrelationPlot(hFR2D, 
-			    ptXaxisName,
-			    etaYaxisName,
-			    "Fake-rate::0,1.0",
-			    "fakeRate_pt_vs_eta_data",
-			    "", outDir, 1, 1, false,false,false,1);
-
+      fillTH2fromTH3zrange(hntot2D,h3tmp,1,2);
+      fillTH2fromTH3zrange(hpass2D,h3tmp,2,2);
+      // if (processes[j] == "W" or processes[j] == "Z" or processes[j] == "Top" or processes[j] == "DiBosons") {
+      // 	hpass2D_ewk->	
+      // }
+      hpass2D->SetMinimum(0.0);
+      hntot2D->SetMinimum(0.0);
+      TH2D* hFR2D = (TH2D*) hpass2D->Clone(Form("hFR2D_%s",processes[j].c_str()));
+      if (!hFR2D->Divide(hntot2D)) {	  
+	cout << "Error in doing hFR2D->Divide(hntot2D). Exiting" << endl;
+	exit(EXIT_FAILURE);
       }
+
+      string etaYaxisName = hasSignedEta ? "electron #eta" : "electron |#eta|";
+      string ptXaxisName = "electron p_{T} [GeV]";
+
+      drawCorrelationPlot(hpass2D, 
+			  ptXaxisName,
+			  etaYaxisName,
+			  "Events (fake-rate numerator)",
+			  Form("events_FRnumerator_%s",processes[j].c_str()),
+			  "", outDir_num_den, 1, 1, false,false,false,1,0.12,0.24);
+      drawCorrelationPlot(hntot2D, 
+			  ptXaxisName,
+			  etaYaxisName,
+			  "Events (fake-rate denominator)",
+			  Form("events_FRdenominator_%s",processes[j].c_str()),
+			  "", outDir_num_den, 1, 1, false,false,false,1,0.12,0.24);
+
+      // hFR2D->SetMinimum(0.0);
+      // hFR2D->SetMaximum(1.0);
+      drawCorrelationPlot(hFR2D, 
+			  ptXaxisName,
+			  etaYaxisName,
+			  "Fake-rate::0,1.0",
+			  Form("fakeRate_pt_vs_eta_%s",processes[j].c_str()),
+			  "", outDir_num_den, 1, 1, false,false,false,1);
+
+      delete hpass2D;
+      delete hntot2D;
+      delete hFR2D;
+
       
     }
 
@@ -609,6 +760,26 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       hpass_wz = new TH1D("wz_pass","", nBinsEWK, ptBinBoundariesEWK.data());
       hntot_wz = new TH1D("wz_ntot","", nBinsEWK, ptBinBoundariesEWK.data());
     }
+    if (hpass_ewk_scaledUp == nullptr && hntot_ewk_scaledUp == nullptr) {
+      // will be subtracted from data
+      hpass_ewk_scaledUp = new TH1D("ewk_scaledUp_pass","", nBins, ptBins);
+      hntot_ewk_scaledUp = new TH1D("ewk_scaledUp_ntot","", nBins, ptBins);
+    }
+    if (hpass_ewk_scaledDown == nullptr && hntot_ewk_scaledDown == nullptr) {
+      // will be subtracted from data
+      hpass_ewk_scaledDown = new TH1D("ewk_scaledDown_pass","", nBins, ptBins);
+      hntot_ewk_scaledDown = new TH1D("ewk_scaledDown_ntot","", nBins, ptBins);
+    }
+    if (hpass_data_subtr_scaledUpEWK == nullptr && hntot_data_subtr_scaledUpEWK == nullptr) {
+      // will be subtracted from data
+      hpass_data_subtr_scaledUpEWK = new TH1D("data_subtr_scaledUpEWK_pass","", nBins, ptBins);
+      hntot_data_subtr_scaledUpEWK = new TH1D("data_subtr_scaledUpEWK_ntot","", nBins, ptBins);
+    }
+    if (hpass_data_subtr_scaledDownEWK == nullptr && hntot_data_subtr_scaledDownEWK == nullptr) {
+      // will be subtracted from data
+      hpass_data_subtr_scaledDownEWK = new TH1D("data_subtr_scaledDownEWK_pass","", nBins, ptBins);
+      hntot_data_subtr_scaledDownEWK = new TH1D("data_subtr_scaledDownEWK_ntot","", nBins, ptBins);
+    }
 
     Double_t error = 0.0;
     for (Int_t ix = 1; ix <= h3tmp->GetNbinsX(); ++ix) {
@@ -617,17 +788,40 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       hntot.back()->SetBinContent(ix,h3tmp->IntegralAndError(ix,ix,binYlow,binYhigh,1,2,error)); // bin 1 along Z for fail, 2 for pass (from 1 to 2 selects both bins)
       hntot.back()->SetBinError(ix,error);
     }
+
+    // this is to draw pt distributions for some processes
+    // do it before rebinning
+    if (processes[j] == "data" or processes[j] == "data_sub" or processes[j] == "W" or processes[j] == "Z") {
+      if (processes[j] == "data_sub") leg_pt_proc.push_back("data - EWK MC");
+      else leg_pt_proc.push_back(processes[j]);
+      // create 2 new histograms to store pt
+      pt_num_proc.push_back( new TH1D(Form("pt_num_%s",processes[j].c_str()),"", nBins, ptBins) );
+      pt_den_proc.push_back( new TH1D(Form("pt_den_%s",processes[j].c_str()),"", nBins, ptBins) );
+      // fill them copying hpass and hntot (so they are two different and independent objects)
+      copyHisto(pt_num_proc.back(),hpass.back());
+      copyHisto(pt_den_proc.back(),hntot.back());
+    }
+
+
     if (processes[j] == "QCD") {
       hpass.back() = hpass.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
       hntot.back() = hntot.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
     } else if (processes[j] == "W" || processes[j] == "Z") {
+      hpass_ewk_scaledUp->Add(hpass.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);   
+      hntot_ewk_scaledUp->Add(hntot.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);  
+      hpass_ewk_scaledDown->Add(hpass.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);   
+      hntot_ewk_scaledDown->Add(hntot.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);  
       hpass.back() = hpass.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
       hntot.back() = hntot.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
       hpass_ewk->Add(hpass.back());
       hntot_ewk->Add(hntot.back());
       hpass_wz->Add(hpass.back());
       hntot_wz->Add(hntot.back());
-    } else if (processes[j] == "Top" || processes[j] == "DiBoson") {
+    } else if (processes[j] == "Top" || processes[j] == "DiBosons") {
+      hpass_ewk_scaledUp->Add(hpass.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);   
+      hntot_ewk_scaledUp->Add(hntot.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);  
+      hpass_ewk_scaledDown->Add(hpass.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);   
+      hntot_ewk_scaledDown->Add(hntot.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);  
       hpass.back() = hpass.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
       hntot.back() = hntot.back()->Rebin(nBinsEWK,"",ptBinBoundariesEWK.data());
       hpass_ewk->Add(hpass.back());
@@ -635,6 +829,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       hpass_top_vv->Add(hpass.back());
       hntot_top_vv->Add(hntot.back());
     } else if (processes[j] == "data" || processes[j] == "data_sub") {
+      if (processes[j] == "data") {
+	hpass_data_subtr_scaledUpEWK->Add(hpass.back());
+	hntot_data_subtr_scaledUpEWK->Add(hntot.back());
+	hpass_data_subtr_scaledDownEWK->Add(hpass.back());
+	hntot_data_subtr_scaledDownEWK->Add(hntot.back());
+      }
       hpass.back() = hpass.back()->Rebin(nBinsData,"",ptBinBoundariesData.data());
       hntot.back() = hntot.back()->Rebin(nBinsData,"",ptBinBoundariesData.data());
     }
@@ -643,12 +843,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     if (processes[j] == "W") {
 
       fr_w = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
-      //fillFakeRateTH2(fr_pt_eta_w,etaBinTH1,hpass.back(),hntot.back());
 
     } else if (processes[j] == "Z") {
 
       fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
-      //fillFakeRateTH2(fr_pt_eta_z,etaBinTH1,hpass.back(),hntot.back());
 
     } else if (processes[j] == "DiBosons") {
 
@@ -659,19 +857,68 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       fr_top = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
     } else if (processes[j] == "data_sub") {
-	fr_data_subEWKMC = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode"); 
-	//fillFakeRateTH2(fr_pt_eta_data,etaBinTH1,hpass.back(),hntot.back());
+
+      fr_data_subEWKMC = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode"); 
+
     } else if (processes[j] == "QCD") {
-	fr_qcd           = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode"); 
-	//fillFakeRateTH2(fr_pt_eta_qcd,etaBinTH1,hpass.back(),hntot.back());
+
+      fr_qcd = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode"); 
+
     } else if (processes[j] == "data") {
-	fr_data = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
+      fr_data = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+	
     } 
 
   }
 
+ 
+  // now draw pt distribution
+  string outDirPt = outDir + "/pt_distribution/";
+  createPlotDirAndCopyPhp(outDirPt);
+  draw_nTH1(pt_num_proc, 
+	    Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), 
+	    "Events/bin [GeV^{-1 }]", 
+	    Form("ele_pt_%s_%s_numerator",detId.c_str(),plotPostFix.c_str()), 
+	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false);
+  draw_nTH1(pt_den_proc, 
+	    Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), 
+	    "Events/bin [GeV^{-1 }]", 
+	    Form("ele_pt_%s_%s_denominator",detId.c_str(),plotPostFix.c_str()), 
+	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false);	    
+
+  // now create new FR as (data - EWK') where EWK' is the scaled EWK
+  hpass_data_subtr_scaledUpEWK->Add(hpass_ewk_scaledUp,-1);  
+  hntot_data_subtr_scaledUpEWK->Add(hntot_ewk_scaledUp,-1);  
+  hpass_data_subtr_scaledDownEWK->Add(hpass_ewk_scaledDown,-1);  
+  hntot_data_subtr_scaledDownEWK->Add(hntot_ewk_scaledDown,-1);
+
+  // cout << endl;  
+  // cout << endl;  
+  // cout << "ewk Up   Integral: " << hpass_ewk_scaledUp->Integral() << endl;
+  // cout << "ewk Down Integral: " << hpass_ewk_scaledUp->Integral() << endl;
+  // cout << endl;  
+  // cout << endl;  
+
+
+  // does not work
+  // now rebin to the desired binning
+  hpass_data_subtr_scaledUpEWK   = hpass_data_subtr_scaledUpEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
+  hntot_data_subtr_scaledUpEWK   = hntot_data_subtr_scaledUpEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
+  hpass_data_subtr_scaledDownEWK = hpass_data_subtr_scaledDownEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
+  hntot_data_subtr_scaledDownEWK = hntot_data_subtr_scaledDownEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
+  // cout << endl;  
+  // cout << endl;  
+  // cout << "Nbins Up: " << hpass_data_subtr_scaledUpEWK->GetNbinsX() << "  " << hntot_data_subtr_scaledUpEWK->GetNbinsX() << "  " << endl;
+  // cout << "Nbins Down: " << hpass_data_subtr_scaledDownEWK->GetNbinsX() << "  " << hntot_data_subtr_scaledDownEWK->GetNbinsX() << "  " << endl;
+  // cout << endl;  
+  // cout << endl;  
+
+  fr_data_subScaledUpEWKMC = new TGraphAsymmErrors(hpass_data_subtr_scaledUpEWK, hntot_data_subtr_scaledUpEWK, "cl=0.683 b(1,1) mode"); 
+  fr_data_subScaledDownEWKMC = new TGraphAsymmErrors(hpass_data_subtr_scaledDownEWK, hntot_data_subtr_scaledDownEWK, "cl=0.683 b(1,1) mode"); 
+
   vector<Int_t> colorList = {kBlack, kRed};
-  vector<string> legendEntries = {"data", "data subtr. EWK MC"};
+  vector<string> legendEntries = {"data", "data - EWK MC"};
   gr.push_back( fr_data );
   gr.push_back( fr_data_subEWKMC );
 
@@ -686,10 +933,17 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   fr_top_vv = new TGraphAsymmErrors(hpass_top_vv, hntot_top_vv, "cl=0.683 b(1,1) mode");
   fr_wz = new TGraphAsymmErrors(hpass_wz, hntot_wz, "cl=0.683 b(1,1) mode");
 
+  // settings for the canvas with all the graphs
   if (showMergedEWK) {
     gr.push_back(fr_ewk);
     colorList.push_back(kBlue);
     legendEntries.push_back("EWK MC (prompt rate)");
+    gr.push_back(fr_data_subScaledUpEWKMC);
+    colorList.push_back(kGreen+2);
+    legendEntries.push_back(Form("data - (1 + %.1g #sigma) EWK MC",subtrEWK_nSigma));
+    gr.push_back(fr_data_subScaledDownEWKMC);
+    colorList.push_back(kGreen+3);
+    legendEntries.push_back(Form("data - (1 - %.1g #sigma) EWK MC",subtrEWK_nSigma));
   } else {
     if (showMergedWZ) {
       gr.push_back(fr_wz);
@@ -705,13 +959,19 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     }
     if (showTopVV) {
       gr.push_back(fr_top_vv);
-      if (noDrawQCD) colorList.push_back(kGreen+2);
+      if (noDrawQCD) colorList.push_back(kOrange+2);
       else               colorList.push_back(kPink);
       legendEntries.push_back("Top,VV MC (prompt rate)");
     }
+    gr.push_back(fr_data_subScaledUpEWKMC);
+    if (noDrawQCD) colorList.push_back(kGreen+2);
+    else           colorList.push_back(kOrange+7);
+    legendEntries.push_back(Form("data - (1 + %.1g #sigma) EWK MC",subtrEWK_nSigma));
+    gr.push_back(fr_data_subScaledDownEWKMC);
+    if (noDrawQCD) colorList.push_back(kGreen+3);
+    else           colorList.push_back(kOrange+8);
+    legendEntries.push_back(Form("data - (1 - %.1g #sigma) EWK MC",subtrEWK_nSigma));
   }
-
-  //fillFakeRateTH2(fr_pt_eta_ewk,etaBinTH1,hpass_ewk,hntot_ewk);
 
   drawGraphCMS(gr, 
 	       Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), 
@@ -732,8 +992,15 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   string yrange_ewk   = isEB ? "0.8,1.2" : "0.4,1.2";
   vector <Double_t> legCoordFit = {0.12,0.7,0.60,0.9};
 
+  string outDirFits = outDir + "/fits/";
+  createPlotDirAndCopyPhp(outDirFits);
+
   TFitResultPtr ptr_data_fitNarrowRange = nullptr;
-  TFitResultPtr ptr_data = fitGraph(fr_data_subEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "data subtr. EWK MC", legCoordFit,inputLuminosity,true, false, 1.0, &ptr_data_fitNarrowRange);
+  TFitResultPtr ptr_data = fitGraph(fr_data_subEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data/", "data - EWK MC", legCoordFit,inputLuminosity,true, false, 1.0, true, &ptr_data_fitNarrowRange, true,37,50);
+
+  TFitResultPtr ptr_data_subScaledUpEWKMC = fitGraph(fr_data_subScaledUpEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledUpEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledUpEWKMC/", Form("data - (1 + %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, true,37,50);
+
+  TFitResultPtr ptr_data_subScaledDownEWKMC = fitGraph(fr_data_subScaledDownEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledDownEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledDownEWKMC/", Form("data - (1 - %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, true,37,50);
 
   // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
@@ -750,27 +1017,35 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     frSmoothParameter_data_fitNarrowRange->SetBinError(etaBinTH1,ipar+1,ptr_data_fitNarrowRange->ParError(ipar));
   }
 
+  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+    frSmoothParameter_data_subScaledUpEWKMC->SetBinContent(etaBinTH1,ipar+1,ptr_data_subScaledUpEWKMC->Parameter(ipar));
+    frSmoothParameter_data_subScaledUpEWKMC->SetBinError(etaBinTH1,ipar+1,ptr_data_subScaledUpEWKMC->ParError(ipar));
+  }
+  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+    frSmoothParameter_data_subScaledDownEWKMC->SetBinContent(etaBinTH1,ipar+1,ptr_data_subScaledDownEWKMC->Parameter(ipar));
+    frSmoothParameter_data_subScaledDownEWKMC->SetBinError(etaBinTH1,ipar+1,ptr_data_subScaledDownEWKMC->ParError(ipar));
+  }
+
   TFitResultPtr ptr_w = nullptr;
   TFitResultPtr ptr_z = nullptr;
   TFitResultPtr ptr_ewk = nullptr;
   TFitResultPtr ptr_top_vv = nullptr;
   TFitResultPtr ptr_wz = nullptr;
 
-  if (showMergedEWK) {
 
-    ptr_ewk = fitGraph(fr_ewk, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_ewk_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
-    // fit is Y=a*X+b
+  ptr_ewk = fitGraph(fr_ewk, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_ewk_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"ewk/", "EWK MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, true);
+  // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
-      frSmoothParameter_ewk->SetBinContent(etaBinTH1,ipar+1,ptr_ewk->Parameter(ipar));
-      frSmoothParameter_ewk->SetBinError(etaBinTH1,ipar+1,ptr_ewk->ParError(ipar));
-    }
-
-  } else {
+  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+    frSmoothParameter_ewk->SetBinContent(etaBinTH1,ipar+1,ptr_ewk->Parameter(ipar));
+    frSmoothParameter_ewk->SetBinError(etaBinTH1,ipar+1,ptr_ewk->ParError(ipar));
+  }
+  
+  if (not showMergedEWK) {
 
     if (showMergedWZ) {
       
-      ptr_wz = fitGraph(fr_wz, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_wz_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      ptr_wz = fitGraph(fr_wz, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_wz_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"wz/", "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
       for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
@@ -780,7 +1055,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       
     } else {
 
-      ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"w/", "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
       for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {        
@@ -788,7 +1063,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 	frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
       }
 
-      ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
+      ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"z/", "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
       for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
@@ -796,28 +1071,28 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 	frSmoothParameter_z->SetBinError(etaBinTH1,ipar+1,ptr_z->ParError(ipar));
       }
 
-      if (showTopVV) {
-
-	ptr_top_vv = fitGraph(fr_top_vv, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_top_vv_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "Top,VV MC (prompt rate)", legCoordFit,inputLuminosity,false, true);
-	// fit is Y=a*X+b
-	// bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-	for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
-	  frSmoothParameter_top_vv->SetBinContent(etaBinTH1,ipar+1,ptr_top_vv->Parameter(ipar));
-	  frSmoothParameter_top_vv->SetBinError(etaBinTH1,ipar+1,ptr_top_vv->ParError(ipar));
-	}
-      
-      }
-
     }
 
-  }
+    if (showTopVV) {
+      
+      ptr_top_vv = fitGraph(fr_top_vv, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_top_vv_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"top_vv/", "Top,VV MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
+      // fit is Y=a*X+b
+      // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
+      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+	frSmoothParameter_top_vv->SetBinContent(etaBinTH1,ipar+1,ptr_top_vv->Parameter(ipar));
+	frSmoothParameter_top_vv->SetBinError(etaBinTH1,ipar+1,ptr_top_vv->ParError(ipar));
+      }
+      
+    }
+
+  }  
 
 
   TFitResultPtr ptr_qcd = nullptr;
 
   if (not noDrawQCD) {
     
-    ptr_qcd = fitGraph(fr_qcd, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_qcdmc.c_str()), Form("fr_qcd_%s_%s",detId.c_str(),plotPostFix.c_str()), outDir, "QCD MC            ", legCoordFit,inputLuminosity,false, false);
+    ptr_qcd = fitGraph(fr_qcd, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_qcdmc.c_str()), Form("fr_qcd_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"qcd/", "QCD MC            ", legCoordFit,inputLuminosity,false, false, false);
 
     for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
       frSmoothParameter_qcd->SetBinContent(etaBinTH1,ipar+1,ptr_qcd->Parameter(ipar));
@@ -834,26 +1109,27 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_fitpol2/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF/", 
-					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_mergedEWK_exclPt_fitPol1/", 
+					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_mergedEWK_exclPt_fitPol1",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
-					const Bool_t showMergedEWK = true,
+					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file
 					const Bool_t saveToFile = false,  // whether to save is WMass/data/fakerate/ (if false, save in current folder)
 					//const TString& etaBinBoundariesList = "-2.5,-2.3,-2.1,-1.9,-1.7,-1.479,-1.2,-0.9,-0.6,-0.3,0.0,0.3,0.6,0.9,1.2,1.479,1.7,1.9,2.1,2.3,2.5",  // important to use dots also for 1.0
 					//const TString& etaBinBoundariesList = "0.0,1.0,1.479,1.8,2.1,2.5",
 					const TString& etaBinBoundariesList = "-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.566,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4442,1.566,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5",
 					const vector<Int_t> ptBinIndexQCD = {2},  // should be a number for each eta bin (if only one is given, use it for all)
 					const vector<Int_t> ptBinIndexEWK = {2},  // should be a number for each eta bin (if only one is given, use it for all)
-					const vector<Int_t> ptBinIndexData = {2},  // should be a number for each eta bin (if only one is given, use it for all)
+					const vector<Int_t> ptBinIndexData = {3},  // should be a number for each eta bin (if only one is given, use it for all)
 					const Double_t inputLuminosity = 35.9, // -1 in case luminosity should not be printed
 					const Bool_t scan_vs_eta = true, // see below
 					const Bool_t hasSignedEta = true, // see below
 					const Bool_t noDrawQCD = true,
 					const Bool_t showMergedWZ = true,   // overriden if showMergedEWK=true, else it draws W and Z together
-					const Bool_t showTopVV = true // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
+					const Bool_t showTopVV = true, // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
+					const Double_t subtrEWK_nSigma = 1.0  // pass how many cross section sigmas should be used to subtract the EWK processes from data 
 					//const Bool_t addTopVVtoWZ = true  // will not draw W,Z and Top,VV separately, but altogether
 			   ) 
 {
@@ -898,16 +1174,33 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   etaBoundariesGlobal = etaBoundaries;
   Int_t NetaBins = (Int_t) etaBoundaries.size() - 1;
   vector<Double_t> parNumberBoundaries = {-0.5,0.5,1.5,2.5}; // bin center is 0 or 1 for a 2 parameter fit (we used a straight line to fit FR, so we have 2 parameters)
+  string hParamTitle = "pol2 fit parameters (offset, slope, concavity) vs eta";
+  if (smoothPolinDegree == 1) {
+    parNumberBoundaries.pop_back();
+    hParamTitle = "pol1 fit parameters (offset, slope) vs eta";
+  }
   Int_t Nparam = (Int_t) parNumberBoundaries.size() - 1;
+  
 
-  frSmoothParameter_data = new TH2D("frSmoothParameter_data","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_data_fitNarrowRange = new TH2D("frSmoothParameter_data_fitNarrowRange","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_qcd = new TH2D("frSmoothParameter_qcd","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_w = new TH2D("frSmoothParameter_w","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_z = new TH2D("frSmoothParameter_z","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_top_vv = new TH2D("frSmoothParameter_top_vv","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
-  frSmoothParameter_wz = new TH2D("frSmoothParameter_wz","polN fit parameters (offset, slope, concavity) vs eta",NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  // use cross section uncertainty
+  // might want to use an eta-dependent factor for W
+  scaleFactor["W"] = 0.038;
+  scaleFactor["Z"] = 0.04;
+  scaleFactor["Top"] = 0.09;
+  scaleFactor["DiBosons"] = 0.05;
+  //scaleFactor["QCD"] = 0.9;
+
+
+  frSmoothParameter_data = new TH2D("frSmoothParameter_data",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_data_fitNarrowRange = new TH2D("frSmoothParameter_data_fitNarrowRange",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_data_subScaledUpEWKMC = new TH2D("frSmoothParameter_data_subScaledUpEWKMC",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_data_subScaledDownEWKMC = new TH2D("frSmoothParameter_data_subScaledDownEWKMC",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_qcd = new TH2D("frSmoothParameter_qcd",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_w = new TH2D("frSmoothParameter_w",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_z = new TH2D("frSmoothParameter_z",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_top_vv = new TH2D("frSmoothParameter_top_vv",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+  frSmoothParameter_wz = new TH2D("frSmoothParameter_wz",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
 
   string outDir = (outDir_tmp == "SAME") ? (inputFilePath + "FR_graphs/") : outDir_tmp;
 
@@ -943,7 +1236,8 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			 scan_vs_eta,etaBoundaries[i],etaBoundaries[i+1],hasSignedEta,
 			 noDrawQCD,
 			 showMergedWZ,
-			 showTopVV
+			 showTopVV,
+			 subtrEWK_nSigma
 			 ); 
 
   }
@@ -1000,6 +1294,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 				  70, 30, 65, NetaBins, etaBoundaries.data());
   TH2D* fr_pt_eta_data_fitNarrowRange = new TH2D("fr_pt_eta_data_fitNarrowRange",Form("fake rate for data;electron p_{T};%s",etaYaxisName.c_str()), 
 				  70, 30, 65, NetaBins, etaBoundaries.data());
+  TH2D* fr_pt_eta_data_subScaledUpEWKMC = new TH2D("fr_pt_eta_data_subScaledUpEWKMC",Form("fake rate for data;electron p_{T};%s",etaYaxisName.c_str()), 
+				  70, 30, 65, NetaBins, etaBoundaries.data());
+  TH2D* fr_pt_eta_data_subScaledDownEWKMC = new TH2D("fr_pt_eta_data_subScaledDownEWKMC",Form("fake rate for data;electron p_{T};%s",etaYaxisName.c_str()), 
+				  70, 30, 65, NetaBins, etaBoundaries.data());
   TH2D* fr_pt_eta_qcd  = new TH2D("fr_pt_eta_qcd",Form("fake rate for QCD MC;electron p_{T};%s",etaYaxisName.c_str()), 
 				  70, 30, 65, NetaBins, etaBoundaries.data());
   TH2D* fr_pt_eta_w    = new TH2D("fr_pt_eta_w",Form("prompt rate for W MC;electron p_{T};%s",etaYaxisName.c_str()), 
@@ -1017,10 +1315,11 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   cout << endl;
   fillFakeRateTH2smooth(fr_pt_eta_data, frSmoothParameter_data);
   fillFakeRateTH2smooth(fr_pt_eta_data_fitNarrowRange, frSmoothParameter_data_fitNarrowRange);
+  fillFakeRateTH2smooth(fr_pt_eta_data_subScaledUpEWKMC, frSmoothParameter_data_subScaledUpEWKMC);
+  fillFakeRateTH2smooth(fr_pt_eta_data_subScaledDownEWKMC, frSmoothParameter_data_subScaledDownEWKMC);
   if (not noDrawQCD) fillFakeRateTH2smooth(fr_pt_eta_qcd, frSmoothParameter_qcd);
-  if (showMergedEWK) {
-    fillFakeRateTH2smooth(fr_pt_eta_ewk, frSmoothParameter_ewk);
-  } else {
+  fillFakeRateTH2smooth(fr_pt_eta_ewk, frSmoothParameter_ewk);
+  if (not showMergedEWK) {
     if (showMergedWZ) {
       fillFakeRateTH2smooth(fr_pt_eta_wz, frSmoothParameter_wz);    
     } else {
@@ -1032,40 +1331,53 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
     }
   }
 
+  string outDirSmooth = outDir + "/smooth/";
+  createPlotDirAndCopyPhp(outDirSmooth);
   // draw some TH2
   drawCorrelationPlot(fr_pt_eta_data, 
 		      fr_pt_eta_data->GetXaxis()->GetTitle(),
 		      fr_pt_eta_data->GetYaxis()->GetTitle(),
 		      "fake rate",
 		      "smoothed_fakeRate_pt_vs_eta_data",
-		      "", outDir, 1,1, false,false,false,1);
+		      "", outDirSmooth, 1,1, false,false,false,1);
   drawCorrelationPlot(fr_pt_eta_data, 
 		      fr_pt_eta_data->GetXaxis()->GetTitle(),
 		      fr_pt_eta_data->GetYaxis()->GetTitle(),
 		      "fake rate::0,1.0",
 		      "smoothed_fakeRate_pt_vs_eta_data_wideZaxis",
-		      "", outDir, 1,1, false,false,false,1);
-  drawCorrelationPlot(fr_pt_eta_data_fitNarrowRange, 
-		      fr_pt_eta_data_fitNarrowRange->GetXaxis()->GetTitle(),
-		      fr_pt_eta_data_fitNarrowRange->GetYaxis()->GetTitle(),
+		      "", outDirSmooth, 1,1, false,false,false,1);
+  // drawCorrelationPlot(fr_pt_eta_data_fitNarrowRange, 
+  // 		      fr_pt_eta_data_fitNarrowRange->GetXaxis()->GetTitle(),
+  // 		      fr_pt_eta_data_fitNarrowRange->GetYaxis()->GetTitle(),
+  // 		      "fake rate::0,1.0",
+  // 		      "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange",
+  // 		      "", outDirSmooth, 1,1, false,false,false,1);
+  drawCorrelationPlot(fr_pt_eta_data_subScaledUpEWKMC, 
+		      fr_pt_eta_data_subScaledUpEWKMC->GetXaxis()->GetTitle(),
+		      fr_pt_eta_data_subScaledUpEWKMC->GetYaxis()->GetTitle(),
 		      "fake rate::0,1.0",
-		      "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange",
-		      "", outDir, 1,1, false,false,false,1);
-  if (showMergedEWK) {
-    drawCorrelationPlot(fr_pt_eta_ewk, 
-			fr_pt_eta_ewk->GetXaxis()->GetTitle(),
-			fr_pt_eta_ewk->GetYaxis()->GetTitle(),
-			"prompt rate",
-			"smoothed_promptRate_pt_vs_eta_ewk",
-			"", outDir, 1,1, false,false,false,1);
-  } else {
+		      "smoothed_fakeRate_pt_vs_eta_data_subScaledUpEWKMC",
+		      "", outDirSmooth, 1,1, false,false,false,1);
+  drawCorrelationPlot(fr_pt_eta_data_subScaledDownEWKMC, 
+		      fr_pt_eta_data_subScaledDownEWKMC->GetXaxis()->GetTitle(),
+		      fr_pt_eta_data_subScaledDownEWKMC->GetYaxis()->GetTitle(),
+		      "fake rate::0,1.0",
+		      "smoothed_fakeRate_pt_vs_eta_data_subScaledDownEWKMC",
+		      "", outDirSmooth, 1,1, false,false,false,1);
+  drawCorrelationPlot(fr_pt_eta_ewk, 
+		      fr_pt_eta_ewk->GetXaxis()->GetTitle(),
+		      fr_pt_eta_ewk->GetYaxis()->GetTitle(),
+		      "prompt rate",
+		      "smoothed_promptRate_pt_vs_eta_ewk",
+		      "", outDirSmooth, 1,1, false,false,false,1);
+  if (not showMergedEWK) {
     if (showMergedWZ) {
       drawCorrelationPlot(fr_pt_eta_wz, 
 			  fr_pt_eta_wz->GetXaxis()->GetTitle(),
 			  fr_pt_eta_wz->GetYaxis()->GetTitle(),
 			  "prompt rate",
 			  "smoothed_promptRate_pt_vs_eta_wz",
-			  "", outDir, 1,1, false,false,false,1);
+			  "", outDirSmooth, 1,1, false,false,false,1);
 
     } else {
       drawCorrelationPlot(fr_pt_eta_w, 
@@ -1073,13 +1385,13 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			  fr_pt_eta_w->GetYaxis()->GetTitle(),
 			  "prompt rate",
 			  "smoothed_promptRate_pt_vs_eta_w",
-			  "", outDir, 1,1, false,false,false,1);
+			  "", outDirSmooth, 1,1, false,false,false,1);
       drawCorrelationPlot(fr_pt_eta_z, 
 			  fr_pt_eta_z->GetXaxis()->GetTitle(),
 			  fr_pt_eta_z->GetYaxis()->GetTitle(),
 			  "prompt rate",
 			  "smoothed_promptRate_pt_vs_eta_z",
-			  "", outDir, 1,1, false,false,false,1);
+			  "", outDirSmooth, 1,1, false,false,false,1);
     }
     if (showTopVV) {
       drawCorrelationPlot(fr_pt_eta_top_vv, 
@@ -1087,7 +1399,7 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			  fr_pt_eta_top_vv->GetYaxis()->GetTitle(),
 			  "prompt rate",
 			  "smoothed_promptRate_pt_vs_eta_top_vv",
-			  "", outDir, 1,1, false,false,false,1);
+			  "", outDirSmooth, 1,1, false,false,false,1);
     }
 
   }
@@ -1098,25 +1410,79 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			fr_pt_eta_qcd->GetYaxis()->GetTitle(),
 			"fake rate",
 			"smoothed_fakeRate_pt_vs_eta_qcd",
-			"", outDir, 1,1, false,false,false,1);
+			"", outDirSmooth, 1,1, false,false,false,1);
 
 
   cout << endl;
-  cout << "Plotting TH2 with relative uncertainty on FR parameters" << endl;
+  cout << "Plotting TH2 with FR parameters" << endl;
+
   string relUncYaxisTitle = "0 offset : 1 slope";
   if (smoothPolinDegree > 1) relUncYaxisTitle += " : 2 concavity";  
-  plotFRparamRelUncertainty(frSmoothParameter_data,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_relUnc");
-  plotFRparamRelUncertainty(frSmoothParameter_data_fitNarrowRange,outDir,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange_relUnc");
+
+  string outDirParam = outDir+"/paramValues/";
+  createPlotDirAndCopyPhp(outDirParam);
+
+  string suffixRange = (smoothPolinDegree > 1) ? "::-0.5,2.5" : "::-0.5,1.5";
+  drawCorrelationPlot(frSmoothParameter_data, 
+		      fr_pt_eta_data->GetYaxis()->GetTitle(), relUncYaxisTitle+suffixRange, "parameter value", 
+		      "smoothed_fakeRate_pt_vs_eta_data_paramValue",
+		      "", outDirParam, 1,1, false,false,false,1);
+  drawCorrelationPlot(frSmoothParameter_data_subScaledUpEWKMC, 
+		      fr_pt_eta_data->GetYaxis()->GetTitle(), relUncYaxisTitle+suffixRange, "parameter value", 
+		      "smoothed_fakeRate_pt_vs_eta_data_subScaledUpEWKMC_paramValue",
+		      "", outDirParam, 1,1, false,false,false,1);
+  drawCorrelationPlot(frSmoothParameter_data_subScaledDownEWKMC, 
+		      fr_pt_eta_data->GetYaxis()->GetTitle(), relUncYaxisTitle+suffixRange, "parameter value", 
+		      "smoothed_fakeRate_pt_vs_eta_data_subScaledDownEWKMC_paramValue",
+		      "", outDirParam, 1,1, false,false,false,1);
+  drawCorrelationPlot(frSmoothParameter_ewk, 
+		      fr_pt_eta_data->GetYaxis()->GetTitle(), relUncYaxisTitle+suffixRange, "parameter value", 
+		      "smoothed_promptRate_pt_vs_eta_ewk_paramValue",
+		      "", outDirParam, 1,1, false,false,false,1);
+
+
+  TH1D* frSmoothParameter_data_slope = new TH1D("frSmoothParameter_data_slope","",NetaBins, etaBoundaries.data());
+  TH1D* frSmoothParameter_data_subScaledDownEWKMC_slope = new TH1D("frSmoothParameter_data_subScaledDownEWKMC_slope","",NetaBins, etaBoundaries.data());
+  TH1D* frSmoothParameter_data_subScaledUpEWKMC_slope = new TH1D("frSmoothParameter_data_subScaledUpEWKMC_slope","",NetaBins, etaBoundaries.data());
+  TH1D* frSmoothParameter_ewk_slope = new TH1D("frSmoothParameter_data_subScaledUpEWKMC_slope","",NetaBins, etaBoundaries.data());
+  fillTH1fromTH2bin(frSmoothParameter_data_slope, frSmoothParameter_data, false, 2);
+  fillTH1fromTH2bin(frSmoothParameter_data_subScaledUpEWKMC_slope, frSmoothParameter_data_subScaledUpEWKMC, false, 2);
+  fillTH1fromTH2bin(frSmoothParameter_data_subScaledDownEWKMC_slope, frSmoothParameter_data_subScaledDownEWKMC, false, 2);
+  fillTH1fromTH2bin(frSmoothParameter_ewk_slope, frSmoothParameter_ewk, false, 2);
+
+  drawSingleTH1(frSmoothParameter_data_slope,fr_pt_eta_data->GetYaxis()->GetTitle(),"Slope","smoothed_fakeRate_slope_vs_eta_data",
+		outDirParam,"FR nominal",inputLuminosity,1,false,1);
+  drawSingleTH1(frSmoothParameter_data_subScaledUpEWKMC_slope,fr_pt_eta_data->GetYaxis()->GetTitle(),"Slope","smoothed_fakeRate_slope_vs_eta_data_subScaledUpEWKMC",
+		outDirParam,"FR (EWK +1#sigma)",inputLuminosity,1,false,1);
+  drawSingleTH1(frSmoothParameter_data_subScaledDownEWKMC_slope,fr_pt_eta_data->GetYaxis()->GetTitle(),"Slope","smoothed_fakeRate_slope_vs_eta_data_subScaledDownEWKMC",
+		outDirParam,"FR (EWK -1#sigma)",inputLuminosity,1,false,1);
+  drawSingleTH1(frSmoothParameter_ewk_slope,fr_pt_eta_data->GetYaxis()->GetTitle(),"Slope","smoothed_fakeRate_slope_vs_eta_ewk",
+		outDirParam,"PR (all EWK)",inputLuminosity,1,false,1);
+
+  cout << endl;
+  cout << "Plotting TH2 with relative uncertainty on FR parameters" << endl;
+
+
+  string outDirUncertainty = outDir+"/paramUncertainty/";
+  createPlotDirAndCopyPhp(outDirUncertainty);
+
+  plotFRparamRelUncertainty(frSmoothParameter_data,outDirUncertainty,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle+suffixRange,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_relUnc");
+  //plotFRparamRelUncertainty(frSmoothParameter_data_fitNarrowRange,outDirUncertainty,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle+suffixRange,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_fitNarrowRange_relUnc");
+  plotFRparamRelUncertainty(frSmoothParameter_data_subScaledUpEWKMC,outDirUncertainty,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle+suffixRange,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_subScaledUpEWKMC_relUnc");
+  plotFRparamRelUncertainty(frSmoothParameter_data_subScaledDownEWKMC,outDirUncertainty,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle+suffixRange,"relative uncertainty", "smoothed_fakeRate_pt_vs_eta_data_subScaledDownEWKMC_relUnc");
+  plotFRparamRelUncertainty(frSmoothParameter_ewk,outDirUncertainty,fr_pt_eta_data->GetYaxis()->GetTitle(),relUncYaxisTitle+suffixRange,"relative uncertainty", "smoothed_promptRate_pt_vs_eta_ewk_relUnc");
+
 
   // parameters of linear fit
   cout << endl;
   cout << "Writing TH2 frSmoothParameter_* with linear fit parameters in file" << endl;
   frSmoothParameter_data->Write();
-  frSmoothParameter_data_fitNarrowRange->Write();
+  //frSmoothParameter_data_fitNarrowRange->Write();
+  frSmoothParameter_data_subScaledUpEWKMC->Write();
+  frSmoothParameter_data_subScaledDownEWKMC->Write();
   if (not noDrawQCD) frSmoothParameter_qcd->Write();
-  if (showMergedEWK) {
-    frSmoothParameter_ewk->Write();
-  } else{
+  frSmoothParameter_ewk->Write();
+  if (not showMergedEWK) {
     if (showMergedWZ) {
       frSmoothParameter_wz->Write();
     } else {
@@ -1130,11 +1496,12 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   // fake or prompt rate points (no errors)
   cout << "Writing TH2 fr_pt_eta_* with smoothed fake or prompt rate in file" << endl;
   fr_pt_eta_data->Write();
-  fr_pt_eta_data_fitNarrowRange->Write();
+  //fr_pt_eta_data_fitNarrowRange->Write();
+  fr_pt_eta_data_subScaledUpEWKMC->Write();
+  fr_pt_eta_data_subScaledDownEWKMC->Write();
   if (not noDrawQCD) fr_pt_eta_qcd->Write();
-  if (showMergedEWK) {
-    fr_pt_eta_ewk->Write();
-  } else {
+  fr_pt_eta_ewk->Write();
+  if (not showMergedEWK) {
     if (showMergedWZ) {
       fr_pt_eta_wz->Write();     
     } else {
