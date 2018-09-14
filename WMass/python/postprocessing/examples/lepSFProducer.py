@@ -209,7 +209,6 @@ class lep2016SFProducer(Module):
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
-        # for muon ID, might also want to use "scaleFactorOriginal" which has the unsmoothed version of the scale factors
         self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
         self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"EGamma_SF2D")
         self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
