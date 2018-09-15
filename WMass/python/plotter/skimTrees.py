@@ -67,6 +67,7 @@ def _runIt(args):
         os.system("cp -r %s/skimAnalyzerCount %s/" % (mysource,myoutpath))
         os.system("mkdir -p %s/%s" % (myoutpath,options.tree))
         histo = ROOT.gROOT.FindObject("Count")
+        histoSumWeights = ROOT.gROOT.FindObject("SumGenWeights")
         if not options.oldstyle:
             fout = ROOT.TFile("%s/%s/tree.root" % (myoutpath,options.tree), "RECREATE", "", compressionLevel);
         else:
@@ -112,6 +113,7 @@ def _runIt(args):
                 out.RemoveFriend(tf.GetTree())
         fout.WriteTObject(out,options.tree if options.oldstyle else "tree")
         if histo: histo.Write()
+        if histoSumWeights: histoSumWeights.Write()
         fout.Close(); timer.Stop()
         print "  Done   %-40s: %8d/%8d %8.1f min" % (tty.cname(), npass, ntot, timer.RealTime()/60.)
 
