@@ -13,6 +13,11 @@ incl_datafakes: + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-l
 incl_data : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt"
 
 ## SYSTEMATICS 
+# lepton efficiency systematics
+incl_sig_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sig.txt",   AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Up'
+incl_sig_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sig.txt",   AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Dn'
+
+
 # electron scale systematics 
 Wplus_long_elescale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge>0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_e/fr-includes/reweighting_0_plus_lepUp.txt", Label="W+ long lep scale Up", SkipMe=True 
 Wplus_left_elescale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 12 && genw_charge>0 && LepGood1_mcMatchId*LepGood1_charge!=-24 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_e/fr-includes/reweighting_L_plus_lepUp.txt", Label="W+ left lep scale Up", SkipMe=True 
