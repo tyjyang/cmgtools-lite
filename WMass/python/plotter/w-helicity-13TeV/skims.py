@@ -9,7 +9,7 @@
 #      python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-we-skim-bkg-data.txt w-helicity-13TeV/wmass_e/skimming/skim_fr_el.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1fake_V6_TINY -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_fr.txt  --mo -q 8nh --log skim_logs
 
 # SIGNAL
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/signalCuts.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY  -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
+#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/signalCuts.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY_SIGNAL  -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
 
 ### FRIEND TREES ###
 # then skim the friend trees, using the event lists saved from te previous step
