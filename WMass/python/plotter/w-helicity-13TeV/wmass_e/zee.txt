@@ -12,5 +12,5 @@ tightCharge : LepGood1_tightChargeFix == 2 && LepGood2_tightChargeFix == 2
 #HLT ID: LepGood1_hltId == 1
 #numSel : LepGood1_customId == 1
 #tightCharge : LepGood1_tightChargeFix == 2
-inv mass: abs(mass_2(ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.5e-3,ptElFull(LepGood2_calPt,LepGood1_eta),LepGood2_eta,LepGood2_phi,0.5e-3)-91.2) < 10
+inv mass: abs(mass_2(ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.5e-3,ptElFull(LepGood2_calPt,LepGood1_eta),LepGood2_eta,LepGood2_phi,0.5e-3)-91.2) < 20
 # additional criteria
