@@ -310,6 +310,36 @@ float eleSF_Clustering(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,4);
 }
 
+
+float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4, int nSigma=0) {
+  float abseta = fabs(eta);
+  float syst=0;
+  if (abs(pdgId)==11) {
+    if (abseta<1)          syst = 0.006;
+    else if (abseta<1.479) syst = 0.008;
+    else if (abseta<2)     syst = 0.013;
+    else if (abseta<2.2)   syst = 0.016;
+    else                   syst = 0.040; // clustering efficiency
+  } else if (abs(pdgId)==13) {
+    if (abseta<1)          syst = 0.002;
+    else if (abseta<1.5)   syst = 0.004;
+    else                   syst = 0.014;
+  }
+  return sf1*sf2*sf3*sf4 + nSigma*syst;
+}
+
+float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+}
+
+float lepSFRelUp(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, 1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+}
+
+float lepSFRelDn(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, -1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+}
+
 #include "TRandom.h"
 TRandom3 *rng = NULL;
 EnergyScaleCorrection_class *calibrator = NULL;
