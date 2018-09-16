@@ -457,8 +457,8 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
   }
 
   if (!_histo_trigger_leptonSF_mu) {
-    _file_trigger_leptonSF_mu = new TFile(Form("%s/results/muFullData_trigger/triggerMu/egammaEffi.txt_EGM2D.root",basedirSF_mu.c_str()),"read");
-    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("EGamma_SF2D"));
+    _file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
+    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
     _histo_trigger_leptonSF_mu->Smooth(1,"k3a");
   }
 
@@ -501,6 +501,20 @@ float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, 
   }
 
   //else return -999.; // this should never happen
+
+  return weight;
+}
+
+float triggerSF_2l_byCharge(float l1pt, float l1eta, float l11pass, float l12pass, float l1charge, int charge){
+  float weight = -999.;
+
+  bool l1pass = (l11pass > -1. || l12pass > -1.);
+
+  float l1sf = 1.;
+  if (l1pass) l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+
+  if (l1charge*charge > 0) weight = l1sf;
+  else weight = 1.;
 
   return weight;
 }
