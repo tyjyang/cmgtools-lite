@@ -38,7 +38,7 @@ W_LO   : WJetsToLNu_LO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId
 data_fakes: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes (data)", FillColor=ROOT.kGray, NormSystematic
 =0.30
 
-Z    : DYJetsToLL_M50_part* : 1921.8*3; FillColor=ROOT.kAzure+2, Label="Z (amc@NLO)", NormSystematic=0.04
+Z    : DYJetsToLL_M50_part* : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z (amc@NLO)", NormSystematic=0.04
 Z_LO : DYJetsToLL_M50_LO_* : 5765.40 ; FillColor=ROOT.kAzure+2, Label="Z (Madgraph)", NormSystematic=0.04
 
 Top  : TTJets_SingleLeptonFromT_part* :  xsec; FillColor=ROOT.kGreen+2, Label="Top", NormSystematic=0.09

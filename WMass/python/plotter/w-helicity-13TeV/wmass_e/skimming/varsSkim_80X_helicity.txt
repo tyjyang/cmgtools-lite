@@ -42,3 +42,5 @@ LepGood_tightChargeFix
 LepGood_mcMatchId
 LepGood_mcMatchAny
 LepGood_mcPt
+rho
+nVert
