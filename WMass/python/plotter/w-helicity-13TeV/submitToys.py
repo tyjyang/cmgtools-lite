@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# usage: python submitToys.py cards_el/Wel_card_withXsecMask.meta 10000 --tf -n 5 --outdir output
+# usage: python submitToys.py cards_el/Wel_card_withXsecMask.hdf5 10000 -n 20 --outdir output -q 8nh
 #
 # python w-helicity-13TeV/submitToys.py cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/Wel_plus_card_withXsecMask.meta 11000 -n 2 --outdir toys/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin_newGenXsec/ -t 1 -q cmscaf1nd
 
@@ -21,10 +21,9 @@ jobstring_tf = '''#!/bin/sh
 ulimit -c 0 -S
 ulimit -c 0 -H
 set -e
-export SCRAM_ARCH=slc6_amd64_gcc630
+export SCRAM_ARCH=slc6_amd64_gcc700
 cd CMSSWBASE
 eval `scramv1 runtime -sh`
-source /afs/cern.ch/user/b/bendavid/work/cmspublic/pythonvenv/tensorflowfit_10x/bin/activate
 cd OUTDIR
 COMBINESTRING
 

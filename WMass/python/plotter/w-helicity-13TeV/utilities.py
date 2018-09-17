@@ -250,7 +250,7 @@ class util:
         return ret
 
     def getAsymmetryFromToys(self, pol, channel, iy, infile):
-        expr = '(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp - Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)/(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp + Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp)'.format(pol=pol,ch=channel,iy=iy)
+        expr = '(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_pmaskedexp - Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_pmaskedexp)/(Wplus_{pol}_Wplus_{pol}_{ch}_Ybin_{iy}_pmaskedexp + Wminus_{pol}_Wminus_{pol}_{ch}_Ybin_{iy}_pmaskedexp)'.format(pol=pol,ch=channel,iy=iy)
         ret = self.getExprFromToys('chargeAsym',expr,infile)
         return ret
 
