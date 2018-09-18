@@ -9,6 +9,8 @@ if __name__ == "__main__":
     parser = OptionParser(usage='%prog [options] ')
     parser.add_option('-i', '--infile'         , dest='infile'     , default=''      , type='string', help='input file with the plot and ratio')
     parser.add_option('-v', '--var'            , dest='var'        , default='eta'   , type='string', help='name of the plotted variable')
+    parser.add_option('-o', '--outdir'         , dest='outdir'     , default=''      , type='string', help='output directory')
+    parser.add_option('-p', '--postfix'        , dest='postfix'    , default=''      , type='string', help='postfix appended to plot name')
     (options, args) = parser.parse_args()
 
     #var = os.path.basename(options.infile).split('.')[0]
@@ -90,6 +92,9 @@ if __name__ == "__main__":
     line.SetLineColor(ROOT.kBlack)
     line.DrawLine(binedges[0], 1., binedges[-1], 1.)
 
-    canv.SaveAs(os.path.dirname(options.infile)+'/'+options.var+'_asymmetry.pdf')
-    canv.SaveAs(os.path.dirname(options.infile)+'/'+options.var+'_asymmetry.png')
+    outdir = options.outdir if options.outdir else os.path.dirname(options.infile)
+    postfix = '_'+options.postfix if options.postfix else ''
+
+    canv.SaveAs(outdir+'/'+options.var+'_asymmetry'+postfix+'.pdf')
+    canv.SaveAs(outdir+'/'+options.var+'_asymmetry'+postfix+'.png')
 
