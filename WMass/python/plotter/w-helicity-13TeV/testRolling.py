@@ -80,6 +80,13 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
+    groupJobs=5 # used in make_helicity_cards.py
+    ybinfile = args[0]+'/binningYW.txt'
+    ybinfile = open(ybinfile, 'r')
+    ybins = eval(ybinfile.read())
+    ybinfile.close()
+    nYbins=len(ybins)
+
     (options, args) = parser.parse_args()
     if len(args) < 2:
         parser.print_usage()
@@ -108,22 +115,29 @@ if __name__ == "__main__":
         print "Will save 2D templates in file --> " + full_outfileName
 
         # doing signal
-        for pol in ['right', 'left']:
+        for pol in ['right', 'left', 'long']:
             print "\tPOLARIZATION ",pol
-            for ybin in range(13): 
+            for ybin in range(nYbins): 
 
+                group = ybin/groupJobs + 1
+                jobind = min(groupJobs * group - 1,nYbins-1)
+                line = ybin%groupJobs
+                
                 jobsdir = args[0]+'/jobs/'
-                jobfile_name = 'W{ch}_{flav}_Ybin_{b}.sh'.format(ch=charge,flav=channel,b=ybin)
+                jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
                 tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-                tmp_line = tmp_jobfile.readlines()[-1].split()
+                lineno = (-groupJobs+line)*2 + 1 # white lines
+                if ybin==nYbins-1: lineno = -1 # not general hack!!!
+                tmp_line = tmp_jobfile.readlines()[lineno].split()
+                print "tmp_line = ",tmp_line
                 ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
                 ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
                 
                 binning = getbinning(tmp_line)
 
                 chs = '+' if charge == 'plus' else '-' 
-                h1_1 = infile.Get('x_W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin))
-                name2D = 'W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                h1_1 = infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin))
+                name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
                 title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
                 h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D)
                 canv = ROOT.TCanvas()
