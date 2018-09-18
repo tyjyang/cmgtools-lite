@@ -6,8 +6,9 @@ CMS_lumi_13TeV          : W.*|Flips|TauDecaysW|Z|Top|DiBosons: .* : 1.026
 # ==================================================================
 # lepton efficiencies
 # ==================================================================
-CMS_We_lepEff        : W.*|TauDecaysW|Z|Top|DiBosons: .* : 1.01
-CMS_We_lepVeto       : Z : .* : 1.03
+CMS_We_sig_lepeff        : W.*: .* : lepeff : templates
+CMS_We_bkg_lepeff        : TauDecaysW|Flips|Z|Top|DiBosons: .* : 1.01
+CMS_We_lepVeto           : Z : .* : 1.03
 
 # ==================================================================
 # backgrounds normalizations

@@ -233,6 +233,15 @@ float eleSF_HLT(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,1);
 }
 
+float eleSF_HLT_2lfriends(float matchpt1, float sf1, float matchpt2, float sf2) {
+  if (matchpt1>-1 && matchpt2>-1) {
+    return 0.5*(sf1+sf2);
+  } else if (matchpt1>-1) 
+    return sf1;
+  else
+    return sf2;
+}
+
 float eleSF_HLT_2l(float matchpt1, float pt1, float eta1, float matchpt2, float pt2, float eta2) {
   if (matchpt1>-1 && matchpt2>-1) {
     float sf1 = _get_electronSF_anyStep(pt1,eta1,1);
@@ -299,6 +308,36 @@ float eleSF_FullID(float pt, float eta) {
 
 float eleSF_Clustering(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,4);
+}
+
+
+float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4, int nSigma=0) {
+  float abseta = fabs(eta);
+  float syst=0;
+  if (abs(pdgId)==11) {
+    if (abseta<1)          syst = 0.006;
+    else if (abseta<1.479) syst = 0.008;
+    else if (abseta<2)     syst = 0.013;
+    else if (abseta<2.2)   syst = 0.016;
+    else                   syst = 0.040; // clustering efficiency
+  } else if (abs(pdgId)==13) {
+    if (abseta<1)          syst = 0.002;
+    else if (abseta<1.5)   syst = 0.004;
+    else                   syst = 0.014;
+  }
+  return sf1*sf2*sf3*sf4 + nSigma*syst;
+}
+
+float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+}
+
+float lepSFRelUp(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, 1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+}
+
+float lepSFRelDn(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, -1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
 }
 
 #include "TRandom.h"
@@ -457,8 +496,8 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
   }
 
   if (!_histo_trigger_leptonSF_mu) {
-    _file_trigger_leptonSF_mu = new TFile(Form("%s/results/muFullData_trigger/triggerMu/egammaEffi.txt_EGM2D.root",basedirSF_mu.c_str()),"read");
-    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("EGamma_SF2D"));
+    _file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
+    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
     _histo_trigger_leptonSF_mu->Smooth(1,"k3a");
   }
 
@@ -501,6 +540,20 @@ float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, 
   }
 
   //else return -999.; // this should never happen
+
+  return weight;
+}
+
+float triggerSF_2l_byCharge(float l1pt, float l1eta, float l11pass, float l12pass, float l1charge, int charge){
+  float weight = -999.;
+
+  bool l1pass = (l11pass > -1. || l12pass > -1.);
+
+  float l1sf = 1.;
+  if (l1pass) l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+
+  if (l1charge*charge > 0) weight = l1sf;
+  else weight = 1.;
 
   return weight;
 }

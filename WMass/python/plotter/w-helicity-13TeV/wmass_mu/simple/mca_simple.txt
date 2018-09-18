@@ -2,11 +2,11 @@
 * ; TreeName="treeProducerWMass"
 
 W+       : WJetsToLNu_part*                      : 3.*20508.9    ; FillColor=ROOT.kRed+2    , Label="W"        , NormSystematic=0.03
-Z        : DYJetsToLL_M50_part*                  : 1921.8*3.     ; FillColor=ROOT.kAzure+2  , Label="Z"        , NormSystematic=0.04
-Top      : TTJets_SingleLeptonFromT_ext_part1    : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.09
-Top      : TTJets_SingleLeptonFromTbar_ext_part1 : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.09
+Z        : DYJetsToLL_M50_part*                  : 2008.4*3.     ; FillColor=ROOT.kAzure+2  , Label="Z"        , NormSystematic=0.04
+Top      : TTJets_SingleLeptonFromT_part1        : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.09
+Top      : TTJets_SingleLeptonFromTbar_part1     : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.09
 Top      : TToLeptons_sch_amcatnlo               : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.04
-Top      : T_tch_powheg_part1                    : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.04
+Top      : T_tch_powheg_part2                    : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.04
 Top      : TBar_tch_powheg_part1                 : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.04
 Top      : T_tWch_ext                            : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.06
 Top      : TBar_tWch_ext                         : xsec          ; FillColor=ROOT.kSpring-1 , Label="Top"      , NormSystematic=0.06
@@ -14,6 +14,8 @@ DiBosons : WW+WW_ext                             : xsec          ; FillColor=ROO
 DiBosons : WZ+WZ_ext                             : xsec          ; FillColor=ROOT.kViolet+2 , Label="DiBosons" , NormSystematic=0.05
 DiBosons : ZZ+ZZ_ext                             : xsec          ; FillColor=ROOT.kViolet+2 , Label="DiBosons" , NormSystematic=0.05
 QCD      : QCD_Mu15_part*                        : 0.65*302673.0 ; FillColor=ROOT.kOrange-2 , Label="QCD"      , NormSystematic=0.30
+
+TauDecaysW : TauDecaysW_part*                    : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kSpring-9 , Label="W\#rightarrow\#tau\#nu"     , NormSystematic=0.05
 
 WplusNoSkim  : WJetsToLNu_NoSkim_part* : 3.*20508.9    : genw_decayId == 14 && genw_charge>0 ; FillColor=ROOT.kGray+1   , Label="W+"
 WminusNoSkim : WJetsToLNu_NoSkim_part* : 3.*20508.9    : genw_decayId == 14 && genw_charge>0 ; FillColor=ROOT.kGreen+1  , Label="W-"

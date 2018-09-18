@@ -15,7 +15,7 @@ dowhat = "plots"
 #dowhat = "yields" 
 
 TREES = "-F Friends '{P}/friends/tree_Friend_{cname}.root' "
-TREESONLYSKIMW = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
+TREESONLYSKIMW = "-P  /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY"
 #TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7"
 #TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_1LEP_80X_V3_ZEESKIM_V7/"
 TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_2018-07-17-recoLeptons" # trees with the Trigger Match object
@@ -39,9 +39,8 @@ def base(selection,useSkim=True):
             CORE+=" --showRatio --maxRatioRange 0.90 1.10 --fixRatioRange "
 
     if selection=='wenu':
-        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)'"%GO
-        GO="%s --AP --xp 'Wplus.*,Wminus.*' "%GO
+        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-simpleplots.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3,LepGood1_SF4)'"%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "
     elif selection=='wgen':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
@@ -50,8 +49,9 @@ def base(selection,useSkim=True):
         GO="%s --sP wplus_wy "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
     elif selection=='zee':
-        GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2l(LepGood1_matchedTrgObjElePt,LepGood1_pt,LepGood1_eta,LepGood2_matchedTrgObjElePt,LepGood2_pt,LepGood2_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood2_pt,LepGood2_eta)*eleSF_FullID(LepGood2_pt,LepGood2_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
+        GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt --fitData --flp Z "%CORE
+        # GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2l(LepGood1_matchedTrgObjElePt,LepGood1_pt,LepGood1_eta,LepGood2_matchedTrgObjElePt,LepGood2_pt,LepGood2_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood2_pt,LepGood2_eta)*eleSF_FullID(LepGood2_pt,LepGood2_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2lfriends(LepGood1_matchedTrgObjElePt,LepGood1_SF1,LepGood2_matchedTrgObjElePt,LepGood2_SF1)*LepGood1_SF2*LepGood1_SF3*LepGood1_SF4*LepGood2_SF2*LepGood2_SF3*LepGood2_SF4' --sp 'Z' "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/zee_plots.txt "
     else:
         raise RuntimeError, 'Unknown selection'
@@ -116,15 +116,16 @@ if __name__ == '__main__':
     x=""
     if 'zee' in torun:
         x = base('zee')
-        if '_incl' in torun: x = add(x," --sP 'etal1,etal2' ")
-        if '_ebeb' in torun: x = add(x,"-A alwaystrue ebeb 'max(abs(LepGood1_eta),abs(LepGood2_eta))<1.44'  --sP 'zmass,zmass_corr' ")
-        if '_notebeb' in torun: x = add(x,"-A alwaystrue notebeb 'max(abs(LepGood1_eta),abs(LepGood2_eta))>1.57' --sP 'zmass,zmass_corr' ")
-        if '_gg' in torun: x = add(x,"-A alwaystrue goldgold 'min(LepGood1_r9,LepGood2_r9)>0.94' --sP 'zmass,zmass_corr' ")
-        if '_notgg' in torun: x = add(x,"-A alwaystrue notgoldgold 'min(LepGood1_r9,LepGood2_r9)<0.94' --sP 'zmass,zmass_corr' ")
+        if '_incl' in torun: x = add(x," --sP 'etalep,ptlep,zmass_egm,zmass_corr' ")
+        if '_ebeb' in torun: x = add(x,"-A alwaystrue ebeb 'max(abs(LepGood1_eta),abs(LepGood2_eta))<1.44'  --sP 'zmass_egm,zmass_corr' ")
+        if '_notebeb' in torun: x = add(x,"-A alwaystrue notebeb 'max(abs(LepGood1_eta),abs(LepGood2_eta))>1.57' --sP 'zmass_egm,zmass_corr' ")
+        if '_gg' in torun: x = add(x,"-A alwaystrue goldgold 'min(LepGood1_r9,LepGood2_r9)>0.94' --sP 'zmass_egm,zmass_corr' ")
+        if '_notgg' in torun: x = add(x,"-A alwaystrue notgoldgold 'min(LepGood1_r9,LepGood2_r9)<0.94' --sP 'zmass_egm,zmass_corr' ")
         #if '_w_reweight' in torun and dowhat=="plots": x = add(x,"--sP 'z_mll,pt1,pt2,ptZ,scaledptZ,costheta_cs,phi_cs,sumAiPi,y_vs_ctheta,y_vs_phi,y_vs_sumAiPi' ")
         #if '_genpt' in torun: x = add(x,"--sP 'gen_ptv,gen_scaledptv' --xp 'data' -p 'Z' ")
     elif 'wenu' in torun:
         x = base('wenu')
+        x = x = add(x," --sP 'etalep,ptlep' ")
     elif 'wgen' in torun:
         x = base('wgen')
         if 'plus' in torun: x = swapcharge(x,'plus')

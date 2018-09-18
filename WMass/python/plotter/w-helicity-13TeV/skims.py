@@ -1,9 +1,21 @@
 #!/usr/bin/env python
 
 ## ELECTRONS
-# e.g.: python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_wenu.txt  TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V2 -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_zee.txt   TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V2  -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_fr_el.txt TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_FRELSKIM_V2 -f w-helicity-13TeV/wmass_e/varsSkim_80X_fr.txt
+##============================================
+# DATA and BKG MC (SIGNAL REGION):
+#      python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-we-skim-bkg-data.txt w-helicity-13TeV/wmass_e/skimming/skim_wenu.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
+
+# DATA and BKG MC (FAKES COMPUTATION REGION)
+#      python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-we-skim-bkg-data.txt w-helicity-13TeV/wmass_e/skimming/skim_fr_el.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1fake_V6_TINY -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_fr.txt  --mo -q 8nh --log skim_logs
+
+# SIGNAL
+#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/signalCuts.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY_SIGNAL  -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
+
+### FRIEND TREES ###
+# then skim the friend trees, using the event lists saved from te previous step
+# this is enough fast to be done interactively in series for all the datasets
+# it's the same command as before, with --fo (--friend-only) option. Eventually may give a file with the list of variables to keep (as for the main trees)
+
 
 ## MUONS
 ##============================================
@@ -27,14 +39,6 @@
 # then MC (including W?)
 #       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts2mu.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/ /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-05-15_MC_2muskim/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt --mo
 # =============================================
-
-### FRIEND TREES ###
-# then skim the friend trees, using the event lists saved from te previous step
-# this is enough fast to be done interactively in series for all the datasets
-# it's the same command as before, with --fo (--friend-only) option. Eventually may give a file with the list of variables to keep (as for the main trees)
-
-## ELECTRONS
-#        python w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims.txt w-helicity-13TeV/wmass_e/skim_wenu.txt TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V2 -f w-helicity-13TeV/wmass_e/varsSkim_80X_helicity_friends.txt --fo
 
 # DY 2l skim:
 # first data and MC backgrounds excluding W:
