@@ -18,25 +18,24 @@ if __name__ == "__main__":
     inf = ROOT.TFile(options.infile,'read')
 
     sig, bkg = 0, 0
+    bkgs = []
     lok = inf.GetListOfKeys()
     for k in lok:
         if not options.var in k.GetName(): 
             continue
-        if options.var in k.GetName() and '_signal' in k.GetName():
-            sig  = inf.Get(options.var+'_signal')
-        if options.var in k.GetName() and '_background' in k.GetName():
-            bkg  = inf.Get(options.var+'_background')
-        if options.var in k.GetName() and '_data' in k.GetName():
+        if options.var in k.GetName() and '_signal'     in k.GetName(): continue
+        if options.var in k.GetName() and '_background' in k.GetName(): continue
+        if options.var in k.GetName() and '_stack'      in k.GetName(): continue
+        if options.var in k.GetName() and '_canvas'     in k.GetName(): continue
+        if options.var in k.GetName() and k.GetName().endswith('_data'):
             data = inf.Get(options.var+'_data')
+        else:
+            bkgs.append(inf.Get(k.GetName()))
         
-    if sig and bkg:
-        bkg.Add(sig)
-    elif bkg and not sig:
-        bkg = bkg
-    elif not bkg and sig:
-        bkg = sig
-    else:
-        print 'something went massively wrong!'
+    bkg = bkgs [0]
+    for b in bkgs[1:]:
+        print b
+        bkg.Add(b)
 
     ratio = data.Clone('ratio')
     ratio.Sumw2()
