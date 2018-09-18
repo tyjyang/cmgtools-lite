@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parser.add_option("--env",   dest="env", type="string", default="lxbatch", help="Give the environment on which you want to use the batch system (lsf,condor). Default: lsf");
     parser.add_option("--run",   dest="runner",  type="string", default="lxbatch_runner.sh", help="Give the runner script (default: lxbatch_runner.sh)");
     parser.add_option("--mconly", dest="mconly",  action="store_true", default=False, help="Run only on MC samples");
-    parser.add_option("--signals", dest="signals", default="WJetsToLNu", help="declare signals (CSV list) [%default]",type='string');
+    parser.add_option("--signals", dest="signals", default="WJetsToLNu,DYJetsToLL", help="declare signals (CSV list) [%default]",type='string');
     parser.add_option("-m", "--modules", dest="modules",  type="string", default=[], action="append", help="Run only these modules among the imported ones");
     parser.add_option(      "--moduleList", dest="moduleList",  type="string", default='DEFAULT_MODULES', help="use this list as a starting point for the modules to run [%default]")
 
