@@ -120,7 +120,9 @@ def drawCorrelationPlot(h2D,
                         rightMargin=0.20,
                         nContours=50,
                         palette=57,
-                        canvasSize="700,625"):
+                        canvasSize="700,625",
+                        passCanvas=None,
+                        bottomMargin=0.1):
 
 
     # if h2D.GetName() == "scaleFactor_origBinPt":
@@ -129,6 +131,7 @@ def drawCorrelationPlot(h2D,
     #     print "="*20
 
     ROOT.TH1.SetDefaultSumw2()
+    adjustSettings_CMS_lumi()
 
     if (rebinFactorX): 
         if isinstance(rebinFactorX, int): h2D.RebinY(rebinFactorX)
@@ -146,10 +149,11 @@ def drawCorrelationPlot(h2D,
     labelZ,setZAxisRangeFromUser,zmin,zmax = getAxisRangeFromUser(labelZtmp)
     
     cw,ch = canvasSize.split(',')
-    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
-    canvas = ROOT.TCanvas("canvas","",int(cw),int(ch))
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
     canvas.SetLeftMargin(leftMargin)
     canvas.SetRightMargin(rightMargin)
+    canvas.SetBottomMargin(bottomMargin)
     canvas.cd()
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
@@ -178,7 +182,7 @@ def drawCorrelationPlot(h2D,
     h2DPlot.GetYaxis().SetTitle(labelY)
     h2DPlot.GetXaxis().SetTitleSize(0.05)
     h2DPlot.GetXaxis().SetLabelSize(0.04)
-    h2DPlot.GetXaxis().SetTitleOffset(1.1)
+    h2DPlot.GetXaxis().SetTitleOffset(0.95) # 1.1 goes outside sometimes, maybe depends on root version or canvas width
     h2DPlot.GetYaxis().SetTitleSize(0.05)
     h2DPlot.GetYaxis().SetLabelSize(0.04)
     h2DPlot.GetYaxis().SetTitleOffset(1.1)

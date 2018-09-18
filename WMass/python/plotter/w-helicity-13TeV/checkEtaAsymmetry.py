@@ -14,6 +14,8 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     #var = os.path.basename(options.infile).split('.')[0]
+    
+    ROOT.TH1.SetDefaultSumw2()  # better to call it explicitely when doing operations wth histograms
 
     inf = ROOT.TFile(options.infile,'read')
 
@@ -21,6 +23,11 @@ if __name__ == "__main__":
     bkgs = []
     lok = inf.GetListOfKeys()
     for k in lok:
+        obj = k.ReadObj()
+        if not obj:
+            print "Warning: cannot read object. Exit"
+            quit()
+        if not obj.ClassName().startswith("TH1"): continue
         if not options.var in k.GetName(): 
             continue
         if options.var in k.GetName() and '_signal'     in k.GetName(): continue

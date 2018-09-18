@@ -92,7 +92,7 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="2nd"
-nameTag="_finalSF_FRpol1_ptMax45_scaleAll_ratioRange0p2_addTau" 
+nameTag="_finalSF_FRpol1_ptMax45_scaleAll_ratioRange0p2_addTau_onlyEta" 
 #nameTag="_varStudy"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -134,7 +134,7 @@ selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="pfmt_ptl1"
-selectplots="ptl1,etal1_binFR,ptl1__etal1_binFR"
+selectplots="etal1_binFR"
 #selectplots="pfmt"
 #selectplots="ptl1,ptl1noCorr"
 #selectplots="etal1_binFR,ptl1__etal1_binFR"
@@ -218,7 +218,7 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="y"
+runRegion["FRcheckRegion"]="n"
 regionName["FRcheckRegion"]="FR_check_region"
 skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
 outputDir["FRcheckRegion"]="full2016data_${today}"
