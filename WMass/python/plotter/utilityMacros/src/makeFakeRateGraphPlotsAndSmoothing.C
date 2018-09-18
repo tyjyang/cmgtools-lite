@@ -13,14 +13,18 @@ using namespace std;
 
 // rebin pt like this for W and Z or sum (should be a subsample of bin boundaries array before rebinning (taken directly from histograms)
 // the higher the index, the less granular is the array
-static const vector<Double_t> ptBinBoundariesQCD_1 = {30,34,38,42,46,50,55,60,65};
-static const vector<Double_t> ptBinBoundariesQCD_2 = {30,35,40,45,50,55,60,65};
+static const vector<Double_t> ptBinBoundariesQCD_1 = {30,34,38,42,46,50,54,60,65};
+static const vector<Double_t> ptBinBoundariesQCD_2 = {30,35,40,45,50,57,65};
+//static const vector<Double_t> ptBinBoundariesQCD_3 = {30,36,42,48,54,60,65};
+static const vector<Double_t> ptBinBoundariesQCD_3 = {30,38,46,54,60,65};
 static const vector<Double_t> ptBinBoundariesEWK_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,52,54,57,60,65};
 static const vector<Double_t> ptBinBoundariesEWK_2 = {30,32,34,36,38,40,42,44,46,48,50,52,54,57,60,65};
 static const vector<Double_t> ptBinBoundariesData_1 = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,48,50,52,54,57,60,65};
 static const vector<Double_t> ptBinBoundariesData_2 = {30,32,34,36,38,40,42,44,46,48,50,52,54,57,60,65};
 static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
 //static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
+
+static const Double_t ptMin_fitRangeData = 32;
 
 vector<Double_t> etaBoundariesGlobal;
 
@@ -232,7 +236,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   // create a new graph excluding points in a given range
   TGraphAsymmErrors* gr = nullptr;
   TGraphAsymmErrors* gr_excl = nullptr;
-  if (excludePoints) {
+  if (smoothPolinDegree == 1 and excludePoints) {
     gr = new TGraphAsymmErrors();
     gr_excl = new TGraphAsymmErrors();
     Int_t ip_good = 0;
@@ -254,12 +258,13 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   string polN = string(Form("pol%d",smoothPolinDegree));
   // see fit options here: https://root.cern.ch/doc/master/classTGraph.html#aa978c8ee0162e661eae795f6f3a35589
   Double_t xMaxFit = isPromptRate ? 65 : 60;
-  TF1 * f1 = new TF1("f1",polN.c_str(),30,xMaxFit);
-  TF1 * f2 = new TF1("f2",polN.c_str(),30,50);
+  Double_t xMinFit = isData ? ptMin_fitRangeData : 30;
+  TF1 * f1 = new TF1("f1",polN.c_str(),xMinFit,xMaxFit);
+  TF1 * f2 = new TF1("f2",polN.c_str(),xMinFit,50);
   // TF1 * f1 = new TF1("f1","[0] * (x - 25.) + [1]",25,60);
   // TF1 * f2 = new TF1("f2","[0] * (x - 25.) + [1]",30,46);
 
-  TF1 * pol2 = new TF1("pol2","pol2",30,60); // used when one wants to overlay pol2 to fits made with pol1 (addfitpol2 = True and smoothPolinDegree = 1)
+  TF1 * pol2 = new TF1("pol2","pol2",xMinFit,60); // used when one wants to overlay pol2 to fits made with pol1 (addfitpol2 = True and smoothPolinDegree = 1)
 
   Double_t maxslope = isData ? 0.0005 : 0.015;  // was used only to fix parameters, but better not doing it
 
@@ -342,7 +347,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   }
 
   TFitResultPtr fitres = gr->Fit("f1","EMFRS+"); // fit with straigth line
-  TFitResultPtr fitres2 = gr->Fit("f2","0EMFRS+"); // fit with straigth line in narrow range, but don't draw
+  TFitResultPtr fitres2 = gr->Fit("f2",(smoothPolinDegree > 1) ? "EMFRS+" : "0EMFRS+"); // fit with straigth line in narrow range, but don't draw
   TF1 *linefit = gr->GetFunction("f1");
   linefit->SetLineWidth(3);
   Double_t xminfit = 0.0;
@@ -381,9 +386,12 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   linefit_p1dn->SetLineWidth(3);
 
 
-  // TF1 *linefit2 = gr->GetFunction("f2");
-  // linefit2->SetLineWidth(3);
-  // linefit2->SetLineColor(kBlue);
+  TF1 *linefit2 = nullptr;
+  if (smoothPolinDegree > 1) {
+    linefit2 = gr->GetFunction("f2");
+    linefit2->SetLineWidth(3);
+    linefit2->SetLineColor(kBlue);
+  }
   // Double_t xminfit2 = 0.0;
   // Double_t xmaxfit2 = 0.0;
   // linefit2->GetRange(xminfit2,xmaxfit2);
@@ -409,7 +417,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     fitrespol2 = gr->Fit("pol2", "EMFRS+"); // fit with pol2
     pol2fit = gr->GetFunction("pol2");
     pol2fit->SetLineWidth(3);
-    if (excludePoints) pol2fit->SetLineColor(kGreen+2);
+    if (smoothPolinDegree == 1 and excludePoints) pol2fit->SetLineColor(kGreen+2);
     else               pol2fit->SetLineColor(kAzure+2);
   }
 
@@ -433,7 +441,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   gr->SetLineWidth(2);
   gr->Draw("ap");  
   leg.AddEntry(gr,legEntry.c_str(),"PLE");
-  if (excludePoints) {
+  if (smoothPolinDegree == 1 and excludePoints) {
     //gr_tmp->Draw("p same"); // draw all points, but not all of them were used for the fit
     gr_excl->SetMarkerColor(kRed+1);
     gr_excl->SetMarkerStyle(47);
@@ -457,7 +465,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     linefit_p1dn->Draw("Lsame");
   } else {
     leg.AddEntry(linefit,"fit: pol2","L");
-    //leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
+    leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
   }
 
   leg.Draw("same");
@@ -698,6 +706,65 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       // }
       hpass2D->SetMinimum(0.0);
       hntot2D->SetMinimum(0.0);
+
+      // for QCD only, draw FR graphs in 4 bins, 2 in EB and 2 in EE
+      // just to see how FR should be, there is no stat to do it for all the bins
+      // also, merge positive and negative bins to gain in stat, I don't expect differences between negative and positive side 
+      if (processes[j] == "QCD") {
+
+	// use this binnning: ptBinBoundariesQCD_1
+	string outdirQCD = outDir + "/QCD_FR_MC/";
+	createPlotDirAndCopyPhp(outdirQCD);
+	vector<Double_t> qcdEta = {0.0, 1.0, 1.4442, 1.566, 2.1, 2.5};
+	vector<string> qcdEtaStr = {"0p0", "1p0", "1p4442", "1p566", "2p1", "2p5"};
+	Double_t error = 0.0;
+
+	for (UInt_t iqcd = 0; iqcd < qcdEta.size()-1; ++iqcd) {
+
+	  TH1D* hQCD_MC_FR_pass = new TH1D("hQCD_MC_FR_pass","",nBins, ptBins);
+	  TH1D* hQCD_MC_FR_ntot = new TH1D("hQCD_MC_FR_ntot","",nBins, ptBins);
+	  for (Int_t ix = 1; ix <= h3tmp->GetNbinsX(); ++ix) {
+	    Int_t binQCDEtalow  = h3tmp->GetYaxis()->FindBin(qcdEta[iqcd]+epsilon);
+	    Int_t binQCDEtahigh = h3tmp->GetYaxis()->FindBin(qcdEta[iqcd+1]+epsilon) - 1;  
+	    hQCD_MC_FR_pass->SetBinContent(ix,h3tmp->IntegralAndError(ix,ix,binQCDEtalow,binQCDEtahigh,2,2,error)); 
+	    hQCD_MC_FR_pass->SetBinError(ix,error);
+	    hQCD_MC_FR_ntot->SetBinContent(ix,h3tmp->IntegralAndError(ix,ix,binQCDEtalow,binQCDEtahigh,1,2,error)); 
+	    hQCD_MC_FR_ntot->SetBinError(ix,error);
+	  }
+	  // now neg eta
+	  TH1D* hQCD_MC_FR_negEta_pass = new TH1D("hQCD_MC_FR_negEta_pass","",nBins, ptBins);
+	  TH1D* hQCD_MC_FR_negEta_ntot = new TH1D("hQCD_MC_FR_negEta_ntot","",nBins, ptBins);
+	  for (Int_t ix = 1; ix <= h3tmp->GetNbinsX(); ++ix) {
+	    Int_t binQCDEtalow  = h3tmp->GetYaxis()->FindBin(-1.*qcdEta[iqcd+1]+epsilon);
+	    Int_t binQCDEtahigh = h3tmp->GetYaxis()->FindBin(-1.*qcdEta[iqcd]+epsilon) - 1;  
+	    hQCD_MC_FR_negEta_pass->SetBinContent(ix,h3tmp->IntegralAndError(ix,ix,binQCDEtalow,binQCDEtahigh,2,2,error)); 
+	    hQCD_MC_FR_negEta_pass->SetBinError(ix,error);
+	    hQCD_MC_FR_negEta_ntot->SetBinContent(ix,h3tmp->IntegralAndError(ix,ix,binQCDEtalow,binQCDEtahigh,1,2,error)); 
+	    hQCD_MC_FR_negEta_ntot->SetBinError(ix,error);
+	  }
+	  // sum negative eta and make ratio
+	  hQCD_MC_FR_pass->Add(hQCD_MC_FR_negEta_pass);
+	  hQCD_MC_FR_ntot->Add(hQCD_MC_FR_negEta_ntot);
+	  // rebin to coarser pt binning
+	  hQCD_MC_FR_pass = (TH1D*) hQCD_MC_FR_pass->Rebin(ptBinBoundariesQCD_3.size()-1, "", ptBinBoundariesQCD_3.data());
+	  hQCD_MC_FR_ntot = (TH1D*) hQCD_MC_FR_ntot->Rebin(ptBinBoundariesQCD_3.size()-1, "", ptBinBoundariesQCD_3.data());
+	  // get FR by computing the ratio	  
+	  TGraphAsymmErrors* gr_fr_QCD_MC = new TGraphAsymmErrors(hQCD_MC_FR_pass, hQCD_MC_FR_ntot, "cl=0.683 b(1,1) mode"); 
+	  hQCD_MC_FR_pass->Divide(hQCD_MC_FR_ntot); 
+	  drawSingleTH1(hQCD_MC_FR_pass,
+			"electron p_{T} [GeV]", "Fake rate (QCD MC)::0,1.2", Form("fr_QCDMC_abseta_%s_%s",qcdEtaStr[iqcd].c_str(),qcdEtaStr[iqcd+1].c_str()),
+			outdirQCD,Form("%.4g < |#eta| < %.4g",qcdEta[iqcd],qcdEta[iqcd+1]), inputLuminosity, 1, true, 1, "HIST", gr_fr_QCD_MC);
+	  // delete stuff, will be redefined in next item of the loop on qcdEta
+	  delete hQCD_MC_FR_pass;
+	  delete hQCD_MC_FR_ntot;
+	  delete hQCD_MC_FR_negEta_pass;
+	  delete hQCD_MC_FR_negEta_ntot;
+	  delete gr_fr_QCD_MC;
+	}
+
+      }
+      // end of QCD only stuff
+
       TH2D* hFR2D = (TH2D*) hpass2D->Clone(Form("hFR2D_%s",processes[j].c_str()));
       if (!hFR2D->Divide(hntot2D)) {	  
 	cout << "Error in doing hFR2D->Divide(hntot2D). Exiting" << endl;
@@ -791,7 +858,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
     // this is to draw pt distributions for some processes
     // do it before rebinning
-    if (processes[j] == "data" or processes[j] == "data_sub" or processes[j] == "W" or processes[j] == "Z") {
+    // if (processes[j] == "data" or processes[j] == "data_sub" or processes[j] == "W" or processes[j] == "Z" or processes[j] == "Top" or processes[j] == "DiBosons") {
+    if (processes[j] != "QCD") {
       if (processes[j] == "data_sub") leg_pt_proc.push_back("data - EWK MC");
       else leg_pt_proc.push_back(processes[j]);
       // create 2 new histograms to store pt
@@ -893,26 +961,11 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   hpass_data_subtr_scaledDownEWK->Add(hpass_ewk_scaledDown,-1);  
   hntot_data_subtr_scaledDownEWK->Add(hntot_ewk_scaledDown,-1);
 
-  // cout << endl;  
-  // cout << endl;  
-  // cout << "ewk Up   Integral: " << hpass_ewk_scaledUp->Integral() << endl;
-  // cout << "ewk Down Integral: " << hpass_ewk_scaledUp->Integral() << endl;
-  // cout << endl;  
-  // cout << endl;  
-
-
-  // does not work
   // now rebin to the desired binning
   hpass_data_subtr_scaledUpEWK   = hpass_data_subtr_scaledUpEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
   hntot_data_subtr_scaledUpEWK   = hntot_data_subtr_scaledUpEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
   hpass_data_subtr_scaledDownEWK = hpass_data_subtr_scaledDownEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
   hntot_data_subtr_scaledDownEWK = hntot_data_subtr_scaledDownEWK->Rebin(nBinsData,"",ptBinBoundariesData.data());
-  // cout << endl;  
-  // cout << endl;  
-  // cout << "Nbins Up: " << hpass_data_subtr_scaledUpEWK->GetNbinsX() << "  " << hntot_data_subtr_scaledUpEWK->GetNbinsX() << "  " << endl;
-  // cout << "Nbins Down: " << hpass_data_subtr_scaledDownEWK->GetNbinsX() << "  " << hntot_data_subtr_scaledDownEWK->GetNbinsX() << "  " << endl;
-  // cout << endl;  
-  // cout << endl;  
 
   fr_data_subScaledUpEWKMC = new TGraphAsymmErrors(hpass_data_subtr_scaledUpEWK, hntot_data_subtr_scaledUpEWK, "cl=0.683 b(1,1) mode"); 
   fr_data_subScaledDownEWKMC = new TGraphAsymmErrors(hpass_data_subtr_scaledDownEWK, hntot_data_subtr_scaledDownEWK, "cl=0.683 b(1,1) mode"); 
@@ -1109,10 +1162,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/SRtrees_new/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_fitpol2/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_17_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_jetPt45/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_mergedEWK_exclPt_fitPol1/", 
-					const string& outfileTag = "mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_mergedEWK_exclPt_fitPol1",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_17_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45/", 
+					const string& outfileTag = "fr_17_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

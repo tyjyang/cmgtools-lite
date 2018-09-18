@@ -115,8 +115,9 @@ if __name__ == "__main__":
     # get eta-pt binning for both reco and gen
     etaPtBinningVec = getDiffXsecBinning(options.etaPtbinning, "reco")
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
-    etaPtBinningVec = getDiffXsecBinning(options.etaPtbinning, "gen")
-    genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    if options.analysis == "diffXsec":
+        etaPtBinningVec = getDiffXsecBinning(options.etaPtbinning, "gen")
+        genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 
     #following array is used to call function dressed2D()
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
@@ -138,7 +139,7 @@ if __name__ == "__main__":
 
     qcdsyst = ["muR", "muF", "muRmuF", "alphaS"]
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale"]
+    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale"] # might add others
     allsystsUpDn = []
     for x in allsysts:
         allsystsUpDn.append(x+"Up")
@@ -183,6 +184,7 @@ if __name__ == "__main__":
                         # name.split('_')[-2] == "Ybin" : this excludes systematics
                         if obj.InheritsFrom("TH1") and signalMatch in name and name.split('_')[-2] == "Ybin":
 
+                            #print ">>>> CHECKPOINT"
                             ## need to implement a way of getting the rapidity binning    
                             # jobsdir = args[0]+'/jobs/'
                             # jobfile_name = 'W{ch}_{flav}_Ybin_{b}.sh'.format(ch=charge,flav=channel,b=ybin)

@@ -215,7 +215,7 @@ def drawCorrelationPlot(h2D,
     else:
         i = 1
         tryNext = True
-        while tryNext:
+        while (tryNext and i < 6):
             tmpVal = maxZaxisVal * pow(10,i)
             if tmpVal >= 1.0: tryNext = False 
             else: i += 1

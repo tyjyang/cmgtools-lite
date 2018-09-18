@@ -2953,13 +2953,16 @@ TFitResultPtr drawTH1(TH1* h1 = NULL,
 
 
 void drawSingleTH1(TH1* h1 = NULL, 
-		   const string& xAxisNameTmp = "", const string& yAxisName = "Events", const string& canvasName = "default", 
+		   const string& xAxisNameTmp = "", const string& yAxisNameTmp = "Events", const string& canvasName = "default", 
 		   const string& outputDIR = "./", 
 		   const string& legEntryTmp = "", 
 		   const Double_t lumi = -1.0, 
 		   const Int_t rebinFactor = 1,
 		   const Bool_t noStatBox = false,
-		   const Int_t draw_both0_noLog1_onlyLog2 = 0		    
+		   const Int_t draw_both0_noLog1_onlyLog2 = 0,
+		   const string& drawOption = "HE",
+		   TGraph* gr = nullptr,
+		   const string& gr_legEntry = "TGraph"
 		   )
 {
 
@@ -2967,6 +2970,12 @@ void drawSingleTH1(TH1* h1 = NULL,
   Double_t xmin = 0;
   Double_t xmax = 0;
   Bool_t setXAxisRangeFromUser = getAxisRangeFromUser(xAxisName, xmin, xmax, xAxisNameTmp);
+
+  string yAxisName = "";
+  Double_t ymin = 0;
+  Double_t ymax = 0;
+  Bool_t setYAxisRangeFromUser = getAxisRangeFromUser(yAxisName, ymin, ymax, yAxisNameTmp);
+
 
   string legEntry = "";
   string legHeader = "";
@@ -2997,8 +3006,7 @@ void drawSingleTH1(TH1* h1 = NULL,
   canvas->SetLeftMargin(0.16);
   canvas->SetRightMargin(0.06);
 
-  h1->Draw("HE");
-
+  h1->Draw(drawOption.c_str());
 
   canvas->Update();
   TPaveStats *statBox = (TPaveStats*)(h1->FindObject("stats"));
@@ -3022,8 +3030,18 @@ void drawSingleTH1(TH1* h1 = NULL,
   h1->GetYaxis()->SetTitleOffset(1.2);
   // h1->GetYaxis()->SetTitleOffset(0.8);  // was 1.03 without setting also the size
   h1->GetYaxis()->SetTitleSize(0.05);
+  if (setYAxisRangeFromUser) h1->GetYaxis()->SetRangeUser(ymin,ymax);
   /* if (h1->GetMinimum() < 0) h1->GetYaxis()->SetRangeUser(1.5*h1->GetMinimum(), h1->GetMaximum() * 1.5); */
   /* else h1->GetYaxis()->SetRangeUser(std::max(0, 0.8*h1->GetMinimum()), h1->GetMaximum() * 1.5); */
+  if (gr != nullptr) {
+    gr->SetMarkerStyle(20);
+    gr->SetMarkerColor(kRed+2);
+    gr->SetLineColor(kRed+2);
+    gr->SetFillColor(kRed+2);
+    gr->SetLineWidth(2);
+    gr->Draw("p same");
+  }
+  
   canvas->RedrawAxis("sameaxis");
   canvas->Update();
 
@@ -3033,6 +3051,9 @@ void drawSingleTH1(TH1* h1 = NULL,
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
   leg.AddEntry(h1,legEntry.c_str(),"L");
+  if (gr != nullptr) {
+    leg.AddEntry(gr,gr_legEntry.c_str(),"PLE");
+  }
   leg.Draw("same");
   canvas->RedrawAxis("sameaxis");
 

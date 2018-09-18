@@ -6,7 +6,7 @@ from optparse import OptionParser
 parser = OptionParser(usage="%prog testname ")
 parser.add_option("--mu", dest="useMuon", default=False, action='store_true', help="Do fake rate for muons");
 parser.add_option("--qcdmc", dest="addQCDMC", default=False, action='store_true', help="Add QCD MC in plots (but do not subtract from data)");
-parser.add_option("--full2016data", dest="useFullData2016", default=False, action='store_true', help="Use all 2016 data (B to H, 35.5/fb). By default, only B to F are used (19.3/fb. Luminosity is automatically set depending on this choice");
+parser.add_option("--full2016data", dest="useFullData2016", default=False, action='store_true', help="Use all 2016 data (B to H, 35.9/fb). By default, only B to F are used (19.3/fb. Luminosity is automatically set depending on this choice");
 parser.add_option("--charge", dest="charge", default="", type='string', help="Select charge: p for positive, n for negative");
 parser.add_option("--lumi", dest="lumi", default=35.9 , type='float', help="Integrated luminosity");
 parser.add_option("--test", dest="test", default="", type='string', help="pass the name of a folder (mandatory) to store test FR plots. It is created in plots/fake-rate/test/");
@@ -73,13 +73,13 @@ print "used trees from: ",T
 ptcorr = "ptElFull(LepGood1_calPt,LepGood1_eta)"
 ptForScaleFactors =  "LepGood_pt"  # or ptcorr
 #MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_et\
-a)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' # SF1 is trigger scale factor
+#MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' # SF1 is trigger scale factor
 if useFullData2016:
+    print "# Using full 2016 dataset"
     #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_et\
-a)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' 
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' 
+    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)" ' 
 
 
 J=4
@@ -156,4 +156,6 @@ for i in range(0,len(etaRange)-1):
         print MCEFF + " -o " + PBASE + "/fr_sub_eta_" + thisRange + ".root --bare -A onelep eta 'abs(LepGood1_eta)>" + str(etaRange[i]) + " && abs(LepGood1_eta)<" + str(etaRange[i+1]) + "' " + str(chargeSelection) + "\n"
 
     print "\n\n"
+
+
 

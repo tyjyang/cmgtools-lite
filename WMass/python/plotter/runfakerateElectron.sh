@@ -36,7 +36,8 @@ fi
 
 istest="y"
 # following option testdir is used only if istest is 'y'
-testdir="SRtrees_new/fakeRate_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_pt65_subtrAllMC_AllFinalSF_fitpol2_jetPt45"
+today=`date +"%d_%m_%Y"`
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_allNewSF_jetPt45"
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
@@ -66,7 +67,6 @@ host=`echo "$HOSTNAME"`
 # fi
 
 srtreeoption=""
-frGraphDir="el"
 
 if [[ "${istest}" == "y" ]]; then
     testoption=" --test ${testdir}/ "
@@ -90,8 +90,9 @@ if [[ "X${addOption}" != "X" ]]; then
 fi
 
 echo "Running: ${cmdComputeFR}"
-echo "${cmdComputeFR} | grep python > commands4fakeRate.sh" | bash
+echo "${cmdComputeFR} > commands4fakeRate.sh" | bash
 #echo "${cmdComputeFR} > commands4fakeRate.sh" | bash
 echo "The commands used for fake-rate are stored in commands4fakeRate.sh"
-cat commands4fakeRate.sh | bash  # here we really run the commands saved in commands4fakeRate.sh
-
+cat commands4fakeRate.sh | grep python | bash  # here we really run the commands saved in commands4fakeRate.sh
+echo "Copying commands4fakeRate.sh in ${plotterPath}/plots/fake-rate/test/${testdir}"
+cp commands4fakeRate.sh ${plotterPath}/plots/fake-rate/test/${testdir}
