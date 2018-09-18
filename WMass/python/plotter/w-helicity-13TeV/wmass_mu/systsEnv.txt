@@ -2,13 +2,15 @@
 # luminosity
 # ==================================================================
 ## remove for now 
-lumi_13TeV           : W.*|Z|Top|DiBosons|TaudecaysW : .* : 1.026
+CMS_lumi_13TeV           : W.*|TaudecaysW|Z|Top|DiBosons : .* : 1.026
 
 
 # ==================================================================
 # lepton efficiencies
 # ==================================================================
-## remove for now CMS_Wmu_lepEff       : W.*|Z|Top|DiBosons|TaudecaysW : .* : 1.02
+CMS_Wmu_sig_lepeff                 : W.*: .*                         : lepeff : templates
+CMS_Wmu_bkg_lepeff                 : TauDecaysW|Flips|Z|Top|DiBosons :     .* : 1.01
+
 CMS_Wmu_lepVeto      : Z                            : .* : 1.03
 
 
@@ -29,6 +31,7 @@ CMS_Top              : Top                          : .* : 1.06
 # ==================================================================
 # first is the normalization uncertainty
 CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
+
 # shape uncertainties (slope of FR with pt, and slope down, offset up and vice-versa)
 CMS_Wmu_FRmu_slope     : data_fakes  : .* : FRmu_slope : templatesShapeOnly
 #CMS_Wmu_FRmu_both      : data_fakes  : .* : FRmu_both  : templatesShapeOnly
