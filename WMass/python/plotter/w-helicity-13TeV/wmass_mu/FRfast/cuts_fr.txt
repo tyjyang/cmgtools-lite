@@ -16,8 +16,8 @@ muonTightIso : LepGood1_relIso04 < 0.15
 ## =============================================
 lpt25        : LepGood1_pt > 25.
 
-awayJet40    : LepGood1_awayJet_pt > 30.
-awayJet40    : LepGood1_awayJet_pt > 40. ; Disable=True
+##awayJet40    : LepGood1_awayJet_pt > 30.
+awayJet45    : LepGood1_awayJet_pt > 45. 
 
 
 tkmet15max   : met_trkPt < 15.                                           ; Disable=True

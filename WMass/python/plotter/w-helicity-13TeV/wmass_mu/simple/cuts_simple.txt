@@ -14,4 +14,6 @@ muonTightIso  : LepGood1_relIso04 < 0.15
 lpt26         : LepGood1_calPt > 26.
 lptrange      : LepGood1_calPt < 45.
 leta          : abs(LepGood1_eta) < 2.4
-mtl1pf40max  : mt_2(LepGood1_calPt,LepGood1_phi,met_pt,met_phi)  > 40.
+mtl1pf40min  : mt_2(LepGood1_calPt,LepGood1_phi,met_pt,met_phi)  > 40.
+mtl1pf40max  : mt_2(LepGood1_calPt,LepGood1_phi,met_pt,met_phi)  < 40. ; Disable=True
+

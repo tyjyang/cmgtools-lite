@@ -6,31 +6,30 @@ BASECONFIG   = 'w-helicity-13TeV/wmass_mu'
 MCA          = BASECONFIG+'/mca-wmu-helicity.txt'
 CUTFILE      = BASECONFIG+'/cuts_wmu.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
-#TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/'
-TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
+TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
 QUEUE        = '1nd'
 VAR          = '\'LepGood1_calPt:LepGood1_eta\''
 
-## variable binning in eta
-binsEta = list(i*0.1 for i in range(1,11)) + list(1.+0.15*i for i in range(1,9))
-negstring = '[-2.4,'+','.join(reversed(  list(str(-1.*i) for i in binsEta) ))
-posstring =     ','.join(           list(str(    i) for i in binsEta) )+',2.4]'
-etabinning= negstring+',0.,'+posstring
+## old variable binning in eta
+## old binning binsEta = list(i*0.1 for i in range(1,11)) + list(1.+0.15*i for i in range(1,9))
+## old binning negstring = '[-2.4,'+','.join(reversed(  list(str(-1.*i) for i in binsEta) ))
+## old binning posstring =     ','.join(           list(str(    i) for i in binsEta) )+',2.4]'
+## old binning etabinning= negstring+',0.,'+posstring
+
+binningeta = [-2.4 + i*0.1 for i in range(49) ]
+binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
+
+etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 
 ## variable binning in pt
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 
-##BINNING      = '\'32,-2.4,2.4,20,25.,45.\''
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
-## WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_effSF[0]\' '
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_sf1[0]*LepGood_sf2[0]*LepGood_sf3[0]\' '
-#WEIGHTSTRING = ' \'puWeight \' '#*LepGood_effSF[0]\' '
-#WEIGHTSTRING = ' \'1. \' '#*LepGood_effSF[0]\' '
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF3[0]\' '
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
 #components=[' -b ', ' -s ']
-#components=[' -b ']
-components=['-s']
+components=[' -b ']
     
 
 if __name__ == '__main__':

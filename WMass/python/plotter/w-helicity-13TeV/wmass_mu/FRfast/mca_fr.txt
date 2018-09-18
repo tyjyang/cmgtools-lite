@@ -4,7 +4,7 @@
 WandZ     : WJetsToLNu_part*               : 3.*20508.9    : 1 ; FillColor=ROOT.kRed+2  , Label="WandZ"
 WandZ     : DYJetsToLL_M50_part*           : 3.*1921.8     : 1 ; FillColor=ROOT.kRed+2  , Label="WandZ"
 
-QCD       : QCD_Mu15_part*                 : 302673.0      : 1 ; FillColor=ROOT.kGray+2 , Label="QCD"
+QCD       : QCD_Mu15_part*                 : 302673.0      : 1 ; FillColor=ROOT.kGray , Label="QCD"
 
 data      : SingleMuon_Run2016*
 
