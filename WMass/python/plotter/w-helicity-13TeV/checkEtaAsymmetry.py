@@ -1,7 +1,7 @@
 import ROOT, os, array
 
 ## usage
-## python checkEtaAsymmetry.py -i <inputRootFile>
+## python checkEtaAsymmetry.py -i <inputRootFile> -v <variableName>
 
 if __name__ == "__main__":
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         errors.append( ratio.GetBinError  (ip+1) )
         binedges.append( ratio.GetXaxis().GetBinLowEdge(ip+nhalf+1) )
 
-    binedges = binedges[:nhalf]
+    binedges = binedges[:nhalf+1]
 
     histleft  = ROOT.TH1F('hist_left' , '', len(binedges)-1, array.array('d',binedges) )
     histright = ROOT.TH1F('hist_right', '', len(binedges)-1, array.array('d',binedges) )
