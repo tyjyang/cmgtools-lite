@@ -63,8 +63,10 @@ if __name__ == "__main__":
         histright.SetBinContent(ib+1, values[nhalf+ib])
         histright.SetBinError  (ib+1, errors[nhalf+ib])
 
-    histleft  .SetMarkerStyle(20); histleft  .SetMarkerColor(ROOT.kBlue-1); histleft  .SetLineColor(ROOT.kBlue-1)
-    histright .SetMarkerStyle(21); histright .SetMarkerColor(ROOT.kRed +2); histright .SetLineColor(ROOT.kRed +2)
+    col1 = ROOT.kAzure-1
+    col2 = ROOT.kOrange-1
+    histleft  .SetMarkerStyle(20); histleft  .SetMarkerSize(1.2); histleft  .SetMarkerColor(col1); histleft  .SetLineColor(col1)
+    histright .SetMarkerStyle(21); histright .SetMarkerSize(1.2); histright .SetMarkerColor(col2); histright .SetLineColor(col2)
 
     canv = ROOT.TCanvas('foob', 'data-MC ratio for +/- #eta', 800, 600)
     ROOT.gStyle.SetOptStat(0)
