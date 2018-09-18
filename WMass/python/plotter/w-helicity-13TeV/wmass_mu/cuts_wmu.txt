@@ -7,4 +7,4 @@ kinAccept  : LepGood1_calPt > 26. && abs(LepGood1_eta) < 2.4 && LepGood1_calPt <
 muMediumId  : LepGood1_mediumMuonId  > 0
 muTightIso : LepGood1_relIso04 < 0.15
 ##
-#mtl1pf40   : mt_2(LepGood1_calPt,LepGood1_phi,met_pt,met_phi) > 40.
+mtl1pf40   : mt_2(LepGood1_calPt,LepGood1_phi,met_pt,met_phi) > 40.
