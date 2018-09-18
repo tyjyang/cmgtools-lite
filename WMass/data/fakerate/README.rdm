@@ -42,8 +42,15 @@ nominal
 --------------------------
 http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_16_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32/
 --------------------------
+--------------------------
 awayJetPt > 45 (instead of 30 in nominal)
-http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs/fakeRate_eta_pt_granular_mT40_35p9fb_signedEta_pt65_subtrAllMC_AllFinalSF_mergedEWK_exclPt_fitPol1_jetPt45/
+--------------------------
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs/fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45/
+--------------------------
+--------------------------
+Ratio:
+--------------------------
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/ratio_FR_PR/subtrAllMC_allNewSF_fitPol1_minPtData32__jetPt30_Over_jetPt45/
 --------------------------
 
 Eta binning:
