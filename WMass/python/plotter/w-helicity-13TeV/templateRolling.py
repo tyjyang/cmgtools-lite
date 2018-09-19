@@ -73,11 +73,12 @@ def dressed2D(h1d,binning,name,title=''):
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] shapesdir")
-    parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save things')
+    parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save things. A subfolder named options.charge is automatically added for each charge passed to option -C')
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
     parser.add_option('-p','--postfix', dest='postfix', default='', type='string', help='Postfix for input file with shapes (e.g: "_addInclW" in "Wel_plus_shapes_addInclW.root"). Default is ""')
-    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates. Use -b file=<name> or simply -b <name> to read binning from file <name>. If passing the array, for the moment it is supposed to be the same for reco and gen')
+    parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='binningPtEta.txt', type='string', help='eta-pt binning for templates. Use -b <name> to read binning from file <name>. It is supposed to be inside the folder passed with args[0] ')
+    parser.add_option('--yb','--YWbinning', dest='YWbinning', default='binningYW.txt', type='string', help='YW binning for Y rapidity (works with option -a "helicity"). It is supposed to be inside the folder passed with args[0] ')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--has-inclusive-signal', dest="hasInclusiveSignal", default=False, action='store_true', help="Use this option if the file already contains the inclusive signal template and you want to plot it as well (obsolete, it refers to the days when I was manually adding inclusive signal to shapes.root file");
     parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
@@ -108,15 +109,26 @@ if __name__ == "__main__":
     if options.analysis != "diffXsec" and options.draw_selected_etaPt != '':
         print "Warning: option --select-etaPt is only supported with --analysis diffXsec (but %s passed).\nIt will be ignored." % options.analysis
 
-    outname = options.outdir
-    addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
-    createPlotDirAndCopyPhp(outname)
+    if not options.outdir:
+        print "Error: please specify an output folder with option -o (a subfolder named as options.charge will be added inside)"
+        quit()
+
+    charges = options.charge.split(',')
+
+    etaPtBinningFile = args[0]+"/"+options.etaPtbinning
+    if options.analysis == "helicity":
+        YWBinningFile = args[0]+"/"+options.YWbinning
+        binningFile = open(YWBinningFile)
+        binningYW = eval(binningFile.read())  # this is a dictionary with keys <charge>_<pol>, charge= plus,minus, pol=right,left,long        
+
 
     # get eta-pt binning for both reco and gen
-    etaPtBinningVec = getDiffXsecBinning(options.etaPtbinning, "reco")
+    etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
-    etaPtBinningVec = getDiffXsecBinning(options.etaPtbinning, "gen")
-    genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    if options.analysis == "diffXsec":
+        etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
+        genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+
 
     #following array is used to call function dressed2D()
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
@@ -134,19 +146,25 @@ if __name__ == "__main__":
 
     lepton = "electron" if channel == "el" else "muon"
 
-    charges = options.charge.split(',')
-
     qcdsyst = ["muR", "muF", "muRmuF", "alphaS"]
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale"]
+    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale"] # might add others
     allsystsUpDn = []
     for x in allsysts:
         allsystsUpDn.append(x+"Up")
         allsystsUpDn.append(x+"Down")
-    outnameSyst = outname + "systematics/"
-    createPlotDirAndCopyPhp(outnameSyst)
+
+    canvas = ROOT.TCanvas("canvas","",800,700)
 
     for charge in charges:
+
+        outname = options.outdir
+        addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
+        outname = outname + charge + "/"
+        createPlotDirAndCopyPhp(outname)
+        outnameSyst = outname + "systematics/"
+        createPlotDirAndCopyPhp(outnameSyst)
+
         shapesfile = "{indir}/W{flav}_{ch}_shapes{pf}.root".format(indir=args[0],flav=channel,ch=charge,pf=options.postfix)
         infile = ROOT.TFile(shapesfile, 'read')
         print ""
@@ -169,12 +187,13 @@ if __name__ == "__main__":
         # doing binned signal
             print "Signal"
             if analysis == "helicity":                
-                for pol in ['right', 'left']:
+                for pol in ['right', 'left','long']:
                     print "\tPOLARIZATION ",pol
                     # at this level we don't know how many bins we have, but we know that, for nominal templates, Ybin will be the second last token if we split the template name on '_' 
                     inclSigName = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel)
                     inclSigTitle = 'W{chs} {pol} inclusive'.format(pol=pol,chs=chs)
                     hSigInclusive = ROOT.TH2F(inclSigName,inclSigTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
+                    bins_charge_pol = binningYW["{ch}_{pol}".format(ch=charge,pol=pol)]
 
                     for k in infile.GetListOfKeys():
                         name=k.GetName()
@@ -183,16 +202,17 @@ if __name__ == "__main__":
                         # name.split('_')[-2] == "Ybin" : this excludes systematics
                         if obj.InheritsFrom("TH1") and signalMatch in name and name.split('_')[-2] == "Ybin":
 
+                            #print ">>>> CHECKPOINT"
                             ## need to implement a way of getting the rapidity binning    
                             # jobsdir = args[0]+'/jobs/'
                             # jobfile_name = 'W{ch}_{flav}_Ybin_{b}.sh'.format(ch=charge,flav=channel,b=ybin)
                             # tmp_jobfile = open(jobsdir+jobfile_name, 'r')
                             # tmp_line = tmp_jobfile.readlines()[-1].split()
                             # ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
-                            # ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]                            
-                            ymin = "X" # dummy for the moment
-                            ymax = "Y"
-                            ybin = name.split('_')[-1]
+                            # ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]               
+                            ybin = name.split('_')[-1]                            
+                            ymin = str(bins_charge_pol[int(ybin)]) # "X" # dummy for the moment
+                            ymax = str(bins_charge_pol[int(ybin)+1])
                             name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
                             title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
@@ -209,7 +229,7 @@ if __name__ == "__main__":
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
-                                                    "ForceTitle",outname,1,1,False,False,False,1)
+                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
 
                     hSigInclusive.Write()
                     if not options.noplot:
@@ -219,7 +239,7 @@ if __name__ == "__main__":
                         drawCorrelationPlot(hSigInclusive, 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
-                                            "ForceTitle",outname,1,1,False,False,False,1)
+                                            "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
                                                 
             else:  
 
@@ -278,7 +298,7 @@ if __name__ == "__main__":
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     h2_backrolled_1.GetName(),
-                                                    "ForceTitle",outname,1,1,False,False,False,1)
+                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
 
                         elif not options.skipSyst:
                             h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
@@ -293,7 +313,7 @@ if __name__ == "__main__":
                     drawCorrelationPlot(hSigInclusive, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         hSigInclusive.GetName(),
-                                        "ForceTitle",outname,1,1,False,False,False,1)
+                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
                             hSigInclusive_syst[systvar].Divide(hSigInclusive)
@@ -306,7 +326,7 @@ if __name__ == "__main__":
                             drawCorrelationPlot(hSigInclusive_syst[systvar], 
                                                 xaxisTitle, yaxisTitle, zaxisTitle, 
                                                 "systOverNorm_"+hSigInclusive_syst[systvar].GetName(),
-                                                "ForceTitle",outnameSyst,1,1,False,False,False,1)
+                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas)
 
 
         # do backgrounds and, if requested, inclusive signal
@@ -332,7 +352,7 @@ if __name__ == "__main__":
                 drawCorrelationPlot(h2_backrolled_1, 
                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                     '{proc}_{ch}_{flav}'.format(proc=p,ch=charge,flav=channel),
-                                    "ForceTitle",outname,1,1,False,False,False,1)
+                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
 
             # canv = ROOT.TCanvas()
             # h2_backrolled_1.Draw('colz')

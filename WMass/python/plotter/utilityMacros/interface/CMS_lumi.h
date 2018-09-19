@@ -1,8 +1,6 @@
 #ifndef CMS_lumi_h
 #define CMS_lumi_h
 
-#include "./centerOfMassEnergy.h"
-
 #include "TPad.h"
 #include "TLatex.h"
 #include "TLine.h"
@@ -11,6 +9,8 @@
 #include "TStyle.h"
 #include <iostream>
 #include <sstream>
+
+#include "./centerOfMassEnergy.h"
 
 void setTDRStyle (){
 
@@ -100,6 +100,9 @@ void setTDRStyle (){
 
 void CMS_lumi(TPad* pad = NULL, string lumi = "", bool up = false, bool skipPreliminary = true, int reduceSize = false, float offset = 0,float offsetLumi = 0){
 
+  // keep track of pad margin, otherwise CMS Preliminary goes out of the margin
+  float lm = pad->GetLeftMargin() - 0.15;  // 0.15 should be the default
+
   TLatex* latex2 = new TLatex();
   latex2->SetNDC();
   latex2->SetTextSize(0.6*pad->GetTopMargin());
@@ -119,7 +122,7 @@ void CMS_lumi(TPad* pad = NULL, string lumi = "", bool up = false, bool skipPrel
       latex2->SetTextSize(0.5*pad->GetTopMargin());
     latex2->SetTextFont(62);
     latex2->SetTextAlign(11);    
-    latex2->DrawLatex(0.15+offset, 0.95, "CMS");
+    latex2->DrawLatex(lm+0.15+offset, 0.95, "CMS");
   }
   else{
     latex2->SetTextSize(0.6*pad->GetTopMargin());
@@ -130,7 +133,7 @@ void CMS_lumi(TPad* pad = NULL, string lumi = "", bool up = false, bool skipPrel
 
     latex2->SetTextFont(62);
     latex2->SetTextAlign(11);    
-    latex2->DrawLatex(0.175+offset, 0.85, "CMS");
+    latex2->DrawLatex(lm+0.175+offset, 0.85, "CMS");
   }
 
   if(not skipPreliminary){
@@ -139,7 +142,7 @@ void CMS_lumi(TPad* pad = NULL, string lumi = "", bool up = false, bool skipPrel
       latex2->SetTextSize(0.65*pad->GetTopMargin());
       latex2->SetTextFont(52);
       latex2->SetTextAlign(11);
-      latex2->DrawLatex(0.25+offset, 0.95, "Preliminary");
+      latex2->DrawLatex(lm+0.25+offset, 0.95, "Preliminary");
     }
     else{
       latex2->SetTextSize(0.6*pad->GetTopMargin());
@@ -148,9 +151,9 @@ void CMS_lumi(TPad* pad = NULL, string lumi = "", bool up = false, bool skipPrel
       latex2->SetTextFont(52);
       latex2->SetTextAlign(11);    
       if(reduceSize)
-	latex2->DrawLatex(0.235+offset, 0.85, "Preliminary");
+	latex2->DrawLatex(lm+0.235+offset, 0.85, "Preliminary");
       else
-	latex2->DrawLatex(0.28+offset, 0.85, "Preliminary");
+	latex2->DrawLatex(lm+0.28+offset, 0.85, "Preliminary");
     }
   }
 }

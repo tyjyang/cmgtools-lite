@@ -34,6 +34,10 @@ rho: rho : 40,0.5,40.5; XTitle="#rho", Legend='TR', IncludeOverflows=True
 ele1ID: LepGood1_tightId : 5,-0.5,4.5 ; XTitle="electron ID (ele1)", Legend='TL', IncludeOverflows=True
 
 awayJet_pt: LepGood_awayJet_pt : 60,20,80; XTitle="away jet p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+awayJet_eta: LepGood_awayJet_eta : 50,-2.5,2.5 ; XTitle="away-jet #eta", Legend='TL', IncludeOverflows=False
+mt_jet_ele: mt_2(LepGood_awayJet_pt,LepGood_awayJet_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) : 60,0,120 ; XTitle="m_{T} (away-jet\,electron) [GeV]", Legend='TL', IncludeOverflows=False
+dphiLepAwayJet : abs(deltaPhi(LepGood1_phi,LepGood_awayJet_phi)) : 32,0.0,3.2; XTitle="#Delta#phi(electron\,away-jet)", Legend='TL', IncludeOverflows=True, Logy=True
+detaLepAwayJet : abs(LepGood1_eta-LepGood_awayJet_eta) : 50,0.0,5; XTitle="#Delta#eta(electron\,away-jet)", Legend='TR', IncludeOverflows=True
 
 #wpt_tk: pt_2(ptElFull(LepGood1_calPt,LepGood1_eta), LepGood1_phi, met_trkPt, met_trkPhi ): 40,0,40 ; XTitle="W p_{T} (charged PF E_{T}^{miss}) [GeV]", Legend='TR', IncludeOverflows=False 
 #wpt_pf: pt_2(ptElFull(LepGood1_calPt,LepGood1_eta), LepGood1_phi, met_pt, met_phi ): 40,0,40 ; XTitle="W p_{T} (PF E_{T}^{miss}) [GeV]", Legend='TR', IncludeOverflows=False 

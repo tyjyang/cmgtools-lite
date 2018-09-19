@@ -23,7 +23,13 @@ nRead = 0
 nNullIntegral = 0
 
 if not options.silent:
-    print "Class name integral(histogram only)"
+    print "-"*50
+    if options.output_format == "all":    
+        print "{: <10} {: <20}    {y} ".format("Class","name",y="integral(histogram only)")
+    elif options.output_format == "name":
+        print "name"
+    print "-"*50
+        
 for k in tf.GetListOfKeys() :
     name=k.GetName()
     if len(options.regexp) and not re.match(options.regexp,name): continue
@@ -36,7 +42,8 @@ for k in tf.GetListOfKeys() :
     if integral == 0.0: nNullIntegral += 1
     if not options.silent:
         if options.output_format == "all":
-            print "%s %s %s" % (obj.ClassName(), name, str(integral) if integral >= 0 else "")
+            #print "%s   %s   %s" % (obj.ClassName(), name, str(integral) if integral >= 0 else "")
+            print "{: <10} {: <20}    {y} ".format(obj.ClassName(), name, y=str(integral) if integral >= 0 else "")
         elif options.output_format == "name":
             print "%s" % name
 
