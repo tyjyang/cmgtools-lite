@@ -13,7 +13,7 @@ incl_data : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legac
 ## SYSTEMATICS 
 
 # fake-lepton background systematics (shape systematics)
-# if fitting with pol2, better not to use these lines for the moment (I can't just vary the slope as if I had a pol1)
+# if fitting with pol1, account for change in slope
 #incl_datafakes_FRe_pt_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Up'
 #incl_datafakes_FRe_pt_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptdown.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Dn'
 
@@ -24,3 +24,7 @@ incl_datafakes_FRe_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-in
 # norm vs eta and pt as shape
 incl_datafakes_FRe_norm_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt", SkipMe=True, PostFix='_fakes_FRe_norm_Up'
 incl_datafakes_FRe_norm_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normdown.txt", SkipMe=True, PostFix='_fakes_FRe_norm_Dn'
+
+# shape uncertainty (subtraction of EWK component scaled by 1sigma of cross section uncertainty, changes both shape and normalization)
+incl_datafakes_FRe_scaleEWK_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKup.txt", SkipMe=True, PostFix='_fakes_FRe_scaleEWK_Up'
+incl_datafakes_FRe_scaleEWK_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKdown.txt", SkipMe=True, PostFix='_fakes_FRe_scaleEWK_Dn'

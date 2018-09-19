@@ -36,7 +36,8 @@ fi
 
 istest="y"
 # following option testdir is used only if istest is 'y'
-testdir="SRtrees_new/fakeRate_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_pt65_subtrAllMC_newTrigSF_fitpol2_testTrigSF"
+today=`date +"%d_%m_%Y"`
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_allNewSF_jetPt45"
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
@@ -47,8 +48,8 @@ testdir="SRtrees_new/fakeRate_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_p
 #addOption=" -A eleKin pfmet 'met_pt<20' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
 #addOption=" -A eleKin pfmet 'met_pt<20' "
 #addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
-#addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
-addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
+addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
+#addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
 if [[ "${useJson}" == "y" ]]; then
     addOption="${addOption} -A eleKin json 'isGoodRunLS(isData,run,lumi)'"
 fi
@@ -66,13 +67,12 @@ host=`echo "$HOSTNAME"`
 # fi
 
 srtreeoption=""
-frGraphDir="el"
 
 if [[ "${istest}" == "y" ]]; then
     testoption=" --test ${testdir}/ "
 fi
 
-cmdComputeFR="python ${plotterPath}/w-helicity-13TeV/make_fake_rates_data.py --qcdmc --mt ${mtDefinition} ${testoption} --fqcd-ranges ${mtRanges} --pt ${ptDefinition} --lumi ${lumi}"
+cmdComputeFR="python ${plotterPath}/w-helicity-13TeV/make_fake_rates_data.py --qcdmc  ${testoption} --fqcd-ranges ${mtRanges} --pt ${ptDefinition} --lumi ${lumi}"
 if [[ "${useFull2016dataset}" == "y" ]]; then
     cmdComputeFR="${cmdComputeFR} --full2016data "
 fi
@@ -90,8 +90,9 @@ if [[ "X${addOption}" != "X" ]]; then
 fi
 
 echo "Running: ${cmdComputeFR}"
-echo "${cmdComputeFR} | grep python > commands4fakeRate.sh" | bash
+echo "${cmdComputeFR} > commands4fakeRate.sh" | bash
 #echo "${cmdComputeFR} > commands4fakeRate.sh" | bash
 echo "The commands used for fake-rate are stored in commands4fakeRate.sh"
-cat commands4fakeRate.sh | bash  # here we really run the commands saved in commands4fakeRate.sh
-
+cat commands4fakeRate.sh | grep python | bash  # here we really run the commands saved in commands4fakeRate.sh
+echo "Copying commands4fakeRate.sh in ${plotterPath}/plots/fake-rate/test/${testdir}"
+cp commands4fakeRate.sh ${plotterPath}/plots/fake-rate/test/${testdir}
