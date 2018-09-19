@@ -324,7 +324,7 @@ if __name__ == "__main__":
         loopBins = 1
 
     ## previous lines were meant to distinguish the case where the signal template is made all at once (a single TH2) or dividing into each bin
-    ## The latter requires just one job and create one datacard and one shape.root file, but then I need a way to allow each bin
+    ## The former requires just one job and create one datacard and one shape.root file, but then I need a way to allow each bin
     ## of the TH2 to float independently of the other (with some constraints), a kind of bin-by-uncertainty
     ## The former treat all bins as the rapidity bin in the helicity fit, but the number of bins here can be huge (let alone the PDf variations ...)
     ## Another way is to make signal cards grouping bins in bunches with some criteria

@@ -92,7 +92,7 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="2nd"
-nameTag="_finalSF_FRpol1_ptMax45_scaleAll_ratioRange0p2_addTau_onlyEta" 
+nameTag="_finalSF_FRpol1_ptMax45_ratioRange0p2_addTau_scaleFakesEtaBins" 
 #nameTag="_varStudy"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -134,7 +134,7 @@ selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="pfmt_ptl1"
-selectplots="etal1_binFR"
+selectplots="ptl1,etal1_binFR"
 #selectplots="pfmt"
 #selectplots="ptl1,ptl1noCorr"
 #selectplots="etal1_binFR,ptl1__etal1_binFR"
@@ -269,7 +269,7 @@ regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/
 #processManager["WhelicitySignalRegion"]=" --xp Wincl "
 qcdFromFR["WhelicitySignalRegion"]="y"
 #scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --fitData " # --pg 'EWK := Wincl,Z,Top,Dibosons'
-scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,TauDecaysW,EWK_bkg,data_fakes --fitData " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
+scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,TauDecaysW,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --scaleSigToData --sp data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 #############################
 #############################
