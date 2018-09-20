@@ -360,8 +360,9 @@ if __name__ == "__main__":
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
 
+                    # scale, lepEff, ... added to signal, with ivar==0, otherwise eclude (I don't want elescale variation on pdfs)
                     if options.channel == "el":
-                        scaleXP = "" if ivar == 0 else ",.*_elescale_.*"  # note comma in the beginning
+                        scaleXP = "" if ivar == 0 else ",.*_elescale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ",Flips"
                     else:
                         print "### WARNING: muon scale systematic is not implemented yet."
@@ -379,7 +380,7 @@ if __name__ == "__main__":
                         # here we don't need regular expression there is just one bin
                         if ivar == 0:
                             if options.channel == "el":
-                                lepscale = ",W{charge}_{channel}_outliers_elescale.*".format(charge=charge, channel=options.channel)
+                                lepscale = ",W{charge}_{channel}_outliers_elescale.*,W{charge}_{channel}_outliers_lepeff_.*".format(charge=charge, channel=options.channel)
                             else:
                                 lepscale = ""                            
                             selectedSigProcess = ' -p W{charge}_{channel}_outliers{lepscale}  '.format(charge=charge, channel=options.channel,lepscale=lepscale)  
@@ -393,6 +394,7 @@ if __name__ == "__main__":
 
                     else:
                         # do bins inside the gen binning
+
                         if options.groupSignalBy:
                             # if we are here, loopBins is not the number of bins in 2D template
                             # rather, it is the number of groups with ngroup bins each (+1 because xrange will exclude the last number)
@@ -402,16 +404,18 @@ if __name__ == "__main__":
                             for n in xrange(ngroup):
                                 tmpGlobalBin = n + ibin * ngroup
                                 ieta,ipt = getXYBinsFromGlobalBin(tmpGlobalBin,netabins)
+                                signalPrefix = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+
                                 # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                                 # consider elescale separately (for systematics, i.e. ivar!=0, it is excluded with --xp)
                                 if ivar == 0:
                                     if options.channel == "el":
-                                        lepscale = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*,".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                        lepscale = "{sigPfx}_elescale.*,{sigPfx}_lepeff.*,".format(sigPfx=signalPrefix)
                                     else:
                                         lepscale = ""
-                                    selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt},{lepscale}'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)
+                                    selectedSigProcess += '{sigPfx},{lepscale}'.format(sigPfx=signalPrefix,lepscale=lepscale)
                                 else:
-                                    selectedSigProcess += 'W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst},'.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
+                                    selectedSigProcess += '{sigPfx}{syst},'.format(sigPfx=signalPrefix,syst=syst)
                             if selectedSigProcess.endswith(','):
                                 selectedSigProcess = selectedSigProcess[:-1]  # remove comma at the end
                             selectedSigProcess += " "    # add some space to separate this option to possible following commands
@@ -421,6 +425,8 @@ if __name__ == "__main__":
                             # would be equivalent to options.groupSignalBy == 1
                             # might be removed at some point
                             ieta,ipt = getXYBinsFromGlobalBin(ibin,netabins)
+                            signalPrefix = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+
                             print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
                                                                                                                 etabinning[ieta],etabinning[ieta+1],
                                                                                                                 charge)
@@ -435,12 +441,12 @@ if __name__ == "__main__":
                             # here we don't need regular expression there is just one bin
                             if ivar == 0:
                                 if options.channel == "el":
-                                    lepscale = ",W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}_elescale.*".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
+                                    lepscale = ",{sigPfx}_elescale.*,{sigPfx}_lepEff.*".format(sigPfx=signalPrefix)
                                 else:
                                     lepscale = ""                            
-                                selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{lepscale}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,lepscale=lepscale)  
+                                selectedSigProcess = ' -p {sigPfx}{lepscale}  '.format(sigPfx=signalPrefix,lepscale=lepscale)  
                             else:
-                                selectedSigProcess = ' -p W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}  '.format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)  
+                                selectedSigProcess = ' -p {sigPfx}{syst}  '.format(sigPfx=signalPrefix,syst=syst)  
 
                             ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt,syst=syst)
                             ## keep same logic as before for the datacard name

@@ -76,7 +76,7 @@ class MCAnalysis:
                     if "ALLOW_OVERWRITE_SETTINGS" in addExtras and addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                         pass
                     else:
-                        raise RuntimeError, 'You are trying to overwrite an extra option already set (did you forget ALLOW_OVERWRITE_SETTINGS=True ?)'
+                        raise RuntimeError, 'You are trying to overwrite an extra option (%s - %s ) already set (did you forget ALLOW_OVERWRITE_SETTINGS=True ?)' % (k, v)
                 extra[k] = v
             field = [f.strip() for f in line.split(':')]
             if len(field) == 1 and field[0] == "*":

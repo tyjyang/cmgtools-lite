@@ -12,14 +12,24 @@ incl_data : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legac
 
 ## SYSTEMATICS 
 
+# lepton efficiency systematics. These are added in the MCA mca-80X-wenu-sigInclCharge_binned_eta_pt.txt directly
+incl_sig_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt",   AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Up'
+incl_sig_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt",   AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Dn'
+
+# electron scale systematics 
+incl_sig_elescale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_elescale_Up'
+incl_sig_elescale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_elescale_Dn'
+
+
+
 # fake-lepton background systematics (shape systematics)
 # if fitting with pol1, account for change in slope
-#incl_datafakes_FRe_pt_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Up'
-#incl_datafakes_FRe_pt_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptdown.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Dn'
+incl_datafakes_FRe_pt_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Up'
+incl_datafakes_FRe_pt_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptdown.txt", SkipMe=True, PostFix='_fakes_FRe_pt_Dn'
 
 # fake-lepton background systematics due to change of awayJet_pt from 30 (nominal) to 45 (just a random value we used)
 # it doesn't have an Up and Down variation, it will be made symmetric as we do for PDF  variations
-incl_datafakes_FRe_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-jetpt_syst.txt", SkipMe=True, PostFix='_fakes_CMS_We_FRe_awayJetPt45'
+incl_datafakes_FRe_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-jetpt_syst.txt", SkipMe=True, PostFix='_fakes_FRe_awayJetPt45'
 
 # norm vs eta and pt as shape
 incl_datafakes_FRe_norm_Up : + ; IncludeMca="w-helicity-13TeV/wmass_e/mca-includes/mca-data-legacy2016.txt", FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt", SkipMe=True, PostFix='_fakes_FRe_norm_Up'

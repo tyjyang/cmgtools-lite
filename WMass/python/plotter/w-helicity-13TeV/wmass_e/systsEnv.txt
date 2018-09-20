@@ -36,7 +36,9 @@ CMS_We_FRe_norm      : data_fakes  : .* : FRe_norm : templates
 CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
 # shape uncertainty (subtraction of EWK component scaled by 1sigma of cross section uncertainty, changes both shape and normalization)
 CMS_We_FRe_scaleEWK        : data_fakes  : .* : FRe_scaleEWK : templates
-# the uncertainty from variation of awayJet pt from 30 to 45 does not have up and down, so it is symmetrized around the nominal template when merging cards
+# the uncertainty from variation of awayJet pt from 30 to 45 does not have up and down
+CMS_We_FRe_awayJetPt45     : data_fakes  : .* : FRe_awayJetPt45 : alternateShape
+
 
 # ==================================================================
 # Charge flips (uncertainty from T&P. Take the max(EB,EE) )

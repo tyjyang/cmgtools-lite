@@ -55,14 +55,17 @@ if flav not in ["el","mu"]:
     print "Error in printBinnnedSignalMCA.py: unknown lepton flavour, use -c el|mu. Exit"
     exit(0)
 
-syst_suffix = ["_elescale_Up", "_elescale_Dn"] 
-labels = ["lep scale Up", "lep scale Dn"]  
+syst_suffix = ["_elescale_Up", "_elescale_Dn", "_lepeff_Up", "_lepeff_Dn"] 
+labels = ["lep scale Up", "lep scale Dn", "lep eff Up", "lep eff Dn"]  
 syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
-if flav == "el": 
-    all_syst_suffix.extend(syst_suffix)
-else:
-    print "----- Warning: muon scale systematics is not implemented yet -----"
+#################################
+# keep only nominal sample in this MCA: lepton systematics are defined in the main MCA including this one
+#################################
+# if flav == "el": 
+#     all_syst_suffix.extend(syst_suffix)
+# else:
+#     print "----- Warning: muon scale systematics is not implemented yet -----"
 
 for syst in all_syst_suffix:
 
@@ -72,13 +75,20 @@ for syst in all_syst_suffix:
             print "Writing charge ",charge
             mcafile.write("## CHARGE %s\n\n" % charge)
             label = " Label=\"W%s\"" % ("+" if charge == "plus" else "-")
+            weight = ""
         else:
             print "Writing syst '%s' for charge %s" % (syst,charge)
             mcafile.write("## CHARGE %s   SYST %s \n\n" % (charge, syst))
             label = " Label=\"W%s %s\"" % ("+" if charge == "plus" else "-", syst_label[syst])
+            varsys = "Up" if "_Up" in syst else "Dn" 
+            if "lepeff" in syst:
+                weight = " AddWeight=\"lepSFRel"+varsys+"(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)\" "
+            if "elescale" in syst: 
+                weight = " FakeRate=\"w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScale"+varsys+"_xsec.txt\" "  
+            weight += " , "  # note comma here, as other MCA flags follow
 
         chargeSignCut = ">" if charge == "plus" else "<"
-        sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"
+        sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"        
 
         for ipt in xrange(nptbins):
             for ieta in xrange(netabins):
@@ -91,11 +101,12 @@ for syst in all_syst_suffix:
                 if flav == "el": 
                     fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
 
-                line = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
-                                                                                                                                            ieta=ieta,ipt=ipt,
-                                                                                                                                            cut=fullcut,lab=label,
-                                                                                                                                            syst=syst,
-                                                                                                                                            sigRegExpr=sigRegExpr)
+                signalPrefix = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}".format(ch=charge,fl=flav,ieta=ieta,ipt=ipt)
+                line = "{sigPfx}{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {wgt} {lab} ".format(sigPfx=signalPrefix,
+                                                                                                                          cut=fullcut,lab=label,
+                                                                                                                          syst=syst,
+                                                                                                                          sigRegExpr=sigRegExpr,
+                                                                                                                          wgt=weight)
                 if syst != "": line += ", SkipMe=True"
                 mcafile.write(line+"\n")
 
@@ -109,12 +120,12 @@ for syst in all_syst_suffix:
         fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
         if flav == "el": 
             fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
-            
-        sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"
-        line = "W{ch}_{fl}_outliers{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {lab} ".format(ch=charge,fl=flav,
-                                                                                                                       cut=fullcut,lab=label,
-                                                                                                                       syst=syst,
-                                                                                                                       sigRegExpr=sigRegExpr)
+                    
+        line = "W{ch}_{fl}_outliers{syst} : {sigRegExpr} : 3.*20508.9 : {cut} ; FillColor=ROOT.kRed+2 , {wgt} {lab} ".format(ch=charge,fl=flav,
+                                                                                                                             cut=fullcut,lab=label,
+                                                                                                                             syst=syst,
+                                                                                                                             sigRegExpr=sigRegExpr,
+                                                                                                                             wgt=weight)
         if syst != "": line += ", SkipMe=True"
         mcafile.write(line+"\n")
 
