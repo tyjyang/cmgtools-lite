@@ -2,7 +2,7 @@
 # USAGE: python w-helicity-13TeV/testRolling.py cards/XXX el -o plots/fit/templates2D
 # el is for electrons, mu for muons
 
-import ROOT, os
+import ROOT, os, re
 from array import array
 from CMGTools.TTHAnalysis.plotter.histoWithNuisances import *
 from CMGTools.WMass.plotter.mcPlots import doShadedUncertainty
@@ -79,7 +79,6 @@ def dressed2D(h1d,binning,name,title=''):
 
 def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=505,doWide=False,showStatTotLegend=False,textSize=0.035):
     ratio = data.Clone("data_div"); 
-    ratio.Sumw2()
     ratio.Divide(total)
 
     unity = total.Clone("sim_div");
@@ -145,7 +144,19 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
 
     return (ratio, unity, line)
 
-
+def getNormSysts(channel):
+    systs = {}
+    sysfile = "{cmsswbase}/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_{ch}/systsEnv.txt".format(cmsswbase=os.environ['CMSSW_BASE'],ch='e' if channel=='el' else 'mu')
+    for line in open(sysfile, 'r'):
+        if re.match("\s*#.*", line): continue
+        line = re.sub("#.*","",line).strip()
+        if len(line) == 0: continue
+        field = [f.strip() for f in line.split(':')]
+        if len(field) == 4 or field[4] == "lnN":
+            (name, procmap, binmap, amount) = field[:4]
+            if name not in systs: systs[name] = []
+            systs[name].append((re.compile(procmap+"$"),amount))
+    return systs
 
 ROOT.gROOT.SetBatch()
 
@@ -172,6 +183,7 @@ if __name__ == "__main__":
     if options.fitresult:
         print "Scaling the templates to the post-fit results in: ",options.fitresult
         valuesAndErrors = utilities.getFromHessian(options.fitresult)
+        allNuisances = utilities.getFromHessian(options.fitresult,keepGen=True)
 
     outname = options.outdir
     if not os.path.exists(outname):
@@ -227,6 +239,7 @@ if __name__ == "__main__":
                 h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D)
                 if options.fitresult:
                     scale = valuesAndErrors[name2D+'_mu']
+                    print "scaling for {h} = {val:.3f} +/- {err:.3f} ".format(h=name2D,val=scale[0],err=scale[1]-scale[0])
                     h2_backrolled_1.Scale(scale[0])
                     fiterr = abs(scale[1]-scale[0])
                     for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
@@ -249,6 +262,10 @@ if __name__ == "__main__":
                 for ext in ['pdf', 'png']:
                     canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ext=ext))
 
+
+        systs = getNormSysts(channel)
+        print systs
+
         # do backgrounds now
         procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","W{ch}_long".format(ch=charge),"data_obs"]
         titles=["charge flips","DY","Top","di-bosons","W#to#tau#nu","QCD","W{ch}_long".format(ch=charge),"data"]
@@ -257,14 +274,18 @@ if __name__ == "__main__":
             h1_1 = infile.Get('x_{p}'.format(p=p))
             if not h1_1: continue # muons don't have Flips components
             h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
+            # postfit mu not implemented for bkgs, only apply post-fit systematic uncertainty, not changing the central value
             if options.fitresult and p!='data_obs':
-                scale = valuesAndErrors[name2D+'_mu']
-                print "scaling for {h} = {val:.3f} +/- {err:.3f} ".format(h=name2D,val=scale[0],err=scale[1]-scale[0])
-                h2_backrolled_1.Scale(scale[0])
-                fiterr = abs(scale[1]-scale[0])
-                for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
-                    for yb in xrange(1,h2_backrolled_1.GetNbinsY()+1):
-                        h2_backrolled_1.SetBinError(xb,yb, hypot(h2_backrolled_1.GetBinError(xb,yb), fiterr*h2_backrolled_1.GetBinContent(xb,yb)))
+                for name in systs.keys():
+                    for entry in systs[name]:
+                        procmap,amount = entry[:2]
+                        if re.match(procmap, p): 
+                            effect = float(amount)
+                            nuisance_postfit = effect*(allNuisances[name][1]-allNuisances[name][0])
+                            print "applying pre/post ",effect,"/",nuisance_postfit," syst '",name,"' on proc ",p
+                            for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
+                                for yb in xrange(1,h2_backrolled_1.GetNbinsY()+1):
+                                    h2_backrolled_1.SetBinError(xb,yb, hypot(h2_backrolled_1.GetBinError(xb,yb), nuisance_postfit*h2_backrolled_1.GetBinContent(xb,yb)))
             bkg_and_data[p] = h2_backrolled_1
             bkg_and_data[p].SetDirectory(None)
             h2_backrolled_1.Draw('colz')
@@ -283,16 +304,22 @@ if __name__ == "__main__":
                   'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
                   'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
                   'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
-                  
-
+                          
         for projection in ['X','Y']:
-            hdata = all_procs['data_obs'].ProjectionX().Clone('x_total') if projection=='X' else all_procs['data_obs'].ProjectionY().Clone('x_total')
+            hdata = all_procs['data_obs'].ProjectionX("x_total",0,-1,"e") if projection=='X' else all_procs['data_obs'].ProjectionY("y_total",0,-1,"e")
             htot = hdata.Clone('x_data_obs'); htot.Reset()
             stack = ROOT.THStack("x_stack","")
             
             legWidth=0.18; textSize=0.035
-            (x1,y1,x2,y2) = (.85-legWidth, .70, .90, .91)
+            (x1,y1,x2,y2) = (.75-legWidth, .60, .90, .91)
             leg = ROOT.TLegend(x1,y1,x2,y2)
+            leg.SetFillColor(0)
+            leg.SetFillColorAlpha(0,0.6)
+            leg.SetShadowColor(0)
+            leg.SetLineColor(0)
+            leg.SetBorderSize(0)
+            leg.SetTextFont(42)
+            leg.SetTextSize(textSize)
 
             for proc in all_procs:
                 if proc=='data_obs': continue
