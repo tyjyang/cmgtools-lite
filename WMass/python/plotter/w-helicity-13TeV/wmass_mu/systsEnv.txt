@@ -34,7 +34,7 @@ CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
 
 # shape uncertainties (slope of FR with pt, and slope down, offset up and vice-versa)
 CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShapeOnly
-CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : FRmu_awayJetPt45 : alternateShape
+CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : data_fakes_FRmu_awayJetPt45 : alternateShape
 
 # next one is obsolete
 #CMS_Wmu_FRmu_both      : data_fakes  : .* : FRmu_both  : templatesShapeOnly
@@ -43,7 +43,7 @@ CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : FRmu_awayJetPt45 : alternateShap
 # ==================================================================
 # lepton scale
 # ==================================================================
-#CMS_Wmu_muscale     : W.*                          : .* : muscale   : templates
+CMS_Wmu_muscale     : W.*                          : .* : muscale   : templates
 
 # recoil uncertainty
 #CMS_recoil          : W.*                          : .* : recoil    : templates

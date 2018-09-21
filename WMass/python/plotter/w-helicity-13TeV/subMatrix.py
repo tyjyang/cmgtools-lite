@@ -1,4 +1,5 @@
 import ROOT, os, datetime, re, operator, math
+from array import array
 ROOT.gROOT.SetBatch(True)
 
 ## ===================================================================
@@ -14,6 +15,9 @@ ROOT.gROOT.SetBatch(True)
 ## NORMs: 'norm_.*'
 ## PDFs: range [1,20]: '^pdf([1-9]|1[0-9])|20$'
 ## ===================================================================
+#def SetCorrMatrixPalette():
+#ROOT.gStyle.SetPalette()
+
 
 
 def niceName(name):
@@ -49,6 +53,17 @@ if __name__ == "__main__":
     parser.add_option('-t','--type'  , dest='type'  , default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     (options, args) = parser.parse_args()
+
+    ROOT.TColor.CreateGradientColorTable(3,
+                                      array ("d", [0.00, 0.50, 1.00]),
+                                      ##array ("d", [1.00, 1.00, 0.00]),
+                                      ##array ("d", [0.70, 1.00, 0.34]),
+                                      ##array ("d", [0.00, 1.00, 0.82]),
+                                      array ("d", [0.00, 1.00, 1.00]),
+                                      array ("d", [0.34, 1.00, 0.65]),
+                                      array ("d", [0.82, 1.00, 0.00]),
+                                      255,  0.95)
+
 
     if not options.type in ['toys', 'scans', 'hessian']:
         print 'the given type needs to be either "toys", "scans", or "hessian"!!'
@@ -131,8 +146,8 @@ if __name__ == "__main__":
     c = ROOT.TCanvas("c","",1200,800)
     c.SetGridx()
     c.SetGridy()
-    ROOT.gStyle.SetPalette(55)
-    ROOT.gStyle.SetNumberContours(200); # default is 20 (values on palette go from -1 to 1)
+    #ROOT.gStyle.SetPalette(55)
+    #ROOT.gStyle.SetNumberContours(200); # default is 20 (values on palette go from -1 to 1)
 
     c.SetLeftMargin(0.15)
     c.SetRightMargin(0.11)
