@@ -443,7 +443,7 @@ for name in systsEnv.keys():
                 y0 = nominal.GetBinContent(b)
                 yA = alternate.GetBinContent(b)
                 yM = y0
-                if (y0 > 0 and yA > 0):
+                if yA != 0:
                     yM = y0*y0/yA
                 elif yA == 0:
                     yM = 0
