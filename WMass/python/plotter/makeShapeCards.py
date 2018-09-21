@@ -446,7 +446,7 @@ for name in systsEnv.keys():
                 if (y0 > 0 and yA > 0):
                     yM = y0*y0/yA
                 elif yA == 0:
-                    yM = 2*y0
+                    yM = 0
                 mirror.SetBinContent(b, yM)
             if mode == "alternateShapeOnly":
                 # keep same normalization
