@@ -2,13 +2,13 @@
 # luminosity
 # ==================================================================
 ## remove for now 
-CMS_lumi_13TeV           : W.*|TaudecaysW|Z|Top|DiBosons : .* : 1.026
+CMS_lumi_13TeV           : W.*|TauDecaysW|Z|Top|DiBosons : .* : 1.026
 
 
 # ==================================================================
 # lepton efficiencies
 # ==================================================================
-CMS_Wmu_sig_lepeff                 : W.*: .*                         : lepeff : templates
+CMS_Wmu_sig_lepeff                 : W.* : .*                        : lepeff : templates
 CMS_Wmu_bkg_lepeff                 : TauDecaysW|Flips|Z|Top|DiBosons :     .* : 1.01
 
 CMS_Wmu_lepVeto      : Z                            : .* : 1.03
@@ -23,7 +23,7 @@ CMS_Wmu_lepVeto      : Z                            : .* : 1.03
 #
 CMS_DY               : Z                            : .* : 1.038
 CMS_VV               : DiBosons                     : .* : 1.16
-CMS_W                : TaudecaysW                   : .* : 1.038
+CMS_W                : TauDecaysW                   : .* : 1.038
 CMS_Top              : Top                          : .* : 1.06 
 
 # ==================================================================
@@ -33,7 +33,10 @@ CMS_Top              : Top                          : .* : 1.06
 CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
 
 # shape uncertainties (slope of FR with pt, and slope down, offset up and vice-versa)
-CMS_Wmu_FRmu_slope     : data_fakes  : .* : FRmu_slope : templatesShapeOnly
+CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShapeOnly
+CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : FRmu_awayJetPt45 : alternateShape
+
+# next one is obsolete
 #CMS_Wmu_FRmu_both      : data_fakes  : .* : FRmu_both  : templatesShapeOnly
 
 

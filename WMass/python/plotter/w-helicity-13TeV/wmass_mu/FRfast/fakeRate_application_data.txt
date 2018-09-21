@@ -1,9 +1,6 @@
 ## Let the first lepton always pass the loose isolation (1.0)
 ## cut-change: LepGood1_relIso03: if3(LepGood1_relIso03 < 1., -1., 2.)
 cut-change: LepGood1_relIso04 : -1.
-## load histograms
-#load-histo: FR_mu : $DATA/fakerate/frAndPrSmoothed_mu.root : fakerates_smoothed_data
-#load-histo: PR_mu : $DATA/fakerate/frAndPrSmoothed_mu.root : promptrates_smoothed_data
 #
 load-histo: FR_mu : $DATA/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root : fakerates_smoothed_data_interpolated
 load-histo: PR_mu : $DATA/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root : promptrates_smoothed_data_interpolated

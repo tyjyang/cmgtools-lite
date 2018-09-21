@@ -23,6 +23,11 @@ incl_sig_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes
 incl_datafakes_FRmu_slope_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_slope_Up'
 incl_datafakes_FRmu_slope_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopedown.txt", SkipMe=True, PostFix='_fakes_FRmu_slope_Dn'
 
+## systematic with varied awayjet pT to 45 (from 30) GeV
+incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'
+
+
+## the next two are obsolete
 ##  incl_datafakes_FRmu_both_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-bothup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_both_Up'
 ##  incl_datafakes_FRmu_both_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-bothdown.txt", SkipMe=True, PostFix='_fakes_FRmu_both_Dn'
 
