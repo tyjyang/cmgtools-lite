@@ -206,6 +206,8 @@ if __name__ == "__main__":
         outfile = ROOT.TFile(full_outfileName, 'recreate')
         print "Will save 2D templates in file --> " + full_outfileName
 
+        systs = getNormSysts(channel)
+
         # doing signal
         total_sig = {}
         canv = ROOT.TCanvas()
@@ -241,16 +243,11 @@ if __name__ == "__main__":
                     scale = valuesAndErrors[name2D+'_mu']
                     print "scaling for {h} = {val:.3f} +/- {err:.3f} ".format(h=name2D,val=scale[0],err=scale[1]-scale[0])
                     h2_backrolled_1.Scale(scale[0])
-                    fiterr = abs(scale[1]-scale[0])
-                    for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
-                        for yb in xrange(1,h2_backrolled_1.GetNbinsY()+1):
-                            h2_backrolled_1.SetBinError(xb,yb, hypot(h2_backrolled_1.GetBinError(xb,yb), fiterr*h2_backrolled_1.GetBinContent(xb,yb)))
                 if ybin==0:
                     total_sig["W"+chpol] = h2_backrolled_1.Clone('W{ch}_{pol}_{flav}'.format(ch=charge,pol=pol,flav=channel))
                 else:
                     total_sig["W"+chpol].Add(h2_backrolled_1)
                 total_sig["W"+chpol].SetDirectory(None)
-
                 h2_backrolled_1.Draw('colz')
                 h2_backrolled_1.Write(name2D)
                 if not options.noplot:
@@ -258,13 +255,23 @@ if __name__ == "__main__":
                         canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,ext=ext))
             total_sig["W"+chpol].Draw('colz')
             total_sig["W"+chpol].Write(total_sig["W"+chpol].GetName())
+            if options.fitresult: # this is wrong, not assuming correlations. FIXME when we have the full info in the fit. Assume 100% correlation of syst among all hel bins
+                totalsyst2 = 0 
+                for name in systs.keys():
+                    for entry in systs[name]:
+                        procmap,amount = entry[:2]
+                        if re.match(procmap, 'W'):
+                            kappa = float(amount)
+                            totalsyst2 += abs(allNuisances[name][1]-allNuisances[name][0])*(kappa-1)**2
+                totalsyst = sqrt(totalsyst2)
+                for xb in xrange(1,total_sig["W"+chpol].GetNbinsX()+1):
+                    for yb in xrange(1,total_sig["W"+chpol].GetNbinsY()+1):
+                        total_sig["W"+chpol].SetBinError(xb,yb, hypot(total_sig["W"+chpol].GetBinError(xb,yb), totalsyst*total_sig["W"+chpol].GetBinContent(xb,yb)))
+
             if not options.noplot:
                 for ext in ['pdf', 'png']:
                     canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ext=ext))
 
-
-        systs = getNormSysts(channel)
-        print systs
 
         # do backgrounds now
         procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","W{ch}_long".format(ch=charge),"data_obs"]
@@ -276,16 +283,21 @@ if __name__ == "__main__":
             h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
             # postfit mu not implemented for bkgs, only apply post-fit systematic uncertainty, not changing the central value
             if options.fitresult and p!='data_obs':
+                variation = 0
+                totalsyst2 = 0 # this is wrong, not assuming correlations. FIXME when we have the full info in the fit
                 for name in systs.keys():
                     for entry in systs[name]:
                         procmap,amount = entry[:2]
                         if re.match(procmap, p): 
-                            effect = float(amount)
-                            nuisance_postfit = effect*(allNuisances[name][1]-allNuisances[name][0])
-                            print "applying pre/post ",effect,"/",nuisance_postfit," syst '",name,"' on proc ",p
-                            for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
-                                for yb in xrange(1,h2_backrolled_1.GetNbinsY()+1):
-                                    h2_backrolled_1.SetBinError(xb,yb, hypot(h2_backrolled_1.GetBinError(xb,yb), nuisance_postfit*h2_backrolled_1.GetBinContent(xb,yb)))
+                            kappa = float(amount)
+                            variation += allNuisances[name][0]*(kappa-1)
+                            totalsyst2 += abs(allNuisances[name][1]-allNuisances[name][0])*(kappa-1)**2
+                h2_backrolled_1.Scale(1+variation)
+                totalsyst = sqrt(totalsyst2)
+                print "scaling for {h} = {val:.3f} +/- {err:.3f} ".format(h=p,val=1+variation,err=totalsyst)
+                for xb in xrange(1,h2_backrolled_1.GetNbinsX()+1):
+                    for yb in xrange(1,h2_backrolled_1.GetNbinsY()+1):
+                        h2_backrolled_1.SetBinError(xb,yb, hypot(h2_backrolled_1.GetBinError(xb,yb), totalsyst*h2_backrolled_1.GetBinContent(xb,yb)))
             bkg_and_data[p] = h2_backrolled_1
             bkg_and_data[p].SetDirectory(None)
             h2_backrolled_1.Draw('colz')
@@ -296,78 +308,72 @@ if __name__ == "__main__":
             
         outfile.Close()
     
+
         # now draw the 1D projections
-        all_procs = total_sig.copy()
-        all_procs.update(bkg_and_data)
-
-        colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kBlue-1,   'Wplus_right' : ROOT.kGreen+1,
-                  'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
-                  'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
-                  'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
-                          
-        for projection in ['X','Y']:
-            hdata = all_procs['data_obs'].ProjectionX("x_total",0,-1,"e") if projection=='X' else all_procs['data_obs'].ProjectionY("y_total",0,-1,"e")
-            htot = hdata.Clone('x_data_obs'); htot.Reset()
-            stack = ROOT.THStack("x_stack","")
-            
-            legWidth=0.18; textSize=0.035
-            (x1,y1,x2,y2) = (.75-legWidth, .60, .90, .91)
-            leg = ROOT.TLegend(x1,y1,x2,y2)
-            leg.SetFillColor(0)
-            leg.SetFillColorAlpha(0,0.6)
-            leg.SetShadowColor(0)
-            leg.SetLineColor(0)
-            leg.SetBorderSize(0)
-            leg.SetTextFont(42)
-            leg.SetTextSize(textSize)
-
-            for proc in all_procs:
-                if proc=='data_obs': continue
-                proj1d = all_procs[proc].ProjectionX() if  projection=='X' else all_procs[proc].ProjectionY()
-                #keycol = proc  if '_'+channel not in proc else "_".join(proc.split('_')[:-1])
-                proj1d.SetFillColor(colors[proc])
-                stack.Add(proj1d)
-                htot.Add(proj1d)                    
-                leg.AddEntry(proj1d,proc,'F')
-            
-            doRatio=True
-            htot.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
+        if options.fitresult:
+            all_procs = total_sig.copy()
+            all_procs.update(bkg_and_data)
+     
+            colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kBlue-1,   'Wplus_right' : ROOT.kGreen+1,
+                      'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
+                      'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
+                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
+                              
+            for projection in ['X','Y']:
+                hdata = all_procs['data_obs'].ProjectionX("x_total",0,-1,"e") if projection=='X' else all_procs['data_obs'].ProjectionY("y_total",0,-1,"e")
+                htot = hdata.Clone('x_data_obs'); htot.Reset(); htot.Sumw2()
+                stack = ROOT.THStack("x_stack","")
+                
+                legWidth=0.18; textSize=0.035
+                (x1,y1,x2,y2) = (.75-legWidth, .60, .90, .91)
+                leg = ROOT.TLegend(x1,y1,x2,y2)
+                leg.SetFillColor(0)
+                leg.SetFillColorAlpha(0,0.6)
+                leg.SetShadowColor(0)
+                leg.SetLineColor(0)
+                leg.SetBorderSize(0)
+                leg.SetTextFont(42)
+                leg.SetTextSize(textSize)
+     
+                for proc in all_procs:
+                    if proc=='data_obs': continue
+                    proj1d = all_procs[proc].ProjectionX(all_procs[proc].GetName()+"_px",0,-1,"e") if  projection=='X' else all_procs[proc].ProjectionY(all_procs[proc].GetName()+"_py",0,-1,"e")
+                    proj1d.SetFillColor(colors[proc])
+                    stack.Add(proj1d)
+                    htot.Add(proj1d)                    
+                    leg.AddEntry(proj1d,proc,'F')
+                
+                doRatio=True
+                htot.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
+             
          
-     
-            ## Prepare split screen
-            c1 = ROOT.TCanvas("c1", "c1", 600, 750); c1.Draw()
-            c1.SetWindowSize(600 + (600 - c1.GetWw()), (750 + (750 - c1.GetWh())));
-            p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
-            p1.SetBottomMargin(0.03);
-            p1.Draw();
-            p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
-            p2.SetTopMargin(0);
-            p2.SetBottomMargin(0.3);
-            p2.SetFillStyle(0);
-            p2.Draw();
-            p1.cd();
-            ## Draw absolute prediction in top frame
-            htot.Draw("HIST")
-            #htot.SetLabelOffset(9999.0);
-            #htot.SetTitleOffset(9999.0);
-            stack.Draw("HIST F SAME")
-            hdata.SetMarkerColor(ROOT.kBlack)
-            hdata.SetMarkerStyle(ROOT.kFullCircle)
-            hdata.Draw("E SAME")
-            htot.Draw("AXIS SAME")
-            totalError = doShadedUncertainty(htot)            
-            leg.Draw()
-     
-            p2.cd()
-            rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=[0.90,1.10], fixRange=True)
-            c1.cd()
-            for ext in ['pdf', 'png']:
-                c1.SaveAs('{odir}/projection{proj}_{ch}_{flav}_PFMT40_absY.{ext}'.format(odir=outname,proj=projection,ch=charge,flav=channel,ext=ext))
+                ## Prepare split screen
+                c1 = ROOT.TCanvas("c1", "c1", 600, 750); c1.Draw()
+                c1.SetWindowSize(600 + (600 - c1.GetWw()), (750 + (750 - c1.GetWh())));
+                p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
+                p1.SetBottomMargin(0.03);
+                p1.Draw();
+                p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
+                p2.SetTopMargin(0);
+                p2.SetBottomMargin(0.3);
+                p2.SetFillStyle(0);
+                p2.Draw();
+                p1.cd();
+                ## Draw absolute prediction in top frame
+                htot.Draw("HIST")
+                #htot.SetLabelOffset(9999.0);
+                #htot.SetTitleOffset(9999.0);
+                stack.Draw("HIST F SAME")
+                hdata.SetMarkerColor(ROOT.kBlack)
+                hdata.SetMarkerStyle(ROOT.kFullCircle)
+                hdata.Draw("E SAME")
+                htot.Draw("AXIS SAME")
+                totalError = doShadedUncertainty(htot)            
+                leg.Draw()
+         
+                p2.cd()
+                rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=[0.90,1.10], fixRange=True)
+                c1.cd()
+                for ext in ['pdf', 'png']:
+                    c1.SaveAs('{odir}/projection{proj}_{ch}_{flav}_PFMT40_absY.{ext}'.format(odir=outname,proj=projection,ch=charge,flav=channel,ext=ext))
         
-        
-    
-    ## canv.Divide(1,2)
-    ## canv.cd(1)
-    ## h2.Draw('colz')
-    ## canv.cd(2)
-    ## h2backrolled.Draw('colz')
