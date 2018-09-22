@@ -35,8 +35,12 @@ Wminus_right_muscale_Dn : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 &&
 incl_datafakes_FRmu_slope_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_slope_Up'
 incl_datafakes_FRmu_slope_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopedown.txt", SkipMe=True, PostFix='_fakes_FRmu_slope_Dn'
 
+incl_datafakes_FRmu_continuous_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_continuous_Up'
+incl_datafakes_FRmu_continuous_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousdown.txt", SkipMe=True, PostFix='_fakes_FRmu_continuous_Dn'
+
+
 ## systematic with varied awayjet pT to 45 (from 30) GeV
-incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'
+incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'
 
 
 ## the next two are obsolete
