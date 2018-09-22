@@ -11,7 +11,7 @@ CMS_lumi_13TeV           : W.*|TauDecaysW|Z|Top|DiBosons : .* : 1.026
 CMS_Wmu_sig_lepeff                 : W.* : .*                        : lepeff : templates
 CMS_Wmu_bkg_lepeff                 : TauDecaysW|Flips|Z|Top|DiBosons :     .* : 1.01
 
-CMS_Wmu_lepVeto      : Z                            : .* : 1.03
+CMS_Wmu_lepVeto      : Z                            : .* : 1.02
 
 
 # ==================================================================
@@ -30,14 +30,12 @@ CMS_Top              : Top                          : .* : 1.06
 # Fake rate uncertainties
 # ==================================================================
 # first is the normalization uncertainty
-CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
+#CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
 
-# shape uncertainties (slope of FR with pt, and slope down, offset up and vice-versa)
+# shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
 CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShapeOnly
+CMS_Wmu_FRmu_continuous    : data_fakes  : .* : FRmu_continuous  : templatesShapeOnly
 CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : data_fakes_FRmu_awayJetPt45 : alternateShape
-
-# next one is obsolete
-#CMS_Wmu_FRmu_both      : data_fakes  : .* : FRmu_both  : templatesShapeOnly
 
 
 # ==================================================================
