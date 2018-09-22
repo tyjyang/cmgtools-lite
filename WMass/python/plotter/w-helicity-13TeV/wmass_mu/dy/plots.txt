@@ -1,4 +1,7 @@
 ptl1     : LepGood1_calPt   : 40,20.,60.; XTitle="p_{T\,1}^{#mu} (GeV)"
+ptlepscale     : ptMuFull(LepGood_calPt,LepGood_eta)   : 40,20.,60.; XTitle="p_{T\,1}^{#mu} (GeV)"
+ptlepscaleUp   : ptMuFullUp(LepGood_calPt,LepGood_eta)   : 40,20.,60.; XTitle="p_{T\,1}^{#mu} (GeV)"
+ptlepscaleDn   : ptMuFullDn(LepGood_calPt,LepGood_eta)   : 40,20.,60.; XTitle="p_{T\,1}^{#mu} (GeV)"
 ptlep    : LepGood_calPt    : 40,20.,60.; XTitle="p_{T\,1}^{#mu} (GeV)"
 etal1    : LepGood1_eta  : 48,-2.4,2.4; XTitle="#eta^{#mu}_{1}"
 analysisetalep    : LepGood_eta  : 48,-2.4,2.4 ; XTitle="#eta^{#mu} both"
