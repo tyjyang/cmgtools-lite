@@ -1,4 +1,4 @@
-change: ptElFull: ptElFullUp
+change: ptMuFull: ptMuFullUp
 ## and call with polarisation == 1
 load-histo: helicityFractions_0 : w-helicity-13TeV/fractionReweighting/fractions.root : fraction0_plus_sym
 load-histo: helicityFractions_L : w-helicity-13TeV/fractionReweighting/fractions.root : fractionL_plus_sym
