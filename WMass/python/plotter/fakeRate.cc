@@ -228,8 +228,15 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
-  if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
-  else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
+  if (fid == 11){
+    if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
+    else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
+  }
+  else {
+    // for muons vary continuously in eta from 5% to 20% between eta = 0 and eta = 2.4
+    if      (iFR==5) FRnormWgt = 1.05 + feta*0.0625;
+    else if (iFR==6) FRnormWgt = 0.95 - feta*0.0625;
+  }
 
   float weight;
 
