@@ -195,6 +195,7 @@ if __name__ == "__main__":
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
     parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
     #parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
+    parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=True, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
@@ -319,7 +320,8 @@ if __name__ == "__main__":
                                 newname = name.replace(p,newprocname)
                                 if irf==0:
                                     if newname not in plots:                                        
-                                        if 'data_fakes' in newname and 'awayJetPt' in newname:                                        
+                                        ############### special case to fix jet pt syst on FR
+                                        if options.overrideJetPtSyst and 'data_fakes' in newname and 'awayJetPt' in newname:                       
                                             if 'Down' in newname:
                                                 print "Skipping %s " % newname
                                                 print "Will be recreated mirroring the Up component here"

@@ -40,7 +40,6 @@ CMS_We_FRe_scaleEWK        : data_fakes  : .* : FRe_scaleEWK : templates
 # the field before the mode must be the full process name for mode=alternateShape (see makeShapeCards.py)
 CMS_We_FRe_awayJetPt45     : data_fakes  : .* : data_fakes_FRe_awayJetPt45 : alternateShape 
 
-
 # ==================================================================
 # Charge flips (uncertainty from T&P. Take the max(EB,EE) )
 # ==================================================================

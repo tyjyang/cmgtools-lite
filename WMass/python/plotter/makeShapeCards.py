@@ -432,7 +432,7 @@ for name in systsEnv.keys():
                 mca._projection.scaleSystTemplate(name,nominal,p0Dn)
         elif mode in ["alternateShape", "alternateShapeOnly"]:
             print "### WARNING: for alternateShape, the mirroring algorithm here is different from the one in mergeCardComponentsAbsY.py"
-            print "### Eventually, we will override the mirrored image created here."
+            print "### Eventually, we might override the mirrored image created here."
             # for k in report:
             #     print "%s : %s" % (k, report[k])
             if options.verbose:
@@ -449,10 +449,10 @@ for name in systsEnv.keys():
                 y0 = nominal.GetBinContent(b)
                 yA = alternate.GetBinContent(b)
                 yM = y0
-                if (y0 > 0 and yA > 0):
-                    yM = y0*y0/yA
+                if yA != 0:
+                    yM = y0*y0/yA   # ok, but what if y0 > 0 and yA < 0? Is it ok to have also yM < 0? Shouldn't yA and yM contain y0?
                 elif yA == 0:
-                    yM = 2*y0
+                    yM = 0   # what if y0 > 0 ? Then we are not creating an envelope around the nominal, because both yM and yA are set to 0
                 mirror.SetBinContent(b, yM)
             if mode == "alternateShapeOnly":
                 # keep same normalization
@@ -461,6 +461,10 @@ for name in systsEnv.keys():
                 # mirror normalization  # do we really need to do it? Then why not mnorm = nomi +/- |nomi-alt| (+/- depending on what is larger)
                 mnorm = (nominal.Integral()**2)/alternate.Integral()
                 mirror.Scale(mnorm/alternate.Integral())
+                # the previous 2 lines are wrong is wrong because  integral(mirror) != integral(alternate)
+                # suppose we have int(nomi) = 2*int(alt)  (for the muon jet pt syst the factor was even larger than 2)
+                # then, mnorm = 4*int(alt) and substituting below we get mirror.Scale(4), which multiply integral by 4 
+                # however, the mirror image was already above the nominal, so it is scaled up again
                 if options.verbose:
                     print "CHECKPOINT: int(nomi) ", str(nominal.Integral())
                     print "CHECKPOINT: int(alte) ", str(alternate.Integral())

@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
+    parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=False, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -265,11 +266,40 @@ if __name__ == "__main__":
                                     newname = name.replace(p,newprocname)
                                     if irf==0:
                                         if newname not in plots:
-                                            plots[newname] = obj.Clone(newname)
-                                            nominals[newname] = obj.Clone(newname+"0")
-                                            nominals[newname].SetDirectory(None)
-                                            #print 'replacing old %s with %s' % (name,newname)
-                                            plots[newname].Write()
+                                            ############### special case to fix jet pt syst on FR
+                                            if options.overrideJetPtSyst and 'data_fakes' in newname and 'awayJetPt' in newname:                                        
+                                                if 'Down' in newname:
+                                                    print "Skipping %s " % newname
+                                                    print "Will be recreated mirroring the Up component here"
+                                                    continue
+                                                # this syst was made with alternateShape. However, the mirroring algorithm in makeShapeCards.py is different    
+                                                # and produces a strange result on the mirrored image (which it calls 'Down')                                         
+                                                # so here we take 'Up' and overwrite 'Down'                        
+                                                # the old 'Down' will not be written                                                                            
+                                                print "#####  CHECKPOINT  --> %s #####" % newname
+                                                # the syst might have been evaluated before the nominal, so nominals["x_data_fakes"] might not exist yet
+                                                pfx = 'x_data_fakes'
+                                                newname = newname[:-2] # remove Up from name                  
+                                                nominalFakes = 0
+                                                if pfx in nominals:
+                                                    nominalFakes = nominals[pfx]
+                                                else:
+                                                    nominalFakes = tf.Get(pfx)
+                                                    if not nominalFakes: 
+                                                        print "Warning: couldn't read %s from file" % pfx
+                                                        quit()
+                                                (alternate,mirror) = mirrorShape(nominalFakes,obj,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=True)             
+                                                for alt in [alternate,mirror]:
+                                                    if alt.GetName() not in plots:
+                                                        plots[alt.GetName()] = alt.Clone()
+                                                        plots[alt.GetName()].Write()
+                                            ############# end of fix for FR syst
+                                            else:
+                                                plots[newname] = obj.Clone(newname)
+                                                nominals[newname] = obj.Clone(newname+"0")
+                                                nominals[newname].SetDirectory(None)
+                                                #print 'replacing old %s with %s' % (name,newname)
+                                                plots[newname].Write()
                                     else:
                                         if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
