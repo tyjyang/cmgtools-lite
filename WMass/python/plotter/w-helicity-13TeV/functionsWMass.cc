@@ -418,6 +418,56 @@ float ptElFullDn(float pt, float eta) {
   return ptElFull(pt,eta,-1);
 }
 
+// ==================
+// full muon pT with scale variations
+TFile *_file_residualcorr_scaleMu = NULL;
+TH2D *_histo_residualcorr_scaleMu = NULL;
+
+float residualScaleMu(float pt, float eta, int isData, const char *fileCorr="../../data/muonscale/scale_correction_nonclosure_mu.root") {
+  if(!isData) return 1.;
+
+  if(!_histo_residualcorr_scaleMu) {
+    _file_residualcorr_scaleMu = new TFile(fileCorr);
+    _histo_residualcorr_scaleMu = (TH2D*)(_file_residualcorr_scaleMu->Get("scales_corrections_2d_muons"));
+  }
+  
+  TH2D *hist = _histo_residualcorr_scaleMu;
+  int etabin  = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(fabs(eta))));
+  int ptbin = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
+  
+  float scale = 1. - hist->GetBinContent(etabin,ptbin);
+  if (scale < 0) {
+    cout << "WARNING in residualScale() function: scale < 0 --> returning 0." << endl;
+    return 0;
+  } else {
+    return scale;
+  }
+
+}
+
+
+float ptMuFull(float pt, float eta, int nSigma=0) {
+
+  if (nSigma == 0) return pt;
+
+  // THE FOLLOWING USES THE DERIVED MUON NON-CLOSURE
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+  float syst = 1-residualScaleMu(pt,eta,1,Form("%s/src/CMGTools/WMass/data/muonscale/scale_correction_nonclosure_mu.root",_cmssw_base_.c_str()));
+  return (1. + nSigma*syst) * pt;
+
+}
+
+float ptMuFullUp(float pt, float eta) {
+  return ptMuFull(pt,eta,1);
+}
+
+float ptMuFullDn(float pt, float eta) {
+  return ptMuFull(pt,eta,-1);
+}
+
 
 //===============================================
 
@@ -470,8 +520,10 @@ float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
   }
 
   if (!_histo_recoToSelection_leptonSF_mu) {
-    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_smooth.root",basedirSF_mu.c_str()),"read");
-    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+    // _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_smooth.root",basedirSF_mu.c_str()),"read");
+    // _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_fitted.root",basedirSF_mu.c_str()),"read");
+    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("scaleFactor"));
   }
 
   if(abs(pdgid)==13) {
@@ -496,9 +548,10 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
   }
 
   if (!_histo_trigger_leptonSF_mu) {
-    _file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
-    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
-    _histo_trigger_leptonSF_mu->Smooth(1,"k3a");
+    //_file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
+    //_histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+    _file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_fitted.root",basedirSF_mu.c_str()),"read");
+    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("scaleFactor"));
   }
 
   if(abs(pdgid)==13) {
