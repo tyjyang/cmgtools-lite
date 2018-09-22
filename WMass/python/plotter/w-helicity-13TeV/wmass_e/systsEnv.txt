@@ -37,7 +37,8 @@ CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
 # shape uncertainty (subtraction of EWK component scaled by 1sigma of cross section uncertainty, changes both shape and normalization)
 CMS_We_FRe_scaleEWK        : data_fakes  : .* : FRe_scaleEWK : templates
 # the uncertainty from variation of awayJet pt from 30 to 45 does not have up and down
-CMS_We_FRe_awayJetPt45     : data_fakes  : .* : FRe_awayJetPt45 : alternateShape
+# the field before the mode must be the full process name for mode=alternateShape (see makeShapeCards.py)
+CMS_We_FRe_awayJetPt45     : data_fakes  : .* : data_fakes_FRe_awayJetPt45 : alternateShape 
 
 
 # ==================================================================

@@ -161,13 +161,13 @@ def combCharges(options):
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
-        print "The following command makes the .meta file used by combine"
+        print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
-        if not options.skip_text2tf:
-            print '--- will run text2tf for the combined charges ---------------------'
+        if not options.skip_text2hdf5:
+            print '--- will run text2hdf5 for the combined charges ---------------------'
             os.system(txt2hdf5Cmd)
             ## print out the command to run in combine
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
@@ -318,26 +318,45 @@ if __name__ == "__main__":
                                 newprocname = p+'_'+bin if re.match('Wplus|Wminus',p) else p
                                 newname = name.replace(p,newprocname)
                                 if irf==0:
-                                    if newname not in plots:
-                                        plots[newname] = obj.Clone(newname)
-                                        nominals[newname] = obj.Clone(newname+"0")
-                                        nominals[newname].SetDirectory(None)
-                                        #print 'replacing old %s with %s' % (name,newname)
-                                        plots[newname].Write()
+                                    if newname not in plots:                                        
+                                        if 'data_fakes' in newname and 'awayJetPt' in newname:                                        
+                                            if 'Down' in newname:
+                                                print "Skipping %s " % newname
+                                                print "Will be recreated mirroring the Up component here"
+                                                continue
+                                            # this syst was made with alternateShape. However, the mirroring algorithm in makeShapeCards.py is different    
+                                            # and produces a strange result on the mirrored image (which it calls 'Down')                                         
+                                            # so here we take 'Up' and overwrite 'Down'                        
+                                            # the old 'Down' will not be written                                                                            
+                                            print "#####  CHECKPOINT  --> %s #####" % newname
+                                            # the syst might have been evaluated before the nominal, so nominals["x_data_fakes"] might not exist yet
+                                            pfx = 'x_data_fakes'
+                                            newname = newname[:-2] # remove Up                                                                                              
+                                            nominalFakes = 0
+                                            if pfx in nominals:
+                                                nominalFakes = nominals[pfx]
+                                            else:
+                                                nominalFakes = tf.Get(pfx)
+                                                if not nominalFakes: 
+                                                    print "Warning: couldn't read %s from file" % pfx
+                                                    quit()
+                                            (alternate,mirror) = mirrorShape(nominalFakes,obj,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=True)             
+                                            for alt in [alternate,mirror]:
+                                                if alt.GetName() not in plots:
+                                                    plots[alt.GetName()] = alt.Clone()
+                                                    plots[alt.GetName()].Write()
+                                        else:
+                                            plots[newname] = obj.Clone(newname)
+                                            nominals[newname] = obj.Clone(newname+"0")
+                                            nominals[newname].SetDirectory(None)
+                                            #print 'replacing old %s with %s' % (name,newname)
+                                            plots[newname].Write()                                    
                                 else:
                                     if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                         tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
                                         ipdf = int(pdf.split('pdf')[-1])
                                         newname = "{pfx}_pdf{ipdf}".format(pfx=pfx,ipdf=ipdf)
                                         (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
-                                        for alt in [alternate,mirror]:
-                                            if alt.GetName() not in plots:
-                                                plots[alt.GetName()] = alt.Clone()
-                                                plots[alt.GetName()].Write()
-                                    elif 'data_fakes' in newname and 'awayJetPt' in newname:
-                                        tokens = newname.split("_") 
-                                        pfx = '_'.join(tokens[:-4]) # name is like data_fakes_CMS_We_FRe_awayJetPt45, we need to isolate data_fakes
-                                        (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
                                         for alt in [alternate,mirror]:
                                             if alt.GetName() not in plots:
                                                 plots[alt.GetName()] = alt.Clone()

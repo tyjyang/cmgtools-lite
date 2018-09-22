@@ -431,6 +431,12 @@ for name in systsEnv.keys():
                 mca._projection.scaleSystTemplate(name,nominal,p0Up)
                 mca._projection.scaleSystTemplate(name,nominal,p0Dn)
         elif mode in ["alternateShape", "alternateShapeOnly"]:
+            print "### WARNING: for alternateShape, the mirroring algorithm here is different from the one in mergeCardComponentsAbsY.py"
+            print "### Eventually, we will override the mirrored image created here."
+            # for k in report:
+            #     print "%s : %s" % (k, report[k])
+            if options.verbose:
+                print "CHECKPOINT: %s   %s" % (p,mode)
             nominal = report[p]
             alternate = report[effect]
             if mca._projection != None:
@@ -452,9 +458,13 @@ for name in systsEnv.keys():
                 # keep same normalization
                 mirror.Scale(nominal.Integral()/mirror.Integral())
             else:
-                # mirror normalization
+                # mirror normalization  # do we really need to do it? Then why not mnorm = nomi +/- |nomi-alt| (+/- depending on what is larger)
                 mnorm = (nominal.Integral()**2)/alternate.Integral()
                 mirror.Scale(mnorm/alternate.Integral())
+                if options.verbose:
+                    print "CHECKPOINT: int(nomi) ", str(nominal.Integral())
+                    print "CHECKPOINT: int(alte) ", str(alternate.Integral())
+                    print "CHECKPOINT: int(mirr) ", str(mirror.Integral())
             report[alternate.GetName()] = alternate
             report[mirror.GetName()] = mirror
             effect0  = "1"

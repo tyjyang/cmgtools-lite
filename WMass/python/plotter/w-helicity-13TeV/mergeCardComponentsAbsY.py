@@ -69,7 +69,7 @@ def getXsecs(processes, systs, ybins, lumi, infile):
     return hists
 
 
-def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False):
+def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=False):
     alternate.SetName("%sUp" % newname)
     if alternateShapeOnly:
         alternate.Scale(nominal.Integral()/alternate.Integral())
@@ -81,7 +81,10 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False):
         if yA != 0:
             yM = y0*y0/yA
         elif yA == 0:
-            yM = 0
+            if use2xNomiIfAltIsZero: 
+                yM = 2. * y0
+            else: 
+                yM = 0
         mirror.SetBinContent(b, yM)
     if alternateShapeOnly:
         # keep same normalization
@@ -117,11 +120,10 @@ def combCharges(options):
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
-
 
 if __name__ == "__main__":
     
@@ -274,14 +276,6 @@ if __name__ == "__main__":
                                             ipdf = int(pdf.split('pdf')[-1])
                                             newname = "{pfx}_pdf{ipdf}".format(pfx=pfx,ipdf=ipdf)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
-                                            for alt in [alternate,mirror]:
-                                                if alt.GetName() not in plots:
-                                                    plots[alt.GetName()] = alt.Clone()
-                                                    plots[alt.GetName()].Write()
-                                        elif 'data_fakes' in newname and 'awayJetPt' in newname:
-                                            tokens = newname.split("_") 
-                                            pfx = '_'.join(tokens[:-4]) # name is like data_fakes_CMS_We_FRe_awayJetPt45, we need to isolate data_fakes
-                                            (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
                                                     plots[alt.GetName()] = alt.Clone()
@@ -635,9 +629,9 @@ if __name__ == "__main__":
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
     # end of loop over charges
 

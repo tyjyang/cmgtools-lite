@@ -67,12 +67,6 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
-
-    outname = options.outdir
-    addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
-    outname = outname + options.type + "/"
-    createPlotDirAndCopyPhp(outname)
-
     # get gen binning from file or directly from option
     binning = getDiffXsecBinning(options.etaPtbinning, "gen")
     #print binning
@@ -82,6 +76,11 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
 
     for charge in charges:
+
+        outname = options.outdir
+        addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
+        outname = outname + options.type + "/" + charge + "/"
+        createPlotDirAndCopyPhp(outname)
 
         print ""
         print "==> RUNNING FOR CHARGE ",charge
@@ -115,6 +114,7 @@ if __name__ == "__main__":
 
         for key,val in valuesAndErrors.iteritems():
             if not "W{ch}".format(ch=charge) in key: continue 
+            if "outliers" in key: continue
             etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(key)
             mean = val[0]
             err  = val[1]-mean
@@ -171,7 +171,8 @@ if __name__ == "__main__":
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         #zaxisTitle = "uncertainty on #mu::%.3g,%.3g" % (hmu_err.GetMinimum(), hmu_err.GetMaximum())
-        zaxisTitle = "uncertainty on #mu::0,%.3g" % (hmu_err.GetMaximum())
+        #zaxisTitle = "uncertainty on #mu::0,%.3g" % (hmu_err.GetMaximum())
+        zaxisTitle = "uncertainty on #mu::0,0.2"
         drawCorrelationPlot(hmu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu_err.GetName(),
@@ -190,12 +191,16 @@ if __name__ == "__main__":
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
         zaxisTitle = "d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu.GetMinimum(), h_pmaskedexp_mu.GetMaximum())
+        #zaxisTitle = "d#sigma/d#etadp_{T} [pb/GeV]::0,5"
         drawCorrelationPlot(h_pmaskedexp_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
 
-        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
+        #zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
+        zmin,zmax = getZaxisReasonableExtremesTH2(h_pmaskedexp_mu_err,maxZtoUse=10)
+        #zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (zmin,zmax) 
+        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::0,10"
         drawCorrelationPlot(h_pmaskedexp_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_err.GetName(),
@@ -206,7 +211,7 @@ if __name__ == "__main__":
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.2" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.5" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
@@ -216,7 +221,10 @@ if __name__ == "__main__":
         h_pmaskedexpnorm_mu_relErr.Divide(h_pmaskedexpnorm_mu)
         h_pmaskedexpnorm_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.000,0.04" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.000,0.04" 
+        zmin,zmax = getZaxisReasonableExtremesTH2(h_pmaskedexpnorm_mu_err,maxZtoUse=1)
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g"  % (zmin,zmax) 
+        #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu_relErr.GetMinimum(), h_pmaskedexpnorm_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_relErr.GetName(),
