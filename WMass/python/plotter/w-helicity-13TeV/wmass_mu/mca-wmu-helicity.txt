@@ -17,24 +17,25 @@ incl_sig_lepeff_Up  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca
 incl_sig_lepeff_Dn  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,1.\,LepGood1_SF3\,1.)", SkipMe=True, PostFix='_lepeff_Dn'
 
 ## muon scale systematics 
-Wplus_long_muscale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepUp.txt", Label="W+ long lep scale Up", SkipMe=True 
-Wplus_left_muscale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_plus_lepUp.txt", Label="W+ left lep scale Up", SkipMe=True 
-Wplus_right_muscale_Up  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_plus_lepUp.txt", Label="W+ right lep scale Up", SkipMe=True 
-Wminus_long_muscale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_minus_lepUp.txt", Label="W- long lep scale Up", SkipMe=True 
-Wminus_left_muscale_Up   : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_minus_lepUp.txt", Label="W- left lep scale Up", SkipMe=True 
-Wminus_right_muscale_Up  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_minus_lepUp.txt", Label="W- right lep scale Up", SkipMe=True 
+Wplus_long_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepUp.txt", Label="W+ long lep scale Up", SkipMe=True 
+Wplus_left_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_plus_lepUp.txt", Label="W+ left lep scale Up", SkipMe=True 
+Wplus_right_muscale_Up  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_plus_lepUp.txt", Label="W+ right lep scale Up", SkipMe=True 
+Wminus_long_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_minus_lepUp.txt", Label="W- long lep scale Up", SkipMe=True 
+Wminus_left_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_minus_lepUp.txt", Label="W- left lep scale Up", SkipMe=True 
+Wminus_right_muscale_Up  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_minus_lepUp.txt", Label="W- right lep scale Up", SkipMe=True 
 
-Wplus_long_muscale_Dn  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepDn.txt", Label="W+ long lep scale Dn", SkipMe=True 
-Wplus_left_muscale_Dn  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_plus_lepDn.txt", Label="W+ left lep scale Dn", SkipMe=True 
-Wplus_right_muscale_Dn : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_plus_lepDn.txt", Label="W+ right lep scale Dn", SkipMe=True 
-Wminus_long_muscale_Dn  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_minus_lepDn.txt", Label="W- long lep scale Dn", SkipMe=True 
-Wminus_left_muscale_Dn  : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_minus_lepDn.txt", Label="W- left lep scale Dn", SkipMe=True 
-Wminus_right_muscale_Dn : WJetsToLNu_NLO* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_minus_lepDn.txt", Label="W- right lep scale Dn", SkipMe=True 
+Wplus_long_muscale_Dn  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepDn.txt", Label="W+ long lep scale Dn", SkipMe=True 
+Wplus_left_muscale_Dn  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_plus_lepDn.txt", Label="W+ left lep scale Dn", SkipMe=True 
+Wplus_right_muscale_Dn : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge>0  ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_plus_lepDn.txt", Label="W+ right lep scale Dn", SkipMe=True 
+Wminus_long_muscale_Dn  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_minus_lepDn.txt", Label="W- long lep scale Dn", SkipMe=True 
+Wminus_left_muscale_Dn  : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_minus_lepDn.txt", Label="W- left lep scale Dn", SkipMe=True 
+Wminus_right_muscale_Dn : WJetsToLNu_* : 3.*20508.9   : genw_decayId == 14 && genw_charge<0 ; FillColor=ROOT.kRed+2   , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_R_minus_lepDn.txt", Label="W- right lep scale Dn", SkipMe=True 
  
 ## # fake-lepton background systematics (shape systematics)
 incl_datafakes_FRmu_slope_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_slope_Up'
 incl_datafakes_FRmu_slope_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopedown.txt", SkipMe=True, PostFix='_fakes_FRmu_slope_Dn'
 
+## continuous shape in eta
 incl_datafakes_FRmu_continuous_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_continuous_Up'
 incl_datafakes_FRmu_continuous_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousdown.txt", SkipMe=True, PostFix='_fakes_FRmu_continuous_Dn'
 

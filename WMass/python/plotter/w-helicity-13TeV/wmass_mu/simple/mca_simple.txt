@@ -22,7 +22,9 @@ WminusNoSkim : WJetsToLNu_NoSkim_part* : 3.*20508.9    : genw_decayId == 14 && g
 
 data: SingleMuon_Run2016*
 
-data_fakes        : SingleMuon_Run2016* ; FillColor=ROOT.kGray   , Label="Fakes"       , NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_data.txt"
-data_awayJetPt45+ : SingleMuon_Run2016* ; FillColor=ROOT.kAzure-2, Label="FakesjetpT45", NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_jetPt45_data.txt"
+data_fakes              : SingleMuon_Run2016* ; FillColor=ROOT.kGray   , Label="Fakes"       , NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_data.txt"
+data_awayJetPt45+       : SingleMuon_Run2016* ; FillColor=ROOT.kAzure-2, Label="FakesjetpT45", NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate_application_jetPt45_data.txt"
+data_FRmu_slope_Up      : SingleMuon_Run2016* ; FillColor=ROOT.kGreen-1, Label="FakesslopeUp", NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"
+data_FRmu_continuous_Up : SingleMuon_Run2016* ; FillColor=ROOT.kPink+7 , Label="FakescontUp" , NormSystematic=0.30, FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousup.txt"
 
 
