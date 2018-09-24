@@ -69,7 +69,7 @@ def getXsecs(processes, systs, ybins, lumi, infile):
     return hists
 
 
-def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False):
+def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=False):
     alternate.SetName("%sUp" % newname)
     if alternateShapeOnly:
         alternate.Scale(nominal.Integral()/alternate.Integral())
@@ -81,7 +81,10 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False):
         if yA != 0:
             yM = y0*y0/yA
         elif yA == 0:
-            yM = 0
+            if use2xNomiIfAltIsZero: 
+                yM = 2. * y0
+            else: 
+                yM = 0
         mirror.SetBinContent(b, yM)
     if alternateShapeOnly:
         # keep same normalization
@@ -117,11 +120,10 @@ def combCharges(options):
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('txt','meta'))
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
-
 
 if __name__ == "__main__":
     
@@ -143,6 +145,7 @@ if __name__ == "__main__":
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
+    parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=False, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -263,25 +266,46 @@ if __name__ == "__main__":
                                     newname = name.replace(p,newprocname)
                                     if irf==0:
                                         if newname not in plots:
-                                            plots[newname] = obj.Clone(newname)
-                                            nominals[newname] = obj.Clone(newname+"0")
-                                            nominals[newname].SetDirectory(None)
-                                            #print 'replacing old %s with %s' % (name,newname)
-                                            plots[newname].Write()
+                                            ############### special case to fix jet pt syst on FR
+                                            if options.overrideJetPtSyst and 'data_fakes' in newname and 'awayJetPt' in newname:                                        
+                                                if 'Down' in newname:
+                                                    print "Skipping %s " % newname
+                                                    print "Will be recreated mirroring the Up component here"
+                                                    continue
+                                                # this syst was made with alternateShape. However, the mirroring algorithm in makeShapeCards.py is different    
+                                                # and produces a strange result on the mirrored image (which it calls 'Down')                                         
+                                                # so here we take 'Up' and overwrite 'Down'                        
+                                                # the old 'Down' will not be written                                                                            
+                                                print "#####  CHECKPOINT  --> %s #####" % newname
+                                                # the syst might have been evaluated before the nominal, so nominals["x_data_fakes"] might not exist yet
+                                                pfx = 'x_data_fakes'
+                                                newname = newname[:-2] # remove Up from name                  
+                                                nominalFakes = 0
+                                                if pfx in nominals:
+                                                    nominalFakes = nominals[pfx]
+                                                else:
+                                                    nominalFakes = tf.Get(pfx)
+                                                    if not nominalFakes: 
+                                                        print "Warning: couldn't read %s from file" % pfx
+                                                        quit()
+                                                (alternate,mirror) = mirrorShape(nominalFakes,obj,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=True)             
+                                                for alt in [alternate,mirror]:
+                                                    if alt.GetName() not in plots:
+                                                        plots[alt.GetName()] = alt.Clone()
+                                                        plots[alt.GetName()].Write()
+                                            ############# end of fix for FR syst
+                                            else:
+                                                plots[newname] = obj.Clone(newname)
+                                                nominals[newname] = obj.Clone(newname+"0")
+                                                nominals[newname].SetDirectory(None)
+                                                #print 'replacing old %s with %s' % (name,newname)
+                                                plots[newname].Write()
                                     else:
                                         if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
                                             ipdf = int(pdf.split('pdf')[-1])
                                             newname = "{pfx}_pdf{ipdf}".format(pfx=pfx,ipdf=ipdf)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
-                                            for alt in [alternate,mirror]:
-                                                if alt.GetName() not in plots:
-                                                    plots[alt.GetName()] = alt.Clone()
-                                                    plots[alt.GetName()].Write()
-                                        elif 'data_fakes' in newname and 'awayJetPt' in newname:
-                                            tokens = newname.split("_") 
-                                            pfx = '_'.join(tokens[:-4]) # name is like data_fakes_CMS_We_FRe_awayJetPt45, we need to isolate data_fakes
-                                            (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,True) # shape only
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
                                                     plots[alt.GetName()] = alt.Clone()
@@ -635,9 +659,9 @@ if __name__ == "__main__":
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('txt','meta'))
+            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
     # end of loop over charges
 

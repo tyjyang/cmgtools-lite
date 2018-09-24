@@ -81,13 +81,14 @@ if __name__ == "__main__":
     parser.add_option('--yb','--YWbinning', dest='YWbinning', default='binningYW.txt', type='string', help='YW binning for Y rapidity (works with option -a "helicity"). It is supposed to be inside the folder passed with args[0] ')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--has-inclusive-signal', dest="hasInclusiveSignal", default=False, action='store_true', help="Use this option if the file already contains the inclusive signal template and you want to plot it as well (obsolete, it refers to the days when I was manually adding inclusive signal to shapes.root file");
-    parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
+    parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates otherwise only backgrounds are drawn (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
     parser.add_option('-a','--analysis', dest='analysis', default='diffXsec', type='string', help='Which analysis the shapes file belongs to: helicity or diffXsec (default)')
     parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically added')
     parser.add_option(     '--draw-selected-etaPt', dest='draw_selected_etaPt', default='', type='string', help='Only for xsection. Pass pairs of eta,pt: only the corresponding gen bins will be plotted (inclusive signal is still drawn, unless options --noplot is used as well).')
     parser.add_option(     '--draw-all-bins', dest='draw_all_bins', default=False, action='store_true', help='Draw all bins for signal (default is false, it is quite a huge bunch of plots).')
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
-    parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)')
+    parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)') 
+    parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -148,11 +149,19 @@ if __name__ == "__main__":
 
     qcdsyst = ["muR", "muF", "muRmuF", "alphaS"]
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale"] # might add others
+    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale" "lepeff"] # might add others
     allsystsUpDn = []
     for x in allsysts:
         allsystsUpDn.append(x+"Up")
         allsystsUpDn.append(x+"Down")
+
+    xaxisTitle = '%s #eta' % lepton
+    if options.ptRange == "template":
+        yaxisTitle = '%s p_{T} [GeV]' % lepton
+    else:
+        ptmin,ptmax = options.ptRange.split(',')
+        yaxisTitle = '%s p_{T} [GeV]::%s,%s' % (lepton, ptmin, ptmax)
+
 
     canvas = ROOT.TCanvas("canvas","",800,700)
 
@@ -223,8 +232,6 @@ if __name__ == "__main__":
                             else: drawThisBin = False
 
                             if not options.noplot and drawThisBin:
-                                xaxisTitle = '%s #eta' % lepton
-                                yaxisTitle = '%s p_{T} [GeV]' % lepton
                                 zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
@@ -233,8 +240,6 @@ if __name__ == "__main__":
 
                     hSigInclusive.Write()
                     if not options.noplot:
-                        xaxisTitle = '%s #eta' % lepton
-                        yaxisTitle = '%s p_{T} [GeV]' % lepton
                         zaxisTitle = "Events::0,%.1f" % hSigInclusive.GetMaximum()
                         drawCorrelationPlot(hSigInclusive, 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
@@ -292,8 +297,6 @@ if __name__ == "__main__":
                             hSigInclusive.Add(h2_backrolled_1)
 
                             if not options.noplot and drawThisBin:
-                                xaxisTitle = '%s #eta' % lepton
-                                yaxisTitle = '%s p_{T} [GeV]' % lepton
                                 zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
@@ -307,8 +310,6 @@ if __name__ == "__main__":
                             
                 hSigInclusive.Write()
                 if not options.noplot:
-                    xaxisTitle = '%s #eta' % lepton
-                    yaxisTitle = '%s p_{T} [GeV]' % lepton
                     zaxisTitle = "Events::0,%.1f" % hSigInclusive.GetMaximum()
                     drawCorrelationPlot(hSigInclusive, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
@@ -344,8 +345,6 @@ if __name__ == "__main__":
             h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
             h2_backrolled_1.Write(str(p))
             
-            xaxisTitle = '%s #eta' % lepton
-            yaxisTitle = '%s p_{T} [GeV]' % lepton
             zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
 
             if not options.noplot:

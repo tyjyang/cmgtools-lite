@@ -92,8 +92,9 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="2nd"
-nameTag="_finalSF_FRpol1_ptMax45_ratioRange0p2_addTau_scaleFakesEtaBins" 
+nameTag="_mT_forWmass_noCutmT_fitData" 
 #nameTag="_varStudy"
+useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
@@ -110,7 +111,11 @@ batchDirName="plots_${today}${nameTag}"  # name of directory to create inside jo
 ##################################
 # MCA files
 ##################################
-mcafile="mca-80X_forPlots.txt"
+if [[ "${useLessMC}" == "y" ]]; then
+    mcafile="mca-80X_forPlots_lessMC.txt"
+else
+    mcafile="mca-80X_forPlots.txt"
+fi
 cutfile="qcd1l_SRtrees.txt" # we start from it and add or remove cuts
 plotfile="test_plots.txt"
 # following 2 are used depending on the used trees because the samples are named differently
@@ -134,8 +139,8 @@ selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="pfmt_ptl1"
-selectplots="ptl1,etal1_binFR"
-#selectplots="pfmt"
+#selectplots="ptl1,etal1_binFR"
+selectplots="pfmt"
 #selectplots="ptl1,ptl1noCorr"
 #selectplots="etal1_binFR,ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
@@ -234,12 +239,12 @@ scaleMCdata["FRcheckRegion"]=" -p data,Wincl,EWK_bkg,TauDecaysW,data_fakes --fit
 regionKey["FRapplRegion"]="FRapplRegion"
 runRegion["FRapplRegion"]="n"
 regionName["FRapplRegion"]="FR_application_region"
-skimTreeDir["FRapplRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
+skimTreeDir["FRapplRegion"]="TREES_electrons_1l_V6_TINY"
 outputDir["FRapplRegion"]="full2016data_${today}"
-regionCuts["FRapplRegion"]=" -X nJet30 ${notFRnumSel} ${fiducial}"
+regionCuts["FRapplRegion"]=" -X nJet30 ${notFRnumSel} ${fiducial} "
 #processManager["FRapplRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRapplRegion"]="n"
-scaleMCdata["FRapplRegion"]=" --xp W,WFlips,TauDecaysW "
+scaleMCdata["FRapplRegion"]=" -p data,W,EWK_bkg_Full,QCD "
 #
 #############################
 #############################
@@ -265,11 +270,11 @@ regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
 skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" ## ADD _TINY, uness you want trkmet variables
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45}" # ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}"
 #processManager["WhelicitySignalRegion"]=" --xp Wincl "
 qcdFromFR["WhelicitySignalRegion"]="y"
 #scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --fitData " # --pg 'EWK := Wincl,Z,Top,Dibosons'
-scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,TauDecaysW,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --scaleSigToData --sp data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
+scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,TauDecaysW,EWK_bkg,data_fakes --fitData " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 #############################
 #############################
@@ -395,7 +400,7 @@ if [[ "${useDataGH}" == "y" ]]; then
     echo "# Using all data from 2016"
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
-    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)' "
+    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3,LepGood1_SF4)' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
     FR_MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)' "		

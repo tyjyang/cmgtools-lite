@@ -284,10 +284,40 @@ class util:
     def getDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
         igroup = int(int(ieta + ipt * netabins)/ngroup)
         expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        ret = self.getExprFromToys('normDiffXsec',expr,infile)
+        ret = self.getExprFromToys('diffXsec',expr,infile)
         return ret
 
+    def getExprFromHessian(self, name, expression, infile):
+        f = ROOT.TFile(infile, 'read')
+        tree = f.Get('fitresults')        
+        tmp_hist = ROOT.TH1F(name,name, 100000, -100., 5000.)
+        tree.Draw(expression+'>>'+name)
+        mean = tmp_hist.GetMean()  # if this is hessian and not toys, there is just one entry, so the mean is the entry
+        #err  = tmp_hist.GetRMS()  # not used in this context, (we are going to use this expression mainly for charge asymmetry, the uncertainty must be taken from toys)
+        return mean
 
+
+    def getDiffXsecAsymmetryFromHessian(self, channel, ieta, ipt, netabins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromHessian('chargeAsym',expr,infile)
+        return ret
+
+    def getNormalizedDiffXsecFromHessian(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile,den):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        expr = '{num}/{den}'.format(num=num,den=den)
+        ret = self.getExprFromHessian('normDiffXsec',expr,infile)
+        return ret
+
+    def getDiffXsecFromHessian(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        ret = self.getExprFromHessian('diffXsec',expr,infile)
+        return ret
 
     def getFromScans(self, indir):
         _dict = {}

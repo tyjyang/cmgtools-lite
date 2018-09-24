@@ -1,15 +1,16 @@
 #!/bin/env python
 
-# Path of some root files
-# /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root
-# /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData/triggerMu/egammaEffi.txt_EGM2D.root
-# official_muon_ScaleFactors_2016/
-# /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/
+# Latest commands
 
-# reco -> selection (muons): /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData_RecoToSelection/selectionMu/egammaEffi.txt_EGM2D.root
+# muons
+
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData_RecoToSelection_etaBins0p1/selectionMu/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/recoToSelection_pt_25_55_eta0p1/ -c mu -n smoothEfficiency.root --muonRecoToSel
+
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/muFullData_trigger/triggerMu/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/trigger_pt_25_55/ -c mu -n smoothEfficiency.root -t
+
 
 ################################
-# Exaples
+# Exaples (obsolete)
 ################################
 
 # muon trigger scale factors
@@ -34,6 +35,17 @@ ROOT.gROOT.SetBatch(True)
 
 import utilities
 utilities = utilities.util()
+
+def getReducedChi2andLabel(func):
+    if func.GetNDF():
+        reducedChi2 = func.GetChisquare() / func.GetNDF()
+        lineChi2 = "#chi^{{2}} = {chi2:.2g} / {ndf}".format(chi2=func.GetChisquare(),ndf=int(func.GetNDF()))
+    else:
+        reducedChi2 = 0
+        lineChi2 = "BAD! #chi^{{2}} = {chi2:.2g} / {ndf}".format(chi2=func.GetChisquare(),ndf=int(func.GetNDF()))
+
+    return float(reducedChi2),lineChi2
+
 
 def makeSFweightedAverage(f1, f2, w1, w2, hname, hnewname, uncertaintyRule="max"):
 
@@ -116,7 +128,8 @@ def copyHisto(h1, h2):
 
 def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=True, 
               isIso=False, isTrigger=False, isFullID=False, isMuonRecoToSel=False,
-              fitRange=None):
+              fitRange=None,
+              hist_reducedChi2=0):
 
     forcePol3 = False
     doOnlyErf = True
@@ -361,11 +374,12 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     if isMuonRecoToSel:
         if mc == "Data":
-            if key == 17:
-                tf1_erf.SetParameter(1,32)
+            #if key == 17:
+            #    tf1_erf.SetParameter(1,32)
+            #    tf1_erf.SetParameter(2,3.0)            
+            if any(key == x for x in [5,17,42]):
+                tf1_erf.SetParameter(1,32)      
                 tf1_erf.SetParameter(2,3.0)
-            #elif any(key == x for x in [8,11,25,26,29,34]):
-            #    tf1_erf.SetParameter(1,32)        
             
     tf1_erf2.SetParameter(3,0.0); #tf1_erf2.SetParLimits(3,0,1e12)
     tf1_erf2.SetParameter(4,0)
@@ -494,16 +508,17 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     lat = ROOT.TLatex()
     line = ""
+    lineChi2 = ""
     lat.SetNDC();
     lat.SetTextSize(0.045);
     lat.SetTextFont(42);
     lat.SetTextColor(1);
     xmin = 0.20 
     yhi = 0.85
+    reducedChi2 = 0
 
     #if isEle==False and (isIso or isMuonRecoToSel):
     if isEle==False and (isIso):
-        if hist_chosenFunc: hist_chosenFunc.Fill(tf1_erf.GetName(),1)
         retFunc = fit_erf
     else:
         chi2 = 1000000.0
@@ -524,15 +539,12 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             print "="*20
             print "Warning: no function had more than 0 degrees of freedom. Returning pol2 function"
             print "="*20
-            if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol2.GetName(),1) 
             #return fit_pol3
             line = "Best fit: pol2 (forced)"
             retFunc = fit_pol2
-
         else:
             if forcePol3:
                 retFunc = fit_pol3
-                if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
             else:
                 nChi2Sigma = abs(funcMinChi2.GetChisquare()-funcMinChi2.GetNDF())/math.sqrt(2.0*funcMinChi2.GetNDF())  # Chi2 variance is 2*Ndof
                 nChi2Sigma_pol3 = abs(fit_pol3.GetChisquare()-fit_pol3.GetNDF())/math.sqrt(2.0*fit_pol3.GetNDF()) if fit_pol3.GetNDF() else 999
@@ -542,20 +554,23 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                 # allow non-pol3 fit to have Chi2 within 2 standard deviation from the expected one
                 # in this case choose that value, otherwise use the one closer to expected Chisquare
                 if nChi2Sigma < 3:  
-                    if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
                     retFunc = funcMinChi2
                 elif nChi2Sigma_pol3 < nChi2Sigma:
-                    if hist_chosenFunc: hist_chosenFunc.Fill(fit_pol3.GetName(),1)
                     retFunc = fit_pol3
                 else:
-                    if hist_chosenFunc: hist_chosenFunc.Fill(funcMinChi2.GetName(),1)
                     retFunc = funcMinChi2                
+
             line = "Best fit: " + legEntry[retFunc.GetName()] + (" (forced)" if forcePol3 else "")
 
         #return funcMinChi2
 
+    reducedChi2,lineChi2 = getReducedChi2andLabel(retFunc)
+    if hist_reducedChi2: hist_reducedChi2.Fill(reducedChi2)
+    if hist_chosenFunc: hist_chosenFunc.Fill(retFunc.GetName(),1)
+
             
     lat.DrawLatex(xmin,yhi,line);
+    lat.DrawLatex(xmin,yhi-0.05,lineChi2);
     for ext in ["pdf","png"]:
         if mc == "SF":
             canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
@@ -871,6 +886,12 @@ if __name__ == "__main__":
         hist_chosenFunc.GetXaxis().SetBinLabel(3,"tf1_pol1")
     hist_chosenFunc.GetXaxis().SetBinLabel(4,"tf1_pol2")
     hist_chosenFunc.GetXaxis().SetBinLabel(5,"tf1_pol3")
+
+    hist_reducedChi2_data = ROOT.TH1D("reducedChi2_data","Reduced #chi^{2}",20,0,2) # will not have many entries (~100 depending on how many eta bins)
+    hist_reducedChi2_data.StatOverflows() # use underflow and overflow to compute mean and RMS
+    hist_reducedChi2_MC = ROOT.TH1D("reducedChi2_MC","Reduced #chi^{2}",20,0,2) # will not have many entries (~100 depending on how many eta bins)
+    hist_reducedChi2_MC.StatOverflows() # use underflow and overflow to compute mean and RMS
+
     ######################
     # to make ratio
     ######################
@@ -991,7 +1012,7 @@ if __name__ == "__main__":
                                 isTrigger=options.isTriggerScaleFactor,
                                 isFullID=options.isFullIDScaleFactor,
                                 isMuonRecoToSel=options.isMuonRecoToSel,
-                                fitRange=options.range)
+                                fitRange=options.range, hist_reducedChi2=hist_reducedChi2_MC)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1025,7 +1046,7 @@ if __name__ == "__main__":
                                 isTrigger=options.isTriggerScaleFactor,
                                 isFullID=options.isFullIDScaleFactor,
                                 isMuonRecoToSel=options.isMuonRecoToSel,
-                                fitRange=options.range)
+                                fitRange=options.range, hist_reducedChi2=hist_reducedChi2_data)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1060,7 +1081,7 @@ if __name__ == "__main__":
                                 isTrigger=options.isTriggerScaleFactor,
                                 isFullID=options.isFullIDScaleFactor,
                                 isMuonRecoToSel=options.isMuonRecoToSel,
-                                fitRange=options.range)
+                                fitRange=options.range, hist_reducedChi2=0)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1078,11 +1099,11 @@ if __name__ == "__main__":
     zaxisRangeSF = zaxisRange
     if not isEle:
         if options.isTriggerScaleFactor: 
-            zaxisRange = "0.8,1.01"
-            zaxisRangeSF = "0.9,1.01"
+            zaxisRange = "0.70,1.01"
+            zaxisRangeSF = "0.84,1.01"
         if options.isMuonRecoToSel:
             zaxisRange = "0.7,1.01"
-            zaxisRangeSF = "0.95,1.01"
+            zaxisRangeSF = "0.93,1.01"
     else:
         if options.isTriggerScaleFactor: 
             zaxisRangeSF = "0.7,1.05"
@@ -1093,6 +1114,8 @@ if __name__ == "__main__":
 
     if options.variable == "ISO":
         zaxisRange = "0.85,1.01"
+
+    canvas = ROOT.TCanvas("canvas","",700,625)
 
     # for muons, plot also official scale factors
     if not isEle and not options.isTriggerScaleFactor and not options.isMuonRecoToSel:        
@@ -1107,35 +1130,35 @@ if __name__ == "__main__":
         hsf_official.SetDirectory(0)
         tf.Close()
         drawCorrelationPlot(hsf_official,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Official data/MC scale factor::%s" % zaxisRangeSF,
-                            "input_official_scaleFactor,","",outname,1,1,False,False,False,1,palette=55)
+                            "input_official_scaleFactor,","",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     # plot original histograms
 
     drawCorrelationPlot(hmc,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"MC efficiency::%s" % zaxisRange,
-                        "inputEfficiency_MC","",outname,1,1,False,False,False,1,palette=55)
+                        "inputEfficiency_MC","",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hdata,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data efficiency::%s" % zaxisRange,
-                        "inputEfficiency_Data","",outname,1,1,False,False,False,1,palette=55)
+                        "inputEfficiency_Data","",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hsf,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC scale factor::%s" % zaxisRangeSF,
-                        "inputScaleFactor","",outname,1,1,False,False,False,1,palette=55)
+                        "inputScaleFactor","",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     # get a smoothed version of those input histograms
     drawCorrelationPlot(hmc,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"MC efficiency::%s" % zaxisRange,
-                        "inputEfficiency_MC_smooth","",outname,1,1,True,False,False,1,palette=55)
+                        "inputEfficiency_MC_smooth","",outname,1,1,True,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hdata,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data efficiency::%s" % zaxisRange,
-                        "inputEfficiency_Data_smooth","",outname,1,1,True,False,False,1,palette=55)
+                        "inputEfficiency_Data_smooth","",outname,1,1,True,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hsf,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC scale factor::%s" % zaxisRangeSF,
-                        "inputScaleFactor_smooth","",outname,1,1,True,False,False,1,palette=55)
+                        "inputScaleFactor_smooth","",outname,1,1,True,False,False,1,palette=55,passCanvas=canvas)
 
 
     # now the new ones
 
     # make a sanity check plot: fill eta-pt with smoothed efficiency
     drawCorrelationPlot(hmcSmoothCheck,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"MC smoothed efficiency::%s" % zaxisRange,
-                        "smoothEfficiency_MC","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothEfficiency_MC","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hdataSmoothCheck,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data smoothed efficiency::%s" % zaxisRange,
-                        "smoothEfficiency_Data","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothEfficiency_Data","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hsfSmoothCheck,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC smoothed scale factor::%s" % zaxisRangeSF,
-                        "smoothScaleFactorDirectly","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothScaleFactorDirectly","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     # scale factor: data/MC
     scaleFactor = ROOT.TH2D("scaleFactor","Scale factor",
@@ -1149,7 +1172,7 @@ if __name__ == "__main__":
     scaleFactor.SetMinimum(scaleFactor.GetBinContent(scaleFactor.GetMinimumBin()))
     scaleFactor.SetMaximum(scaleFactor.GetBinContent(scaleFactor.GetMaximumBin()))
     drawCorrelationPlot(scaleFactor,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC scale factor::%s" % zaxisRangeSF,
-                        "smoothScaleFactor","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothScaleFactor","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     #################################
     # plot also with oiginal binning
@@ -1160,11 +1183,11 @@ if __name__ == "__main__":
     ratioMC.Divide(hmcSmoothCheck_origBinPt)
 
     drawCorrelationPlot(hmcSmoothCheck_origBinPt,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"MC smoothed efficiency::%s" % zaxisRange,
-                        "smoothEfficiency_MC_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothEfficiency_MC_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hdataSmoothCheck_origBinPt,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data smoothed efficiency::%s" % zaxisRange,
-                        "smoothEfficiency_Data_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothEfficiency_Data_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(hsfSmoothCheck_origBinPt,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC smoothed scale factor::%s" % zaxisRangeSF,
-                        "smoothScaleFactorDirectly_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothScaleFactorDirectly_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     # scale factor: data/MC
     scaleFactor_origBinPt = ROOT.TH2D("scaleFactor_origBinPt","Scale factor",
@@ -1181,18 +1204,18 @@ if __name__ == "__main__":
 
     #scaleFactor_origBinPt.GetZaxis().SetTitle("Data/MC scale factor")
     drawCorrelationPlot(scaleFactor_origBinPt,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC scale factor::%s" % zaxisRangeSF,
-                        "smoothScaleFactor_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "smoothScaleFactor_origBinPt","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
 
     ######################
     # finally SF(smooth)/SF(original)
     ######################
     drawCorrelationPlot(ratioData,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data efficiency ratio (original/smooth)::0.98,1.02",
-                        "dataEfficiencyRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "dataEfficiencyRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(ratioMC,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"MC efficiency ratio (original/smooth)::0.98,1.02",
-                        "mcEfficiencyRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "mcEfficiencyRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
     drawCorrelationPlot(ratioSF,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"scale factor ratio (original/smooth)::0.98,1.02",
-                        "scaleFactorRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "scaleFactorRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
 
     ######################
@@ -1207,7 +1230,7 @@ if __name__ == "__main__":
     ratioSF_smoothNumDen_smoothRatio.Divide(hsfSmoothCheck_origBinPt)
     drawCorrelationPlot(ratioSF_smoothNumDen_smoothRatio,"{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),
                         "SF ratio: smooth eff or ratio directly::0.98,1.02",
-                        "ratioSF_smoothNumDen_smoothRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55)
+                        "ratioSF_smoothNumDen_smoothRatio","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
 
     c = ROOT.TCanvas("c","",700,700)
     c.SetTickx(1)
@@ -1227,7 +1250,90 @@ if __name__ == "__main__":
     hist_chosenFunc.GetYaxis().SetLabelSize(0.04)
     hist_chosenFunc.Draw("HE")
     for ext in ["png","pdf"]:
-        c.SaveAs("{out}bestFitFunction{ch}.{ext}".format(out=outname,ch=channel,ext=ext))
+        c.SaveAs("{out}bestFitFunction_{ch}.{ext}".format(out=outname,ch=channel,ext=ext))
+
+    # now the chi2 histogram
+    # put overflow in last bin
+    # but get number of entries before (same as integral since we used Fill() without weights)
+    entries_MC = hist_reducedChi2_MC.GetEntries()
+    entries_data = hist_reducedChi2_data.GetEntries()
+
+    lastBin = hist_reducedChi2_data.GetNbinsX()
+    hist_reducedChi2_data.SetBinContent(lastBin, hist_reducedChi2_data.GetBinContent(lastBin) + hist_reducedChi2_data.GetBinContent(1+lastBin) )
+    hist_reducedChi2_data.SetBinError(lastBin, math.sqrt( hist_reducedChi2_data.GetBinError(lastBin)*hist_reducedChi2_data.GetBinError(lastBin) 
+                                                     + hist_reducedChi2_data.GetBinError(1+lastBin)*hist_reducedChi2_data.GetBinError(1+lastBin) ) 
+                                 )
+    lastBin = hist_reducedChi2_MC.GetNbinsX()
+    hist_reducedChi2_MC.SetBinContent(lastBin, hist_reducedChi2_MC.GetBinContent(lastBin) + hist_reducedChi2_MC.GetBinContent(1+lastBin) )
+    hist_reducedChi2_MC.SetBinError(lastBin, math.sqrt( hist_reducedChi2_MC.GetBinError(lastBin)*hist_reducedChi2_MC.GetBinError(lastBin) 
+                                                     + hist_reducedChi2_MC.GetBinError(1+lastBin)*hist_reducedChi2_MC.GetBinError(1+lastBin) ) 
+                                 )
+
+    tmpmin,tmpmax = getMinMaxHisto(hist_reducedChi2_MC, sumError=True)
+    tmpmin1,maxY = getMinMaxHisto(hist_reducedChi2_data, sumError=True)
+    maxY = max(tmpmax,maxY)
+    maxY = 1.5 * maxY
+
+    hist_reducedChi2_data.GetXaxis().SetTitleOffset(1.2)
+    hist_reducedChi2_data.SetLineWidth(2)
+    hist_reducedChi2_data.SetLineColor(ROOT.kRed+2)
+    hist_reducedChi2_data.SetFillColor(ROOT.kRed+2)
+    hist_reducedChi2_data.SetFillStyle(3003)
+    hist_reducedChi2_data.GetXaxis().SetTitleSize(0.05)
+    hist_reducedChi2_data.GetXaxis().SetLabelSize(0.06)
+    hist_reducedChi2_data.GetYaxis().SetTitleOffset(1.15)
+    hist_reducedChi2_data.GetYaxis().SetTitleSize(0.05)
+    hist_reducedChi2_data.GetYaxis().SetLabelSize(0.04)
+    hist_reducedChi2_data.GetYaxis().SetTitle("Events")
+    hist_reducedChi2_data.GetYaxis().SetRangeUser(0,maxY)
+    hist_reducedChi2_data.GetXaxis().SetTitle("#chi^{2} / NDF")
+    hist_reducedChi2_data.Draw("HE")
+    lat = ROOT.TLatex()
+    line1 = "entries = {0}".format(int(entries_data))
+    #line1 = "entries = {integ:.1f}".format(integ=hist_reducedChi2_data.Integral())
+    line2 = "mean    = {:.2f}".format(hist_reducedChi2_data.GetMean())
+    line3 = "rms     = {:.2f}".format(hist_reducedChi2_data.GetStdDev())
+    lat.SetNDC();
+    lat.SetTextSize(0.045);
+    lat.SetTextFont(42);
+    lat.SetTextColor(ROOT.kRed+2);
+    xmin = 0.20 
+    yhi = 0.85
+    lat.DrawLatex(xmin,yhi,"data")
+    lat.DrawLatex(xmin,yhi-0.05,line1)
+    lat.DrawLatex(xmin,yhi-0.1,line2)
+    lat.DrawLatex(xmin,yhi-0.15,line3)
+
+    hist_reducedChi2_MC.SetLineWidth(2)
+    hist_reducedChi2_MC.SetLineColor(ROOT.kBlack)
+    hist_reducedChi2_MC.SetFillColor(ROOT.kGray)
+    #hist_reducedChi2_MC.SetFillStyle(3004)
+    hist_reducedChi2_MC.Draw("HE SAME")
+    #######################
+    # redraw some stuff that might be covered by FillColor
+    histCopy = hist_reducedChi2_MC.DrawCopy("HE SAME")
+    histCopy.SetFillColor(0)
+    histCopy.SetFillStyle(0)
+    hist_reducedChi2_data.Draw("HE SAME")
+    c.RedrawAxis("sameaxis")
+    #################
+    line1 = "entries = {0}".format(int(entries_MC))
+    #line1 = "entries = {integ:.1f}".format(integ=hist_reducedChi2_MC.Integral())
+    line2 = "mean    = {:.2f}".format(hist_reducedChi2_MC.GetMean())
+    line3 = "rms     = {:.2f}".format(hist_reducedChi2_MC.GetStdDev())
+    lat.SetNDC();
+    lat.SetTextSize(0.045);
+    lat.SetTextFont(42);
+    lat.SetTextColor(ROOT.kBlack);
+    xmin = xmin + 0.4
+    lat.DrawLatex(xmin,yhi,"MC")
+    lat.DrawLatex(xmin,yhi-0.05,line1)
+    lat.DrawLatex(xmin,yhi-0.1,line2)
+    lat.DrawLatex(xmin,yhi-0.15,line3)
+
+    for ext in ["png","pdf"]:
+        c.SaveAs("{out}reducedChi2_{ch}.{ext}".format(out=outname,ch=channel,ext=ext))
+
 
     # before saving things, assign an uncertainty from the original input (will need to devise a better way to estimate them)
     # following histograms have same eta-pt binning

@@ -32,6 +32,9 @@
 
 # python w-helicity-13TeV/makeRatioTH2.py /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_16_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32/fakeRateSmoothed_el_fr_16_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32.root fr_pt_eta_ewk /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45/fakeRateSmoothed_el_fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45.root fr_pt_eta_ewk -o /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/electron/ratio_FR_PR/subtrAllMC_allNewSF_fitPol1_minPtData32__jetPt30_Over_jetPt45/ -f ratio_PR -n FILE -t "PR jet p_{T} > 30 / jet p_{T} > 45" -z "Prompt rate ratio" -r 0.98 1.04
 
+# muon FR (need to build the FR versu pt and eta
+# python w-helicity-13TeV/makeRatioTH2.py ../../data/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root fakerates_smoothed_data_interpolated ../../data/fakerate/frAndPr_fit_mu_2018-09-19_jetPt45_finerETA.root fakerates_smoothed_data_interpolated_awayJetPt45 -o /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/muon/ratio_FR_PR/fromMarc_jetPt30_Over_jetPt45/ -f ratio_FR -n FILE -t "FR jet p_{T} > 30 / jet p_{T} > 45" -z "Fake rate ratio" -r 0.9 1.2   --buildFakeRate -x "muon p_{T} [GeV]" -y "muon #eta" --h1Dbinning "75,0.9,1.2"
+
 ################################
 ################################
 
@@ -58,6 +61,7 @@ if __name__ == "__main__":
     parser.add_option('-r','--ratioRange',  dest='ratioRange',  default=(0, 2),type="float", nargs=2, help="Min and max for the ratio in the plot")
     parser.add_option(     '--h1Dbinning',  dest='h1Dbinning',  default='50,0.9,1.1', type='string', help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_option('-v','--valBadRatio', dest='valBadRatio', default='0', type='float', help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
+    parser.add_option(     '--buildFakeRate', dest="buildFakeRate", action="store_true", default=False, help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta")
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -127,7 +131,28 @@ if __name__ == "__main__":
         hist2.SetDirectory(0)
     tf.Close()
 
-    hratio = hist1.Clone(options.outhistname)
+    hinput1 = hist1
+    hinput2 = hist2
+
+    if options.buildFakeRate:
+        # in this case the input TH2 have eta on x axis and offset/slope on the other one
+        # this is needed only for muons, for electrons I save directly the smoothed FR (PR)
+        neta = hist1.GetNbinsX()
+        etamin = hist1.GetXaxis().GetBinLowEdge(1)
+        etamax = hist1.GetXaxis().GetBinLowEdge(1+neta)
+        hFR1 = ROOT.TH2D(hist1.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
+        hFR2 = ROOT.TH2D(hist2.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
+        for ix in range (1,1+hFR1.GetNbinsX()):
+            for iy in range (1,1+hFR1.GetNbinsY()):
+                fr1 = hist1.GetBinContent(iy,1) + hist1.GetBinContent(iy,2) * hFR1.GetXaxis().GetBinCenter(ix)
+                hFR1.SetBinContent(ix,iy,fr1)
+                fr2 = hist2.GetBinContent(iy,1) + hist2.GetBinContent(iy,2) * hFR2.GetXaxis().GetBinCenter(ix)
+                hFR2.SetBinContent(ix,iy,fr2)
+        hinput1 = hFR1
+        hinput2 = hFR2
+
+
+    hratio = hinput1.Clone(options.outhistname)
     hratio.SetTitle(options.histTitle)
 
     nbins,minx,maxx = options.h1Dbinning.split(',')
@@ -137,10 +162,10 @@ if __name__ == "__main__":
         for iy in range(1,1+hratio.GetNbinsY()):
             xval = hratio.GetXaxis().GetBinCenter(ix) 
             yval = hratio.GetYaxis().GetBinCenter(iy) 
-            hist2xbin = hist2.GetXaxis().FindFixBin(xval)
-            hist2ybin = hist2.GetYaxis().FindFixBin(yval)
-            if hist2.GetBinContent(hist2xbin, hist2ybin) != 0:
-                ratio = hratio.GetBinContent(ix,iy) / hist2.GetBinContent(hist2xbin, hist2ybin)
+            hist2xbin = hinput2.GetXaxis().FindFixBin(xval)
+            hist2ybin = hinput2.GetYaxis().FindFixBin(yval)
+            if hinput2.GetBinContent(hist2xbin, hist2ybin) != 0:
+                ratio = hratio.GetBinContent(ix,iy) / hinput2.GetBinContent(hist2xbin, hist2ybin)
                 hratioDistr.Fill(ratio)
                 hratio.SetBinContent(ix,iy,ratio)
             else: 

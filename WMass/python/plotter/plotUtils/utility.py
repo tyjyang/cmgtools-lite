@@ -17,6 +17,28 @@ def addStringToEnd(name, matchToAdd, notAddIfEndswithMatch=False):
 
 #########################################################################
 
+def getZaxisReasonableExtremesTH2(h,nSigma=3,minZtoUse=None,maxZtoUse=None):
+
+    htmp = ROOT.TH1D("htmp","",1000,h.GetMinimum(),h.GetMaximum())
+    nbins = h.GetNbinsX() * h.GetNbinsY()    
+    for ibin in range (1,nbins+1):
+        val = h.GetBinContent(ibin)
+        canFill = True
+        if minZtoUse != None:
+            if val < minZtoUse: canFill = False
+        if maxZtoUse != None:
+            if val > maxZtoUse: canFill = False
+        if canFill: htmp.Fill(val)
+
+    mean = htmp.GetMean()
+    stddev = htmp.GetStdDev()
+    retmin = max(h.GetMinimum(),mean - nSigma*stddev)
+    retmax = min(h.GetMaximum(),mean + nSigma*stddev)
+    return retmin,retmax
+
+
+#########################################################################
+
 def getMinMaxHisto(h, excludeEmpty=True, sumError=True):
     
     dim = h.GetDimension()
@@ -337,7 +359,7 @@ def drawSingleTH1(h1,
         #print "Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
     print "#### WARNING ####"
-    print "Hardcoding ymin = 0: change it if it is not what you need"
+    print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
     print "#################"
     ymin = 0 # hardcoded
 
