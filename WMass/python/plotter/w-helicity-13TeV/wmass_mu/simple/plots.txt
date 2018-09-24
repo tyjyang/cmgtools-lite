@@ -1,5 +1,8 @@
 deltaPt : abs(LepGood_pt-LepGood_calPt) : 100,-2.,2. ; XTitle="|pT - calPt|"
 ptl1     : LepGood1_calPt   : 50,20.,70.; XTitle="muon pT"
+ptl1scale: ptMuFull(LepGood1_calPt,LepGood_eta)   : 35,20.,55.; XTitle="muon pT"
+ptl1scaleUp: ptMuFullUp(LepGood1_calPt,LepGood_eta)   : 35,20.,55.; XTitle="muon pT"
+ptl1scaleDn: ptMuFullDn(LepGood1_calPt,LepGood_eta)   : 35,20.,55.; XTitle="muon pT"
 sf1 : LepGood1_sf1 : 100,0.9,1.1 ; XTitle="trigger SF"
 sf2 : LepGood1_sf2 : 100,0.9,1.1 ; XTitle="id or iso SF"
 sf3 : LepGood1_sf3 : 100,0.9,1.1 ; XTitle="iso or id SF"

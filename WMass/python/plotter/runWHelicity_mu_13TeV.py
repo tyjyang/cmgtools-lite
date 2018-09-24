@@ -1,4 +1,4 @@
-import optparse, subprocess, ROOT, datetime, math, array, copy, os
+import optparse, subprocess, ROOT, datetime, math, array, copy, os, itertools
 import numpy as np
 
 #doPUreweighting = True
@@ -73,11 +73,11 @@ def readFakerate(path, process):
         if len(line)==1: break
         frs.append(float(line.split()[2]))
         down = float(line.split()[3].replace('--','-'))
-        up   = float(line.split()[4].replace('++','+'))
+        up   = float(line.split()[4].replace('++','+').replace('+-','+'))
         errs.append( (abs(down)+abs(up))/2.)
     ##fr  = float(lines[index+3].split()[2])
     ##err = (abs(float(lines[index+3].split()[3])) + abs(float(lines[index+3].split()[4])) )/2.
-    print('this is frs:', frs)
+    print 'process:', process, 'this is frs:', frs 
     return frs, errs
 
 def runefficiencies(trees, friends, targetdir, fmca, fcut, ftight, fxvar, enabledcuts, disabledcuts, scaleprocesses, compareprocesses, showratio, extraopts = ''):
@@ -119,12 +119,15 @@ def runplots(trees, friends, targetdir, fmca, fcut, fplots, enabledcuts, disable
         cmd += ' -F Friends {friends}/tree_Friend_{{cname}}.root'.format(friends=friends)
     cmd += ''.join(' -E ^'+cut for cut in enabledcuts )
     cmd += ''.join(' -X ^'+cut for cut in disabledcuts)
-    cmd += ' --sP '+','.join(plot for plot in plotlist)
+    if plotlist:
+        cmd += ' --sP '+','.join(plot for plot in plotlist)
+        cmd += ' -o '+targetdir+'/'+'_AND_'.join(plot for plot in plotlist)+'.root'
+    else:
+        cmd += ' -o '+targetdir+'/ALL.root'
     cmd += ' -p '+','.join(processes)
     if invertedcuts:
         cmd += ''.join(' -I ^'+cut for cut in invertedcuts )
     if doPUandSF and not '-W ' in extraopts: cmd += ' -W puw2016_nTrueInt_36fb(nTrueInt)*LepGood_effSF[0] '
-    cmd += ' -o '+targetdir+'/'+'_AND_'.join(plot for plot in plotlist)+'.root'
     if fitdataprocess:
         cmd+= ' --fitData '
         cmd+= ''.join(' --flp '+proc for proc in fitdataprocess)
@@ -144,30 +147,431 @@ def runplots(trees, friends, targetdir, fmca, fcut, fplots, enabledcuts, disable
     else:
         submitIt(targetdir, name, 'python '+cmd, False)
 
+
+def scaleClosure(recalculate):
+    print '=========================================='
+    print '2l closure tests for muon momentum scale ='
+    print '=========================================='
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_recoLeptons_and_triggerMatch_latest/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_recoLeptons_and_triggerMatch_latest/friends/'
+    targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/scaleClosure/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+
+    fmca      = 'w-helicity-13TeV/wmass_mu/dy/mca.txt'
+    fcut      = 'w-helicity-13TeV/wmass_mu/dy/cuts.txt'
+    fplots    = 'w-helicity-13TeV/wmass_mu/dy/plots.txt'
+
+    enable    = []
+    disable   = []
+    processes = ['Z', 'data']
+    fittodata = []
+    scalethem = {}
+
+    ## trigger sf reweighting
+    #trgString = 'triggerSF_2l(LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjTkMuPt[0],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[1],LepGood_SF1[0],LepGood_SF1[1])'
+    trgString = '1.'
+
+    selSF = '_get_muonSF_recoToSelection(LepGood_pdgId[0],LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(LepGood_pdgId[1],LepGood_pt[1],LepGood_eta[1])'
+
+    ## trigger+id/iso+puw
+    extraoptsbase  = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+trgString+'*'+selSF+' '
+    extraoptsbase += ' --maxRatioRange 0.9 1.1 --fixRatioRange --fitData --flp Z '
+
+    mllvar = 'mll'
+
+    makeplots = [mllvar]
+    showratio = True
+
+    binningpt  = [26,30,35,40,45]
+    binningeta = [0., 1., 1.5, 2.0, 2.4]#-2.4,-1.6, -0.8, 0., 0.8, 1.6, 2.4]
+
+
+    for n,((e,eta),(p,pt)) in enumerate(itertools.product(enumerate(binningeta[:-1]),enumerate(binningpt[:-1]))):
+
+        etaptstring = 'ETA'+'To'.join(str(i).replace('-','m').replace('.','p') for i in [eta, binningeta[e+1]] )
+        etaptstring+= 'PT' +'To'.join(str(i).replace('-','m').replace('.','p') for i in [pt , binningpt [p+1]] )
+        tmp_td   = targetdir+'/'+etaptstring
+
+        ## this is some weird recursive magic to submit this to the batch
+        if opts.submitFR:
+            abspath = os.path.abspath('.')
+            tmp_cmd = 'python '+abspath+'/runWHelicity_mu_13TeV.py --scaleClosure --recalculate --doBin {n} {pf} '.format(n=n, pf=('' if not postfix else '--postfix '+postfix))
+            submitFRrecursive(tmp_td, 'scalejob_{n}'.format(n=n), tmp_cmd)
+            continue
+        if opts.doBin > -1:
+            if not n == opts.doBin: continue
+        ## end weird magic
+
+        ## submit the jobs to the batch
+
+        eta1_var = 'abs(LepGood1_eta)'
+        eta2_var = 'abs(LepGood2_eta)'
+
+        ## make the binning in pT and eta
+        extraopts  = extraoptsbase+' -A alwaystrue ETA{e} ({ev1}>={e1}&&{ev1}<{e2})||({ev2}>={e1}&&{ev2}<{e2}) '.format(e=e, e1=eta, e2=binningeta[e+1], ev1=eta1_var, ev2=eta2_var)
+        extraopts +=               ' -A alwaystrue PT{p}  (LepGood1_pt>={p1}&&LepGood1_pt<{p2})||(LepGood2_pt>={p1}&&LepGood2_pt<{p2}) '.format(p=p, p1=pt , p2=binningpt [p+1])
+        if recalculate: runplots(trees, friends, tmp_td, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, True, extraopts)
+
+    ## do the postprocessing here, i.e. deriving the scales
+    if not opts.submitFR and opts.doBin < 0:
+
+
+        means_mc     = []; widths_mc     = []
+        means_da     = []; widths_da     = []
+        means_err_mc = []; widths_err_mc = []
+        means_err_da = []; widths_err_da = []
+        binlabels = []
+
+        scaleCorr2D    = ROOT.TH2D('scales_corrections_2d_muons'  ,'scale corrections to apply in 2d', len(binningeta)-1, array.array('d', binningeta), len(binningpt)-1, array.array('d',binningpt))
+        scaleCorr2D.GetXaxis().SetTitle('|#eta_{#mu}|')
+        scaleCorr2D.GetYaxis().SetTitle('p_{T}')
+
+
+        for n,((e,eta),(p,pt)) in enumerate(itertools.product(enumerate(binningeta[:-1]),enumerate(binningpt[:-1]))):
+            #if n: continue
+            print '============================================================'
+            print '== at bin with eta', eta, ' and pt', pt
+            print '============================================================'
+
+            etaptstring = 'ETA'+'To'.join(str(i).replace('-','m').replace('.','p') for i in [eta, binningeta[e+1]] )
+            etaptstring+= 'PT' +'To'.join(str(i).replace('-','m').replace('.','p') for i in [pt , binningpt [p+1]] )
+            tmp_file = targetdir+'/'+etaptstring+'/'+mllvar+'.root'
+
+            #binlabels.append( 'p_{{T}}: [{p1},{p2}] , |#eta|: [{e1},{e2}]'.format(p1=pt,p2=binningpt[p+1],e1=eta,e2=binningeta[e+1]) )
+            binlabels.append( '{p1}-{p2} GeV'.format(p1=pt,p2=binningpt[p+1]))
+
+            f = ROOT.TFile(tmp_file, 'read')
+
+            if f.IsZombie(): 
+                print '============================================================'
+                print '============================================================'
+                print '============================================================'
+                print 'THIS BIN IS FUCKED!!!!!! ', eta, pt
+                print '============================================================'
+                print '============================================================'
+                print '============================================================'
+                continue
+            
+            
+            mll_data = f.Get(mllvar+'_data')
+            mll_mc   = f.Get(mllvar+'_Z'   )
+            
+            
+            ## Declare observable mll
+            x   = ROOT.RooRealVar('mll','mll', 80., 100.)
+            ral = ROOT.RooArgList(x)
+            
+            dh_da  = ROOT.RooDataHist('dh_da', 'dh_da', ral, mll_data)
+            dh_mc  = ROOT.RooDataHist('dh_mc', 'dh_mc', ral, mll_mc)
+            
+            frame = x.frame(ROOT.RooFit.Title('Z mass'))
+
+            dacolor = ROOT.kGray+3; mccolor = ROOT.kAzure-2
+
+            dh_da.plotOn(frame,ROOT.RooFit.MarkerColor(dacolor),ROOT.RooFit.MarkerSize(0.9),ROOT.RooFit.MarkerStyle(21))
+            dh_mc.plotOn(frame,ROOT.RooFit.MarkerColor(mccolor),ROOT.RooFit.MarkerSize(0.9),ROOT.RooFit.MarkerStyle(20))
+            #dh.statOn(frame)
+            
+            lat = ROOT.TLatex()
+            lat.SetNDC()
+            lat.SetTextSize(0.03)
+            
+            for t in ['data', 'mc']:
+                w = ROOT.RooWorkspace('w')
+                getattr(w,'import')(x)
+                getattr(w,'import')(dh_da if t=='data' else dh_mc)
+
+                #w.factory('BreitWigner::breitwigner(mll, bw_mean_{t}[91.1876,90.,93.], bw_width_{t}[2.495,1.8,2.7])'.format(t=t) )
+                w.factory('BreitWigner::breitwigner(mll, bw_mean_{t}[91.1876], bw_width_{t}[2.495])'.format(t=t) )
+                #w.factory('Gaussian::gauss1(mll, gauss1_mean_{t}[0.0,-5.,5.], gaus1_sigma_{t}[0.3,0.,10.])'.format(t=t) )
+                #w.factory('Exponential::exp1(mll, exp1_c_{t}[0.0,-10.,10.])'.format(t=t) )
+                w.factory('CBShape::cb(mll,cb_mean_{t}[0.,-3.,3.],cb_sigma_{t}[1.5,0.1,10.],cb_alpha_{t}[3.,0.5,8.],cb_n_{t}[1.,0.1,100.])'.format(t=t))
+                #w.factory('Voigtian::finalpdf(mll, voigt_mean_{t}[90.,85.,95.], voigt_width_{t}[1.,0.,5.], voigt_sigma_{t}[0.3,0.,5.])'.format(t=t) )
+                #w.factory('Gaussian::gauss2(mll, gauss2_mean_{t}[91.,80.,100.], gaus2_sigma_{t}[1.0,0.,10.])'.format(t=t) )
+                #w.factory('SUM::sumgauss(gauss1, gauss2)')
+                #w.factory('FCONV::completepdf(mll, breitwigner, gauss1)')
+                w.factory('FCONV::finalpdf(mll, breitwigner, cb)')
+                #w.factory('SUM::finalpdf(breitwigner, cb)')
+                #w.factory('SUM::notfinalpdf(completepdf, gauss2)')
+                #w.factory('SUM::finalpdf(notfinalpdf, gauss2)')
+                #w.factory('SUM::finalpdf(mll, voigt, exp1)')
+                #w.factory('SUM::finalpdf(frac_1[0.,1e4]*voigt, frac2[0.,1e4]*exp1)')
+
+
+                #w.Print()
+
+                ##w.factory('SUM::mll_{t}(mll_n1{t}[0,1e5]*Gaussian::gauss{t}(mll,mean{t},sigma{t}),mll_n2[0,1e5]*::exp2{t}({vartree},met_c1{t}))'.format(var=var, vartree=vartr    ee, t=t))
+                ## mean  = ROOT.RooRealVar('mean' +'_'+t, 'mean' +'_'+t, 95.0, 70.0, 120.0)
+                ## width = ROOT.RooRealVar('width'+'_'+t, 'width'+'_'+t,  5.0,  0.0,  20.0)
+                ## sigma = ROOT.RooRealVar('sigma'+'_'+t, 'sigma'+'_'+t,  5.0,  0.0,  20.0)
+                ## 
+                ## voigt = ROOT.RooVoigtian('voigt_'+t,'voigt_'+t, x, mean, width, sigma)
+                
+                #filters = voigt.fitTo(dh_da if t=='data' else dh_mc) #,'qr')
+                #filters = w.pdf('finalpdf').fitTo(dh_da if t=='data' else dh_mc, ROOT.RooFit.Optimize(0)) #,'qr')
+                filters = w.pdf('finalpdf').fitTo(w.data((dh_da if t=='data' else dh_mc).GetName()) , ROOT.RooFit.SumW2Error(0) ) ##, ROOT.RooFit.Strategy(2), ROOT.RooFit.Minimizer('Minuit2'), ROOT.RooFit.Optimize(1))
+
+                if t == 'data':
+                    mean_da  = w.var('cb_mean_data').getVal()
+                    width_da = w.var('cb_sigma_data').getVal()
+                    mean_err_da  = w.var('cb_mean_data').getError()
+                    width_err_da = w.var('cb_sigma_data').getError()
+                    means_da .append( mean_da )
+                    widths_da.append( width_da)
+                    means_err_da .append( mean_err_da )
+                    widths_err_da.append( width_err_da )
+                else:
+                    mean_mc  = w.var('cb_mean_mc').getVal()
+                    width_mc = w.var('cb_sigma_mc').getVal()
+                    mean_err_mc  = w.var('cb_mean_mc').getError()
+                    width_err_mc = w.var('cb_sigma_mc').getError()
+                    means_mc .append( mean_mc  )
+                    widths_mc.append( width_mc )
+                    means_err_mc .append( mean_err_mc )
+                    widths_err_mc.append( width_err_mc )
+
+            
+            
+                #voigt.plotOn(frame,ROOT.RooFit.LineColor(4)) # this will show fit overlay on canvas 
+                w.pdf('finalpdf').plotOn(frame,ROOT.RooFit.LineColor(dacolor if t=='data' else mccolor)) # this will show fit overlay on canvas 
+
+                # w.pdf('finalpdf').paramOn(frame)                         # this will display the fit parameters on canvas
+
+                del w
+
+            
+            bin2dx = scaleCorr2D.GetXaxis().FindBin(eta)
+            bin2dy = scaleCorr2D.GetYaxis().FindBin(pt )
+            scaleCorr2D.SetBinContent(e+1, p+1, (mean_da-mean_mc)/91.1876/math.sqrt(2) )
+            scaleCorr2D.SetBinError  (e+1, p+1, (mean_err_da-mean_err_mc)/91.1876/math.sqrt(2) )
+                
+            #filters->Print('v');
+            #
+            #Draw all frames on a canvas
+            c = ROOT.TCanvas()
+            c.cd()
+            ROOT.gPad.SetLeftMargin(0.15)
+                       
+            frame.GetXaxis().SetTitle('Z mass (in GeV/c^{2})')
+            frame.GetXaxis().SetTitleOffset(1.2)
+            binsize = mll_data.GetBinWidth(1)
+            frame.Draw()
+            
+            lat.SetTextColor(ROOT.kBlack)
+            lat.SetTextSize(0.03)
+            lat.DrawLatex(0.70, 0.86-(0.0), 'mean  (cb) data: {v:.4f}'.format(v=mean_da ))
+            lat.DrawLatex(0.70, 0.82-(0.0), 'width (cb) data: {v:.4f}'.format(v=width_da))
+
+            lat.DrawLatex(0.70, 0.72-(0.0), 'mean  (cb) MC: {v:.4f}'.format(v=mean_mc ))
+            lat.DrawLatex(0.70, 0.68-(0.0), 'width (cb) MC: {v:.4f}'.format(v=width_mc))
+
+            lat.SetTextSize(0.04)
+            lat.SetTextColor(ROOT.kGreen+1)
+            #lat.DrawLatex(0.18, 0.84-(0.0), '(m_{{Z}}^{{data}}-m_{{Z}}^{{MC}})/m_{{Z}}^{{true}}: {v:.3f} #times10^{{-3}}'.format(v=1000.*(mean_da-mean_mc)/91.1876))
+            lat.DrawLatex(0.18, 0.84-(0.0), '#mu^{{CB}}_{{data}}-#mu^{{CB}}_{{MC}}: {v:.3f} #times10^{{-3}}'.format(v=1000.*(mean_da-mean_mc)))
+            ## print 'THIS IS THE VALUE!!!!', mean_da-mean_mc
+
+            lat.SetTextColor(ROOT.kBlack)
+            lat.DrawLatex(0.18, 0.76-(0.0), '{e0} < #eta_{{#mu}} < {e1}'   .format(e0=eta,e1=binningeta[e+1]))
+            lat.DrawLatex(0.18, 0.71-(0.0), '{p0} < p_{{T}}^{{#mu}} < {p1}'.format(p0=pt ,p1=binningpt [p+1]))
+
+            c.SaveAs(targetdir+'/mll_fit_'+etaptstring+'.pdf')
+            c.SaveAs(targetdir+'/mll_fit_'+etaptstring+'.png')
+
+        outfile = ROOT.TFile('scale_correction_nonclosure_mu.root','recreate')
+        outfile.cd()
+        scaleCorr2D.Write()
+        outfile.Close()
+        cc = ROOT.TCanvas()
+        cc.cd()
+        ROOT.gStyle.SetOptStat(0)
+        scaleCorr2D.Draw("colz text")
+        cc.SaveAs(targetdir+'/scale_correction_nonclosure.pdf')
+        cc.SaveAs(targetdir+'/scale_correction_nonclosure.png')
+        
+
+        c1 = ROOT.TCanvas()
+        c1.Divide(1,2)
+
+        scaleSummary_da = ROOT.TH1F('scalessummary_da','summary of scales data', 3*len(means_mc), 0, len(means_mc))
+        scaleSummary_mc = ROOT.TH1F('scalessummary_mc','summary of scales mc  ', 3*len(means_mc), 0, len(means_mc))
+
+        scaleClosure    = ROOT.TH1F('scales_closure'  ,'closure of scale'      ,   len(means_mc), 0, len(means_mc))
+        scaleClosure.SetMarkerColor(mccolor); scaleClosure.SetLineColor(mccolor);scaleClosure.SetLineWidth(2); scaleClosure.SetMarkerSize(1.0); scaleClosure.SetMarkerStyle(20)
+        scaleClosure.GetYaxis().SetTitle('(#mu_{CB}^{data}-#mu_{CB}^{MC})/m_{true}')
+
+        residualResolution = ROOT.TH1F('residualResolution','residual resolution corrections', 3*len(means_mc), 0, len(means_mc))
+
+        ROOT.gStyle.SetOptStat(0)
+
+        for n,val in enumerate(means_mc):
+            scaleSummary_mc.SetBinContent(3*n+2, val         )
+            scaleSummary_da.SetBinContent(3*n+3, means_da[n] )
+            scaleSummary_mc.SetBinError  (3*n+2, widths_mc[n])
+            scaleSummary_da.SetBinError  (3*n+3, widths_da[n])
+
+            residualResolution.SetBinContent(3*n+2, math.sqrt(widths_da[n]**2-widths_mc[n]**2) if widths_da[n]**2 > widths_mc[n]**2 else 0.)
+            residualResolution.SetBinError  (3*n+2, 0.1)
+
+            scaleClosure.SetBinContent(n+1, (means_da[n]-val)/91.1876/math.sqrt(2) )
+            scaleClosure.SetBinError  (n+1, (means_err_da[n]-means_err_mc[n])/91.1876/math.sqrt(2))
+            scaleClosure.GetXaxis().SetBinLabel(n+1, binlabels[n])
+
+        scaleSummary_da.SetMarkerColor(dacolor); scaleSummary_da.SetLineColor(dacolor);scaleSummary_da.SetLineWidth(2); scaleSummary_da.SetMarkerSize(1.0); scaleSummary_da.SetMarkerStyle(20)
+        scaleSummary_mc.SetMarkerColor(mccolor); scaleSummary_mc.SetLineColor(mccolor);scaleSummary_mc.SetLineWidth(2); scaleSummary_mc.SetMarkerSize(1.0); scaleSummary_mc.SetMarkerStyle(20)
+        scaleSummary_da.GetYaxis().SetTitle('#mu_{CB} #pm #sigma_{CB} ')
+        scaleSummary_da.GetXaxis().SetTitle('bin')
+
+        print 'THIS IS LENGTH OF MEANS', len(means_mc)
+
+        scaleSummary_da.GetYaxis().SetRangeUser(-2., 2.)
+
+        c1.cd(1)
+        scaleSummary_da.Draw('p')
+        scaleSummary_mc.Draw('p same')
+
+        line = ROOT.TLine()
+        line.SetLineStyle(2)
+        line.SetLineWidth(2)
+        line.DrawLine(0, 0., scaleSummary_da.GetXaxis().GetXmax(), 0.)
+        line.SetLineStyle(3)
+        line.DrawLine(0, -1., scaleSummary_da.GetXaxis().GetXmax(), -1.)
+        line.DrawLine(0,  1., scaleSummary_da.GetXaxis().GetXmax(),  1.)
+
+        c1.cd(2)
+        residualResolution.GetYaxis().SetRangeUser(0., 1.)
+        residualResolution.GetYaxis().SetTitle('#sqrt{#sigma_{CB,data}^{2} - #sigma_{CB,MC}^{2}}')
+        residualResolution.GetXaxis().SetTitle('bin')
+
+        residualResolution.SetMarkerColor(ROOT.kBlack)
+        residualResolution.SetMarkerSize (1.0)
+        residualResolution.SetMarkerStyle(20)
+        residualResolution.Draw('pe')
+
+        meanCorr = sum( ( (math.sqrt(widths_da[k]**2-widths_mc[k]**2) if widths_da[k]**2 > widths_mc[k]**2 else 0. )for k,i in enumerate(means_mc)) )/len(means_da)
+        line.SetLineStyle(2)
+        line.DrawLine(0, meanCorr,  scaleSummary_da.GetXaxis().GetXmax(), meanCorr)
+        lat .DrawLatex(0.15, 0.75, 'mean residual resolution correction: {v:.2f}'.format(v=meanCorr))
+
+        c1.SaveAs(targetdir+'/summary_scales.pdf')
+        c1.SaveAs(targetdir+'/summary_scales.png')
+
+        c1.Clear()
+        #ROOT.gStyle.SetPadLeftMargin(0.15)
+        #ROOT.gStyle.SetPadBottomMargin(0.25)
+        yrange = 0.002
+        scaleClosure.Draw('pe')
+        scaleClosure.GetYaxis().SetRangeUser(-1.*yrange,yrange)
+        line.DrawLine(1.*(len(binningpt)-1), -1*yrange, 1.*(len(binningpt)-1), yrange)
+        line.DrawLine(2.*(len(binningpt)-1), -1*yrange, 2.*(len(binningpt)-1), yrange)
+        line.DrawLine(3.*(len(binningpt)-1), -1*yrange, 3.*(len(binningpt)-1), yrange)
+        lat.DrawLatex(0.12, 0.8, '0.0 < |#eta| < 1.0')
+        lat.DrawLatex(0.32, 0.8, '1.0 < |#eta| < 1.5')
+        lat.DrawLatex(0.52, 0.8, '1.5 < |#eta| < 2.0')
+        lat.DrawLatex(0.72, 0.8, '2.0 < |#eta| < 2.4')
+
+        c1.SaveAs(targetdir+'/closure_scale.pdf')
+        c1.SaveAs(targetdir+'/closure_scale.png')
+
+
+        
+
+    #runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
+
+def sfClosure2l():
+    print '=========================================='
+    print '2l closure tests for the trigger SFs etc.'
+    print '=========================================='
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_triggerMatch_latest/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_triggerMatch_latest/friends/'
+    targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/sfClosure/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+
+    fmca      = 'w-helicity-13TeV/wmass_mu/dy/mca.txt'
+    fcut      = 'w-helicity-13TeV/wmass_mu/dy/cuts.txt'
+    fplots    = 'w-helicity-13TeV/wmass_mu/dy/plots.txt'
+
+    enable    = ['mllZ', 'onlyl1fired']
+    disable   = []
+    processes = ['Z', 'data']
+    fittodata = []
+    scalethem = {}
+    trgString = 'triggerSF_2l(LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjTkMuPt[0],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[1],LepGood_SF1[0],LepGood_SF1[1])'
+    #trgString = '1.'
+    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+trgString+'*LepGood_SF2[0]*LepGood_SF3[0]*LepGood_SF2[1]*LepGood_SF3[1] --maxRatioRange 0.9 1.1 --fixRatioRange --fitData --flp Z '
+    makeplots = ['ptl1', 'ptl2', 'analysisetal1', 'analysisetal2', 'mll']
+    showratio = True
+    runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
+
 def simplePlot():
     print '=========================================='
     print 'running simple plots'
     print '=========================================='
     #trees     = ['/eos/cms/store/group/phys_tracking/elisabetta/WSkims/']
     #trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/']
-    trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/']
     #friends   = '/eos/user/m/mdunser/w-helicity-13TeV/friends/friends_SFs_pu_awayJet-2017-12-11/'
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/friends/'
+    #trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/']
+    #friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/trees_all_skims/friends/'
+    ## trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    ## friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_recoLeptons_and_triggerMatch_latest/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_recoLeptons_and_triggerMatch_latest/friendsNEWSCALE/'
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/simple_plots/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+
+    ## fmca      = 'w-helicity-13TeV/wmass_mu/simple/mca_simple.txt'
+    ## fcut      = 'w-helicity-13TeV/wmass_mu/simple/cuts_simple.txt'
+    ## fplots    = 'w-helicity-13TeV/wmass_mu/simple/plots.txt'
+    fmca      = 'w-helicity-13TeV/wmass_mu/dy/mca.txt'
+    fcut      = 'w-helicity-13TeV/wmass_mu/dy/cuts.txt'
+    fplots    = 'w-helicity-13TeV/wmass_mu/dy/plots.txt'
+
+    enable    = []
+    disable   = []
+    processes = ['Z', 'data']#, 'data_fakes']#, 'data_fakes']
+    fittodata = []#'data_fakes']
+    scalethem = {}#'W': 0.978, 'Z': 0.822, 'data_fakes': 1.299}
+    #extraopts = ' -W puw*LepGood_sf1[0]*LepGood_sf2[0]*LepGood_sf3[0] --maxRatioRange 0.8 1.2 --fixRatioRange '
+    #extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*LepGood_sf2[0]*LepGood_sf3[0] --maxRatioRange 0.9 1.1 --fixRatioRange '#--scaleSigToData --sp data_fakes '
+    trgString = 'triggerSF_2l_histo(LepGood_pt[0],LepGood_eta[0],LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjTkMuPt[0],LepGood_pt[1],LepGood_eta[1],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[1])'
+
+    ## trgString = '1.'#'triggerSF_2l_histo(LepGood_pt[0],LepGood_eta[0],LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjTkMuPt[0],LepGood_pt[1],LepGood_eta[1],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[1])'
+    #trgString  ='triggerSF_2l_byCharge(LepGood_pt[0],LepGood_eta[0],LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjTkMuPt[0],LepGood_charge[0],1)'
+    #trgString +='*triggerSF_2l_byCharge(LepGood_pt[1],LepGood_eta[1],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[1],LepGood_charge[1],1)'
+
+    selectionString = '_get_muonSF_recoToSelection(LepGood_pdgId[0],LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(LepGood_pdgId[1],LepGood_pt[1],LepGood_eta[1])'
+    #trgString = '1.'
+    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+trgString+'*'+selectionString+' --maxRatioRange 0.8 1.2 --fixRatioRange --fitData --flp Z '
+    ##makeplots = ['ptlep', 'analysisetalep']#1', 'analysisetal2', 'ptl1', 'ptl2']#'ptl1', 'analysisetal1'] #'mtl1tk', 'etal1', 'ptl1']#'nVert', 'ptl1', 'etal1', 'mtl1tk', 'mtl1pf', 'tkmet', 'pfmet']
+    ##extraopts += ' -A alwaystrue onlyplus (LepGood_eta-10.*(LepGood_charge<0))>-2.5 '
+    makeplots = ['ptlepscaleUp', 'ptlepscaleDn']#'analysisetalep', 'ptlep']
+    showratio = True
+    runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
+    
+def plots1l():
+    print '=========================================='
+    print 'running plots for 1l'
+    print '=========================================='
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
+    targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/plots-1l/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
 
     fmca      = 'w-helicity-13TeV/wmass_mu/simple/mca_simple.txt'
     fcut      = 'w-helicity-13TeV/wmass_mu/simple/cuts_simple.txt'
     fplots    = 'w-helicity-13TeV/wmass_mu/simple/plots.txt'
 
-    enable    = []
-    disable   = []
-    #processes = ['data', 'Z', 'W', 'fakes_data', 'Top', 'DiBosons']
-    processes = ['WplusNoSkim']
+    enable    = []#'mtl1pf40max']
+    disable   = []#'mtl1pf40min']
+    #processes = ['W', 'data', 'Top', 'DiBosons', 'Z', 'data_fakes', 'TauDecaysW'] #'QCD'
+    processes = ['data_fakes', 'data_awayJetPt45']
     fittodata = []
     scalethem = {}
-    extraopts = '  ' #--maxRatioRange 0.8 1.2 --fixRatioRange ' #'--plotmode=norm '
-    makeplots = ['weightLongPlus', 'weightLeftPlus', 'weightRightPlus'] #'mtl1tk', 'etal1', 'ptl1']#'nVert', 'ptl1', 'etal1', 'mtl1tk', 'mtl1pf', 'tkmet', 'pfmet']
-    showratio = False
+    trgString = '1.'#triggerSF_1l_histo(LepGood_calPt[0],LepGood_eta[0])'
+
+    ## sfString = 'LepGood_SF1[0]*LepGood_SF3[0]'
+    sfString = '_get_muonSF_selectionToTrigger(13,LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])'
+    #extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+trgString+'*'+selectionString+' --maxRatioRange 0.9 1.1 --fixRatioRange '
+    #extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])*triggerSF_1l_histo(LepGood_pt[0],LepGood_eta[0]) --maxRatioRange 0.9 1.1 --fixRatioRange '
+    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+sfString+' --maxRatioRange 0.8 1.2 --fixRatioRange --fitData --plotmode=norm '
+    makeplots = ['ptl1scale', 'ptl1scaleUp', 'ptl1scaleDn']#, 'analysisetal1'] #'mtl1tk', 'etal1', 'ptl1']#'nVert', 'ptl1', 'etal1', 'mtl1tk', 'mtl1pf', 'tkmet', 'pfmet']
+    showratio = True
     runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
     
 def makePDFvariations():
@@ -176,23 +580,33 @@ def makePDFvariations():
     print '=========================================='
     trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/']
     friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
-    targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/absY_pdfVariations/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+    #targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/absY_pdfVariations/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+    targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/theory_variations/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
 
     fmca      = 'w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt'
     fcut      = 'w-helicity-13TeV/wmass_mu/helicityTemplates/cuts.txt'
     fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots.txt'
 
+    enable    = []#'recoCuts']
+    disable   = []
+    fittodata = []
+    scalethem = {}
+    showratio = False
+
     for ch in ['plus', 'minus']:
+        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch),]
         for i in range(1,61):
-            enable    = []#'recoCuts']
-            disable   = []
-            processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch),]
-            fittodata = []
-            scalethem = {}
-            extraopts = ' --plotmode=nostack -W hessWgt{i} '.format(i=i)
+            extraopts = ' --plotmode=nostack -W "hessWgt{i}" '.format(i=i)
             makeplots = ['w{ch}_wy_pdf{i}'.format(ch=ch,i=i)]
-            showratio = False
             runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], True, '{ch}_pdf{i}'.format(ch=ch,i=i))
+        for sys, var in itertools.product(['muR','muF', 'muRmuF', 'alphaS'],['Up', 'Dn']):
+            sv = sys+var
+            extraopts = ' --plotmode=nostack -W "qcd_{sv}" '.format(sv=sv)
+            makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], True, '{ch}_{sv}'.format(ch=ch,sv=sv))
+
+    for ch in ['plus', 'minus']:
+        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch),]
         extraopts = ' --plotmode=nostack -W 1. '.format(i=i)
         makeplots = ['w{ch}_wy_central'.format(ch=ch)]
         runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])#, True, '{ch}_central'.format(ch=ch))
@@ -209,35 +623,49 @@ def compareScales():
     fcut      = 'w-helicity-13TeV/wmass_mu/helicityTemplates/cuts.txt'
     fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots.txt'
 
-    for ch in ['both']:#'plus', 'minus', 'both']:
-        enable    = ['w'+ch]
-        disable   = []
-        processes = ['W{ch}_{iv}'.format(ch=ch, iv=i) for i in ['central', 'wptSlopeUp', 'wptSlopeDn' , 'qcdUp', 'qcdDn', 'muRUp', 'muRDn', 'muFUp', 'muFDn'] ]
-        fittodata = []
-        scalethem = {}
-        extraopts = ' --maxRatioRange 0.9 1.1 --fixRatioRange --plotmode=nostack -W 1. --ratioDen W{ch}_central --ratioNums {allp} '.format(ch=ch,allp=','.join(processes) )
-        makeplots = ['w{ch}_wpt'.format(ch=ch), 'ptl1', 'etal1']
-        showratio = True
-        runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
+    doW = False
+    doZ = True
+    if doW:
+        for ch in ['both']:#'plus', 'minus', 'both']:
+            enable    = ['w'+ch]
+            disable   = []
+            processes = ['W{ch}_{iv}'.format(ch=ch, iv=i) for i in ['central', 'wptSlopeUp', 'wptSlopeDn' , 'qcdUp', 'qcdDn', 'muRUp', 'muRDn', 'muFUp', 'muFDn'] ]
+            fittodata = []
+            scalethem = {}
+            extraopts = ' --maxRatioRange 0.9 1.1 --fixRatioRange --plotmode=nostack -W 1. --ratioDen W{ch}_central --ratioNums {allp} '.format(ch=ch,allp=','.join(processes) )
+            makeplots = ['w{ch}_wpt'.format(ch=ch), 'ptl1', 'etal1']
+            showratio = True
+            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
 
-    ## enable    = ['wboth']
-    ## disable   = []
-    ## processes = ['Wboth_{iv}'.format(iv=i) for i in ['central', 'qcdUp', 'qcdDn', 'muRUp', 'muRDn', 'muFUp', 'muFDn'] ]
-    ## fittodata = []
-    ## scalethem = {}
-    ## extraopts = ' --maxRatioRange 0.9 1.1 --fixRatioRange --plotmode=nostack -W 1. --ratioDen Wboth_central --ratioNums {allp} '.format(allp=','.join(processes) )
-    ## makeplots = ['ptl1', 'etal1']
-    ## showratio = True
-    ## runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
+        ## enable    = ['wboth']
+        ## disable   = []
+        ## processes = ['Wboth_{iv}'.format(iv=i) for i in ['central', 'qcdUp', 'qcdDn', 'muRUp', 'muRDn', 'muFUp', 'muFDn'] ]
+        ## fittodata = []
+        ## scalethem = {}
+        ## extraopts = ' --maxRatioRange 0.9 1.1 --fixRatioRange --plotmode=nostack -W 1. --ratioDen Wboth_central --ratioNums {allp} '.format(allp=','.join(processes) )
+        ## makeplots = ['ptl1', 'etal1']
+        ## showratio = True
+        ## runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
 
+    if doZ:
+        for ch in ['both']:
+            enable    = []
+            disable   = ['muons']
+            processes = ['Z{ch}_{iv}'.format(ch=ch, iv=i) for i in ['central', 'qcdUp', 'qcdDn', 'muRUp', 'muRDn', 'muFUp', 'muFDn'] ]
+            fittodata = []
+            scalethem = {}
+            extraopts = ' --maxRatioRange 0.9 1.1 --fixRatioRange --plotmode=nostack -W 1. --ratioDen Z{ch}_central --ratioNums {allp} '.format(ch=ch,allp=','.join(processes) )
+            makeplots = ['ptl1', 'etal1']
+            showratio = True
+            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
     
     
 def fakesDataMC():
     print '=========================================='
     print 'running fake closure/validation plots'
     print '=========================================='
-    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/fakes-dataMC/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
     fmca      = 'w-helicity-13TeV/wmass_mu/mca-wmu-helicity.txt'
     fcut      = 'w-helicity-13TeV/wmass_mu/cuts_wmu.txt'
@@ -246,10 +674,10 @@ def fakesDataMC():
     enable    = []
     disable   = []
     processes = ['data', 'Wincl', 'data_fakes', 'Top', 'DiBosons', 'Z']
-    fittodata = []
+    fittodata = []#'data_fakes']
     scalethem = {}
-    extraopts = '  --maxRatioRange 0.8 1.2 --fixRatioRange  --fitData '
-    makeplots = ['ptl1', 'etal1', 'mtl1pf']#mtl1pf', 'pfmet']#'ptl1', 'etal1', 'mtl1pf', 'pfmet']
+    extraopts = '  -W 1. --maxRatioRange 0.9 1.1 --fixRatioRange  ' #--fitData '
+    makeplots = ['ptl1', 'analysisetal1']#'mtl1pf', 'pfmet']#mtl1pf', 'pfmet']#'ptl1', 'etal1', 'mtl1pf', 'pfmet']
     showratio = True
     runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
 
@@ -343,8 +771,8 @@ def dyComparison():
     print '=========================================='
     print 'running checks on DY '
     print '=========================================='
-    trees     = ['/eos/cms/store/group/phys_tracking/elisabetta/WSkims/']
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/friends/friends_SFs_pu_awayJet-2017-12-11/'#2017-12-01/'
+    trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2l_skim_latest/']
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2l_skim_latest/friends/'
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/dy-dataMC/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
     fmca      = 'w-helicity-13TeV/wmass_mu/dy/mca.txt'
     fcut      = 'w-helicity-13TeV/wmass_mu/dy/cuts.txt'
@@ -353,10 +781,10 @@ def dyComparison():
     enable    = []
     disable   = []
     processes = ['data', 'Z']## very small:, 'Top', 'DiBosons']
-    fittodata = []
+    fittodata = ['Z']
     scalethem = {}
-    extraopts = ' -W LepGood_effSF[0]*LepGood_effSF[1] --maxRatioRange 0.8 1.2 --fixRatioRange '# --maxRatioRange 0. 2. --fixRatioRange  '
-    makeplots = ['rho', 'nVert']#'etal2']#, 'ptl1', 'etal1', 'ptl2', 'mll']#'etal2', 'nVert', 'mll', 'tkmet', 'pfmet']
+    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*LepGood_sf1[1]*LepGood_sf2[0]*LepGood_sf3[0]*LepGood_sf2[1]*LepGood_sf3[1] --maxRatioRange 0.9 1.1 --fixRatioRange '##*LepGood_sf1[0]*LepGood_sf2[0]*LepGood_sf3[0]*LepGood_sf2[1]*LepGood_sf3[1] '
+    makeplots = ['ptl1','ptl2']#ptl1', 'etal1', 'ptl2', 'etal2', 'mll']
     showratio = True
     runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
 
@@ -429,8 +857,10 @@ def fakeShapes():
 
 
 def makeFakeRatesFast(recalculate):
-    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
+    ## old trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
+    ## old friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/fakerates/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
 
     fmca   = 'w-helicity-13TeV/wmass_mu/FRfast/mca_fr.txt' 
@@ -440,23 +870,26 @@ def makeFakeRatesFast(recalculate):
     processes = ['QCD', 'WandZ', 'data']
     compprocs = ['QCD', 'WandZ', 'data', 'data_sub']
     fittodata = ['QCD', 'WandZ']
-    makeplots = ['mtl1pf', 'reliso03'] ## the first plot here is the one from which the scale factors are derived!!!
+    makeplots = ['mtl1pf', 'reliso04'] #'reliso03'] ## the first plot here is the one from which the scale factors are derived!!!
     
     import sys
     sys.path.append('w-helicity-13TeV/wmass_mu/')
     import make_cards_mu
     
     #binning = [25,30,35,40,50,100] ## from xvars.txt
-    binning = [25,27,29,31,33,35,37,39,41,43,45,48,51,54,60,65] ## from xvars.txt
-    binningeta = eval(make_cards_mu.etabinning) ## the binning is a list in form of a string
+    ## binning = [25,27,29,31,33,35,37,39,41,43,45,48,51,54,60,65] ## from xvars.txt
+    ## binningeta = eval(make_cards_mu.etabinning) ## the binning is a list in form of a string
+    binning = [24, 27, 30, 33, 36, 39, 42, 45, 48, 53, 60, 70] ## from xvars.txt
+    binningeta = [-2.4 + i*0.1 for i in range(49) ]
+    binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
     h_name  = 'fakerate_mu'; h_title = 'fakerates muons'
 
     h_fakerate_data = ROOT.TH2F(h_name+'_data',h_title+' - data', len(binning)-1, array.array('f',binning), len(binningeta)-1, array.array('f',binningeta))
     h_fakerate_mc   = ROOT.TH2F(h_name+'_qcd' ,h_title+' - qcd' , len(binning)-1, array.array('f',binning), len(binningeta)-1, array.array('f',binningeta))
     h_fakerate_data .Sumw2()
     h_fakerate_mc   .Sumw2()
-    h_fakerate_data .GetZaxis().SetRangeUser(0.01,0.45)
-    h_fakerate_mc   .GetZaxis().SetRangeUser(0.01,0.45)
+    h_fakerate_data .GetZaxis().SetRangeUser(0.01,0.7)
+    h_fakerate_mc   .GetZaxis().SetRangeUser(0.01,0.7)
     h_fakerate_data .GetXaxis().SetTitle('p_{T} mu'); h_fakerate_data .GetYaxis().SetTitle('#eta mu')
     h_fakerate_mc   .GetXaxis().SetTitle('p_{T} mu'); h_fakerate_mc   .GetYaxis().SetTitle('#eta mu')
 
@@ -465,8 +898,8 @@ def makeFakeRatesFast(recalculate):
     h_promptrate_mc   = ROOT.TH2F(h_name+'_qcd' ,h_title+' - qcd' , len(binning)-1, array.array('f',binning), len(binningeta)-1, array.array('f',binningeta))
     h_promptrate_data .Sumw2()
     h_promptrate_mc   .Sumw2()
-    h_promptrate_data .GetZaxis().SetRangeUser(0.5,1.00)
-    h_promptrate_mc   .GetZaxis().SetRangeUser(0.5,1.00)
+    h_promptrate_data .GetZaxis().SetRangeUser(0.5,1.0)
+    h_promptrate_mc   .GetZaxis().SetRangeUser(0.5,1.0)
     h_promptrate_data .GetXaxis().SetTitle('p_{T} mu'); h_promptrate_data .GetYaxis().SetTitle('#eta mu')
     h_promptrate_mc   .GetXaxis().SetTitle('p_{T} mu'); h_promptrate_mc   .GetYaxis().SetTitle('#eta mu')
 
@@ -482,7 +915,7 @@ def makeFakeRatesFast(recalculate):
         ## this is some weird recursive magic to submit this to the batch
         if opts.submitFR:
             abspath = os.path.abspath('.')
-            tmp_cmd = 'python '+abspath+'/runWHelicity_mu_13TeV.py --fr --recalculate --doBin {j}'.format(j=j)
+            tmp_cmd = 'python '+abspath+'/runWHelicity_mu_13TeV.py --fr --recalculate --doBin {j} {pf}'.format(j=j,pf='--postfix '+opts.postfix if opts.postfix else '')
             submitFRrecursive(tmp_td, 'frjob_{j}'.format(j=j), tmp_cmd)
             continue
         if opts.doBin > -1:
@@ -605,39 +1038,47 @@ def makeFakeRatesFast(recalculate):
                     graph = graph_file.Get('muonTightIso_pt_fine_binned_data_sub')
                     pol0.SetLineColor(ROOT.kGreen); pol0.SetLineWidth(2)
                     pol1.SetLineColor(ROOT.kRed-3); pol1.SetLineWidth(2)
-                    pol0.SetParLimits(1, 0.1, 0.4)
-                    pol1.SetParLimits(1, -0.1  , 0.1)
-                    pol1.SetParLimits(0,  0.1  , 1.1)
+                    ## pol0.SetParLimits(1, 0.1, 0.8)
+                    ## pol1.SetParLimits(1, -0.1  , 0.8)
+                    ## pol1.SetParLimits(0,  0.1  , 1.1)
 
                 else:
                     graph = graph_file.Get('muonTightIso_pt_fine_binned_WandZ')
                     graph.SetLineColor(ROOT.kRed); graph.SetMarkerColor(ROOT.kRed)
                     pol0.SetLineColor(ROOT.kBlue)   ; pol0.SetLineWidth(2)
                     pol1.SetLineColor(ROOT.kAzure-3); pol1.SetLineWidth(2)
-                    pol0.SetParLimits(1, 0.1, 1.1)
-                    pol1.SetParLimits(1, -0.1  , 0.1)
-                    pol1.SetParLimits(0,  0.1  , 1.1)
+                    ## pol0.SetParLimits(1, 0.1, 1.1)
+                    ## pol1.SetParLimits(1, -0.1  , 0.1)
+                    ## pol1.SetParLimits(0,  0.1  , 1.1)
 
+                print 'this is graph', graph
                 mg.Add(copy.deepcopy(graph))
 
                 graph.Fit("{r}_pol0_{eta}".format(r=rate,eta=etastring), "M", "", 25., 50.)
                 graph.Fit("{r}_pol1_{eta}".format(r=rate,eta=etastring), "M", "", 25., 50.)
 
-                pol0_chi2 = pol0.GetChisquare(); pol0_ndf = pol0.GetNDF()
-                pol1_chi2 = pol1.GetChisquare(); pol1_ndf = pol1.GetNDF()
+                ## pol0_chi2 = pol0.GetChisquare(); pol0_ndf = pol0.GetNDF()
+                ## pol1_chi2 = pol1.GetChisquare(); pol1_ndf = pol1.GetNDF()
 
-                rchi2_0 = pol0_chi2/pol0_ndf
-                rchi2_1 = pol1_chi2/pol1_ndf
+                ## print 'pol0', pol0
+                ## print 'pol1', pol1
+                ## print 'pol0_ndf for etastring:', pol0_ndf, etastring
+                ## print 'pol1_ndf for etastring:', pol1_ndf, etastring
 
-                bestfunc = pol0 if rchi2_0 < rchi2_1 else pol1
-                worstfun = pol0 if rchi2_0 > rchi2_1 else pol1
+                ## rchi2_0 = pol0_chi2/pol0_ndf
+                ## rchi2_1 = pol1_chi2/pol1_ndf
 
-                print '{r} and {eta}: chi2 of pol0 = {chi0}/{ndf0} = {red0}'.format(r=rate,eta=etastring,chi0=pol0_chi2,ndf0=pol0_ndf, red0=rchi2_0)
-                print '{r} and {eta}: chi2 of pol1 = {chi1}/{ndf1} = {red1}'.format(r=rate,eta=etastring,chi1=pol1_chi2,ndf1=pol1_ndf, red1=rchi2_1)
+                ## bestfunc = pol0 if rchi2_0 < rchi2_1 else pol1
+                ## worstfun = pol0 if rchi2_0 > rchi2_1 else pol1
 
-                print 'the better function is {func}'.format(func=bestfunc.GetName())
+                ## print '{r} and {eta}: chi2 of pol0 = {chi0}/{ndf0} = {red0}'.format(r=rate,eta=etastring,chi0=pol0_chi2,ndf0=pol0_ndf, red0=rchi2_0)
+                ## print '{r} and {eta}: chi2 of pol1 = {chi1}/{ndf1} = {red1}'.format(r=rate,eta=etastring,chi1=pol1_chi2,ndf1=pol1_ndf, red1=rchi2_1)
 
-                #print '{eta}: compared to {func}         .   value={val:.3f}'.format(eta=eta, func = worstfun.GetName(), val=worstfun.GetChisquare()/worstfun.GetNDF())
+                ## print 'the better function is {func}'.format(func=bestfunc.GetName())
+
+                ## #print '{eta}: compared to {func}         .   value={val:.3f}'.format(eta=eta, func = worstfun.GetName(), val=worstfun.GetChisquare()/worstfun.GetNDF())
+
+                bestfunc = pol1
                 
                 etabin = j+1 #if eta == 'barrel' else 2
                 
@@ -669,7 +1110,7 @@ def makeFakeRatesFast(recalculate):
             canv.SaveAs(targetdir+'fakeAndPromptRate_fit_data_{eta}.pdf'.format(eta=etastring))
         
         h_fr_smoothed_data.Draw("colz text45")
-        h_fr_smoothed_data.GetZaxis().SetRangeUser(-0.05, 0.45)
+        h_fr_smoothed_data.GetZaxis().SetRangeUser(0.0, 0.6)
         h_fr_smoothed_data.GetXaxis().SetTitle('#eta_{#mu}')
         h_fr_smoothed_data.GetXaxis().SetTitleSize(0.045)
         h_fr_smoothed_data.GetXaxis().SetLabelSize(0.05)
@@ -718,8 +1159,11 @@ if __name__ == '__main__':
     parser.add_option('--dy'        , '--dyComparison' , dest='dyComparison' , action='store_true' , default=False , help='make dy comparisons')
     parser.add_option('--pdf'       , '--pdfVariations', dest='pdfVariations', action='store_true' , default=False , help='make plots with pdf variations')
     parser.add_option('--unfold'    , '--unfoldEffs'   , dest='unfoldEff'    , action='store_true' , default=False , help='make unfolding efficiencies gen-reco')
-    parser.add_option('--unfoldLO'    , '--unfoldLO'   , dest='unfoldLO'    , action='store_true' , default=False , help='make unfolding for LO')
+    parser.add_option('--unfoldLO'  , '--unfoldLO'   , dest='unfoldLO'    , action='store_true' , default=False , help='make unfolding for LO')
     parser.add_option('--compareScales', '--scales'   , dest='compareScales'    , action='store_true' , default=False , help='compare qcd scales')
+    parser.add_option('--sf'        , '--sfClosure'   , dest='sfClosure'    , action='store_true' , default=False , help='make 2l sf closure')
+    parser.add_option('--sc'        , '--scaleClosure', dest='scaleClosure' , action='store_true' , default=False , help='make 2l muon momentum scale closure test')
+    parser.add_option('--plots1l'   , dest='plots1l' , action='store_true' , default=False , help='make plots for 1lepton region(s)')
     (opts, args) = parser.parse_args()
 
     global date, postfix, lumi, date
@@ -765,3 +1209,12 @@ if __name__ == '__main__':
     if opts.compareScales:
         print 'making comparison of qcd scales'
         compareScales()
+    if opts.sfClosure:
+        print 'sf closure'
+        sfClosure2l()
+    if opts.scaleClosure:
+        print 'muon scale closure'
+        scaleClosure(opts.recalculate)
+    if opts.plots1l:
+        print 'plots for 1l region(s)'
+        plots1l()
