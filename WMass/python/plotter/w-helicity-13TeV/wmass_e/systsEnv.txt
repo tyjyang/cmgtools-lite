@@ -28,17 +28,13 @@ CMS_We_elescale      :  W.*: .* : elescale         : templates
 # Fake rate uncertainties
 # 1+2) Measurement of the fake rate: normalization and shapes
 # ==================================================================
-# flat normalization uncertainty
-#CMS_We_FRe_norm      : data_fakes  : .* : 1.30
-# non-flat normalization uncertainty
-CMS_We_FRe_norm      : data_fakes  : .* : FRe_norm : templates
-# shape uncertainty (slope of FR with pt)
-CMS_We_FRe_pt        : data_fakes  : .* : FRe_pt   : templatesShapeOnly
-# shape uncertainty (subtraction of EWK component scaled by 1sigma of cross section uncertainty, changes both shape and normalization)
-CMS_We_FRe_scaleEWK        : data_fakes  : .* : FRe_scaleEWK : templates
-# the uncertainty from variation of awayJet pt from 30 to 45 does not have up and down
-# the field before the mode must be the full process name for mode=alternateShape (see makeShapeCards.py)
-CMS_We_FRe_awayJetPt45     : data_fakes  : .* : data_fakes_FRe_awayJetPt45 : alternateShape 
+# first is the normalization uncertainty
+#CMS_We_FRe_norm        : data_fakes  : .* : 1.30
+
+# shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
+CMS_We_FRe_slope         : data_fakes  : .* : FRe_slope       : templatesShapeOnly
+CMS_We_FRe_continuous    : data_fakes  : .* : FRe_continuous  : templates
+CMS_We_FRe_awayJetPt45   : data_fakes  : .* : data_fakes_FRe_awayJetPt45 : alternateShapeOnly
 
 # ==================================================================
 # Charge flips (uncertainty from T&P. Take the max(EB,EE) )

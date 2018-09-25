@@ -272,12 +272,6 @@ if __name__ == "__main__":
                                                     print "Skipping %s " % newname
                                                     print "Will be recreated mirroring the Up component here"
                                                     continue
-                                                # this syst was made with alternateShape. However, the mirroring algorithm in makeShapeCards.py is different    
-                                                # and produces a strange result on the mirrored image (which it calls 'Down')                                         
-                                                # so here we take 'Up' and overwrite 'Down'                        
-                                                # the old 'Down' will not be written                                                                            
-                                                print "#####  CHECKPOINT  --> %s #####" % newname
-                                                # the syst might have been evaluated before the nominal, so nominals["x_data_fakes"] might not exist yet
                                                 pfx = 'x_data_fakes'
                                                 newname = newname[:-2] # remove Up from name                  
                                                 nominalFakes = 0
@@ -288,7 +282,7 @@ if __name__ == "__main__":
                                                     if not nominalFakes: 
                                                         print "Warning: couldn't read %s from file" % pfx
                                                         quit()
-                                                (alternate,mirror) = mirrorShape(nominalFakes,obj,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=True)             
+                                                (alternate,mirror) = mirrorShape(nominalFakes,obj,newname,alternateShapeOnly=True,use2xNomiIfAltIsZero=True)             
                                                 for alt in [alternate,mirror]:
                                                     if alt.GetName() not in plots:
                                                         plots[alt.GetName()] = alt.Clone()
