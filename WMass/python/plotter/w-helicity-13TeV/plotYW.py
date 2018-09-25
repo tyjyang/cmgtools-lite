@@ -27,8 +27,8 @@ class valueClass:
         if 'asymmetry' in name:
             self.charge = self.ch = ''
 
-        self.color  = ROOT.kAzure+8 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+1
-        self.colorf = ROOT.kAzure+3 if self.isleft else ROOT.kOrange+9 if self.isright else ROOT.kGray+3
+        self.color  = ROOT.kBlue-9 if self.isleft else ROOT.kOrange-4 if self.isright else ROOT.kGray+1
+        self.colorf = ROOT.kBlue-3 if self.isleft else ROOT.kOrange-3 if self.isright else ROOT.kGray+3
 
         ## here all the arrays that will contain the values and errors etc.
         self.val       = array.array('f', []); self.ehi       = array.array('f', []); self.elo       = array.array('f', []);
@@ -56,7 +56,7 @@ class valueClass:
 
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
-        self.mg.SetTitle('W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
+        self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
@@ -67,6 +67,9 @@ class valueClass:
             self.graph.SetFillStyle(3002)
         if hasattr(self,'graph_fit'):
             self.graph_fit.SetLineWidth(2)
+            self.graph_fit.SetMarkerSize(0.7)
+            self.graph_fit.SetMarkerStyle(20)
+            self.graph_fit.SetMarkerColor(self.colorf)
             self.graph_fit.SetLineColor(self.colorf)
         if hasattr(self,'graph_rel'):
             self.graph_rel.SetLineWidth(5)
@@ -76,30 +79,36 @@ class valueClass:
         if hasattr(self,'graph_fit_rel'):
             self.graph_fit_rel.SetLineWidth(2)
             self.graph_fit_rel.SetLineColor(self.colorf)
+            self.graph_fit_rel.SetMarkerSize(0.7)
+            self.graph_fit_rel.SetMarkerStyle(20)
+            self.graph_fit_rel.SetMarkerColor(self.colorf)
 
 def plotValues(values,charge,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
-        c2.GetPad(0).SetTopMargin(0.05)
+        c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.15)
         c2.GetPad(0).SetLeftMargin(0.16)
+        c2.GetPad(0).SetRightMargin(0.03)
 
         ch = '+' if charge == 'plus' else '-'
         if charge == 'asymmetry': ch = ''
         date = datetime.date.today().isoformat()
         normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
 
+        lat = ROOT.TLatex()
+        lat.SetNDC(); lat.SetTextFont(42)
         ## the four graphs exist now. now starting to draw them
         ## ===========================================================
         if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
-            leg = ROOT.TLegend(0.60, 0.60, 0.85, 0.90)
+            leg = ROOT.TLegend(0.60, 0.50, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph     , 'W^{{{ch}}} left (PDF systs)' .format(ch=ch) , 'f')
-            leg.AddEntry(values['left'] .graph_fit , 'W^{{{ch}}} left (fit)' .format(ch=ch)       , 'pl')
-            leg.AddEntry(values['right'].graph     , 'W^{{{ch}}} right (PDF systs)'.format(ch=ch) , 'f')
-            leg.AddEntry(values['right'].graph_fit , 'W^{{{ch}}} right (fit)'.format(ch=ch)       , 'pl')
-            leg.AddEntry(values['long'] .graph     , 'W^{{{ch}}} long (PDF systs)'.format(ch=ch) , 'f')
-            leg.AddEntry(values['long'] .graph_fit , 'W^{{{ch}}} long (fit)'.format(ch=ch)       , 'pl')
+            leg.AddEntry(values['left'] .graph     , 'W^{{{ch}}}_{{left}} (PDF unc.)'  .format(ch=ch) , 'f')
+            leg.AddEntry(values['left'] .graph_fit , 'W^{{{ch}}}_{{left}} (fit)'       .format(ch=ch) , 'pl')
+            leg.AddEntry(values['right'].graph     , 'W^{{{ch}}}_{{right}} (PDF unc.)' .format(ch=ch) , 'f')
+            leg.AddEntry(values['right'].graph_fit , 'W^{{{ch}}}_{{right}} (fit)'      .format(ch=ch) , 'pl')
+            leg.AddEntry(values['long'] .graph     , 'W^{{{ch}}}_{{long}} (PDF unc.)'  .format(ch=ch) , 'f')
+            leg.AddEntry(values['long'] .graph_fit , 'W^{{{ch}}}_{{long}} (fit)'       .format(ch=ch) , 'pl')
      
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
                 
@@ -125,6 +134,8 @@ def plotValues(values,charge,options):
             mg.GetYaxis().SetTitleOffset(1.2)
      
             leg.Draw('same')
+            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.65, 0.92, '36 fb^{-1} (13 TeV)')
      
             for ext in ['png', 'pdf']:
                 c2.SaveAs('{od}/genAbsY{norm}_pdfs_{date}_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, date=date, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
@@ -138,14 +149,7 @@ def plotValues(values,charge,options):
             line = ROOT.TF1("horiz_line","0" if charge=='asymmetry' else '1',0.0,3.0);
             line.SetLineColor(ROOT.kBlack);
             line.SetLineWidth(2);
-     
-            padUp = c2.cd(1)
-            padUp.SetTickx(1)
-            padUp.SetTicky(1)
-            padUp.SetGridy(1)
-            padUp.SetLeftMargin(0.15)
-            padUp.SetBottomMargin(0.10)
-     
+
             yaxrange = {}
             if charge=='asymmetry':
                 yaxtitle = 'W charge asymmetry'
@@ -154,65 +158,61 @@ def plotValues(values,charge,options):
                 yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{d#sigma/dy}{d#sigma^{exp}/dy}'
                 yaxrange['left'] = (0.85, 1.15); yaxrange['right'] = (0.85, 1.15); yaxrange['long'] = (0.5, 1.5)
      
-            values['left'].mg.Draw('Pa')
-            values['left'].mg.GetXaxis().SetRangeUser(0., 3.)
-            values['left'].mg.GetYaxis().SetRangeUser(yaxrange['left'][0],yaxrange['left'][1])
-            values['left'].mg.GetXaxis().SetTitleSize(0.06)
-            values['left'].mg.GetXaxis().SetLabelSize(0.06)
-            values['left'].mg.GetYaxis().SetTitleSize(0.06)
-            values['left'].mg.GetYaxis().SetLabelSize(0.06)
-            values['left'].mg.GetYaxis().SetTitle(yaxtitle)
+            legs = []
+            pad_height, pad_width = 0.30, 0.85
+            offset_top = 0.06
 
-            leg = ROOT.TLegend(0.20, 0.60, 0.45, 0.90)
-            leg.SetFillStyle(0)
-            leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph_rel     , 'W^{{{ch}}} left (PDF systs)' .format(ch=ch) , 'f')
-            leg.AddEntry(values['left'] .graph_fit_rel , 'W^{{{ch}}} left (fit)' .format(ch=ch)       , 'pl')
-            leg.AddEntry(values['right'].graph_rel     , 'W^{{{ch}}} right (PDF systs)'.format(ch=ch) , 'f')
-            leg.AddEntry(values['right'].graph_fit_rel , 'W^{{{ch}}} right (fit)'.format(ch=ch)       , 'pl')
-            leg.AddEntry(values['long'] .graph_rel     , 'W^{{{ch}}} long (PDF systs)'.format(ch=ch) , 'f')
-            leg.AddEntry(values['long'] .graph_fit_rel , 'W^{{{ch}}} long (fit)'.format(ch=ch)       , 'pl')
+            pads = []
+            for  ih,hel in enumerate(['left','right','long']):
+                pad = ROOT.TPad('p'+str(ih), 'p'+str(ih), 0.00, 1.-offset_top-(ih+1)*pad_height, 1.00, 1.-offset_top-ih*pad_height)
+                pad.SetRightMargin(0.03)
+                pad.SetLeftMargin (0.12)
+                pad.SetTopMargin(0.03)
+                pad.SetBottomMargin(0.03)
+                if ih ==2:
+                    pad.SetBottomMargin(0.12)
+        
+                pad.Draw()
+                pads.append(pad)
+    
+
+            for  ih,hel in enumerate(['left','right','long']):
      
-            leg.Draw('same')
-            line.Draw("Lsame");
-            padUp.RedrawAxis("sameaxis");
+                pads[ih].cd()
+                values[hel].mg.Draw('Pa')
+                ## x axis fiddling
+                values[hel].mg.GetXaxis().SetRangeUser(0., 3.)
+                values[hel].mg.GetXaxis().SetTitleSize(0.00)
+                if not ih == 2:
+                    values[hel].mg.GetXaxis().SetLabelSize(0.00)
+                else:
+                    values[hel].mg.GetXaxis().SetLabelSize(0.10)
+                ## y axis fiddling
+                values[hel].mg.GetYaxis().SetTitleOffset(0.45)
+                values[hel].mg.GetYaxis().SetTitleSize(0.10)
+                values[hel].mg.GetYaxis().SetLabelSize(0.08)
+                values[hel].mg.GetYaxis().SetTitle(yaxtitle)
+                values[hel].mg.GetYaxis().SetRangeUser(yaxrange[hel][0],yaxrange[hel][1])
+
+                legx1, legx2, legy1, legy2 = 0.2, 0.7, 0.65, 0.9
+
+                leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
+                leg.SetNColumns(2); leg.SetFillStyle(0); leg.SetBorderSize(0)
+                leg.AddEntry(values[hel].graph_fit_rel , 'W^{{{ch}}} {h} (fit)'      .format(h=hel,ch=ch) , 'pl')
+                leg.AddEntry(values[hel].graph_rel     , 'W^{{{ch}}} {h} (PDF unc.)' .format(h=hel,ch=ch) , 'f')
+
      
-            padMiddle = c2.cd(2)
-            padMiddle.SetTickx(1)
-            padMiddle.SetTicky(1)
-            padMiddle.SetGridy(1)
-            padMiddle.SetLeftMargin(0.15)
-            padMiddle.SetBottomMargin(0.15)
-            values['right'].mg.Draw('pa')
-            values['right'].mg.GetXaxis().SetRangeUser(0., 3.)
-            values['right'].mg.GetYaxis().SetRangeUser(yaxrange['right'][0],yaxrange['right'][1])
-            values['right'].mg.GetXaxis().SetTitle('|Y_{W}|')
-            values['right'].mg.GetXaxis().SetTitleSize(0.06)
-            values['right'].mg.GetXaxis().SetLabelSize(0.06)
-            values['right'].mg.GetYaxis().SetTitleSize(0.06)
-            values['right'].mg.GetYaxis().SetLabelSize(0.06)
-            values['right'].mg.GetYaxis().SetTitle(yaxtitle)
-            line.Draw("Lsame");
-            padMiddle.RedrawAxis("sameaxis");
+                leg.Draw('same')
+                legs.append(leg) ## maybe this helps? lo and behold, pyROOT magic. this line is needed
+                line.Draw("Lsame");
+                pads[ih].RedrawAxis("sameaxis");
      
-            padDown = c2.cd(3)
-            padDown.SetTickx(1)
-            padDown.SetTicky(1)
-            padDown.SetGridy(1)
-            padDown.SetLeftMargin(0.15)
-            padDown.SetBottomMargin(0.15)
-            values['long'].mg.Draw('pa')
-            values['long'].mg.GetXaxis().SetRangeUser(0., 3.)
-            values['long'].mg.GetYaxis().SetRangeUser(yaxrange['long'][0],yaxrange['long'][1])
-            values['long'].mg.GetXaxis().SetTitle('|Y_{W}|')
-            values['long'].mg.GetXaxis().SetTitleSize(0.06)
-            values['long'].mg.GetXaxis().SetLabelSize(0.06)
-            values['long'].mg.GetYaxis().SetTitleSize(0.06)
-            values['long'].mg.GetYaxis().SetLabelSize(0.06)
-            values['long'].mg.GetYaxis().SetTitle(yaxtitle)
-            line.Draw("Lsame");
-            padDown.RedrawAxis("sameaxis");
      
+            c2.cd()
+            lat.DrawLatex(0.12, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.65, 0.94, '36 fb^{-1} (13 TeV)')
+            lat.SetTextSize(0.04)
+            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
             for ext in ['png', 'pdf']:
                 c2.SaveAs('{od}/genAbsY{norm}_pdfs_{date}_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, date=date, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
-    channel = 'mu' if any(re.match(param,'.*_mu_Ybin_.*') for param in valuesAndErrors.keys()) else 'el'
+    channel = 'mu' if any(re.match('.*_mu_Ybin_.*', param) for param in valuesAndErrors.keys()) else 'el'
     print "From the list of parameters it seems that you are plotting results for channel ",channel
 
     ybinfile = open(ybinfile, 'r')
