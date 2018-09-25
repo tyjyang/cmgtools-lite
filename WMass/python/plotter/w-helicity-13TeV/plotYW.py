@@ -341,7 +341,7 @@ if __name__ == "__main__":
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             nOuterBinsToExclude = 2
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
-            normsigma = sum([xsec_nominal[pol][iy] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            normsigma = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigma)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
@@ -366,8 +366,9 @@ if __name__ == "__main__":
                     if   options.type == 'toys': 
                         xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
                     elif options.type == 'hessian':
+                        # to be correct, this shoould be done with _pmaskedexpnorm, but cannot exclude the outer bins
                         xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
-                        xsecnorm = sum(valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=tmpiy)][0] for tmpiy in xrange(len(ybins[cp])-nOuterBinsToExclude-1))
+                        xsecnorm = sum(valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=tmpiy)][0] for allpol in ['left','right', 'long'] for tmpiy in xrange(len(ybins[cp])-nOuterBinsToExclude-1))
                         scale = 1./xsecnorm
                     else:
                         print "--normxsec not implemented yet for scans."
