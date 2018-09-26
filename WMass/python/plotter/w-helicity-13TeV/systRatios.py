@@ -49,7 +49,7 @@ if __name__ == "__main__":
         procs=wlr+bkgs
 
         jobsdir = args[0]+'/jobs/'
-        jobfile_name = 'W{ch}_left_{flav}_Ybin_0.sh'.format(ch=charge,flav=channel)
+        jobfile_name = 'W{ch}_left_{flav}_Ybin_4.sh'.format(ch=charge,flav=channel)
         tmp_jobfile = open(jobsdir+jobfile_name, 'r')
         tmp_line = tmp_jobfile.readlines()[-1].replace(', ',',').split()
         binning = getbinning(tmp_line)
