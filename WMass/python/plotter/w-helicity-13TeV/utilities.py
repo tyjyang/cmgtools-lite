@@ -184,7 +184,8 @@ class util:
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
             _dict[p.GetName()] = (mean, mean+err, mean-err)
-     
+            del tmp_hist
+
         return _dict
 
     def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None):
