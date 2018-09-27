@@ -1,1 +1,2 @@
-Z  : DYJetsToLL_M50_ext2_*    : 2008.4*3   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+#Z  : DYJetsToLL_M50_ext2_*    : 2008.4*3   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+Z  : DYJetsToLL_M50_part1 + DYJetsToLL_M50_part1 + DYJetsToLL_M50_part1 + DYJetsToLL_M50_ext2_part1 + DYJetsToLL_M50_ext2_part2 + DYJetsToLL_M50_ext2_part3 +DYJetsToLL_M50_ext2_part4 + DYJetsToLL_M50_ext2_part5 + DYJetsToLL_M50_ext2_part6 + DYJetsToLL_M50_ext2_part7 + DYJetsToLL_M50_ext2_part8 + DYJetsToLL_M50_ext2_part9 + DYJetsToLL_M50_ext2_part10    : 2008.4*3   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04

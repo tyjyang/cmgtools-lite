@@ -64,12 +64,16 @@ if __name__ == "__main__":
     jobdir = absopath+'/jobs/'
     if not os.path.isdir(jobdir):
         os.system('mkdir {od}'.format(od=jobdir))
+    logdir = absopath+'/logs/'
+    if not os.path.isdir(logdir):
+        os.system('mkdir {od}'.format(od=logdir))
 
     random.seed()
 
     for j in xrange(int(ntoys/int(options.nTj))):
         ## make new file for evert parameter and point
         job_file_name = jobdir+'/job_{j}_toy{n:.0f}To{nn:.0f}.sh'.format(j=j,n=j*int(options.nTj),nn=(j+1)*int(options.nTj))
+        log_file_name = logdir+'/job_{j}_toy{n:.0f}To{nn:.0f}.log'.format(j=j,n=j*int(options.nTj),nn=(j+1)*int(options.nTj))
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
@@ -81,7 +85,7 @@ if __name__ == "__main__":
         tmp_file.write(tmp_filecont)
         tmp_file.close()
         os.system('chmod u+x {f}'.format(f=job_file_name))
-        cmd = 'bsub -o {log} -q {queue} {job}'.format(log=job_file_name.replace('.sh','.log'),queue=options.queue,job=job_file_name)
+        cmd = 'bsub -o {log} -q {queue} {job}'.format(log=log_file_name,queue=options.queue,job=job_file_name)
         if options.dryRun:
             print cmd
         else:

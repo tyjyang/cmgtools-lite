@@ -75,6 +75,8 @@ if __name__ == "__main__":
 
     charges = options.charge.split(',')
 
+    canvas = ROOT.TCanvas("canvas","",800,700)
+
     for charge in charges:
 
         outname = options.outdir
@@ -99,17 +101,17 @@ if __name__ == "__main__":
         print "From the list of parameters it seems that you are plotting results for channel ",channel
         lepton = "electron" if channel == "el" else " muon"
 
-        hmu = ROOT.TH2F("hmu",'#mu: W{chs}'.format(chs=chs),len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
-        hmu_err = ROOT.TH2F("hmu_err",'#mu uncertainty: W{chs}'.format(chs=chs),len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
+        hmu = ROOT.TH2F("hmu",'signal strenght #mu: W{chs}'.format(chs=chs),len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
+        hmu_err = ROOT.TH2F("hmu_err",'signal strenght uncertainty: W{chs}'.format(chs=chs),len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
 
-        h_pmaskedexpnorm_mu = ROOT.TH2F("h_pmaskedexpnorm_mu",'#mu pmaskedexpnorm: W{chs}'.format(chs=chs),
+        h_pmaskedexpnorm_mu = ROOT.TH2F("h_pmaskedexpnorm_mu",'normalized cross section: W{chs}'.format(chs=chs),
                                         len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
-        h_pmaskedexpnorm_mu_err = ROOT.TH2F("h_pmaskedexpnorm_mu_err",'pmaskedexpnorm #mu uncertainty: W{chs}'.format(chs=chs),
+        h_pmaskedexpnorm_mu_err = ROOT.TH2F("h_pmaskedexpnorm_mu_err",'norm. cross section unc.: W{chs}'.format(chs=chs),
                                             len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
 
-        h_pmaskedexp_mu = ROOT.TH2F("h_pmaskedexp_mu",'#mu pmaskedexp: W{chs}'.format(chs=chs),
+        h_pmaskedexp_mu = ROOT.TH2F("h_pmaskedexp_mu",'cross section: W{chs}'.format(chs=chs),
                                     len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
-        h_pmaskedexp_mu_err = ROOT.TH2F("h_pmaskedexp_mu_err",'pmaskedexp #mu uncertainty: W{chs}'.format(chs=chs),
+        h_pmaskedexp_mu_err = ROOT.TH2F("h_pmaskedexp_mu_err",'cross section unc.: W{chs}'.format(chs=chs),
                                         len(etabinning)-1, array('d',etabinning), len(ptbinning)-1, array('d',ptbinning))
 
         for key,val in valuesAndErrors.iteritems():
@@ -168,7 +170,7 @@ if __name__ == "__main__":
         drawCorrelationPlot(hmu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         #zaxisTitle = "uncertainty on #mu::%.3g,%.3g" % (hmu_err.GetMinimum(), hmu_err.GetMaximum())
         #zaxisTitle = "uncertainty on #mu::0,%.3g" % (hmu_err.GetMaximum())
@@ -176,26 +178,26 @@ if __name__ == "__main__":
         drawCorrelationPlot(hmu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         zaxisTitle = "d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu.GetMinimum(), h_pmaskedexpnorm_mu.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu_err.GetMinimum(), h_pmaskedexpnorm_mu_err.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         zaxisTitle = "d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu.GetMinimum(), h_pmaskedexp_mu.GetMaximum())
         #zaxisTitle = "d#sigma/d#etadp_{T} [pb/GeV]::0,5"
         drawCorrelationPlot(h_pmaskedexp_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         #zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} [pb/GeV]::%.3g,%.3g" % (h_pmaskedexp_mu_err.GetMinimum(), h_pmaskedexp_mu_err.GetMaximum())
         zmin,zmax = getZaxisReasonableExtremesTH2(h_pmaskedexp_mu_err,maxZtoUse=10)
@@ -204,31 +206,31 @@ if __name__ == "__main__":
         drawCorrelationPlot(h_pmaskedexp_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_err.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         h_pmaskedexp_mu_relErr = h_pmaskedexp_mu_err.Clone("h_pmaskedexp_mu_relErr")
         h_pmaskedexp_mu_relErr.Divide(h_pmaskedexp_mu)
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.5" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.3" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         h_pmaskedexpnorm_mu_relErr = h_pmaskedexpnorm_mu_err.Clone("h_pmaskedexpnorm_mu_relErr")
         h_pmaskedexpnorm_mu_relErr.Divide(h_pmaskedexpnorm_mu)
         h_pmaskedexpnorm_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
-        #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.000,0.04" 
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::0.000,0.05" 
         zmin,zmax = getZaxisReasonableExtremesTH2(h_pmaskedexpnorm_mu_err,maxZtoUse=1)
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g"  % (zmin,zmax) 
+        #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g"  % (zmin,zmax) 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu_relErr.GetMinimum(), h_pmaskedexpnorm_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_relErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22)
+                            "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
         # now drawing a TH1 unrolling TH2
         unrollAlongEta = False
