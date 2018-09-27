@@ -40,8 +40,6 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
-    print valuesAndErrors
-
     setUpString = "diffNuisances run on %s, at %s with the following options ... "%(args[0],datetime.datetime.utcnow())+str(options)
     date = datetime.date.today().isoformat()
 
