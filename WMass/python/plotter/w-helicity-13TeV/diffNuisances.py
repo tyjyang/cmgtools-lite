@@ -40,16 +40,19 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
+    print valuesAndErrors
+
     setUpString = "diffNuisances run on %s, at %s with the following options ... "%(args[0],datetime.datetime.utcnow())+str(options)
     date = datetime.date.today().isoformat()
+
     
     valuesPrefit = dict((k,v) for k,v in valuesAndErrors.iteritems() if k.endswith('_gen'))
     pois_regexps = list(options.pois.split(','))
     for ppatt in pois_regexps:            
         for (k,v) in valuesAndErrors.iteritems():
             valuesAndErrors = dict((k,v) for k,v in valuesAndErrors.iteritems() if re.match(ppatt,k) and not k.endswith('_gen'))
-            valuesPrefit = dict((k,v) for k,v in valuesPrefit.iteritems() if re.match(ppatt,k))
-            
+            valuesPrefit    = dict((k,v) for k,v in valuesPrefit.iteritems() if re.match(ppatt.replace('$','_gen'),k))
+
     params = valuesAndErrors.keys()
     if len(params)==0:
         print "No parameters selected. Exiting."
@@ -61,7 +64,8 @@ if __name__ == "__main__":
     nuis_p_i=0
     title = "#theta"
 
-    hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
+    #hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
+    hist_fit_s  = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
 
     isFlagged = {}
 
@@ -192,18 +196,37 @@ if __name__ == "__main__":
 
     if options.outdir:
         import ROOT
+        line = ROOT.TLine()
+        lat  = ROOT.TLatex(); lat.SetNDC(); lat.SetTextFont(42); lat.SetTextSize(0.04)
         ROOT.gROOT.SetBatch()
         ROOT.gStyle.SetOptStat(0)
         fout = ROOT.TFile("{od}/postfit_{date}_{suff}.root".format(od=options.outdir, date=date, suff=options.suffix),"RECREATE")
 
-        canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", 900, 600)
+        canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", 800, 600)
+        ## some style stuff
         hist_fit_s.GetYaxis().SetRangeUser(-1.5,1.5)
-        hist_fit_s.SetLineColor(ROOT.kRed)
-        hist_fit_s.SetMarkerColor(ROOT.kRed)
+        hist_fit_s.SetLineColor  (39)
+        hist_fit_s.SetMarkerColor(ROOT.kGray+3)
         hist_fit_s.SetMarkerStyle(20)
         hist_fit_s.SetMarkerSize(1.0)
         hist_fit_s.SetLineWidth(2)
-        hist_fit_s.Draw("EP")
+        hist_fit_s.Draw("PE1")
+        hist_fit_s.GetXaxis().SetLabelSize(0.045 if len(params) < 20 else 0.035)
+
+        hist_fit_s.GetYaxis().SetTitle('S+B fit #theta')
+        hist_fit_s.GetYaxis().SetTitleSize(0.05)
+        hist_fit_s.GetYaxis().SetTitleOffset(0.80)
+
+        lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
+        lat.DrawLatex(0.71, 0.92, '36 fb^{-1} (13 TeV)')
+        line.DrawLine(0.,  0., len(params),  0.)
+        line.DrawLine(0.,  1., len(params),  1.)
+        line.DrawLine(0., -1., len(params), -1.)
+        line.SetLineStyle(2)
+        line.DrawLine(0.,  0.5, len(params),  0.5)
+        line.DrawLine(0., -0.5, len(params), -0.5)
+        hist_fit_s.Draw("PE1 same") ## draw again over the lines
+
         canvas_nuis.SetGridx()
         canvas_nuis.RedrawAxis()
         canvas_nuis.RedrawAxis('g')
@@ -213,8 +236,10 @@ if __name__ == "__main__":
         # leg.AddEntry(hist_fit_s,"S+B fit"   ,"EPL")
         # leg.Draw()
         fout.WriteTObject(canvas_nuis)
+
+        uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
         for ext in ['png', 'pdf']:
-            canvas_nuis.SaveAs("{od}/nuisances_{date}{suff}.{ext}".format(od=options.outdir, date=date, suff=options.suffix, ext=ext))
+            canvas_nuis.SaveAs("{od}/nuisances_{date}_{ps}_{suff}.{ext}".format(od=options.outdir, date=date, ps=uniquestr, suff=options.suffix, ext=ext))
 
    
 
