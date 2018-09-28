@@ -184,7 +184,8 @@ class util:
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
             _dict[p.GetName()] = (mean, mean+err, mean-err)
-     
+            del tmp_hist
+
         return _dict
 
     def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None):
@@ -241,9 +242,10 @@ class util:
     def getNormalizedXsecFromToys(self, ybins, charge, pol, channel, iy, infile, absYmax=6.0):
         cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
         ybins_expr = []
-        for iv, val in enumerate(ybins[cp][:-1]):
-            if abs(val)<absYmax:
-                ybins_expr.append('W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iv))
+        for allpol in ['left','right', 'long']:
+            for iv, val in enumerate(ybins[cp][:-1]):
+                if abs(val)<absYmax:
+                    ybins_expr.append('W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=iv))
         num = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_mu_pmaskedexp'.format(charge=charge,pol=pol,ch=channel,iy=iy)
         den = '('+'+'.join(ybins_expr)+')'        
         ret = self.getExprFromToys(charge+pol+channel+str(iy),'{num}/{den}'.format(num=num,den=den),infile)

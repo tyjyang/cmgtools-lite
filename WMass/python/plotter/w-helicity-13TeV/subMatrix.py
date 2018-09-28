@@ -48,10 +48,10 @@ if __name__ == "__main__":
 
     from optparse import OptionParser
     parser = OptionParser(usage='%prog workspace.root toys.root [options] ')
-    parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='outdput directory to save the matrix')
-    parser.add_option('-p','--params', dest='params', default='', type='string', help='parameters for which you want to show the correlation matrix. comma separated list of regexps')
-    parser.add_option('-t','--type'  , dest='type'  , default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
-    parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
+    parser.add_option('-o','--outdir', dest='outdir',    default='', type='string', help='outdput directory to save the matrix')
+    parser.add_option('-p','--params', dest='params',    default='', type='string', help='parameters for which you want to show the correlation matrix. comma separated list of regexps')
+    parser.add_option('-t','--type'  , dest='type'  ,    default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
+    parser.add_option(     '--suffix', dest='suffix',    default='', type='string', help='suffix for the correlation matrix')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -111,8 +111,11 @@ if __name__ == "__main__":
 
     elif options.type == 'hessian':
         hessfile = ROOT.TFile(args[0],'read')
-        corrmatrix = hessfile.Get('correlation_matrix_channelpmaskedexpnorm')
-        covmatrix  = hessfile.Get('covariance_matrix_channelpmaskedexpnorm')
+        suffix = 'channelpmaskedexpnorm'
+        for e in hessfile.GetListOfKeys() :
+            if 'channelnone' in e.GetName(): suffix = 'channelnone'
+        corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
+        covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
         for ib in range(1+corrmatrix.GetNbinsX()+1):
             for poi in pois_regexps:
                 if re.match(poi, corrmatrix.GetXaxis().GetBinLabel(ib)):
