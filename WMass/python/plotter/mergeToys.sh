@@ -4,17 +4,20 @@
 # merge file will be created in toys/<name>/ and will have <charge> in its name
 
 charge="comb_WchargeAsymmetry"
-outdir="toys/diffXsec_mu_2018_07_11_group10_coarseBin_outliersBackground/"
-toydir="${outdir}${charge}/"
+toydir="toys/diffXsec_mu_2018_09_25_group10_legacySF/"
+outdir="${toydir}${charge}/"
 outname="toys_${charge}.root"
 sizemin="1000"
 maxFilePerHadd=100
 
-goodfiles_tmp=`ls -l ${toydir} | awk -v sizemin="$sizemin" '$5 > sizemin {print $9}' | grep root`
-ngood=`ls -l ${toydir} | awk -v sizemin="$sizemin" '$5 > sizemin {print $9}' | grep root | wc -l`
+goodfiles_tmp=`ls -l ${toydir} | grep root | awk -v sizemin="$sizemin" '$5 > sizemin {print $9}'`
+ngood=`ls -l ${toydir} | grep root | awk -v sizemin="$sizemin" '$5 > sizemin {print $9}' | wc -l`
+nTotFiles=`ls -l ${toydir} | grep root | wc -l`
 echo "--------------------------------------------------------------"
-echo "There are ${ngood} files to merge (size > ${sizemin} bytes)"
+echo "There are ${ngood}/${nTotFiles} files to merge (size > ${sizemin} bytes)"
 echo "--------------------------------------------------------------"
+echo "Output will be stored in ${outdir}"
+mkdir -p ${outdir}
 
 goodfiles=""
 ifile=0
