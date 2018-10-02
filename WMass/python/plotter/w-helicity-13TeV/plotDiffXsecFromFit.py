@@ -213,7 +213,7 @@ if __name__ == "__main__":
         h_pmaskedexp_mu_relErr.SetTitle('W{chs}'.format(chs=chs))
 
         #zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::%.3g,%.3g" % (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
-        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.000,0.3" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
+        zaxisTitle = "relative uncertainty on d#sigma/d#etadp_{T}::0.025,0.3" #% (h_pmaskedexp_mu_relErr.GetMinimum(), h_pmaskedexp_mu_relErr.GetMaximum())
         drawCorrelationPlot(h_pmaskedexp_mu_relErr, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexp_mu_relErr.GetName(),
