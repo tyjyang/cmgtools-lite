@@ -23,7 +23,7 @@ def formatProc(proc):
     x = proc.replace('x_','')
     x = x.replace('W_left','$W_L$')
     x = x.replace('W_right','$W_R$')
-    if 'long' in proc: x = '$W_0$'
+    x = x.replace('W_long','$W_0$')
     x = x.replace('TauDecaysW','$W\\to\\tau\\nu$')
     x = x.replace('data_fakes','fakes')
     x = x.replace('data_obs','data')
@@ -49,17 +49,19 @@ if __name__ == "__main__":
     tf.Close()
 
     # backgrounds
-    bkgs = dict(filter(lambda (k,v): not re.match('.*(W{ch}_left|W{ch}_right).*'.format(ch=charge),k), histos.iteritems()))
+    bkgs = dict(filter(lambda (k,v): not re.match('.*(W{ch}_left|W{ch}_right|W{ch}_long).*'.format(ch=charge),k), histos.iteritems()))
     yields=dict((k,h.Integral()) for k,h in bkgs.iteritems())
 
     # W boson
-    W_left = dict(filter(lambda (k,v): re.match('x_W%s_left'%charge,k),histos.iteritems()))
+    W_left  = dict(filter(lambda (k,v): re.match('x_W%s_left' %charge,k),histos.iteritems()))
     W_right = dict(filter(lambda (k,v): re.match('x_W%s_right'%charge,k),histos.iteritems()))
-    yields["W_left"] = sum(h.Integral() for k,h in W_left.iteritems())
+    W_long  = dict(filter(lambda (k,v): re.match('x_W%s_long' %charge,k),histos.iteritems()))
+    yields["W_left"]  = sum(h.Integral() for k,h in W_left.iteritems())
     yields["W_right"] = sum(h.Integral() for k,h in W_right.iteritems())
+    yields["W_long"]  = sum(h.Integral() for k,h in W_long.iteritems())
 
     data = ["x_data_obs"]
-    signal = ["W_left","W_right","x_W%s_long"%charge]
+    signal = ["W_left","W_right","W_long"]
     others = sorted([k for k,h in yields.iteritems() if not any(sp in k for sp in signal+data)])
     sorted_procs = signal+others+data
     print " & ".join(formatProc(p) for p in sorted_procs)," \\\\"
