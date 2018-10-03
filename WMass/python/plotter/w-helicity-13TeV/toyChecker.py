@@ -31,10 +31,12 @@ class CardsChecker:
             if not os.path.exists(self.toy_dir+'/'+f) or os.path.getsize(self.toy_dir+'/'+f) < 1000.:
                 if self.options.verbose>1: print '# file ',f,'  not present (or size < 1000) in ',self.toy_dir
                 # submitting job with option -oo will overwrite old log file
+                #print "%s  %s" % (seed, source)
+                tmp_job_path = self.toy_dir+'/jobs/'+source
+                tmp_log_path = self.toy_dir+'/logs/'+source.replace('.sh','.log')
                 resubcmds[seed] = 'bsub -q {queue} -oo {log} {srcfile}'.format(queue=self.options.queue, 
-                                                                               log=os.path.abspath(source.replace('/jobs/','/logs/').replace('.sh','.log')), 
-                                                                               srcfile=os.path.abspath(source))
-
+                                                                               log=os.path.abspath(tmp_log_path), 
+                                                                               srcfile=os.path.abspath(tmp_job_path))
         return resubcmds
 
 if __name__ == '__main__':
@@ -46,9 +48,9 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     if options.checkToys:
-        carddir = args[0]
+        toydir = args[0]
         if len(args)<1: print 'needed inputs: toys_dir '; quit()
-        cc = CardsChecker(carddir, options)
+        cc = CardsChecker(toydir, options)
         result = cc.checkToys()
         if len(result)==0: print 'All files are GOOD.'
         else: 
