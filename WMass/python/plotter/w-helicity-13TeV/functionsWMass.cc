@@ -618,5 +618,13 @@ float triggerSF_1l_histo(float l1pt, float l1eta){
   return l1sf;
 }
 
+int unroll2DTo1D_ptSlices(float pt, float eta){
+    int etabin = (int) ((eta+2.5)*10. );
+    int ptbin  = (int) (pt-25. );
+
+    return (ptbin*50 + etabin);
+
+}
+
 
 #endif
