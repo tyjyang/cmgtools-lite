@@ -600,7 +600,7 @@ if __name__ == "__main__":
         tmp_xsec_dc.write('# --------------------------------------------------------------\n')
 
         for sys,procs in theosyst.iteritems():
-            if 'wpt' in sys: continue
+            if 'wpt' in sys or 'effstat': continue
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
             tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs  else '  -  ' for p in tmp_sigprocs]))) )
 
