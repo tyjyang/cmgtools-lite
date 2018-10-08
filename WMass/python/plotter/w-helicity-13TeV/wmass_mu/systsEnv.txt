@@ -9,7 +9,7 @@ CMS_lumi_13TeV           : W.*|TauDecaysW|Z|Top|DiBosons : .* : 1.026
 # lepton efficiencies
 # ==================================================================
 CMS_Wmu_sig_lepeff                 : W.* : .*                        : lepeff : templates
-CMS_Wmu_bkg_lepeff                 : TauDecaysW|Flips|Z|Top|DiBosons :     .* : 1.01
+CMS_Wmu_bkg_lepeff                 : TauDecaysW|Z|Top|DiBosons :     .* : 1.01
 
 CMS_Wmu_lepVeto      : Z                            : .* : 1.02
 
@@ -23,7 +23,6 @@ CMS_Wmu_lepVeto      : Z                            : .* : 1.02
 #
 CMS_DY               : Z                            : .* : 1.038
 CMS_VV               : DiBosons                     : .* : 1.16
-CMS_W                : TauDecaysW                   : .* : 1.038
 CMS_Top              : Top                          : .* : 1.06 
 CMS_W                : TauDecaysW                   : .* : 1.30
 
