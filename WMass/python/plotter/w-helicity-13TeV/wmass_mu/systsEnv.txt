@@ -35,7 +35,7 @@ CMS_W                : TauDecaysW                   : .* : 1.30
 # shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
 CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShapeOnly
 CMS_Wmu_FRmu_continuous    : data_fakes  : .* : FRmu_continuous  : templates
-#CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : data_fakes_FRmu_awayJetPt45 : alternateShape
+#CMS_Wmu_FRmu_awayJetPt45   : data_fakes  : .* : data_fakes_FRmu_awayJetPt45 : alternateShapeOnly
 
 
 # ==================================================================
