@@ -365,8 +365,7 @@ if __name__ == "__main__":
                         scaleXP = "" if ivar == 0 else ",.*_elescale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ",Flips"
                     else:
-                        print "### WARNING: muon scale systematic is not implemented yet."
-                        scaleXP = ""
+                        scaleXP = "" if ivar == 0 else ",.*_muscale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ""
                     xpsel=' --xp "W{antich}.*{flips},Z,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
                     recoChargeCut = POSCUT if charge=='plus' else NEGCUT
@@ -382,7 +381,7 @@ if __name__ == "__main__":
                             if options.channel == "el":
                                 lepscale = ",W{charge}_{channel}_outliers_elescale.*,W{charge}_{channel}_outliers_lepeff_.*".format(charge=charge, channel=options.channel)
                             else:
-                                lepscale = ""                            
+                                lepscale = ",W{charge}_{channel}_outliers_muscale.*,W{charge}_{channel}_outliers_lepeff_.*".format(charge=charge, channel=options.channel)
                             selectedSigProcess = ' -p W{charge}_{channel}_outliers{lepscale}  '.format(charge=charge, channel=options.channel,lepscale=lepscale)  
                         else:
                             selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
@@ -412,7 +411,7 @@ if __name__ == "__main__":
                                     if options.channel == "el":
                                         lepscale = "{sigPfx}_elescale.*,{sigPfx}_lepeff.*,".format(sigPfx=signalPrefix)
                                     else:
-                                        lepscale = ""
+                                        lepscale = "{sigPfx}_muscale.*,{sigPfx}_lepeff.*,".format(sigPfx=signalPrefix)
                                     selectedSigProcess += '{sigPfx},{lepscale}'.format(sigPfx=signalPrefix,lepscale=lepscale)
                                 else:
                                     selectedSigProcess += '{sigPfx}{syst},'.format(sigPfx=signalPrefix,syst=syst)
@@ -443,7 +442,7 @@ if __name__ == "__main__":
                                 if options.channel == "el":
                                     lepscale = ",{sigPfx}_elescale.*,{sigPfx}_lepEff.*".format(sigPfx=signalPrefix)
                                 else:
-                                    lepscale = ""                            
+                                    lepscale = ",{sigPfx}_muscale.*,{sigPfx}_lepEff.*".format(sigPfx=signalPrefix)
                                 selectedSigProcess = ' -p {sigPfx}{lepscale}  '.format(sigPfx=signalPrefix,lepscale=lepscale)  
                             else:
                                 selectedSigProcess = ' -p {sigPfx}{syst}  '.format(sigPfx=signalPrefix,syst=syst)  
