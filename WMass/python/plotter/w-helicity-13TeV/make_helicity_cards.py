@@ -64,6 +64,7 @@ def makeFixedYWBinning():
 NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
 pdfsysts=[] # array containing the PDFs signal variations
 qcdsysts=[] # array containing the QCD scale signal variations
+etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -118,6 +119,26 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 fstring = "wpt_slope_weight(genw_pt\,{off:.3f}\,{slo:.3f})".format(off=1.+asign*offset, slo=sign*slope)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
             qcdsysts.append(postfix)
+    print "written ",syst," systematics relative to ",incl_mca
+
+def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="effstat",incl_mca='incl_sig',append=False):
+    open("%s/systEnv-dummy.txt" % odir, 'a').close()
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    if len(incl_file)==0: 
+        print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
+        return
+    if append:
+        filename = "%s/mca_systs.txt" % odir
+        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
+    etalo = -2.5 if channel=='el' else -2.4
+    deta = 0.1; nbins = int(2*abs(etalo)/deta)
+    for i in range(0,nbins):
+        etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
+        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i+1)
+        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+        weightFcn = 'effSF_staterr(LepGood1_eta\,{emin:.1f}\,{emax:.1f})'.format(emin=etamin,emax=etamax)
+        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
+        etaeffsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
@@ -217,6 +238,8 @@ if options.addQCDSyst:
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope"])
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')
 
+writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
+
 ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
 BASECONFIG=os.path.dirname(MCA)
 if options.queue:
@@ -242,7 +265,7 @@ if options.signalCards:
     #ybinfile.writelines(' '.join(str(i) for i in WYBinsEdges))
     ybinfile.close()
     print "MAKING SIGNAL PART: WYBinsEdges = ",WYBinsEdges
-    wsyst = ['']+[x for x in pdfsysts+qcdsysts if 'sig' in x]
+    wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts if 'sig' in x]
     for ivar,var in enumerate(wsyst):
         for helicity in signal_helicities:
             ## marc antihel = 'right' if helicity == 'left' else 'left'

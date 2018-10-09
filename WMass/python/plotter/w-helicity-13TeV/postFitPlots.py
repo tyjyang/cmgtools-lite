@@ -164,6 +164,7 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=True, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
+    parser.add_option(     '--prefit', dest="prefit", default=False, action='store_true', help="");
     groupJobs=5 # used in make_helicity_cards.py
 
     (options, args) = parser.parse_args()
@@ -247,7 +248,7 @@ if __name__ == "__main__":
 
     # do backgrounds now
     procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
-    titles=["charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","data"]
+    titles=["charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","toy data"]
     procsAndTitles = dict(zip(procs,titles))
     bkg_and_data = {}
     for i,p in enumerate(procs):
@@ -305,7 +306,7 @@ if __name__ == "__main__":
             htot.Add(proj1d)                    
             leg.AddEntry(proj1d,procsAndTitles[key],'F')
 
-        leg.AddEntry(hdata,'data','PE')
+        leg.AddEntry(hdata,'toy data','PE')
         
         doRatio=True
         htot.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
@@ -342,7 +343,7 @@ if __name__ == "__main__":
         lat.DrawLatex(0.65, 0.92, '36 fb^{-1} (13 TeV)')
 
         p2.cd()
-        rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=[0.90,1.10], fixRange=True)
+        rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=[0.99,1.01], fixRange=True)
         c1.cd()
         for ext in ['pdf', 'png']:
             c1.SaveAs('{odir}/projection{proj}_{ch}_{flav}_PFMT40_absY.{ext}'.format(odir=outname,proj=projection,ch=charge,flav=channel,ext=ext))

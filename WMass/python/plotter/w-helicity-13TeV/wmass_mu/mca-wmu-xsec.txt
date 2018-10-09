@@ -17,15 +17,9 @@ incl_data             : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/m
 incl_sig_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt",   AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Up'
 incl_sig_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt",   AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)", SkipMe=True, PostFix='_lepeff_Dn'
 
-###########################
-#
-# TO BE UPDATED FOR MUON SCALE
-#
-###########################
-
 # muon scale systematics 
-incl_sig_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
-incl_sig_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
+incl_sig_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
+incl_sig_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
 
 
 # Fake syst
@@ -34,8 +28,8 @@ incl_sig_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/m
 incl_datafakes_FRmu_slope_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_slope_Up'
 incl_datafakes_FRmu_slope_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopedown.txt", SkipMe=True, PostFix='_fakes_FRmu_slope_Dn'
 
-incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/FRfast/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'
+## continuous shape in eta
+incl_datafakes_FRmu_continuous_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_continuous_Up'
+incl_datafakes_FRmu_continuous_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousdown.txt", SkipMe=True, PostFix='_fakes_FRmu_continuous_Dn'
 
-##  incl_datafakes_FRmu_both_Up : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-bothup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_both_Up'
-##  incl_datafakes_FRmu_both_Dn : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-bothdown.txt", SkipMe=True, PostFix='_fakes_FRmu_both_Dn'
-
+#incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-helicity-13TeV/wmass_mu/fakerate-vars/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'

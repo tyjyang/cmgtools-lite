@@ -60,7 +60,7 @@ labels = ["lep scale Up", "lep scale Dn", "lep eff Up", "lep eff Dn"]
 syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
 #################################
-# keep only nominal sample in this MCA: lepton systematics are defined in the main MCA including this one
+# keep only nominal sample in this MCA: lepton systematics are defined in the main MCA, that includes this one
 #################################
 # if flav == "el": 
 #     all_syst_suffix.extend(syst_suffix)

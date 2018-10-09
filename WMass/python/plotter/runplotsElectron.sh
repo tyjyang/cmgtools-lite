@@ -92,17 +92,17 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="2nd"
-nameTag="_mT_forWmass_noCutmT_fitData" 
+nameTag="_ptMt_triggerPlusAccSel" 
 #nameTag="_varStudy"
-useLessMC="n"
+useLessMC="y"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
-#etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
+etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.479" "2.5")
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
-etaBinBoundaries=("0.0" "2.5")
+#etaBinBoundaries=("0.0" "2.5")
 #etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
 today=`date +"%d_%m_%Y"`
@@ -140,7 +140,7 @@ selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="etal1_binFR"
 #selectplots="pfmt_ptl1"
 #selectplots="ptl1,etal1_binFR"
-selectplots="pfmt"
+selectplots="ptl1,pfmt"
 #selectplots="ptl1,ptl1noCorr"
 #selectplots="etal1_binFR,ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
@@ -162,7 +162,7 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=""
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -270,11 +270,11 @@ regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
 skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" ## ADD _TINY, uness you want trkmet variables
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45}" # ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} " # ${ptMax/XX/45} ${mtMin/XX/40} ${FRnumSel}" # "${WselAllPt} ${WselFull}" ${FRnumSel}
 #processManager["WhelicitySignalRegion"]=" --xp Wincl "
-qcdFromFR["WhelicitySignalRegion"]="y"
+qcdFromFR["WhelicitySignalRegion"]="n"
 #scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --fitData " # --pg 'EWK := Wincl,Z,Top,Dibosons'
-scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,TauDecaysW,EWK_bkg,data_fakes --fitData " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
+scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg_andTau,QCD " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 #############################
 #############################

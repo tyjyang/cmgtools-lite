@@ -380,8 +380,11 @@ def drawSingleTH1(h1,
     h1.Draw("HIST")
     h1err = h1.Clone("h1err")
     h1err.SetFillColor(ROOT.kRed+2)
-    h1err.SetFillStyle(3005)
+    #h1err.SetFillStyle(3001)
+    h1err.SetFillStyle(3002)
+    #h1err.SetFillStyle(3005)
     h1err.Draw("E2same")
+    #h1.Draw("HIST same")
 
     legcoords = [float(x) for x in legendCoords.split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
