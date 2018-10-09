@@ -145,7 +145,7 @@ if __name__ == "__main__":
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
-    parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=False, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
+    parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=True, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
     (options, args) = parser.parse_args()
     
     if options.combineCharges:

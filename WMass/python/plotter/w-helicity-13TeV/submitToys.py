@@ -49,7 +49,7 @@ if __name__ == "__main__":
     ntoys = int(args[1])
     prefix = args[2] if len(args)>2 else wsbase
     charge = 'plus' if 'plus' in wsbase else 'minus'
-    floatPOIs = 'XsecMask' not in workspace
+    fixPOIs = 'XsecMask' not in workspace
 
     print "Submitting {nt} toys with workspace {ws} and prefix {pfx}...".format(nt=ntoys,ws=workspace,pfx=prefix)
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         tmp_filecont = jobstring_tf
         #cmd = 'text2tf.py -t {n} --seed {j}{jn} {dc}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1)
         cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
-        if floatPOIs: cmd += ' --POIMode none '
+        if fixPOIs: cmd += ' --POIMode none '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
