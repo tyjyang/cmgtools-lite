@@ -88,7 +88,8 @@ wmass_collections = {
             "generatorSummary" : NTupleCollection("GenPart", genParticleWithLinksType, 50 , mcOnly=True, help="Hard scattering particles, with ancestry and links"),
 }
 
-wmass_recoilVariables=[ NTupleVariable(x, lambda ev : getattr(ev,x), float, mcOnly=False,  help=x) for x in ['vz','vy','vz','mindz']]
+wmass_recoilVariables=[ NTupleVariable(x, lambda ev : getattr(ev,x), float, mcOnly=False,  help=x, storageType='H') 
+                        for x in ['vz','vy','vz','mindz']]
 for m in ['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']:
     for v in ['n','recoil_pt','recoil_phi','scalar_sphericity','scalar_ht','dphi2tkmet','leadpt','leadphi'
               'thrustMinor','thrustMajor','thrust','oblateness','thrustTransverse','thrustTransverseMinor',
