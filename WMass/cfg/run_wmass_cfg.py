@@ -34,6 +34,7 @@ keepLHEweights = True
 signalZ = False
 diLeptonSkim = False
 useBasicRECOLeptons = False
+doRecoilVariables = True
 
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
@@ -53,6 +54,17 @@ if doTriggerMatching:
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaTkMu)
 
+if doRecoilVariables:
+    print 'adding recoil variables'
+    from CMGTools.WMass.analyzers.eventRecoilProducer import *
+    eventRecoilProducer = cfg.Analyzer(EventRecoilProducer,
+                                       name='eventRecoilProducer',
+                                       pf='packedPFCandidates',
+                                       pfType='std::vector<pat::PackedCandidate>',
+                                       gen='packedGenParticles',
+                                       genType='std::vector<pat::PackedGenParticle>')
+    dmCoreSequence.insert(dmCoreSequence.index(treeProducer)-1,eventRecoilProducer)
+    treeProducer.globalVariables += wmass_recoilVariables
 
 # Run miniIso
 lepAna.doMiniIsolation = True
