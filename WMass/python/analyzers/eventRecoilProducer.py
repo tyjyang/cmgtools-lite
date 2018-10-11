@@ -197,7 +197,6 @@ class EventRecoilProducer(Analyzer):
             use_closest_tkmet = (isCharged and isCentral and isFromNext2PV)
             use_puppimet      = True
             use_invpuppimet   = True
-            print pfcand.fromPV(),isCharged,use_tkmet
 
             #add to list
             pfTags.append( [use_tkmet,use_npv_tkmet,use_closest_tkmet,use_puppimet,use_invpuppimet] )
