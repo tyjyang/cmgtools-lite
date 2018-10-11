@@ -250,22 +250,21 @@ class EventRecoilProducer(Analyzer):
             setattr(event,'%s_recoil_scalar_sphericity'%m,float(scalar_sphericity))
             setattr(event,'%s_dphi2tkmet'%m,float(dphi2tkmet))
 
-            #thrust variables (if no PF candidates -1 is assigned)
+            #thrust variables and event shapes (if no PF candidates -1 is assigned)
             try:
                 Thrust3D=self.doPCA(momList=selPF[:,[0,1,2]])
                 Thrust2D=self.doPCA(momList=selPF[:,[0,1]])            
+                sphericity,aplanarity,C,D,detST=self.analyzeMomentumTensor(momList=selPF[:,[0,1,2]],r=1)
             except:
                 Thrust3D=[-1,-1,-1]
                 Thrust2D=[-1,-1]
+                sphericity,aplanarity,C,D,detST=-1,-1,-1,-1,-1
             setattr(event,"%s_thrust"%m, float(Thrust3D[2]))
             setattr(event,"%s_thrustMajor"%m, float(Thrust3D[1]))
             setattr(event,"%s_thrustMinor"%m, float(Thrust3D[0]))
             setattr(event,"%s_oblateness"%m, float(Thrust3D[1]-Thrust3D[0]))            
             setattr(event,"%s_thrustTransverse"%m, float(Thrust2D[1]))
             setattr(event,"%s_thrustTransverseMinor"%m, float(Thrust2D[0]))
-
-            #event shapes
-            sphericity,aplanarity,C,D,detST=self.analyzeMomentumTensor(momList=selPF[:,[0,1,2]],r=1)
             setattr(event,"%s_sphericity"%m, float(sphericity))
             setattr(event,"%s_aplanarity"%m, float(aplanarity))
             setattr(event,"%s_C"%m, float(C))
