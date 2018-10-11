@@ -14,6 +14,7 @@ class EventRecoilProducer(Analyzer):
     def __init__(self, cfg_ana, cfg_comp, looperName ):
         super(EventRecoilProducer,self).__init__(cfg_ana,cfg_comp,looperName)
 
+        self.ptThr=0.5
         self.metFlavours=['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']
 
         #added by me
@@ -121,7 +122,7 @@ class EventRecoilProducer(Analyzer):
             for p in self.mchandles['packedGen'].product():
                 if p.charge() == 0: continue
                 if p.status() != 1: continue
-                if p.pt()<0.5 or abs(p.eta())>2.4 : continue
+                if p.pt()<self.ptThr or abs(p.eta())>2.4 : continue
 
                 #veto up to two high pT central, leptons
                 if abs(p.pdgId()) in [11,13] and p.pt()>20 and abs(p.eta())<2.4:
@@ -169,7 +170,7 @@ class EventRecoilProducer(Analyzer):
         for pfcand in pfcands:
 
             p=pfcand.p4()
-            if p.pt()<0.5 : continue
+            if p.pt()<self.ptThr : continue
 
             #veto up to two leptons
             veto=False
@@ -222,7 +223,7 @@ class EventRecoilProducer(Analyzer):
                     selPF=selPF*selPF_w
                     
                     #some will be scaled to 0 with puppi weights => filter them out
-                    ptfilter=(selPF[:,3]>0.5)
+                    ptfilter=(selPF[:,3]>self.ptThr)
                     selPF=selPF[ptfilter]
                             
             #basic kinematics
