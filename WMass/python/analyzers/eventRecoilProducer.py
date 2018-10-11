@@ -220,6 +220,10 @@ class EventRecoilProducer(Analyzer):
                     selPF_w=pfWeights[mfilter]  
                     if 'invpuppi' in m: selPF_w=abs(1.0-selPF_w)
                     selPF=selPF*selPF_w
+                    
+                    #some will be scaled to 0 with puppi weights => filter them out
+                    ptfilter=(selPF[:,3]>0.5)
+                    selPF=selPF[ptfilter]
                             
             #basic kinematics
             if len(selPF)>0:
