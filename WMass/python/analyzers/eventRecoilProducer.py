@@ -15,11 +15,15 @@ class EventRecoilProducer(Analyzer):
         super(EventRecoilProducer,self).__init__(cfg_ana,cfg_comp,looperName)
 
         self.ptThr=0.5
+        self.pvflag=ROOT.pat.PackedCandidate.PVTight
         self.metFlavours=['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']
 
-        #added by me
+        print 'EventRecoilProducer',
+        print 'Will use pT>{0} GeV and pvFlags>={1}'.format(self.ptThr,self.pvflag),
+        print 'Producing variables for',self.metFlavours
+
         if "FastJetAnalysis_cc.so" not in ROOT.gSystem.GetLibraries():
-            print "Compile Event shape script"
+            print "Compile FastJetAnalysis script"
             ROOT.gSystem.Load("/cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/fastjet/3.1.0/lib/libfastjet.so")
             ROOT.gSystem.AddIncludePath("-I/cvmfs/cms.cern.ch/slc6_amd64_gcc630/external/fastjet/3.1.0/include")
             ROOT.gSystem.Load("/cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/fastjet-contrib/1.020/lib/libfastjetcontribfragile.so")
@@ -27,7 +31,6 @@ class EventRecoilProducer(Analyzer):
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/FastJetAnalysis.cc+" % os.environ['CMSSW_BASE'])
         else:
             print "FastJetAnalysis_cc.so found in ROOT libraries"
-        #
 
         self._worker = ROOT.FastJetAnalysis()
 
@@ -160,7 +163,7 @@ class EventRecoilProducer(Analyzer):
         #pre-select leptons
         vetoCands=[]
         for l in event.selectedLeptons:
-            if l.pt()<20 or abs(l.eta())>2.4 : continue
+            if l.pt()<20 : continue
             vetoCands.append(l)
 
         #select pf candidates
@@ -171,30 +174,30 @@ class EventRecoilProducer(Analyzer):
             p=pfcand.p4()
             if p.pt()<self.ptThr : continue
 
-            #veto up to two leptons if the candidate is charged and associated to the PV
-            #if the difference in pT is >20% do not veto anything, it's probably in the iso cone
+            #veto up to two of the selected leptons 
+            #if it's in a R=0.1 cone, and the difference in pT is <50% 
+            #any pfcandidate is considered (l -> l gamma in PU may generate some PF confusion)
             veto=False
-            if pfcand.charge()!=0 and pfcand.fromPV(0)>1:
-                for ic in xrange(0,min(2,len(vetoCands))):
-                    if deltaR(vetoCands[ic].p4(),p)>0.05: continue
-                    dpt=abs(1-vetoCands[ic].pt()/p.pt())
-                    if dpt>0.2: continue
-                    veto=True
-                    break
-            if veto: 
-                print 'Vetoed',pfcand.pdgId(),pfcand.pt(),pfcand.eta(),pfcand.fromPV(0)
-                continue
+            for ic in xrange(0,min(2,len(vetoCands))):
+                if deltaR(vetoCands[ic].p4(),p)>0.1: continue
+                dpt=abs(1-vetoCands[ic].pt()/p.pt())
+                if dpt>0.5: continue
+                veto=True
+                break
+            if veto: continue
+
 
             #flags to be used in the different met flavours
             isCharged=True if pfcand.charge()!=0 else False
             isCentral=True if abs(p.eta())<2.4 else False
-            isFromPV=True if pfcand.fromPV(0)>1 else False
-            isFromNext2PV=True if not isFromPV and next2pv>0 and pfcand.fromPV(next2pv) else False
+            isFromPV=True if pfcand.fromPV()>=self.pvflag else False
+            isFromNext2PV=True if not isFromPV and next2pv>0 and pfcand.fromPV(next2pv)>=self.pvflag else False
             use_tkmet         = (isCharged and isCentral and isFromPV)
             use_npv_tkmet     = (isCharged and isCentral and not isFromPV)
             use_closest_tkmet = (isCharged and isCentral and isFromNext2PV)
             use_puppimet      = True
             use_invpuppimet   = True
+            print pfcand.fromPV(),isCharged,use_tkmet
 
             #add to list
             pfTags.append( [use_tkmet,use_npv_tkmet,use_closest_tkmet,use_puppimet,use_invpuppimet] )
