@@ -218,7 +218,7 @@ class EventRecoilProducer(Analyzer):
                 wgtSum=1.0
                 if 'puppi' in m:
                     selPF_w=pfWeights[mfilter]  
-                    if 'invpuppi' in m: selPF_w=1.0-selPF_w
+                    if 'invpuppi' in m: selPF_w=abs(1.0-selPF_w)
                     selPF=selPF*selPF_w
                             
             #basic kinematics
@@ -250,9 +250,13 @@ class EventRecoilProducer(Analyzer):
             setattr(event,'%s_recoil_scalar_sphericity'%m,float(scalar_sphericity))
             setattr(event,'%s_dphi2tkmet'%m,float(dphi2tkmet))
 
-            #thrust variables
-            Thrust3D=self.doPCA(momList=selPF[:,[0,1,2]])
-            Thrust2D=self.doPCA(momList=selPF[:,[0,1]])            
+            #thrust variables (if no PF candidates -1 is assigned)
+            try:
+                Thrust3D=self.doPCA(momList=selPF[:,[0,1,2]])
+                Thrust2D=self.doPCA(momList=selPF[:,[0,1]])            
+            except:
+                Thrust3D=[-1,-1,-1]
+                Thrust2D=[-1,-1]
             setattr(event,"%s_thrust"%m, float(Thrust3D[2]))
             setattr(event,"%s_thrustMajor"%m, float(Thrust3D[1]))
             setattr(event,"%s_thrustMinor"%m, float(Thrust3D[0]))

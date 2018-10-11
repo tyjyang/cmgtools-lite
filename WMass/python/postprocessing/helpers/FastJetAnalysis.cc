@@ -28,7 +28,8 @@ public:
   void reset() { 
     pList_.clear(); 
     for(size_t i=0; i<taus_.size(); i++) 
-      taus_[i]=0; rho_=0;
+      taus_[i]=-1; 
+    rho_=-1;
   }
 
   void add(float px, float py, float pz, float en) {
@@ -55,8 +56,8 @@ public:
     rho_=bge.rho();
   }
 
-  const float & tau(int i) { return taus_[i-1]; }
-  const float &rho() { return rho_; }
+  const float &tau(int i) { return taus_[i-1]; }
+  const float &rho()      { return rho_; }
  
 private:
   std::vector<fastjet::PseudoJet> pList_;
