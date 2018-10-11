@@ -161,9 +161,8 @@ class EventRecoilProducer(Analyzer):
         vetoCands=[]
         for l in event.selectedLeptons:
             if l.pt()<20 or abs(l.eta())>2.4 : continue
-            if l.associatedVertex.position()!=event.vertices[0].position() : continue
             vetoCands.append(l)
-    
+
         #select pf candidates
         pfTags,pfMom,pfWeights=[],[],[]
         pfcands = self.handles['cmgCand'].product()
@@ -172,15 +171,18 @@ class EventRecoilProducer(Analyzer):
             p=pfcand.p4()
             if p.pt()<self.ptThr : continue
 
-            #veto up to two leptons
+            #veto up to two leptons if the candidate is charged and associated to the PV
+            #if the difference in pT is >20% do not veto anything, it's probably in the iso cone
             veto=False
-            if pfcand.charge()!=0:
+            if pfcand.charge()!=0 and pfcand.fromPV(0)>1:
                 for ic in xrange(0,min(2,len(vetoCands))):
-                    if vetoCands[ic].associatedVertex.position()!=pfcand.vertex() : continue
                     if deltaR(vetoCands[ic].p4(),p)>0.05: continue
+                    dpt=abs(1-vetoCands[ic].pt()/p.pt())
+                    if dpt>0.2: continue
                     veto=True
+                    break
             if veto: 
-                print 'Vetoed',pfcand.pdgId(),pfcand.pt(),pfcand.eta()
+                print 'Vetoed',pfcand.pdgId(),pfcand.pt(),pfcand.eta(),pfcand.fromPV(0)
                 continue
 
             #flags to be used in the different met flavours
@@ -246,14 +248,14 @@ class EventRecoilProducer(Analyzer):
             if im==0: tkmet_phi=recphi
             dphi2tkmet=ROOT.TVector2.Phi_mpi_pi(recphi-tkmet_phi)
 
-            setattr(event,'%s_n'%m,len(selPF))
-            setattr(event,'%s_recoil_pt'%m,float(recpt))
-            setattr(event,'%s_recoil_phi'%m,float(recphi))
-            setattr(event,'%s_leadpt'%m,float(leadpt))
-            setattr(event,'%s_leadphi'%m,float(leadphi))
-            setattr(event,'%s_recoil_scalar_ht'%m,float(ht))
-            setattr(event,'%s_recoil_scalar_sphericity'%m,float(scalar_sphericity))
-            setattr(event,'%s_dphi2tkmet'%m,float(dphi2tkmet))
+            setattr(event,'h%s_n'%m,len(selPF))
+            setattr(event,'h%s_pt'%m,float(recpt))
+            setattr(event,'h%s_phi'%m,float(recphi))
+            setattr(event,'h%s_leadpt'%m,float(leadpt))
+            setattr(event,'h%s_leadphi'%m,float(leadphi))
+            setattr(event,'h%s_scalar_ht'%m,float(ht))
+            setattr(event,'h%s_scalar_sphericity'%m,float(scalar_sphericity))
+            setattr(event,'h%s_dphi2tkmet'%m,float(dphi2tkmet))
 
             #thrust variables and event shapes (if no PF candidates -1 is assigned)
             try:
@@ -264,17 +266,17 @@ class EventRecoilProducer(Analyzer):
                 Thrust3D=[-1,-1,-1]
                 Thrust2D=[-1,-1]
                 sphericity,aplanarity,C,D,detST=-1,-1,-1,-1,-1
-            setattr(event,"%s_thrust"%m, float(Thrust3D[2]))
-            setattr(event,"%s_thrustMajor"%m, float(Thrust3D[1]))
-            setattr(event,"%s_thrustMinor"%m, float(Thrust3D[0]))
-            setattr(event,"%s_oblateness"%m, float(Thrust3D[1]-Thrust3D[0]))            
-            setattr(event,"%s_thrustTransverse"%m, float(Thrust2D[1]))
-            setattr(event,"%s_thrustTransverseMinor"%m, float(Thrust2D[0]))
-            setattr(event,"%s_sphericity"%m, float(sphericity))
-            setattr(event,"%s_aplanarity"%m, float(aplanarity))
-            setattr(event,"%s_C"%m, float(C))
-            setattr(event,"%s_D"%m, float(D))
-            setattr(event,"%s_detST"%m, float(detST))
+            setattr(event,"h%s_thrust"%m, float(Thrust3D[2]))
+            setattr(event,"h%s_thrustMajor"%m, float(Thrust3D[1]))
+            setattr(event,"h%s_thrustMinor"%m, float(Thrust3D[0]))
+            setattr(event,"h%s_oblateness"%m, float(Thrust3D[1]-Thrust3D[0]))            
+            setattr(event,"h%s_thrustTransverse"%m, float(Thrust2D[1]))
+            setattr(event,"h%s_thrustTransverseMinor"%m, float(Thrust2D[0]))
+            setattr(event,"h%s_sphericity"%m, float(sphericity))
+            setattr(event,"h%s_aplanarity"%m, float(aplanarity))
+            setattr(event,"h%s_C"%m, float(C))
+            setattr(event,"h%s_D"%m, float(D))
+            setattr(event,"h%s_detST"%m, float(detST))
 
             #N-jetttiness and rho
             self._worker.reset()
@@ -282,10 +284,9 @@ class EventRecoilProducer(Analyzer):
                 px,py,pz,pt,en=selPF[i]
                 self._worker.add(px,py,pz,en)
             self._worker.run()
-            setattr(event,"%s_rho"%m, self._worker.rho())
+            setattr(event,"h%s_rho"%m, self._worker.rho())
             for i in xrange(1,5):
-                setattr(event,"%s_tau%d"%(m,i), self._worker.tau(i))
-
+                setattr(event,"h%s_tau%d"%(m,i), self._worker.tau(i))
 
         return True
 

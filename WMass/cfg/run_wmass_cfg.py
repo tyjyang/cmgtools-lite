@@ -476,6 +476,16 @@ if selectedEvents!="":
         )
     dmCoreSequence.insert(dmCoreSequence.index(lheWeightAna), eventSelector)
 
+#-------- SEQUENCE -----------
+
+sequence = cfg.Sequence(dmCoreSequence+[
+        puppiMetAna,
+        ttHEventAna,        
+        treeProducer,
+    ])
+preprocessor = None
+
+
 if doRecoilVariables:
     print 'adding recoil variables'
     from CMGTools.WMass.analyzers.eventRecoilProducer import *
@@ -485,18 +495,10 @@ if doRecoilVariables:
                                        pfType='std::vector<pat::PackedCandidate>',
                                        gen='packedGenParticles',
                                        genType='std::vector<pat::PackedGenParticle>')
-    dmCoreSequence.append(eventRecoilProducer)
+    sequence.insert(sequence.index(ttHEventAna)+1,eventRecoilProducer)
     treeProducer.globalVariables += wmass_recoilVariables
 
 
-#-------- SEQUENCE -----------
-
-sequence = cfg.Sequence(dmCoreSequence+[
-        puppiMetAna,
-        ttHEventAna,        
-        treeProducer,
-    ])
-preprocessor = None
 
 #-------- HOW TO RUN -----------
 
