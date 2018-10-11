@@ -88,12 +88,18 @@ wmass_collections = {
             "generatorSummary" : NTupleCollection("GenPart", genParticleWithLinksType, 50 , mcOnly=True, help="Hard scattering particles, with ancestry and links"),
 }
 
-wmass_vertexVariables=[
-    NTupleVariable("vx",    lambda ev: ev.goodVertices[0].x() if len(ev.goodVertices)>0 else 0, mcOnly=False, help="PV position x"),
-    NTupleVariable("vy",    lambda ev: ev.goodVertices[0].y() if len(ev.goodVertices)>0 else 0, mcOnly=False, help="PV position y"),
-    NTupleVariable("vz",    lambda ev: ev.goodVertices[0].z() if len(ev.goodVertices)>0 else 0, mcOnly=False, help="PV position z"),
-    NTupleVariable("mindz", 
-                   lambda ev: min([abs(ev.goodVertices[0].z()-ev.goodVertices[i].z()) for i in xrange(1,len(ev.goodVertices))]) if len(ev.goodVertices)>1 else 0, 
-                   mcOnly=False, 
-                   help="closest to PV in z")
-]
+wmass_recoilVariables=[ NTupleVariable(x, lambda ev : getattr(ev,x), float, mcOnly=False,  help=x, storageType='H') 
+                        for x in ['vz','vy','vz','mindz']]
+for m in ['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']:
+    for v in ['n','recoil_pt','recoil_phi','scalar_sphericity','scalar_ht','dphi2tkmet','leadpt','leadphi'
+              'thrustMinor','thrustMajor','thrust','oblateness','thrustTransverse','thrustTransverseMinor',
+              'sphericity','aplanarity','C','D','detST',
+              'rho','tau1','tau2','tau3','tau4']:
+        wmass_recoilVariables.append(
+            NTupleVariable('{0}_{1}'.format(m,v), 
+                           lambda ev : getattr(ev,'{0}_{1}'.format(m,v)),  
+                           float,
+                           mcOnly=True if m=='gen' else False,
+                           help='{0} {1}'.format(m,v),
+                           storageType='H') #16 bit should be enough
+            )
