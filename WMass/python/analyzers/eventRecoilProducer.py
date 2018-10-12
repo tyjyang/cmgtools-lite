@@ -14,11 +14,16 @@ class EventRecoilProducer(Analyzer):
     def __init__(self, cfg_ana, cfg_comp, looperName ):
         super(EventRecoilProducer,self).__init__(cfg_ana,cfg_comp,looperName)
 
+        self.ptThr=0.5
+        self.pvflag=ROOT.pat.PackedCandidate.PVTight
         self.metFlavours=['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']
 
-        #added by me
+        print 'EventRecoilProducer',
+        print 'Will use pT>{0} GeV and pvFlags>={1}'.format(self.ptThr,self.pvflag),
+        print 'Producing variables for',self.metFlavours
+
         if "FastJetAnalysis_cc.so" not in ROOT.gSystem.GetLibraries():
-            print "Compile Event shape script"
+            print "Compile FastJetAnalysis script"
             ROOT.gSystem.Load("/cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/fastjet/3.1.0/lib/libfastjet.so")
             ROOT.gSystem.AddIncludePath("-I/cvmfs/cms.cern.ch/slc6_amd64_gcc630/external/fastjet/3.1.0/include")
             ROOT.gSystem.Load("/cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/fastjet-contrib/1.020/lib/libfastjetcontribfragile.so")
@@ -26,7 +31,6 @@ class EventRecoilProducer(Analyzer):
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/FastJetAnalysis.cc+" % os.environ['CMSSW_BASE'])
         else:
             print "FastJetAnalysis_cc.so found in ROOT libraries"
-        #
 
         self._worker = ROOT.FastJetAnalysis()
 
@@ -121,7 +125,7 @@ class EventRecoilProducer(Analyzer):
             for p in self.mchandles['packedGen'].product():
                 if p.charge() == 0: continue
                 if p.status() != 1: continue
-                if p.pt()<0.5 or abs(p.eta())>2.4 : continue
+                if p.pt()<self.ptThr or abs(p.eta())>2.4 : continue
 
                 #veto up to two high pT central, leptons
                 if abs(p.pdgId()) in [11,13] and p.pt()>20 and abs(p.eta())<2.4:
@@ -159,34 +163,35 @@ class EventRecoilProducer(Analyzer):
         #pre-select leptons
         vetoCands=[]
         for l in event.selectedLeptons:
-            if l.pt()<20 or abs(l.eta())>2.4 : continue
-            if l.associatedVertex.position()!=event.vertices[0].position() : continue
+            if l.pt()<20 : continue
             vetoCands.append(l)
-    
+
         #select pf candidates
         pfTags,pfMom,pfWeights=[],[],[]
         pfcands = self.handles['cmgCand'].product()
         for pfcand in pfcands:
 
             p=pfcand.p4()
-            if p.pt()<0.5 : continue
+            if p.pt()<self.ptThr : continue
 
-            #veto up to two leptons
+            #veto up to two of the selected leptons 
+            #if it's in a R=0.1 cone, and the difference in pT is <50% 
+            #any pfcandidate is considered (l -> l gamma in PU may generate some PF confusion)
             veto=False
-            if pfcand.charge()!=0:
-                for ic in xrange(0,min(2,len(vetoCands))):
-                    if vetoCands[ic].associatedVertex.position()!=pfcand.vertex() : continue
-                    if deltaR(vetoCands[ic].p4(),p)>0.05: continue
-                    veto=True
-            if veto: 
-                print 'Vetoed',pfcand.pdgId(),pfcand.pt(),pfcand.eta()
-                continue
+            for ic in xrange(0,min(2,len(vetoCands))):
+                if deltaR(vetoCands[ic].p4(),p)>0.1: continue
+                dpt=abs(1-vetoCands[ic].pt()/p.pt())
+                if dpt>0.5: continue
+                veto=True
+                break
+            if veto: continue
+
 
             #flags to be used in the different met flavours
             isCharged=True if pfcand.charge()!=0 else False
             isCentral=True if abs(p.eta())<2.4 else False
-            isFromPV=True if pfcand.fromPV(0)>1 else False
-            isFromNext2PV=True if not isFromPV and next2pv>0 and pfcand.fromPV(next2pv) else False
+            isFromPV=True if pfcand.fromPV()>=self.pvflag else False
+            isFromNext2PV=True if not isFromPV and next2pv>0 and pfcand.fromPV(next2pv)>=self.pvflag else False
             use_tkmet         = (isCharged and isCentral and isFromPV)
             use_npv_tkmet     = (isCharged and isCentral and not isFromPV)
             use_closest_tkmet = (isCharged and isCentral and isFromNext2PV)
@@ -220,6 +225,10 @@ class EventRecoilProducer(Analyzer):
                     selPF_w=pfWeights[mfilter]  
                     if 'invpuppi' in m: selPF_w=abs(1.0-selPF_w)
                     selPF=selPF*selPF_w
+                    
+                    #some will be scaled to 0 with puppi weights => filter them out
+                    ptfilter=(selPF[:,3]>self.ptThr)
+                    selPF=selPF[ptfilter]
                             
             #basic kinematics
             if len(selPF)>0:
@@ -241,14 +250,14 @@ class EventRecoilProducer(Analyzer):
             if im==0: tkmet_phi=recphi
             dphi2tkmet=ROOT.TVector2.Phi_mpi_pi(recphi-tkmet_phi)
 
-            setattr(event,'%s_n'%m,len(selPF))
-            setattr(event,'%s_recoil_pt'%m,float(recpt))
-            setattr(event,'%s_recoil_phi'%m,float(recphi))
-            setattr(event,'%s_leadpt'%m,float(leadpt))
-            setattr(event,'%s_leadphi'%m,float(leadphi))
-            setattr(event,'%s_recoil_scalar_ht'%m,float(ht))
-            setattr(event,'%s_recoil_scalar_sphericity'%m,float(scalar_sphericity))
-            setattr(event,'%s_dphi2tkmet'%m,float(dphi2tkmet))
+            setattr(event,'h%s_n'%m,len(selPF))
+            setattr(event,'h%s_pt'%m,float(recpt))
+            setattr(event,'h%s_phi'%m,float(recphi))
+            setattr(event,'h%s_leadpt'%m,float(leadpt))
+            setattr(event,'h%s_leadphi'%m,float(leadphi))
+            setattr(event,'h%s_scalar_ht'%m,float(ht))
+            setattr(event,'h%s_scalar_sphericity'%m,float(scalar_sphericity))
+            setattr(event,'h%s_dphi2tkmet'%m,float(dphi2tkmet))
 
             #thrust variables and event shapes (if no PF candidates -1 is assigned)
             try:
@@ -259,17 +268,17 @@ class EventRecoilProducer(Analyzer):
                 Thrust3D=[-1,-1,-1]
                 Thrust2D=[-1,-1]
                 sphericity,aplanarity,C,D,detST=-1,-1,-1,-1,-1
-            setattr(event,"%s_thrust"%m, float(Thrust3D[2]))
-            setattr(event,"%s_thrustMajor"%m, float(Thrust3D[1]))
-            setattr(event,"%s_thrustMinor"%m, float(Thrust3D[0]))
-            setattr(event,"%s_oblateness"%m, float(Thrust3D[1]-Thrust3D[0]))            
-            setattr(event,"%s_thrustTransverse"%m, float(Thrust2D[1]))
-            setattr(event,"%s_thrustTransverseMinor"%m, float(Thrust2D[0]))
-            setattr(event,"%s_sphericity"%m, float(sphericity))
-            setattr(event,"%s_aplanarity"%m, float(aplanarity))
-            setattr(event,"%s_C"%m, float(C))
-            setattr(event,"%s_D"%m, float(D))
-            setattr(event,"%s_detST"%m, float(detST))
+            setattr(event,"h%s_thrust"%m, float(Thrust3D[2]))
+            setattr(event,"h%s_thrustMajor"%m, float(Thrust3D[1]))
+            setattr(event,"h%s_thrustMinor"%m, float(Thrust3D[0]))
+            setattr(event,"h%s_oblateness"%m, float(Thrust3D[1]-Thrust3D[0]))            
+            setattr(event,"h%s_thrustTransverse"%m, float(Thrust2D[1]))
+            setattr(event,"h%s_thrustTransverseMinor"%m, float(Thrust2D[0]))
+            setattr(event,"h%s_sphericity"%m, float(sphericity))
+            setattr(event,"h%s_aplanarity"%m, float(aplanarity))
+            setattr(event,"h%s_C"%m, float(C))
+            setattr(event,"h%s_D"%m, float(D))
+            setattr(event,"h%s_detST"%m, float(detST))
 
             #N-jetttiness and rho
             self._worker.reset()
@@ -277,10 +286,9 @@ class EventRecoilProducer(Analyzer):
                 px,py,pz,pt,en=selPF[i]
                 self._worker.add(px,py,pz,en)
             self._worker.run()
-            setattr(event,"%s_rho"%m, self._worker.rho())
+            setattr(event,"h%s_rho"%m, self._worker.rho())
             for i in xrange(1,5):
-                setattr(event,"%s_tau%d"%(m,i), self._worker.tau(i))
-
+                setattr(event,"h%s_tau%d"%(m,i), self._worker.tau(i))
 
         return True
 
