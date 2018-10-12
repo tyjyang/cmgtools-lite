@@ -40,7 +40,7 @@ def base(selection,useSkim=True):
 
     if selection=='wenu':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-simpleplots.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3,LepGood1_SF4)'"%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)'"%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "
     elif selection=='wgen':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
@@ -51,7 +51,8 @@ def base(selection,useSkim=True):
     elif selection=='zee':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt --fitData --flp Z "%CORE
         # GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2l(LepGood1_matchedTrgObjElePt,LepGood1_pt,LepGood1_eta,LepGood2_matchedTrgObjElePt,LepGood2_pt,LepGood2_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood2_pt,LepGood2_eta)*eleSF_FullID(LepGood2_pt,LepGood2_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2lfriends(LepGood1_matchedTrgObjElePt,LepGood1_SF1,LepGood2_matchedTrgObjElePt,LepGood2_SF1)*LepGood1_SF2*LepGood1_SF3*LepGood1_SF4*LepGood2_SF2*LepGood2_SF3*LepGood2_SF4' --sp 'Z' "%GO
+        # GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2lfriends(LepGood1_matchedTrgObjElePt,LepGood1_SF1,LepGood2_matchedTrgObjElePt,LepGood2_SF1)*LepGood1_SF2*LepGood1_SF3*LepGood1_SF4*LepGood2_SF2*LepGood2_SF3*LepGood2_SF4' --sp 'Z' "%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT_2lfriends(LepGood1_matchedTrgObjElePt,LepGood1_SF1,LepGood2_matchedTrgObjElePt,LepGood2_SF1)*LepGood1_SF2*LepGood1_SF3*LepGood2_SF2*LepGood2_SF3*eleSF_L1Eff_2l(LepGood1_pt,LepGood1_eta,LepGood2_pt,LepGood2_eta)' --sp 'Z' "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/zee_plots.txt "
     else:
         raise RuntimeError, 'Unknown selection'
