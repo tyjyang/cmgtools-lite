@@ -28,9 +28,9 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
-runOnSignal = False
+runOnSignal = True
 doTriggerMatching = True
-keepLHEweights = False
+keepLHEweights = True
 signalZ = False
 diLeptonSkim = False
 useBasicRECOLeptons = False
@@ -295,15 +295,10 @@ configureSplittingFromTime(samples_1fake,30,6)
 configureSplittingFromTime(samples_1prompt,50,6)
 configureSplittingFromTime(samples_signal,100,6)
 
-if runOnSignal:
-    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2, WJetsToLNu_LO,WJetsToLNu_LO_ext]
-elif doTriggerMatching:
-    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2] #WJetsToLNu_LO,WJetsToLNu_LO_ext]
-    for c in selectedComponents:
-        c.splitFactor = len(c.files)/3
-else:
-    #selectedComponents = samples_1prompt + samples_1fake 
-    selectedComponents = QCDPtbcToE
+if   runOnSignal and signalZ==False:
+    selectedComponents = [WJetsToLNu, WJetsToLNu_ext]
+elif runOnSignal and signalZ:
+    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
 
 if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a given luminosity (assuming ~30k events per MiniAOD file, which is ok for central production)
     target_lumi = scaleProdToLumi # in inverse picobarns
@@ -516,7 +511,7 @@ test = getHeppyOption('test')
 if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
     if test=='testdata':
         comp = selectedComponents[0]
-        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/Run2016B_SingleMuon_MINIAOD_07Aug17_ver2-v1.root']
+        comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     if test=='testw':
         comp = WJetsToLNu
         comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
