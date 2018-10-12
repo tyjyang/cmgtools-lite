@@ -30,7 +30,7 @@ selectedEvents=getHeppyOption("selectEvents","")
 # save PDF information and do not skim. Do only for needed MC samples
 runOnSignal = False
 doTriggerMatching = True
-keepLHEweights = True
+keepLHEweights = False
 signalZ = False
 diLeptonSkim = False
 useBasicRECOLeptons = False
@@ -53,6 +53,7 @@ if doTriggerMatching:
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaEle )
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu  )
     dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaTkMu)
+    dmCoreSequence.insert(dmCoreSequence.index(triggerFlagsAna)+1, triggerMatchAnaMu50)
 
 # Run miniIso
 lepAna.doMiniIsolation = True
@@ -94,10 +95,10 @@ if useBasicRECOLeptons:
     lepAna.loose_electron_relIso = 1000.
     lepAna.loose_electron_lostHits = 100
 
-    ttHLepSkim.minLeptons = 1
-    ttHLepSkim.maxLeptons = 999
-    #ttHLepSkim.idCut  = ""
-    ttHLepSkim.ptCuts = [23]#, 23]
+    ## ttHLepSkim.minLeptons = 2
+    ## ttHLepSkim.maxLeptons = 999
+    ## #ttHLepSkim.idCut  = ""
+    ## ttHLepSkim.ptCuts = [23, 23]
 
 
 jetAna.lepSelCut = lambda lep : False # no cleaning of jets with leptons
@@ -263,6 +264,7 @@ triggerFlagsAna.triggerBits = {
     'DoubleEl' : triggers_ee,
     'MuEG'     : triggers_mue,
     'SingleMu' : triggers_1mu_iso,
+    'SingleMuNoIso' : triggers_1mu_noniso,
     'SingleEl'     : triggers_1e,
 }
 triggerFlagsAna.unrollbits = True
@@ -315,7 +317,7 @@ if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a giv
         c.fineSplitFactor = 1
 
 
-if runData and not isTest: # For running on data
+if runData: # and not isTest: # For running on data
 
     is50ns = False
     dataChunks = []
@@ -323,7 +325,7 @@ if runData and not isTest: # For running on data
     json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    processing = "Run2016B-07Aug17_ver2-v2"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+    processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
     for era in 'CDEFGH':
         processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
     
@@ -334,8 +336,8 @@ if runData and not isTest: # For running on data
     # DatasetsAndTriggers.append( ("DoubleMuon", triggers_mumu_iso + triggers_mumu_ss + triggers_mumu_ht + triggers_3mu + triggers_3mu_alt) )
     # DatasetsAndTriggers.append( ("DoubleEG",   triggers_ee + triggers_ee_ht + triggers_3e) )
     # DatasetsAndTriggers.append( ("MuonEG",     triggers_mue + triggers_mue_ht + triggers_2mu1e + triggers_2e1mu) )
-    ##DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso + triggers_1mu_noniso) )
-    DatasetsAndTriggers.append( ("SingleElectron", triggers_1e) )
+    DatasetsAndTriggers.append( ("SingleMuon", triggers_1mu_iso ) ) # + triggers_1mu_noniso) )
+    ##DatasetsAndTriggers.append( ("SingleElectron", triggers_1e) )
 
     if runDataQCD: # for fake rate measurements in data
         FRTrigs_mu = triggers_FR_1mu_noiso
@@ -502,11 +504,22 @@ if doRecoilVariables:
 
 #-------- HOW TO RUN -----------
 
+print '====================================================================='
+print '====================================================================='
+print '====================================================================='
+print '====================================================================='
+print '====================================================================='
+print runData
+print 'THIS IS SELECTED COMPONENTS', selectedComponents
+
 test = getHeppyOption('test')
-if test == 'testw' or test=='testz' or test=='testdata' or test=='testwnew':
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
+    if test=='testdata':
+        comp = selectedComponents[0]
+        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/Run2016B_SingleMuon_MINIAOD_07Aug17_ver2-v1.root']
     if test=='testw':
-        comp = WJetsToLNu_LO
-        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/WJetsMG_test_0A85AA82-45BB-E611-8ACD-001E674FB063-9552f253c2fa2ae.root']
+        comp = WJetsToLNu
+        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
     elif test=='testw_nnpdf31':
         comp = WJetsToLNu
         # comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/34F84C69-917E-E811-BB1F-FA163EB2ABE6.root'] # we+
@@ -517,17 +530,22 @@ if test == 'testw' or test=='testz' or test=='testdata' or test=='testwnew':
         comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/ZJToEEJ_M-50_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/70000/F22FBFAF-0179-E811-9038-FA163E54DF16.root']
     elif test=='testz':
         comp=DYJetsToLL_M50
-        comp.files=['/eos/cms/store/cmst3/user/psilva/Wmass/DYJetsMG_test/FCDD4D28-12C4-E611-8BFC-C4346BC8F6D0.root']
+        comp.files=comp.files[:1]#'/eos/cms/store/cmst3/user/psilva/Wmass/DYJetsMG_test/FCDD4D28-12C4-E611-8BFC-C4346BC8F6D0.root']
+    elif test=='testznew':
+        comp=DYJetsToLL_M50
+        comp.files=['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/ZJToMuMuJ_M-50_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia.root']
     elif test=='testwnew':
         comp=WJetsToLNu_LO
         comp.files=['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToMuNuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v4/10000/04783B3A-B57D-E811-B421-FA163EF059FC.root']
     else:
         #comp=MuonEG_Run2016B_18Apr2017
-        comp=SingleElectron_Run2016C_03Feb2017
+        #comp=SingleElectron_Run2016C_03Feb2017
+        comp = selectedComponents[0]
+        comp.files = comp.files[:1]
         #comp.files=['/eos/cms/store/data/Run2016G/SingleMuon/MINIAOD/18Apr2017-v1/120000/1C169863-7541-E711-81BD-1CC1DE1CEFE0.root']
         #comp.files=['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/Run2016G-SingleMuon-MINIAOD-18Apr2017-v1-120000_1C169863-7541-E711-81BD-1CC1DE1CEFE0.root']
         #comp.files=['/eos/cms/store/data/Run2016D/MuonEG/MINIAOD/03Feb2017-v1/80000/92E2F2D7-BAEA-E611-A725-0090FAA583C4.root']
-        comp.files=['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
+        #comp.files=['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     print comp.files
     comp.splitFactor = 1
     comp.fineSplitFactor = 1
