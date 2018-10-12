@@ -45,6 +45,8 @@ leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType
     NTupleVariable("matchedTrgObjMuDR"  , lambda x: deltaR(x, x.matchedTrgObjwmassMu) if  x.matchedTrgObjwmassMu else -999.    , help="Matched trigger object (cone dR<0.3) dR to IsoMu24"),
     NTupleVariable("matchedTrgObjTkMuPt", lambda x: x.matchedTrgObjwmassTkMu.pt() if  x.matchedTrgObjwmassTkMu else -999.      , help="Matched trigger object (cone dR<0.3) pT to IsoTkMu24"),
     NTupleVariable("matchedTrgObjTkMuDR", lambda x: deltaR(x, x.matchedTrgObjwmassTkMu) if  x.matchedTrgObjwmassTkMu else -999., help="Matched trigger object (cone dR<0.3) dR to IsoTkMu24"),
+    NTupleVariable("matchedTrgObjMu50Pt", lambda x: x.matchedTrgObjwmassMu50.pt() if  x.matchedTrgObjwmassMu50 else -999.      , help="Matched trigger object (cone dR<0.3) pT to Mu50"),
+    NTupleVariable("matchedTrgObjMu50DR", lambda x: deltaR(x, x.matchedTrgObjwmassMu50) if  x.matchedTrgObjwmassMu50 else -999., help="Matched trigger object (cone dR<0.3) dR to Mu50"),
     NTupleVariable("nLayersInner", lambda lepton: lepton.innerTrack().hitPattern().trackerLayersWithMeasurement() if abs(lepton.pdgId()) == 13 else -999., help="Number of layers with measurements in inner track hit pattern for muons."),
 ])
 
