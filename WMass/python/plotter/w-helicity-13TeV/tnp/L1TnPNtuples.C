@@ -52,6 +52,7 @@ void L1TnPNtuples::Loop()
       for (int iEG=0; iEG<L1EG_p4_; ++iEG) {
         TLorentzVector probe_p4(L1EG_p4_fCoordinates_fX[iEG],L1EG_p4_fCoordinates_fY[iEG],L1EG_p4_fCoordinates_fZ[iEG],L1EG_p4_fCoordinates_fT[iEG]);
         if (probe_p4.Pt() < 15)                continue;
+        if ((*L1EG_iso)[iEG] == 0)             continue;
         if (probe_p4.DeltaR(tag_ele_p4) < 0.3) continue;
         float mass = (probe_p4 + tag_ele_p4).M();
         if (mass < 35 || mass > 145) continue; 

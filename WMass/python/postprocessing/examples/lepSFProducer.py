@@ -191,9 +191,7 @@ class lep2016SFProducer(Module):
     def __init__(self):
 
         # muons have scale factors for trigger, Reco and ID+isolation
-        # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and some additional parts in EE to correct for differences in clustering efficiency
-        # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
-
+        # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and one additional parts in EE to correct for EG L1 prefiring
         self.mu_f = {"trigger"       : "etaptSmooth_muons_trigger.root", 
                      "reco"          : "muons_reco.root",
                      "idiso"         : "etaptSmooth_muons_idiso.root", 
@@ -203,7 +201,7 @@ class lep2016SFProducer(Module):
                      "reco"            : "electrons_reco_pt30to45.root",
                      "full_ID_barrel"  : "etaptSmooth_electrons_fullID_V2_pt25to55.root",
                      "full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root",
-                     "clustering"      : "electrons_clustering.root",
+                     "l1prefire"       : "l1EG_eff.root",
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
@@ -219,7 +217,7 @@ class lep2016SFProducer(Module):
         self.sf2_manager_el   = scaleFactorManager(self.el_f["reco"],                self.filePath,"EGamma_SF2D")
         self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
         self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"EGamma_SF2D")
-        self.sf4_manager_el   = scaleFactorManager(self.el_f["clustering"],          self.filePath,"scaleFactor")
+        self.sf4_manager_el   = scaleFactorManager(self.el_f["l1prefire"],           self.filePath,"l1EG_eff")
 
         # load histograms
         self.sf1_manager_mu.loadHist()

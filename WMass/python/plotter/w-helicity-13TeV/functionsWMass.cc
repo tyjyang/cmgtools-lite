@@ -205,8 +205,8 @@ float _get_electronSF_anyStep(float pt, float eta, int step) {
     _histo_fullid_ee0p1_wmass_leptonSF_el = (TH2F*)(_file_fullid_ee0p1_wmass_leptonSF_el->Get("EGamma_SF2D"));
   }
   if (!_histo_cluster_wmass_leptonSF_el) {
-    _file_cluster_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_clustering.root",_cmssw_base_.c_str()),"read");
-    _histo_cluster_wmass_leptonSF_el = (TH2F*)(_file_cluster_wmass_leptonSF_el->Get("scaleFactor"));
+    _file_cluster_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root",_cmssw_base_.c_str()),"read");
+    _histo_cluster_wmass_leptonSF_el = (TH2F*)(_file_cluster_wmass_leptonSF_el->Get("l1EG_eff"));
   }
 
   TH2F *hist = 0;
@@ -310,11 +310,33 @@ float eleSF_Clustering(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,4);
 }
 
+float eleSF_L1Eff(float pt, float eta) {
+  float sf;
+  if (fabs(eta)<1.479 || pt<35) sf = 1.0;
+  else sf = _get_electronSF_anyStep(40,eta,4);
+  return sf;
+}
 
-float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4, int nSigma=0) {
+float eleSF_L1Eff_2l(float pt1, float eta1, float pt2, float eta2) {
+  float eta,pt;
+  if (fabs(eta1) > fabs(eta2)) {
+    eta = eta1;
+    pt = pt1;
+  } else {
+    eta = eta2;
+    pt = pt2;
+  }
+  if (fabs(eta)<1.479 || pt<35) return 1.;
+  return _get_electronSF_anyStep(40,eta,4);
+}
+
+
+float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, int nSigma=0) {
   float abseta = fabs(eta);
   float syst=0;
+  float sf4=1.0;
   if (abs(pdgId)==11) {
+    sf4 = eleSF_L1Eff(pt,eta);
     if (abseta<1)          syst = 0.006;
     else if (abseta<1.479) syst = 0.008;
     else if (abseta<2)     syst = 0.013;
@@ -328,16 +350,16 @@ float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, fl
   return sf1*sf2*sf3*sf4 + nSigma*syst;
 }
 
-float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
-  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,0);
 }
 
-float lepSFRelUp(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
-  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, 1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+float lepSFRelUp(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3, 1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,0);
 }
 
-float lepSFRelDn(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, float sf4) {
-  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4, -1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,sf4,0);
+float lepSFRelDn(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3, -1)/_lepSF(pdgId,pt,eta,sf1,sf2,sf3,0);
 }
 
 #include "TRandom.h"
