@@ -156,9 +156,9 @@ class EventRecoilProducer(Analyzer):
             mindz=dz
             next2pv=ivtx
         setattr(event,'mindz',mindz)
-        setattr(event,'vx',event.goodVertices[ivtx].position().x())
-        setattr(event,'vy',event.goodVertices[ivtx].position().y())
-        setattr(event,'vz',event.goodVertices[ivtx].position().z())
+        setattr(event,'vx',event.goodVertices[0].position().x())
+        setattr(event,'vy',event.goodVertices[0].position().y())
+        setattr(event,'vz',event.goodVertices[0].position().z())
 
         #pre-select leptons
         vetoCands=[]
