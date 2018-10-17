@@ -1,8 +1,10 @@
 #ifndef FUNCTIONS_WMASS_H
 #define FUNCTIONS_WMASS_H
 
+#include "TROOT.h"
 #include "TFile.h"
 #include "TH2.h"
+#include "TH3.h"
 #include "TF1.h"
 #include "TH2Poly.h"
 #include "TSpline.h"
@@ -648,22 +650,58 @@ int unroll2DTo1D_ptSlices(float pt, float eta){
 
 }
 
+TFile *_file_effCov_trg_staterr_mu = NULL;
+TH2F *_hist_relSystErr0_mu = NULL;
+TH2F *_hist_relSystErr1_mu = NULL;
+TH2F *_hist_relSystErr2_mu = NULL;
+TFile *_file_effCov_trg_staterr_el = NULL;
+TH2F *_hist_relSystErr0_el = NULL;
+TH2F *_hist_relSystErr1_el = NULL;
+TH2F *_hist_relSystErr2_el = NULL;
 
-TFile *_file_effS_staterr = NULL;
-TH1F *_histo_effS_staterr = NULL;
+float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin, float etamax) {
 
-float effSF_staterr(float l1eta, float etamin, float etamax) {
-  if (!_histo_effS_staterr) {
+  if (inuisance<0 || inuisance>2) {
+    std::cout << "ERROR. Nuisance index " << inuisance << " not foreseen for the Erf with 3 parameters. Returning 0 syst." << std::endl;
+    return 1.0;
+  }
+
+  float ret;
+  if (eta < etamin || eta > etamax) ret = 1.0;
+  else {
     if (_cmssw_base_ == "") {
       cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
       _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
     }
-    _file_effS_staterr = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/staterror.root",_cmssw_base_.c_str()),"read");
-    _histo_effS_staterr = (TH1F*)(_file_effS_staterr->Get("effsf_staterr"));
+    TH2F *_hist_relSystErr;
+    if(abs(pdgId)==11) {
+      if(!_file_effCov_trg_staterr_el) {
+        _file_effCov_trg_staterr_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p0");
+        _hist_relSystErr1_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p1");
+        _hist_relSystErr2_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p2");
+      }
+      if      (inuisance==0) _hist_relSystErr = _hist_relSystErr0_el;
+      else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_el;
+      else                   _hist_relSystErr = _hist_relSystErr2_el;
+    } else {
+      if(!_file_effCov_trg_staterr_mu) {
+        _file_effCov_trg_staterr_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p0");
+        _hist_relSystErr1_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p1");
+        _hist_relSystErr2_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p2");
+      }
+      if      (inuisance==0) _hist_relSystErr = _hist_relSystErr0_mu;
+      else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_mu;
+      else                   _hist_relSystErr = _hist_relSystErr2_mu;
+
+    }
+    
+    int etabin = std::max(1, std::min(_hist_relSystErr->GetNbinsX(), _hist_relSystErr->GetXaxis()->FindFixBin(eta)));
+    int ptbin  = std::max(1, std::min(_hist_relSystErr->GetNbinsY(), _hist_relSystErr->GetYaxis()->FindFixBin(pt)));
+    ret = 1.0 + _hist_relSystErr->GetBinContent(etabin,ptbin);
   }
-  int etabin = std::max(1, std::min(_histo_effS_staterr->GetNbinsX(), _histo_effS_staterr->GetXaxis()->FindFixBin(l1eta)));
-  float syst = (l1eta>etamin && l1eta<etamax) ? _histo_effS_staterr->GetBinContent(etabin) : 0.0;
-  return 1.0 + syst;
+  return ret;
 }
 
 #endif

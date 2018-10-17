@@ -138,7 +138,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
             qcdsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
-def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="effstat",incl_mca='incl_sig',append=False):
+def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
@@ -151,11 +151,13 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="effstat",incl_
     deta = 0.1; nbins = int(2*abs(etalo)/deta)
     for i in range(0,nbins):
         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
-        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i+1)
-        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-        weightFcn = 'effSF_staterr(LepGood1_eta\,{emin:.1f}\,{emax:.1f})'.format(emin=etamin,emax=etamax)
-        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
-        etaeffsysts.append(postfix)
+        # 3 parameters used in the Erf fit vs pt per eta bin
+        for ipar in xrange(3):
+            postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
+            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+            weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+            mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
+            etaeffsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
@@ -232,8 +234,8 @@ parser.add_option("-C", "--channel", dest="channel", type="string", default='el'
 parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=5, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 parser.add_option("--useLSF", action='store_true',, default=False, help="force use LSF. default is using condor");
+parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 6:
