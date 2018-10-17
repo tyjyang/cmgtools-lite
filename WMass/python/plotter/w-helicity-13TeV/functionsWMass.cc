@@ -650,82 +650,58 @@ int unroll2DTo1D_ptSlices(float pt, float eta){
 
 }
 
-
-TFile *_file_effS_staterr = NULL;
-TH1F *_histo_effS_staterr = NULL;
-
-float effSF_staterr(float l1eta, float etamin, float etamax) {
-  if (!_histo_effS_staterr) {
-    if (_cmssw_base_ == "") {
-      cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-      _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-    }
-    _file_effS_staterr = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/staterror.root",_cmssw_base_.c_str()),"read");
-    _histo_effS_staterr = (TH1F*)(_file_effS_staterr->Get("effsf_staterr"));
-  }
-  int etabin = std::max(1, std::min(_histo_effS_staterr->GetNbinsX(), _histo_effS_staterr->GetXaxis()->FindFixBin(l1eta)));
-  float syst = (l1eta>etamin && l1eta<etamax) ? _histo_effS_staterr->GetBinContent(etabin) : 0.0;
-  return 1.0 + syst;
-}
-
 TFile *_file_effCov_trg_staterr_mu = NULL;
+TH2F *_hist_relSystErr0_mu = NULL;
+TH2F *_hist_relSystErr1_mu = NULL;
+TH2F *_hist_relSystErr2_mu = NULL;
 TFile *_file_effCov_trg_staterr_el = NULL;
-TH3D *_hist_covMats_mu = NULL;
-TH3D *_hist_covMats_el = NULL;
-TH2D *_hist_funcPars_mu = NULL;
-TH2D *_hist_funcPars_el = NULL;
+TH2F *_hist_relSystErr0_el = NULL;
+TH2F *_hist_relSystErr1_el = NULL;
+TH2F *_hist_relSystErr2_el = NULL;
 
-#include "CMGTools/WMass/python/postprocessing/helpers/EtaPtCorrelatedEfficiency.h"
+float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin, float etamax) {
 
-double *effSystEtaBins(int pdgId, float eta, float pt, float etamin, float etamax) {
+  if (inuisance<0 || inuisance>2) {
+    std::cout << "ERROR. Nuisance index " << inuisance << " not foreseen for the Erf with 3 parameters. Returning 0 syst." << std::endl;
+    return 1.0;
+  }
 
-  double wgtSyst[3];
-  if (eta < etamin || eta > etamax) {
-    for (int i=0; i<3; ++i) {
-      wgtSyst[i] = 1.0;
-    }
-  } else {
+  float ret;
+  if (eta < etamin || eta > etamax) ret = 1.0;
+  else {
     if (_cmssw_base_ == "") {
       cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
       _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
     }
-
-    gROOT->ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include");
-    gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/EtaPtCorrelatedEfficiency.cc+", _cmssw_base_.c_str()));
-  
+    TH2F *_hist_relSystErr;
     if(abs(pdgId)==11) {
-      if (!_hist_covMats_el || !_hist_funcPars_el) {
-        _file_effCov_trg_staterr_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_triggerSF_covariance.root",_cmssw_base_.c_str()),"read");
-        _hist_covMats_el = (TH3D*)_file_effCov_trg_staterr_el->Get("hist_ErfCovMatrix_vs_eta_data");
-        _hist_funcPars_el = (TH2D*)_file_effCov_trg_staterr_el->Get("hist_ErfParam_vs_eta_data");
+      if(!_file_effCov_trg_staterr_el) {
+        _file_effCov_trg_staterr_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p0");
+        _hist_relSystErr1_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p1");
+        _hist_relSystErr2_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p2");
       }
+      if      (inuisance==0) _hist_relSystErr = _hist_relSystErr0_el;
+      else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_el;
+      else                   _hist_relSystErr = _hist_relSystErr2_el;
     } else {
-      if (!_hist_covMats_mu || !_hist_funcPars_mu) {
-        _file_effCov_trg_staterr_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/muons_triggerSF_covariance.root",_cmssw_base_.c_str()),"read");
-        _hist_covMats_mu = (TH3D*)_file_effCov_trg_staterr_el->Get("hist_ErfCovMatrix_vs_eta_data");
-        _hist_funcPars_mu = (TH2D*)_file_effCov_trg_staterr_el->Get("hist_ErfParam_vs_eta_data");
+      if(!_file_effCov_trg_staterr_mu) {
+        _file_effCov_trg_staterr_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p0");
+        _hist_relSystErr1_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p1");
+        _hist_relSystErr2_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p2");
       }
-    }
-  
-    TH3D* hist_covMats;
-    TH2D* hist_funcPars;
-    if(abs(pdgId)==11) {
-      hist_covMats = _hist_covMats_el;
-      hist_funcPars = _hist_funcPars_el;
-    } else {
-      hist_covMats = _hist_covMats_mu;
-      hist_funcPars = _hist_funcPars_mu;
-    }
+      if      (inuisance==0) _hist_relSystErr = _hist_relSystErr0_mu;
+      else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_mu;
+      else                   _hist_relSystErr = _hist_relSystErr2_mu;
 
-    double relsysts[3];
-    EtaPtCorrelatedEfficiency effSystDecorrelator(hist_covMats,hist_funcPars);
-    effSystDecorrelator.DoEffSyst(eta,pt,relsysts);
+    }
     
-    for (int i=0; i<3; ++i) {
-      wgtSyst[i] = 1.0 + relsysts[i];
-    }
+    int etabin = std::max(1, std::min(_hist_relSystErr->GetNbinsX(), _hist_relSystErr->GetXaxis()->FindFixBin(eta)));
+    int ptbin  = std::max(1, std::min(_hist_relSystErr->GetNbinsY(), _hist_relSystErr->GetYaxis()->FindFixBin(pt)));
+    ret = 1.0 + _hist_relSystErr->GetBinContent(etabin,ptbin);
   }
-  return wgtSyst;
+  return ret;
 }
 
 #endif
