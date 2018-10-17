@@ -50,6 +50,7 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("probe_lep_hltSafeId"    , &probe_lep_hltSafeId    , "probe_lep_hltSafeId/I");
   outTree_->Branch("probe_lep_customId"     , &probe_lep_customId     , "probe_lep_customId/I");
   outTree_->Branch("probe_lep_tightCharge"  , &probe_lep_tightCharge  , "probe_lep_tightCharge/I");
+  outTree_->Branch("probe_lep_fullLepId"    , &probe_lep_fullLepId    , "probe_lep_fullLepId/I");
   outTree_->Branch("probe_lep_alsoTag"      , &probe_lep_alsoTag      , "probe_lep_alsoTag/I");
   outTree_->Branch("pair_mass"              , &pair_mass              , "pair_mass/F");
   outTree_->Branch("nvtx"                   , &nvtx                   , "nvtx/I");
