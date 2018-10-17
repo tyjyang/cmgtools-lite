@@ -211,7 +211,7 @@ environment = "LS_SUBCWD={here}"
 request_memory = 4000
 '''.format(scriptName=srcfile, pid=srcfile.replace('.sh',''), here=os.getcwd() )
     confile_input += '+MaxRuntime = %s\n' % getCondorTime(options.queue)
-    if os.environ['USER'] in ['mdunser']:
+    if os.environ['USER'] in ['mdunser','emanuele']:
         confile_input += '+AccountingGroup = "group_u_CMST3.all"\n'
     confile_input += 'queue 1\n'
     confile_op.write(confile_input)
