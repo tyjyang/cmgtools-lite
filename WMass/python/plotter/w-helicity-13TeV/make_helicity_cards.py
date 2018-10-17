@@ -5,6 +5,23 @@ import numpy as np
 # import some parameters from wmass_parameters.py, they are also used by other scripts
 from wmass_parameters import *
 
+
+def getCondorTime(qstr):
+    retval = ''
+    if   qstr == '1nh':
+        retval = 3600
+    elif qstr == '8nh':
+        retval = 28800
+    elif qstr == '1nd':
+        retval = 604800
+    elif qstr == '2nd':
+        retval = 2*604800
+    elif qstr == '1nw':
+        retval = 7*604800
+    else:
+        retval = int(qstr)*60*60
+    return int(retval)
+
 def intermediateBinning(diff):
 
     n25 = int(diff/0.25)
@@ -167,6 +184,40 @@ def submitBatch(dcname,outdir,mkShCardsCmd,options):
     if options.dryRun: print cmd
     else: os.system(cmd)
 
+def submitCondor(dcname,outdir,mkShCardsCmd,options):
+    srcfile=outdir+"/jobs/"+dcname+".sh"
+    srcfile_op = open(srcfile,"w")
+    srcfile_op.write("#! /bin/sh\n")
+    srcfile_op.write("ulimit -c 0 -S\n")
+    srcfile_op.write("ulimit -c 0 -H\n")
+    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {dir};\n".format( 
+            dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    srcfile_op.write(mkShCardsCmd)
+    os.system("chmod a+x "+srcfile)
+
+    ## write the condor submission file
+    confile=outdir+"/jobs/"+dcname+".condor"
+    confile_op = open(confile,"w")
+    confile_input = '''Universe = vanilla
+ Executable = {scriptName}
+ use_x509userproxy = $ENV(X509_USER_PROXY)
+ Log        = {pid}.log
+ Output     = {pid}.out
+ Error      = {pid}.err
+ getenv      = True
+ environment = "LS_SUBCWD={here}"
+ request_memory = 4000
+'''.format(scriptName=srcfile, pid=scriptName.replace('.sh',''), here=os.getcwd() )
+    confile_input += '+MaxRuntime = %s\n' % getCondorTime(options.queue)
+    if os.environ['USER'] in ['mdunser']:
+        job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
+    job_desc += 'queue 1\n'
+    confile_op.write(confile_input)
+    if options.dryRun: 
+        print cmd
+    else: 
+        os.system('condor_submit {cf}'.format(cf=confile))
+
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
 parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
@@ -182,6 +233,7 @@ parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", def
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=5, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+parser.add_option("--useLSF", action='store_true',, default=False, help="force use LSF. default is using condor");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 6:
@@ -300,10 +352,16 @@ if options.signalCards:
                         if not options.longBkg:
                             job_group.append(mkShCardsCmd)
                             if len(job_group) == options.groupJobs or iy == len(YWbinning)-2:
-                                submitBatch(dcname,outdir,'\n'.join(job_group),options)
+                                if options.useLSF: 
+                                    submitBatch(dcname,outdir,'\n'.join(job_group),options)
+                                else:
+                                    submitCondor(dcname,outdir,'\n'.join(job_group),options)
                                 job_group = []
                         else:
-                            submitBatch(dcname,outdir,mkShCardsCmd,options)
+                            if options.useLSF:
+                                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                            else:
+                                submitCondor(dcname,outdir,mkShCardsCmd,options)
                     else:
                         cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                         if options.dryRun: print cmd
@@ -326,7 +384,10 @@ if options.bkgdataCards:
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
         if options.queue:
             mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-            submitBatch(dcname,outdir,mkShCardsCmd,options)
+            if option.useLSF:
+                submitBatch(dcname,outdir,mkShCardsCmd,options)
+            else:
+                submitCondor(dcname,outdir,mkShCardsCmd,options)
         else:
             cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
             if options.dryRun: print cmd
@@ -357,7 +418,10 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
                 mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                if options.useLSF:
+                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                else:
+                    submitCondor(dcname,outdir,mkShCardsCmd,options)
             else:
                 cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                 if options.dryRun: print cmd
