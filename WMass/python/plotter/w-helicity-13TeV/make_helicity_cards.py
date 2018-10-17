@@ -13,11 +13,11 @@ def getCondorTime(qstr):
     elif qstr == '8nh':
         retval = 28800
     elif qstr == '1nd':
-        retval = 604800
+        retval = 24*3600
     elif qstr == '2nd':
-        retval = 2*604800
+        retval = 48*3600
     elif qstr == '1nw':
-        retval = 7*604800
+        retval = 7*24*3600
     else:
         retval = int(qstr)*60*60
     return int(retval)
@@ -201,24 +201,25 @@ def submitCondor(dcname,outdir,mkShCardsCmd,options):
     confile=outdir+"/jobs/"+dcname+".condor"
     confile_op = open(confile,"w")
     confile_input = '''Universe = vanilla
- Executable = {scriptName}
- use_x509userproxy = $ENV(X509_USER_PROXY)
- Log        = {pid}.log
- Output     = {pid}.out
- Error      = {pid}.err
- getenv      = True
- environment = "LS_SUBCWD={here}"
- request_memory = 4000
-'''.format(scriptName=srcfile, pid=scriptName.replace('.sh',''), here=os.getcwd() )
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {pid}.log
+Output     = {pid}.out
+Error      = {pid}.err
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
+'''.format(scriptName=srcfile, pid=srcfile.replace('.sh',''), here=os.getcwd() )
     confile_input += '+MaxRuntime = %s\n' % getCondorTime(options.queue)
     if os.environ['USER'] in ['mdunser']:
-        job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
-    job_desc += 'queue 1\n'
+        confile_input += '+AccountingGroup = "group_u_CMST3.all"\n'
+    confile_input += 'queue 1\n'
     confile_op.write(confile_input)
+    cmd = 'condor_submit {cf}'.format(cf=confile)
     if options.dryRun: 
         print cmd
     else: 
-        os.system('condor_submit {cf}'.format(cf=confile))
+        os.system(cmd)
 
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
@@ -234,7 +235,7 @@ parser.add_option("-C", "--channel", dest="channel", type="string", default='el'
 parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option("--useLSF", action='store_true',, default=False, help="force use LSF. default is using condor");
+parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 (options, args) = parser.parse_args()
 
@@ -386,7 +387,7 @@ if options.bkgdataCards:
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
         if options.queue:
             mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-            if option.useLSF:
+            if options.useLSF:
                 submitBatch(dcname,outdir,mkShCardsCmd,options)
             else:
                 submitCondor(dcname,outdir,mkShCardsCmd,options)
