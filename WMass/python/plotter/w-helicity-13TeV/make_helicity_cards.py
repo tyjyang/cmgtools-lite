@@ -201,7 +201,7 @@ request_memory = 4000
 queue 1\n
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
-        condor_file.write += '+AccountingGroup = "group_u_CMST3.all"\n'
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
     condor_file.close()
 
 from optparse import OptionParser
@@ -280,8 +280,8 @@ writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
 
 ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
 BASECONFIG=os.path.dirname(MCA)
-if options.queue:
-    ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
+## use rel paths if options.queue:
+## use rel paths     ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
 OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj tree "+FASTTEST
 if not os.path.exists(outdir): os.makedirs(outdir)
 OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
@@ -333,7 +333,7 @@ if options.signalCards:
                     dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
                     BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
                     if options.queue:
-                        mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         ## here accumulate signal jobs if running with long. make long+right+left one job
                         ## marcmarc if not options.longBkg and WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=antihel[0])]
                         if not options.longBkg:
@@ -373,7 +373,7 @@ if options.bkgdataCards:
         dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
         if options.queue:
-            mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
+            mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
             if options.useLSF:
                 submitBatch(dcname,outdir,mkShCardsCmd,options)
             else:
@@ -409,7 +409,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
-                mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                 if options.useLSF:
                     submitBatch(dcname,outdir,mkShCardsCmd,options)
                 else:
@@ -426,10 +426,23 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
                     for lin in result:
                         if not lin.startswith('#'):
                             print(lin)
+
+def getShFile(jobdir, name):
+    tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
+    tmp_srcfile = open(tmp_srcfile_name, 'w')
+    tmp_srcfile.write("ulimit -c 0 -S\n")
+    tmp_srcfile.write("ulimit -c 0 -H\n")
+    tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    return tmp_srcfile_name, tmp_srcfile
+
 if len(fullJobList):
     reslist = list(fullJobList)
+    ## split the list into non-bkg and bkg_and_data
+    bkglist = [i for i in reslist if     'bkg_and_data' in i]
+    reslist = [i for i in reslist if not 'bkg_and_data' in i]
+
     nj = len(reslist)
-    print 'full number of python commands to submit', nj
+    print 'full number of python commands to submit', nj+len(bkglist)
     print '   ... grouping them into bunches of', options.groupJobs
     
     if not nj%options.groupJobs:
@@ -440,12 +453,19 @@ if len(fullJobList):
     jobdir = outdir+'/jobs/'
     os.system('mkdir -p '+jobdir)
     subcommands = []
+
+    ## a bit awkward, but this keeps the bkg and data jobs separate. do those first
+    for ib in bkglist:
+        pm = 'plus' if 'positive' in ib else 'minus'
+        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+        tmp_srcfile.write(ib)
+        tmp_srcfile.close()
+        makeCondorFile(tmp_srcfile_name)
+        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+    ## now do the others.
     for ij in range(njobs):
-        tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=ij)
-        tmp_srcfile = open(tmp_srcfile_name, 'w')
-        tmp_srcfile.write("ulimit -c 0 -S\n")
-        tmp_srcfile.write("ulimit -c 0 -H\n")
-        tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
         tmp_n = options.groupJobs
         while len(reslist) and tmp_n:
             tmp_pycmd = reslist[0]
@@ -455,18 +475,19 @@ if len(fullJobList):
         tmp_srcfile.close()
         makeCondorFile(tmp_srcfile_name)
         subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
     print 'i have {n} jobs to submit!'.format(n=len(subcommands))
     if options.dryRun:
         print 'running dry, printing the commands...'
         for cmd in subcommands:
             print cmd
     else:
-        sigDyBkg = '_signal' if options.signalCards else '_dy' if options.signalCards and len(pdfsysts+qcdsysts)>1 else '_bkgData'
+        sigDyBkg = '_signal' if options.signalCards else '_background'
         pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
         pipefile = open(pipefilename, 'w')
         print 'piping all the commands in file', pipefilename
         for cmd in subcommands:
             pipefile.write(cmd+'\n')
         pipefile.close()
-#        os.system('bash '+pipefilename)
+        os.system('bash '+pipefilename)
 print 'done'
