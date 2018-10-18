@@ -112,7 +112,8 @@ queue 1
             for ij in range(njobs):
                 tmp_srcfile_name = resubdir+'/resubjob_{i}.sh'.format(i=ij)
                 tmp_srcfile = open(tmp_srcfile_name, 'w')
-                tmp_srcfile.write('#!/bin/bash\n')
+                for hl in self.headerlines:
+                    tmp_srcfile.write(hl)
                 tmp_n = options.grouping
                 while len(reslist) and tmp_n:
                     tmp_pycmd = reslist[0]
