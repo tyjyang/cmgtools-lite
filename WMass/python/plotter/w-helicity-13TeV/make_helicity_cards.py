@@ -13,11 +13,11 @@ def getCondorTime(qstr):
     elif qstr == '8nh':
         retval = 28800
     elif qstr == '1nd':
-        retval = 604800
+        retval = 24*3600
     elif qstr == '2nd':
-        retval = 2*604800
+        retval = 48*3600
     elif qstr == '1nw':
-        retval = 7*604800
+        retval = 7*24*3600
     else:
         retval = int(qstr)*60*60
     return int(retval)
@@ -204,7 +204,6 @@ queue 1\n
         condor_file.write += '+AccountingGroup = "group_u_CMST3.all"\n'
     condor_file.close()
 
-
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
 parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
@@ -219,7 +218,7 @@ parser.add_option("-C", "--channel", dest="channel", type="string", default='el'
 parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option("--useLSF", action='store_true',, default=False, help="force use LSF. default is using condor");
+parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 (options, args) = parser.parse_args()
 
@@ -375,7 +374,7 @@ if options.bkgdataCards:
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
         if options.queue:
             mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-            if option.useLSF:
+            if options.useLSF:
                 submitBatch(dcname,outdir,mkShCardsCmd,options)
             else:
                 ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
