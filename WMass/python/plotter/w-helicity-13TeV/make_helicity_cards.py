@@ -186,40 +186,23 @@ def submitBatch(dcname,outdir,mkShCardsCmd,options):
     if options.dryRun: print cmd
     else: os.system(cmd)
 
-def submitCondor(dcname,outdir,mkShCardsCmd,options):
-    srcfile=outdir+"/jobs/"+dcname+".sh"
-    srcfile_op = open(srcfile,"w")
-    srcfile_op.write("#! /bin/sh\n")
-    srcfile_op.write("ulimit -c 0 -S\n")
-    srcfile_op.write("ulimit -c 0 -H\n")
-    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {dir};\n".format( 
-            dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
-    srcfile_op.write(mkShCardsCmd)
-    os.system("chmod a+x "+srcfile)
-
-    ## write the condor submission file
-    confile=outdir+"/jobs/"+dcname+".condor"
-    confile_op = open(confile,"w")
-    confile_input = '''Universe = vanilla
+def makeCondorFile(srcFile):
+    condor_file = open(srcFile.replace('.sh','.condor'),'w')
+    condor_file.write('''Universe = vanilla
 Executable = {scriptName}
 use_x509userproxy = $ENV(X509_USER_PROXY)
 Log        = {pid}.log
 Output     = {pid}.out
-Error      = {pid}.err
+Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-'''.format(scriptName=srcfile, pid=srcfile.replace('.sh',''), here=os.getcwd() )
-    confile_input += '+MaxRuntime = %s\n' % getCondorTime(options.queue)
-    if os.environ['USER'] in ['mdunser','emanuele']:
-        confile_input += '+AccountingGroup = "group_u_CMST3.all"\n'
-    confile_input += 'queue 1\n'
-    confile_op.write(confile_input)
-    cmd = 'condor_submit {cf}'.format(cf=confile)
-    if options.dryRun: 
-        print cmd
-    else: 
-        os.system(cmd)
++MaxRuntime = {rt}
+queue 1\n
+'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write += '+AccountingGroup = "group_u_CMST3.all"\n'
+    condor_file.close()
 
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
@@ -313,6 +296,7 @@ if options.queue:
 
 POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
 NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
+fullJobList = set()
 if options.signalCards:
     WYBinsEdges = makeFixedYWBinning()
     ybinfile = open(outdir+'/binningYW.txt','w')
@@ -358,13 +342,16 @@ if options.signalCards:
                                 if options.useLSF: 
                                     submitBatch(dcname,outdir,'\n'.join(job_group),options)
                                 else:
-                                    submitCondor(dcname,outdir,'\n'.join(job_group),options)
+                                    pass
+                                    ## passing this submitCondor(dcname,outdir,'\n'.join(job_group),options)
                                 job_group = []
                         else:
                             if options.useLSF:
                                 submitBatch(dcname,outdir,mkShCardsCmd,options)
                             else:
-                                submitCondor(dcname,outdir,mkShCardsCmd,options)
+                                pass
+                                ## passing this now too submitCondor(dcname,outdir,mkShCardsCmd,options)
+                        fullJobList.add(mkShCardsCmd)
                     else:
                         cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                         if options.dryRun: print cmd
@@ -390,7 +377,9 @@ if options.bkgdataCards:
             if options.useLSF:
                 submitBatch(dcname,outdir,mkShCardsCmd,options)
             else:
-                submitCondor(dcname,outdir,mkShCardsCmd,options)
+                ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                pass
+            fullJobList.add(mkShCardsCmd)
         else:
             cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
             if options.dryRun: print cmd
@@ -424,7 +413,9 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
                 if options.useLSF:
                     submitBatch(dcname,outdir,mkShCardsCmd,options)
                 else:
-                    submitCondor(dcname,outdir,mkShCardsCmd,options)
+                    ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                    pass
+                fullJobList.add(mkShCardsCmd)
             else:
                 cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                 if options.dryRun: print cmd
@@ -435,3 +426,46 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
                     for lin in result:
                         if not lin.startswith('#'):
                             print(lin)
+if len(fullJobList):
+    reslist = list(fullJobList)
+    nj = len(reslist)
+    print 'full number of python commands to submit', nj
+    print '   ... grouping them into bunches of', options.groupJobs
+    
+    if not nj%options.groupJobs:
+        njobs = int(nj/options.groupJobs)
+    else: 
+        njobs = int(nj/options.groupJobs) + 1
+    
+    jobdir = outdir+'/jobs/'
+    os.system('mkdir -p '+jobdir)
+    subcommands = []
+    for ij in range(njobs):
+        tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=ij)
+        tmp_srcfile = open(tmp_srcfile_name, 'w')
+        tmp_srcfile.write("ulimit -c 0 -S\n")
+        tmp_srcfile.write("ulimit -c 0 -H\n")
+        tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+        tmp_n = options.groupJobs
+        while len(reslist) and tmp_n:
+            tmp_pycmd = reslist[0]
+            tmp_srcfile.write(tmp_pycmd)
+            reslist.remove(tmp_pycmd)
+            tmp_n -= 1
+        tmp_srcfile.close()
+        makeCondorFile(tmp_srcfile_name)
+        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+    print 'i have {n} jobs to submit!'
+    if options.dryRun:
+        print 'running dry, printing the commands...'
+        for cmd in subcommands:
+            print cmd
+    else:
+        pipefilename = args[5]+'_submission.sh'
+        pipefile = open(pipefilename, 'w')
+        print 'piping all the commands in file', pipefilename
+        for cmd in subcommands:
+            pipefile.write(cmd+'\n')
+        pipefile.close()
+        os.system('bash '+pipefilename)
+print 'done'
