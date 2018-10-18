@@ -199,7 +199,7 @@ environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}
 queue 1\n
-'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write += '+AccountingGroup = "group_u_CMST3.all"\n'
     condor_file.close()
@@ -455,7 +455,7 @@ if len(fullJobList):
         tmp_srcfile.close()
         makeCondorFile(tmp_srcfile_name)
         subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
-    print 'i have {n} jobs to submit!'
+    print 'i have {n} jobs to submit!'.format(n=len(subcommands))
     if options.dryRun:
         print 'running dry, printing the commands...'
         for cmd in subcommands:
@@ -467,5 +467,5 @@ if len(fullJobList):
         for cmd in subcommands:
             pipefile.write(cmd+'\n')
         pipefile.close()
-        os.system('bash '+pipefilename)
+#        os.system('bash '+pipefilename)
 print 'done'
