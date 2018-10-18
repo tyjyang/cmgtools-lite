@@ -461,7 +461,8 @@ if len(fullJobList):
         for cmd in subcommands:
             print cmd
     else:
-        pipefilename = args[5]+'_submission.sh'
+        sigDyBkg = '_signal' if options.signalCards else '_dy' if options.signalCards and len(pdfsysts+qcdsysts)>1 else '_bkgData'
+        pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
         pipefile = open(pipefilename, 'w')
         print 'piping all the commands in file', pipefilename
         for cmd in subcommands:
