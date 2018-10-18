@@ -55,6 +55,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}
+queue 1
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
 
     def checkCards(self):
