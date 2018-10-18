@@ -18,6 +18,7 @@ class CardsChecker:
             key = f.replace('.sh','')
             tmp_f = open(card_dir+'/jobs/'+f, 'r')
             lines = tmp_f.readlines()
+            tmp_f.close()
             self.headerlines =[i for i in lines if not 'python ' in i]
             pycmds =[i for i in lines if 'python ' in i]
             for cmd in pycmds:
@@ -27,9 +28,10 @@ class CardsChecker:
                 self.datacards[tmp_name] = f_txt
                 self.cardinputs[tmp_name] = f_root
                 self.pycmd[tmp_name] = cmd
+        self.resubPythonCommands = set()
         print '## Expecting {n} cards and rootfiles'.format(n=len(self.datacards))
 
-    def makeResubFile(self, key):
+    def makeResubFileLSF(self, key):
         resubdir = self.card_dir+'/jobs/resub/'
         os.system('mkdir -p '+resubdir)
         tmp_file_name = resubdir+'/'+key+'_resub.sh'
@@ -38,18 +40,36 @@ class CardsChecker:
         for i in self.headerlines:
             tmp_file.write(i)
         tmp_file.write(self.pycmd[key])
+        tmp_file.close()
         return tmp_file_name
 
+    def makeCondorFile(self, srcFile):
+        condor_file = open(srcFile.replace('.sh','.condor'),'w')
+        condor_file.write('''Universe = vanilla
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {pid}.log
+Output     = {pid}.out
+Error      = {pid}.error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}
+'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
 
     def checkCards(self):
         resubcmds = {}
         for key,dc in self.datacards.iteritems():
             if not os.path.exists(self.card_dir+'/'+dc): 
-                if self.options.verbose>1: print '# datacard ',dc,' is not present in ',self.card_dir
-                resubfile = self.makeResubFile(key)
-                os.system('chmod u+x '+os.path.abspath(resubfile))
-                resubcmds[key] = 'bsub -q {queue} -o {log} {srcfile}'.format(
-                    queue=self.options.queue, log=os.path.abspath(resubfile.replace('.sh','.log')), srcfile=os.path.abspath(resubfile))
+                if self.options.verbose>1: 
+                    print '# datacard ',dc,' is not present in ',self.card_dir
+                if options.useLSF:
+                    resubfile = self.makeResubFileLSF(key)
+                    os.system('chmod u+x '+os.path.abspath(resubfile))
+                    resubcmds[key] = 'bsub -q {queue} -o {log} {srcfile}'.format(
+                        queue=self.options.queue, log=os.path.abspath(resubfile.replace('.sh','.log')), srcfile=os.path.abspath(resubfile))
+                else:
+                    self.resubPythonCommands.add(self.pycmd[key])
 
         for key,f in self.cardinputs.iteritems():
             f_ok = True
@@ -70,10 +90,38 @@ class CardsChecker:
                         f_ok = False
 
             if not f_ok: 
-                resubfile = self.makeResubFile(key)
-                os.system('chmod u+x '+os.path.abspath(resubfile))
-                resubcmds[key] = 'bsub -q {queue} -o {log} {srcfile}'.format(
-                    queue=self.options.queue, log=os.path.abspath(resubfile.replace('.sh','.log')), srcfile=os.path.abspath(resubfile))
+                if options.useLSF:
+                    resubfile = self.makeResubFileLSF(key)
+                    os.system('chmod u+x '+os.path.abspath(resubfile))
+                    resubcmds[key] = 'bsub -q {queue} -o {log} {srcfile}'.format(
+                        queue=self.options.queue, log=os.path.abspath(resubfile.replace('.sh','.log')), srcfile=os.path.abspath(resubfile))
+                else:
+                    self.resubPythonCommands.add(self.pycmd[key])
+        if not options.useLSF:
+            reslist = list(self.resubPythonCommands)
+            nj = len(reslist)
+            print 'number of python jobs to resubmit', nj
+        
+            if not nj%options.grouping:
+                njobs = int(nj/options.grouping)
+            else: njobs = int(nj/options.grouping) + 1
+
+            resubdir = self.card_dir+'/jobs/resub/'
+            os.system('mkdir -p '+resubdir)
+            for ij in range(njobs):
+                tmp_srcfile_name = resubdir+'/resubjob_{i}.sh'.format(i=ij)
+                tmp_srcfile = open(tmp_srcfile_name, 'w')
+                tmp_srcfile.write('#!/bin/bash\n')
+                tmp_n = options.grouping
+                while len(reslist) and tmp_n:
+                    tmp_pycmd = reslist[0]
+                    tmp_srcfile.write(tmp_pycmd)
+                    reslist.remove(tmp_pycmd)
+                    tmp_n -= 1
+                tmp_srcfile.close()
+                self.makeCondorFile(tmp_srcfile_name)
+                resubcmds[ij] = 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor'))
+                
         return resubcmds
 
 if __name__ == '__main__':
@@ -83,6 +131,9 @@ if __name__ == '__main__':
     parser.add_option('-z', '--check-zombies', dest='checkZombies', default=False, action='store_true', help='Check if all the ROOT files are sane');
     parser.add_option('-q', '--queue', dest='queue', type='string', default='1nd', help='choose the queue to submit batch jobs (default is 8nh)');
     parser.add_option('-v', '--verbose', dest='verbose', default=0, type=int, help='Degree of verbosity (0=default prints only the resubmit commands)');
+    parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
+    parser.add_option('-r', '--runtime', default=8, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
+    parser.add_option('-g', '--grouping', default=20, type=int,  help='Group resubmit commands into groups of size N');
     (options, args) = parser.parse_args()
 
     if options.checkCards:
@@ -94,6 +145,13 @@ if __name__ == '__main__':
         else: 
             keys = result.keys()
             keys.sort()
-            for k in keys: print result[k]
+            for k in keys: 
+                print result[k]
             print '## in total have to resubmit {n} jobs'.format(n=len(result))
+            print 'piping all the commands in resubmit.sh'
+            tmp_f = open('resubmit.sh','w')
+            for k in keys: 
+                tmp_f.write(result[k]+'\n')
+            tmp_f.close()
+            
 
