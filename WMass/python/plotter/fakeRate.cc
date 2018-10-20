@@ -83,11 +83,11 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
   TFile *f = TFile::Open(file.c_str());
   if (*histo != 0) {
     if (std::string(name) != (*histo)->GetName()) {
-      std::cerr << "WARNING: overwriting histogram " << (*histo)->GetName() << std::endl;
+      std::cerr << "WARNING 1: overwriting histogram " << (*histo)->GetName() << std::endl;
     } else {
       TH2* hnew = (TH2*) f->Get(name);
       if (hnew == 0 || hnew->GetNbinsX() != (*histo)->GetNbinsX() || hnew->GetNbinsY() != (*histo)->GetNbinsY()) {
-	std::cerr << "WARNING: overwriting histogram " << (*histo)->GetName() << std::endl;
+	std::cerr << "WARNING 2: overwriting histogram " << (*histo)->GetName() << std::endl;
       } else {
 	bool fail = false;
 	for (int ix = 1; ix <= (*histo)->GetNbinsX(); ++ix) {
@@ -97,7 +97,7 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
 	    }
 	  }
 	}
-	if (fail) std::cerr << "WARNING: overwriting histogram " << (*histo)->GetName() << std::endl;
+	if (fail) std::cerr << "WARNING 3: overwriting histogram " << (*histo)->GetName() << std::endl;
       }
     }
     delete *histo;

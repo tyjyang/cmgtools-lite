@@ -57,3 +57,5 @@ ptl1__etal1_binFR: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: [-2.5,-2
 
 
 pfmt_ptl1: mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood_phi)\:ptElFull(LepGood1_calPt,LepGood1_eta) : 35,30,65,50,0,100 ; XTitle='electron #p_{T} [GeV]', YTitle='PF m_{T} [GeV]', Legend='TR'
+
+genwpt      : genw_pt  : 100,0.,50. ; XTitle="p_{T}^{W}", IncludeOverflows=False

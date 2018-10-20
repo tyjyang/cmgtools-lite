@@ -129,7 +129,7 @@ def adjustSettings_CMS_lumi():
 #########################################################################
 
 # function to draw 2D histograms, can also plot profile along X on top
-def drawCorrelationPlot(h2D,
+def drawCorrelationPlot(h2D_tmp,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
                         canvasName="default", plotLabel="", outdir="./",
                         rebinFactorY=0,
@@ -144,7 +144,8 @@ def drawCorrelationPlot(h2D,
                         palette=57,
                         canvasSize="700,625",
                         passCanvas=None,
-                        bottomMargin=0.1):
+                        bottomMargin=0.1,
+                        plotError=False):
 
 
     # if h2D.GetName() == "scaleFactor_origBinPt":
@@ -156,12 +157,23 @@ def drawCorrelationPlot(h2D,
     adjustSettings_CMS_lumi()
 
     if (rebinFactorX): 
-        if isinstance(rebinFactorX, int): h2D.RebinY(rebinFactorX)
-        else:                             h2D.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
+        if isinstance(rebinFactorX, int): h2D_tmp.RebinY(rebinFactorX)
+        else:                             h2D_tmp.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
 
     if (rebinFactorY): 
-        if isinstance(rebinFactorY, int): h2D.RebinY(rebinFactorY)
-        else:                             h2D.RebinY(len(rebinFactorY)-1,"",array('d',rebinFactorY)) # case in which rebinFactorX is a list of bin edges
+        if isinstance(rebinFactorY, int): h2D_tmp.RebinY(rebinFactorY)
+        else:                             h2D_tmp.RebinY(len(rebinFactorY)-1,"",array('d',rebinFactorY)) # case in which rebinFactorX is a list of bin edges
+
+    if plotError:
+        herr = h2D_tmp.Clone(h2D_tmp.GetName()+"_err")
+        herr.Reset("ICESM")
+        for i in range(1,herr.GetNbinsX()+1):
+            for j in range(1,herr.GetNbinsY()+1):
+                herr.SetBinContent(i,j,h2D_tmp.GetBinError(i,j))
+        h2D = herr
+    else:
+        h2D = h2D_tmp
+
 
     ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
     ROOT.gStyle.SetNumberContours(nContours) # default is 20 

@@ -196,12 +196,13 @@ if __name__ == "__main__":
         # doing binned signal
             print "Signal"
             if analysis == "helicity":                
+                hSigInclusive = {}
                 for pol in ['right', 'left','long']:
                     print "\tPOLARIZATION ",pol
                     # at this level we don't know how many bins we have, but we know that, for nominal templates, Ybin will be the second last token if we split the template name on '_' 
                     inclSigName = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel)
                     inclSigTitle = 'W{chs} {pol} inclusive'.format(pol=pol,chs=chs)
-                    hSigInclusive = ROOT.TH2F(inclSigName,inclSigTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
+                    hSigInclusive[pol] = ROOT.TH2F(inclSigName,inclSigTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
                     bins_charge_pol = binningYW["{ch}_{pol}".format(ch=charge,pol=pol)]
 
                     for k in infile.GetListOfKeys():
@@ -226,7 +227,8 @@ if __name__ == "__main__":
                             title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
                             h2_backrolled_1.Write(name2D)
-                            hSigInclusive.Add(h2_backrolled_1)
+                            hSigInclusive[pol].Add(h2_backrolled_1)
+                            print "pol {}: Ybin {} --> Integral {}
 
                             if options.draw_all_bins: drawThisBin = True
                             else: drawThisBin = False
@@ -238,10 +240,10 @@ if __name__ == "__main__":
                                                     'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
                                                     "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
 
-                    hSigInclusive.Write()
+                    hSigInclusive[pol].Write()
                     if not options.noplot:
-                        zaxisTitle = "Events::0,%.1f" % hSigInclusive.GetMaximum()
-                        drawCorrelationPlot(hSigInclusive, 
+                        zaxisTitle = "Events::0,%.1f" % hSigInclusive[pol].GetMaximum()
+                        drawCorrelationPlot(hSigInclusive[pol], 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
                                             "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
