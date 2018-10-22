@@ -63,9 +63,9 @@ if __name__ == "__main__":
             systHistos[ivar].GetYaxis().SetRangeUser(30,45)
         systHistos[ivar].Draw('COLZ0')
         if ivar==0:
-            systHistos[ivar].GetZaxis().SetRangeUser(-0.02,0.02)
+            systHistos[ivar].GetZaxis().SetRangeUser(-0.002,0.002)
         else:
-            systHistos[ivar].GetZaxis().SetRangeUser(-0.10,0.10)
+            systHistos[ivar].GetZaxis().SetRangeUser(-0.01,0.01)
         for ext in ['pdf', 'png']:
             canv.SaveAs('{odir}/{name}.{ext}'.format(odir='.' if not options.printDir else options.printDir,
                                                      name='%s_p%d%s' % (basename,ivar,"_"+options.suffix if options.suffix else ''),
