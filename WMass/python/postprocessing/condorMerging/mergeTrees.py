@@ -1,4 +1,4 @@
-import ROOT, commands, os, sys, optparse
+import ROOT, commands, os, sys, optparse, datetime
 
 
 ## USAGE:
@@ -59,10 +59,13 @@ if __name__ == '__main__':
         except:
             continue
 
+    date = datetime.date.today().isoformat()
+    condorSubmitCommands = []
     for ds in dss.keys():
         n_chunksPerPart = int(options.maxsize/dss[ds]['avgsize'][0])
-        print 'for dataset {d} i will merge {n} files per chunk for roughly {nc} chunks'.format(d=ds,n=n_chunksPerPart,nc=len(dss[ds]['files'])/n_chunksPerPart)
-        tmp_condor = open('condor_merge_{ds}.condor'.format(ds=ds),'w')
+        print 'for dataset {d} i will merge {n} files per chunk for roughly {nc} chunks'.format(d=ds,n=n_chunksPerPart,nc=len(dss[ds]['files'])/n_chunksPerPart+1)
+        tmp_condor_filename = 'condor_merge_{ds}_{d}.condor'.format(ds=ds,d=date)
+        tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = mergeScript.sh
 use_x509userproxy = $ENV(X509_USER_PROXY)
 Log        = merge_{ds}.log
@@ -70,7 +73,7 @@ Output     = merge_{ds}.out
 Error      = merge_{ds}.error
 getenv      = True
 
-transfer_input_files  = fullMerge.py
+transfer_input_files  = fullMergeTrees.py
 
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
@@ -84,6 +87,13 @@ request_memory = 4000
             dss[ds]['chunks'] = dss[ds]['chunks'][n_chunksPerPart:]
             n_part += 1
         tmp_condor.close()
+        condorSubmitCommands.append('condor_submit {cf}'.format(cf=tmp_condor_filename))
+
+    print 'submitting to condor...'
+    for sc in condorSubmitCommands:
+        print sc
+        #os.system(sc)
+    print '...done'
 
         
 
