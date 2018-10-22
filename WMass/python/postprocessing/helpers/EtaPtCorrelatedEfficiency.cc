@@ -27,7 +27,7 @@ Eigen::MatrixXd EtaPtCorrelatedEfficiency::covariance(float eta) {
   return covMat;
 }
 
-void EtaPtCorrelatedEfficiency::DoHessianShifts(float eta, double *inpars, double *outpars) {
+void EtaPtCorrelatedEfficiency::DoHessianShifts(float eta, int ipar, double *inpars, double *outpars) {
 
   // diagonalize the covariance matrix
   Eigen::MatrixXd covMat = covariance(eta);
@@ -47,10 +47,8 @@ void EtaPtCorrelatedEfficiency::DoHessianShifts(float eta, double *inpars, doubl
   Eigen::VectorXd diagbasisv = transformation.transpose()*inparv;
   // std::cout << "diagbasisv = " << std::endl << diagbasisv << std::endl;
 
-  // shift all of them by the diagonal uncertainty (uncorrelated in this basis)
-  for (unsigned int ieig=0; ieig<npars; ++ieig) {
-    diagbasisv[ieig] += sqrt(eigenv[ieig]);
-  }
+  // shift one of them by the diagonal uncertainty (uncorrelated in this basis)
+  diagbasisv[ipar] += sqrt(eigenv[ipar]);
 
   // transform the pars back in the original basis
   Eigen::VectorXd outparv = transformation*diagbasisv;
@@ -70,10 +68,9 @@ void EtaPtCorrelatedEfficiency::DoEffSyst(float eta, float pt, double *variation
   }
   float nominaleff = inpars[0]*TMath::Erf((pt-inpars[1])/inpars[2]);
   
-  DoHessianShifts(eta,inpars,outpars);
-
-  variations[0] = (outpars[0]*TMath::Erf((pt-inpars [1])/inpars [2]) - nominaleff)/nominaleff;
-  variations[1] = ( inpars[0]*TMath::Erf((pt-outpars[1])/inpars [2]) - nominaleff)/nominaleff;
-  variations[2] = ( inpars[0]*TMath::Erf((pt-inpars [1])/outpars[2]) - nominaleff)/nominaleff;
+  for (int ipar=0; ipar<3; ++ipar) {
+    DoHessianShifts(eta,ipar,inpars,outpars);
+    variations[ipar] = outpars[0]*TMath::Erf((pt-outpars[1])/outpars[2]) - nominaleff;
+  }
   return;
 }

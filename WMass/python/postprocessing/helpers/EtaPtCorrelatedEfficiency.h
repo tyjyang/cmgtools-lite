@@ -16,7 +16,7 @@ public:
 protected:
 
   Eigen::MatrixXd covariance(float eta);
-  void DoHessianShifts(float eta, double *inpars, double *outpars);
+  void DoHessianShifts(float eta, int ipar, double *inpars, double *outpars);
 
   TH3D *covhist_;
   TH2D *erfhist_;
