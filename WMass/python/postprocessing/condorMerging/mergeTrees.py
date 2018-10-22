@@ -92,7 +92,7 @@ request_memory = 4000
     print 'submitting to condor...'
     for sc in condorSubmitCommands:
         print sc
-        #os.system(sc)
+        os.system(sc)
     print '...done'
 
         
