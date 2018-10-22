@@ -192,9 +192,9 @@ class lep2016SFProducer(Module):
 
         # muons have scale factors for trigger, Reco and ID+isolation
         # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and one additional parts in EE to correct for EG L1 prefiring
-        self.mu_f = {"trigger"       : "etaptSmooth_muons_trigger.root", 
-                     "reco"          : "muons_reco.root",
-                     "idiso"         : "etaptSmooth_muons_idiso.root", 
+        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger_finerETA.root", 
+                     "reco"          : "smoothEfficiency_muons_recoToSel_finerETA.root",
+                     #"idiso"         : "etaptSmooth_muons_idiso.root", 
                      }
         self.el_f = {"trigger_barrel"  : "etaptSmooth_electrons_trigger_30_55_onlyErf.root",
                      "trigger_endcap"  : "electrons_trigger_endcap0p1.root",
@@ -207,9 +207,10 @@ class lep2016SFProducer(Module):
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
-        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
-        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"EGamma_SF2D")
-        self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
+        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor_interpolated")
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"scaleFactor_interpolated")
+        ## remove thirs scale factor for muons, fill 1. +- 0. later
+        #self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
 
         # create electron scale factor manager        
         self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
@@ -222,7 +223,7 @@ class lep2016SFProducer(Module):
         # load histograms
         self.sf1_manager_mu.loadHist()
         self.sf2_manager_mu.loadHist()
-        self.sf3_manager_mu.loadHist()
+        #self.sf3_manager_mu.loadHist()
         self.sf1_manager_el_b.loadHist()
         self.sf1_manager_el_e.loadHist()
         self.sf2_manager_el.loadHist()
@@ -282,12 +283,12 @@ class lep2016SFProducer(Module):
                 else:
                     sf_1.append(float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
                     sf_2.append(float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
-                    sf_3.append(float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
-                    sf_4.append(1)
+                    sf_3.append(1.)#float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
+                    sf_4.append(1.)
                     sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_2_err.append(float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_4_err.append(0)
+                    sf_3_err.append(0.)#float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_4_err.append(0.)
         self.out.fillBranch("LepGood_SF1", sf_1)
         self.out.fillBranch("LepGood_SF2", sf_2)
         self.out.fillBranch("LepGood_SF3", sf_3)
