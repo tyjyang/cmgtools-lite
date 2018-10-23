@@ -51,7 +51,7 @@ if __name__ == '__main__':
             tmp_f = open(options.directory+'/'+sd+'/treeProducerWMass/tree.root.url','r')
             tmp_root = tmp_f.readlines()[0].replace('\n','')
             dss[dsname]['files'  ] .append(tmp_root)
-            dss[dsname]['chunks' ] .append(options.directory+'/'+sd)
+            dss[dsname]['chunks' ] .append(os.path.abspath(options.directory+'/'+sd))
             if dss[dsname]['avgsize'][1] < 100: ## only calculate avg on the first 100
                 newavgsize = getAverageFileSize('/'.join(tmp_root.split('/')[3:]), dss[dsname]['avgsize'])
                 dss[dsname]['avgsize'] = newavgsize
