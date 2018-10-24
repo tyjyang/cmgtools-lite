@@ -61,9 +61,9 @@ if __name__ == '__main__':
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = friendsScript.sh
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = logs/log_condor_{ds}.log
-Output     = logs/log_condor_{ds}.out
-Error      = logs/log_condor_{ds}.error
+Log        = logs/log_condor_{ds}_chunk$(ProcId).log
+Output     = logs/log_condor_{ds}_chunk$(ProcId).out
+Error      = logs/log_condor_{ds}_chunk$(ProcId).error
 getenv      = True
 
 environment = "LS_SUBCWD={here}"
