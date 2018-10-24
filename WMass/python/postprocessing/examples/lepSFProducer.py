@@ -191,27 +191,26 @@ class lep2016SFProducer(Module):
     def __init__(self):
 
         # muons have scale factors for trigger, Reco and ID+isolation
-        # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and some additional parts in EE to correct for differences in clustering efficiency
-        # better to sacrifice name clarity and call these 3 sets sf1, sf2, sf3
-
-        self.mu_f = {"trigger"       : "etaptSmooth_muons_trigger.root", 
-                     "reco"          : "muons_reco.root",
-                     "idiso"         : "etaptSmooth_muons_idiso.root", 
+        # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and one additional parts in EE to correct for EG L1 prefiring
+        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger_finerETA.root", 
+                     "reco"          : "smoothEfficiency_muons_recoToSel_finerETA.root",
+                     #"idiso"         : "etaptSmooth_muons_idiso.root", 
                      }
         self.el_f = {"trigger_barrel"  : "etaptSmooth_electrons_trigger_30_55_onlyErf.root",
                      "trigger_endcap"  : "electrons_trigger_endcap0p1.root",
                      "reco"            : "electrons_reco_pt30to45.root",
                      "full_ID_barrel"  : "etaptSmooth_electrons_fullID_V2_pt25to55.root",
                      "full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root",
-                     "clustering"      : "electrons_clustering.root",
+                     "l1prefire"       : "l1EG_eff.root",
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
-        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
-        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"EGamma_SF2D")
-        self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
+        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor_interpolated")
+        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"scaleFactor_interpolated")
+        ## remove thirs scale factor for muons, fill 1. +- 0. later
+        #self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
 
         # create electron scale factor manager        
         self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
@@ -219,12 +218,12 @@ class lep2016SFProducer(Module):
         self.sf2_manager_el   = scaleFactorManager(self.el_f["reco"],                self.filePath,"EGamma_SF2D")
         self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
         self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"EGamma_SF2D")
-        self.sf4_manager_el   = scaleFactorManager(self.el_f["clustering"],          self.filePath,"scaleFactor")
+        self.sf4_manager_el   = scaleFactorManager(self.el_f["l1prefire"],           self.filePath,"l1EG_eff")
 
         # load histograms
         self.sf1_manager_mu.loadHist()
         self.sf2_manager_mu.loadHist()
-        self.sf3_manager_mu.loadHist()
+        #self.sf3_manager_mu.loadHist()
         self.sf1_manager_el_b.loadHist()
         self.sf1_manager_el_e.loadHist()
         self.sf2_manager_el.loadHist()
@@ -284,12 +283,12 @@ class lep2016SFProducer(Module):
                 else:
                     sf_1.append(float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
                     sf_2.append(float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
-                    sf_3.append(float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
-                    sf_4.append(1)
+                    sf_3.append(1.)#float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
+                    sf_4.append(1.)
                     sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_2_err.append(float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_3_err.append(float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
-                    sf_4_err.append(0)
+                    sf_3_err.append(0.)#float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
+                    sf_4_err.append(0.)
         self.out.fillBranch("LepGood_SF1", sf_1)
         self.out.fillBranch("LepGood_SF2", sf_2)
         self.out.fillBranch("LepGood_SF3", sf_3)

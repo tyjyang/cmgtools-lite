@@ -77,12 +77,10 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
 
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_calPt[jj]<26)         return false;
+    if (LepGood_calPt[jj]<25)         return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
     if (LepGood_relIso04[jj] > 0.15)  return false;
     if (LepGood_mediumMuonId[jj] < 1) return false;
-    //if (LepGood_matchedTrgObjMuPt[jj] < -1.)   return false;
-    //if (LepGood_matchedTrgObjTkMuPt[jj] < -1.) return false;
   }
   return true;
 
@@ -125,6 +123,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
   vector <int>   cand_hltSafeId = {};
   vector <int>   cand_customId  = {};
   vector <int>   cand_tightCharge = {};
+  vector <int>   cand_fullLepId = {};
   vector <int>   cand_alsoTag   = {};
   vector <int>   cand_isZero    = {};
 
@@ -245,7 +244,12 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
       // Is this a tag:
       int isThisTag = 0;
-      if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
+      if (doElectrons){
+        if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
+      }
+      else {
+        if (isTagLepton(theOrigIndex) && (LepGood_matchedTrgObjMuPt[theOrigIndex] > -1. || LepGood_matchedTrgObjTkMuPt[theOrigIndex] > -1.) ) isThisTag =1;
+      }
       if (isThisTag) atLeastOneTag = true;
 
       // Infos to be kept
@@ -260,6 +264,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       cand_hltSafeId   . push_back(hltSafeId);
       cand_customId    . push_back(customId);
       cand_tightCharge . push_back(tightCharge);
+      cand_fullLepId  . push_back(isTagLepton(theOrigIndex));
       cand_alsoTag     . push_back(isThisTag);
 
       if (theOrigIndex==0) cand_isZero.push_back(1);
@@ -282,6 +287,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       cand_hltSafeId   . clear();
       cand_customId    . clear();
       cand_tightCharge . clear();
+      cand_fullLepId  . clear();
       cand_alsoTag     . clear();
       cand_isZero      . clear();
       continue;
@@ -324,6 +330,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
         probe_lep_hltSafeId    = cand_hltSafeId   [iLep2];
         probe_lep_customId     = cand_customId    [iLep2];
         probe_lep_tightCharge  = cand_tightCharge [iLep2];
+        probe_lep_fullLepId   = cand_fullLepId  [iLep2];
         probe_lep_alsoTag      = cand_alsoTag     [iLep2];
         
         // Tree filling
@@ -343,6 +350,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
     cand_hltSafeId   . clear();
     cand_customId    . clear();
     cand_tightCharge . clear();
+    cand_fullLepId  . clear();
     cand_alsoTag     . clear();
     cand_isZero      . clear();
     cand_eleTrgPt    . clear();

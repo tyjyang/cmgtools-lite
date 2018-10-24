@@ -64,7 +64,7 @@ bool TnPNtuplesTriggerEfficiency::isTagLepton(int jj){
 
   else {
     if (abs(LepGood_pdgId[jj])!=13)   return false;
-    if (LepGood_pt[jj]<26)            return false;
+    if (LepGood_pt[jj]<25)            return false;
     if (fabs(LepGood_eta[jj])> 2.4)   return false;
     if (LepGood_relIso04[jj] > 0.15)  return false;
     if (LepGood_mediumMuonId[jj] < 1) return false;
@@ -119,7 +119,7 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
 
 
   // Loop over events
-  std::cout << "Start looping over events" << endl;
+  std::cout << "Start looping over events for trigger!!" << endl;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
     if (ientry < 0) break;
@@ -197,7 +197,7 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       int theOrigIndex = *ilep;
 
       // kine 
-      float lepPt    = fFlavor == 11 ? LepGood_calPt [theOrigIndex] : LepGood_pt[theOrigIndex];     // calibrated pT for electrons
+      float lepPt    = LepGood_calPt [theOrigIndex];     // calibrated pT for electrons and muons now
       float lepEta   = LepGood_eta   [theOrigIndex];
       float lepScEta = LepGood_etaSc [theOrigIndex];
       float lepPhi   = LepGood_phi   [theOrigIndex];
@@ -224,12 +224,8 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
 
       // Is this a tag:
       int isThisTag = 0;
-      if (fFlavor == 11){
-        if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
-      }
-      else{
-        if (isTagLepton(theOrigIndex) && LepGood_matchedTrgObjMuPt[theOrigIndex] > -1. && LepGood_matchedTrgObjTkMuPt[theOrigIndex] > -1.) isThisTag =1; // require muon tag to fire both triggers.
-      }
+      if (fFlavor == 11 && isTagLepton(theOrigIndex) && LepGood_matchedTrgObjElePt[theOrigIndex] > -1.) isThisTag =1;
+      if (fFlavor == 13 && isTagLepton(theOrigIndex) && LepGood_matchedTrgObjMuPt[theOrigIndex] > -1. && LepGood_matchedTrgObjTkMuPt[theOrigIndex] > -1.) isThisTag =1; // require muon tag to fire both triggers.
 
       if (isThisTag) atLeastOneTag = true;
 
@@ -280,7 +276,7 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
 
       // second as probe 
       for(unsigned int iLep2=0; iLep2<cand_pt.size(); ++iLep2) {
-        if (cand_isZero[iLep2]) continue;
+        // if (cand_isZero[iLep2]) continue;
         TLorentzVector thisLep2(0,0,0,0);
         thisLep2.SetPtEtaPhiM(cand_pt[iLep2],cand_eta[iLep2],cand_phi[iLep2],0);
 

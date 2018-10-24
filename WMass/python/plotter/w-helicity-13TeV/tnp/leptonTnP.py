@@ -2,7 +2,7 @@ import ROOT, os
 ROOT.gROOT.SetBatch(True)
 
 ## USAGE:
-## python leptonTnP.py -i /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-07-06-2l_triggerMatch_MUONS/ -c mu -o indir
+## python leptonTnP.py -i /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_recoLeptons_and_triggerMatch_latest/ -c mu -o indir
 
 ## option -o indir : saves the output trees in the input directory. if none given it saves it where it's run
 ## option -c       : has to be mu or el
@@ -27,6 +27,9 @@ if __name__ == "__main__":
         treefile = '/'.join([options.indir,sd,'treeProducerWMass','tree.root'])
         if not os.path.isfile(treefile): continue
 
+        if (options.channel == 'el' and 'SingleMu' in sd): continue
+        if (options.channel == 'mu' and 'SingleEl' in sd): continue
+
         print 'runing on file', treefile
 
         tmp_file = ROOT.TFile(treefile, 'read')
@@ -42,9 +45,11 @@ if __name__ == "__main__":
         ##    tmp_friend_tree = None
     
         if options.analyzer=='trigger'     : 
+            print 'compiling trigger ntuple producer'
             ROOT.gROOT.ProcessLine(".L TnPNtuplesTriggerEfficiency.C+" )
             tnp_worker = ROOT.TnPNtuplesTriggerEfficiency(tmp_tree,tmp_friend_tree)
         elif options.analyzer=='selection' : 
+            print 'compiling selection ntuple producer'
             ROOT.gROOT.ProcessLine(".L TnPNtuplesSelectionEfficiency.C+" )
             tnp_worker = ROOT.TnPNtuplesSelectionEfficiency(tmp_tree,tmp_friend_tree)
         else: 

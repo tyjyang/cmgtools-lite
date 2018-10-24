@@ -5,6 +5,23 @@ import numpy as np
 # import some parameters from wmass_parameters.py, they are also used by other scripts
 from wmass_parameters import *
 
+
+def getCondorTime(qstr):
+    retval = ''
+    if   qstr == '1nh':
+        retval = 3600
+    elif qstr == '8nh':
+        retval = 28800
+    elif qstr == '1nd':
+        retval = 24*3600
+    elif qstr == '2nd':
+        retval = 48*3600
+    elif qstr == '1nw':
+        retval = 7*24*3600
+    else:
+        retval = int(qstr)*60*60
+    return int(retval)
+
 def intermediateBinning(diff):
 
     n25 = int(diff/0.25)
@@ -110,18 +127,22 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
         for idir in ['Up','Dn']:
             postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
             mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-            if not scale == "wptSlope": ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
-                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
-            else:
+            if scale == "wptSlope":
                 sign  =  1 if idir == 'Dn' else -1
                 asign = -1 if idir == 'Dn' else  1
                 offset = 0.05; slope = 0.005;
                 fstring = "wpt_slope_weight(genw_pt\,{off:.3f}\,{slo:.3f})".format(off=1.+asign*offset, slo=sign*slope)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+            elif scale == "mW":
+                ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
+                fstring = "mass_80470" if idir == 'Up' else "mass_80370"
+                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+            else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
+                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
             qcdsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
-def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="effstat",incl_mca='incl_sig',append=False):
+def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
@@ -134,11 +155,13 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="effstat",incl_
     deta = 0.1; nbins = int(2*abs(etalo)/deta)
     for i in range(0,nbins):
         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
-        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i+1)
-        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-        weightFcn = 'effSF_staterr(LepGood1_eta\,{emin:.1f}\,{emax:.1f})'.format(emin=etamin,emax=etamax)
-        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
-        etaeffsysts.append(postfix)
+        # 3 parameters used in the Erf fit vs pt per eta bin
+        for ipar in xrange(3):
+            postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
+            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+            weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+            mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
+            etaeffsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
@@ -167,6 +190,24 @@ def submitBatch(dcname,outdir,mkShCardsCmd,options):
     if options.dryRun: print cmd
     else: os.system(cmd)
 
+def makeCondorFile(srcFile):
+    condor_file = open(srcFile.replace('.sh','.condor'),'w')
+    condor_file.write('''Universe = vanilla
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {pid}.log
+Output     = {pid}.out
+Error      = {pid}.error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}
+queue 1\n
+'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
+    condor_file.close()
+
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
 parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
@@ -181,7 +222,8 @@ parser.add_option("-C", "--channel", dest="channel", type="string", default='el'
 parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=5, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
+parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 6:
@@ -235,15 +277,15 @@ if options.addPdfSyst:
     # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
 if options.addQCDSyst:
     scales = ['muR','muF',"muRmuF", "alphaS"]
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope"])
+    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')
 
 writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
 
 ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
 BASECONFIG=os.path.dirname(MCA)
-if options.queue:
-    ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
+## use rel paths if options.queue:
+## use rel paths     ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
 OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj tree "+FASTTEST
 if not os.path.exists(outdir): os.makedirs(outdir)
 OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
@@ -258,6 +300,7 @@ if options.queue:
 
 POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
 NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
+fullJobList = set()
 if options.signalCards:
     WYBinsEdges = makeFixedYWBinning()
     ybinfile = open(outdir+'/binningYW.txt','w')
@@ -294,16 +337,25 @@ if options.signalCards:
                     dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
                     BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
                     if options.queue:
-                        mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         ## here accumulate signal jobs if running with long. make long+right+left one job
                         ## marcmarc if not options.longBkg and WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=antihel[0])]
                         if not options.longBkg:
                             job_group.append(mkShCardsCmd)
                             if len(job_group) == options.groupJobs or iy == len(YWbinning)-2:
-                                submitBatch(dcname,outdir,'\n'.join(job_group),options)
+                                if options.useLSF: 
+                                    submitBatch(dcname,outdir,'\n'.join(job_group),options)
+                                else:
+                                    pass
+                                    ## passing this submitCondor(dcname,outdir,'\n'.join(job_group),options)
                                 job_group = []
                         else:
-                            submitBatch(dcname,outdir,mkShCardsCmd,options)
+                            if options.useLSF:
+                                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                            else:
+                                pass
+                                ## passing this now too submitCondor(dcname,outdir,mkShCardsCmd,options)
+                        fullJobList.add(mkShCardsCmd)
                     else:
                         cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                         if options.dryRun: print cmd
@@ -325,8 +377,13 @@ if options.bkgdataCards:
         dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
         if options.queue:
-            mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-            submitBatch(dcname,outdir,mkShCardsCmd,options)
+            mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
+            if options.useLSF:
+                submitBatch(dcname,outdir,mkShCardsCmd,options)
+            else:
+                ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                pass
+            fullJobList.add(mkShCardsCmd)
         else:
             cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
             if options.dryRun: print cmd
@@ -356,8 +413,13 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
-                mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                if options.useLSF:
+                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                else:
+                    ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                    pass
+                fullJobList.add(mkShCardsCmd)
             else:
                 cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                 if options.dryRun: print cmd
@@ -368,3 +430,68 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
                     for lin in result:
                         if not lin.startswith('#'):
                             print(lin)
+
+def getShFile(jobdir, name):
+    tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
+    tmp_srcfile = open(tmp_srcfile_name, 'w')
+    tmp_srcfile.write("ulimit -c 0 -S\n")
+    tmp_srcfile.write("ulimit -c 0 -H\n")
+    tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    return tmp_srcfile_name, tmp_srcfile
+
+if len(fullJobList):
+    reslist = list(fullJobList)
+    ## split the list into non-bkg and bkg_and_data
+    bkglist = [i for i in reslist if     'bkg_and_data' in i]
+    reslist = [i for i in reslist if not 'bkg_and_data' in i]
+
+    nj = len(reslist)
+    print 'full number of python commands to submit', nj+len(bkglist)
+    print '   ... grouping them into bunches of', options.groupJobs
+    
+    if not nj%options.groupJobs:
+        njobs = int(nj/options.groupJobs)
+    else: 
+        njobs = int(nj/options.groupJobs) + 1
+    
+    jobdir = outdir+'/jobs/'
+    os.system('mkdir -p '+jobdir)
+    subcommands = []
+
+    ## a bit awkward, but this keeps the bkg and data jobs separate. do those first
+    for ib in bkglist:
+        pm = 'plus' if 'positive' in ib else 'minus'
+        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+        tmp_srcfile.write(ib)
+        tmp_srcfile.close()
+        makeCondorFile(tmp_srcfile_name)
+        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+    ## now do the others.
+    for ij in range(njobs):
+        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
+        tmp_n = options.groupJobs
+        while len(reslist) and tmp_n:
+            tmp_pycmd = reslist[0]
+            tmp_srcfile.write(tmp_pycmd)
+            reslist.remove(tmp_pycmd)
+            tmp_n -= 1
+        tmp_srcfile.close()
+        makeCondorFile(tmp_srcfile_name)
+        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+    print 'i have {n} jobs to submit!'.format(n=len(subcommands))
+    if options.dryRun:
+        print 'running dry, printing the commands...'
+        for cmd in subcommands:
+            print cmd
+    else:
+        sigDyBkg = '_signal' if options.signalCards else '_background'
+        pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
+        pipefile = open(pipefilename, 'w')
+        print 'piping all the commands in file', pipefilename
+        for cmd in subcommands:
+            pipefile.write(cmd+'\n')
+        pipefile.close()
+        os.system('bash '+pipefilename)
+print 'done'

@@ -84,6 +84,13 @@ triggerMatchAnaTkMu = triggerMatchAnaMu.clone(
     trgObjSelectors = [ lambda t : t.path('HLT_IsoTkMu24_v*',1,0) ],
     )
 
+# Trigger match analyzer
+triggerMatchAnaMu50 = triggerMatchAnaMu.clone(
+    name="TriggerMatchAnalyzerMu50",
+    instance_label='wmassMu50',
+    trgObjSelectors = [ lambda t : t.path('HLT_Mu50_v*',1,0) ],
+    )
+
 
 # Create flags for MET filter bits
 eventFlagsAna = cfg.Analyzer(

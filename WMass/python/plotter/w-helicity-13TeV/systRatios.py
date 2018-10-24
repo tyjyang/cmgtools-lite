@@ -125,8 +125,9 @@ if __name__ == "__main__":
                         for ib in xrange(1, ratio.GetNbinsX()+1):
                             ratio.SetBinContent(ib, abs(1.-ratio.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
                         h2_backrolled_1 = dressed2D(ratio,binning,title2D)
-                        hmax = 0.05 if 'muF' in syst else 0.02
-                        h2_backrolled_1.GetZaxis().SetRangeUser(-0.04,0.04)
+                        hmax = 0.05 if 'muF' in syst else 0.04
+                        if 'effstat' in syst: hmax = 0.005
+                        h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         ratios[key] = h2_backrolled_1
                         if not histo_central.GetEntries() == histo_syst.GetEntries():
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
