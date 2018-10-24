@@ -14,7 +14,7 @@ ROOT.gROOT.SetBatch(True)
 # Warning: TGraph2D is a graph, so one sets x,y of its points and assign a Z. The constructor with TH2 used the TH2 bin centers to define the points
 # Now, the binning of the TH2 returned by GetHistogram() has the bin boundaries on the x,y points (not the bin centers as in the original TH2)
 # So, we have to find a way to get a histogram whose binning is consistent with the input
-# Indeed, the TH2 returned by the graphs is created with the same number of bins of the input TH2, but slightly narrower axis range (and probably uniform biinning)
+# Indeed, the TH2 returned by the graphs is created with the same number of bins of the input TH2, but slightly narrower axis range (and probably uniform binning)
 # This results in an output histogram not consistent with the input (cannot divide, or add for example)
 
 #-------------------------
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             xbin = graphFrom_h2new.GetXaxis().FindFixBin(xval)
             ybin = graphFrom_h2new.GetYaxis().FindFixBin(yval)            
             h2new.SetBinContent(ix,iy,graphFrom_h2new.GetBinContent(xbin,ybin))
-    # ok, but know if one draws h2new, a white band will appear for x = lastbinX and y = lastbinX
+    # ok, but now if one draws h2new, a white band will appear for x = lastbinX and y = lastbinX
     # this is because graphFrom_h2new has slightly shorter axis ranges, so the very last bin of h2new is missed on both x and y axis
     # one possibility is to assign the value of the last filled bin
     # let's do it
@@ -155,7 +155,7 @@ if __name__ == "__main__":
                 h2new.SetBinContent(ix,iy,h2new.GetBinContent(ix, iy-1))
             if (ix == h2new.GetNbinsX()):
                 h2new.SetBinContent(ix,iy,h2new.GetBinContent(ix-1, iy))
-    # this will be histogram to be saved as output
+    # this will be the histogram to be saved as output
     
 
     # now I test the TGraph2D constructor which uses the TH2 as input, but I add more points along x

@@ -232,8 +232,10 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         if mc == "Data":
             if any(key == x for x in [9]):
                 maxFitRange = 45
+            elif any(key == x for x in [14]):
+                maxFitRange = 50
         elif mc == "MC":
-            if any(key == x for x in [9,38]):
+            if any(key == x for x in [9]):
                 maxFitRange = 45
             # elif any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
             #     maxFitRange = 48
@@ -384,17 +386,18 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             # if mc == "MC":
             #     if any(key == x for x in [3,9,23,25,26,28]):
             #         tf1_erf.SetParameter(1,32)
-            
+            pass
             if mc == "Data":
-                if any(key == x for x in [1,39]):
-                    tf1_erf.SetParameter(1,32)
+                pass
+            #    if any(key == x for x in [1,39]):
+            #        tf1_erf.SetParameter(1,32)
                 #elif any(key == x for x in [9,23,28]):
                 #    tf1_erf.SetParameter(1,27)
                 #    tf1_erf.SetParameter(2,2.0)
-            #elif mc == "MC":
-            #    if any(key == x for x in [3,9,23,25,26,28]):
-            #        tf1_erf.SetParameter(1,32)
-            
+            elif mc == "MC":
+                if any(key == x for x in [33]):
+                    tf1_erf.SetParameter(1,30)
+                    tf1_erf.SetParameter(2,5.0)
 
     if isFullID:
         if mc == "Data":
@@ -422,7 +425,9 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         elif mc == "MC":
             if key == 23:
                 tf1_erf.SetParameter(1,32)                
-    
+            elif any(key == x for x in [5,42]):
+                tf1_erf.SetParameter(1,32)
+
     tf1_erf2.SetParameter(3,0.0); #tf1_erf2.SetParLimits(3,0,1e12)
     tf1_erf2.SetParameter(4,0)
     tf1_erf2.SetLineWidth(2)
@@ -630,12 +635,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     if forceErfByKey:
         if isTrigger and not isEle:
+            pass
             if mc == "Data":
-                if any(key == x for x in [14,24]):
-                    retFunc = fit_erf
-                    line = "Best fit: Erf[x] (forced)"
+                pass
+                #if any(key == x for x in [14,24]):
+                #    retFunc = fit_erf
+                #    line = "Best fit: Erf[x] (forced)"
             elif mc == "MC":
-                if any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
+                if any(key == x for x in [10]):  # these are ok-ish even without this tuning, I might just force the Erf
                     retFunc = fit_erf
                     line = "Best fit: Erf[x] (forced)"
         elif isTrigger and isEle:
@@ -1066,7 +1073,7 @@ if __name__ == "__main__":
         for y in range(1,hmc.GetNbinsY()+1):
             hmcpt[bin].SetBinContent(y,hmc.GetBinContent(x,y))         
             #hmcpt[bin].SetBinError(y,hmc.GetBinError(x,y))  # no error on MC, have to assign a random value to fit
-            hmcpt[bin].SetBinError(y,0.5*hdata.GetBinError(x,y))  # use half the corresponding uncertainty on data (any value which is smaller would do)
+            hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use half the corresponding uncertainty on data (any value which is smaller would do)
 
     hdatapt = {}
     for x in range(1,hdata.GetNbinsX()+1):
@@ -1458,7 +1465,7 @@ if __name__ == "__main__":
             ieta = hdata.GetXaxis().FindFixBin(hdataSmoothCheck.GetXaxis().GetBinCenter(ix))
             ipt = hdata.GetYaxis().FindFixBin(hdataSmoothCheck.GetYaxis().GetBinCenter(ix))
             hdataSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
-            hmcSmoothCheck.SetBinError(ix,iy,0.5*hdata.GetBinError(ieta,ipt))
+            hmcSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
             scaleFactor.SetBinError(ix,iy,hsf.GetBinError(ieta,ipt))
 
     ###########################
