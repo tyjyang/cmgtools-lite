@@ -618,5 +618,30 @@ float triggerSF_1l_histo(float l1pt, float l1eta){
   return l1sf;
 }
 
+int unroll2DTo1D_ptSlices(float pt, float eta){
+    int etabin = (int) ((eta+2.5)*10. );
+    int ptbin  = (int) (pt-25. );
+
+    return (ptbin*50 + etabin);
+
+}
+
+
+TFile *_file_effS_staterr = NULL;
+TH1F *_histo_effS_staterr = NULL;
+
+float effSF_staterr(float l1eta, float etamin, float etamax) {
+  if (!_histo_effS_staterr) {
+    if (_cmssw_base_ == "") {
+      cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+      _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+    }
+    _file_effS_staterr = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/staterror.root",_cmssw_base_.c_str()),"read");
+    _histo_effS_staterr = (TH1F*)(_file_effS_staterr->Get("effsf_staterr"));
+  }
+  int etabin = std::max(1, std::min(_histo_effS_staterr->GetNbinsX(), _histo_effS_staterr->GetXaxis()->FindFixBin(l1eta)));
+  float syst = (l1eta>etamin && l1eta<etamax) ? _histo_effS_staterr->GetBinContent(etabin) : 0.0;
+  return 1.0 + syst;
+}
 
 #endif
