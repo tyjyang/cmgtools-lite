@@ -1,3 +1,6 @@
+# USAGE:
+# BX=0:  python L1zFitter.py /afs/cern.ch/work/e/emanuele/wmass/tnp/CMSSW_9_4_10/src/L1Trigger/PrefireAnalysis/test/TnP_L1EG_Run2016.root --name bx0 --cut "L1EG_bx==0"
+# BX=-1:  python L1zFitter.py /afs/cern.ch/work/e/emanuele/wmass/tnp/CMSSW_9_4_10/src/L1Trigger/PrefireAnalysis/test/TnP_L1EG_Run2016.root --name bxm1 --cut "L1EG_bx==-1"
 import ROOT
 from math import *
 import re, os, glob
@@ -570,8 +573,9 @@ if __name__ == "__main__":
             gdata["sigma"].Draw("P SAME")
             printCanvas(c1, options.name+"_summary_eff", [], options)
     elif options.mode == "1D_PtEtaSlices":
-        ptbins = [30,50]; 
-        #etabins = [-3.0, -2.5, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.5, 3.0]
+        #ptbins = [30,50]; 
+        #etabins = [-3.0, -2.5, -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5, 3.0]
+        ptbins = [30,50,100]; 
         etabins = [-3.0, -2.5, -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5, 3.0]
         frame2D, hists = makeHistsMPtEta(tree, ptbins, etabins, options)
         if options.refmc:
