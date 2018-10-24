@@ -344,10 +344,7 @@ float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, in
     else if (abseta<1.479) syst = 0.008;
     else if (abseta<2)     syst = 0.013;
     else                   syst = 0.016;
-    if (abseta>1.479) {
-      syst = hypot(syst,sf4_err);
-      std::cout << "eta = " << eta << " sf4_err = " << sf4_err << " tot syst = " << syst << std::endl;
-    }
+    if (abseta>1.479)      syst = hypot(syst,sf4_err);
   } else if (abs(pdgId)==13) {
     if (abseta<1)          syst = 0.002;
     else if (abseta<1.5)   syst = 0.004;
