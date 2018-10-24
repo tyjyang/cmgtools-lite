@@ -180,7 +180,7 @@ TH2F *_histo_fullid_ee0p1_wmass_leptonSF_el = NULL;
 TFile *_file_cluster_wmass_leptonSF_el = NULL;
 TH2F *_histo_cluster_wmass_leptonSF_el = NULL;
 
-float _get_electronSF_anyStep(float pt, float eta, int step) {
+float _get_electronSF_anyStep(float pt, float eta, int step, bool geterr=false) {
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
@@ -227,7 +227,7 @@ float _get_electronSF_anyStep(float pt, float eta, int step) {
 
   int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(eta)));
   int ptbin  = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
-  float out = hist->GetBinContent(etabin,ptbin);
+  float out = geterr ? hist->GetBinError(etabin,ptbin) : hist->GetBinContent(etabin,ptbin);
   return out;
 }
 
@@ -312,10 +312,10 @@ float eleSF_Clustering(float pt, float eta) {
   return _get_electronSF_anyStep(pt,eta,4);
 }
 
-float eleSF_L1Eff(float pt, float eta) {
+float eleSF_L1Eff(float pt, float eta, bool geterr=false) {
   float sf;
   if (fabs(eta)<1.479 || pt<35) sf = 1.0;
-  else sf = _get_electronSF_anyStep(40,eta,4);
+  else sf = _get_electronSF_anyStep(pt,eta,4,geterr);
   return sf;
 }
 
@@ -329,21 +329,25 @@ float eleSF_L1Eff_2l(float pt1, float eta1, float pt2, float eta2) {
     pt = pt2;
   }
   if (fabs(eta)<1.479 || pt<35) return 1.;
-  return _get_electronSF_anyStep(40,eta,4);
+  return _get_electronSF_anyStep(pt,eta,4);
 }
 
 
 float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, int nSigma=0) {
   float abseta = fabs(eta);
   float syst=0;
-  float sf4=1.0;
+  float sf4=1.0; float sf4_err=0.0;
   if (abs(pdgId)==11) {
     sf4 = eleSF_L1Eff(pt,eta);
+    sf4_err = eleSF_L1Eff(pt,eta,true);
     if (abseta<1)          syst = 0.006;
     else if (abseta<1.479) syst = 0.008;
     else if (abseta<2)     syst = 0.013;
-    else if (abseta<2.2)   syst = 0.016;
-    else                   syst = 0.040; // clustering efficiency
+    else                   syst = 0.016;
+    if (abseta>1.479) {
+      syst = hypot(syst,sf4_err);
+      std::cout << "eta = " << eta << " sf4_err = " << sf4_err << " tot syst = " << syst << std::endl;
+    }
   } else if (abs(pdgId)==13) {
     if (abseta<1)          syst = 0.002;
     else if (abseta<1.5)   syst = 0.004;
