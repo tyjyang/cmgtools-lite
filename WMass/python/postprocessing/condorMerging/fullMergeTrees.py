@@ -2,6 +2,7 @@ import ROOT, commands, os, sys, optparse
 
 parser = optparse.OptionParser(usage='usage: %prog [opts] ', version='%prog 1.0')
 parser.add_option('-p', '--part'     , type=int, default=0 , help='number of the part we\'re doing')
+parser.add_option(      '--skipCheck',           default=False, help='skip check of the file\'s integrity [%default]', action='store_true')
 parser.add_option('-d', '--dirs'     , type=str, default='', help='comma separated list of the directories to copy and run hadd on')
 parser.add_option('-o', '--targetdir', type=str, default='', help='target directory for the output')
 (options, args) = parser.parse_args()
@@ -14,20 +15,25 @@ print 'STATUS: copying the directory structure onto worker node'
 for d in dirsToCopy:
     os.system('cp -r {d} . '.format(d=d))
 
-## running cmgListChunks to check for incomplete directories
-print 'STATUS: checking for failed directories with cmgListChunksToResub'
-missing = commands.getoutput('cmgListChunksToResub -q HTCondor ./ ')
+if not opt.skipCheck:
 
-## make a list of incomplete directories and remove those
-print 'STATUS: removing the chunks that don not have a file'
-missingChunks = [i.split()[-1] for i in missing.split('\n') if 'Chunk' in i]
+    ## running cmgListChunks to check for incomplete directories
+    print 'STATUS: checking for failed directories with cmgListChunksToResub'
+    missing = commands.getoutput('cmgListChunksToResub -q HTCondor ./ ')
 
-print 'found missing chunks and will remove them:'
-for i in missingChunks:
-    print '\t\t removing chunk', i
-    cmd= 'rm -rf {i}'.format(i=i)
-    os.system('{c}'.format(c=cmd))
+    ## make a list of incomplete directories and remove those
+    print 'STATUS: removing the chunks that don not have a file'
+    missingChunks = [i.split()[-1] for i in missing.split('\n') if 'Chunk' in i]
+
+    print 'found missing chunks and will remove them:'
+    for i in missingChunks:
+        print '\t\t removing chunk', i
+        cmd= 'rm -rf {i}'.format(i=i)
+        os.system('{c}'.format(c=cmd))
     
+else:
+    print 'STATUS: No check of the integrity has been performed: i trust you did it before calling me'
+
 ## get the files from eos
 print 'STATUS: getting the files from eos and putting them in place'
 
