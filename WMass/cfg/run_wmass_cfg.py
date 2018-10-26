@@ -314,7 +314,7 @@ if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a giv
         c.fineSplitFactor = 1
 
 
-if runData: # and not isTest: # For running on data
+if runData != False: # and not isTest: # For running on data
 
     is50ns = False
     dataChunks = []
@@ -322,9 +322,14 @@ if runData: # and not isTest: # For running on data
     json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
-    for era in 'CDEFGH':
-        processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
+    eras='BCDEFGH'
+    if runData in eras:
+        eras=runData    
+    for era in eras:
+        if era=='B':
+            processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+        else:
+            processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
     
     DatasetsAndTriggers = []
     selectedComponents = [];
@@ -368,7 +373,8 @@ if runData: # and not isTest: # For running on data
                     from CMGTools.Production.promptRecoRunRangeFilter import filterComponent
                     filterComponent(comp, verbose=1)
                 print "Will process %s (%d files)" % (comp.name, len(comp.files))
-                comp.splitFactor = len(comp.files)/3
+                #comp.splitFactor = len(comp.files)/3
+                comp.splitFactor = len(comp.files)/2
                 comp.fineSplitFactor = 1
                 selectedComponents.append( comp )
             if exclusiveDatasets: vetos += triggers
