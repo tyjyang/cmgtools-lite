@@ -26,5 +26,11 @@ echo mkdir -p $4
 ##mkdir -p $4
 eos mkdir $4
 
+
+skipCheckOPT=""
+if [ "$5" == "True" ]; then
+    skipCheckOPT="--skipCheck"
+fi
+
 echo 'will run the full merge python script'
-python ../fullMergeTrees.py -p $2 -d $3 -o $4
+python ../fullMergeTrees.py -p $2 -d $3 -o $4 ${skipCheckOPT}
