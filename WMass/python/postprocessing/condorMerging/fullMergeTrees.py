@@ -15,7 +15,7 @@ print 'STATUS: copying the directory structure onto worker node'
 for d in dirsToCopy:
     os.system('cp -r {d} . '.format(d=d))
 
-if not opt.skipCheck:
+if not options.skipCheck:
 
     ## running cmgListChunks to check for incomplete directories
     print 'STATUS: checking for failed directories with cmgListChunksToResub'
