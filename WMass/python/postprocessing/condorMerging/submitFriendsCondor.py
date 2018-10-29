@@ -61,9 +61,6 @@ if __name__ == '__main__':
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = friendsScript.sh
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = logs/log_condor_{ds}_chunk$(ProcId).log
-Output     = logs/log_condor_{ds}_chunk$(ProcId).out
-Error      = logs/log_condor_{ds}_chunk$(ProcId).error
 getenv      = True
 
 environment = "LS_SUBCWD={here}"
@@ -78,11 +75,14 @@ request_memory = 4000
                              chunk=n_chunks, 
                              n=options.nperjob,
                              td=options.targetdir)  )
+            tmp_condor.write('''Log        = logs/log_condor_{ds}_chunk{ch}.log
+Output     = logs/log_condor_{ds}_chunk{ch}.out
+Error      = logs/log_condor_{ds}_chunk{ch}.error\n'''.format(ds=ds,ch=n_chunks))
             tmp_condor.write('queue 1\n\n')
         tmp_condor.close()
         condorSubmitCommands.append('condor_submit {cf}'.format(cf=tmp_condor_filename))
 
-    print 'this will result in a total of {n} jobs'.format(n=len(totalNumberOfJobs))
+    print 'this will result in a total of {n} jobs'.format(n=totalNumberOfJobs)
     print 'submitting to condor...'
     for sc in condorSubmitCommands:
         print sc

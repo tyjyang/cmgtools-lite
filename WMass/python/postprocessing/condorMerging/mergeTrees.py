@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_option('-d', '--directory', type=str, default='',    help='directory with the output directories [%default]')
     parser.add_option(      '--strict',              default=False, help='perform a strict check on the integrity of the root files [%default]', action='store_true')
     parser.add_option(      '--dryRun',              default=False, help='dry run (do not submit to condor) [%default]', action='store_true')
-    parser.add_option('-m', '--maxsize'  , type=int, default=6 ,    help='maximum size of the output parts. [%default] gb')
+    parser.add_option('-m', '--maxsize'  , type=float, default=6. ,    help='maximum size of the output parts. [%default] gb')
     parser.add_option('-o', '--targetdir', type=str, default='',    help='target directory for the output [%default]')
     (options, args) = parser.parse_args()
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                 checkIntegrity(tmp_root)
             dss[dsname]['files'  ] .append(tmp_root)
             dss[dsname]['chunks' ] .append(os.path.abspath(options.directory+'/'+sd))
-            if dss[dsname]['avgsize'][1] < 100: ## only calculate avg on the first 100
+            if dss[dsname]['avgsize'][1] < 300: ## only calculate avg on the first 300. this is sparta!
                 newavgsize = getAverageFileSize('/'.join(tmp_root.split('/')[3:]), dss[dsname]['avgsize'])
                 dss[dsname]['avgsize'] = newavgsize
             tmp_f.close()
