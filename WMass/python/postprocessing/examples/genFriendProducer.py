@@ -3,7 +3,7 @@ import os, array
 import numpy as np
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-from CMGTools.WMass.postprocessing.framework.datamodel import Collection 
+from CMGTools.WMass.postprocessing.framework.datamodel import Collection
 from CMGTools.WMass.postprocessing.framework.eventloop import Module
 from PhysicsTools.HeppyCore.utils.deltar import deltaPhi
 from math import *
@@ -81,13 +81,13 @@ class GenQEDJetProducer(Module):
         self.beamEn=beamEn
         self.deltaR = deltaR
         self.vars = ("pt","eta","phi","mass","pdgId")
-        self.genwvars = ("charge","pt","eta","phi","mass","mt","y","costcs","cost2d","phics","costcm","decayId")
-        if "genQEDJetHelper_cc.so" not in ROOT.gSystem.GetLibraries():
-            print "Load C++ Worker"
-            ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/genQEDJetHelper.cc+" % os.environ['CMSSW_BASE'])
-        else:
-            print "genQEDJetHelper_cc.so found in ROOT libraries"
-        self._worker = ROOT.GenQEDJetHelper(deltaR)
+        self.genwvars = ("charge","pt","mass","y","costcs","phics","decayId")
+        ## if "genQEDJetHelper_cc.so" not in ROOT.gSystem.GetLibraries():
+        ##     print "Load C++ Worker"
+        ##     ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/genQEDJetHelper.cc+" % os.environ['CMSSW_BASE'])
+        ## else:
+        ##     print "genQEDJetHelper_cc.so found in ROOT libraries"
+        ## self._worker = ROOT.GenQEDJetHelper(deltaR)
         self.pdfWeightOffset = 9 #index of first mc replica weight (careful, this should not be the nominal weight, which is repeated in some mc samples).  The majority of run2 LO madgraph_aMC@NLO samples with 5fs matrix element and pdf would use index 10, corresponding to pdf set 263001, the first alternate mc replica for the nominal pdf set 263000 used for these samples
         self.nMCReplicasWeights = 100 #number of input weights (100 for NNPDF 3.0)
         self.nHessianWeights = 60 #number of output weights
@@ -111,12 +111,15 @@ class GenQEDJetProducer(Module):
         self.out.branch("partonId1", "I")
         self.out.branch("partonId2", "I")
         self.out.branch("nGenLepDressed", "I")
+        self.out.branch("nGenPreFSR", "I")
         self.out.branch("nGenPromptNu", "I")
         for V in self.vars:
             self.out.branch("GenLepDressed_"+V, "F", lenVar="nGenLepDressed")
+            self.out.branch("GenLepPreFSR_"+V, "F", lenVar="nGenLepPreFSR")
             self.out.branch("GenPromptNu_"+V, "F", lenVar="nGenPromptNu")
         for V in self.genwvars:
             self.out.branch("genw_"+V, "F")
+            self.out.branch("prefsrw_"+V, "F")
         for N in range(1,self.nHessianWeights+1):
             self.out.branch("hessWgt"+str(N), "H")
         for scale in ['muR','muF',"muRmuF","alphaS"]:
@@ -128,14 +131,14 @@ class GenQEDJetProducer(Module):
         pass
 
     def initReaders(self,tree): # this function gets the pointers to Value and ArrayReaders and sets them in the C++ worker class
-        try:
-            self.nGenPart = tree.valueReader("nGenPart")
-            for B in ("pt","eta","phi","mass","pdgId","isPromptHard","motherId","status") : setattr(self,"GenPart_"+B, tree.arrayReader("GenPart_"+B))
-            self._worker.setGenParticles(self.nGenPart,self.GenPart_pt,self.GenPart_eta,self.GenPart_phi,self.GenPart_mass,self.GenPart_pdgId,self.GenPart_isPromptHard,self.GenPart_motherId,self.GenPart_status)
-            #self.nLHEweight = tree.valueReader("nLHEweight")
-            #self.LHEweight_wgt = tree.arrayReader("LHEweight_wgt")
-        except:
-            print '[genFriendProducer][Warning] Unable to attach to generator-level particles (data only?). No info will be produced'
+        ## marc try:
+        ## marc     self.nGenPart = tree.valueReader("nGenPart")
+        ## marc     for B in ("pt","eta","phi","mass","pdgId","isPromptHard","motherId","status") : setattr(self,"GenPart_"+B, tree.arrayReader("GenPart_"+B))
+        ## marc     self._worker.setGenParticles(self.nGenPart,self.GenPart_pt,self.GenPart_eta,self.GenPart_phi,self.GenPart_mass,self.GenPart_pdgId,self.GenPart_isPromptHard,self.GenPart_motherId,self.GenPart_status)
+        ## marc     #self.nLHEweight = tree.valueReader("nLHEweight")
+        ## marc     #self.LHEweight_wgt = tree.arrayReader("LHEweight_wgt")
+        ## marc except:
+        ## marc     print '[genFriendProducer][Warning] Unable to attach to generator-level particles (data only?). No info will be produced'
         self._ttreereaderversion = tree._ttreereaderversion # self._ttreereaderversion must be set AFTER all calls to tree.valueReader or tree.arrayReader
 
     def mcRep2Hess(self,lheweights):
@@ -168,77 +171,205 @@ class GenQEDJetProducer(Module):
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - imass*imass,2) + pow(gamma*imass,2))
 
+    def getNeutrino(self):
+        nus = []
+        for p in self.genParts:
+            if abs(p.pdgId) in [12, 14, 16] and p.isPromptFinalState > 0:
+                nus.append(p)
+
+        ##nus = sorted(nus, key = lambda x: x.pt)
+        nus.sort(key = lambda x: x.pt, reverse=True)
+
+        if len(nus) < 1:
+            return 0, 0
+
+        nu = nus[0]
+        nuvec = ROOT.TLorentzVector()
+        nuvec.SetPtEtaPhiM(nu.pt, nu.eta, nu.phi, nu.mass if nu.mass > 0. else 0.)
+
+        return nuvec, nu.pdgId
+
+    def getDressedLepton(self, cone=0.1):
+
+        leptons = []
+        for p in self.genParts:
+            if (abs(p.pdgId) in [11, 13] and p.isPromptFinalState) or (abs(p.pdgId) == 15       and p.isPromptDecayed) : 
+                lepton = ROOT.TLorentzVector()
+                lepton.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
+                leptons.append( (lepton, p.pdgId) )
+
+        #leptons = sorted(leptons, key = lambda x: x[0].Pt() )
+        leptons.sort(key = lambda x: x[0].Pt(), reverse=True )
+    
+        if len(leptons) < 1:
+            return 0, 0
+            ##print 'ERROR: DID NOT FIND A LEPTON FOR DRESSING !!!!!'
+
+
+        lep = leptons[0][0]
+        pdgId = leptons[0][1]
+
+        for p in self.genParts:
+            if not (abs(p.pdgId)==22 and p.isPromptFinalState):
+                continue
+            tmp_photon = ROOT.TLorentzVector()
+            tmp_photon.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
+            if lepton.DeltaR(tmp_photon) < cone:
+                lepton = lepton+tmp_photon
+
+        return lepton, pdgId
+
+    def getPreFSRLepton(self):
+        
+        lepInds = []
+        for ip,p in enumerate(self.genParts):
+            if abs(p.pdgId) in [11, 13] and p.fromHardProcessFinalState:
+                lepInds.append( (p, ip) )
+            if abs(p.pdgId) == 15       and p.fromHardProcessDecayed:
+                lepInds.append( (p, ip) )
+
+        if len(lepInds) < 1:
+            return 0, 0
+
+        lepInds.sort( key = lambda x: x[0].pt, reverse=True) ## sort by pT
+
+        lep = lepInds[0][0]
+        ind = lepInds[0][1]
+
+        ## return hardest lepton by default
+        finallep = lep
+
+        ## see if there's a mother with same pdgId and lastBeforeFSR
+        while (self.genParts[int(lep.motherIndex)].pdgId == lep.pdgId):
+            if self.genParts[int(lep.motherIndex)].lastBeforeFSR:
+                finallep = self.genParts[int(lep.motherIndex)]
+                break
+            ind = int(lep.motherIndex)
+            lep = self.genParts[ind]
+            if lep.motherIndex < 0:
+                break
+
+        lepton = ROOT.TLorentzVector()
+        lepton.SetPtEtaPhiM(finallep.pt, finallep.eta, finallep.phi, finallep.mass)
+
+        return lepton, finallep.pdgId
+            
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-        lhe_wgts = Collection(event,"LHEweight")
-        if event._tree._ttreereaderversion > self._ttreereaderversion: # do this check at every event, as other modules might have read further branches
-            self.initReaders(event._tree)
-
-        # do NOT access other branches in python between the check/call to initReaders and the call to C++ worker code
-        ## Algo
-        self._worker.run()
-        dressedLeptons = self._worker.dressedLeptons()
-        neutrinos = self._worker.promptNeutrinos()
-        lepPdgIds = self._worker.dressedLeptonsPdgId()
-        nuPdgIds = self._worker.promptNeutrinosPdgId()
-        gammaMaxDR = self._worker.gammaMaxDR()
-        gammaRelPtOutside = self._worker.gammaRelPtOutside()
-        self.out.fillBranch("gammaMaxDR", gammaMaxDR)
-        self.out.fillBranch("gammaRelPtOutside", gammaRelPtOutside)
-
         #nothing to do if this is data
         if event.isData: return True
 
+        try:
+            lhe_wgts      = Collection(event, 'LHEweight')
+        except:
+            lhe_wgts = 0
+        self.genParts = Collection(event, 'GenPart')
+
+        if event._tree._ttreereaderversion > self._ttreereaderversion: # do this check at every event, as other modules might have read further branches
+            self.initReaders(event._tree)
+
+
+        # do NOT access other branches in python between the check/call to initReaders and the call to C++ worker code
+        ## Algo
+        ## marc self._worker.run()
+        ## marc dressedLeptons = self._worker.dressedLeptons()
+        ## marc neutrinos = self._worker.promptNeutrinos()
+        ## marc lepPdgIds = self._worker.dressedLeptonsPdgId()
+        ## marc nuPdgIds = self._worker.promptNeutrinosPdgId()
+        ## marc gammaMaxDR = self._worker.gammaMaxDR()
+        ## marc gammaRelPtOutside = self._worker.gammaRelPtOutside()
+
+        (dressedLepton, dressedLeptonPdgId) = self.getDressedLepton()
+        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()
+        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()
+        ## lepPdgIds = self._worker.dressedLeptonsPdgId()
+        ## nuPdgIds = self._worker.promptNeutrinosPdgId()
+        ## gammaMaxDR = self._worker.gammaMaxDR()
+        ## gammaRelPtOutside = self._worker.gammaRelPtOutside()
+        ## self.out.fillBranch("gammaMaxDR", gammaMaxDR)
+        ## self.out.fillBranch("gammaRelPtOutside", gammaRelPtOutside)
+
         if hasattr(event,"genWeight"):
             self.out.fillBranch("weightGen", getattr(event, "genWeight"))
-            self.out.fillBranch("partonId1", getattr(event, "id1"))
-            self.out.fillBranch("partonId2", getattr(event, "id2"))
+            self.out.fillBranch("partonId1", getattr(event, "id1") if hasattr(event, 'id1') else -999)
+            self.out.fillBranch("partonId2", getattr(event, "id2") if hasattr(event, 'id2') else -999)
         else:
             self.out.fillBranch("weightGen", -999.)
             self.out.fillBranch("partonId1", -999 )
             self.out.fillBranch("partonId2", -999 )
-        retL={}
-        retL["pt"] = [dl.Pt() for dl in dressedLeptons]
-        retL["eta"] = [dl.Eta() for dl in dressedLeptons]
-        retL["phi"] = [dl.Phi() for dl in dressedLeptons]
-        retL["mass"] = [dl.M() for dl in dressedLeptons]
-        retL["pdgId"] = [pdgId for pdgId in lepPdgIds]
-        self.out.fillBranch("nGenLepDressed", len(dressedLeptons))
-        for V in self.vars:
-            self.out.fillBranch("GenLepDressed_"+V, retL[V])
-        self.out.fillBranch("GenLepDressed_pdgId", [pdgId for pdgId in lepPdgIds])
 
-        retN={}
-        retN["pt"] = [nu.Pt() for nu in neutrinos]
-        retN["eta"] = [nu.Eta() for nu in neutrinos]
-        retN["phi"] = [nu.Phi() for nu in neutrinos]
-        retN["mass"] = [nu.M() for nu in neutrinos]
-        retN["pdgId"] = [pdgId for pdgId in lepPdgIds]
-        self.out.fillBranch("nGenPromptNu", len(neutrinos))
-        for V in self.vars:
-            self.out.fillBranch("GenPromptNu_"+V, retN[V])
-        self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])
 
-        if len(dressedLeptons) and len(neutrinos):
-            genw = dressedLeptons[0] + neutrinos[0]
-            self.out.fillBranch("genw_charge",float(-1*np.sign(lepPdgIds[0])))
-            self.out.fillBranch("genw_pt",genw.Pt())
-            self.out.fillBranch("genw_eta",genw.Eta())
-            self.out.fillBranch("genw_phi",genw.Phi())
-            self.out.fillBranch("genw_y",genw.Rapidity())
-            self.out.fillBranch("genw_mass",genw.M())
-            kv = KinematicVars(self.beamEn)
-            # convention for phiCS: use l- direction for W-, use neutrino for W+
-            (lplus,lminus) = (neutrinos[0],dressedLeptons[0]) if lepPdgIds[0]<0 else (dressedLeptons[0],neutrinos[0])
-            self.out.fillBranch("genw_costcm",kv.cosThetaCM(lplus,lminus))
-            self.out.fillBranch("genw_costcs",kv.cosThetaCS(lplus,lminus))
-            self.out.fillBranch("genw_cost2d",kv.cosTheta2D(genw,dressedLeptons[0]))
-            self.out.fillBranch("genw_phics",kv.phiCS(lplus,lminus))
-            self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
-            self.out.fillBranch("genw_decayId", abs(nuPdgIds[0]))
-            for imass in self.massWeights:
-                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass))
-        else:
+        #if len(dressedLeptons) and len(neutrinos):
+        if neutrino:
+            retN={}
+            retN["pt"]    = [neutrino.Pt()  ]
+            retN["eta"]   = [neutrino.Eta() ]
+            retN["phi"]   = [neutrino.Phi() ]
+            retN["mass"]  = [neutrino.M() if neutrino.M() >= 0. else 0.  ] ## weird protection... also already checked. but better safe than sorry
+            retN["pdgId"] = [neutrinoPdgId  ]
+            self.out.fillBranch("nGenPromptNu", 1)
+            for V in self.vars:
+                self.out.fillBranch("GenPromptNu_"+V, retN[V])
+            #self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])
+
+            if dressedLepton:
+                retL={}
+                retL["pt"]    = [dressedLepton.Pt()  ]
+                retL["eta"]   = [dressedLepton.Eta() ]
+                retL["phi"]   = [dressedLepton.Phi() ]
+                retL["mass"]  = [dressedLepton.M()   if dressedLepton.M() >= 0. else 0.]
+                retL["pdgId"] = [dressedLeptonPdgId  ]
+                self.out.fillBranch("nGenLepDressed", 1)
+                for V in self.vars:
+                    self.out.fillBranch("GenLepDressed_"+V, retL[V])
+                ## already filled self.out.fillBranch("GenLepDressed_pdgId", [pdgId for pdgId in lepPdgIds])
+
+                genw = dressedLepton + neutrino
+                self.out.fillBranch("genw_charge" , float(-1*np.sign(dressedLeptonPdgId)))
+                self.out.fillBranch("genw_pt"     , genw.Pt())
+                self.out.fillBranch("genw_y"      , genw.Rapidity())
+                self.out.fillBranch("genw_mass"   , genw.M())
+                kv = KinematicVars(self.beamEn)
+                # convention for phiCS: use l- direction for W-, use neutrino for W+
+                (lplus,lminus) = (neutrino,dressedLepton) if dressedLeptonPdgId<0 else (dressedLepton,neutrino)
+                self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
+                self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
+                self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
+                for imass in self.massWeights:
+                    self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass))
+
+            if preFSRLepton:
+                retP={}
+                retP["pt"]    = [preFSRLepton.Pt()  ]
+                retP["eta"]   = [preFSRLepton.Eta() ]
+                retP["phi"]   = [preFSRLepton.Phi() ]
+                retP["mass"]  = [preFSRLepton.M()   if preFSRLepton.M() >= 0. else 0.]
+                retP["pdgId"] = [preFSRLeptonPdgId  ]
+                self.out.fillBranch("nGenLepPreFSR", 1)
+                for V in self.vars:
+                    self.out.fillBranch("GenLepPreFSR_"+V, retP[V])
+
+                prefsrw = preFSRLepton + neutrino
+                self.out.fillBranch("prefsrw_charge" , float(-1*np.sign(preFSRLeptonPdgId)))
+                self.out.fillBranch("prefsrw_pt"     , prefsrw.Pt())
+                self.out.fillBranch("prefsrw_y"      , prefsrw.Rapidity())
+                self.out.fillBranch("prefsrw_mass"   , prefsrw.M())
+                kv = KinematicVars(self.beamEn)
+                # convention for phiCS: use l- direction for W-, use neutrino for W+
+                (lplus,lminus) = (neutrino,preFSRLepton) if preFSRLeptonPdgId<0 else (preFSRLepton,neutrino)
+                self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
+                self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
+                self.out.fillBranch("prefsrw_decayId", abs(neutrinoPdgId))
+                for imass in self.massWeights:
+                    self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass))
+
+            ## remove these variables to save space
+            #self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
+            #self.out.fillBranch("genw_eta",genw.Eta())
+            #self.out.fillBranch("genw_phi",genw.Phi())
+            #self.out.fillBranch("genw_costcm",kv.cosThetaCM(lplus,lminus))
+            #self.out.fillBranch("genw_cost2d",kv.cosTheta2D(genw,dressedLeptons[0]))
+        else: ## no neutrino found!
             ##if not len(dressedLeptons): 
             ##    print '================================'
             ##    print 'no dressed leptons found!'
@@ -247,23 +378,25 @@ class GenQEDJetProducer(Module):
             ##    print '================================'
             ##    print 'no neutrinos found, in run:lumi:evt: {a}:{b}:{c}'.format(a=getattr(event, "run"),b=getattr(event, "lumi"),c=getattr(event, "evt"))
             for V in self.genwvars:
-                self.out.fillBranch("genw_"+V, -999)
+                self.out.fillBranch("genw_"+V   , -999)
+                self.out.fillBranch("prefsrw_"+V, -999)
             for imass in self.massWeights:
                 self.out.fillBranch("mass_{mass}".format(mass=imass), 1.)
 
-        lheweights = [w.wgt for w in lhe_wgts]
-        lhewgtIDs  = [w.id  for w in lhe_wgts]
-        if not lhewgtIDs[self.pdfWeightOffset]%10 ==1:
-            print 'ERROR/WARNING: the LHE weight with offset {n} does not seem to be the first replica!!!!'.format(n=self.pdfWeightOffset)
-        hessWgt = self.mcRep2Hess(lheweights) ## give all the lhe weights. the 0th entry is the nominal one
-        for N in range(1,self.nHessianWeights+1):
-            self.out.fillBranch("hessWgt"+str(N), hessWgt[N-1])
-        qcd0Wgt=lheweights[self.qcdScaleWgtIdx()]
-        for ii,idir in enumerate(['Up','Dn']):
-            self.out.fillBranch("qcd_muR{idir}"   .format(idir=idir), lheweights[self.qcdScaleWgtIdx(mur=idir)]/qcd0Wgt)
-            self.out.fillBranch("qcd_muF{idir}"   .format(idir=idir), lheweights[self.qcdScaleWgtIdx(muf=idir)]/qcd0Wgt)
-            self.out.fillBranch("qcd_muRmuF{idir}".format(idir=idir), lheweights[self.qcdScaleWgtIdx(mur=idir,muf=idir)]/qcd0Wgt) # only correlated variations are physical
-            self.out.fillBranch("qcd_alphaS{idir}".format(idir=idir), lheweights[-1-ii]/lheweights[0]) # alphaS is at the end of the pdf variations. 0.119 is last, 0.117 next-to-last
+        if lhe_wgts:
+            lheweights = [w.wgt for w in lhe_wgts]
+            # not there anymore lhewgtIDs  = [w.id  for w in lhe_wgts]
+            # not there anymore if not lhewgtIDs[self.pdfWeightOffset]%10 ==1:
+                # not there anymore print 'ERROR/WARNING: the LHE weight with offset {n} does not seem to be the first replica!!!!'.format(n=self.pdfWeightOffset)
+            hessWgt = self.mcRep2Hess(lheweights) ## give all the lhe weights. the 0th entry is the nominal one
+            for N in range(1,self.nHessianWeights+1):
+                self.out.fillBranch("hessWgt"+str(N), hessWgt[N-1])
+            qcd0Wgt=lheweights[self.qcdScaleWgtIdx()]
+            for ii,idir in enumerate(['Up','Dn']):
+                self.out.fillBranch("qcd_muR{idir}"   .format(idir=idir), lheweights[self.qcdScaleWgtIdx(mur=idir)]/qcd0Wgt)
+                self.out.fillBranch("qcd_muF{idir}"   .format(idir=idir), lheweights[self.qcdScaleWgtIdx(muf=idir)]/qcd0Wgt)
+                self.out.fillBranch("qcd_muRmuF{idir}".format(idir=idir), lheweights[self.qcdScaleWgtIdx(mur=idir,muf=idir)]/qcd0Wgt) # only correlated variations are physical
+                self.out.fillBranch("qcd_alphaS{idir}".format(idir=idir), lheweights[-1-ii]/lheweights[0]) # alphaS is at the end of the pdf variations. 0.119 is last, 0.117 next-to-last
 
         return True
 
