@@ -575,7 +575,9 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
   if (!_histo_trigger_leptonSF_mu) {
     //_file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
     //_histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
-    _file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_fitted.root",basedirSF_mu.c_str()),"read");
+    //_file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_fitted.root",basedirSF_mu.c_str()),"read");
+    //_histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("scaleFactor"));
+    _file_trigger_leptonSF_mu = new TFile("/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/scaleFactor_15Oct2018/trigger/muon/smoothEfficiency_muons_trigger.root","read");
     _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("scaleFactor"));
   }
 

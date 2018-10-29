@@ -283,22 +283,24 @@ selectedComponents = [ DYJetsToLL_M50, WJetsToLNu ]
 samples_1fake = [QCD_Mu15] + QCD_Mu5 + QCDPtEMEnriched + QCDPtbcToE + GJetsDR04HT
 single_t = [TToLeptons_sch_amcatnlo,T_tch_powheg,TBar_tch_powheg,T_tWch_ext,TBar_tWch_ext] # single top + tW
 tt_1l = [TTJets_SingleLeptonFromT,TTJets_SingleLeptonFromT_ext,TTJets_SingleLeptonFromTbar,TTJets_SingleLeptonFromTbar_ext] # TT 1l
-w_jets = [WJetsToLNu_LO,WJetsToLNu_LO_ext,WJetsToLNu] # W+jets
+w_jets = [WJetsToLNu_LO,WJetsToLNu_LO_ext,WJetsToLNu,WJetsToLNu_ext,WJetsToLNu_ext2v5] # W+jets
 z_jets = [DYJetsToLL_M50_LO_ext,DYJetsToLL_M50_LO_ext2,DYJetsToLL_M50] # Z+jets
 dibosons = [WW,WW_ext,WZ,WZ_ext,ZZ,ZZ_ext] # di-boson
 
 samples_signal = w_jets
 samples_1prompt = single_t + tt_1l + z_jets + dibosons
 
-for comp in selectedComponents: comp.splitFactor = len(comp.files) #200
-configureSplittingFromTime(samples_1fake,30,6)
-configureSplittingFromTime(samples_1prompt,50,6)
-configureSplittingFromTime(samples_signal,100,6)
+##configureSplittingFromTime(samples_1fake,30,6)
+##configureSplittingFromTime(samples_1prompt,50,6)
+##configureSplittingFromTime(samples_signal,100,6)
 
 if   runOnSignal and signalZ==False:
-    selectedComponents = [WJetsToLNu, WJetsToLNu_ext]
+    selectedComponents = [WJetsToLNu_ext2v5]
 elif runOnSignal and signalZ:
     selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+
+for comp in selectedComponents:
+    comp.splitFactor = len(comp.files)/2 #200
 
 if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a given luminosity (assuming ~30k events per MiniAOD file, which is ok for central production)
     target_lumi = scaleProdToLumi # in inverse picobarns
@@ -392,70 +394,6 @@ if True:
     if printnewsummary: printSummary(selectedComponents)
 
 
-if runFRMC: 
-    QCD_Mu5 = [ QCD_Pt20to30_Mu5, QCD_Pt30to50_Mu5, QCD_Pt50to80_Mu5, QCD_Pt80to120_Mu5, QCD_Pt120to170_Mu5, QCD_Pt170to300_Mu5 ]
-    autoAAA(QCDPtEMEnriched+QCDPtbcToE)
-    QCDEm, _ = mergeExtensions([q for q in QCDPtEMEnriched+QCDPtbcToE if "toInf" not in q.name])
-    selectedComponents = [QCD_Mu15] + QCD_Mu5 + [WJetsToLNu_LO,DYJetsToLL_M10to50_LO,DYJetsToLL_M50_LO_ext] + QCDEm
-    #selectedComponents = [TTJets_DiLepton]#TTJets_SingleLeptonFromT,TTJets_SingleLeptonFromTbar]
-    #selectedComponents = [TBar_tWch_noFullyHad,T_tWch_noFullyHad]
-    #TTJets_DiLepton.fineSplitFactor = 2
-    #selectedComponents = TT_pow 
-    cropToLumi(selectedComponents, 1.0)
-    time = 5.0; extra = dict(maxFiles=10)
-    configureSplittingFromTime([WJetsToLNu_LO],20,time, **extra)
-    configureSplittingFromTime([DYJetsToLL_M10to50_LO],10,time, **extra)
-    configureSplittingFromTime([DYJetsToLL_M50_LO_ext],40,time, **extra)
-    configureSplittingFromTime([QCD_Mu15]+QCD_Mu5,40,time, **extra)
-    configureSplittingFromTime(QCDEm, 40, time, **extra)
-    #configureSplittingFromTime([ QCD_HT100to200, QCD_HT200to300 ],10,time, **extra)
-    #configureSplittingFromTime([ QCD_HT300to500, QCD_HT500to700 ],15,time, **extra)
-    for c in selectedComponents:
-        c.triggers = []
-        c.vetoTriggers = [] 
-    #printSummary(selectedComponents)
-
-if runFRMC or runDataQCD:
-    ttHLepSkim.minLeptons = 1
-    if getHeppyOption("fast"): raise RuntimeError, 'Already added ttHFastLepSkimmer with 2-lep configuration, this is wrong.'
-    FRTrigs = triggers_FR_1mu_iso + triggers_FR_1mu_noiso + triggers_FR_1e_noiso + triggers_FR_1e_iso + triggers_FR_1e_b2g + triggers_FR_jet + triggers_FR_muNoIso
-    for t in FRTrigs:
-        tShort = t.replace("HLT_","FR_").replace("_v*","")
-        triggerFlagsAna.triggerBits[tShort] = [ t ]
-    treeProducer.collections = {
-        "selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMass, 8, help="Leptons after the preselection"),
-        "cleanJets"       : NTupleCollection("Jet",     jetTypeSusyExtraLight, 15, help="Cental jets after full selection and cleaning, sorted by pt"),
-    }
-    if True: # 
-        from CMGTools.TTHAnalysis.analyzers.ttHLepQCDFakeRateAnalyzer import ttHLepQCDFakeRateAnalyzer
-        ttHLepQCDFakeRateAna = cfg.Analyzer(ttHLepQCDFakeRateAnalyzer, name="ttHLepQCDFakeRateAna",
-            #jetSel = lambda jet : jet.pt() > (25 if abs(jet.eta()) < 2.4 else 30),
-            jetSel = lambda jet : jet.pt() > 30 and abs(jet.eta()) < 2.4,
-            pairSel = lambda lep, jet: deltaR(lep.eta(),lep.phi(), jet.eta(), jet.phi()) > 0.7,
-        )
-        dmCoreSequence.insert(dmCoreSequence.index(jetAna)+1, ttHLepQCDFakeRateAna)
-        leptonTypeWMass.addVariables([
-            NTupleVariable("awayJet_pt", lambda x: x.awayJet.pt() if x.awayJet else 0, help="pT of away jet"),
-            NTupleVariable("awayJet_eta", lambda x: x.awayJet.eta() if x.awayJet else 0, help="eta of away jet"),
-            NTupleVariable("awayJet_phi", lambda x: x.awayJet.phi() if x.awayJet else 0, help="phi of away jet"),
-            NTupleVariable("awayJet_btagCSV", lambda x: x.awayJet.btag('pfCombinedInclusiveSecondaryVertexV2BJetTags') if x.awayJet else 0, help="b-tag disc of away jet"),
-            NTupleVariable("awayJet_mcFlavour", lambda x: x.awayJet.partonFlavour() if x.awayJet else 0, int, mcOnly=True, help="pT of away jet"),
-        ])
-    if True: # drop events that don't have at least one lepton+jet pair (reduces W+jets by ~50%)
-        ttHLepQCDFakeRateAna.minPairs = 1
-    if True: # fast skim 
-        from CMGTools.TTHAnalysis.analyzers.ttHFastLepSkimmer import ttHFastLepSkimmer
-        fastSkim = cfg.Analyzer(
-            ttHFastLepSkimmer, name="ttHFastLepSkimmer1lep",
-            muons = 'slimmedMuons', muCut = lambda mu : mu.pt() > 15 and mu.isLooseMuon(),
-            electrons = 'slimmedElectrons', eleCut = lambda ele : ele.pt() > 15,
-            minLeptons = 1,
-        )
-        dmCoreSequence.insert(dmCoreSequence.index(jsonAna)+1, fastSkim)
-        dmCoreSequence.remove(lheWeightAna)
-        histoCounter.doLHE = False
-
-
 if removeJetReCalibration:
     jetAna.recalibrateJets = False
     jetAnaScaleUp.recalibrateJets = False
@@ -519,8 +457,9 @@ if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
         comp = selectedComponents[0]
         comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     if test=='testw':
-        comp = WJetsToLNu
-        comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
+        comp = WJetsToLNu_ext
+        #comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
+        comp.files = comp.files[:1]
     elif test=='testw_nnpdf31':
         comp = WJetsToLNu
         # comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToENuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3/30000/34F84C69-917E-E811-BB1F-FA163EB2ABE6.root'] # we+

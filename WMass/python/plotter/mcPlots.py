@@ -929,7 +929,7 @@ class PlotMaker:
 
                 # define aspect ratio
                 doWide = True if self._options.wideplot or pspec.getOption("Wide",False) else False
-                plotformat = (1200,600) if doWide else (600,600)
+                plotformat = (1200,600) if doWide else (2400,600) if options.veryWide else (600,600)
                 sf = 20./plotformat[0]
                 ROOT.gStyle.SetPadLeftMargin(600.*0.18/plotformat[0])
 
@@ -1282,6 +1282,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--toleranceForDiff", dest="toleranceForDiff", default=0.0, type="float", help="set numerical tollerance to define when two histogram bins are considered different");
     parser.add_option("--pseudoData", dest="pseudoData", type="string", default=None, help="If set to 'background' or 'all', it will plot also a pseudo-dataset made from background (or signal+background) with Poisson fluctuations in each bin.")
     parser.add_option("--wide", dest="wideplot", action="store_true", default=False, help="Draw a wide canvas")
+    parser.add_option("--verywide", dest="veryWide", action="store_true", default=False, help="Draw a very wide canvas")
     parser.add_option("--elist", dest="elist", action="store_true", default='auto', help="Use elist (on by default if making more than 2 plots)")
     parser.add_option("--no-elist", dest="elist", action="store_false", default='auto', help="Don't elist (which are on by default if making more than 2 plots)")
     if not parser.has_option("--yrange"): parser.add_option("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");

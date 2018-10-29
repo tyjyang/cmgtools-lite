@@ -55,15 +55,15 @@ if __name__ == '__main__':
     condorSubmitCommands = []
     totalNumberOfJobs = 0
     for ds,nds in dss.items():
-        n_chunks = int(nds/options.nperjob + (nds%options.nperjob > 1) ) ## this should definitely work, right?
+        n_chunks = int(nds/options.nperjob + (nds%options.nperjob > 0) ) ## this should definitely work, right?
         print 'for dataset {d} i will submit {n} chunks'.format(d=ds,n=n_chunks)
         tmp_condor_filename = 'logs/condor_friends_{ds}_{d}.condor'.format(ds=ds,d=date)
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = friendsScript.sh
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = logs/log_condor_{ds}.log
-Output     = logs/log_condor_{ds}.out
-Error      = logs/log_condor_{ds}.error
+Log        = logs/log_condor_{ds}_chunk$(ProcId).log
+Output     = logs/log_condor_{ds}_chunk$(ProcId).out
+Error      = logs/log_condor_{ds}_chunk$(ProcId).error
 getenv      = True
 
 environment = "LS_SUBCWD={here}"
