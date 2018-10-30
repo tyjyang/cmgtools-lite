@@ -16,8 +16,6 @@ dowhat = "plots"
 
 TREES = "-F Friends '{P}/friends/tree_Friend_{cname}.root' "
 TREESONLYSKIMW = "-P  /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY"
-#TREESONLYSKIMZ = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7"
-#TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_1LEP_80X_V3_ZEESKIM_V7/"
 TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_2018-07-17-recoLeptons" # trees with the Trigger Match object
 TREESONLYFULL  = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3"
 
@@ -40,7 +38,7 @@ def base(selection,useSkim=True):
 
     if selection=='wenu':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-simpleplots.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)'"%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)*eleSF_L1Eff(LepGood1_pt,LepGood1_eta)'"%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "
     elif selection=='wgen':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
