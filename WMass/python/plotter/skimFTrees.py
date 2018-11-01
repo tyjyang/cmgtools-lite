@@ -69,33 +69,61 @@ if __name__ == "__main__":
 
 
     if options.queue:
-        runner = "%s/src/CMGTools/WMass/python/postprocessing/lxbatch_runner.sh" % os.environ['CMSSW_BASE']
-        super = "bsub -q {queue}".format(queue = options.queue)
-        cmdargs = [x for x in sys.argv[1:] if x not in ['-q',options.queue]]
-        strargs=""
-        for a in cmdargs: # join do not preserve " or '
-            if "{P}" in a or "*" in a: 
-                a = '''"'''+a+'''"'''
-            strargs += " "+a+" "
-        
-        basecmd = "{runner} {dir} {cmssw} python {self} {cmdargs}".format(
-            dir = os.getcwd(), runner=runner, cmssw = os.environ['CMSSW_BASE'],
-            self=sys.argv[0], cmdargs=strargs)
+
+        ## first make the log directory to put all the condor files
         writelog = ""
         logdir   = ""
-        if options.logdir: 
+        if not options.logdir: 
+            print 'ERROR: must give a log directory to make the condor files!\nexiting...'
+            exit()
+        else:
             logdir = options.logdir.rstrip("/")
             if not os.path.exists(logdir):
                 os.system("mkdir -p "+logdir)
+
+        ## constructing the command and arguments to run in condor submit file
+        runner = "%s/src/CMGTools/WMass/python/postprocessing/lxbatch_runner.sh" % os.environ['CMSSW_BASE']
+        cmdargs = [x for x in sys.argv[1:] if x not in ['-q',options.queue]]
+        strargs=''
+        for a in cmdargs: # join do not preserve " or '
+            if '-p' in a or '--pretend' in a:
+                continue
+            strargs += ' '+a+' '
+        ## this is different for friends than main trees
+        condor_fn = options.logdir+'/condor_ftrees.condor'
+        condor_f = open(condor_fn,'w')
+        condor_f.write('''Universe = vanilla
+Executable = {runner}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {ld}/$(ProcId).log
+Output     = {ld}/$(ProcId).out
+Error      = {ld}/$(ProcId).error
+getenv      = True
+request_memory = 4000
++MaxRuntime = 43200\n
+'''.format(runner=runner,ld=options.logdir))
+        if os.environ['USER'] in ['mdunser', 'psilva']:
+            condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
+        condor_f.write('\n')
+
+        # for friends...
         (treedir,ftreedir,outdir,treename,ffilename) = allargs
         dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
         dsets = [d for d in dsets if d in os.listdir(treedir)]
+
         for d in dsets:
-            print "Process %s" % d
-            if options.logdir: writelog = "-o {logdir}/{comp}.out -e {logdir}/{comp}.err".format(logdir=logdir, comp=d)
-            cmd = "{super} {writelog} {base} --component {comp}".format(super=super, writelog=writelog, base=basecmd, comp=d)
-            if options.pretend: print cmd
-            else: os.system(cmd)
+
+            print "\t component %-40s" % d
+            componentPost = ' --component {c} '.format(c=d)
+            condor_f.write('\narguments = {d} {cmssw} python {self} {cmdargs} {comp}\n'.format(d=os.getcwd(),
+            cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0], cmdargs=strargs, comp=componentPost))
+            condor_f.write('queue 1\n\n')
+        condor_f.close()
+        cmd = 'condor_submit {sf}'.format(sf=condor_fn)
+        if options.pretend: 
+            print cmd
+        else:
+            os.system(cmd)
         exit()
 
     _runIt(allargs,options,options.excludeProcess)
