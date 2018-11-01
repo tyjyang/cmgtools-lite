@@ -42,5 +42,5 @@ if __name__ == "__main__":
             dataset = '_'.join(tokens[0].split('_')[2:])
             chunk = tokens[1].split('chunk')[-1]
             #print "# resubmitting dataset = ",dataset," chunk ",chunk
-            cmd = "python postproc_batch.py {maintreedir} {frienddir} --friend --log friends_log -N {nevents} -q 8nh -d {dataset} -c {chunk}".format(maintreedir=maindir,frienddir=fdir,nevents=options.chunkSize,dataset=dataset,chunk=chunk)
+            cmd = "python postproc_batch.py {maintreedir} {frienddir} --friend --log friends_log -N {nevents} -q 8nh -d {dataset} -c {chunk} --submit".format(maintreedir=maindir,frienddir=fdir,nevents=options.chunkSize,dataset=dataset,chunk=chunk)
             print cmd

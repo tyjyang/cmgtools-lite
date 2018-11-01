@@ -75,7 +75,7 @@ if __name__ == "__main__":
                 print "The skim output dir ",outputDirSkims," exists, but you passed option --pretend"
                 print "I guess you just want to print commands to test behaviour or resubmit few jobs"
                 print "I will add suffix _v1 to the output folder to let you avoid making mistakes and overwriting things"            
-                outputDirSkims = outputDirSkims + "_v1"
+                outputDirSkims = outputDirSkims.rstrip('/') + "_v1/"
                 outputDirFSkims = outputDirSkims+"/friends"
                 print "New output dir is " + outputDirSkims
             else:

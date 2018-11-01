@@ -7,6 +7,17 @@ from glob import glob
 import re, pickle, math
 from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 
+## USAGE:
+
+## to run locally:
+# python postproc_batch.py -N 250000  <directoryWithTrees> <targetDirectoryForFriends>  --friend  
+
+## if you want to submit to condor, add:
+## --log friends_log/ --submit  --runtime 240 (optional, default 480 minutes)
+
+## if you insist on running on LSF, instead add:
+## --log friends_log/ --submit --env lxbatch --queue 1nd (optional, default 8nh)
+
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
                    ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
                    ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated"),
@@ -34,12 +45,13 @@ def writeCondorCfg(srcfile, flavour=None, maxRunTime=None):
         maxruntime = str(60 * int(maxRunTime))
     job_desc = """Universe = vanilla
 Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
 Log        = {pid}.log
 Output     = {pid}.out
 Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-request_memory = 2000
+request_memory = 4000
 """.format(scriptName=srcfile,
            pid=base,
            here=os.environ['PWD'])
@@ -47,6 +59,8 @@ request_memory = 2000
         job_desc += '+JobFlavour = "%s"\n' % flavour
     if maxruntime!="":
         job_desc += '+MaxRuntime = %s\n' % maxruntime
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
     job_desc += 'queue 1\n'
 
     jobdesc_file = base+'.condor'
@@ -73,10 +87,12 @@ if __name__ == "__main__":
     parser.add_option("-N", "--events",  dest="chunkSize", type="int",    default=1000000, help="Default chunk size when splitting trees");
     parser.add_option("-p", "--pretend", dest="pretend",   action="store_true", default=False, help="Don't run anything");
     parser.add_option("-j", "--jobs",    dest="jobs",      type="int",    default=1, help="Use N threads");
-    parser.add_option("-q", "--queue",   dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
+    parser.add_option("-q", "--queue",   dest="queue",     type="string", default='8nh', help="Run jobs on lxbatch instead of locally");
+    parser.add_option("-r", "--runtime",    type=int, default=480, help="Condor runtime. In minutes.");
+    parser.add_option("-s", "--submit",    action='store_true', default=False, help="Submit the jobs to lsf/condor.");
     parser.add_option("-t", "--tree",    dest="tree",      default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
-    parser.add_option("--env",   dest="env", type="string", default="lxbatch", help="Give the environment on which you want to use the batch system (lsf,condor). Default: lsf");
+    parser.add_option("--env",   dest="env", type="string", default="condor", help="Give the environment on which you want to use the batch system (lsf,condor). Default: condor");
     parser.add_option("--run",   dest="runner",  type="string", default="lxbatch_runner.sh", help="Give the runner script (default: lxbatch_runner.sh)");
     parser.add_option("--mconly", dest="mconly",  action="store_true", default=False, help="Run only on MC samples");
     parser.add_option("--signals", dest="signals", default="WJetsToLNu,DYJetsToLL", help="declare signals (CSV list) [%default]",type='string');
@@ -163,7 +179,7 @@ if __name__ == "__main__":
 
     print 'I\'m using the following list of modules',options.moduleList
     imports = globals()[options.moduleList] + options.imports
-    if options.queue:
+    if options.submit:
         import os, sys
 
         writelog = ""
@@ -202,8 +218,8 @@ if __name__ == "__main__":
                     cmd = "{super} {writelog} {base} -d {data} -c {chunk} {post}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
                 elif options.env == 'condor':
                     condor_exec="{logdir}/{data}_{chunk}.sh".format(logdir=logdir, data=name, chunk=chunk)
-                    os.system("echo {base} -d {data} -c {chunk} {post} > {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, chunk=chunk, post=friendPost, condor_exec=condor_exec))
-                    condor_jobdesc = writeCondorCfg(condor_exec,options.queue)
+                    os.system("echo '#!/bin/bash' > {condor_exec} ; echo {base} -d {data} -c {chunk} {post} >> {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, chunk=chunk, post=friendPost, condor_exec=condor_exec))
+                    condor_jobdesc = writeCondorCfg(condor_exec,maxRunTime=options.runtime)
                     cmd = 'condor_submit ' + condor_jobdesc
             else:
                 if options.logdir: writelog = "-o {logdir}/{data}.out -e {logdir}/{data}.err".format(logdir=logdir, data=name)
@@ -211,8 +227,8 @@ if __name__ == "__main__":
                     cmd = "echo \"{base} -d {data} {post}\" | {super} {writelog}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
                 elif options.env == 'condor':
                     condor_exec="{logdir}/{data}.sh".format(logdir=logdir, data=name)
-                    os.system("echo {base} -d {data} {post} > {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, post=friendPost, condor_exec=condor_exec))
-                    condor_jobdesc = writeCondorCfg(condor_exec,options.queue)
+                    os.system("echo '#!/bin/bash' > {condor_exec} ; echo {base} -d {data} {post} >> {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, post=friendPost, condor_exec=condor_exec))
+                    condor_jobdesc = writeCondorCfg(condor_exec,maxRunTime=options.runtime)
                     cmd = 'condor_submit ' + condor_jobdesc
                 print "{base} -d {data}".format(base=basecmd, data=name, chunk=chunk)
             print cmd

@@ -6,7 +6,7 @@ import re
 from sys import argv, stdout, stderr, exit
 import datetime
 from optparse import OptionParser
-import HiggsAnalysis.CombinedLimit.calculate_pulls as CP 
+#import HiggsAnalysis.CombinedLimit.calculate_pulls as CP 
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -25,31 +25,43 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default=None, type='string', help='If given, plot the pulls of the nuisances in this output directory')
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
+    parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
+
 
     (options, args) = parser.parse_args()
     if len(args) == 0:
         parser.print_usage()
         exit(1)
-    infile = args[0]
+    #infile = args[0]
+    infile = options.infile
 
     if   options.type == 'toys':
-        valuesAndErrors = utilities.getFromToys(infile,keepGen=True)
+        valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True)
     elif options.type == 'hessian':
-        valuesAndErrors = utilities.getFromHessian(infile,keepGen=True)
+        valuesAndErrorsAll = utilities.getFromHessian(infile,keepGen=True)
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
+
     setUpString = "diffNuisances run on %s, at %s with the following options ... "%(args[0],datetime.datetime.utcnow())+str(options)
     date = datetime.date.today().isoformat()
 
-    
-    valuesPrefit = dict((k,v) for k,v in valuesAndErrors.iteritems() if k.endswith('_gen'))
+    #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
     pois_regexps = list(options.pois.split(','))
+
+    print 'looking for regexp match', pois_regexps    
+    valuesAndErrors = {}
+    valuesErrors = {}
+    valuesPrefit = {}
+
     for ppatt in pois_regexps:            
-        for (k,v) in valuesAndErrors.iteritems():
-            valuesAndErrors = dict((k,v) for k,v in valuesAndErrors.iteritems() if re.match(ppatt,k) and not k.endswith('_gen'))
-            valuesPrefit    = dict((k,v) for k,v in valuesPrefit.iteritems() if re.match(ppatt.replace('$','_gen'),k))
+        for (k,v) in valuesAndErrorsAll.iteritems():
+            if re.match(ppatt,k):
+                if k.endswith('_gen'):
+                    valuesPrefit   [k]  = v #dict((k,v) for k,v in valuesPrefit.iteritems() if re.match(ppatt.replace('$','_gen'),k))
+                else:
+                    valuesAndErrors[k]  = v #dict((k,v) for k,v in valuesAndErrors.iteritems() if re.match(ppatt,k) and not k.endswith('_gen'))
 
     params = valuesAndErrors.keys()
     if len(params)==0:
