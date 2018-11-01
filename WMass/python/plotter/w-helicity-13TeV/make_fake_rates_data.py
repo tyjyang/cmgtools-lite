@@ -80,6 +80,7 @@ if useFullData2016:
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
     MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' 
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)" ' 
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
 
 
 J=4
@@ -106,6 +107,8 @@ OPTIONS += ' -F Friends '+T+'/friends/tree_Friend_{cname}.root '
 # OPTIONS += ' --FMC Friends '+T+'/friends/tree_TrgFriend_{cname}.root '  # only for MC, they have trigger scale factors
 OPTIONS += ' --fqcd-ranges %s' % fqcd_ranges.replace(","," ")
 #OPTIONS += datasetOption
+
+OPTIONS += ' --usePickle '
 
 # event weight (NB: not needed for data, and efficiency sf not good for MC since here we have fake electrons)
 # use PU reweighting for BF or BH
