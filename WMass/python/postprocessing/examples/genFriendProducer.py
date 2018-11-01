@@ -174,7 +174,7 @@ class GenQEDJetProducer(Module):
     def getNeutrino(self):
         nus = []
         for p in self.genParts:
-            if abs(p.pdgId) in [12, 14, 16] and p.isPromptFinalState > 0:
+            if abs(p.pdgId) in [12, 14, 16] : ##and p.isPromptFinalState > 0: ## requiring isPromptFinalState results in 12% of events without neutrino
                 nus.append(p)
 
         ##nus = sorted(nus, key = lambda x: x.pt)
