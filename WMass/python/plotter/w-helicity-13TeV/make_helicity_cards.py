@@ -6,6 +6,15 @@ import numpy as np
 from wmass_parameters import *
 
 
+def wptBinsScales(i):
+    wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
+    if len>2*i:
+        print 'you are asking too much from the wpt binning for decorrelation of scales'
+    ptlo = wptbins[2*(i-1)]
+    pthi = wptbins[2*i]
+    return [ptlo, pthi]
+    
+
 def getCondorTime(qstr):
     retval = ''
     if   qstr == '1nh':
@@ -131,15 +140,26 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 sign  =  1 if idir == 'Dn' else -1
                 asign = -1 if idir == 'Dn' else  1
                 offset = 0.05; slope = 0.005;
-                fstring = "wpt_slope_weight(genw_pt\,{off:.3f}\,{slo:.3f})".format(off=1.+asign*offset, slo=sign*slope)
+                fstring = "wpt_slope_weight({wv}_pt\,{off:.3f}\,{slo:.3f})".format(wv=options.wvar,off=1.+asign*offset, slo=sign*slope)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+                qcdsysts.append(postfix)
             elif scale == "mW":
                 ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
                 fstring = "mass_80470" if idir == 'Up' else "mass_80370"
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+                qcdsysts.append(postfix)
+            elif 'muR' in scale or 'muF' in scale:
+                for ipt in range(1,11): ## start from 1 to 10
+                    ## have to redo the postfix for these
+                    postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
+                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                    ptcut = wptBinsScales(ipt)
+                    wgtstr = 'TMath::Power(qcd_{sc}{idir},({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                    qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
-            qcdsysts.append(postfix)
+                qcdsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
@@ -223,7 +243,8 @@ parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", def
 parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
-parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=10, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+parser.add_option('-w', "--wvar", type="string", default='genw', help="switch between genw and prefsrw. those are the only options (default %default)");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 6:
@@ -324,8 +345,8 @@ if options.signalCards:
                     print "Running the systematic: ",var
                 job_group =  [] ## group
                 for iy in xrange(len(YWbinning)-1):
-                    print "Making card for %s<=abs(genw_y)<%s and signal process with charge %s " % (YWbinning[iy],YWbinning[iy+1],charge)
-                    ycut=" -A alwaystrue YW%d 'abs(genw_y)>=%s && abs(genw_y)<%s' " % (iy,YWbinning[iy],YWbinning[iy+1])
+                    print "Making card for {yl}<=abs({wv}_y)<{yh} and signal process with charge {ch} ".format(yl=YWbinning[iy],wv=options.wvar,yh=YWbinning[iy+1],ch=charge)
+                    ycut=" -A alwaystrue YW{iy} 'abs({wv}_y)>={yl} && abs({wv}_y)<{yh}' ".format(iy=iy,wv=options.wvar,yl=YWbinning[iy],yh=YWbinning[iy+1])
                     ycut += POSCUT if charge=='plus' else NEGCUT
                     ## marc excl_long_signal  = '' if not options.longBkg else ',W{ch}_long.*'.format(ch=charge)
                     ## marc xpsel=' --xp "W{antich}.*,W{ch}_{antihel}.*,Flips,Z,Top,DiBosons,TauDecaysW{longbkg},data.*" --asimov '.format(antich=antich,ch=charge,antihel=antihel,longbkg = excl_long_signal)
@@ -442,6 +463,18 @@ def getShFile(jobdir, name):
 
 if len(fullJobList):
     reslist = list(fullJobList)
+
+    ## analysis too large protection
+    reslistnew = []
+    npart = 0
+    for ic, pc in enumerate(reslist):
+        nc = pc.replace('--od {od}'.format(od=outdir), '--od {od}/part{n}'.format(od=outdir,n=npart))
+        reslistnew.append(nc)
+        if not (ic+1)%6000:
+            npart += 1
+
+    reslist = reslistnew
+
     ## split the list into non-bkg and bkg_and_data
     bkglist = [i for i in reslist if     'bkg_and_data' in i]
     reslist = [i for i in reslist if not 'bkg_and_data' in i]
@@ -459,14 +492,16 @@ if len(fullJobList):
     os.system('mkdir -p '+jobdir)
     subcommands = []
 
-    ## a bit awkward, but this keeps the bkg and data jobs separate. do those first
+    sourcefiles = []
+    ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first
     for ib in bkglist:
         pm = 'plus' if 'positive' in ib else 'minus'
         tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
         tmp_srcfile.write(ib)
         tmp_srcfile.close()
-        makeCondorFile(tmp_srcfile_name)
-        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+        sourcefiles.append(tmp_srcfile_name)
+        #makeCondorFile(tmp_srcfile_name)
+        #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
 
     ## now do the others.
     for ij in range(njobs):
@@ -478,21 +513,49 @@ if len(fullJobList):
             reslist.remove(tmp_pycmd)
             tmp_n -= 1
         tmp_srcfile.close()
-        makeCondorFile(tmp_srcfile_name)
-        subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+        sourcefiles.append(tmp_srcfile_name)
+        #makeCondorFile(tmp_srcfile_name)
+        #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+    dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+    dummy_exec.write('#!/bin/bash\n')
+    dummy_exec.write('bash $*\n')
+    dummy_exec.close()
+
+    condor_file_name = jobdir+'/condor_submit.condor'
+    condor_file = open(condor_file_name,'w')
+    condor_file.write('''Universe = vanilla
+Executable = {de}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = $(ProcId).log
+Output     = $(ProcId).out
+Error      = $(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}\n
+'''.format(de=dummy_exec.name, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+    for sf in sourcefiles:
+        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+    condor_file.close()
 
     print 'i have {n} jobs to submit!'.format(n=len(subcommands))
     if options.dryRun:
         print 'running dry, printing the commands...'
-        for cmd in subcommands:
-            print cmd
+        print 'condor_submit ',condor_file_name
+        #for cmd in subcommands:
+        #    print cmd
     else:
-        sigDyBkg = '_signal' if options.signalCards else '_background'
-        pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
-        pipefile = open(pipefilename, 'w')
-        print 'piping all the commands in file', pipefilename
-        for cmd in subcommands:
-            pipefile.write(cmd+'\n')
-        pipefile.close()
-        os.system('bash '+pipefilename)
+        print 'submitting for real...'
+        os.system('condor_submit ',condor_file_name)
+        ##sigDyBkg = '_signal' if options.signalCards else '_background'
+        ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
+        ##pipefile = open(pipefilename, 'w')
+        ##print 'piping all the commands in file', pipefilename
+        ##for cmd in subcommands:
+        ##    pipefile.write(cmd+'\n')
+        ##pipefile.close()
+        ##os.system('bash '+pipefilename)
 print 'done'
