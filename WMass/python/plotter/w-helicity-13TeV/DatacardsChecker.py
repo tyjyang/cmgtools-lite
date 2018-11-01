@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # python w-helicity-13TeV/DatacardsChecker.py -c cards/helicity_2018_03_06_testpdf el
 
-import os.path
 import sys,ROOT,os
 ROOT.gROOT.SetBatch(True)
 
@@ -12,6 +11,10 @@ class CardsChecker:
         self.datacards = {}
         self.cardinputs = {}
         self.pycmd = {}
+        retrydirs = [d for d in os.listdir(card_dir) if 'retry' in d]
+        itry = len(retrydirs)+1
+        self.resub_card_dir='{cdir}/retry_{i}'.format(cdir=card_dir,i=itry)
+        os.mkdir(self.resub_card_dir)
         for f in os.listdir(card_dir+'/jobs/'):
             if not f.endswith('.sh'): 
                 continue
@@ -27,12 +30,13 @@ class CardsChecker:
                 f_root = tmp_name+'.input.root'
                 self.datacards[tmp_name] = f_txt
                 self.cardinputs[tmp_name] = f_root
-                self.pycmd[tmp_name] = cmd
+                self.pycmd[tmp_name] = cmd.replace(' --od %s'%card_dir,' --od %s'%self.resub_card_dir)
         self.resubPythonCommands = set()
         print '## Expecting {n} cards and rootfiles'.format(n=len(self.datacards))
+        print '## Will put the new cards into ',self.resub_card_dir
 
     def makeResubFileLSF(self, key):
-        resubdir = self.card_dir+'/jobs/resub/'
+        resubdir = self.resub_card_dir+'/jobs/'
         os.system('mkdir -p '+resubdir)
         tmp_file_name = resubdir+'/'+key+'_resub.sh'
         tmp_file = open(tmp_file_name,'w')
@@ -107,7 +111,7 @@ queue 1
                 njobs = int(nj/options.grouping)
             else: njobs = int(nj/options.grouping) + 1
 
-            resubdir = self.card_dir+'/jobs/resub/'
+            resubdir = self.resub_card_dir+'/jobs/'
             os.system('mkdir -p '+resubdir)
             for ij in range(njobs):
                 tmp_srcfile_name = resubdir+'/resubjob_{i}.sh'.format(i=ij)
@@ -135,7 +139,7 @@ if __name__ == '__main__':
     parser.add_option('-v', '--verbose', dest='verbose', default=0, type=int, help='Degree of verbosity (0=default prints only the resubmit commands)');
     parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
     parser.add_option('-r', '--runtime', default=8, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
-    parser.add_option('-g', '--grouping', default=20, type=int,  help='Group resubmit commands into groups of size N');
+    parser.add_option('-g', '--grouping', default=10, type=int,  help='Group resubmit commands into groups of size N');
     (options, args) = parser.parse_args()
 
     if options.checkCards:

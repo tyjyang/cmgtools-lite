@@ -455,6 +455,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
 def getShFile(jobdir, name):
     tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
     tmp_srcfile = open(tmp_srcfile_name, 'w')
+    tmp_srcfile.write("#! /bin/sh\n")
     tmp_srcfile.write("ulimit -c 0 -S\n")
     tmp_srcfile.write("ulimit -c 0 -H\n")
     tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
