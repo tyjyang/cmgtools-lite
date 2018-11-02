@@ -18,6 +18,7 @@ useSignedEta="y" # distinguish bins of positive and negative rapidity (if passin
 useFull2016dataset="y"
 useJson="n"
 useSkimmedTrees="y" 
+usePickle="y" # add option --usePickle when running mcAnalysis.py, some old ntuples miss the histogram with the SumWeights
 #--------------------------
 mtRanges="0,25,25,120"  # can stay as it is, was used with the 2-mT-region method, unless I change the fake rate script, leave it as it is: it is a dummy option
 ptDefinition="pt_granular"  # pt_coarse, pt_granular (first is mainly for QCD MC)
@@ -37,7 +38,7 @@ fi
 istest="y"
 # following option testdir is used only if istest is 'y'
 today=`date +"%d_%m_%Y"`
-testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_scaleZnorm0p82"
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto"
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
@@ -49,7 +50,11 @@ testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_s
 #addOption=" -A eleKin pfmet 'met_pt<20' "
 #addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
 #addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
-addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
+addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin zveto 'fabs(100 - mass_2(LepGood_awayJet_pt,LepGood_awayJet_eta,LepGood_awayJet_phi,0,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.000511)) > 10' "
+# for the Z veto, see plots here:
+# http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREES_1LEP_80X_V3_FRELSKIM_V8/FR_computation_region/full2016data_01_11_2018_FRvarNotNorm/
+
+
 if [[ "${useJson}" == "y" ]]; then
     addOption="${addOption} -A eleKin json 'isGoodRunLS(isData,run,lumi)'"
 fi
@@ -79,6 +84,10 @@ fi
 
 if [[ "${useSkimmedTrees}" == "y" ]]; then
     cmdComputeFR="${cmdComputeFR} --useSkim "
+fi
+
+if [[ "${usePickle}" == "y" ]]; then
+    cmdComputeFR="${cmdComputeFR} --usePickle "
 fi
 
 if [[ "${useSignedEta}" == "y" ]]; then

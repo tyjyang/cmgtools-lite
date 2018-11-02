@@ -13,6 +13,7 @@ parser.add_option("--test", dest="test", default="", type='string', help="pass t
 parser.add_option("--fqcd-ranges", dest="fqcd_ranges", default="0,40,50,120", type='string', help="Pass a list of 4 comma separated numbers that represents the ranges for the two mT regions to compute the fake rate");
 parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse");
 parser.add_option("--useSkim", dest="useSkim", default=False, action='store_true', help="Use skimmed sample for fake rates");
+parser.add_option("--usePickle", dest="usePickle", default=False, action='store_true', help="Read SumWeigth from pickle file (in case the hisotgram with this number is not present in the ntuples)");
 parser.add_option("--useSignedEta", dest="useSignedEta", default=False, action='store_true', help="Make fake rate for eta bins distinguishing eta sign");
 parser.add_option("--makeTH3-eta-pt-passID", dest="makeTH3_eta_pt_passID", default=False, action='store_true', help="This option is special. It will make the following create only the TH3D histograms with |eta|, pt and passID. This will allow to compute the FR in any binning of pt and eta (using another macro). It overrides some other options");
 parser.add_option("--addOpts", dest="addOpts", default="", type='string', help="Options to pass some other options from outside to build the command");
@@ -26,6 +27,7 @@ fqcd_ranges = str(options.fqcd_ranges)
 ptvar = str(options.ptvar)
 useFullData2016 = options.useFullData2016
 useSkim = options.useSkim
+usePickle = options.usePickle
 useSignedEta = options.useSignedEta
 addOpts = options.addOpts
 luminosity = options.lumi
@@ -108,7 +110,8 @@ OPTIONS += ' -F Friends '+T+'/friends/tree_Friend_{cname}.root '
 OPTIONS += ' --fqcd-ranges %s' % fqcd_ranges.replace(","," ")
 #OPTIONS += datasetOption
 
-OPTIONS += ' --usePickle '
+if usePickle:
+    OPTIONS += ' --usePickle '
 
 # event weight (NB: not needed for data, and efficiency sf not good for MC since here we have fake electrons)
 # use PU reweighting for BF or BH

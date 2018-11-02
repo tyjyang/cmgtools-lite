@@ -121,7 +121,7 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
                 ndn = sys_dn_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
             if 'pdf' in sys:
-                ndn = 2.*ncen-nup ## or ncen/nup?
+                ndn = 2.*ncen-nup ## or ncen/nup?  # FIXME: this should be decided and motivated 
 
             tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
             tmp_hist_up.SetBinContent(1, nup)
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         files = ( f for f in os.listdir(options.inputdir) if f.endswith('.card.txt') )
-        files = ( f for f in files if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*',f) )
+        files = ( f for f in files if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*effstat.*',f) )
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
         files = list( ( os.path.join(options.inputdir, f) for f in files ) )
         
@@ -289,7 +289,7 @@ if __name__ == "__main__":
                     if re.match('bin.*',l):
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
-                    rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
+                    rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+|effstat\d+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
                     if ifile==0:
                         rootfiles_syst += filter(lambda x: re.match('Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), os.listdir(options.inputdir))
                     rootfiles_syst = [dirf+'/'+x for x in rootfiles_syst]
@@ -357,10 +357,12 @@ if __name__ == "__main__":
                                             #print 'replacing old %s with %s' % (name,newname)
                                             plots[newname].Write()                                    
                                 else:
-                                    if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                    #if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                    if any(sysname in newname for sysname in ['pdf','effstat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        sysname = 'pdf' if 'pdf' in newname else 'effstat'
                                         tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
                                         ipdf = int(pdf.split('pdf')[-1])
-                                        newname = "{pfx}_pdf{ipdf}".format(pfx=pfx,ipdf=ipdf)
+                                        newname = "{pfx}_{sysname}{ipdf}".format(pfx=pfx,sysname=sysname,ipdf=ipdf)
                                         (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                         for alt in [alternate,mirror]:
                                             if alt.GetName() not in plots:
@@ -389,7 +391,7 @@ if __name__ == "__main__":
         tf = ROOT.TFile.Open(outfile)
         for e in tf.GetListOfKeys() :
             name=e.GetName()
-            if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*',name):
+            if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.|.*_effstat.**',name):
                 if name.endswith("Up"): name = re.sub('Up$','',name)
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
@@ -400,6 +402,7 @@ if __name__ == "__main__":
         qcdsyst = {k:v for k,v in theosyst.iteritems() if 'muR' in k or 'muF' in k}
         alssyst = {k:v for k,v in theosyst.iteritems() if 'alphaS' in k }
         wptsyst = {k:v for k,v in theosyst.iteritems() if 'wptSlope' in k}
+        effsyst = {k:v for k,v in theosyst.iteritems() if 'effstat' in k}
         sortedpdfkeys = sorted(pdfsyst.keys(),key= lambda x: int(x.strip('pdf')))
         sortednonpdfkeys = sorted([x for x in theosyst.keys() if "pdf" not in x]) 
         sortedsystkeys = sortedpdfkeys + sortednonpdfkeys
@@ -550,7 +553,7 @@ if __name__ == "__main__":
             combinedCard.write('\nscales group = '+' '.join([sys for sys,procs in qcdsyst.iteritems()])+'\n')
             combinedCard.write('\nalphaS group = '+' '.join([sys for sys,procs in alssyst.iteritems()])+'\n')
             combinedCard.write('\nwpt group = '+' '.join([sys for sys,procs in wptsyst.iteritems()])+'\n')
-
+            combinedCard.write('\neffstat group = '+' '.join([sys for sys,procs in effsyst.iteritems()])+'\n')
         combinedCard.close()
 
 

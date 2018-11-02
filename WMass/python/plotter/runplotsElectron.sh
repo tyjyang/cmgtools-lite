@@ -94,18 +94,18 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="cmscaf1nd"
-nameTag="_trashTestQCDMC" 
+nameTag="_JetOtherVars" 
 #nameTag="_varStudy"
 useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
-etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
+#etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.479" "2.5")
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
 #etaBinBoundaries=("0.0" "2.5")
-#etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
+etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
 today=`date +"%d_%m_%Y"`
 batchDirName="plots_${today}${nameTag}"  # name of directory to create inside jobsLog
@@ -142,13 +142,13 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="etal1_binFR"
 #selectplots="pfmt_ptl1"
 #selectplots="ptl1_narrow,etal1_binFR"
-selectplots="ptl1"
+#selectplots="ptl1"
 #selectplots="ptl1,ptl1noCorr"
 #selectplots="ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
 #selectplots="ptl1,pfmt,pfmet,awayJet_pt,ele1Iso04,ele1ID,ele1dxy"
-#selectplots="awayJet_eta,mt_jet_ele,dphiLepAwayJet,detaLepAwayJet"
+selectplots="awayJet_eta,mt_jet_ele,dphiLepAwayJet,detaLepAwayJet"
 #selectplots="ptl1noCorr_granBin"
 #selectplots="dphiLepPFMET,diffPt_lepPFMET,diffPt_lepPFMET_v2"
 #maxentries="150000" # max int number is > 2*10^9
@@ -201,10 +201,10 @@ regionName["FRcompRegion"]="FR_computation_region"
 skimTreeDir["FRcompRegion"]="TREES_1LEP_80X_V3_FRELSKIM_V8"
 #skimTreeDir["FRcompRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
 outputDir["FRcompRegion"]="full2016data_${today}"
-regionCuts["FRcompRegion"]="  ${mtMax/XX/40} " # ${fiducial}  " -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) < 40' " 
+regionCuts["FRcompRegion"]="  " # ${mtMax/XX/40}  ${fiducial}  " -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) < 40' " 
 #processManager["FRcompRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcompRegion"]="n"
-scaleMCdata["FRcompRegion"]=" -p data,QCD,W,Z "
+scaleMCdata["FRcompRegion"]=" -p data,QCD,W,Z,Top,DiBosons "
 #
 #############################
 #############################
