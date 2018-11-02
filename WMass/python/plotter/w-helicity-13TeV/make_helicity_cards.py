@@ -527,18 +527,18 @@ if len(fullJobList):
     condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = $(ProcId).log
-Output     = $(ProcId).out
-Error      = $(ProcId).error
+Log        = {jd}/$(ProcId).log
+Output     = {jd}/$(ProcId).out
+Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=dummy_exec.name, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+'''.format(de=dummy_exec.name, jd=jobdir, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
     for sf in sourcefiles:
-        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
     condor_file.close()
 
     print 'i have {n} jobs to submit!'.format(n=len(subcommands))
