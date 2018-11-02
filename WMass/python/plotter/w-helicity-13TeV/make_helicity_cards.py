@@ -534,7 +534,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=dummy_exec.name, jd=jobdir, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
     for sf in sourcefiles:
