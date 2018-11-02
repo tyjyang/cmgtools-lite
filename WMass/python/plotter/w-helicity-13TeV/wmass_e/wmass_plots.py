@@ -38,7 +38,7 @@ def base(selection,useSkim=True):
 
     if selection=='wenu':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-simpleplots.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)*eleSF_L1Eff(LepGood1_pt,LepGood1_eta)'"%GO
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)'"%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "
     elif selection=='wgen':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
