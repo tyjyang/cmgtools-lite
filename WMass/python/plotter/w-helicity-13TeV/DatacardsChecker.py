@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# python w-helicity-13TeV/DatacardsChecker.py -c cards/helicity_2018_03_06_testpdf el
+# python w-helicity-13TeV/DatacardsChecker.py -c cards/helicity_2018_03_06_testpdf
 
 import sys,ROOT,os
 ROOT.gROOT.SetBatch(True)
@@ -47,25 +47,37 @@ class CardsChecker:
         tmp_file.close()
         return tmp_file_name
 
-    def makeCondorFile(self, srcFile):
-        condor_file = open(srcFile.replace('.sh','.condor'),'w')
+    def makeCondorFile(self, jobdir, srcFiles):
+        dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+        dummy_exec.write('#!/bin/bash\n')
+        dummy_exec.write('bash $*\n')
+        dummy_exec.close()
+     
+        condor_file_name = jobdir+'/condor_submit.condor'
+        condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
-Executable = {scriptName}
+Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = {pid}.log
-Output     = {pid}.out
-Error      = {pid}.error
+Log        = $(ProcId).log
+Output     = $(ProcId).out
+Error      = $(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-+MaxRuntime = {rt}
-queue 1
-'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
++MaxRuntime = {rt}\n
+'''.format(de=dummy_exec.name, rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+        if os.environ['USER'] in ['mdunser', 'psilva']:
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+        for sf in srcFiles:
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+        condor_file.close()
+        return condor_file_name
 
     def checkCards(self):
         resubcmds = {}
+        card_subdirs = [d for d in os.listdir(self.card_dir) if 'part' in d]
         for key,dc in self.datacards.iteritems():
-            if not os.path.exists(self.card_dir+'/'+dc): 
+            if not any([os.path.exists(self.card_dir+'/'+subdc+'/'+dc) for subdc in card_subdirs]): 
                 if self.options.verbose>1: 
                     print '# datacard ',dc,' is not present in ',self.card_dir
                 if options.useLSF:
@@ -76,17 +88,25 @@ queue 1
                 else:
                     self.resubPythonCommands.add(self.pycmd[key])
 
+        tmp_f = open('clean_badcards.sh','w')
+        card_subdir = {} 
         for key,f in self.cardinputs.iteritems():
             f_ok = True
-            if not os.path.exists(self.card_dir+'/'+f): 
+            for subdc in card_subdirs:
+                if os.path.exists(self.card_dir+'/'+subdc+'/'+f):
+                    card_subdir[key] = subdc
+            if key not in card_subdir:
                 if self.options.verbose>1: print '# input root file ',f,' is not present in ',self.card_dir
                 f_ok = False
-            elif os.path.getsize(self.card_dir+'/'+f) < 1000.:
-                print '# WARNING found a input root file below 1kB:', self.card_dir+'/'+f
+            elif os.path.getsize(self.card_dir+'/'+card_subdir[key]+'/'+f) < 1000.:
+                print '# WARNING found a input root file below 1kB:', self.card_dir+'/'+card_subdir[key]+'/'+f
+                txt = ''.join(f.split('.')[-3])+'.card.txt'
+                tmp_f.write('rm {dir}/{subdir}/{ftxt}\n'.format(dir=self.card_dir,subdir=card_subdir[key],ftxt=txt))
+                tmp_f.write('rm {dir}/{subdir}/{froot}\n'.format(dir=self.card_dir,subdir=card_subdir[key],froot=f))
                 f_ok = False
             else: 
                 if self.options.checkZombies:
-                    tfile = ROOT.TFile.Open(self.card_dir+'/'+f)
+                    tfile = ROOT.TFile.Open(self.card_dir+'/'+card_subdir[key]+'/'+f)
                     if not tfile or tfile.IsZombie():
                         if self.options.verbose>1: print '# ',f, ' is Zombie'
                         f_ok = False
@@ -102,6 +122,7 @@ queue 1
                         queue=self.options.queue, log=os.path.abspath(resubfile.replace('.sh','.log')), srcfile=os.path.abspath(resubfile))
                 else:
                     self.resubPythonCommands.add(self.pycmd[key])
+        tmp_f.close()
         if not options.useLSF:
             reslist = list(self.resubPythonCommands)
             nj = len(reslist)
@@ -113,6 +134,7 @@ queue 1
 
             resubdir = self.resub_card_dir+'/jobs/'
             os.system('mkdir -p '+resubdir)
+            srcfiles = []
             for ij in range(njobs):
                 tmp_srcfile_name = resubdir+'/resubjob_{i}.sh'.format(i=ij)
                 tmp_srcfile = open(tmp_srcfile_name, 'w')
@@ -125,9 +147,10 @@ queue 1
                     reslist.remove(tmp_pycmd)
                     tmp_n -= 1
                 tmp_srcfile.close()
-                self.makeCondorFile(tmp_srcfile_name)
-                resubcmds[ij] = 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor'))
-                
+                srcfiles.append(tmp_srcfile_name)
+            cf = self.makeCondorFile(resubdir,srcfiles)
+            resubcmds[0] = 'condor_submit {rf} '.format(rf = cf)
+            
         return resubcmds
 
 if __name__ == '__main__':
