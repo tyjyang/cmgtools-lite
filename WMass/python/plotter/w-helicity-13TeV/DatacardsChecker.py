@@ -47,20 +47,31 @@ class CardsChecker:
         tmp_file.close()
         return tmp_file_name
 
-    def makeCondorFile(self, srcFile):
-        condor_file = open(srcFile.replace('.sh','.condor'),'w')
+    def makeCondorFile(self, jobdir, srcFiles):
+        dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+        dummy_exec.write('#!/bin/bash\n')
+        dummy_exec.write('bash $*\n')
+        dummy_exec.close()
+     
+        condor_file_name = jobdir+'/condor_submit.condor'
+        condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
-Executable = {scriptName}
+Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = {pid}.log
-Output     = {pid}.out
-Error      = {pid}.error
+Log        = $(ProcId).log
+Output     = $(ProcId).out
+Error      = $(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-+MaxRuntime = {rt}
-queue 1
-'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
++MaxRuntime = {rt}\n
+'''.format(de=dummy_exec.name, rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+        if os.environ['USER'] in ['mdunser', 'psilva']:
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+        for sf in srcFiles:
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+        condor_file.close()
+        return condor_file_name
 
     def checkCards(self):
         resubcmds = {}
@@ -123,6 +134,7 @@ queue 1
 
             resubdir = self.resub_card_dir+'/jobs/'
             os.system('mkdir -p '+resubdir)
+            srcfiles = []
             for ij in range(njobs):
                 tmp_srcfile_name = resubdir+'/resubjob_{i}.sh'.format(i=ij)
                 tmp_srcfile = open(tmp_srcfile_name, 'w')
@@ -135,9 +147,10 @@ queue 1
                     reslist.remove(tmp_pycmd)
                     tmp_n -= 1
                 tmp_srcfile.close()
-                self.makeCondorFile(tmp_srcfile_name)
-                resubcmds[ij] = 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor'))
-                
+                srcfiles.append(tmp_srcfile_name)
+            cf = self.makeCondorFile(resubdir,srcfiles)
+            resubcmds[0] = 'condor_submit {rf} '.format(rf = cf)
+            
         return resubcmds
 
 if __name__ == '__main__':
