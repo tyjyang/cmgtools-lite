@@ -549,7 +549,7 @@ request_memory = 4000
         #    print cmd
     else:
         print 'submitting for real...'
-        os.system('condor_submit ',condor_file_name)
+        os.system('condor_submit '+condor_file_name)
         ##sigDyBkg = '_signal' if options.signalCards else '_background'
         ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
         ##pipefile = open(pipefilename, 'w')
