@@ -154,7 +154,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                     postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
                     mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
                     ptcut = wptBinsScales(ipt)
-                    wgtstr = 'TMath::Power(qcd_{sc}{idir},({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
                     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
                     qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
@@ -171,7 +171,7 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_
     if append:
         filename = "%s/mca_systs.txt" % odir
         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
-    etalo = -2.5 if channel=='el' else -2.4
+    etalo = -2.5 if channel=='el' else -2.4001
     deta = 0.1; nbins = int(2*abs(etalo)/deta)
     for i in range(0,nbins):
         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
