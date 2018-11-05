@@ -247,6 +247,10 @@ parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, 
 parser.add_option('-w', "--wvar", type="string", default='genw', help="switch between genw and prefsrw. those are the only options (default %default)");
 (options, args) = parser.parse_args()
 
+if not options.wvar in ['genw', 'prefsrw']:
+    print 'the W variable has to be either "genw" or "prefsrw". exiting...'
+    quit()
+
 if len(sys.argv) < 6:
     parser.print_usage()
     quit()
