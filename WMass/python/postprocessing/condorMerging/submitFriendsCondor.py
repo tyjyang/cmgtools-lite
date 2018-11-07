@@ -14,6 +14,8 @@ if __name__ == '__main__':
     parser.add_option('-d', '--directory' , type=str, default=''     , help='directory with the main trees inside. has to be given')
     parser.add_option('-N', '--nperjob'   , type=int, default=250000 , help='number of entries to process per job (default: %default)')
     parser.add_option('-o', '--targetdir' , type=str, default=''     , help='target directory for the output. has to be given')
+    parser.add_option('-s', '--singleDS'  , type=str, default=''     , help='run only on signle datasets. comma separated list')
+    parser.add_option('-p', '--pretend'   , action='store_true', default=False     , help='do everything except for submitting to the batch')
     (options, args) = parser.parse_args()
 
     if not options.targetdir:
@@ -25,6 +27,11 @@ if __name__ == '__main__':
 
     cmsenv = os.environ['CMSSW_BASE']
 
+    listOfDSs = []
+    if options.singleDS:
+        listOfDSs = options.singleDS.split(',')
+        print 'doing only datasets:', listOfDSs
+
     dss = {}
 
     for isd,sd in enumerate(os.listdir(options.directory)):
@@ -35,6 +42,17 @@ if __name__ == '__main__':
         if not os.path.isdir(fp): 
             continue
         if not os.path.isfile(tmp_f): 
+            continue
+
+        doDS = False
+        if len(listOfDSs) > 0:
+            for _ds in listOfDSs:
+                if _ds == sd:
+                    doDS = True
+        else:
+            doDS = True
+
+        if not doDS:
             continue
 
         try:
@@ -86,7 +104,8 @@ Error      = logs/log_condor_{ds}_chunk{ch}.error\n'''.format(ds=ds,ch=n_chunks)
     print 'submitting to condor...'
     for sc in condorSubmitCommands:
         print sc
-        os.system(sc)
+        if not options.pretend:
+            os.system(sc)
     print '...done'
 
         
