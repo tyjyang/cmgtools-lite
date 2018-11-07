@@ -268,29 +268,22 @@ class GenQEDJetProducer(Module):
             lhe_wgts = 0
         self.genParts = Collection(event, 'GenPart')
 
+        #this is a stupid check if variables are present. do this on the first gen particle
+        makeWs = False
+        for ip,p in enumerate(self.genParts):
+            if ip:
+                break
+            if hasattr(p, 'isPromptFinalState'):
+                makeWs = True
+            
+
         if event._tree._ttreereaderversion > self._ttreereaderversion: # do this check at every event, as other modules might have read further branches
             self.initReaders(event._tree)
 
-
-        # do NOT access other branches in python between the check/call to initReaders and the call to C++ worker code
-        ## Algo
-        ## marc self._worker.run()
-        ## marc dressedLeptons = self._worker.dressedLeptons()
-        ## marc neutrinos = self._worker.promptNeutrinos()
-        ## marc lepPdgIds = self._worker.dressedLeptonsPdgId()
-        ## marc nuPdgIds = self._worker.promptNeutrinosPdgId()
-        ## marc gammaMaxDR = self._worker.gammaMaxDR()
-        ## marc gammaRelPtOutside = self._worker.gammaRelPtOutside()
-
-        (dressedLepton, dressedLeptonPdgId) = self.getDressedLepton()
-        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()
-        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()
-        ## lepPdgIds = self._worker.dressedLeptonsPdgId()
-        ## nuPdgIds = self._worker.promptNeutrinosPdgId()
-        ## gammaMaxDR = self._worker.gammaMaxDR()
-        ## gammaRelPtOutside = self._worker.gammaRelPtOutside()
-        ## self.out.fillBranch("gammaMaxDR", gammaMaxDR)
-        ## self.out.fillBranch("gammaRelPtOutside", gammaRelPtOutside)
+        ## check if the proper Ws can be made
+        (dressedLepton, dressedLeptonPdgId) = self.getDressedLepton() if makeWs else (0,0)
+        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()  if makeWs else (0,0)
+        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()      if makeWs else (0,0)
 
         if hasattr(event,"genWeight"):
             self.out.fillBranch("weightGen", getattr(event, "genWeight"))
@@ -303,7 +296,7 @@ class GenQEDJetProducer(Module):
 
 
         #if len(dressedLeptons) and len(neutrinos):
-        if neutrino:
+        if neutrino: ## this will now fail for DY
             retN={}
             retN["pt"]    = [neutrino.Pt()  ]
             retN["eta"]   = [neutrino.Eta() ]
