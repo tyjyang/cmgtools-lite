@@ -9,18 +9,21 @@ from PhysicsTools.HeppyCore.utils.deltar import deltaPhi
 from math import *
 
 class SimpleVBoson:
-    def __init__(self,legs):
+    def __init__(self,legs,pdgId=23):
+        self.pdgId=pdgId
         self.legs = legs
         if len(legs)<2:
             print "ERROR: making a VBoson w/ < 2 legs!"
         self.pt1 = legs[0].Pt()
         self.pt2 = legs[1].Pt()
-        self.dphi = self.legs[0].Phi()-self.legs[1].Phi()
+        self.dphi = self.legs[0].DeltaPhi(self.legs[1])        
         self.deta = self.legs[0].Eta()-self.legs[1].Eta()
         self.px1 = legs[0].Px(); self.py1 = legs[0].Py();
         self.px2 = legs[1].Px(); self.py2 = legs[1].Py();
     def pt(self):
         return (self.legs[0]+self.legs[1]).Pt()
+    def phi(self):
+        return (self.legs[0]+self.legs[1]).Phi()
     def y(self):
         return (self.legs[0]+self.legs[1]).Rapidity()
     def mt(self):

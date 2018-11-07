@@ -6,6 +6,7 @@ from math import *
 
 from CMGTools.WMass.postprocessing.framework.datamodel import Collection,Object
 from CMGTools.WMass.postprocessing.framework.eventloop import Module
+from CMGTools.WMass.postprocessing.examples.genFriendProducer import SimpleVBoson
 from PhysicsTools.HeppyCore.utils.deltar import deltaR,deltaPhi
      
 
@@ -15,6 +16,7 @@ class RecoilTrainExtraProducer(Module):
     '''
     def __init__(self):
         self.llMassWindow=(91.,15.)
+        self.baseRecoil='tkmet'
 
     def beginJob(self):
         """actions taken start of the job"""
@@ -32,10 +34,9 @@ class RecoilTrainExtraProducer(Module):
 
         #define output
         self.out = wrappedOutputTree    
-        self.out.branch('isGood','F')
-        self.out.branch('isW','F')
-        self.out.branch('isZ','F')
-
+        self.vars=['isGood','isGenW','isGenZ','isW','isZ','visgenpt','visgenphi','lne1','e2']
+        for v in self.vars:
+            self.out.branch(v, 'F')
 
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         """actions taken at the end of the file"""
@@ -50,225 +51,116 @@ class RecoilTrainExtraProducer(Module):
             print '[eventRecoilAnalyzer][Warning] Unable to attach to generator-level particles, only reco info will be made available'
         self._ttreereaderversion = tree._ttreereaderversion
 
-    def getMCTruth(self,event):
-        """computes the MC truth for this event"""
+    def getParticleLevelVectorBoson(self,event):
 
-        #dummy values
-        visibleV,V=VisibleVectorBoson(selLeptons=[]),ROOT.TLorentzVector(0,0,0,0)
+        """computes the MC truth for this event"""
 
         #nothing to do for data :)
-        if event.isData : 
-            return visibleV,V
+        if event.isData : return None,None
 
-        #get the neutrinos (if available, otherwise pass it)
+        #dressed leptons
+        dressedLepIds=[]
+        dressedLeps=[]            
+        for i in xrange(0,self.out._branches["nGenLepDressed"].buff[0]):
+            dressedLeps.append( ROOT.TLorentzVector(0,0,0,0) )
+            dressedLeps[-1].SetPtEtaPhiM( self.out._branches["GenLepDressed_pt"].buff[i],
+                                          self.out._branches["GenLepDressed_eta"].buff[i],
+                                          self.out._branches["GenLepDressed_phi"].buff[i],
+                                          self.out._branches["GenLepDressed_mass"].buff[i] )
+            dressedLepIds.append( self.out._branches["GenLepDressed_pdgId"].buff[i] )
+
+        #neutrino sum
         nuSum=ROOT.TLorentzVector(0,0,0,0)
+        ngenNu = self.out._branches["nGenPromptNu"].buff[0]
+        for i in xrange(0,ngenNu):
+            p4=ROOT.TLorentzVector(0,0,0,0)
+            p4.SetPtEtaPhiM( self.out._branches["GenPromptNu_pt"].buff[i],
+                             self.out._branches["GenPromptNu_eta"].buff[i],
+                             self.out._branches["GenPromptNu_phi"].buff[i],
+                             self.out._branches["GenPromptNu_mass"].buff[i] )
+            nuSum+=p4
+
+        #build the boson
+        if len(dressedLeps)==0: return None
+        V=SimpleVBoson(legs=[dressedLeps[0],nuSum],pdgId=24)
         try:
-            ngenNu = self.out._branches["nGenPromptNu"].buff[0]
-            for i in xrange(0,ngenNu):
-                p4=ROOT.TLorentzVector(0,0,0,0)
-                p4.SetPtEtaPhiM( self.out._branches["GenPromptNu_pt"].buff[i],
-                                 self.out._branches["GenPromptNu_eta"].buff[i],
-                                 self.out._branches["GenPromptNu_phi"].buff[i],
-                                 self.out._branches["GenPromptNu_mass"].buff[i] )
-                nuSum+=p4
+            candZ=SimpleVBoson(legs=[dressedLeps[0],dressedLeps[1]],pdgId=23)
+            if abs(dressedLepIds[0])==abs(dressedLepIds[1]):
+                if abs(candZ.mll()-self.llMassWindow[0])<self.llMassWindow[1] :
+                    V=candZ
         except:
             pass
+        return V
 
-        #construct the visible boson
-        try:
-            
-            dressedLepIds=[]
-            dressedLeps=[]            
-            for i in xrange(0,self.out._branches["nGenLepDressed"].buff[0]):
-                dressedLeps.append( ROOT.TLorentzVector(0,0,0,0) )
-                dressedLeps[-1].SetPtEtaPhiM( self.out._branches["GenLepDressed_pt"].buff[i],
-                                              self.out._branches["GenLepDressed_eta"].buff[i],
-                                              self.out._branches["GenLepDressed_phi"].buff[i],
-                                              self.out._branches["GenLepDressed_mass"].buff[i] )
-                dressedLepIds.append( self.out._branches["GenLepDressed_pdgId"].buff[i] )
+    def getRecoLevelVectorBoson(self,event):
 
-            nLep=len(dressedLeps)
-            visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[0]])
-            V=visibleV.p4()+nuSum
-            if len(dressLeps)>1:
-                ll=dressedLeps[0]+dressedLeps[1]
-                if abs(dressedLepIds[0])==abs(dressedLepIds[1]):
-                    if abs(ll.M()-self.llMassWindow[0])<self.llMassWindow[1] :
-                        visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[0],dressedLeps[1]])
-                        V=visibleV.p4
-        except Exception,e:
-            print e
-            pass
-
-        return visibleV,V
-
-    def getVisibleV(self,event):
-        """
-        tries to reconstruct a Z from the selected leptons
-        for a W only the leading lepton is returned
-        """
+        """tries to reconstruct a W or a Z from the selected lepton"""
         
         lepColl = Collection(event, "LepGood")
-        nLep = len(lepColl)
-
-        visibleV=None
-        if nLep==0: return visibleV
-
-        visibleV=VisibleVectorBoson(selLeptons=[lepColl[0].p4()])
-
-        #check if the two leading leptons build a Z
-        if nLep>1: 
+        
+        if len(lepColl)==0: return None
+        
+        if len(lepColldressedLeps)==0: return None
+        nuSum=ROOT.TLorentzVector(0,0,0,0)
+        V=SimpleVBoson(legs=[lepColl[0].p4(),nuSum],pdgId=24)
+        try:
+            candZ=SimpleVBoson(legs=[lepColl[0].p4(),lepColl[1].p4()],pdgId=23)
             if abs(lepColl[0].pdgId)==abs(lepColl[1].pdgId):
-                ll=lepColl[0].p4()+lepColl[1].p4()
-                if abs(ll.M()-self.llMassWindow[0])<self.llMassWindow[1]:
-                    visibleV=VisibleVectorBoson(selLeptons=[lepColl[0].p4(),lepColl[1].p4()])
+                if abs(candZ.mll()-self.llMassWindow[0])<self.llMassWindow[1] :
+                    V=candZ
+        except:
+            pass
+        return V
 
-        return visibleV
-
-    def summarizeMetEstimator(self,event, metObjects=['met'], weights=[] ):
-        """gets the summary out of a met estimator"""
-        p4,sumEt,count=None,0,0
-        for i in xrange(0,len(metObjects)):
-            wgt=weights[i]
-            imet=Object(event,metObjects[i])
-            if p4 is None: p4 = imet.p4()*wgt
-            else : p4 += imet.p4()*wgt
-            sumEt += imet.sumEt*wgt
-            try:
-                count += getattr(event,'%s_Count'%metObjects[i])*wgt
-            except:
-                pass
-        return p4,sumEt,count
-
-    def getRecoRecoil(self,event,metP4,sumEt,visibleV):
-        """computes the MC truth for this event"""
-
-        #charged recoil estimators
-        h=ROOT.TVector3(-metP4.Px(),-metP4.Py(),0.)
-        ht=sumEt
-        if visibleV:
-            for l in visibleV.legs:
-                ht -= l.Pt()
-                h  -= l.Vect()
-
-        return h,max(ht,0.),metP4.M()
     
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
 
         if event._tree._ttreereaderversion > self._ttreereaderversion:
-            self.initReaders(event._tree)
+            self.initReaders(event._tree)        
+        
+        isGood=True
 
-
-        self.out.fillBranch('isGood',1.)
-        self.out.fillBranch('isW',1.)
-        self.out.fillBranch('isZ',1.)
-
-
+        hpt  = getattr(event,'h{0}_pt'.format(self.baseRecoil))
+        hphi = getattr(event,'h{0}_phi'.format(self.baseRecoil))
+        
         #MC truth
-        gen_visibleV,gen_V=self.getMCTruth(event)
+        gen_V=self.getParticleLevelVectorBoson(event)
+        if gen_V:
+            self.out.fillBranch('isGenW',1. if gen_V.pdgId==24 else 0.)
+            self.out.fillBranch('isGenZ',1. if gen_V.pdgId==23 else 0.)
+
+            #regression targets
+            pt,phi=gen_V.pt(),gen_V.legs[0].Phi()
+            if gen_V.pdgId==24 : phi=gen_V.phi()
+            self.out.fillBranch('visgenpt', pt)
+            self.out.fillBranch('visgenphi',phi)            
+            self.out.fillBranch('lne1', log(gen_V.pt()/(hpt+1e-3)))
+            self.out.fillBranch('e2',   ROOT.TVector2.Phi_mpi_pi(phi-hphi))
+        else:
+            self.out.fillBranch('isGenW',   0.)
+            self.out.fillBranch('isGenZ',   0.)
+            self.out.fillBranch('visgenpt', 0.)
+            self.out.fillBranch('visgenphi',0.)            
+            self.out.fillBranch('lne1',     0.)
+            self.out.fillBranch('e2',       0.)
+            isGood=False
+
 
         #selected leptons at reco level
-        visibleV=self.getVisibleV(event)
+        rec_V=self.getRecoLevelVectorBoson(event)
+        if rec_V:
+            self.out.fillBranch('isW',1. if rec_V.pdgId==24 else 0.)
+            self.out.fillBranch('isZ',1. if rec_V.pdgId==23 else 0.)
+            self.out.fillBranch('vispt',rec_V.pt())
+            self.out.fillBranch('visphi',rec_V.legs[0].Phi() if rec_V.pdgId==24 else rec_V.phi())
+        else:
+            self.out.fillBranch('isW',0.)
+            self.out.fillBranch('isZ',0.)
+            isGood=False
 
-        """
-        #leading PF candidates
-        self.out.fillBranch('leadch_pt',    event.leadCharged_pt)
-        self.out.fillBranch('leadch_phi',   event.leadCharged_phi)
-        self.out.fillBranch('leadneut_pt',  event.leadNeutral_pt)
-        self.out.fillBranch('leadneut_phi', event.leadNeutral_phi)
-
-        #met estimators
-        metEstimators={
-            'met'               : self.summarizeMetEstimator(event,
-                                                             ['met'], 
-                                                             [1]),
-            'puppimet'          : self.summarizeMetEstimator(event,
-                                                             ['puppimet'], 
-                                                             [1]),
-            'ntmet'             : self.summarizeMetEstimator(event,
-                                                             ['ntMet'],       
-                                                             [1]),
-            'ntcentralmet'      : self.summarizeMetEstimator(event,
-                                                             ['ntCentralMet'], 
-                                                             [1]),             
-            'tkmet'             : self.summarizeMetEstimator(event,
-                                                             ['tkMetPVLoose'], 
-                                                             [1]),  
-            'chsmet'            : self.summarizeMetEstimator(event,
-                                                             ['tkMetPVchs'], 
-                                                             [1]),  
-            'npvmet'            : self.summarizeMetEstimator(event,
-                                                             ['tkMetPUPVLoose'],                               
-                                                             [1]),  
-            'ntnpv'             : self.summarizeMetEstimator(event,
-                                                             ['ntMet','tkMetPUPVLoose'],                       
-                                                             [1,1]),  
-            'centralntnpv'      : self.summarizeMetEstimator(event,
-                                                             ['ntCentralMet','tkMetPUPVLoose'],                
-                                                             [1,1]),  
-            'centralmetdbeta'   : self.summarizeMetEstimator(event,
-                                                             ['tkMetPVLoose','ntCentralMet','tkMetPUPVLoose'], 
-                                                             [1,1,0.5]),  
-            }
-       
-        metEstimatorsList=metEstimators.keys()
-        if not event.isData: metEstimatorsList+=["truth","gen"]
+        self.out.fillBranch('isGood',1. if isGood else 0.)
         
-        #recoil estimators
-        for metType in metEstimatorsList:
-
-            if not metType in ["truth","gen","puppimet", 'ntmet','ntcentralmet', 'tkmet', 'npvmet', 'ntnpv']: continue
-
-            #some may need to be specified
-            if metType=="truth":
-                vis   = gen_visibleV.VectorT()
-                metP4 = gen_V
-                h     = ROOT.TVector3(-gen_V.Px(),-gen_V.Py(),0)                
-                ht    = gen_V.Pt()
-                m     = gen_V.M()
-                count = 0
-            elif metType=='gen':
-                vis   = gen_visibleV.VectorT()
-                metP4=ROOT.TLorentzVector(0,0,0,0)
-                metP4.SetPtEtaPhiM(event.tkGenMet_pt,0,event.tkGenMet_phi,0.)
-                h     = gen_h
-                ht    = gen_ht
-                m     = 0
-                count = 0
-            else:
-                vis = visibleV.VectorT()
-                metP4, sumEt, count = metEstimators[metType]
-                h, ht, m = self.getRecoRecoil(event=event,metP4=metP4,sumEt=sumEt,visibleV=visibleV)
-
-            #save information to tree
-            pt=h.Pt()
-            phi=h.Phi()
-            metphi=metP4.Phi()
-            sphericity=pt/ht if ht>0 else -1               
-            #e1=gen_V.Pt()/h.Pt() if h.Pt()>0 else -1
-            #e2=deltaPhi(gen_V.Phi()+np.pi,h.Phi())
-            #mt2= 2*vis.Pt()*((vis+h).Pt())+vis.Pt()**2+vis.Dot(h) 
-            #mt=np.sqrt(mt2) if mt2>=0. else -np.sqrt(-mt2)
-
-            self.out.fillBranch('%s_recoil_pt'%metType,            pt)
-            self.out.fillBranch('%s_recoil_phi'%metType,           phi)
-            self.out.fillBranch('%s_m'%metType,                    m)
-            self.out.fillBranch('%s_recoil_sphericity'%metType,    sphericity)
-            self.out.fillBranch('%s_n'%metType,                    count)
-            #self.out.fillBranch('%s_recoil_e1'%metType,            e1)
-            #self.out.fillBranch('%s_recoil_e2'%metType,            e2)
-            #self.out.fillBranch('%s_mt'%metType,                   mt)
-            self.out.fillBranch('%s_dphi2met'%metType,             deltaPhi(metEstimators['met'][0].Phi(),             metphi) )
-            self.out.fillBranch('%s_dphi2puppimet'%metType,        deltaPhi(metEstimators['puppimet'][0].Phi(),        metphi) )
-            self.out.fillBranch('%s_dphi2ntnpv'%metType,           deltaPhi(metEstimators['ntnpv'][0].Phi(),           metphi) )
-            self.out.fillBranch('%s_dphi2centralntnpv'%metType,    deltaPhi(metEstimators['centralntnpv'][0].Phi(),    metphi) )
-            self.out.fillBranch('%s_dphi2centralmetdbeta'%metType, deltaPhi(metEstimators['centralmetdbeta'][0].Phi(), metphi) )
-            self.out.fillBranch('%s_dphi2leadch'%metType,          deltaPhi(event.leadCharged_phi,                     metphi) )
-            self.out.fillBranch('%s_dphi2leadneut'%metType,        deltaPhi(event.leadNeutral_phi,                     metphi) )
-
-            """
-
         return True
 
 
