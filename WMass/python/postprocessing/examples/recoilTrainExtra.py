@@ -100,7 +100,7 @@ class RecoilTrainExtraProducer(Module):
         
         if len(lepColl)==0: return None
         
-        if len(lepColldressedLeps)==0: return None
+        if len(lepColl)==0: return None
         nuSum=ROOT.TLorentzVector(0,0,0,0)
         V=SimpleVBoson(legs=[lepColl[0].p4(),nuSum],pdgId=24)
         try:
