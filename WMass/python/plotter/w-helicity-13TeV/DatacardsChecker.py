@@ -30,7 +30,8 @@ class CardsChecker:
                 f_root = tmp_name+'.input.root'
                 self.datacards[tmp_name] = f_txt
                 self.cardinputs[tmp_name] = f_root
-                self.pycmd[tmp_name] = cmd.replace(' --od %s'%card_dir,' --od %s'%self.resub_card_dir)
+                #self.pycmd[tmp_name] = cmd.replace(' --od %s'%card_dir,' --od %s'%self.resub_card_dir)
+                self.pycmd[tmp_name] = cmd
         self.resubPythonCommands = set()
         print '## Expecting {n} cards and rootfiles'.format(n=len(self.datacards))
         print '## Will put the new cards into ',self.resub_card_dir
@@ -58,18 +59,18 @@ class CardsChecker:
         condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = $(ProcId).log
-Output     = $(ProcId).out
-Error      = $(ProcId).error
+Log        = {jd}/$(ProcId).log
+Output     = {jd}/$(ProcId).out
+Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=dummy_exec.name, rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
         for sf in srcFiles:
-            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
         condor_file.close()
         return condor_file_name
 

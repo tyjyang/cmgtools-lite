@@ -244,7 +244,7 @@ parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
-parser.add_option('-w', "--wvar", type="string", default='genw', help="switch between genw and prefsrw. those are the only options (default %default)");
+parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 6:
