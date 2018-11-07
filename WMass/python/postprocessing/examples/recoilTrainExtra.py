@@ -97,22 +97,49 @@ class RecoilTrainExtraProducer(Module):
 
     def getRecoLevelVectorBoson(self,event):
 
-        """tries to reconstruct a W or a Z from the selected lepton"""
+        """tries to reconstruct a W or a Z from the selected leptons"""
         
         lepColl = Collection(event, "LepGood")
         
         if len(lepColl)==0: return None
         
         if len(lepColl)==0: return None
+        
         nuSum=ROOT.TLorentzVector(0,0,0,0)
         V=SimpleVBoson(legs=[lepColl[0].p4(),nuSum],pdgId=24)
+
+        #apply trigger+offline selection cuts
+        #FIXME: for now it's bound to muon final states
+        passTrigger=True
+        if event.HLT_BIT_HLT_IsoMu24_v==0 and event.HLT_BIT_HLT_IsoTkMu24_v==0: 
+            passTrigger=False
+        passKin=True 
+        if lepColl[0].pt<25 or abs(lepColl[0].eta)>2.5:
+            passKin=False
+        passId = True 
+        if lepColl[0].tightId==0 or lepColl[0].relIso03>0.05:
+            passId=False
+            
+        #check if a Z can be constructed instead
         try:
             candZ=SimpleVBoson(legs=[lepColl[0].p4(),lepColl[1].p4()],pdgId=23)
             if abs(lepColl[0].pdgId)==abs(lepColl[1].pdgId):
                 if abs(candZ.mll()-self.llMassWindow[0])<self.llMassWindow[1] :
                     V=candZ
+
+                    #apply trigger+offline selection cuts
+                    #FIXME: for now it's bound to muon final states
+                    if lepColl[1].pt<20 or abs(lepColl[1].eta)>2.5:
+                        passKin=False
+                    if lepColl[1].tightId==0 or lepColl[1].relIso03>0.05:
+                        passId=False                    
         except:
             pass
+
+        #if not passing the cuts return None
+        passSel=True if (passTrigger and passKin and passId) else False
+        if not passSel: return None
+
         return V
 
     
