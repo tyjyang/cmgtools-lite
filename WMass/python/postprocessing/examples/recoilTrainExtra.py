@@ -9,11 +9,10 @@ from CMGTools.WMass.postprocessing.framework.eventloop import Module
 from CMGTools.WMass.postprocessing.examples.genFriendProducer import SimpleVBoson
 from PhysicsTools.HeppyCore.utils.deltar import deltaR,deltaPhi
      
-
 class RecoilTrainExtraProducer(Module):
-    '''
+    """
     Analyzes the event recoil and derives the corrections in pt and phi to bring the estimators to the true vector boson recoil.
-    '''
+    """
     def __init__(self):
         self.llMassWindow=(91.,15.)
         self.baseRecoil='tkmet'
@@ -62,9 +61,13 @@ class RecoilTrainExtraProducer(Module):
         dressedLepIds=[]
         dressedLeps=[]            
         for i in xrange(0,self.out._branches["nGenLepDressed"].buff[0]):
+            pt=self.out._branches["GenLepDressed_pt"].buff[i]
+            eta=self.out._branches["GenLepDressed_eta"].buff[i]
+            if pt<20: continue
+            if abs(eta)>2.5 : continue
             dressedLeps.append( ROOT.TLorentzVector(0,0,0,0) )
-            dressedLeps[-1].SetPtEtaPhiM( self.out._branches["GenLepDressed_pt"].buff[i],
-                                          self.out._branches["GenLepDressed_eta"].buff[i],
+            dressedLeps[-1].SetPtEtaPhiM( pt,
+                                          eta,
                                           self.out._branches["GenLepDressed_phi"].buff[i],
                                           self.out._branches["GenLepDressed_mass"].buff[i] )
             dressedLepIds.append( self.out._branches["GenLepDressed_pdgId"].buff[i] )
@@ -146,7 +149,6 @@ class RecoilTrainExtraProducer(Module):
             self.out.fillBranch('e2',       0.)
             isGood=False
 
-
         #selected leptons at reco level
         rec_V=self.getRecoLevelVectorBoson(event)
         if rec_V:
@@ -157,6 +159,8 @@ class RecoilTrainExtraProducer(Module):
         else:
             self.out.fillBranch('isW',0.)
             self.out.fillBranch('isZ',0.)
+            self.out.fillBranch('vispt',0.)
+            self.out.fillBranch('visphi',0.)
             isGood=False
 
         self.out.fillBranch('isGood',1. if isGood else 0.)
