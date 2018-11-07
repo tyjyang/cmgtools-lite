@@ -43,7 +43,8 @@ eos mkdir ${6}
 
 echo this is in ${localOutDir}
 ls  ${localOutDir}
-eos cp ${PWD}/${localOutDir}/tree_Friend_${3}.chunk${4}.root ${6}/
+#eos cp ${PWD}/${localOutDir}/tree_Friend_${3}.chunk${4}.root ${6}/
+eos cp ${PWD}/${localOutDir}/tree_Friend_${3}*.root ${6}/
 
 echo i think i am done...
 

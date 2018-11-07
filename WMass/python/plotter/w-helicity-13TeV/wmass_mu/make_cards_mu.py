@@ -28,8 +28,8 @@ BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF3[0]\' '
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
-components=[' -b ', ' -s ']
-#components=[' -b ']
+#components=[' -b ', ' -s ']
+components=[' -s ']
     
 
 if __name__ == '__main__':
@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser.add_option('-s', '--suffix', dest='suffix', type='string', default=None, help='Append a suffix to the default outputdir (helicity_<date>)');
     parser.add_option("--syst", dest="addSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--long-bkg", dest="longBkg",    action="store_true", default=False, help="Treat the longitudinal polarization as one background template.");
+    parser.add_option("--genw", action="store_true", default=False, help="use genw (dressed leptons) instead of prefsrw.");
     (options, args) = parser.parse_args()
     
     if options.suffix: OUTDIR += ('_%s' % options.suffix)
@@ -49,4 +50,5 @@ if __name__ == '__main__':
         if options.dryRun: cmd += '  --dry-run '
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if options.longBkg: cmd += ' --long-bkg '
+        if not options.genw: cmd += ' --wvar prefsrw '
         os.system(cmd)
