@@ -34,7 +34,7 @@ class RecoilTrainExtraProducer(Module):
 
         #define output
         self.out = wrappedOutputTree    
-        self.vars=['isGood','isGenW','isGenZ','isW','isZ','visgenpt','visgenphi','lne1','e2']
+        self.vars=['isGood','isGenW','isGenZ','isW','isZ','visgenpt','visgenphi','vispt','visphi','lne1','e2']
         for v in self.vars:
             self.out.branch(v, 'F')
 
