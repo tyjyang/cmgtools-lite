@@ -7,28 +7,13 @@ from math import *
 from CMGTools.WMass.postprocessing.framework.datamodel import Collection,Object
 from CMGTools.WMass.postprocessing.framework.eventloop import Module
 from PhysicsTools.HeppyCore.utils.deltar import deltaR,deltaPhi
- 
-class VisibleVectorBoson():
-    def __init__(self,selLeptons):
-        self.p4=ROOT.TLorentzVector(0,0,0,0)
-        self.sumEt=0
-        self.legs=[]
-        for l in selLeptons:
-            self.legs.append(l)
-            self.p4+=l
-            self.sumEt+=l.Pt()
-    def VectorT(self):
-        return ROOT.TVector3(self.p4.Px(),self.p4.Py(),0)
-    
+     
 
-class EventRecoilAnalyzer(Module):
+class RecoilTrainExtraProducer(Module):
     '''
     Analyzes the event recoil and derives the corrections in pt and phi to bring the estimators to the true vector boson recoil.
-    Loop on PF candidates, skipping selected leptons and storing useful variables.
-    Based on the original code by N. Foppiani and O. Cerri (Pisa)
     '''
-    def __init__(self, tag ):
-        self.tag=tag
+    def __init__(self):
         self.llMassWindow=(91.,15.)
 
     def beginJob(self):
@@ -47,18 +32,10 @@ class EventRecoilAnalyzer(Module):
 
         #define output
         self.out = wrappedOutputTree    
-        self.out.branch("leadch_pt",   "F")
-        self.out.branch("leadch_phi",   "F")
-        self.out.branch("leadneut_pt", "F")
-        self.out.branch("leadneut_phi", "F")
-    
-        #recoil types
-        #for rtype in ["truth","gen","met", "puppimet", 'ntmet','ntcentralmet', 'tkmet', 'chsmet', 'npvmet', 'ntnpv', 'centralntnpv', 'centralmetdbeta']:
-        for rtype in ["truth","gen","puppimet", 'ntmet','ntcentralmet', 'tkmet', 'npvmet', 'ntnpv']:
-            for var in ['recoil_pt','recoil_phi', 'recoil_sphericity', 'm','n',
-                        #'recoil_e1','recoil_e2', 'mt',
-                        'dphi2met','dphi2puppimet','dphi2ntnpv','dphi2centralntnpv','dphi2centralmetdbeta','dphi2leadch','dphi2leadneut']:
-                self.out.branch("{0}_{1}".format(rtype,var), "F")
+        self.out.branch('isGood','F')
+        self.out.branch('isW','F')
+        self.out.branch('isZ','F')
+
 
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         """actions taken at the end of the file"""
@@ -77,11 +54,11 @@ class EventRecoilAnalyzer(Module):
         """computes the MC truth for this event"""
 
         #dummy values
-        visibleV,V,h,ht=VisibleVectorBoson(selLeptons=[]),ROOT.TLorentzVector(0,0,0,0),ROOT.TVector3(0,0,0),0
+        visibleV,V=VisibleVectorBoson(selLeptons=[]),ROOT.TLorentzVector(0,0,0,0)
 
         #nothing to do for data :)
         if event.isData : 
-            return visibleV,V,h,ht
+            return visibleV,V
 
         #get the neutrinos (if available, otherwise pass it)
         nuSum=ROOT.TLorentzVector(0,0,0,0)
@@ -94,44 +71,36 @@ class EventRecoilAnalyzer(Module):
                                  self.out._branches["GenPromptNu_phi"].buff[i],
                                  self.out._branches["GenPromptNu_mass"].buff[i] )
                 nuSum+=p4
-                break
         except:
             pass
 
         #construct the visible boson
         try:
-            dressedLeps=[]
-            ngenLep=self.out._branches["nGenLepDressed"].buff[0]
-            for i in xrange(0,ngenLep):
+            
+            dressedLepIds=[]
+            dressedLeps=[]            
+            for i in xrange(0,self.out._branches["nGenLepDressed"].buff[0]):
                 dressedLeps.append( ROOT.TLorentzVector(0,0,0,0) )
                 dressedLeps[-1].SetPtEtaPhiM( self.out._branches["GenLepDressed_pt"].buff[i],
                                               self.out._branches["GenLepDressed_eta"].buff[i],
                                               self.out._branches["GenLepDressed_phi"].buff[i],
                                               self.out._branches["GenLepDressed_mass"].buff[i] )
-                if i==0 :
-                    visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[-1]])
-                    V=visibleV.p4+nuSum
-                for j in xrange(0,i):
-                    ll=dressedLeps[j]+dressedLeps[i]
-                    if abs(ll.M()-self.llMassWindow[0])>self.llMassWindow[1] : continue
-                    visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[j],dressedLeps[i]])
-                    V=visibleV.p4
-                    break
+                dressedLepIds.append( self.out._branches["GenLepDressed_pdgId"].buff[i] )
+
+            nLep=len(dressedLeps)
+            visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[0]])
+            V=visibleV.p4()+nuSum
+            if len(dressLeps)>1:
+                ll=dressedLeps[0]+dressedLeps[1]
+                if abs(dressedLepIds[0])==abs(dressedLepIds[1]):
+                    if abs(ll.M()-self.llMassWindow[0])<self.llMassWindow[1] :
+                        visibleV=VisibleVectorBoson(selLeptons=[dressedLeps[0],dressedLeps[1]])
+                        V=visibleV.p4
         except Exception,e:
             print e
             pass
 
-        #hadronic recoil
-        met=ROOT.TLorentzVector(0,0,0,0)
-        met.SetPtEtaPhiM(event.tkGenMet_pt,0,event.tkGenMet_phi,0.)
-        if visibleV : met+=visibleV.p4
-        h=ROOT.TVector3(-met.Px(),-met.Py(),0.)
-
-        #hadronic scalar sum
-        ht=event.tkGenMetInc_sumEt
-        if visibleV : ht -= visibleV.sumEt
-
-        return visibleV,V,h,ht
+        return visibleV,V
 
     def getVisibleV(self,event):
         """
@@ -140,25 +109,19 @@ class EventRecoilAnalyzer(Module):
         """
         
         lepColl = Collection(event, "LepGood")
-        leps=[]
-        zCand=None
-        nl=len(lepColl)
-        for i in xrange(0,nl):
-            l=lepColl[i]
-            leps.append( l.p4() )
+        nLep = len(lepColl)
 
-            #check if a Z candidate can be formed
-            for j in xrange(0,i):
-                if abs(lepColl[i].pdgId) != abs(lepColl[j].pdgId) : continue
-                ll=leps[i]+leps[j]
-                if abs(ll.M()-self.llMassWindow[0])>self.llMassWindow[1] : continue                
-                zCand=(i,j)
-                break
+        visibleV=None
+        if nLep==0: return visibleV
 
-        #build the visible V from what has been found
-        visibleV=VisibleVectorBoson(selLeptons=[leps[0]]) if len(leps)>0  else None
-        if zCand:
-            visibleV=VisibleVectorBoson(selLeptons=[leps[zCand[0]],leps[zCand[1]]])
+        visibleV=VisibleVectorBoson(selLeptons=[lepColl[0].p4()])
+
+        #check if the two leading leptons build a Z
+        if nLep>1: 
+            if abs(lepColl[0].pdgId)==abs(lepColl[1].pdgId):
+                ll=lepColl[0].p4()+lepColl[1].p4()
+                if abs(ll.M()-self.llMassWindow[0])<self.llMassWindow[1]:
+                    visibleV=VisibleVectorBoson(selLeptons=[lepColl[0].p4(),lepColl[1].p4()])
 
         return visibleV
 
@@ -196,12 +159,19 @@ class EventRecoilAnalyzer(Module):
         if event._tree._ttreereaderversion > self._ttreereaderversion:
             self.initReaders(event._tree)
 
+
+        self.out.fillBranch('isGood',1.)
+        self.out.fillBranch('isW',1.)
+        self.out.fillBranch('isZ',1.)
+
+
         #MC truth
-        gen_visibleV,gen_V,gen_h,gen_ht=self.getMCTruth(event)
+        gen_visibleV,gen_V=self.getMCTruth(event)
 
         #selected leptons at reco level
         visibleV=self.getVisibleV(event)
-        
+
+        """
         #leading PF candidates
         self.out.fillBranch('leadch_pt',    event.leadCharged_pt)
         self.out.fillBranch('leadch_phi',   event.leadCharged_phi)
@@ -297,7 +267,10 @@ class EventRecoilAnalyzer(Module):
             self.out.fillBranch('%s_dphi2leadch'%metType,          deltaPhi(event.leadCharged_phi,                     metphi) )
             self.out.fillBranch('%s_dphi2leadneut'%metType,        deltaPhi(event.leadNeutral_phi,                     metphi) )
 
+            """
+
         return True
 
+
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
-eventRecoilAnalyzer = lambda : EventRecoilAnalyzer(tag='')
+recoilTrainExtra = lambda : RecoilTrainExtraProducer()
