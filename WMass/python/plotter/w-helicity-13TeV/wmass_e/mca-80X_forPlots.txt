@@ -158,3 +158,7 @@ EWK_bkg_Full : WW+WW_ext : xsec;      FillColor=ROOT.kAzure+2, Label="EWK bkg", 
 EWK_bkg_Full : WZ+WZ_ext : xsec; FillColor=ROOT.kAzure+2, Label="EWK bkg", NormSystematic=0.05
 EWK_bkg_Full : ZZ+ZZ_ext : xsec; FillColor=ROOT.kAzure+2, Label="EWK bkg", NormSystematic=0.05
 
+# 
+W_nomi   : WJetsToLNu_NLO_* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kBlack, Label="W", NormSystematic=0.001
+W_mWup50   : WJetsToLNu_NLO_* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kRed+2, Label="m_{W} +50 MeV", NormSystematic=0.001, AddWeight="mass_80470"
+W_mWdn50   : WJetsToLNu_NLO_* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kGreen+2, Label="m_{W} -50 MeV", NormSystematic=0.001, AddWeight="mass_80370"

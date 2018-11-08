@@ -570,10 +570,7 @@ if __name__ == "__main__":
                                binning,
                                # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
                                # 35.9 if channel == 'mu' else 30.9,  
-                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genEtaPt.root' ## hard coded for now
-                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt.root' ## hard coded for now
-                               #'/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5.root' ## hard coded for now
-                               '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_eta0p05_pt0p5_withMuons_varEtaGap.root' ## hard coded for now
+                               '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap.root' ## hard coded for now
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')

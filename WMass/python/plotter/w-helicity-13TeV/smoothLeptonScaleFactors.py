@@ -1210,10 +1210,10 @@ if __name__ == "__main__":
             zaxisRangeSF = "0.84,1.01"
         if options.isMuonRecoToSel:
             zaxisRange = "0.7,1.01"
-            zaxisRangeSF = "0.93,1.01"
+            zaxisRangeSF = "0.86,1.01"
     else:
         if options.isTriggerScaleFactor: 
-            zaxisRangeSF = "0.7,1.05"
+            zaxisRangeSF = "0.55,1.05"
         if options.isFullIDScaleFactor:
             zaxisRange = "0.2,0.9"
             zaxisRangeSF = "0.7,1.05"

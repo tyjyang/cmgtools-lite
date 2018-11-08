@@ -3,8 +3,8 @@
 // see https://root.cern.ch/doc/master/classTGraphPainter.html
 // for Graph painting options in root
 
-const static int smoothPolinDegree = 1; 
-static const Double_t ptMin_fitRangeData = 32;
+const static int smoothPolinDegree = 2; 
+static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 32;
 const static Bool_t excludePoints_Data = false;
 static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true
 static const Double_t ptMax_excludeRangeData = 50;  // used only if excludePoints_Data = true
@@ -482,7 +482,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
   gr->GetXaxis()->SetTitleSize(0.05);
   gr->GetXaxis()->SetLabelSize(0.04);
-  gr->GetYaxis()->SetTitleOffset(1.1);
+  gr->GetYaxis()->SetTitleOffset(1.15);
   gr->GetYaxis()->SetTitleSize(0.05);
   gr->GetYaxis()->SetLabelSize(0.04);
   gr->GetXaxis()->SetTitle(xAxisName.c_str());
@@ -1167,10 +1167,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_01_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_01_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto/", 
-					const string& outfileTag = "fr_01_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2/", 
+					const string& outfileTag = "fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

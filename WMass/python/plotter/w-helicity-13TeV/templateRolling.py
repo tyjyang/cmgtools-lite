@@ -9,6 +9,8 @@
 
 # python w-helicity-13TeV/templateRolling.py cards/diffXsec_2018_06_20_10/ -o plots/diffXsec/templates/diffXsec_2018_06_20_10/ -c el -b cards/diffXsec_2018_06_20_10/binningPtEta.txt --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 --skipSyst
 
+# muon
+# python w-helicity-13TeV/templateRolling.py /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2018_09_23_withFixes/ -o plots/helicity/templates/fromMarc/helicity_2018_09_23_withFixes/ -c mu --plot-binned-signal -a helicity --draw-all-bins --skipSyst
 
 
 import ROOT, os
@@ -228,7 +230,7 @@ if __name__ == "__main__":
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
                             h2_backrolled_1.Write(name2D)
                             hSigInclusive[pol].Add(h2_backrolled_1)
-                            print "pol {}: Ybin {} --> Integral {}
+                            # print "pol {}: Ybin {} --> Integral {}"
 
                             if options.draw_all_bins: drawThisBin = True
                             else: drawThisBin = False

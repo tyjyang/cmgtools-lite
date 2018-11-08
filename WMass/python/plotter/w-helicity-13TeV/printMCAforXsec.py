@@ -7,15 +7,18 @@ from make_diff_xsec_cards import getArrayParsingString
 # usage 
 # create an MCA with many signal processes for different cuts
 #
-# python w-helicity-13TeV/printMCAforXsec.py -o w-helicity-13TeV/wmass_e/mca-includes/ -n mca-80X-wenu-sigInclCharge_binned_eta_pt.txt -c el
+# python w-helicity-13TeV/printMCAforXsec.py -o w-helicity-13TeV/wmass_e/mca-includes/ -n mca-80X-wenu-sigInclCharge_gen_eta_pt_4xsec.txt -c el -l preFSR -w "WJetsToLNu_NLO*"
 #
-# for option -b, I have to implement using constant width binning, with format like the histogram creator for mcPlots.py
+# use "WJetsToLNu_*" or a subset for muons
+
 
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options]")
 parser.add_option('-o','--outdir', dest='outdir',   default='w-helicity-13TeV/wmass_e/mca-includes/', type='string', help='Output folder')
 parser.add_option('-n','--name', dest='mcaName',   default='mca-80X-wenu-sigInclCharge_gen_eta_pt_4xsec.txt', type='string', help='Name of output mca file')
 parser.add_option('-c','--channel', dest='channel',   default='el', type='string', help='Channel (el or mu)')
+parser.add_option('-l','--leptonDef', dest='leptonDef',   default='preFSR', type='string', help='stable-particle lepton definition (preFSR or dressed)')
+parser.add_option('-w','--wSample', dest='wSample',   default='WJetsToLNu_NLO*', type='string', help='Regular expression for the W samples to use, in mca style')
 # parser.add_option('-x','--xvar', dest='xvar',   default='GenLepDressed_eta[0]', type='string', help='Name of variable in x axis of the template')
 # parser.add_option('-y','--yvar', dest='yvar',   default='GenLepDressed_pt[0]', type='string', help='Name of variable in y axis of the template')
 # parser.add_option(     '--xbin', dest='xbin',   default='500,-5.0,5.0', type='string', help='Inputs to define template x axis binning: format is nbins,min,max')
@@ -33,11 +36,12 @@ print "Writing file %s%s " % (outdir,options.mcaName)
 mcafile = open(outdir+options.mcaName,'w')
 
 genDecayId = 12 if options.channel == "el" else 14
+genwVar = "prefsrw" if options.leptonDef == "preFSR" else "genw"
 
 charges = [ "plus", "minus"]
 flav=options.channel
 
-scaleVars = ['muR','muF',"muRmuF", "alphaS"]
+scaleVars = ['muR','muF',"muRmuF", "alphaS"] 
 syst_suffix = []
 for x in scaleVars:
     syst_suffix.append("%sUp" % x)
@@ -45,11 +49,16 @@ for x in scaleVars:
 #pdf
 for i in range(60):
     syst_suffix.append("pdf%d" % int(i+1))
+# for mW, the central value in MC is 80420, we choose up and down variation with dm = +/- 50 MeV
+# mW
+syst_suffix.append("mW_80370")
+syst_suffix.append("mW_80470")
 
 #labels = ["lep scale Up", "lep scale Dn"]  
 #syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
 all_syst_suffix.extend(syst_suffix)
+
 
 for syst in all_syst_suffix:
 
@@ -66,17 +75,18 @@ for syst in all_syst_suffix:
 
         chargeSignCut = ">" if charge == "plus" else "<"
 
-        fullcut = "genw_decayId == " + str(genDecayId) 
-        fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
-        # fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "  # this is a reco cut, avoid it!!
-        
-        line = "W{ch}_{fl}_{syst} : WJetsToLNu_NLO* : 3.*20508.9 : {cut}".format(ch=charge,fl=flav,cut=fullcut,syst=syst if syst != "" else "central")
+        fullcut = "{gwv}_decayId == {decayId} && {gwv}_charge {chs} 0".format(gwv=genwVar,decayId=str(genDecayId),chs=chargeSignCut)
+
+        line = "W{ch}_{fl}_{syst} : {Wsamples} : 3.*20508.9 : {cut}".format(ch=charge,fl=flav,cut=fullcut,syst=syst if syst != "" else "central", Wsamples=options.wSample)
         line += " ; FillColor=ROOT.kRed+2 , {lab} ".format(lab=label)
         if syst != "": 
-            if not "pdf" in syst:
-                wgt = "qcd_%s" % syst
-            else:
+            if "pdf" in syst:
                 wgt = "hessWgt%d" % int(str(syst[3:]))   # syst is pdf1, pdf2, ...: get the integer number to build the weight
+            elif "mW" in syst:
+                massValue = syst[3:]
+                wgt = "mass_{m}".format(m=massValue)
+            else:
+                wgt = "qcd_%s" % syst
             line += ", AddWeight=\"{wgt}\"".format(wgt=wgt)
 
         mcafile.write(line+"\n")

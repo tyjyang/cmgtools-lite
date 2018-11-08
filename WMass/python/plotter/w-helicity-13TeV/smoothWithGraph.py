@@ -9,7 +9,7 @@ from utility import *
 ROOT.gROOT.SetBatch(True)
 
 ## usage
-## python smoothWithGraph.py -i <infile> -o <outfile> -h <histNameToSmooth>
+## python smoothWithGraph.py -i <infile> -o <outdir> -h <histNameToSmooth>
 
 # Warning: TGraph2D is a graph, so one sets x,y of its points and assign a Z. The constructor with TH2 used the TH2 bin centers to define the points
 # Now, the binning of the TH2 returned by GetHistogram() has the bin boundaries on the x,y points (not the bin centers as in the original TH2)
@@ -100,6 +100,35 @@ if __name__ == "__main__":
     newxarray.append(xarray[-1])
     #print newxarray   # I suggest you print once in life to see what happens
 
+    # do also a manual smoothing interpolating with a line (so modyfing the two sub-bins at the borders of the original bin)
+    h2HandSmooth = ROOT.TH2D("h2HandSmooth","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
+    # now fill it from the input (which is coarser)
+    for ix in range(1,1+h2HandSmooth.GetNbinsX()):
+        for iy in range(1,1+h2HandSmooth.GetNbinsY()):
+            xval = h2HandSmooth.GetXaxis().GetBinCenter(ix)
+            yval = h2HandSmooth.GetYaxis().GetBinCenter(iy)
+            hist2xbin = hist2d.GetXaxis().FindFixBin(xval)
+            hist2ybin = hist2d.GetYaxis().FindFixBin(yval)
+            h2HandSmooth.SetBinContent(ix,iy,hist2d.GetBinContent(hist2xbin,hist2ybin))
+            h2HandSmooth.SetBinError(ix,iy,hist2d.GetBinError(hist2xbin,hist2ybin))
+            # now interpolate eta
+            if ix == 1 or ix == h2HandSmooth.GetNbinsX(): continue # do not modify the outer bins
+            etabinID = ix%binSplitFactor  # which sub-bin inside the bin (if binSplitFactor=3, can be 1,2,0 for first, second and third sub-bin)
+            if  etabinID == 1:   
+                # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)
+                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+                otherVal = hist2d.GetBinContent(hist2xbin-1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
+            elif etabinID == 0:
+                # if sub-bin on the right, take this -1/3 of the difference between this and the following (computed in the central sub-bin)
+                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+                otherVal = hist2d.GetBinContent(hist2xbin+1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
+
+
+
     h2new = ROOT.TH2D("Graph2D_from_"+hist2d.GetName()+"_smoothedByGraph","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
     # now fill it from the input (which is coarser)
     for ix in range(1,1+h2new.GetNbinsX()):
@@ -184,6 +213,9 @@ if __name__ == "__main__":
                         h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
     drawCorrelationPlot(h2smooth,xAxisTitle,yAxisTitle,zAxisTitle,
                         h2smooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+    drawCorrelationPlot(h2HandSmooth,xAxisTitle,yAxisTitle,zAxisTitle,
+                        h2HandSmooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+
 
 
     # create output, let's just save what we really need
@@ -193,5 +225,6 @@ if __name__ == "__main__":
     h2new.Write()
     hist2d.Write()
     #h2smooth.Write()
+    h2HandSmooth.Write()
     outfile.Close()
 

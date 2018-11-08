@@ -2048,16 +2048,23 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
   pad2->SetGridy(1);
   pad2->SetFillStyle(0);
 
+  
+
   TH1* frame =  (TH1*) vecHist1d[0]->Clone("frame");
   frame->GetXaxis()->SetLabelSize(0.04);
   frame->SetStats(0);
 
-  Int_t colorList[] = {kBlack, kRed, kBlue, kGreen+2, kOrange+7, kCyan, kGreen, kCyan+2, kGray+1, kViolet, kYellow+2};
+  vector<TH1*> hDummyFillColor; // to use FillColor in TLegend
+
+  Int_t colorList[] = {kBlack, kRed+2, kBlue, kGreen+2, kOrange+7, kCyan, kGreen, kCyan+2, kGray+1, kViolet, kYellow+2};
   vector<Int_t> histColor;
   for (UInt_t i = 0; i < vecHist1d.size(); i++) {   // now color are assigned in reverse order (the main contribution is the last object in the sample array)         
     vecHist1d[i]->SetLineColor(colorList[i]);
     vecHist1d[i]->SetLineWidth(2);
     vecHist1d[i]->SetFillColor(0);
+    hDummyFillColor.push_back((TH1*) vecHist1d[i]->Clone(Form("%d_clone",i)));
+    hDummyFillColor.back()->SetFillColor(colorList[i]);
+    hDummyFillColor.back()->SetLineColor(colorList[i]);
   }
 
   if (drawRatioWithNominal) {
@@ -2070,7 +2077,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
     vecHist1d[0]->GetXaxis()->SetTitleSize(0.05);    
   }
   vecHist1d[0]->GetYaxis()->SetTitle(yAxisName.c_str());
-  vecHist1d[0]->GetYaxis()->SetTitleOffset(1.4);
+  vecHist1d[0]->GetYaxis()->SetTitleOffset(1.6);
   // vecHist1d[0]->GetYaxis()->SetTitleOffset(0.8);  // was 1.03 without setting also the size
   vecHist1d[0]->GetYaxis()->SetTitleSize(0.05);
   vecHist1d[0]->GetYaxis()->SetLabelSize(0.04);
@@ -2130,7 +2137,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
   for (UInt_t i = 0; i < vecHist1d.size(); i++) {
-    leg.AddEntry(vecHist1d[i],vecLegEntry[i].c_str(),"L");
+    leg.AddEntry(hDummyFillColor[i],vecLegEntry[i].c_str(),"LF");
   }
   leg.Draw("same");
   canvas->RedrawAxis("sameaxis");
@@ -2150,7 +2157,7 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
     frame->GetYaxis()->SetRangeUser(0.9,1.1);
     frame->GetYaxis()->SetNdivisions(5);
     frame->GetYaxis()->SetTitle(yAxisNameRatio.c_str());
-    frame->GetYaxis()->SetTitleOffset(1.4);
+    frame->GetYaxis()->SetTitleOffset(1.6);
     frame->GetYaxis()->SetTitleSize(0.05);
     frame->GetYaxis()->SetLabelSize(0.04);
     frame->GetYaxis()->CenterTitle();

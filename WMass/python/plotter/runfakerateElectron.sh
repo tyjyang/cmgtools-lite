@@ -18,7 +18,7 @@ useSignedEta="y" # distinguish bins of positive and negative rapidity (if passin
 useFull2016dataset="y"
 useJson="n"
 useSkimmedTrees="y" 
-usePickle="y" # add option --usePickle when running mcAnalysis.py, some old ntuples miss the histogram with the SumWeights
+usePickle="n" # add option --usePickle when running mcAnalysis.py, some old ntuples miss the histogram with the SumWeights
 #--------------------------
 mtRanges="0,25,25,120"  # can stay as it is, was used with the 2-mT-region method, unless I change the fake rate script, leave it as it is: it is a dummy option
 ptDefinition="pt_granular"  # pt_coarse, pt_granular (first is mainly for QCD MC)
@@ -38,7 +38,7 @@ fi
 istest="y"
 # following option testdir is used only if istest is 'y'
 today=`date +"%d_%m_%Y"`
-testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto"
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim"
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
