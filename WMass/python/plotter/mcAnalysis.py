@@ -196,7 +196,8 @@ class MCAnalysis:
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
                     ## get the counts from the histograms instead of pickle file
-                    tmp_rootfile = ROOT.TFile.Open(rootfile, 'READ')
+                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                    tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
                     histo_count        = tmp_rootfile.Get('Count')
                     histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
                     n_count        = histo_count       .GetBinContent(1)
