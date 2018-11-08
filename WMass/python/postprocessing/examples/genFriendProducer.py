@@ -9,7 +9,7 @@ from PhysicsTools.HeppyCore.utils.deltar import deltaPhi
 from math import *
 
 class SimpleVBoson:
-    def __init__(self,legs,pdgId=23):
+    def __init__(self,legs,pdgId=24):
         self.pdgId=pdgId
         self.legs = legs
         if len(legs)<2:
