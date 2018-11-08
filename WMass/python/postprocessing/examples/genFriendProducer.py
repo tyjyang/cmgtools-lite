@@ -9,18 +9,21 @@ from PhysicsTools.HeppyCore.utils.deltar import deltaPhi
 from math import *
 
 class SimpleVBoson:
-    def __init__(self,legs):
+    def __init__(self,legs,pdgId=24):
+        self.pdgId=pdgId
         self.legs = legs
         if len(legs)<2:
             print "ERROR: making a VBoson w/ < 2 legs!"
         self.pt1 = legs[0].Pt()
         self.pt2 = legs[1].Pt()
-        self.dphi = self.legs[0].Phi()-self.legs[1].Phi()
+        self.dphi = self.legs[0].DeltaPhi(self.legs[1])        
         self.deta = self.legs[0].Eta()-self.legs[1].Eta()
         self.px1 = legs[0].Px(); self.py1 = legs[0].Py();
         self.px2 = legs[1].Px(); self.py2 = legs[1].Py();
     def pt(self):
         return (self.legs[0]+self.legs[1]).Pt()
+    def phi(self):
+        return (self.legs[0]+self.legs[1]).Phi()
     def y(self):
         return (self.legs[0]+self.legs[1]).Rapidity()
     def mt(self):
@@ -189,36 +192,39 @@ class GenQEDJetProducer(Module):
 
         return nuvec, nu.pdgId
 
-    def getDressedLepton(self, cone=0.1):
+    def getDressedLeptons(self, strictlyPrompt=True, cone=0.1):
 
         leptons = []
         for p in self.genParts:
-            if (abs(p.pdgId) in [11, 13] and p.isPromptFinalState) or (abs(p.pdgId) == 15       and p.isPromptDecayed) : 
-                lepton = ROOT.TLorentzVector()
-                lepton.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
-                leptons.append( (lepton, p.pdgId) )
+            if not abs(p.pdgId) in [11,13,15] : continue
+            if strictlyPrompt:
+                if abs(p.pdgId) in [11, 13] and not p.isPromptFinalState : continue
+                if abs(p.pdgId) == 15       and not p.isPromptDecayed : continue
+            lepton = ROOT.TLorentzVector()
+            lepton.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
+            leptons.append( [lepton, p.pdgId] )
 
         #leptons = sorted(leptons, key = lambda x: x[0].Pt() )
         leptons.sort(key = lambda x: x[0].Pt(), reverse=True )
-    
-        if len(leptons) < 1:
-            return 0, 0
+
+        if len(leptons) ==0: 
+            return leptons
             ##print 'ERROR: DID NOT FIND A LEPTON FOR DRESSING !!!!!'
 
-
-        lep = leptons[0][0]
-        pdgId = leptons[0][1]
-
         for p in self.genParts:
-            if not (abs(p.pdgId)==22 and p.isPromptFinalState):
-                continue
+            if not abs(p.pdgId)==22: continue
+            if strictlyPrompt and not p.isPromptFinalState: continue
             tmp_photon = ROOT.TLorentzVector()
             tmp_photon.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
-            if lepton.DeltaR(tmp_photon) < cone:
-                lepton = lepton+tmp_photon
 
-        return lepton, pdgId
+            #first match in cone
+            for il in xrange(0,len(leptons)):
+                if leptons[il][0].DeltaR(tmp_photon) > cone: continue
+                leptons[il][0] = leptons[il][0]+tmp_photon
+                break
 
+        return leptons
+    
     def getPreFSRLepton(self):
         
         lepInds = []
@@ -278,9 +284,10 @@ class GenQEDJetProducer(Module):
             self.initReaders(event._tree)
 
         ## check if the proper Ws can be made
-        (dressedLepton, dressedLeptonPdgId) = self.getDressedLepton() if makeWs else (0,0)
-        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()  if makeWs else (0,0)
-        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()      if makeWs else (0,0)
+        dressedLeptonCollection             = self.getDressedLeptons(strictlyPrompt=makeWs)
+        dressedLepton, dressedLeptonPdgId   = dressedLeptonCollection[0] if len(dressedLeptonCollection) else (0,0)
+        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()     if makeWs else (0,0)
+        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()         if makeWs else (0,0)
 
         if hasattr(event,"genWeight"):
             self.out.fillBranch("weightGen", getattr(event, "genWeight"))
@@ -291,9 +298,21 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("partonId1", -999 )
             self.out.fillBranch("partonId2", -999 )
 
+        #always produce the dressed lepton collection
+        if len(dressedLeptonCollection)>0:
+            retL={}
+            leptonsToTake = range(0,1 if makeWs else len(dressedLeptonCollection))
+            retL["pt"]    = [dressedLeptonCollection[i][0].Pt() for i in leptonsToTake ]
+            retL["eta"]   = [dressedLeptonCollection[i][0].Eta() for i in leptonsToTake ]
+            retL["phi"]   = [dressedLeptonCollection[i][0].Phi() for i in leptonsToTake ]
+            retL["mass"]  = [dressedLeptonCollection[i][0].M() if dressedLeptonCollection[i][0].M() >= 0. else 0. for i in leptonsToTake]
+            retL["pdgId"] = [dressedLeptonCollection[i][1] for i in leptonsToTake ]
+            self.out.fillBranch("nGenLepDressed", leptonsToTake[-1])
+            for V in self.vars:
+                self.out.fillBranch("GenLepDressed_"+V, retL[V])
 
-        #if len(dressedLeptons) and len(neutrinos):
-        if neutrino: ## this will now fail for DY
+        #W-specific
+        if neutrino:
             retN={}
             retN["pt"]    = [neutrino.Pt()  ]
             retN["eta"]   = [neutrino.Eta() ]
@@ -303,20 +322,9 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("nGenPromptNu", 1)
             for V in self.vars:
                 self.out.fillBranch("GenPromptNu_"+V, retN[V])
-            #self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])
+            #self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])            
 
             if dressedLepton:
-                retL={}
-                retL["pt"]    = [dressedLepton.Pt()  ]
-                retL["eta"]   = [dressedLepton.Eta() ]
-                retL["phi"]   = [dressedLepton.Phi() ]
-                retL["mass"]  = [dressedLepton.M()   if dressedLepton.M() >= 0. else 0.]
-                retL["pdgId"] = [dressedLeptonPdgId  ]
-                self.out.fillBranch("nGenLepDressed", 1)
-                for V in self.vars:
-                    self.out.fillBranch("GenLepDressed_"+V, retL[V])
-                ## already filled self.out.fillBranch("GenLepDressed_pdgId", [pdgId for pdgId in lepPdgIds])
-
                 genw = dressedLepton + neutrino
                 self.out.fillBranch("genw_charge" , float(-1*np.sign(dressedLeptonPdgId)))
                 self.out.fillBranch("genw_pt"     , genw.Pt())
