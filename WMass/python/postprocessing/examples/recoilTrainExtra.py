@@ -82,7 +82,7 @@ class RecoilTrainExtraProducer(Module):
                              self.out._branches["GenPromptNu_phi"].buff[i],
                              self.out._branches["GenPromptNu_mass"].buff[i] )
             nuSum+=p4
-
+        
         #build the boson
         if len(dressedLeps)==0: return None
         V=SimpleVBoson(legs=[dressedLeps[0],nuSum],pdgId=24)
@@ -99,10 +99,7 @@ class RecoilTrainExtraProducer(Module):
 
         """tries to reconstruct a W or a Z from the selected leptons"""
         
-        lepColl = Collection(event, "LepGood")
-        
-        if len(lepColl)==0: return None
-        
+        lepColl = Collection(event, "LepGood")       
         if len(lepColl)==0: return None
         
         nuSum=ROOT.TLorentzVector(0,0,0,0)
