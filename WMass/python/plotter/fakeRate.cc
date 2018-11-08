@@ -384,9 +384,11 @@ TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2"        
 float helicityWeight(float yw, float ptw, float costheta, int pol)
 {
 
+  float ayw = std::abs(yw);
+
   if (std::abs(costheta) > 1.) {
-    //std::cout << " found an event with weird cosTheta = " << costheta << std::endl;
-    //std::cout << " setting event weight to 0" << std::endl;
+    std::cout << " found an event with weird cosTheta = " << costheta << std::endl;
+    std::cout << " setting event weight to 0" << std::endl;
     return 0;
   }
 
@@ -397,7 +399,7 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
   // float yval  = std::abs(yw) > hist_f0->GetXaxis()->GetXmax() ? hist_f0->GetXaxis()->GetXmax() : yw;
   // float ptval = ptw > hist_f0->GetYaxis()->GetXmax() ? hist_f0->GetYaxis()->GetXmax() : ptw;
 
-  int ywbin = std::max(1, std::min(hist_f0->GetNbinsX(), hist_f0->GetXaxis()->FindBin(yw )));
+  int ywbin = std::max(1, std::min(hist_f0->GetNbinsX(), hist_f0->GetXaxis()->FindBin(ayw)));
   int ptbin = std::max(1, std::min(hist_f0->GetNbinsY(), hist_f0->GetYaxis()->FindBin(ptw)));
 
   float f0 = hist_f0->GetBinContent(ywbin, ptbin);

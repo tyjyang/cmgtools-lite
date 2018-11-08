@@ -154,7 +154,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                     postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
                     mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
                     ptcut = wptBinsScales(ipt)
-                    wgtstr = 'TMath::Power(qcd_{sc}{idir},({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
                     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
                     qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
@@ -171,7 +171,7 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_
     if append:
         filename = "%s/mca_systs.txt" % odir
         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
-    etalo = -2.5 if channel=='el' else -2.4
+    etalo = -2.5 if channel=='el' else -2.4001
     deta = 0.1; nbins = int(2*abs(etalo)/deta)
     for i in range(0,nbins):
         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
@@ -244,8 +244,12 @@ parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=
 parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
 parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
-parser.add_option('-w', "--wvar", type="string", default='genw', help="switch between genw and prefsrw. those are the only options (default %default)");
+parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
 (options, args) = parser.parse_args()
+
+if not options.wvar in ['genw', 'prefsrw']:
+    print 'the W variable has to be either "genw" or "prefsrw". exiting...'
+    quit()
 
 if len(sys.argv) < 6:
     parser.print_usage()
@@ -527,18 +531,18 @@ if len(fullJobList):
     condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = $(ProcId).log
-Output     = $(ProcId).out
-Error      = $(ProcId).error
+Log        = {jd}/$(ProcId).log
+Output     = {jd}/$(ProcId).out
+Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=dummy_exec.name, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
     for sf in sourcefiles:
-        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
     condor_file.close()
 
     print 'i have {n} jobs to submit!'.format(n=len(subcommands))
@@ -549,7 +553,7 @@ request_memory = 4000
         #    print cmd
     else:
         print 'submitting for real...'
-        os.system('condor_submit ',condor_file_name)
+        os.system('condor_submit '+condor_file_name)
         ##sigDyBkg = '_signal' if options.signalCards else '_background'
         ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
         ##pipefile = open(pipefilename, 'w')

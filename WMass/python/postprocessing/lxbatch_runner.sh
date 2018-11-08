@@ -10,4 +10,10 @@ eval $(scramv1 runtime -sh);
 export LD_LIBRARY_PATH=${CMSSW_BASE}/src/CMGTools/WMass/python/postprocessing/helpers:${LD_LIBRARY_PATH}
 cd $WORK;
 ulimit -c 0
+## checking some stuff
+echo am in this directory:
+echo $PWD
+echo running this command:
+echo $*
+##
 exec $*

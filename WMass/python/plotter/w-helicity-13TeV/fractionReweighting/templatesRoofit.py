@@ -1,9 +1,9 @@
-import ROOT, itertools, datetime, math, copy, os
+import ROOT, itertools, datetime, math, copy, os, commands
 from array import array
 
 
-## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_NLO_amcatnlo_newDefinitionFinalFix.root --nlo --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-02-28/
-## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_LO_madgraph_finalDressing_extOnly.root        --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-02-28/
+## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_NLO_amcatnlo_newDefinitionFinalFix.root --nlo --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-10-10-fineBin/
+## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_LO_madgraph_finalDressing_extOnly.root        --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-10-10-fineBin/
 
 def formatHisto(hist):
     hist.GetXaxis().SetTitleOffset(1.02)
@@ -54,58 +54,75 @@ def saveCanv(c, name):
     c.SaveAs(name+'.png')
 
 from optparse import OptionParser
-parser = OptionParser(usage='%prog [options] cards/card*.txt')
+parser = OptionParser(usage='python %prog --infile directoryWithRootFile --outdir outputPlotDirectory ( --preFSR / --lorenzo )')
 parser.add_option('--roofit' , dest='doRooFit' , default=False, action='store_true', help='Use fancy RooFit generic pdf fitting instead of simple chi2.')
 parser.add_option('--generic', dest='doGeneric', default=True , action='store_true', help='Use generic pdf instead of whatever else')
 parser.add_option('--nlo'    , dest='doNLO'    , default=False, action='store_true', help='Use the amc@nlo sample.')
 parser.add_option('--bins-atlas', dest='atlasBins'    , default=False, action='store_true', help='Use the binning of the ATLAS paper.')
 parser.add_option('-i','--infile', dest='infile', default='', type='string', help='Specify the input file. should be a single (big) friendtree.')
 parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='Specify the output directory for the plots. It makes a lot of plots.')
+parser.add_option('-l','--lorenzo', dest='doLorenzo', default=False, action='store_true', help='use lorenzo\'s trees')
+parser.add_option('--preFSR', default=False, action='store_true', help='use preFSR leptons/Ws')
 (options, args) = parser.parse_args()
 
 
 ROOT.gROOT.SetBatch()
 
-nlostring = 'NLO' if options.doNLO else 'LO'
-
-
 if not (options.outdir or options.infile):
     raise RuntimeError, 'You have to give an input file and an output directory!'
 
-plotsdir = '{od}/chi2_muEl/{nlo}/'.format(od=options.outdir,nlo=nlostring)
+plotsdir = '{od}/chi2_muEl/'.format(od=options.outdir)
 
 if not os.path.isdir(plotsdir):
     os.system('mkdir -p {pd}'.format(pd=plotsdir))
     os.system('cp ~/index.php {pd}/'.format(pd=plotsdir))
 
-maxYW = 6.
+maxYW = 10.
 
 ## some tree specific things. we need the name of the 
 ## variables of the W in the tree
 
-var_wy  = 'abs(genw_y)'
-var_wpt = 'genw_pt'
-var_wch = 'genw_charge'
-var_dec = 'genw_decayId'
-##var_cos = 'genw_costcs'
-#var_cos = 'genw_cost2d'
-var_cos = 'genw_costcm'
+if options.doLorenzo:
+    var_wy  = 'WpreFSR_y'
+    var_wpt = 'WpreFSR_qt'
+    var_wch = 'mu_charge'
+    var_dec = 'WpreFSR_decayId'
+    var_cos = 'WpreFSR_cosCS'
+    var_phi = 'WpreFSR_phiCS'
+    
+    ## weightstring
+    gen_weight = '(weights[0]/abs(weights[0]))'
 
-## weightstring
-gen_weight = '(weightGen/abs(weightGen))'
+else:
+    if options.preFSR:
+        var_wy  = 'abs(prefsrw_y)'
+        var_wpt = 'prefsrw_pt'
+        var_wch = 'prefsrw_charge'
+        var_dec = 'prefsrw_decayId'
+        var_cos = 'prefsrw_costcs'
+
+    else:
+        var_wy  = 'abs(genw_y)'
+        var_wpt = 'genw_pt'
+        var_wch = 'genw_charge'
+        var_dec = 'genw_decayId'
+        var_cos = 'genw_costcs'
+    
+    ## weightstring
+    gen_weight = '(weightGen/abs(weightGen))'
+
 
 ## get the tree from the file
 
 if os.path.isfile(options.infile):
     infile = ROOT.TFile(options.infile, 'read')
-    tree = infile.Get('Friends')
+    tree = infile.Get('Friends' if not options.doLorenzo else 'tree')
 else:
-    tree = ROOT.TChain('Friends')
-    rootlist = list( i for i in os.listdir(options.infile) if '.root' in i)
-    for i,f in enumerate(rootlist):
-        if i > 9: continue
-        print 'adding file', f
-        tree.Add(options.infile+'/'+f)
+    tree = ROOT.TChain('Friends' if not options.doLorenzo else 'tree')
+    ## rootlist = list( i for i in os.listdir(options.infile) if '.root' in i)
+    rootlist = list( i for i in commands.getoutput('eos ls '+options.infile).split('\n') if '.root' in i)
+    for f in rootlist:
+        tree.Add('root://eoscms.cern.ch//'+options.infile+'/'+f)
 
 
 ## first build the quantiles in both rapidity and pT
@@ -114,16 +131,18 @@ else:
 if not options.atlasBins:
     ## make the quantiles for YW
     ## ===================================
-    print('FILLING FOR THE W-rapidity QUANTILES')
+    ## fixed fine binning print('FILLING FOR THE W-rapidity QUANTILES')
+    ## fixed fine binning 
+    ## fixed fine binning nqy = 15
+    ## fixed fine binning h_tmp_wy  = ROOT.TH1F('h_tmp_wy','quantile calculation Yw', 1000, 0., maxYW)
+    ## fixed fine binning tree.Draw(var_wy+'>>h_tmp_wy', '('+var_wch + ' > 0 && abs(genw_decayId)==14 )*'+gen_weight)
+    ## fixed fine binning xqy = array('d', [i/float(nqy)+1./float(nqy) for i in range(nqy)])
+    ## fixed fine binning yqy = array('d', [1. for i in range(nqy)])
+    ## fixed fine binning foobar = h_tmp_wy.GetQuantiles(nqy,yqy,xqy);
+    ## fixed fine binning 
+    ## fixed fine binning yqnewy = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yqy])
     
-    nqy = 15
-    h_tmp_wy  = ROOT.TH1F('h_tmp_wy','quantile calculation Yw', 1000, 0., maxYW)
-    tree.Draw(var_wy+'>>h_tmp_wy', '('+var_wch + ' > 0 && abs(genw_decayId)==14 )*'+gen_weight)
-    xqy = array('d', [i/float(nqy)+1./float(nqy) for i in range(nqy)])
-    yqy = array('d', [1. for i in range(nqy)])
-    foobar = h_tmp_wy.GetQuantiles(nqy,yqy,xqy);
-    
-    yqnewy = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yqy])
+    yqnewy = [0.0+i*0.25 for i in range(17)] + [maxYW] ## this is absy
     
     wrap_nbins = len(yqnewy)-1
     wrap_bins = array('d', yqnewy)
@@ -133,21 +152,22 @@ if not options.atlasBins:
     
     print('FILLING FOR THE W-pT QUANTILES')
     nq =  20 ## number of quantiles
-    h_tmp_wpt = ROOT.TH1F('h_tmp_wpt','quantile calculation', 1000, 0., 100.)
-    tree.Draw(var_wpt+'>>h_tmp_wpt', '(abs(genw_decayId)==14 || abs(genw_decayId)== 12) *'+gen_weight)
-    xq = array('d', [i/float(nq)+1./float(nq) for i in range(int(nq))])
-    yq = array('d', [1 for i in range(nq)])
-    h_tmp_wpt.GetQuantiles(nq,yq,xq);
-    
-    
-    yqnew = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yq])
-    hnew = ROOT.TH1F('h_wpt_quantiles', 'wpt rebinned', len(yq), yqnew)
+    ## fixed binning h_tmp_wpt = ROOT.TH1F('h_tmp_wpt','quantile calculation', 1000, 0., 100.)
+    ## fixed binning tree.Draw(var_wpt+'>>h_tmp_wpt', '(abs(genw_decayId)==14 || abs(genw_decayId)== 12) *'+gen_weight)
+    ## fixed binning xq = array('d', [i/float(nq)+1./float(nq) for i in range(int(nq))])
+    ## fixed binning yq = array('d', [1 for i in range(nq)])
+    ## fixed binning h_tmp_wpt.GetQuantiles(nq,yq,xq);
+    ## fixed binning 
+    ## fixed binning 
+    ## fixed binning yqnew = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yq])
+    ## fixed binning hnew = ROOT.TH1F('h_wpt_quantiles', 'wpt rebinned', len(yq), yqnew)
+    yqnew = array('d', [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 100.0])
     
     wpt_nbins = nq
     wpt_bins = yqnew
 
 else:
-    wrap_bins   = array('d', [0.20*i for i in range(15)] + [3., 3.25, 3.5, 3.75, 4., 4.25, 4.5, 5., 6.])
+    wrap_bins   = array('d', [0.20*i for i in range(15)] + [3., 3.25, 3.5, 3.75, 4., 4.25, 4.5, 5., maxYW])
     wrap_nbins  = len(wrap_bins)-1
     wpt_bins  = array('d', range(11) + [12., 14., 16., 18., 20., 25., 30., 35., 40., 50., 60., 70., 100.])
     wpt_nbins = len(wpt_bins)-1
@@ -174,14 +194,16 @@ nbinsX = h3_rapVsCMvsWPtPlus.GetXaxis().GetNbins()
 nbinsY = h3_rapVsCMvsWPtPlus.GetYaxis().GetNbins()
 nbinsZ = h3_rapVsCMvsWPtPlus.GetZaxis().GetNbins()
 
-## project pT versus rapidity for the fractions
-fractionR_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionR_plus'); fractionR_plus.SetTitle('W^{+}: fractions R'); fractionR_plus.Reset(); formatHisto(fractionR_plus)
-fractionL_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionL_plus'); fractionL_plus.SetTitle('W^{+}: fractions L'); fractionL_plus.Reset(); formatHisto(fractionL_plus)
-fraction0_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fraction0_plus'); fraction0_plus.SetTitle('W^{+}: fractions 0'); fraction0_plus.Reset(); formatHisto(fraction0_plus)
+typeString = ' preFSR leptons' if options.preFSR else 'dressed leptons'
 
-fractionR_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionR_minus'); fractionR_minus.SetTitle('W^{-}:fractions R'); fractionR_minus.Reset(); formatHisto(fractionR_minus)
-fractionL_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionL_minus'); fractionL_minus.SetTitle('W^{-}:fractions L'); fractionL_minus.Reset(); formatHisto(fractionL_minus)
-fraction0_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fraction0_minus'); fraction0_minus.SetTitle('W^{-}:fractions 0'); fraction0_minus.Reset(); formatHisto(fraction0_minus)
+## project pT versus rapidity for the fractions
+fractionR_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionR_plus'); fractionR_plus.SetTitle('W^{+}: fractions R'+typeString); fractionR_plus.Reset(); formatHisto(fractionR_plus)
+fractionL_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionL_plus'); fractionL_plus.SetTitle('W^{+}: fractions L'+typeString); fractionL_plus.Reset(); formatHisto(fractionL_plus)
+fraction0_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fraction0_plus'); fraction0_plus.SetTitle('W^{+}: fractions 0'+typeString); fraction0_plus.Reset(); formatHisto(fraction0_plus)
+
+fractionR_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionR_minus'); fractionR_minus.SetTitle('W^{-}:fractions R'+typeString); fractionR_minus.Reset(); formatHisto(fractionR_minus)
+fractionL_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionL_minus'); fractionL_minus.SetTitle('W^{-}:fractions L'+typeString); fractionL_minus.Reset(); formatHisto(fractionL_minus)
+fraction0_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fraction0_minus'); fraction0_minus.SetTitle('W^{-}:fractions 0'+typeString); fraction0_minus.Reset(); formatHisto(fraction0_minus)
 
 ## done making the histograms
 
@@ -359,13 +381,16 @@ if options.doRooFit:
         lat.DrawLatex(0.45, 0.85, 'f0: {f0:.4f}'.format(f0=f0) )
         lat.DrawLatex(0.45, 0.80, 'fL: {fL:.4f}'.format(fL=fL) )
         lat.DrawLatex(0.45, 0.75, 'fR: {fR:.4f}'.format(fR=fR) )
-        c1.SaveAs('plotsRoofit/MLfit_muOnly/{nlo}/cosTheta_roofit_newDef_{n}.pdf'.format(n=name,nlo=nlostring))
-        c1.SaveAs('plotsRoofit/MLfit_muOnly/{nlo}/cosTheta_roofit_newDef_{n}.png'.format(n=name,nlo=nlostring))
+        c1.SaveAs('plotsRoofit/MLfit_muOnly/cosTheta_roofit_newDef_{n}.pdf'.format(n=name))
+        c1.SaveAs('plotsRoofit/MLfit_muOnly/cosTheta_roofit_newDef_{n}.png'.format(n=name))
 
 else:
     print('FILLING THE 3D HISTOGRAM!!')
-    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtPlus' , '('+var_wch + ' > 0 && (genw_decayId == 14 || genw_decayId == 12) )* '+gen_weight, '')
-    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtMinus', '('+var_wch + ' < 0 && (genw_decayId == 14 || genw_decayId == 12) )* '+gen_weight, '')
+    genIdCut = '(genw_decayId == 14 || genw_decayId == 12)' if not options.doLorenzo else ' 1.'
+    chargePos = var_wch + (' > ' if not options.doLorenzo else ' < ')+ '0' 
+    chargeNeg = var_wch + (' < ' if not options.doLorenzo else ' > ')+ '0' 
+    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtPlus' , '('+chargePos + ' && '+genIdCut+' )* '+gen_weight, '')
+    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtMinus', '('+chargeNeg + ' && '+genIdCut+' )* '+gen_weight, '')
     
     ## END FILLING WPT YW CM HISTOGRAM
     ## ======================================
@@ -408,7 +433,7 @@ else:
                 yhi = h3_rapVsCMvsWPt.GetYaxis().GetBinUpEdge(iy)
                 plo = h3_rapVsCMvsWPt.GetZaxis().GetBinLowEdge(iz)
                 phi = h3_rapVsCMvsWPt.GetZaxis().GetBinUpEdge(iz)
-                h_cm.SetTitle('{ch}: y_{{W}} #in [{ylo:.2f},{yhi:.2f}] , p_{{T}}^{{W}} #in [{plo:.2f},{phi:.2f}]'.format(ch='W^{+}' if wch == 'plus' else 'W^{-}', ylo=ylo,yhi=yhi,plo=plo,phi=phi) )
+                h_cm.SetTitle('{ch}: y_{{W}} #in [{ylo:.2f},{yhi:.2f}] , p_{{T}}^{{W}} #in [{plo:.2f},{phi:.2f}]'.format(ch='W^{+}' if wch == 'plus' else 'W^{-}', ylo=ylo,yhi=yhi,plo=plo,phi=phi)+typeString )
     
                 fitterR = ROOT.TF1('helR_'+name,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
                 fitterL = ROOT.TF1('helL_'+name,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
@@ -458,8 +483,8 @@ else:
                 allfits[name] = chi2/ndf
     
                 lat.DrawLatex(0.45, 0.68, '#chi^{{2}}/ndf: {a1:.2f}/{a2} = {a3:.2f}'.format(a1=chi2, a2=ndf, a3=chi2/ndf))
-                c.SaveAs('{pd}/cosTheta_chi2_{n}.pdf'.format(pd=plotsdir,n=name,nlo=nlostring))
-                c.SaveAs('{pd}/cosTheta_chi2_{n}.png'.format(pd=plotsdir,n=name,nlo=nlostring))
+                c.SaveAs('{pd}/cosTheta_chi2_{n}.pdf'.format(pd=plotsdir,n=name))
+                c.SaveAs('{pd}/cosTheta_chi2_{n}.png'.format(pd=plotsdir,n=name))
     
     
     chi2dist = ROOT.TH1F('chi2', '#chi^{{2}} distribution - {n}'.format(n=('NLO' if options.doNLO else 'LO')), 50, 0., 5.); chi2dist.SetLineWidth(2); chi2dist.SetLineColor(ROOT.kAzure-2)
@@ -470,8 +495,8 @@ else:
     chi2dist.Draw()
     lat.DrawLatex(0.7, 0.6, 'mean #chi^{{2}}: {m:.2f}'.format(m=chi2dist.GetMean()))
     
-    c.SaveAs('{pd}/chi2_chi2.pdf'.format(pd=plotsdir,nlo=nlostring))
-    c.SaveAs('{pd}/chi2_chi2.png'.format(pd=plotsdir,nlo=nlostring))
+    c.SaveAs('{pd}/chi2_chi2.pdf'.format(pd=plotsdir))
+    c.SaveAs('{pd}/chi2_chi2.png'.format(pd=plotsdir))
 
     
 ## don't symmetrize for absY (fractionR_plus_sym  , fractionL_plus_sym , fraction0_plus_sym ) = symmetrizeFractions(copy.deepcopy(fractionR_plus ), copy.deepcopy(fractionL_plus ), copy.deepcopy(fraction0_plus ))
@@ -503,42 +528,43 @@ fraction0_plus .GetZaxis().SetRangeUser(0., 0.4)
 fraction0_minus.GetZaxis().SetRangeUser(0., 0.4)
 
 fractionR_plus .Draw('colz')
-c.SaveAs('{pd}/fractionR_plus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionR_plus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionR_plus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionR_plus.png'.format(pd=plotsdir))
 fractionL_plus .Draw('colz')
-c.SaveAs('{pd}/fractionL_plus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionL_plus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionL_plus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionL_plus.png'.format(pd=plotsdir))
 fraction0_plus .Draw('colz')
-c.SaveAs('{pd}/fraction0_plus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fraction0_plus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fraction0_plus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fraction0_plus.png'.format(pd=plotsdir))
 fractionR_minus.Draw('colz')
-c.SaveAs('{pd}/fractionR_minus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionR_minus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionR_minus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionR_minus.png'.format(pd=plotsdir))
 fractionL_minus.Draw('colz')
-c.SaveAs('{pd}/fractionL_minus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionL_minus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionL_minus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionL_minus.png'.format(pd=plotsdir))
 fraction0_minus.Draw('colz')
-c.SaveAs('{pd}/fraction0_minus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fraction0_minus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fraction0_minus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fraction0_minus.png'.format(pd=plotsdir))
 
 fractionLmR_plus = fractionL_plus .Clone('fractionLmR_plus')
 fractionLmR_minus= fractionL_minus.Clone('fractionLmR_minus')
-fractionLmR_plus .SetTitle('W^{+}: fractions L-R')
-fractionLmR_minus.SetTitle('W^{-}: fractions L-R')
+fractionLmR_plus .SetTitle('W^{+}: fractions L-R'+typeString)
+fractionLmR_minus.SetTitle('W^{-}: fractions L-R'+typeString)
 fractionLmR_plus .Add(fractionR_plus ,-1.)
 fractionLmR_minus.Add(fractionR_minus,-1.)
 fractionLmR_plus .GetZaxis().SetRangeUser(0., 0.8)
 fractionLmR_minus.GetZaxis().SetRangeUser(0., 0.8)
 
 fractionLmR_plus.Draw('colz')
-c.SaveAs('{pd}/fractionLmR_plus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionLmR_plus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionLmR_plus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionLmR_plus.png'.format(pd=plotsdir))
 fractionLmR_minus.Draw('colz')
-c.SaveAs('{pd}/fractionLmR_minus.pdf'.format(pd=plotsdir,nlo=nlostring))
-c.SaveAs('{pd}/fractionLmR_minus.png'.format(pd=plotsdir,nlo=nlostring))
+c.SaveAs('{pd}/fractionLmR_minus.pdf'.format(pd=plotsdir))
+c.SaveAs('{pd}/fractionLmR_minus.png'.format(pd=plotsdir))
 
 ## write the histograms into a file
-outfile = ROOT.TFile('fractions_roofit_histos_{t}_{date}{nlo}_muEl_plusMinus.root'.format(t=fittype,date=date,nlo='_NLO' if options.doNLO else ''), 'recreate')
+ofn = 'fractions_roofit_histos_{t}_{date}_muEl_plusMinus{lor}{fsr}.root'.format(t=fittype,date=date,lor = '_lorenzo' if options.doLorenzo else '',fsr='_preFSR' if options.preFSR else 'dressed')
+outfile = ROOT.TFile(ofn, 'recreate')
 
 fractionR_plus.Write()
 fractionL_plus.Write()
