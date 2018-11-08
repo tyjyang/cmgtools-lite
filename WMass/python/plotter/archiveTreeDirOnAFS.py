@@ -19,7 +19,7 @@ if __name__ == "__main__":
     afsdir = args[1]
     
     treedir = os.path.basename(eosdir)
-    if not os.path.isdir(eosdir):
+    if not os.path.isdir(afsdir):
             rsync = "rsync -avz --exclude '*.root' {source} {destination}".format(source=eosdir,destination=afsdir)
             print "Giving rsync command: ",rsync
             os.system(rsync)
