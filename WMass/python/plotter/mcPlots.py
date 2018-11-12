@@ -436,6 +436,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
             total.GetXaxis().SetTitleOffset(999) ## in outer space
             total.GetYaxis().SetTitleSize(0.06)
             total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.3) # 1.48
+            if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
             total.GetYaxis().SetLabelSize(0.05)
             total.GetYaxis().SetLabelOffset(0.007)
             # then we can overwrite total with background
@@ -529,6 +530,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity.GetYaxis().SetTitleSize(0.14)
     offset = 0.32 if doWide else 0.62
     unity.GetYaxis().SetTitleOffset(offset)
+    if options.setTitleYoffset > 0: unity.GetYaxis().SetTitleOffset(offset * options.setTitleYoffset / 1.48)
     unity.GetYaxis().SetLabelFont(42)
     unity.GetYaxis().SetLabelSize(0.11)
     unity.GetYaxis().SetLabelOffset(0.007)
@@ -538,6 +540,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     total.GetXaxis().SetTitleOffset(999) ## in outer space
     total.GetYaxis().SetTitleSize(0.06)
     total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.48)
+    if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
     total.GetYaxis().SetLabelSize(0.05)
     total.GetYaxis().SetLabelOffset(0.007)
     binlabels = pspec.getOption("xBinLabels","")
@@ -946,6 +949,9 @@ class PlotMaker:
                     ROOT.gStyle.SetPadLeftMargin(600.*0.18/plotformat[0])
                 else:
                     ROOT.gStyle.SetPadLeftMargin(0.18)
+                    if plotformat[0] > 1000: 
+                        ROOT.gStyle.SetPadLeftMargin(0.05)
+                        ROOT.gStyle.SetPadRightMargin(0.02)
 
                 stack.Draw("GOFF")
                 ytitle = "Events" if not self._options.printBinning else "Events / %s" %(self._options.printBinning)
@@ -958,6 +964,7 @@ class PlotMaker:
                 total.GetYaxis().SetTitleFont(42)
                 total.GetYaxis().SetTitleSize(0.05)
                 total.GetYaxis().SetTitleOffset(0.90 if doWide else 1.7)
+                if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
                 total.GetYaxis().SetLabelFont(42)
                 total.GetYaxis().SetLabelSize(0.05)
                 total.GetYaxis().SetLabelOffset(0.007)
@@ -1301,6 +1308,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--wide", dest="wideplot", action="store_true", default=False, help="Draw a wide canvas")
     parser.add_option("--verywide", dest="veryWide", action="store_true", default=False, help="Draw a very wide canvas")
     parser.add_option("--canvasSize", dest="setCanvasSize", type="int", nargs=2, default=(600, 600), help="Set canvas height and width")
+    parser.add_option("--setTitleYoffset", dest="setTitleYoffset", type="float", default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
     parser.add_option("--elist", dest="elist", action="store_true", default='auto', help="Use elist (on by default if making more than 2 plots)")
     parser.add_option("--no-elist", dest="elist", action="store_false", default='auto', help="Don't elist (which are on by default if making more than 2 plots)")
     if not parser.has_option("--yrange"): parser.add_option("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
