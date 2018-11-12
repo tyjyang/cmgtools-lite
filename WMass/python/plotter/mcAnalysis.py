@@ -183,6 +183,9 @@ class MCAnalysis:
                     rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
                     rootfile = open(rootfile+".url","r").readline().strip()
 
+                ## needed temporarily
+                pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
+
                 tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname); ttys.append(tty)
                 if signal: 
                     self._signals.append(tty)
@@ -195,18 +198,23 @@ class MCAnalysis:
                 if pname in self._allData: self._allData[pname].append(tty)
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
-                    ## get the counts from the histograms instead of pickle file
-                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                    tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                    histo_count        = tmp_rootfile.Get('Count')
-                    histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
-                    n_count        = histo_count       .GetBinContent(1)
-                    n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
-                    tmp_rootfile.Close()
-                    if ( n_count != n_sumgenweight ) and options.weight:
+                    ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
+                    # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                    # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                    # histo_count        = tmp_rootfile.Get('Count')
+                    # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                    # n_count        = histo_count       .GetBinContent(1)
+                    # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+                    # tmp_rootfile.Close()
+                    pckobj  = pickle.load(open(pckfile,'r'))
+                    counters = dict(pckobj)
+                    # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
+                    ## this needed for now...
+                    if ('Sum Weights' in counters) and options.weight:
                         if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 1; 
-                        total_w += n_sumgenweight
+                        # total_w += n_sumgenweight ## ROOT histo version
+                        total_w += counters['Sum Weights']
                         scale = "genWeight*(%s)" % field[2]
                     elif not options.weight:
                         scale = 1
@@ -216,7 +224,8 @@ class MCAnalysis:
                     else:
                         if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 0;
-                        total_w += n_count
+                        # total_w += n_count ## ROOT histo version
+                        total_w += counters['All Events']
                         scale = "(%s)" % field[2]
                     if len(field) == 4: scale += "*("+field[3]+")"
                     for p0,s in options.processesToScale:
