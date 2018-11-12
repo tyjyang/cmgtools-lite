@@ -237,7 +237,7 @@ class TreeToYield:
 #            ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
             #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=200000") # worse than 65k
             #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=32768") # worse than 65k
-            self._tfile = ROOT.TXNetFile(self._fname+"?readaheadsz=65535") # good
+            self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=65535") # good
             #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=0") #worse than 65k
         else:
             self._tfile = ROOT.TFile.Open(self._fname)

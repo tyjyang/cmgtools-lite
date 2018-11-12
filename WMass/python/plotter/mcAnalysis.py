@@ -185,6 +185,9 @@ class MCAnalysis:
                 if options.usePickle:
                     pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
+                ## needed temporarily
+                pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
+
                 tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname); ttys.append(tty)
                 if signal: 
                     self._signals.append(tty)
@@ -198,15 +201,18 @@ class MCAnalysis:
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
                     ## get the counts from the histograms instead of pickle file
-                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                    tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                    histo_count        = tmp_rootfile.Get('Count')
-                    histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
-                    n_count        = histo_count       .GetBinContent(1)
+                    n_count = 0
+                    n_sumgenweight = 0
                     if options.usePickle:
                         pckobj  = pickle.load(open(pckfile,'r'))
                         counters = dict(pckobj)
-                    n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+                    else:
+                        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                        tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                        histo_count        = tmp_rootfile.Get('Count')
+                        histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                        n_count        = histo_count       .GetBinContent(1)
+                        n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
                     tmp_rootfile.Close()
                     if ( n_count != n_sumgenweight or (options.usePickle and ('Sum Weights' in counters))) and options.weight:
                         if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
