@@ -435,7 +435,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
             total.GetXaxis().SetLabelOffset(999) ## send them away
             total.GetXaxis().SetTitleOffset(999) ## in outer space
             total.GetYaxis().SetTitleSize(0.06)
-            total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.3) # 1.48
+            total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.48)
             if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
             total.GetYaxis().SetLabelSize(0.05)
             total.GetYaxis().SetLabelOffset(0.007)
