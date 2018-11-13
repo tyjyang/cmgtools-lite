@@ -182,8 +182,6 @@ class MCAnalysis:
                     # Heppy calls the tree just 'tree.root'
                     rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
                     rootfile = open(rootfile+".url","r").readline().strip()
-                if options.usePickle:
-                    pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
                 ## needed temporarily
                 pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
@@ -200,27 +198,23 @@ class MCAnalysis:
                 if pname in self._allData: self._allData[pname].append(tty)
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
-                    ## get the counts from the histograms instead of pickle file
-                    n_count = 0
-                    n_sumgenweight = 0
-                    if options.usePickle:
-                        pckobj  = pickle.load(open(pckfile,'r'))
-                        counters = dict(pckobj)
-                    else:
-                        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                        tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                        histo_count        = tmp_rootfile.Get('Count')
-                        histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
-                        n_count        = histo_count       .GetBinContent(1)
-                        n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
-                        tmp_rootfile.Close()
-                    if ( n_count != n_sumgenweight or (options.usePickle and ('Sum Weights' in counters))) and options.weight:
+                    ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
+                    # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                    # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                    # histo_count        = tmp_rootfile.Get('Count')
+                    # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                    # n_count        = histo_count       .GetBinContent(1)
+                    # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+                    # tmp_rootfile.Close()
+                    pckobj  = pickle.load(open(pckfile,'r'))
+                    counters = dict(pckobj)
+                    # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
+                    ## this needed for now...
+                    if ('Sum Weights' in counters) and options.weight:
                         if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 1; 
-                        if options.usePickle:
-                            total_w += counters['Sum Weights']
-                        else:
-                            total_w += n_sumgenweight
+                        # total_w += n_sumgenweight ## ROOT histo version
+                        total_w += counters['Sum Weights']
                         scale = "genWeight*(%s)" % field[2]
                     elif not options.weight:
                         scale = 1
@@ -230,10 +224,8 @@ class MCAnalysis:
                     else:
                         if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 0;
-                        if options.usePickle:
-                            total_w += counters['All Events']
-                        else:
-                            total_w += n_count
+                        # total_w += n_count ## ROOT histo version
+                        total_w += counters['All Events']
                         scale = "(%s)" % field[2]
                     if len(field) == 4: scale += "*("+field[3]+")"
                     for p0,s in options.processesToScale:
@@ -656,7 +648,6 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("--scaleplot", dest="plotscalemap", type="string", default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
     parser.add_option("-t", "--tree",          dest="tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--fom", "--figure-of-merit", dest="figureOfMerit", type="string", default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
-    parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used");
 
 if __name__ == "__main__":
     from optparse import OptionParser
