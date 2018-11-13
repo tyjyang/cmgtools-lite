@@ -30,6 +30,7 @@ data_fakes: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wma
 =0.30
 
 Z    : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04
+# 0.82 is for test, add inefficiency to DY MC to simulate loss of efficiency in data due to L1 prefire
 
 Z_LO : DYJetsToLL_M50_LO_* : 5765.40 ; FillColor=ROOT.kAzure+2, Label="Z (Madgraph)", NormSystematic=0.04
 

@@ -413,7 +413,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     ROOT.RooMsgService.instance().setGlobalKillBelow(gKill)
     
 
-def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False):
+def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True):
     numkeys = [ "data" ]
     if "data" not in pmap: 
         #print str(pmap)
@@ -436,6 +436,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
             total.GetXaxis().SetTitleOffset(999) ## in outer space
             total.GetYaxis().SetTitleSize(0.06)
             total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.48)
+            if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
             total.GetYaxis().SetLabelSize(0.05)
             total.GetYaxis().SetLabelOffset(0.007)
             # then we can overwrite total with background
@@ -458,6 +459,9 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
         else:
             ratio = pmap[numkey].Clone("data_div"); 
             ratio.Divide(total)
+            if not errorBarsOnRatio:
+                for i in range(ratio.GetNbinsX()+2):
+                    ratio.SetBinError(i,0)
         ratios.append(ratio)
     unity  = totalSyst.Clone("sim_div");
     unity0 = total.Clone("sim_div");
@@ -526,6 +530,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity.GetYaxis().SetTitleSize(0.14)
     offset = 0.32 if doWide else 0.62
     unity.GetYaxis().SetTitleOffset(offset)
+    if options.setTitleYoffset > 0: unity.GetYaxis().SetTitleOffset(offset * options.setTitleYoffset / 1.48)
     unity.GetYaxis().SetLabelFont(42)
     unity.GetYaxis().SetLabelSize(0.11)
     unity.GetYaxis().SetLabelOffset(0.007)
@@ -535,6 +540,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     total.GetXaxis().SetTitleOffset(999) ## in outer space
     total.GetYaxis().SetTitleSize(0.06)
     total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.48)
+    if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
     total.GetYaxis().SetLabelSize(0.05)
     total.GetYaxis().SetLabelOffset(0.007)
     binlabels = pspec.getOption("xBinLabels","")
@@ -670,7 +676,7 @@ def doStatTests(total,data,test,legendCorner):
 
 
 legend_ = None;
-def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False):
+def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None):
         if (corner == None): return
         total = sum([x.Integral() for x in pmap.itervalues()])
         sigEntries = []; bgEntries = []
@@ -704,6 +710,12 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
             (x1,y1,x2,y2) = (.5, .33 + textSize*max(nentries-3,0), .5+legWidth, .15)
         elif corner == "BL":
             (x1,y1,x2,y2) = (.2, .33 + textSize*max(nentries-3,0), .2+legWidth, .15)
+
+        if overrideLegCoord != None:
+            if len(overrideLegCoord.split(",")) == 4:
+                [x1,y1,x2,y2] = [float(coord) for coord in overrideLegCoord.split(",")]
+            else:
+                print "Warning in doLegend(): len(overrideLegCoord.split(",")) != 4 --> option will be ignored"                
 
         leg = ROOT.TLegend(x1,y1,x2,y2)
         if header: leg.SetHeader(header.replace("\#", "#"))
@@ -929,9 +941,17 @@ class PlotMaker:
 
                 # define aspect ratio
                 doWide = True if self._options.wideplot or pspec.getOption("Wide",False) else False
-                plotformat = (1200,600) if doWide else (2400,600) if options.veryWide else (600,600)
+                plotformat = (1200,600) if doWide else (2400,600) if options.veryWide else (options.setCanvasSize[0],options.setCanvasSize[1])
                 sf = 20./plotformat[0]
-                ROOT.gStyle.SetPadLeftMargin(600.*0.18/plotformat[0])
+                # there are way too things set automatically depending on settings that the user might want to customize
+                # should probably allow the user to set any of them, with some sensible default values
+                if doWide or options.veryWide:
+                    ROOT.gStyle.SetPadLeftMargin(600.*0.18/plotformat[0])
+                else:
+                    ROOT.gStyle.SetPadLeftMargin(0.18)
+                    if plotformat[0] > 1000: 
+                        ROOT.gStyle.SetPadLeftMargin(0.05)
+                        ROOT.gStyle.SetPadRightMargin(0.02)
 
                 stack.Draw("GOFF")
                 ytitle = "Events" if not self._options.printBinning else "Events / %s" %(self._options.printBinning)
@@ -944,6 +964,7 @@ class PlotMaker:
                 total.GetYaxis().SetTitleFont(42)
                 total.GetYaxis().SetTitleSize(0.05)
                 total.GetYaxis().SetTitleOffset(0.90 if doWide else 1.7)
+                if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
                 total.GetYaxis().SetLabelFont(42)
                 total.GetYaxis().SetLabelSize(0.05)
                 total.GetYaxis().SetLabelOffset(0.007)
@@ -986,6 +1007,7 @@ class PlotMaker:
                     p1.cd();
                 else:
                     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), plotformat[1] + (plotformat[1] - c1.GetWh()));
+
                 p1.SetLogy(islog)
                 p1.SetLogz(True if pspec.hasOption('Logz') else False)
                 if pspec.hasOption('Logx'):
@@ -1045,7 +1067,7 @@ class PlotMaker:
                                   textSize=( (0.045 if doRatio else 0.022) if options.legendFontSize <= 0 else options.legendFontSize ),
                                   legWidth=options.legendWidth, legBorder=options.legendBorder, signalPlotScale=options.signalPlotScale,
                                   header=self._options.legendHeader if self._options.legendHeader else pspec.getOption("LegendHeader", ""),
-                                  doWide=doWide, totalError=totalError)
+                                  doWide=doWide, totalError=totalError,overrideLegCoord=self._options.setLegendCoordinates)
                 if self._options.doOfficialCMS:
                     CMS_lumi.lumi_13TeV = "%.1f fb^{-1}" % self._options.lumi
                     CMS_lumi.extraText  = self._options.cmsprel
@@ -1093,8 +1115,9 @@ class PlotMaker:
                     p2.cd(); 
                     rdata,rnorm,rnorm2,rline = doRatioHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
                                                             fitRatio=options.fitRatio, errorsOnRef=options.errorBandOnRatio, 
-                                                            ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, doWide=doWide, 
-                                                            showStatTotLegend=(False if options.noLegendRatioPlot else True))
+                                                            ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, 
+                                                            doWide=doWide, showStatTotLegend=(False if options.noLegendRatioPlot else True),
+                                                            errorBarsOnRatio = options.errorBarsOnRatio)
                 if self._options.printPlots:
                     for ext in self._options.printPlots.split(","):
                         fdir = printDir;
@@ -1259,6 +1282,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--ratioNums", dest="ratioNums", type="string", default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
     parser.add_option("--ratioYLabel", dest="ratioYLabel", type="string", default="Data/pred.", help="Y axis label of the ratio histogram.")
     parser.add_option("--noErrorBandOnRatio", dest="errorBandOnRatio", action="store_false", default=True, help="Do not show the error band on the reference in the ratio plots")
+    parser.add_option("--noErrorBarsOnRatio", dest="errorBarsOnRatio", action="store_false", default=True, help="Do not show the error bars on the ratio plots (affect each numerator, unlike --noErrorBandOnRatio")
     parser.add_option("--fitRatio", dest="fitRatio", type="int", default=None, help="Fit the ratio with a polynomial of the specified order")
     parser.add_option("--scaleSigToData", dest="scaleSignalToData", action="store_true", default=False, help="Scale all signal processes so that the overall event yield matches the observed one")
     parser.add_option("--scaleBkgToData", dest="scaleBackgroundToData", action="append", default=[], help="Scale all background processes so that the overall event yield matches the observed one")
@@ -1283,6 +1307,8 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--pseudoData", dest="pseudoData", type="string", default=None, help="If set to 'background' or 'all', it will plot also a pseudo-dataset made from background (or signal+background) with Poisson fluctuations in each bin.")
     parser.add_option("--wide", dest="wideplot", action="store_true", default=False, help="Draw a wide canvas")
     parser.add_option("--verywide", dest="veryWide", action="store_true", default=False, help="Draw a very wide canvas")
+    parser.add_option("--canvasSize", dest="setCanvasSize", type="int", nargs=2, default=(600, 600), help="Set canvas height and width")
+    parser.add_option("--setTitleYoffset", dest="setTitleYoffset", type="float", default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
     parser.add_option("--elist", dest="elist", action="store_true", default='auto', help="Use elist (on by default if making more than 2 plots)")
     parser.add_option("--no-elist", dest="elist", action="store_false", default='auto', help="Don't elist (which are on by default if making more than 2 plots)")
     if not parser.has_option("--yrange"): parser.add_option("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
@@ -1298,6 +1324,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--printBin", dest="printBinning", type="string", default=None, help="Write 'Events/xx' instead of 'Events' on the y axis")
     parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
     parser.add_option("--contentAxisTitle", dest="contentAxisTitle", type="string", default=None, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
+    parser.add_option("--setLegendCoordinates", dest="setLegendCoordinates", type="string", default=None, help="Pass a comma separated list of 4 numbers (x1,y1,x2,y2) used to build the legend. It overrides options to set the legend position in MCA, so this option is more suited to create a single plot")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
 
 if __name__ == "__main__":

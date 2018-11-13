@@ -3,7 +3,12 @@
 // see https://root.cern.ch/doc/master/classTGraphPainter.html
 // for Graph painting options in root
 
-const static int smoothPolinDegree = 1; 
+const static int smoothPolinDegree = 2; 
+static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 32;
+const static Bool_t excludePoints_Data = false;
+static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true
+static const Double_t ptMax_excludeRangeData = 50;  // used only if excludePoints_Data = true
+
 const static Bool_t addfitpol2 = false;  // will also fit with a pol2 and draw (this is needed only when smoothPolinDegree = 1)
 // when I search for a bin given the boundary, the lower boundary should belong to the bin, the upper not, but rounding could ruin this logic 
 // so I add an epsilon
@@ -24,7 +29,6 @@ static const vector<Double_t> ptBinBoundariesData_2 = {30,32,34,36,38,40,42,44,4
 static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
 //static const vector<Double_t> ptBinBoundariesData_3 = {30,31,32,33,34,35,36,37,38,40,42,44,46,48,50,52,54,57,60,65};
 
-static const Double_t ptMin_fitRangeData = 32;
 
 vector<Double_t> etaBoundariesGlobal;
 
@@ -478,7 +482,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
   gr->GetXaxis()->SetTitleSize(0.05);
   gr->GetXaxis()->SetLabelSize(0.04);
-  gr->GetYaxis()->SetTitleOffset(1.1);
+  gr->GetYaxis()->SetTitleOffset(1.15);
   gr->GetYaxis()->SetTitleSize(0.05);
   gr->GetYaxis()->SetLabelSize(0.04);
   gr->GetXaxis()->SetTitle(xAxisName.c_str());
@@ -1049,11 +1053,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   createPlotDirAndCopyPhp(outDirFits);
 
   TFitResultPtr ptr_data_fitNarrowRange = nullptr;
-  TFitResultPtr ptr_data = fitGraph(fr_data_subEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data/", "data - EWK MC", legCoordFit,inputLuminosity,true, false, 1.0, true, &ptr_data_fitNarrowRange, true,37,50);
+  TFitResultPtr ptr_data = fitGraph(fr_data_subEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data/", "data - EWK MC", legCoordFit,inputLuminosity,true, false, 1.0, true, &ptr_data_fitNarrowRange, 
+				    excludePoints_Data,ptMin_excludeRangeData,ptMax_excludeRangeData);
 
-  TFitResultPtr ptr_data_subScaledUpEWKMC = fitGraph(fr_data_subScaledUpEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledUpEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledUpEWKMC/", Form("data - (1 + %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, true,37,50);
+  TFitResultPtr ptr_data_subScaledUpEWKMC = fitGraph(fr_data_subScaledUpEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledUpEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledUpEWKMC/", Form("data - (1 + %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, excludePoints_Data,ptMin_excludeRangeData,ptMax_excludeRangeData);
 
-  TFitResultPtr ptr_data_subScaledDownEWKMC = fitGraph(fr_data_subScaledDownEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledDownEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledDownEWKMC/", Form("data - (1 - %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, true,37,50);
+  TFitResultPtr ptr_data_subScaledDownEWKMC = fitGraph(fr_data_subScaledDownEWKMC, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_data.c_str()), Form("fr_data_subScaledDownEWKMC_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"data_subScaledDownEWKMC/", Form("data - (1 - %.1g #sigma) EWK MC",subtrEWK_nSigma), legCoordFit,inputLuminosity,true, false, 1.0, true, nullptr, excludePoints_Data,ptMin_excludeRangeData,ptMax_excludeRangeData);
 
   // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
@@ -1162,10 +1167,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_jetPt45/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45/", 
-					const string& outfileTag = "fr_18_09_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_allNewSF_fitPol1_minPtData32_jetPt45",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2/", 
+					const string& outfileTag = "fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

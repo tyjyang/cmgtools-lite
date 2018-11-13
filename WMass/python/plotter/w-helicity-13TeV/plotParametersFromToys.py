@@ -39,9 +39,9 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         elif paramFamily == "scale":
             pois="muR,muF,muRmuF,alphaS,wptSlope" 
             if channel == "el":
-                pois += ",CMS_We_elescale,CMS_We_FRe_pt,CMS_We_FRe_norm"
+                pois += ",CMS_We_sig_lepeff,CMS_We_elescale,CMS_We_FRe_slope,CMS_We_FRe_continuous"
             else:
-                pois += ",CMS_We_elescale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_norm"
+                pois += ",CMS_Wmu_sig_lepeff,CMS_Wmu_muscale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_continuous"
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName)
         elif paramFamily == "signalStrength":
             pois="W{ch}.*_mu".format(ch=charge)
@@ -345,6 +345,7 @@ if __name__ == "__main__":
 
     outname = options.plotdir
     addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
+    outname = outname + options.charge + "/"
     createPlotDirAndCopyPhp(outname)
 
     toyfile = args[0]

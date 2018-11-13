@@ -1,10 +1,10 @@
 #! /bin/bash  
 
-# assume root files with trees are in folder toys/<name>/<charge>
-# merge file will be created in toys/<name>/ and will have <charge> in its name
+# assume root files with trees are in folder toydir
+# merge file will be created in outdir and will have <charge> in its name
 
 charge="comb_WchargeAsymmetry"
-toydir="toys/diffXsec_mu_2018_09_25_group10_legacySF/"
+toydir="toys/diffXsec_el_2018_09_20_group10_legacySF/"
 outdir="${toydir}${charge}/"
 outname="toys_${charge}.root"
 sizemin="1000"

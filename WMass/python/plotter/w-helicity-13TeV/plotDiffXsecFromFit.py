@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] fitresults.root")
     parser.add_option('-t', '--type' , dest='type'  , default='hessian' , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save things')
+    parser.add_option('-s','--suffix', dest='suffix', default='', type='string', help='Suffix appended to folder name (e.g. hessian_<suffix>)')
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
     parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates (will have to implement reading it from file). Use -b file=<name> to read binning from file <name>')
@@ -81,7 +82,7 @@ if __name__ == "__main__":
 
         outname = options.outdir
         addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
-        outname = outname + options.type + "/" + charge + "/"
+        outname = outname + options.type + ("" if not options.suffix else ("_"+options.suffix)) + "/" + charge + "/"
         createPlotDirAndCopyPhp(outname)
 
         print ""
@@ -166,7 +167,7 @@ if __name__ == "__main__":
         yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
         #zaxisTitle = "#mu::%.3g,%.3g" % (hmu.GetMinimum(), hmu.GetMaximum())
 
-        zaxisTitle = "#mu::0.99,1.01"
+        zaxisTitle = "#mu::0.998,1.002"
         drawCorrelationPlot(hmu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu.GetName(),
@@ -180,13 +181,13 @@ if __name__ == "__main__":
                             hmu_err.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
-        zaxisTitle = "d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu.GetMinimum(), h_pmaskedexpnorm_mu.GetMaximum())
+        zaxisTitle = "d#sigma/d#etadp_{T} / #sigma_{tot} [1/GeV]::%.3g,%.3g" % (h_pmaskedexpnorm_mu.GetMinimum(), h_pmaskedexpnorm_mu.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1,0.14,0.22,passCanvas=canvas)
 
-        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot}::%.3g,%.3g" % (h_pmaskedexpnorm_mu_err.GetMinimum(), h_pmaskedexpnorm_mu_err.GetMaximum())
+        zaxisTitle = "uncertainty on d#sigma/d#etadp_{T} / #sigma_{tot} [1/GeV]::%.3g,%.3g" % (h_pmaskedexpnorm_mu_err.GetMinimum(), h_pmaskedexpnorm_mu_err.GetMaximum())
         drawCorrelationPlot(h_pmaskedexpnorm_mu_err, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             h_pmaskedexpnorm_mu_err.GetName(),
@@ -242,5 +243,10 @@ if __name__ == "__main__":
         h1D_pmaskedexp = getTH1fromTH2(h_pmaskedexp_mu, h_pmaskedexp_mu_err, unrollAlongX=unrollAlongEta)        
         drawSingleTH1(h1D_pmaskedexp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]","unrolledXsec_pmaskedexp_{ch}_{fl}".format(ch= charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",draw_both0_noLog1_onlyLog2=1,canvasSize="3000,2000")
+
+        h1D_pmaskedexp_norm = getTH1fromTH2(h_pmaskedexpnorm_mu, h_pmaskedexpnorm_mu_err, unrollAlongX=unrollAlongEta)        
+        drawSingleTH1(h1D_pmaskedexp_norm,xaxisTitle,"d#sigma/d#etadp_{T} / #sigma_{tot} [1/GeV]","unrolledXsec_pmaskedexpnorm_{ch}_{fl}".format(ch= charge,fl=channel),
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",draw_both0_noLog1_onlyLog2=1,canvasSize="3000,2000")
+
 
         #infile.Close()

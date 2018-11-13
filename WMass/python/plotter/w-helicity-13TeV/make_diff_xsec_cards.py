@@ -13,87 +13,7 @@ import numpy as np
 NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
 pdfsysts=[] # array containing the PDFs signal variations
 qcdsysts=[] # array containing the QCD scale signal variations
-
-def getMcaIncl(mcafile,incl_mca='incl_sig'):
-    incl_file=''
-    mcaf = open(mcafile,'r')
-    for l in mcaf.readlines():
-        if re.match("\s*#.*", l): continue
-        tokens = [t.strip() for t in l.split(':')]
-        if len(tokens)<2: continue
-        if tokens[0]==incl_mca and "+" in tokens[1]:
-            options_str = [t.strip() for t in (l.split(';')[1]).split(',')]
-            for o in options_str:
-                if "IncludeMca" in o: 
-                    incl_file = o.split('=')[1]
-            break
-    return incl_file
-
-def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='incl_sig',append=False):
-    open("%s/systEnv-dummy.txt" % odir, 'a').close()
-    incl_file=getMcaIncl(mcafile,incl_mca)
-    if len(incl_file)==0: 
-        print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
-        return
-    if append:
-        filename = "%s/mca_systs.txt" % odir
-        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
-    for i in range(1,NPDFSYSTS+1):
-        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i)
-        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+vec_weight+str(i)+'", PostFix="'+postfix+'" \n')
-        pdfsysts.append(postfix)
-    print "written ",syst," systematics relative to ",incl_mca
-
-def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False):
-    open("%s/systEnv-dummy.txt" % odir, 'a').close()
-    incl_file=getMcaIncl(mcafile,incl_mca)
-    if len(incl_file)==0: 
-        print "Warning! '%s' include directive not found. Not adding QCD scale systematics!"
-        return
-    if append:
-        filename = "%s/mca_systs.txt" % odir
-        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))    
-    for scale in scales:
-        for idir in ['Up','Dn']:
-            postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
-            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-            if not scale == "wptSlope": ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
-                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
-            else:
-                sign  =  1 if idir == 'Dn' else -1
-                asign = -1 if idir == 'Dn' else  1
-                offset = 0.05; slope = 0.005;
-                fstring = "wpt_slope_weight(genw_pt\,{off:.3f}\,{slo:.3f})".format(off=1.+asign*offset, slo=sign*slope)
-                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
-            qcdsysts.append(postfix)
-    print "written ",syst," systematics relative to ",incl_mca
-
-def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
-    SYSTFILEALL=('.').join(filename.split('.')[:-1])+"-all.txt"
-    copyfile(filename,SYSTFILEALL)
-    systfile=open(SYSTFILEALL,"a")
-    for i in range(NPDFSYSTS/2):
-        systfile.write(syst+str(i+1)+"  : "+sample+" : .* : pdf"+str(i+1)+" : templates\n")
-    print "written pdf syst configuration to ",SYSTFILEALL
-    return SYSTFILEALL
-
-
-def submitBatch(dcname,outdir,mkShCardsCmd,options):
-    srcfile=outdir+"/jobs/"+dcname+".sh"
-    logfile=outdir+"/jobs/"+dcname+".log"
-    srcfile_op = open(srcfile,"w")
-    srcfile_op.write("#! /bin/sh\n")
-    srcfile_op.write("ulimit -c 0 -S\n")
-    srcfile_op.write("ulimit -c 0 -H\n")
-    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {dir};\n".format( 
-            dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
-    srcfile_op.write(mkShCardsCmd)
-    os.system("chmod a+x "+srcfile)
-    cmd = "bsub -q {queue} -o {dir}/{logfile} {dir}/{srcfile}\n".format(
-        queue=options.queue, dir=os.getcwd(), logfile=logfile, srcfile=srcfile)
-    if options.dryRun: print cmd
-    else: os.system(cmd)
+etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta 
 
 # new function
 def getArrayParsingString(inputString, verbose=False, makeFloat=False):
@@ -203,6 +123,259 @@ def getDiffXsecBinning(inputBins, whichBins="reco"):
     return binning
 
 
+def wptBinsScales(i):
+    wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
+    #if len(wptbins)<2*i:
+    #    print 'you are asking too much from the wpt binning for decorrelation of scales'
+    #bin = 2*(i-1)
+    ptlo = wptbins[i-1]
+    pthi = wptbins[1]
+    return [ptlo, pthi]
+
+
+def getCondorTime(qstr):
+    retval = ''
+    if   qstr == '1nh':
+        retval = 3600
+    elif qstr == '8nh':
+        retval = 28800
+    elif qstr == '1nd' or qstr == 'cmscaf1nd':
+        retval = 24*3600
+    elif qstr == '2nd':
+        retval = 48*3600
+    elif qstr == '1nw':
+        retval = 7*24*3600
+    else:
+        retval = int(qstr)*60*60
+    return int(retval)
+
+
+def getMcaIncl(mcafile,incl_mca='incl_sig'):
+    incl_file=''
+    mcaf = open(mcafile,'r')
+    for l in mcaf.readlines():
+        if re.match("\s*#.*", l): continue
+        tokens = [t.strip() for t in l.split(':')]
+        if len(tokens)<2: continue
+        if tokens[0]==incl_mca and "+" in tokens[1]:
+            options_str = [t.strip() for t in (l.split(';')[1]).split(',')]
+            for o in options_str:
+                if "IncludeMca" in o: 
+                    incl_file = o.split('=')[1]
+            break
+    return incl_file
+
+def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='incl_sig',append=False):
+    open("%s/systEnv-dummy.txt" % odir, 'a').close()
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    if len(incl_file)==0: 
+        print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
+        return
+    if append:
+        filename = "%s/mca_systs.txt" % odir
+        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
+    for i in range(1,NPDFSYSTS+1):
+        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i)
+        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+vec_weight+str(i)+'", PostFix="'+postfix+'" \n')
+        pdfsysts.append(postfix)
+    print "written ",syst," systematics relative to ",incl_mca
+
+def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False):
+    open("%s/systEnv-dummy.txt" % odir, 'a').close()
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    if len(incl_file)==0: 
+        print "Warning! '%s' include directive not found. Not adding QCD scale systematics!"
+        return
+    if append:
+        filename = "%s/mca_systs.txt" % odir
+        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))    
+    for scale in scales:
+        for idir in ['Up','Dn']:
+            postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
+            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+            if scale == "wptSlope":
+                sign  =  1 if idir == 'Dn' else -1
+                asign = -1 if idir == 'Dn' else  1
+                offset = 0.05; slope = 0.005;
+                fstring = "wpt_slope_weight({wv}_pt\,{off:.3f}\,{slo:.3f})".format(wv=options.wvar,off=1.+asign*offset, slo=sign*slope)
+                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+                qcdsysts.append(postfix)
+            elif scale == "mW":
+                ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
+                fstring = "mass_80470" if idir == 'Up' else "mass_80370"
+                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
+                qcdsysts.append(postfix)
+            elif 'muR' in scale or 'muF' in scale:
+                for ipt in range(1,11): ## start from 1 to 10
+                    ## have to redo the postfix for these
+                    postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
+                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                    ptcut = wptBinsScales(ipt)
+                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                    qcdsysts.append(postfix)
+            else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
+                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
+                qcdsysts.append(postfix)
+    print "written ",syst," systematics relative to ",incl_mca
+
+# def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
+#     open("%s/systEnv-dummy.txt" % odir, 'a').close()
+#     incl_file=getMcaIncl(mcafile,incl_mca)
+#     if len(incl_file)==0: 
+#         print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
+#         return
+#     if append:
+#         filename = "%s/mca_systs.txt" % odir
+#         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
+#     etalo = -2.5 if channel=='el' else -2.4
+#     deta = 0.1; nbins = int(2*abs(etalo)/deta)
+#     for i in range(0,nbins):
+#         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
+#         # 3 parameters used in the Erf fit vs pt per eta bin
+#         for ipar in xrange(3):
+#             postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
+#             mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+#             weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+#             mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
+#             etaeffsysts.append(postfix)
+#     print "written ",syst," systematics relative to ",incl_mca
+
+def writeEfficiencyStatErrorSystsToMCA_diffXsec(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False,genEtaBins=None):
+# templates for diff xsec are sparse. For each signal process there is a single eta bin (actually 2, one on each eta side) that is not empty
+# these reco bins might have the neighboring two with few events due to eta resolution, but the fractions is so small that they could be neglected
+# so, while for helicity 3xN variations (N =50 or 48, it is the number of reco eta bins) are defined for each signal process (which is a |Yw| bin), 
+# for the diff xsec it is better to have only 3*2 variations for each signal process (might become 3x6 if also the 2 neighboring eta bins are considered)
+# In this case, defining the MCA such that it includes the nominal one is not feasible, because this would create the 3*50 variations.
+# Therefore, I need to create here a new MCA file for the EffStat systematics
+
+# I need to consider all the reco bins associated to a gen bin (the binning might be different)
+# Let's assume the reco binning in eta is always 0.1 granular for simplicity (the EB-EE gap might non follow the convention, though)
+
+    print "="*20
+    print "Preparing MCA files for EffStat systematics"
+    print "-"*20
+
+    open("%s/systEnv-dummy.txt" % odir, 'a').close()
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    if len(incl_file)==0: 
+        print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
+        return
+    if append:
+        filename = "%s/mca_systs.txt" % odir
+        if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
+    etalo = -2.5 if channel=='el' else -2.4
+    # avoid case where gen bins is in [0,2.4] for electrons but the template extends up to 2.5, for muons it is easier
+    if genEtaBins[-1] == 2.4: etalo = -2.4 
+    deta = 0.1
+    nbins = int(2*(abs(etalo)+0.001)/deta) # sum an epsilon to etalow before division, to avoid rounding effects
+    print "nbins = %s" % str(nbins)
+
+    for i in range(0,nbins):
+        etamin = etalo + i*deta 
+        etamax = etamin + deta;
+        # 3 parameters used in the Erf fit vs pt per eta bin
+
+        # get the gen bin number that contains the reco bins considered here
+        # note that the gen bins in eta cannot be more granular than deta 
+        # indeed, it would not make sense that reco binning is less granular than the gen, and the reco will never be more granular than 0.1 in eta
+        genbin = getArrayBinNumberFromValue(genEtaBins,abs((etamax+etamin)/2.)) 
+        ietaMatch = "_ieta_"+str(genbin)+"_"
+        print "eff. bin [%.1f, %.1f] --> ietaMatch = %s" %  (etamin,etamax,ietaMatch)
+
+        # might implement the variation for the neighboring bins as well
+
+        for ipar in xrange(3):
+            postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
+            mcafile_syst = None
+            try:
+                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+            finally:
+                if mcafile_syst is not None:
+                    weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+                    etaeffsysts.append(postfix)
+                    # incl_file is something like "w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt"
+                    # must remove the " to use the path
+                    incl_file_path = incl_file.replace('"','') 
+                    with open(incl_file_path, "r") as fileMCA:   
+                        for line in fileMCA:
+                            if line.startswith("W"):
+                                line  = line.rstrip('\n')  # remove newline at the end
+                                procName = line.split(":")[0]
+                                procName = procName.strip()
+                                if "outliers" in procName or ietaMatch in procName:
+                                    #ieta,ipt = get_ieta_ipt_from_process_name(procName) # only for non-outliers
+                                    # same line but different process name and one additional weight
+                                    newline = procName+postfix + " : " + ":".join(line.split(":")[1:]) + ', AddWeight="' + weightFcn + '"\n'
+                                    newline = line.replace(procName,procName+postfix) + ', AddWeight="' + weightFcn + '"\n'
+                                    mcafile_syst.write(newline)
+                    mcafile_syst.close()
+                else:
+                    raise RuntimeError, "Could not open file mcafile_syst in writeEfficiencyStatErrorSystsToMCA_diffXsec()"
+
+    print "written ",syst," systematics relative to ",incl_mca
+    print "="*20
+
+
+##############
+
+def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
+    SYSTFILEALL=('.').join(filename.split('.')[:-1])+"-all.txt"
+    copyfile(filename,SYSTFILEALL)
+    systfile=open(SYSTFILEALL,"a")
+    for i in range(NPDFSYSTS/2):
+        systfile.write(syst+str(i+1)+"  : "+sample+" : .* : pdf"+str(i+1)+" : templates\n")
+    print "written pdf syst configuration to ",SYSTFILEALL
+    return SYSTFILEALL
+
+
+def submitBatch(dcname,outdir,mkShCardsCmd,options):
+    srcfile=outdir+"/jobs/"+dcname+".sh"
+    logfile=outdir+"/logs/"+dcname+".log"
+    srcfile_op = open(srcfile,"w")
+    srcfile_op.write("#! /bin/sh\n")
+    srcfile_op.write("ulimit -c 0 -S\n")
+    srcfile_op.write("ulimit -c 0 -H\n")
+    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {dir};\n".format( 
+            dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    srcfile_op.write(mkShCardsCmd)
+    os.system("chmod a+x "+srcfile)
+    cmd = "bsub -q {queue} -o {dir}/{logfile} {dir}/{srcfile}\n".format(
+        queue=options.queue, dir=os.getcwd(), logfile=logfile, srcfile=srcfile)
+    if options.dryRun: print cmd
+    else: os.system(cmd)
+
+# currently not used
+def makeCondorFile(srcFile):
+    condor_file = open(srcFile.replace('.sh','.condor'),'w')
+    condor_file.write('''Universe = vanilla
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {pid}.log
+Output     = {pid}.out
+Error      = {pid}.error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}
+queue 1\n
+'''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
+    condor_file.close()
+
+
+def getShFile(jobdir, name):
+    tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
+    tmp_srcfile = open(tmp_srcfile_name, 'w')
+    tmp_srcfile.write("#! /bin/sh\n")
+    tmp_srcfile.write("ulimit -c 0 -S\n")
+    tmp_srcfile.write("ulimit -c 0 -H\n")
+    tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    return tmp_srcfile_name, tmp_srcfile
+
+
 
 if __name__ == "__main__":
 
@@ -222,6 +395,9 @@ if __name__ == "__main__":
     parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--xsec-sigcard-binned", dest="xsec_sigcard_binned",   action="store_true", default=False, help="When doing differential cross-section, will make 1 signal card for each 2D template bin (default is False because the number of cards easily gets huge)");
+    parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
+    parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="Choose between genw (for dressed lepton) and prefsrw (preFSR lepton)");  
+    parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used"); 
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 6:
@@ -256,6 +432,9 @@ if __name__ == "__main__":
         os.makedirs(outdir)
     if options.queue and not os.path.exists(outdir+"/jobs"): 
         os.mkdir(outdir+"/jobs")
+        os.mkdir(outdir+"/logs")
+        os.mkdir(outdir+"/outs")
+        os.mkdir(outdir+"/errs")
         os.mkdir(outdir+"/mca")
 
     # copy some cfg for bookkeeping
@@ -270,6 +449,15 @@ if __name__ == "__main__":
     ptEta_binfile.write("gen: "+genBinning+"\n")
     ptEta_binfile.write('\n')
     ptEta_binfile.close()
+
+    etabinning=genBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array
+    ptbinning=genBinning.split('*')[1]
+    etabinning = getArrayParsingString(etabinning)
+    ptbinning = getArrayParsingString(ptbinning)
+    nptbins = len(ptbinning)-1
+    netabins = len(etabinning)-1
+    nGenCategories = (netabins)*(nptbins)
+    print "There are %d * %d = %d gen |eta|*pt signal categories for each charge" % (netabins,nptbins,nGenCategories)
     
     if options.addPdfSyst:
         # write the additional systematic samples in the MCA file
@@ -279,8 +467,10 @@ if __name__ == "__main__":
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope"])
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
+
+    writeEfficiencyStatErrorSystsToMCA_diffXsec(MCA,outdir+"/mca",options.channel,genEtaBins=[float(x) for x in etabinning])
 
     ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
     BASECONFIG=os.path.dirname(MCA)
@@ -291,25 +481,14 @@ if __name__ == "__main__":
     OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
     if not options.notUnroll2D:
         OPTIONS+=" --2d-binning-function unroll2Dto1D "
+    if options.usePickle:
+        OPTIONS+=" --usePickle "
 
     if options.queue:
         import os, sys
         basecmd = "bsub -q {queue} {dir}/lxbatch_runner.sh {dir} {cmssw} python {self}".format(
                     queue = options.queue, dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0]
                 )
-
-    etabinning=genBinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array
-    ptbinning=genBinning.split('*')[1]
-    etabinning = getArrayParsingString(etabinning)
-    ptbinning = getArrayParsingString(ptbinning)
-    #ptVarCutEl="ptElFull(LepGood1_calPt,LepGood1_eta)"
-    #ptVarCutMu="LepGood1_pt"
-    #ptVarCut = "GenLepDressed_pt[0]" #  ptVarCutEl if (options.channel == "el") else ptVarCutMu
-    #etaVarCut = "abs(GenLepDressed_eta[0])" #"LepGood1_eta"
-    nptbins = len(ptbinning)-1
-    netabins = len(etabinning)-1
-    nGenCategories = (netabins)*(nptbins)
-    print "There are %d * %d = %d gen |eta|*pt signal categories for each charge" % (netabins,nptbins,nGenCategories)
 
     ngroup = 0
     if options.groupSignalBy:
@@ -333,29 +512,65 @@ if __name__ == "__main__":
 
     POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
     NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
+    fullJobList = []
 
     if options.signalCards:
 
         print "MAKING SIGNAL PART: "
+
+        # this is a special case, each var has its own MCA file, which manages both charges, outliers and so on
+        # for the same reason, it must be done one time only, so just for ibin == 0
+        if len(etaeffsysts):
+            for ivar, var in enumerate(etaeffsysts):
+
+                if "EffStat" in var:
+
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                    #print "Running the systematic: ",var
+                    if not os.path.exists(outdir): os.makedirs(outdir)
+                    if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
+
+                    dcname = "W_{channel}{syst}".format(channel=options.channel,syst=var)
+                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir
+                    if options.queue:
+                        mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        if options.useLSF:
+                            submitBatch(dcname,outdir,mkShCardsCmd,options)
+                        else:
+                            fullJobList.append(mkShCardsCmd)
+                    else:
+                        cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                        if options.dryRun: print cmd
+                        else:
+                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                            out, err = p.communicate() 
+                            result = out.split('\n')
+                            for lin in result:
+                                if not lin.startswith('#'):
+                                    print(lin)
+
+                ######  if not EffStat go on with the rest
+
 
         # we will use a trick to make the outliers (gen bins outside the reco template)
         # in the loop below ibin should be in range(loopBins): we actually do it up to loopBins+1 and treat the last one in a special way
         # In this way, when ibin == loopBins we know we are considering the outliers
 
         for ibin in xrange(loopBins + 1):
-
             wsyst = ['']+[x for x in pdfsysts+qcdsysts if 'sig' in x]
             for ivar,var in enumerate(wsyst):
+                
                 for charge in ['plus','minus']:
                     antich = 'plus' if charge == 'minus' else 'minus'
                     # ivar == 0 --> nominal, root file should also contain lepton scale systematic if implemented
-                    # ivar != 0 --> shape systematics: pdf, qcd scales, wptSlope 
+                    # ivar != 0 --> shape systematics: pdf, qcd scales, wptSlope, etc...
                     if ivar==0: 
                         IARGS = ARGS
                     else: 
                         IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                         IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                        print "Running the systematic: ",var
+                        #print "Running the systematic: ",var
                     if not os.path.exists(outdir): os.makedirs(outdir)
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
@@ -373,8 +588,8 @@ if __name__ == "__main__":
                     if ibin == loopBins:
                         # do outliers
                         
-                        print "Making card for pt<%s || pt>=%s || |eta|>=%s and signal process with charge %s " % (ptbinning[0],ptbinning[nptbins],
-                                                                                                                   etabinning[netabins],charge)
+                        #print "Making card for pt<%s || pt>=%s || |eta|>=%s and signal process with charge %s " % (ptbinning[0],ptbinning[nptbins],
+                        #                                                                                           etabinning[netabins],charge)
                         # caution with ending .* in regular expression: pt bin = 1 will match 11,12,... as well
                         # here we don't need regular expression there is just one bin
                         if ivar == 0:
@@ -384,7 +599,12 @@ if __name__ == "__main__":
                                 lepscale = ",W{charge}_{channel}_outliers_muscale.*,W{charge}_{channel}_outliers_lepeff_.*".format(charge=charge, channel=options.channel)
                             selectedSigProcess = ' -p W{charge}_{channel}_outliers{lepscale}  '.format(charge=charge, channel=options.channel,lepscale=lepscale)  
                         else:
-                            selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
+                            if "EffStat" in syst:
+                                # EffStat systematics are not applied to any bins, there is a specific MCA. For the outliers, it is always applied
+                                # but let's not define the card from here
+                                pass
+                            else:
+                                selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
 
                         ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,syst=syst)
                         ## keep same logic as before for the datacard name
@@ -426,9 +646,9 @@ if __name__ == "__main__":
                             ieta,ipt = getXYBinsFromGlobalBin(ibin,netabins)
                             signalPrefix = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}".format(charge=charge, channel=options.channel,ieta=ieta,ipt=ipt)
 
-                            print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
-                                                                                                                etabinning[ieta],etabinning[ieta+1],
-                                                                                                                charge)
+                            #print "Making card for %s<=pt<%s, %s<=|eta|<%s and signal process with charge %s " % (ptbinning[ipt],ptbinning[ipt+1],
+                            #                                                                                    etabinning[ieta],etabinning[ieta+1],
+                            #                                                                                    charge)
                             ##########################
                             # I don't need anymore to change the cut, because I am already running with an mca file having one process for each bin
                             # (the cut is in the process definition inside the mca)
@@ -459,7 +679,10 @@ if __name__ == "__main__":
                     BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
                     if options.queue:
                         mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                        submitBatch(dcname,outdir,mkShCardsCmd,options)
+                        if options.useLSF:
+                            submitBatch(dcname,outdir,mkShCardsCmd,options)
+                        else:
+                            fullJobList.append(mkShCardsCmd)
                     else:
                         cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                         if options.dryRun: print cmd
@@ -483,7 +706,10 @@ if __name__ == "__main__":
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
             if options.queue:
                 mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                if options.useLSF:
+                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                else:
+                    fullJobList.append(mkShCardsCmd)
             else:
                 cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
                 if options.dryRun: print cmd
@@ -514,7 +740,10 @@ if __name__ == "__main__":
                 BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 if options.queue:
                     mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                    if options.useLSF:
+                        submitBatch(dcname,outdir,mkShCardsCmd,options)
+                    else:
+                        fullJobList.append(mkShCardsCmd)
                 else:
                     cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
                     if options.dryRun: print cmd
@@ -525,3 +754,113 @@ if __name__ == "__main__":
                         for lin in result:
                             if not lin.startswith('#'):
                                 print(lin)
+
+
+# this part is for condor
+    if not options.useLSF and len(fullJobList):
+        reslist = list(fullJobList)
+
+        ## analysis too large protection             
+        reslistnew = []
+        npart = 0
+        for ic, pc in enumerate(reslist):
+            nc = pc.replace('--od {od}'.format(od=outdir), '--od {od}/part{n}'.format(od=outdir,n=npart))
+            reslistnew.append(nc)
+            if not (ic+1)%6000:
+                npart += 1
+
+        reslist = reslistnew
+
+
+        ## split the list into non-bkg and bkg_and_data
+        bkglist = [i for i in reslist if     'bkg_and_data' in i]
+        reslist = [i for i in reslist if not 'bkg_and_data' in i]
+
+        nj = len(reslist)
+        print 'full number of python commands to submit', nj+len(bkglist)
+        #print '   ... grouping them into bunches of', options.groupJobs
+
+        njobs = nj
+        # if not nj%options.groupJobs:
+        #     njobs = int(nj/options.groupJobs)
+        # else: 
+        #     njobs = int(nj/options.groupJobs) + 1
+
+        jobdir = outdir+'/jobs/'
+        logdir = outdir+'/logs/'
+        outdirCondor = outdir+'/outs/'
+        errdir = outdir+'/errs/'
+        os.system('mkdir -p '+jobdir)
+        subcommands = []
+
+        sourcefiles = []
+        ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first
+        for ib in bkglist:
+            pm = 'plus' if 'positive' in ib else 'minus'
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+            tmp_srcfile.write(ib)
+            tmp_srcfile.close()
+            sourcefiles.append(tmp_srcfile_name)
+            #makeCondorFile(tmp_srcfile_name)
+            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+        ## now do the others.
+        for ij in range(njobs):
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
+            #tmp_n = options.groupJobs
+            #while len(reslist) and tmp_n:
+            one = True  # I might decide to group commands
+            while len(reslist) and one:
+                tmp_pycmd = reslist[0]
+                tmp_srcfile.write(tmp_pycmd)
+                reslist.remove(tmp_pycmd)
+                one = False
+            tmp_srcfile.close()
+            sourcefiles.append(tmp_srcfile_name)
+            #makeCondorFile(tmp_srcfile_name)
+            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+
+        dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+        dummy_exec.write('#!/bin/bash\n')
+        dummy_exec.write('bash $*\n')
+        dummy_exec.close()
+
+        condor_file_name = jobdir+'/condor_submit.condor'
+        condor_file = open(condor_file_name,'w')
+        condor_file.write('''Universe = vanilla
+Executable = {de}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {ld}/$(ProcId).log
+Output     = {od}/$(ProcId).out
+Error      = {ed}/$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}\n
+'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
+           rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+        if os.environ['USER'] in ['mdunser', 'psilva']:
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+        for sf in sourcefiles:
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
+        condor_file.close()
+
+        #print 'i have {n} jobs to submit!'.format(n=len(subcommands))
+        if options.dryRun:
+            print 'running dry, printing the commands...'
+            print 'condor_submit ',condor_file_name
+            #for cmd in subcommands:
+            #    print cmd
+        else:
+            print 'submitting for real...'
+            os.system('condor_submit {cfn}'.format(cfn=condor_file_name))
+            ##sigDyBkg = '_signal' if options.signalCards else '_background'
+            ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
+            ##pipefile = open(pipefilename, 'w')
+            ##print 'piping all the commands in file', pipefilename
+            ##for cmd in subcommands:
+            ##    pipefile.write(cmd+'\n')
+            ##pipefile.close()
+            ##os.system('bash '+pipefilename)
+
+    print 'done'
