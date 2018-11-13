@@ -212,7 +212,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                     postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
                     mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
                     ptcut = wptBinsScales(ipt)
-                    wgtstr = 'TMath::Power(qcd_{sc}{idir},({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
                     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
                     qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
@@ -332,7 +332,7 @@ def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
 
 def submitBatch(dcname,outdir,mkShCardsCmd,options):
     srcfile=outdir+"/jobs/"+dcname+".sh"
-    logfile=outdir+"/jobs/"+dcname+".log"
+    logfile=outdir+"/logs/"+dcname+".log"
     srcfile_op = open(srcfile,"w")
     srcfile_op.write("#! /bin/sh\n")
     srcfile_op.write("ulimit -c 0 -S\n")
@@ -346,6 +346,7 @@ def submitBatch(dcname,outdir,mkShCardsCmd,options):
     if options.dryRun: print cmd
     else: os.system(cmd)
 
+# currently not used
 def makeCondorFile(srcFile):
     condor_file = open(srcFile.replace('.sh','.condor'),'w')
     condor_file.write('''Universe = vanilla
@@ -395,7 +396,8 @@ if __name__ == "__main__":
     parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--xsec-sigcard-binned", dest="xsec_sigcard_binned",   action="store_true", default=False, help="When doing differential cross-section, will make 1 signal card for each 2D template bin (default is False because the number of cards easily gets huge)");
     parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
-    parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="Choose between genw (for dressed lepton) and prefsrw (preFSR lepton)");    
+    parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="Choose between genw (for dressed lepton) and prefsrw (preFSR lepton)");  
+    parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used"); 
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 6:
@@ -430,6 +432,9 @@ if __name__ == "__main__":
         os.makedirs(outdir)
     if options.queue and not os.path.exists(outdir+"/jobs"): 
         os.mkdir(outdir+"/jobs")
+        os.mkdir(outdir+"/logs")
+        os.mkdir(outdir+"/outs")
+        os.mkdir(outdir+"/errs")
         os.mkdir(outdir+"/mca")
 
     # copy some cfg for bookkeeping
@@ -476,6 +481,8 @@ if __name__ == "__main__":
     OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
     if not options.notUnroll2D:
         OPTIONS+=" --2d-binning-function unroll2Dto1D "
+    if options.usePickle:
+        OPTIONS+=" --usePickle "
 
     if options.queue:
         import os, sys
@@ -780,6 +787,9 @@ if __name__ == "__main__":
         #     njobs = int(nj/options.groupJobs) + 1
 
         jobdir = outdir+'/jobs/'
+        logdir = outdir+'/logs/'
+        outdirCondor = outdir+'/outs/'
+        errdir = outdir+'/errs/'
         os.system('mkdir -p '+jobdir)
         subcommands = []
 
@@ -820,18 +830,19 @@ if __name__ == "__main__":
         condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = $(ProcId).log
-Output     = $(ProcId).out
-Error      = $(ProcId).error
+Log        = {ld}/$(ProcId).log
+Output     = {od}/$(ProcId).out
+Error      = {ed}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=dummy_exec.name, rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
+           rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
         for sf in sourcefiles:
-            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=sf))
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
         condor_file.close()
 
         #print 'i have {n} jobs to submit!'.format(n=len(subcommands))

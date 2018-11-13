@@ -46,3 +46,8 @@ python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31Jul
 python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31July2018.txt w-helicity-13TeV/wmass_e/skim_fr_el_new.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_1LEP_80X_V3_MC /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9_dataAndBkg -f w-helicity-13TeV/wmass_e/varsSkim_80X_fr_new_friends.txt --fo -q cmscaf1nd --log logs_friends_FRskim_01Nov2018_dataAndBkg  --pretend
 
 
+# signal skim full sel (from W->enu skim)
+python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims_W.txt w-helicity-13TeV/wmass_e/wenu-80X-skim_fullsel.txt /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_WSKIM_NEW/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WENU_FULLSEL_NOMT -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --main-only -q cmscaf1nd --log logs_Wskim_12Nov2018 --pretend
+
+# friends (vars can be the same as for DY)
+python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims_W.txt w-helicity-13TeV/wmass_e/wenu-80X-skim_fullsel.txt /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_WSKIM_NEW/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WENU_FULLSEL_NOMT -f w-helicity-13TeV/wmass_e/varsSkim_80X_DY_sig_friends.txt --fo -q cmscaf1nd --log logs_friends_Wskim_12Nov2018 --pretend
