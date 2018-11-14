@@ -693,7 +693,7 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
 
         (x1,y1,x2,y2) = (0.97-legWidth if doWide else .85-legWidth, .7 - textSize*max(nentries-3,0), .90, .91)
         if corner == "TR":
-            (x1,y1,x2,y2) = (0.97-legWidth if doWide else .85-legWidth, .7 - textSize*max(nentries-3,0), .90, .91)
+            (x1,y1,x2,y2) = (0.97-legWidth if doWide else 0.80 if options.veryWide else .85-legWidth, .7 - textSize*max(nentries-3,0), .90, .91)
         elif corner == "TC":
             (x1,y1,x2,y2) = (.5, .75 - textSize*max(nentries-3,0), .5+legWidth, .91)
         elif corner == "TL":
