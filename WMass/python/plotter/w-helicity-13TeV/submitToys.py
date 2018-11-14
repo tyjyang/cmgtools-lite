@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
         tmp_filecont = jobstring_tf
         #cmd = 'text2tf.py -t {n} --seed {j}{jn} {dc}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1)
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat --correlateXsecStat'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
         if fixPOIs: cmd += ' --POIMode none '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
