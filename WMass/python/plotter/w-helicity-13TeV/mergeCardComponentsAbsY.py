@@ -137,9 +137,9 @@ if __name__ == "__main__":
     parser.add_option(     '--fix-YBins', dest='fixYBins', type='string', default='plusR=99;plusL=99;minusR=99;minusL=99', help='add here replacement of default rate-fixing. with format plusR=10,11,12;plusL=11,12;minusR=10,11,12;minusL=10,11 ')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
-    parser.add_option('-l','--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
+    parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
     parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
-    parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=0.026, type='float', help='Log-uniform constraint to be added to all the fixed MC processes')
+    parser.add_option(     '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
     parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
@@ -560,10 +560,6 @@ if __name__ == "__main__":
         combinedCard.write('\nwmodel group  = '+' '.join([sys for sys,procs in wmodelsyst.iteritems()])+'\n')
         combinedCard.write('\nEffStat group = '+' '.join([sys for sys,procs in effsyst.iteritems()])+'\n')
 
-        ## now assign a uniform luminosity uncertainty to all the MC processes
-        # combinedCard.write('\nCMS_lumi_13TeV   lnN %s\n' % (" ".join(['-' if 'data' in p else '%.3f'%(1+options.lumiLnN) for p,r in ProcsAndRates])) )
-        ## not needed as  far as we float all the Y bins
-        # combinedCard.write('CMS_W   lnN %s\n' % (" ".join(['%.3f' % (1+options.wLnN) if (p=='TauDecaysW' or re.match('W{charge}'.format(charge=charge),p)) else '-' for p,r in ProcsAndRates])) )
         combinedCard.close() 
 
             
@@ -576,10 +572,11 @@ if __name__ == "__main__":
         ## long now signal tmp_sigprocs = [p for p in tmp_sigprocs if not 'long' in p]
 
         ## xsecfilname 
+        lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
         hists = getXsecs(tmp_sigprocs, 
                          [i for i in theosyst.keys() if not 'wpt' in i],
                          ybins, 
-                         36000., 
+                         lumiScale, 
                          '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections.root' ## hard coded for now
                         )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
