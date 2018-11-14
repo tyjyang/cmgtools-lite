@@ -9,12 +9,12 @@ from utility import *
 ROOT.gROOT.SetBatch(True)
 
 ## usage
-## python smoothWithGraph.py -i <infile> -o <outfile> -h <histNameToSmooth>
+## python smoothWithGraph.py -i <infile> -o <outdir> -h <histNameToSmooth>
 
 # Warning: TGraph2D is a graph, so one sets x,y of its points and assign a Z. The constructor with TH2 used the TH2 bin centers to define the points
 # Now, the binning of the TH2 returned by GetHistogram() has the bin boundaries on the x,y points (not the bin centers as in the original TH2)
 # So, we have to find a way to get a histogram whose binning is consistent with the input
-# Indeed, the TH2 returned by the graphs is created with the same number of bins of the input TH2, but slightly narrower axis range (and probably uniform biinning)
+# Indeed, the TH2 returned by the graphs is created with the same number of bins of the input TH2, but slightly narrower axis range (and probably uniform binning)
 # This results in an output histogram not consistent with the input (cannot divide, or add for example)
 
 #-------------------------
@@ -100,6 +100,35 @@ if __name__ == "__main__":
     newxarray.append(xarray[-1])
     #print newxarray   # I suggest you print once in life to see what happens
 
+    # do also a manual smoothing interpolating with a line (so modyfing the two sub-bins at the borders of the original bin)
+    h2HandSmooth = ROOT.TH2D("h2HandSmooth","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
+    # now fill it from the input (which is coarser)
+    for ix in range(1,1+h2HandSmooth.GetNbinsX()):
+        for iy in range(1,1+h2HandSmooth.GetNbinsY()):
+            xval = h2HandSmooth.GetXaxis().GetBinCenter(ix)
+            yval = h2HandSmooth.GetYaxis().GetBinCenter(iy)
+            hist2xbin = hist2d.GetXaxis().FindFixBin(xval)
+            hist2ybin = hist2d.GetYaxis().FindFixBin(yval)
+            h2HandSmooth.SetBinContent(ix,iy,hist2d.GetBinContent(hist2xbin,hist2ybin))
+            h2HandSmooth.SetBinError(ix,iy,hist2d.GetBinError(hist2xbin,hist2ybin))
+            # now interpolate eta
+            if ix == 1 or ix == h2HandSmooth.GetNbinsX(): continue # do not modify the outer bins
+            etabinID = ix%binSplitFactor  # which sub-bin inside the bin (if binSplitFactor=3, can be 1,2,0 for first, second and third sub-bin)
+            if  etabinID == 1:   
+                # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)
+                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+                otherVal = hist2d.GetBinContent(hist2xbin-1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
+            elif etabinID == 0:
+                # if sub-bin on the right, take this -1/3 of the difference between this and the following (computed in the central sub-bin)
+                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+                otherVal = hist2d.GetBinContent(hist2xbin+1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
+
+
+
     h2new = ROOT.TH2D("Graph2D_from_"+hist2d.GetName()+"_smoothedByGraph","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
     # now fill it from the input (which is coarser)
     for ix in range(1,1+h2new.GetNbinsX()):
@@ -143,7 +172,7 @@ if __name__ == "__main__":
             xbin = graphFrom_h2new.GetXaxis().FindFixBin(xval)
             ybin = graphFrom_h2new.GetYaxis().FindFixBin(yval)            
             h2new.SetBinContent(ix,iy,graphFrom_h2new.GetBinContent(xbin,ybin))
-    # ok, but know if one draws h2new, a white band will appear for x = lastbinX and y = lastbinX
+    # ok, but now if one draws h2new, a white band will appear for x = lastbinX and y = lastbinX
     # this is because graphFrom_h2new has slightly shorter axis ranges, so the very last bin of h2new is missed on both x and y axis
     # one possibility is to assign the value of the last filled bin
     # let's do it
@@ -155,7 +184,7 @@ if __name__ == "__main__":
                 h2new.SetBinContent(ix,iy,h2new.GetBinContent(ix, iy-1))
             if (ix == h2new.GetNbinsX()):
                 h2new.SetBinContent(ix,iy,h2new.GetBinContent(ix-1, iy))
-    # this will be histogram to be saved as output
+    # this will be the histogram to be saved as output
     
 
     # now I test the TGraph2D constructor which uses the TH2 as input, but I add more points along x
@@ -184,6 +213,9 @@ if __name__ == "__main__":
                         h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
     drawCorrelationPlot(h2smooth,xAxisTitle,yAxisTitle,zAxisTitle,
                         h2smooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+    drawCorrelationPlot(h2HandSmooth,xAxisTitle,yAxisTitle,zAxisTitle,
+                        h2HandSmooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+
 
 
     # create output, let's just save what we really need
@@ -193,5 +225,6 @@ if __name__ == "__main__":
     h2new.Write()
     hist2d.Write()
     #h2smooth.Write()
+    h2HandSmooth.Write()
     outfile.Close()
 

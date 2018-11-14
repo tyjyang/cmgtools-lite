@@ -19,6 +19,7 @@ parser.add_option('-c','--channel', dest='channel',   default='el', type='string
 parser.add_option('-x','--xvar', dest='xvar',   default='LepGood1_eta', type='string', help='Name of variable in x axis of the template')
 parser.add_option('-y','--yvar', dest='yvar',   default='ptElFull(LepGood1_calPt,LepGood1_eta)', type='string', help='Name of variable in y axis of the template')
 parser.add_option('-b','--binning', dest='binning', default='[-2.5,-2.1,-1.566,-1.4442,-1.0,-0.5,0,0.5,1.0,1.4442,1.566,2.1,2.5]*[30,33,36,39,42,45]', type='string', help='Gen binning (use same format as for histogram definition for mcPlots.py (to be implemented correctly)')
+parser.add_option('-l','--leptonDef', dest='leptonDef',   default='preFSR', type='string', help='stable-particle lepton definition (preFSR or dressed)')
 (options, args) = parser.parse_args()
 
 outdir = options.outdir
@@ -35,6 +36,7 @@ mcafile.write("## %s\n\n" % options.binning)
 
 binning = options.binning
 genDecayId = 12 if options.channel == "el" else 14
+genwVar = "prefsrw" if options.leptonDef == "preFSR" else "genw"
 
 if options.binning:
     etabinning=binning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array                                                          
@@ -55,9 +57,9 @@ if flav not in ["el","mu"]:
     print "Error in printBinnnedSignalMCA.py: unknown lepton flavour, use -c el|mu. Exit"
     exit(0)
 
-syst_suffix = ["_elescale_Up", "_elescale_Dn", "_lepeff_Up", "_lepeff_Dn"] 
-labels = ["lep scale Up", "lep scale Dn", "lep eff Up", "lep eff Dn"]  
-syst_label = dict(zip(syst_suffix, labels))
+#syst_suffix = ["_elescale_Up", "_elescale_Dn", "_lepeff_Up", "_lepeff_Dn"] 
+#labels = ["lep scale Up", "lep scale Dn", "lep eff Up", "lep eff Dn"]  
+#syst_label = dict(zip(syst_suffix, labels))
 all_syst_suffix = [""]  # "" is for nominal
 #################################
 # keep only nominal sample in this MCA: lepton systematics are defined in the main MCA, that includes this one
@@ -76,28 +78,28 @@ for syst in all_syst_suffix:
             mcafile.write("## CHARGE %s\n\n" % charge)
             label = " Label=\"W%s\"" % ("+" if charge == "plus" else "-")
             weight = ""
-        else:
-            print "Writing syst '%s' for charge %s" % (syst,charge)
-            mcafile.write("## CHARGE %s   SYST %s \n\n" % (charge, syst))
-            label = " Label=\"W%s %s\"" % ("+" if charge == "plus" else "-", syst_label[syst])
-            varsys = "Up" if "_Up" in syst else "Dn" 
-            if "lepeff" in syst:
-                weight = " AddWeight=\"lepSFRel"+varsys+"(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)\" "
-            if "elescale" in syst: 
-                weight = " FakeRate=\"w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScale"+varsys+"_xsec.txt\" "  
-            weight += " , "  # note comma here, as other MCA flags follow
+        # else:
+        #     print "Writing syst '%s' for charge %s" % (syst,charge)
+        #     mcafile.write("## CHARGE %s   SYST %s \n\n" % (charge, syst))
+        #     label = " Label=\"W%s %s\"" % ("+" if charge == "plus" else "-", syst_label[syst])
+        #     varsys = "Up" if "_Up" in syst else "Dn" 
+        #     if "lepeff" in syst:
+        #         weight = " AddWeight=\"lepSFRel"+varsys+"(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3\,LepGood1_SF4)\" "
+        #     if "elescale" in syst: 
+        #         weight = " FakeRate=\"w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScale"+varsys+"_xsec.txt\" "  
+        #     weight += " , "  # note comma here, as other MCA flags follow
 
         chargeSignCut = ">" if charge == "plus" else "<"
         sigRegExpr = "WJetsToLNu_NLO*" if flav == "el" else "WJetsToLNu_*"        
+
+        genCut = " && {gwv}_decayId == {decayId} && {gwv}_charge {chs} 0".format(gwv=genwVar,decayId=str(genDecayId),chs=chargeSignCut)
 
         for ipt in xrange(nptbins):
             for ieta in xrange(netabins):
 
                 etacut = "%s>=%s && %s<%s" % (etaVarCut,etabinning[ieta],etaVarCut,etabinning[ieta+1])
                 ptcut = "%s>=%s && %s<%s" % (ptVarCut,ptbinning[ipt],ptVarCut,ptbinning[ipt+1])
-                fullcut = etacut + " && " + ptcut
-                fullcut = fullcut + " && genw_decayId == " + str(genDecayId) 
-                fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
+                fullcut = etacut + " && " + ptcut + genCut
                 if flav == "el": 
                     fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
 
@@ -115,9 +117,7 @@ for syst in all_syst_suffix:
         #########
         etacut = "%s>=%s" % (etaVarCut,etabinning[netabins])
         ptcut = "%s<%s || %s>=%s" % (ptVarCut,ptbinning[0],ptVarCut,ptbinning[nptbins])
-        fullcut = etacut + " || " + ptcut
-        fullcut = fullcut + " && genw_decayId == " + str(genDecayId) 
-        fullcut = fullcut + " && genw_charge" + chargeSignCut + "0"
+        fullcut = "(" + etacut + " || " + ptcut + ")" + genCut
         if flav == "el": 
             fullcut = fullcut + " && LepGood1_mcMatchId*LepGood1_charge!=-24 "
                     

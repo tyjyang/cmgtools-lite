@@ -63,6 +63,8 @@ mtMin=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) >= XX' "
 mtMax=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) <= XX' "
 WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} "
 WselAllpt=" ${mtMin/XX/40} ${fiducial} "
+mtMinSmear=" -A eleKin pfmt_smear 'mt_2(getSmearedVar(met_pt,0.2,evt,isData),met_phi,${ptcorr},LepGood1_phi) >= XX' "
+
 ##############################################################
 ##############################################################
 
@@ -91,18 +93,18 @@ fi
 
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
-queueForBatch="2nd"
-nameTag="_ptMt_triggerPlusAccSel" 
+queueForBatch="cmscaf1nd"
+nameTag="_FRpol2" 
 #nameTag="_varStudy"
-useLessMC="y"
+useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
-etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
+#etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.479" "2.5")
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
-#etaBinBoundaries=("0.0" "2.5")
+etaBinBoundaries=("0.0" "2.5")
 #etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
 today=`date +"%d_%m_%Y"`
@@ -119,7 +121,7 @@ fi
 cutfile="qcd1l_SRtrees.txt" # we start from it and add or remove cuts
 plotfile="test_plots.txt"
 # following 2 are used depending on the used trees because the samples are named differently
-#mcafileFRskim="mca-80X_V5_FRskim.txt"  # with the above mcafile this should not be needed anymore
+mcafileFRskim="mca-80X_V5_FRskim.txt"  # with the above mcafile this should not be needed anymore
 #mcafileTINY="mca-80X_V5_TINY.txt"      # with the above mcafile this should not be needed anymore
 mcafileFRclosureMC="mca-80X-qcdClosureTest.txt"  # for FR closure test based on MC
 #
@@ -133,19 +135,20 @@ mcafileFRclosureMC="mca-80X-qcdClosureTest.txt"  # for FR closure test based on 
 excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGraph) MC, non both! In case you can add other samples (Top, Dibosons) to speed up things
 #selectprocesses="W"
 #selectprocesses="QCD"
-selectplots=""  # if empty it uses all plots in cfg file
+#selectplots=""  # if empty it uses all plots in cfg file
 #selectplots="nJetClean,ptl1,etal1,pfmet,tkmet,ele1ID,awayJet_pt,wpt_tk,ele1dxy"  # if empty it uses all plots in cfg file
 #selectplots="ptl1,etal1,pfmet,trkmt_trkmetEleCorr,pfmt,wpt_tk,nJetClean,ele1Iso04,ele1ID"  # if empty it uses all plots in cfg file
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
-#selectplots="pfmt_ptl1"
-#selectplots="ptl1,etal1_binFR"
-selectplots="ptl1,pfmt"
+#selectplots="unrolled"
+selectplots="etal1_binFR"
+#selectplots="ptl1_wmass,pfmt_wmass"
 #selectplots="ptl1,ptl1noCorr"
-#selectplots="etal1_binFR,ptl1__etal1_binFR"
+#selectplots="ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
-#selectplots="ptl1,pfmt,pfmet,awayJet_pt,ele1Iso04,ele1ID,ele1dxy"
+#selectplots="mass_jet_ele"
+#selectplots="ptl1,pfmt,awayJet_pt,awayJet_eta,mass_jet_ele"
 #selectplots="awayJet_eta,mt_jet_ele,dphiLepAwayJet,detaLepAwayJet"
 #selectplots="ptl1noCorr_granBin"
 #selectplots="dphiLepPFMET,diffPt_lepPFMET,diffPt_lepPFMET_v2"
@@ -161,8 +164,8 @@ maxentries=""  # all events if ""
 #scaleAllMCtoData=" --scaleBkgToData QCD --scaleBkgToData W --scaleBkgToData Z --scaleBkgToData Top --scaleBkgToData DiBosons " # does not seem to work as expected
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
-#ratioPlotDataOptions=""
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -196,13 +199,13 @@ declare -A scaleMCdata=()
 regionKey["FRcompRegion"]="FRcompRegion"
 runRegion["FRcompRegion"]="n"
 regionName["FRcompRegion"]="FR_computation_region"
-skimTreeDir["FRcompRegion"]="TREES_1LEP_80X_V3_FRELSKIM_V8"
+skimTreeDir["FRcompRegion"]="TREES_1LEP_80X_V3_FRELSKIM_V9"
 #skimTreeDir["FRcompRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
 outputDir["FRcompRegion"]="full2016data_${today}"
-regionCuts["FRcompRegion"]=" ${fiducial}  ${mtMax/XX/40} " # " -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) < 40' " 
+regionCuts["FRcompRegion"]=" ${mtMax/XX/40}  ${ptMin/XX/30}"  #${fiducial}"  " -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) < 40' " 
 #processManager["FRcompRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcompRegion"]="n"
-scaleMCdata["FRcompRegion"]=" -p data,QCD,Wincl,Z,Top,DiBosons "
+scaleMCdata["FRcompRegion"]=" -p data,QCD,W,Z,Top,DiBosons --canvasSize 800 600 "
 #
 #############################
 #############################
@@ -223,14 +226,17 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="n"
+runRegion["FRcheckRegion"]="y"
 regionName["FRcheckRegion"]="FR_check_region"
-skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
+#skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
+skimTreeDir["FRcheckRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW"
 outputDir["FRcheckRegion"]="full2016data_${today}"
 regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30}"
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" -p data,Wincl,EWK_bkg,TauDecaysW,data_fakes --fitData " #--scaleSigToData --sp data_fakes  " # --fitData
+scaleMCdata["FRcheckRegion"]=" -p data,Wincl,EWK_bkg,TauDecaysW,data_fakes --scaleSigToData --sp data_fakes  " # --fitData
+#
+# --noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3
 #
 #############################
 #############################
@@ -268,14 +274,15 @@ regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
 runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
-skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" ## ADD _TINY, uness you want trkmet variables
+skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} " # ${ptMax/XX/45} ${mtMin/XX/40} ${FRnumSel}" # "${WselAllPt} ${WselFull}" ${FRnumSel}
-#processManager["WhelicitySignalRegion"]=" --xp Wincl "
-qcdFromFR["WhelicitySignalRegion"]="n"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg,data_fakes_EBp_0p0_1p0,data_fakes_EBp_1p0_1p5,data_fakes_EBp_1p5_2p5,data_fakes_EBm_0p0_1p0,data_fakes_EBm_1p0_1p5,data_fakes_EBm_1p5_2p5 --fitData " # --pg 'EWK := Wincl,Z,Top,Dibosons'
-scaleMCdata["WhelicitySignalRegion"]=" -p data,Wincl,EWK_bkg_andTau,QCD " #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+qcdFromFR["WhelicitySignalRegion"]="y"
+scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips  "
+#--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
+# data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips
+# 
 #############################
 #############################
 # SIGNAL REGION before FR numerator (avoid possibly all kinematic selections, so to see what we get with the trigger)
@@ -325,25 +332,25 @@ scaleMCdata["FRclosureMC"]=""
 regionKey["TestPlots"]="TestPlots"
 runRegion["TestPlots"]="n"
 regionName["TestPlots"]="TestPlots"
-skimTreeDir["TestPlots"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY"
-outputDir["TestPlots"]="sigRegion_${today}_sigregion"
-regionCuts["TestPlots"]=" -X json -R eleKin eleKinNoPtUp 'ptElFull(LepGood1_calPt,LepGood1_eta) > 30 && abs(LepGood1_eta)<2.5'"
-#processManager["TestPlots"]=" --xp Wincl "
-qcdFromFR["TestPlots"]="y"
-scaleMCdata["TestPlots"]=""
+skimTreeDir["TestPlots"]="TREES_electrons_1l_V6_TINY"
+outputDir["TestPlots"]="sigRegion_${today}"
+regionCuts["TestPlots"]=" -X nJet30  ${fiducial} ${mtMin/XX/40} ${FRnumSel} ${ptMax/XX/50}"
+#processManager["TestPlots"]="  "
+qcdFromFR["TestPlots"]="y"   # this is not used for this regino key
+scaleMCdata["TestPlots"]=" -p W_nomi,W_mWup50,W_mWdn50 --canvasSize 900 600 --noErrorBarsOnRatio "
 #----------------------------------
 mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
-cutfileTest="wenu_80X.txt"
-#optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
-#mcafileTest="mca-data-testJSON.txt"  #"mca-80X_V5_TINY_testJson.txt"
 #cutfileTest="wenu_80X.txt"
+#optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
+mcafileTest="${mcafile}" # "mca-80X-wchargeTest.txt" #${mcafile}"  #"mca-80X_V5_TINY_testJson.txt"
+cutfileTest="${cutfile}"
 #mcafileTest="mca-testFRnormSyst.txt"
-#ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data --ratioNums data_withJson,data_noJson --ratioYLabel 'pred./data'"
+ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.99 1.01 --fixRatioRange --ratioDen W_nomi --ratioNums W_mWup50,W_mWdn50 --ratioYLabel 'Var./Nomi.'"
 #optionsTest=" --sp 'data_noJson' --xp 'data_withJson' --noStackSig  --showIndivSigs"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
-ratioPlotDataOptions_TestPlots=" "
+#ratioPlotDataOptions_TestPlots=" "
 #optionsTest=" --sp 'dataAll' --plotmode norm -X json --noLegendRatioPlot"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi'"
-optionsTest=" --plotmode nostack --noLegendRatioPlot --xp data"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
+optionsTest=" --plotmode norm --noLegendRatioPlot --noErrorBandOnRatio --contentAxisTitle 'arbitrary units' --legendFontSize 0.06"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #
 #############################
 
@@ -397,13 +404,16 @@ dataOption=""
 MCweightOption=""
 FR_MCweigthOption=""
 if [[ "${useDataGH}" == "y" ]]; then
+    # no more SF4: now L1 prefiring is automatically used for electrons
     echo "# Using all data from 2016"
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
-    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3,LepGood1_SF4)' "
+    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    #MCweigthOption=" -W '1' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
-    FR_MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)' "		
+    #FR_MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)' "		
+    FR_MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)'"
 else 
     #MCweigthOption=" -W 'puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
     MCweigthOption=" -W 'puw2016_nTrueInt_BF(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
@@ -418,7 +428,7 @@ fi
 # otherwise the parsing of the option parameters is not done correctly
 
 
-commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.20 --legendFontSize 0.035 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms"
+commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.25 --legendFontSize 0.05 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms"
 
 # if [[ "X${scaleAllMCtoData}" != "X" ]]; then
 #     commonCommand="${commonCommand} ${scaleAllMCtoData} "
@@ -504,7 +514,11 @@ do
 	    treepath="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco"
 	fi
 
-	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V8" ]]; then		
+	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V9" ]]; then		
+	    treepath="/eos/cms/store/cmst3/group/wmass/mciprian/"
+	fi
+
+	if [[ "${treedir}" == "TREES_1LEP_80X_V3_WSKIM_NEW" ]]; then		
 	    treepath="/eos/cms/store/cmst3/group/wmass/mciprian/"
 	fi
 
@@ -557,8 +571,9 @@ do
 
 	fi
 
-	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V8" ]]; then		
-	    regionCommand="${regionCommand} ${FR_MCweigthOption}"
+	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V9" ]]; then		
+	    regionCommand="${regionCommand} ${FR_MCweigthOption} "
+	    regionCommand="${regionCommand/${mcafile}/${mcafileFRskim}}"
 	    #regionCommand="${regionCommand/MCweigthOption/FR_MCweigthOption}"  # remove scale factor 2 and 3 (keep only trigger)
 	else
 	    regionCommand="${regionCommand} ${MCweigthOption}"
