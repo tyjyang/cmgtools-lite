@@ -120,9 +120,9 @@ def combCharges(options):
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
 if __name__ == "__main__":
@@ -660,9 +660,9 @@ if __name__ == "__main__":
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         else:
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
     # end of loop over charges
 
