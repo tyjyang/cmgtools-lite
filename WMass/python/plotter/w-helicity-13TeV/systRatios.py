@@ -8,7 +8,8 @@ from array import array
 from testRolling import getbinning,roll1Dto2D,unroll2Dto1D,dressed2D
 
 ROOT.gROOT.SetBatch()
-ROOT.gStyle.SetPalette(55)
+##ROOT.gStyle.SetPalette(55)
+ROOT.gStyle.SetPalette(ROOT.kTemperatureMap)
 ROOT.gErrorIgnoreLevel = 100
 
 canv = ROOT.TCanvas()
@@ -48,11 +49,19 @@ if __name__ == "__main__":
         wlr = ['W{ch}_{p}_W{ch}_{p}_{flav}_Ybin_0'.format(ch=charge,p=pol,flav=channel) for pol in ['left','right'] ]
         procs=wlr+bkgs
 
-        jobsdir = args[0]+'/jobs/'
-        jobfile_name = 'W{ch}_left_{flav}_Ybin_4.sh'.format(ch=charge,flav=channel)
-        tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-        tmp_line = tmp_jobfile.readlines()[-1].replace(', ',',').split()
-        binning = getbinning(tmp_line)
+        binninPtEtaFile = open(args[0]+'/binningPtEta.txt','r')
+        bins = binninPtEtaFile.readlines()[1].split()[1]
+        ## hack. easier
+        etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+        ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+        nbinseta = len(etabins)-1
+        nbinspt  = len( ptbins)-1
+        binning = [nbinseta, etabins, nbinspt, ptbins]
+        ## jobsdir = args[0]+'/jobs/'
+        ## jobfile_name = 'W{ch}_left_{flav}_Ybin_4.sh'.format(ch=charge,flav=channel)
+        ## tmp_jobfile = open(jobsdir+jobfile_name, 'r')
+        ## tmp_line = tmp_jobfile.readlines()[-1].replace(', ',',').split()
+        ## binning = getbinning(tmp_line)
 
         ratios={}
         for proc in procs:
