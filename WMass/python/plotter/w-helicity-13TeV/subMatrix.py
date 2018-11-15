@@ -143,6 +143,9 @@ if __name__ == "__main__":
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     params = sorted(params, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
             
     print "sorted params = ", params
 
