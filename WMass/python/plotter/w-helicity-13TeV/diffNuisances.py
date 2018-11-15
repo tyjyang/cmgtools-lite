@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-## USAGE:  python diffNuisances.py fitresults.root --type hessian --pois ".*maskedexpnorm" --outdir plots -a --format html > xsecnorm.html
+## USAGE:  python diffNuisances.py --infile fitresults.root --type hessian --pois ".*maskedexpnorm" --outdir plots -a --format html > xsecnorm.html
 ## add "--abs" to show the absolute value of the fitted nuisance and not the shift wrt the prefit
 
-import re
+import re, os
 from sys import argv, stdout, stderr, exit
 import datetime
 from optparse import OptionParser
@@ -27,13 +27,12 @@ if __name__ == "__main__":
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
 
-
     (options, args) = parser.parse_args()
-    if len(args) == 0:
-        parser.print_usage()
-        exit(1)
-    #infile = args[0]
     infile = options.infile
+
+    os.system('mkdir -p {od}'.format(od=options.outdir))
+    os.system('cp ~mdunser/public/index.php {od}'.format(od=options.outdir))
+
 
     if   options.type == 'toys':
         valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True)
@@ -44,7 +43,7 @@ if __name__ == "__main__":
         sys.exit()
 
 
-    setUpString = "diffNuisances run on %s, at %s with the following options ... "%(args[0],datetime.datetime.utcnow())+str(options)
+    setUpString = "diffNuisances run on %s, at %s with the following options ... "%(infile,datetime.datetime.utcnow())+str(options)
     date = datetime.date.today().isoformat()
 
     #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
