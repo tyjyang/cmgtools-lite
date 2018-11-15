@@ -29,6 +29,32 @@ COMBINESTRING
 
 '''
 
+def makeCondorFile(jobdir, srcFiles, options):
+    dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+    dummy_exec.write('#!/bin/bash\n')
+    dummy_exec.write('bash $*\n')
+    dummy_exec.close()
+     
+    condor_file_name = jobdir+'/condor_submit.condor'
+    condor_file = open(condor_file_name,'w')
+    condor_file.write('''Universe = vanilla
+Executable = {de}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {jd}/$(ProcId).log
+Output     = {jd}/$(ProcId).out
+Error      = {jd}/$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = {rt}\n
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+    for sf in srcFiles:
+        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
+    condor_file.close()
+    return condor_file_name
+
 
 import ROOT, random, array, os, sys
 
@@ -39,7 +65,7 @@ if __name__ == "__main__":
     parser.add_option('-n'  , '--ntoy-per-job'  , dest='nTj'           , type=int           , default=None , help='split jobs with ntoys per batch job')
     parser.add_option('-t'  , '--threads'       , dest='nThreads'      , type=int           , default=1    , help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
-    parser.add_option('-q'  , '--queue'         , dest="queue"         , type="string"      , default="1nd", help="Select the queue to use");
+    parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option('--outdir', dest='outdir', type="string", default=None, help='outdirectory');
     (options, args) = parser.parse_args()
 
@@ -70,6 +96,7 @@ if __name__ == "__main__":
 
     random.seed()
 
+    srcfiles = []
     for j in xrange(int(ntoys/int(options.nTj))):
         ## make new file for evert parameter and point
         job_file_name = jobdir+'/job_{j}_toy{n:.0f}To{nn:.0f}.sh'.format(j=j,n=j*int(options.nTj),nn=(j+1)*int(options.nTj))
@@ -77,20 +104,18 @@ if __name__ == "__main__":
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
-        #cmd = 'text2tf.py -t {n} --seed {j}{jn} {dc}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1)
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat --correlateXsecStat'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
         if fixPOIs: cmd += ' --POIMode none '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
         tmp_file.write(tmp_filecont)
         tmp_file.close()
-        os.system('chmod u+x {f}'.format(f=job_file_name))
-        cmd = 'bsub -o {log} -q {queue} {job}'.format(log=log_file_name,queue=options.queue,job=job_file_name)
-        if options.dryRun:
-            print cmd
-        else:
-            os.system(cmd)
-        
+        srcfiles.append(job_file_name)
+    cf = makeCondorFile(jobdir,srcfiles,options)
+    subcmd = 'condor_submit {rf} '.format(rf = cf)
+
+    print subcmd
+
     sys.exit()
 
