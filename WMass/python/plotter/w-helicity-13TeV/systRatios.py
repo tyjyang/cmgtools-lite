@@ -42,11 +42,12 @@ if __name__ == "__main__":
         fulllist = list(i.GetName() for i in keylist)
         nY[charge+'_left']  = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'left'  in i)
         nY[charge+'_right'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'right' in i)
+        nY[charge+'_long'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'long' in i)
         nPDF = max( int(i.split('_')[-1].replace('pdf','').replace('Down','').replace('Up','')) for i in siglist if 'pdf' in i)
 
         ## bkgs = ['data_fakes','Flips','DiBosons','Top','TauDecaysW','Z','W%s_long'%charge] # other than W_{L,R}
         bkgs = []#['data_fakes'] # other than W_{L,R}
-        wlr = ['W{ch}_{p}_W{ch}_{p}_{flav}_Ybin_0'.format(ch=charge,p=pol,flav=channel) for pol in ['left','right'] ]
+        wlr = ['W{ch}_{p}_W{ch}_{p}_{flav}_Ybin_0'.format(ch=charge,p=pol,flav=channel) for pol in ['left','right', 'long'] ]
         procs=wlr+bkgs
 
         binninPtEtaFile = open(args[0]+'/binningPtEta.txt','r')
