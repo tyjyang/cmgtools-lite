@@ -89,6 +89,7 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
         for sys in systs:
 
+            # scales muR, muF, muRmuF in bins of pt are named like muR_wpt1Up, where the number after wpt goes from 1 to 10
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
@@ -121,7 +122,8 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
                 ndn = sys_dn_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
             if 'pdf' in sys:
-                ndn = 2.*ncen-nup ## or ncen/nup?  # FIXME: this should be decided and motivated 
+                ndn = ncen*ncen/nup # ndn = 2.*ncen-nup ## or ncen/nup?  # FIXME: this should be decided and motivated
+                # I think we should be consistent with the histogram definition, which uses the ratio, but if central and up differs by an epsilon it doesn't matter
 
             tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
             tmp_hist_up.SetBinContent(1, nup)
@@ -167,7 +169,7 @@ def combCharges(options):
             print '--- will run text2hdf5 for the combined charges ---------------------'
             os.system(txt2hdf5Cmd)
             ## print out the command to run in combine
-            combineCmd = 'combinetf.py -t -1 {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
@@ -187,15 +189,18 @@ if __name__ == "__main__":
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     parser.add_option(     '--lumiLnN'    , dest='lumiLnN'    , default=-9.9, type='float', help='Log-normal constraint to be added to all the fixed MC processes')
     parser.add_option(     '--zXsecLnN'   , dest='zLnN'       , default=-9.9, type='float', help='Log-normal constraint to be added to all the fixed Z processes')
-    #parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
-    parser.add_option(     '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will tret signal bins corresponding to outliers as background processes')
+    parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background')
+    parser.add_option(     '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
     parser.add_option(     '--pdf-shape-only', dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
     parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end')
     parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+    parser.add_option(   '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
     parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
     #parser.add_option(     '--comb-channel'         , dest='combineChannels' , default=False, action='store_true', help='Combine electrons and muons for a given charge, if single cards are done')
     parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=True, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
+    parser.add_option( '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
+    #parser.add_option('-s', '--sparse', dest='sparse' ,default=True, action='store_true', help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
     (options, args) = parser.parse_args()
     
     from symmetrizeMatrixAbsY import getScales
@@ -264,6 +269,26 @@ if __name__ == "__main__":
     else:
         hasEtaRangeBkg = False
 
+
+    ptBinIsBackground = []  # will store a bool to assess whether the given ipt index is considered as background
+    for bin in range(len(ptbinning)-1):
+        ptBinIsBackground.append(False)
+
+    ptRangesBkg = options.pt_range_bkg
+
+    if len(ptRangesBkg):
+        hasPtRangeBkg = True
+        print "Signal bins with gen pt in the following ranges will be considered as background processes"
+        print options.pt_range_bkg            
+        for index in range(len(ptbinning)-1):
+            for pair in ptRangesBkg:
+            #print pair
+                if ptbinning[index] >= pair[0] and ptbinning[index+1] <= pair[1]:
+                    ptBinIsBackground[index] = True
+    else:
+        hasPtRangeBkg = False
+
+
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
@@ -271,7 +296,7 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         files = ( f for f in os.listdir(options.inputdir) if f.endswith('.card.txt') )
-        files = ( f for f in files if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*effstat.*',f) )
+        files = ( f for f in files if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*Effstat.*|.*mW.*',f) )
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
         files = list( ( os.path.join(options.inputdir, f) for f in files ) )
         
@@ -289,7 +314,7 @@ if __name__ == "__main__":
                     if re.match('bin.*',l):
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
-                    rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+|effstat\d+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
+                    rootfiles_syst = filter(lambda x: re.match('{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), os.listdir(options.inputdir))
                     if ifile==0:
                         rootfiles_syst += filter(lambda x: re.match('Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), os.listdir(options.inputdir))
                     rootfiles_syst = [dirf+'/'+x for x in rootfiles_syst]
@@ -358,8 +383,8 @@ if __name__ == "__main__":
                                             plots[newname].Write()                                    
                                 else:
                                     #if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                    if any(sysname in newname for sysname in ['pdf','effstat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                        sysname = 'pdf' if 'pdf' in newname else 'effstat'
+                                    if any(sysname in newname for sysname in ['pdf','Effstat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        sysname = 'pdf' if 'pdf' in newname else 'Effstat'
                                         tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
                                         ipdf = int(pdf.split('pdf')[-1])
                                         newname = "{pfx}_{sysname}{ipdf}".format(pfx=pfx,sysname=sysname,ipdf=ipdf)
@@ -368,7 +393,7 @@ if __name__ == "__main__":
                                             if alt.GetName() not in plots:
                                                 plots[alt.GetName()] = alt.Clone()
                                                 plots[alt.GetName()].Write()
-                                    elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*',newname): # these changes by default shape and normalization
+                                    elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',newname): # these changes by default shape and normalization
                                         tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
                                         newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
                                         if 'wptSlope' in newname: # this needs to be scaled not to change normalization
@@ -388,26 +413,39 @@ if __name__ == "__main__":
 
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
+        expsyst = {}
         tf = ROOT.TFile.Open(outfile)
         for e in tf.GetListOfKeys() :
             name=e.GetName()
-            if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.|.*_effstat.**',name):
+            if name.endswith("Up") or name.endswith("Down"):
                 if name.endswith("Up"): name = re.sub('Up$','',name)
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
-                if syst not in theosyst: theosyst[syst] = [binWsyst]
-                else: theosyst[syst].append(binWsyst)
+                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',name):
+                    if syst not in theosyst: theosyst[syst] = [binWsyst]
+                    else: theosyst[syst].append(binWsyst)
+                if re.match('.*EffStat.*',name):
+                    if syst not in expsyst: expsyst[syst] = [binWsyst]
+                    else: expsyst[syst].append(binWsyst)
         pdfsyst = {k:v for k,v in theosyst.iteritems() if 'pdf' in k}
         qcdsyst = {k:v for k,v in theosyst.iteritems() if 'muR' in k or 'muF' in k}
         alssyst = {k:v for k,v in theosyst.iteritems() if 'alphaS' in k }
-        wptsyst = {k:v for k,v in theosyst.iteritems() if 'wptSlope' in k}
-        effsyst = {k:v for k,v in theosyst.iteritems() if 'effstat' in k}
+        wmodelsyst = {k:v for k,v in theosyst.iteritems() if 'wptSlope' in k or 'mW' in k}
         sortedpdfkeys = sorted(pdfsyst.keys(),key= lambda x: int(x.strip('pdf')))
         sortednonpdfkeys = sorted([x for x in theosyst.keys() if "pdf" not in x]) 
         sortedsystkeys = sortedpdfkeys + sortednonpdfkeys
+
+        allsyst = theosyst.copy()
+        allsyst.update(expsyst)
+
         if len(theosyst): print "Found a bunch of theoretical systematics: ",sortedsystkeys
         else: print "You are running w/o theory systematics. Lucky you!"
+
+        effsyst = {k:v for k,v in expsyst.iteritems() if 'Effstat' in k}        
+        if len(expsyst): print "Found a bunch of experimental sysematics: ",expsyst.keys()
+
+        allsortedsystkeys = sortedsystkeys + [x for x in expsyst.keys()]
 
         combineCmd="combineCards.py "
         for f in files:
@@ -474,21 +512,16 @@ if __name__ == "__main__":
                                         procBin[p] = isig
                                         isig += -1
                                 else:
-                                    if hasEtaRangeBkg:
-                                        tokens = p.split('_')
-                                        for i,tkn in enumerate(tokens):
-                                            #print "%d %s" % (i, tkn)      
-                                            if tkn == "ieta": 
-                                                etabinIndex = int(tokens[i + 1])
-                                                break  # exit loop on tokens
-                                        # now check if this eta bin belongs to region which should be considered as background
+                                    if hasEtaRangeBkg or hasPtRangeBkg:
+                                        etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(p)
+                                        # now check if this eta or pt bin belongs to region which should be considered as background
                                         # if yes, increase the background bin index counter; if not, use the signal index as usual
-                                        if etaBinIsBackground[etabinIndex]:
+                                        if etaBinIsBackground[etabinIndex] or ptBinIsBackground[ptbinIndex]:
                                             procBin[p] = ibkg
                                             ibkg += 1
                                         else:
                                             procBin[p] = isig
-                                            isig += -1 
+                                            isig += -1              
                                     else:
                                         procBin[p] = isig
                                         isig += -1 
@@ -511,8 +544,11 @@ if __name__ == "__main__":
                 lumipar = "{0:.3f}".format(1.0 + options.lumiLnN) #"1.026"  # 2.6% 
                 combinedCard.write(('%-23s lnN' % "CMS_lumi_13TeV") + ' '.join([kpatt % ("-" if "data" in key else lumipar) for key in realprocesses]) + "\n")
             # not needed because it will be measured
-            # Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
+            Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
             #combinedCard.write(('%-23s lnN' % "CMS_W") + ' '.join([kpatt % (Wxsec if any(x in key for x in Wcharge) else "-"    ) for key in realprocesses]) + "\n")
+            # if some signal bins are treated as background, assign 3.8% norm uncertainty
+            if hasPtRangeBkg or hasEtaRangeBkg:
+                combinedCard.write(('%-23s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if (any(x in key for x in Wcharge) and procBin[p] > 0) else "-") for key in realprocesses]) + "\n")
             if options.zLnN > 0:
                 Zxsec   = "{0:.3f}".format(1.0 + options.zLnN)    #"1.038"  # 3.8%
                 combinedCard.write(('%-23s lnN' % "CMS_DY") + ' '.join([kpatt % (Zxsec if key == "Z" else "-" ) for key in realprocesses]) + "\n")
@@ -544,16 +580,16 @@ if __name__ == "__main__":
 
         ## add the PDF systematics                                                         
         #for sys,procs in theosyst.iteritems():
-        for sys in sortedsystkeys:
+        for sys in allsortedsystkeys:
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE                      
-            procs = theosyst[sys]
+            procs = allsyst[sys]
             combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
-        if len(sortedsystkeys):
+        if len(allsortedsystkeys):
             combinedCard.write('\npdfs group = '+' '.join([sys for sys in sortedpdfkeys])+'\n')
             combinedCard.write('\nscales group = '+' '.join([sys for sys,procs in qcdsyst.iteritems()])+'\n')
             combinedCard.write('\nalphaS group = '+' '.join([sys for sys,procs in alssyst.iteritems()])+'\n')
-            combinedCard.write('\nwpt group = '+' '.join([sys for sys,procs in wptsyst.iteritems()])+'\n')
-            combinedCard.write('\neffstat group = '+' '.join([sys for sys,procs in effsyst.iteritems()])+'\n')
+            combinedCard.write('\nwmodel group = '+' '.join([sys for sys,procs in wmodelsyst.iteritems()])+'\n')
+            combinedCard.write('\nEffstat group = '+' '.join([sys for sys,procs in effsyst.iteritems()])+'\n')
         combinedCard.close()
 
 
@@ -565,12 +601,15 @@ if __name__ == "__main__":
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
  
         ## xsecfilename                                                                                                                                                    
+        xsecfile = /afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root
+        if options.xsecMaskedYields:
+            xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
         hists = getXsecs_etaPt(tmp_sigprocs,
-                               [i for i in sortedsystkeys if not 'wpt' in i],
+                               [i for i in sortedsystkeys if not 'wpt' in i], # wptslope is not used anymore, anyway, do not pass it
                                binning,
-                               # no need to pas a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
+                               # no need to pass a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
                                # 35.9 if channel == 'mu' else 30.9,  
-                               '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap.root' ## hard coded for now
+                               xsecfile
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
@@ -596,8 +635,9 @@ if __name__ == "__main__":
         tmp_xsec_dc.write('# --------------------------------------------------------------\n')
 
         # for sys,procs in theosyst.iteritems():          
-        for sys in sortedsystkeys:
+        for sys in sortedsystkeys: # this is only theoretical systs
             if 'wpt' in sys: continue
+            if 'EffStat' in sys: continue  # just in case
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE                      
             tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs  else '  -  ' for p in tmp_sigprocs]))) )
         tmp_xsec_dc.close()
@@ -632,6 +672,13 @@ if __name__ == "__main__":
             print 'text2hdf5.py has some default options that might affect the result. You are invited to check them'
             os.system(txt2hdf5Cmd)
  
+        if options.freezePOIs:
+            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5'))
+        else:
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5'))
+        print "Printing command to run combine."
+        print combineCmd
+
 ########################################
     # end of loop over charges
 ########################################

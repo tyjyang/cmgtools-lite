@@ -127,9 +127,9 @@ def wptBinsScales(i):
     wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
     #if len(wptbins)<2*i:
     #    print 'you are asking too much from the wpt binning for decorrelation of scales'
-    #bin = 2*(i-1)
-    ptlo = wptbins[i-1]
-    pthi = wptbins[1]
+    factor = 2 # use any 2 bins instead of changing the array
+    ptlo = wptbins[factor * (i-1)]
+    pthi = wptbins[factor * i]
     return [ptlo, pthi]
 
 
@@ -194,6 +194,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
         for idir in ['Up','Dn']:
             postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
             mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+            # this is now obsolete, now using the QCD scales in bins of wpt for signal only
             if scale == "wptSlope":
                 sign  =  1 if idir == 'Dn' else -1
                 asign = -1 if idir == 'Dn' else  1
@@ -206,18 +207,21 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 fstring = "mass_80470" if idir == 'Up' else "mass_80370"
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
-            elif 'muR' in scale or 'muF' in scale:
-                for ipt in range(1,11): ## start from 1 to 10
-                    ## have to redo the postfix for these
-                    postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
-                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                    ptcut = wptBinsScales(ipt)
-                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
-                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                    qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
+            # for signal only, split scales in wpt
+            if incl_mca == 'incl_sig':
+                if 'muR' in scale or 'muF' in scale:
+                    for ipt in range(1,11): ## start from 1 to 10
+                        ## have to redo the postfix for these
+                        postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
+                        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                        ptcut = wptBinsScales(ipt)
+                        wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                        qcdsysts.append(postfix)
+            
     print "written ",syst," systematics relative to ",incl_mca
 
 # def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
@@ -357,6 +361,7 @@ Output     = {pid}.out
 Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
+next_job_start_delay = 1
 request_memory = 4000
 +MaxRuntime = {rt}
 queue 1\n
@@ -430,12 +435,16 @@ if __name__ == "__main__":
 
     if not os.path.exists(outdir): 
         os.makedirs(outdir)
-    if options.queue and not os.path.exists(outdir+"/jobs"): 
-        os.mkdir(outdir+"/jobs")
-        os.mkdir(outdir+"/logs")
-        os.mkdir(outdir+"/outs")
-        os.mkdir(outdir+"/errs")
-        os.mkdir(outdir+"/mca")
+    if options.queue :
+        if not os.path.exists(outdir+"/jobs"): 
+            os.mkdir(outdir+"/jobs")                    
+            os.mkdir(outdir+"/mca")
+        if not os.path.exists(outdir+"/logs"):
+            os.mkdir(outdir+"/logs")
+        if not os.path.exists(outdir+"/outs"):
+            os.mkdir(outdir+"/outs")
+        if not os.path.exists(outdir+"/errs"):
+            os.mkdir(outdir+"/errs")
 
     # copy some cfg for bookkeeping
     os.system("cp %s %s" % (CUTFILE, outdir))
@@ -467,7 +476,8 @@ if __name__ == "__main__":
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
+        #writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # no more wpt inclusive, now we have the QCD scales in bins of wpt
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
 
     writeEfficiencyStatErrorSystsToMCA_diffXsec(MCA,outdir+"/mca",options.channel,genEtaBins=[float(x) for x in etabinning])
@@ -532,7 +542,7 @@ if __name__ == "__main__":
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
 
                     dcname = "W_{channel}{syst}".format(channel=options.channel,syst=var)
-                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir
+                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --asimov --od "+outdir
                     if options.queue:
                         mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         if options.useLSF:
@@ -835,6 +845,7 @@ Output     = {od}/$(ProcId).out
 Error      = {ed}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
+next_job_start_delay = 1
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
