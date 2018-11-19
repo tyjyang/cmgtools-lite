@@ -318,6 +318,13 @@ class util:
         ret = self.getExprFromToysFast('diffXsec',expr,nHistBins, minHist, maxHist, tree=tree)
         return ret
 
+    def getDiffXsecAsymmetryFromToysFast(self, channel, ieta, ipt, netabins, ngroup, nHistBins=2000, minHist=0., maxHist=1.0, tree=None):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromToysFast('chargeAsym',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
 
     def getExprFromHessian(self, name, expression, infile):
         f = ROOT.TFile(infile, 'read')
