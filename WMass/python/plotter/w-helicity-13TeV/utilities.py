@@ -188,7 +188,7 @@ class util:
 
         return _dict
 
-    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None):
+    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None, selection=""):
 
         # getPull = True will return a histogram centered at 0 and with expected rms=1, obtained as (x-x_gen)/x_err
 
@@ -213,13 +213,13 @@ class util:
                 tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3, 3)
                 expression = "({p}-{pgen})/{perr}".format(p=p.GetName(),pgen=p.GetName()+"_gen",perr=p.GetName()+"_err")
-                tree.Draw(expression+'>>'+p.GetName())
-                tree.Draw(p.GetName()+'>>'+p.GetName()+"_tmp")
+                tree.Draw(expression+'>>'+p.GetName(),selection)
+                tree.Draw(p.GetName()+'>>'+p.GetName()+"_tmp",selection)
                 mean = tmp_hist_tmp.GetMean()
                 err  = tmp_hist_tmp.GetRMS()
             else:
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
-                tree.Draw(p.GetName()+'>>'+p.GetName())
+                tree.Draw(p.GetName()+'>>'+p.GetName(),selection)
                 mean = tmp_hist.GetMean()
                 err  = tmp_hist.GetRMS()
 
@@ -275,7 +275,7 @@ class util:
         den = "(" + den + ")"
         return den
 
-    def getNormalizedDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile,den):
+    def getNormalizedDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile, den, friendTree=""):
         igroup = int(int(ieta + ipt * netabins)/ngroup)
         num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
         #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
@@ -283,10 +283,40 @@ class util:
         ret = self.getExprFromToys('normDiffXsec',expr,infile)
         return ret
 
+
     def getDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
         igroup = int(int(ieta + ipt * netabins)/ngroup)
         expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
         ret = self.getExprFromToys('diffXsec',expr,infile)
+        return ret
+
+    def getExprFromToysFast(self, name, expression, nHistBins=100000, minHist=-100., maxHist=5000., tree=None):
+        tmp_hist = ROOT.TH1F(name,name, nHistBins, minHist, maxHist)
+        tree.Draw(expression+'>>'+name)
+        mean = tmp_hist.GetMean()
+        err  = tmp_hist.GetRMS()
+        return (mean, mean+err, mean-err)
+
+    def getNormalizedDiffXsecFromToysFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, den, nHistBins=1000, minHist=0., maxHist=0.1, tree=None):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        expr = '{num}/{den}'.format(num=num,den=den)
+        ret = self.getExprFromToysFast('normDiffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+    def getDiffXsecFromToysFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=2000, minHist=0., maxHist=200., tree=None):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        ret = self.getExprFromToysFast('diffXsec',expr,nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+    def getDiffXsecAsymmetryFromToysFast(self, channel, ieta, ipt, netabins, ngroup, nHistBins=2000, minHist=0., maxHist=1.0, tree=None):
+        igroup = int(int(ieta + ipt * netabins)/ngroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromToysFast('chargeAsym',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
 
     def getExprFromHessian(self, name, expression, infile):
