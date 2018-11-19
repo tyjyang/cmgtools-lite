@@ -18,6 +18,7 @@ class CardsChecker:
         for f in os.listdir(card_dir+'/jobs/'):
             if not f.endswith('.sh'): 
                 continue
+            if "dummy_exec" in f: continue
             key = f.replace('.sh','')
             tmp_f = open(card_dir+'/jobs/'+f, 'r')
             lines = tmp_f.readlines()
@@ -57,10 +58,13 @@ class CardsChecker:
         condor_file_name = jobdir+'/condor_submit.condor'
         condor_file = open(condor_file_name,'w')
         if splitdir:
+            os.system("mkdir -p {jd}/logs/".format(jd=self.resub_card_dir))
+            os.system("mkdir -p {jd}/errs/".format(jd=self.resub_card_dir))
+            os.system("mkdir -p {jd}/errs/".format(jd=self.resub_card_dir))
             # write new logs overwriting the original ones for failed jobs
-            logdir = self.card_dir + "/logs/"
-            outdirCondor = self.card_dir + "/outs/"
-            errdir = self.card_dir + "/errs/"
+            logdir = self.resub_card_dir + "/logs/"
+            outdirCondor = self.resub_card_dir + "/outs/"
+            errdir = self.resub_card_dir + "/errs/"
             condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
@@ -132,7 +136,7 @@ request_memory = 4000
                     if not tfile or tfile.IsZombie():
                         if self.options.verbose>1: print '# ',f, ' is Zombie'
                         f_ok = False
-                    if len(tfile.GetListOfKeys()) < 0:
+                    elif tfile.GetNkeys() == 0:
                         if self.options.verbose>1: print '# WARNING',f, ' has no keys inside!!'
                         f_ok = False
 
