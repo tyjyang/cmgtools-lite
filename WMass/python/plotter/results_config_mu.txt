@@ -1,0 +1,11 @@
+basedir='cards/helicity_2018_11_13_cardsAFS/'
+both_floatingPOIs_hessian = basedir+'/fitresults_both_floatingPOIs_hessian.root'
+both_floatingPOIs_toys    = basedir+'/toys/fitresults_both_floatingPOIs_toys.root'
+
+both_fixedPOIs_hessian    = basedir+'/fitresults_both_fixedPOIs_hessian.root'
+both_fixedPOIs_toys       = basedir+'/toys/fitresults_both_fixedPOIs_toys.root'
+
+shapes_files = basedir+'/Wmu_shapes.root'
+
+xsecs_plus  = basedir+'/Wmu_plus_shapes_xsec.root'
+xsecs_minus = basedir+'/Wmu_minus_shapes_xsec.root'
