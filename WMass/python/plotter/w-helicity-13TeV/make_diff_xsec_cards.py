@@ -264,7 +264,7 @@ def writeEfficiencyStatErrorSystsToMCA_diffXsec(mcafile,odir,channel,syst="EffSt
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
-        print "Warning! '%s' include directive not found. Not adding pdf systematics samples to MCA file" % incl_mca
+        print "Warning! '%s' include directive not found. Not adding EffStat systematics samples to MCA file" % incl_mca
         return
     if append:
         filename = "%s/mca_systs.txt" % odir
@@ -374,7 +374,7 @@ queue 1\n
 def getShFile(jobdir, name):
     tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
     tmp_srcfile = open(tmp_srcfile_name, 'w')
-    tmp_srcfile.write("#! /bin/sh\n")
+    tmp_srcfile.write("#! /bin/bash\n")
     tmp_srcfile.write("ulimit -c 0 -S\n")
     tmp_srcfile.write("ulimit -c 0 -H\n")
     tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
