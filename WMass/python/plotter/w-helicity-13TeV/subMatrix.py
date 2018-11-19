@@ -177,7 +177,8 @@ if __name__ == "__main__":
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
 
     th2_sub.GetZaxis().SetRangeUser(-1, 1)
-    if len(params)<30: th2_sub.Draw('colz text')
+    ROOT.gStyle.SetPaintTextFormat('1.2f')
+    if len(params)<30: th2_sub.Draw('colz text45')
     else: th2_sub.Draw('colz')
 
     paramsName = options.params.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')

@@ -33,9 +33,11 @@ if __name__ == "__main__":
     os.system('mkdir -p {od}'.format(od=options.outdir))
     os.system('cp ~mdunser/public/index.php {od}'.format(od=options.outdir))
 
+    #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
+    pois_regexps = list(options.pois.split(','))
 
     if   options.type == 'toys':
-        valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True)
+        valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True,params=pois_regexps)
     elif options.type == 'hessian':
         valuesAndErrorsAll = utilities.getFromHessian(infile,keepGen=True)
     else:
@@ -46,8 +48,6 @@ if __name__ == "__main__":
     setUpString = "diffNuisances run on %s, at %s with the following options ... "%(infile,datetime.datetime.utcnow())+str(options)
     date = datetime.date.today().isoformat()
 
-    #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
-    pois_regexps = list(options.pois.split(','))
 
     print 'looking for regexp match', pois_regexps    
     valuesAndErrors = {}
