@@ -229,16 +229,9 @@ class util:
         return _dict
 
 
-    def getExprFromToys(self, name, expression, infile, friendTree=""):
+    def getExprFromToys(self, name, expression, infile):
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')        
-        if friendTree != "":
-            tree.AddFriend('toyFriend',friendTree)
-            # ff = ROOT.TFile(friendTree, 'read')
-            # ft = f.Get('toyFriend')
-            # if ft == None:
-            #     print "Error in getExprFromToys(): cannot find friend tree, please check!"
-            #     quit()            
         tmp_hist = ROOT.TH1F(name,name, 100000, -100., 5000.)
         tree.Draw(expression+'>>'+name)
         mean = tmp_hist.GetMean()
