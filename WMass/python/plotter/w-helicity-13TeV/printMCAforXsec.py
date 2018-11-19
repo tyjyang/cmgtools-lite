@@ -12,6 +12,7 @@ from make_diff_xsec_cards import getArrayParsingString
 # use "WJetsToLNu_*" or a subset for muons
 
 
+
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options]")
 parser.add_option('-o','--outdir', dest='outdir',   default='w-helicity-13TeV/wmass_e/mca-includes/', type='string', help='Output folder')
@@ -42,10 +43,19 @@ charges = [ "plus", "minus"]
 flav=options.channel
 
 scaleVars = ['muR','muF',"muRmuF", "alphaS"] 
+# scales are also done in bins of wpt
+# let's consider 10 bins (using every other value of the following array, defined also in make_diff_xsec_cards.py)
+wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
+for ipt in range(1,11): ## start from 1 to 10
+    scaleVars.append("muR%s" % str(ipt))
+    scaleVars.append("muF%s" % str(ipt))
+    scaleVars.append("muRmuF%s" % str(ipt))
+
 syst_suffix = []
 for x in scaleVars:
     syst_suffix.append("%sUp" % x)
     syst_suffix.append("%sDn" % x)
+
 #pdf
 for i in range(60):
     syst_suffix.append("pdf%d" % int(i+1))
@@ -86,7 +96,17 @@ for syst in all_syst_suffix:
                 massValue = syst[3:]
                 wgt = "mass_{m}".format(m=massValue)
             else:
-                wgt = "qcd_%s" % syst
+                if any(x in syst for x in ["muR","muF","muRmuF"]) and any (x.isdigit() for x in syst):
+                    ptbin = ""
+                    for i in syst:
+                        if i.isdigit(): ptbin += i
+                    ptbin = int(ptbin)
+                    ptlow = str(wptbins[2*(ptbin-1)])
+                    pthigh = str(wptbins[2*ptbin])
+                    scale = syst.replace(str(ptbin),"")
+                    wgt = 'TMath::Power(qcd_{sc}\,({wv}_pt >= {ptlo} && {wv}_pt < {pthi}))'.format(sc=scale,wv=genwVar,ptlo=ptlow,pthi=pthigh)
+                else:
+                    wgt = "qcd_%s" % syst
             line += ", AddWeight=\"{wgt}\"".format(wgt=wgt)
 
         mcafile.write(line+"\n")

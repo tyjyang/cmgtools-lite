@@ -94,7 +94,7 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runBatch="y"
 queueForBatch="cmscaf1nd"
-nameTag="_FRpol2" 
+nameTag="_testTreeAFS" 
 #nameTag="_varStudy"
 useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
@@ -229,7 +229,7 @@ regionKey["FRcheckRegion"]="FRcheckRegion"
 runRegion["FRcheckRegion"]="y"
 regionName["FRcheckRegion"]="FR_check_region"
 #skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
-skimTreeDir["FRcheckRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW"
+skimTreeDir["FRcheckRegion"]="TREE_4_XSEC_AFS"
 outputDir["FRcheckRegion"]="full2016data_${today}"
 regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30}"
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
@@ -273,12 +273,15 @@ scaleMCdata["WmassSignalRegion"]="--fitData"
 regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
 runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
-#skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ## ADD _TINY, uness you want trkmet variables
-skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
+#skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
+#skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
+skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
 regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
 scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 # data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips
@@ -428,7 +431,7 @@ fi
 # otherwise the parsing of the option parameters is not done correctly
 
 
-commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.25 --legendFontSize 0.05 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms"
+commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.25 --legendFontSize 0.05 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms "
 
 # if [[ "X${scaleAllMCtoData}" != "X" ]]; then
 #     commonCommand="${commonCommand} ${scaleAllMCtoData} "
@@ -522,10 +525,17 @@ do
 	    treepath="/eos/cms/store/cmst3/group/wmass/mciprian/"
 	fi
 
+	if [[ "${treedir}" == "TREES_1LEP_80X_V3_SIGSKIM_WENU_FULLSEL_NOMT" ]]; then		
+	    treepath="/eos/cms/store/cmst3/group/wmass/mciprian/"
+	fi
+
 	if [[ "${treedir}" == "TREES_electrons_1l_V6_TINY" ]]; then		
 	    treepath="/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/"
 	fi
 
+	if [[ "${treedir}" == "TREE_4_XSEC_AFS" ]]; then		
+	    treepath="/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
+	fi
 
 
 	#treeAndFriend=" -P ${treepath}/${treedir}/ -F Friends ${treepath}/${treedir}/friends/tree_Friend_{cname}.root -F Friends ${treepath}/${treedir}/friends/tree_FRFriend_{cname}.root --FMC Friends ${treepath}/${treedir}/friends/tree_TrgFriend_{cname}.root "

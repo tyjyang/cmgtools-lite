@@ -48,7 +48,7 @@ class CardsChecker:
         tmp_file.close()
         return tmp_file_name
 
-    def makeCondorFile(self, jobdir, srcFiles):
+    def makeCondorFile(self, jobdir, srcFiles, splitdir=False):
         dummy_exec = open(jobdir+'/dummy_exec.sh','w')
         dummy_exec.write('#!/bin/bash\n')
         dummy_exec.write('bash $*\n')
@@ -56,7 +56,26 @@ class CardsChecker:
      
         condor_file_name = jobdir+'/condor_submit.condor'
         condor_file = open(condor_file_name,'w')
-        condor_file.write('''Universe = vanilla
+        if splitdir:
+            # write new logs overwriting the original ones for failed jobs
+            logdir = self.card_dir + "/logs/"
+            outdirCondor = self.card_dir + "/outs/"
+            errdir = self.card_dir + "/errs/"
+            condor_file.write('''Universe = vanilla
+Executable = {de}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {ld}/$(ProcId).log   
+Output     = {od}/$(ProcId).out   
+Error      = {ed}/$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+next_job_start_delay = 1
+request_memory = 4000
++MaxRuntime = {rt}\n
+'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), 
+           rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+        else:
+            condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
 Log        = {jd}/$(ProcId).log
@@ -64,9 +83,11 @@ Output     = {jd}/$(ProcId).out
 Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
+next_job_start_delay = 1
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
         for sf in srcFiles:
@@ -149,7 +170,7 @@ request_memory = 4000
                     tmp_n -= 1
                 tmp_srcfile.close()
                 srcfiles.append(tmp_srcfile_name)
-            cf = self.makeCondorFile(resubdir,srcfiles)
+            cf = self.makeCondorFile(resubdir,srcfiles,splitdir=self.options.splitdir)
             resubcmds[0] = 'condor_submit {rf} '.format(rf = cf)
             
         return resubcmds
@@ -162,8 +183,9 @@ if __name__ == '__main__':
     parser.add_option('-q', '--queue', dest='queue', type='string', default='1nd', help='choose the queue to submit batch jobs (default is 8nh)');
     parser.add_option('-v', '--verbose', dest='verbose', default=0, type=int, help='Degree of verbosity (0=default prints only the resubmit commands)');
     parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
-    parser.add_option('-r', '--runtime', default=8, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
+    parser.add_option('-r', '--runtime', default=12, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option('-g', '--grouping', default=10, type=int,  help='Group resubmit commands into groups of size N');
+    parser.add_option(      '--splitdir', dest='splitdir', default=False, action='store_true', help='Use thsi option if .log, .err, .out files of condor are put in separate folders (needed for diff.xsec, might become useful for helciity as well)');
     (options, args) = parser.parse_args()
 
     if options.checkCards:
