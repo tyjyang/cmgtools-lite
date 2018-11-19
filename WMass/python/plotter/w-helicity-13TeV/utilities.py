@@ -166,7 +166,7 @@ class util:
         return _dict
 
 
-    def getFromToys(self, infile, keepGen=False):
+    def getFromToys(self, infile, keepGen=False, params=[]):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -178,9 +178,16 @@ class util:
             if '_minos' in p.GetName(): continue
             if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
+
+            if len(params):
+                match = [re.match(param,p.GetName()) for param in params]
+                if not any(match): continue
+
+            print 'gettin parameter ', p.GetName(), 'from toys file'
             
-            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
-            tree.Draw(p.GetName()+'>>'+p.GetName())
+            #tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
+            tree.Draw(p.GetName()+'>>foob')#+p.GetName())
+            tmp_hist = ROOT.gPad.GetPrimitive('foob')
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
             _dict[p.GetName()] = (mean, mean+err, mean-err)

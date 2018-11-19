@@ -17,9 +17,9 @@ def formatHisto(hist):
 
 
 def makeFraction(a0, a4, pol, ch):
-    rethist = a0.Clone('fraction{p}_{ch}_sym'.format(p=pol,ch=ch))
-    rethist.SetTitle('f_{{{p}}} {ch} - constructed (sym)'.format(p=pol,ch=ch))
-    rethist.SetName ('fraction{p}_{ch}_sym_constructed'.format(p=pol,ch=ch))
+    rethist = a0.Clone('fraction{p}_{ch}'.format(p=pol,ch=ch))
+    rethist.SetTitle('f_{{{p}}} {ch} - constructed '.format(p=pol,ch=ch))
+    rethist.SetName ('fraction{p}_{ch}_constructed'.format(p=pol,ch=ch))
 
     chmult = 1. if ch == 'minus' else 1.  #### WWWWWAAAAHHHHHH
 
@@ -60,7 +60,7 @@ if options.compfile:
     comphists = {}
     for ch in ['plus', 'minus']:
         for pol in ['L', 'R', '0']:
-            comphists['fraction{p}_{ch}_sym'.format(p=pol,ch=ch)] = copy.deepcopy(compfile.Get('fraction{p}_{ch}_sym'.format(p=pol,ch=ch)))
+            comphists['fraction{p}_{ch}'.format(p=pol,ch=ch)] = copy.deepcopy(compfile.Get('fraction{p}_{ch}'.format(p=pol,ch=ch)))
     compfile.Close()
 
 
@@ -69,12 +69,14 @@ ROOT.gROOT.SetBatch()
 
 rootfiles = {}
 fractions = {}
+rootfile = ''
 for inf in os.listdir(options.indir):
     if not '.root' in inf:
         continue
-    if not 'Coeff' in inf:
-        continue
-    rootfiles[inf.split('Coeff')[0]] = ROOT.TFile(options.indir+'/'+inf, 'read')
+    #if not 'Coeff' in inf:
+    #    continue
+    #rootfiles[inf.split('Coeff')[0]] = ROOT.TFile(options.indir+'/'+inf, 'read')
+    rootfile = ROOT.TFile(options.indir+'/'+inf, 'read')
 
 canv = ROOT.TCanvas()
 canv.GetPad(0).SetTopMargin(0.05)
@@ -85,19 +87,19 @@ canv.GetPad(0).SetRightMargin(0.15)
 for ch in ['plus', 'minus']:
     for pol in ['L', 'R', '0']:
         
-        tmp_a0 = copy.deepcopy(rootfiles['a0'].Get('a0_{ch}_sym'.format(ch=ch)))
-        tmp_a4 = copy.deepcopy(rootfiles['a4'].Get('a4_{ch}_sym'.format(ch=ch)))
+        tmp_a0 = copy.deepcopy(rootfile.Get('a0_{ch}'.format(ch=ch)))
+        tmp_a4 = copy.deepcopy(rootfile.Get('a4_{ch}'.format(ch=ch)))
 
         tmp_hist = makeFraction(tmp_a0, tmp_a4, pol, ch)
         tmp_hist.GetXaxis().SetTitle('Y_{W}')
         tmp_hist.GetYaxis().SetTitle('p_{T}^{W}')
-        fractions['fraction{p}_{ch}_sym_constr'.format(p=pol,ch=ch)] = tmp_hist
+        fractions['fraction{p}_{ch}_constr'.format(p=pol,ch=ch)] = tmp_hist
         tmp_hist.Draw('colz')
         canv.SaveAs(options.indir+'/'+tmp_hist.GetName()+'.pdf')
         canv.SaveAs(options.indir+'/'+tmp_hist.GetName()+'.png')
         if options.compfile:
-            tmp_compare = copy.deepcopy(comphists['fraction{p}_{ch}_sym'.format(p=pol,ch=ch)])
-            tmp_ratio = tmp_hist.Clone('RATIO_fraction{p}_{ch}_sym'.format(p=pol,ch=ch))
+            tmp_compare = copy.deepcopy(comphists['fraction{p}_{ch}'.format(p=pol,ch=ch)])
+            tmp_ratio = tmp_hist.Clone('RATIO_fraction{p}_{ch}'.format(p=pol,ch=ch))
             tmp_ratio.Reset()
             tmp_ratio.SetTitle('f_{{{p}}} {ch} ratio: angular / fit'.format(p=pol,ch=ch))
             for ix in range(1,tmp_compare.GetNbinsX()+1):
@@ -108,15 +110,15 @@ for ch in ['plus', 'minus']:
             tmp_ratio.GetZaxis().SetRangeUser(0.5, 1.5)
             canv.SaveAs(options.indir+'/'+tmp_ratio.GetName()+'.pdf')
             canv.SaveAs(options.indir+'/'+tmp_ratio.GetName()+'.png')
-            fractions['RATIO_fraction{p}_{ch}_sym'.format(p=pol,ch=ch)] = tmp_ratio
+            fractions['RATIO_fraction{p}_{ch}'.format(p=pol,ch=ch)] = tmp_ratio
 
-    summedFractions = copy.deepcopy(fractions['fractionL_{ch}_sym_constr'.format(ch=ch)]).Clone('fractionSum_{ch}'.format(ch=ch))
+    summedFractions = copy.deepcopy(fractions['fractionL_{ch}_constr'.format(ch=ch)]).Clone('fractionSum_{ch}'.format(ch=ch))
     summedFractions.Reset()
     summedFractions.SetName('fractionSum_{ch}'.format(ch=ch))
     summedFractions.SetTitle('#Sigma f_{{i}} {ch}'.format(ch=ch))
-    summedFractions.Add(fractions['fractionL_{ch}_sym_constr'.format(ch=ch)])
-    summedFractions.Add(fractions['fractionR_{ch}_sym_constr'.format(ch=ch)])
-    summedFractions.Add(fractions['fraction0_{ch}_sym_constr'.format(ch=ch)])
+    summedFractions.Add(fractions['fractionL_{ch}_constr'.format(ch=ch)])
+    summedFractions.Add(fractions['fractionR_{ch}_constr'.format(ch=ch)])
+    summedFractions.Add(fractions['fraction0_{ch}_constr'.format(ch=ch)])
     #summedFractions.SetAxisRange(0.9, 1.1, 'Z')
     summedFractions.GetZaxis().SetRangeUser(0.9, 1.1)
     summedFractions.Draw('colz')

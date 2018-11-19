@@ -2,7 +2,7 @@ import optparse, subprocess, ROOT, datetime, math, array, copy, os, itertools
 import numpy as np
 
 #doPUreweighting = True
-doPUandSF = True
+doPUandSF = False
 
 def submitFRrecursive(ODIR, name, cmd, dryRun=False):
     outdir=ODIR+"/jobs/"
@@ -24,7 +24,42 @@ def submitFRrecursive(ODIR, name, cmd, dryRun=False):
         print "[DRY-RUN]: ", bsubcmd
     else: os.system(bsubcmd)
 
-def submitIt(ODIR, name, cmd, dryRun=True): #GO,name,plots=[],noplots=[],opts=None):
+def submitIt(ODIR, name, cmd, dryRun=True):
+    outdir=ODIR+"/jobs/"
+    if not os.path.isdir(outdir): 
+        os.system('mkdir -p '+outdir)
+    srcfile = outdir+name+".sh"
+    srcfile_op = open(srcfile,"w")
+    srcfile_op.write("#! /bin/sh\n")
+    srcfile_op.write("ulimit -c 0\n")
+    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( 
+            d = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    srcfile_op.write(cmd+'\n')
+    srcfile_op.close()
+    os.system("chmod a+x "+srcfile)
+
+    condorf_name = srcfile.replace('.sh','.condor')
+    condorf_op = open(condorf_name,'w')
+    condorf_op.write('''Universe = vanilla
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {od}{name}.log
+Output     = {od}{name}.out
+Error      = {od}{name}.error
+getenv      = True
+
+request_memory = 4000
++MaxRuntime = 14400
++AccountingGroup = "group_u_CMST3.all"
+queue 1\n
+ '''.format(scriptName=os.path.abspath(srcfile), name=name, od=outdir ) )
+    condorf_op.close()
+    subcmd = 'condor_submit {cf} '.format(cf=condorf_name)
+    if dryRun: 
+        print "[DRY-RUN]: ", subcmd
+    else: os.system(subcmd)
+
+def submitItLSF(ODIR, name, cmd, dryRun=True): #GO,name,plots=[],noplots=[],opts=None):
     outdir=ODIR+"/jobs/"
     if not os.path.isdir(outdir): 
         os.system('mkdir -p '+outdir)
@@ -144,6 +179,8 @@ def runplots(trees, friends, targetdir, fmca, fcut, fplots, enabledcuts, disable
     if not submitit:
         print 'running: python', cmd
         subprocess.call(['python']+cmd.split())#+['/dev/null'],stderr=subprocess.PIPE)
+    elif submitit == 'return':
+        return 'python '+cmd
     else:
         submitIt(targetdir, name, 'python '+cmd, False)
 
@@ -549,8 +586,12 @@ def plots1l():
     print '=========================================='
     print 'running plots for 1l'
     print '=========================================='
-    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
+    ## old skims trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    ## old skims friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
+    ## originals trees     = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/'
+    ## originals friends   = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/friends/'
+    trees     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/'
+    friends   = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/friends/'
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/plots-1l/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
 
     fmca      = 'w-helicity-13TeV/wmass_mu/simple/mca_simple.txt'
@@ -559,27 +600,41 @@ def plots1l():
 
     enable    = []#'mtl1pf40max']
     disable   = []#'mtl1pf40min']
-    #processes = ['W', 'data', 'Top', 'DiBosons', 'Z', 'data_fakes', 'TauDecaysW'] #'QCD'
-    processes = ['data_fakes', 'data_awayJetPt45']
+    processes = ['W', 'data', 'Top', 'DiBosons', 'Z', 'fakes_data', 'TauDecaysW'] #'QCD'
+    #processes = ['data_awayJetPt45', 'data_FRmu_slope_Up', 'data_FRmu_continuous_Up']
     fittodata = []
     scalethem = {}
     trgString = '1.'#triggerSF_1l_histo(LepGood_calPt[0],LepGood_eta[0])'
 
     ## sfString = 'LepGood_SF1[0]*LepGood_SF3[0]'
-    sfString = '_get_muonSF_selectionToTrigger(13,LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])'
+    ## sfString = '_get_muonSF_selectionToTrigger(13,LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])'
+    sfString = 'LepGood_SF1[0]*LepGood_SF2[0]'
     #extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+trgString+'*'+selectionString+' --maxRatioRange 0.9 1.1 --fixRatioRange '
     #extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])*triggerSF_1l_histo(LepGood_pt[0],LepGood_eta[0]) --maxRatioRange 0.9 1.1 --fixRatioRange '
-    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+sfString+' --maxRatioRange 0.8 1.2 --fixRatioRange --fitData --plotmode=norm '
-    makeplots = ['ptl1scale', 'ptl1scaleUp', 'ptl1scaleDn']#, 'analysisetal1'] #'mtl1tk', 'etal1', 'ptl1']#'nVert', 'ptl1', 'etal1', 'mtl1tk', 'mtl1pf', 'tkmet', 'pfmet']
+    extraopts = ' -W puw2016_nTrueInt_36fb(nTrueInt)*'+sfString+' --maxRatioRange 0.9 1.1 --fixRatioRange --verywide '
+    makeplots = ['unrolled']#'ptl1scale', 'ptl1scaleUp', 'ptl1scaleDn']#, 'analysisetal1'] #'mtl1tk', 'etal1', 'ptl1']#'nVert', 'ptl1', 'etal1', 'mtl1tk', 'mtl1pf', 'tkmet', 'pfmet']
     showratio = True
     runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
     
+def wptBinsScales(i):
+    wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
+    if len(wptbins)<2*i:
+        print 'you are asking too much from the wpt binning for decorrelation of scales'
+        print '    length is {l} and you are asking for bin {i}'.format(l=len(wptbins),i=i)
+    ptlo = wptbins[2*(i-1)]
+    pthi = wptbins[2*i]
+    return [ptlo, pthi]
+
 def makePDFvariations():
     print '=========================================='
     print 'running pdf variations of the abs(Y)'
     print '=========================================='
-    trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/']
-    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
+    ## produces the AN version trees     = ['/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/']
+    ## produces the AN version friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/friends/'
+    ## tmptmp trees     = ['/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/']
+    ## tmptmp friends   = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/friends/'
+    trees     = ['/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_skim_1genmu/']
+    friends   = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_skim_1genmu/friends/'
     #targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/absY_pdfVariations/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
     targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/theory_variations/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
 
@@ -587,29 +642,87 @@ def makePDFvariations():
     fcut      = 'w-helicity-13TeV/wmass_mu/helicityTemplates/cuts.txt'
     fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots.txt'
 
-    enable    = []#'recoCuts']
+    enable    = []
     disable   = []
     fittodata = []
     scalethem = {}
     showratio = False
 
-    for ch in ['plus', 'minus']:
-        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch),]
-        for i in range(1,61):
-            extraopts = ' --plotmode=nostack -W "hessWgt{i}" '.format(i=i)
-            makeplots = ['w{ch}_wy_pdf{i}'.format(ch=ch,i=i)]
-            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], True, '{ch}_pdf{i}'.format(ch=ch,i=i))
-        for sys, var in itertools.product(['muR','muF', 'muRmuF', 'alphaS'],['Up', 'Dn']):
-            sv = sys+var
-            extraopts = ' --plotmode=nostack -W "qcd_{sv}" '.format(sv=sv)
-            makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
-            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], True, '{ch}_{sv}'.format(ch=ch,sv=sv))
+
+    ## there are too many. make a smarter condor file and submit that with spawning and just one out/error/log file
+    outdir=targetdir+"/jobs/"
+    if not os.path.isdir(outdir): 
+        os.system('mkdir -p '+outdir)
+    srcfile = outdir+'/dummy_exec.sh'
+    srcfile_op = open(srcfile,"w")
+    srcfile_op.write('#!/bin/sh\n')
+    srcfile_op.write('ulimit -c 0\n')
+    srcfile_op.write('cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n$*\n'.format( 
+            d = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    srcfile_op.close()
+    os.system('chmod a+x '+srcfile)
+
+    condorf_name = srcfile.replace('.sh','.condor')
+    condorf_op = open(condorf_name,'w')
+    condorf_op.write('''Universe = vanilla
+Executable = {scriptName}
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {of}.log
+Output     = {of}.out
+Error      = {of}.error
+getenv      = True
+
+request_memory = 4000
++MaxRuntime = 14400
++AccountingGroup = "group_u_CMST3.all"
+ '''.format(scriptName=os.path.abspath(srcfile), of=os.path.abspath(srcfile).replace('.sh','') ) )
+
+    cmds = []
 
     for ch in ['plus', 'minus']:
-        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch),]
-        extraopts = ' --plotmode=nostack -W 1. '.format(i=i)
+        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch)]
+        for i in range(1,61):
+            extraopts = " --plotmode=nostack -W hessWgt{i} ".format(i=i)
+            makeplots = ['w{ch}_wy_pdf{i}'.format(ch=ch,i=i)]
+            cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_pdf{i}'.format(ch=ch,i=i)))
+        for sys, var in itertools.product(['muR','muF', 'muRmuF', 'alphaS', 'mW'],['Up', 'Dn']):
+            sv = sys+var
+
+            if sys == 'mW': ## mW variation here
+                extraopts = " --plotmode=nostack -W mass_{newmass} ".format(newmass = '80470' if var == 'Up' else '80370')
+                makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+                cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
+
+            elif 'muR' in sys or 'muF' in sys: ## here run the 1-10 and the fully correlated in W-pT
+                for ipt in range(0,11):
+                    if not ipt:
+                        extraopts = " --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
+                        makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+                        cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
+                    else:
+                        newsv = sys+str(ipt)+var
+                        ptcut = wptBinsScales(ipt)
+                        wgtstr = 'TMath::Power(qcd_{sv},(prefsrw_pt>={ptlo}&&prefsrw_pt<{pthi}))'.format(sv=sv,ptlo=ptcut[0],pthi=ptcut[1])
+                        extraopts = ' --plotmode=nostack -W {ws} '.format(ws=wgtstr)
+                        makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=newsv)]
+                        cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=newsv)))
+
+            else: ## this leaves alphaS here
+                extraopts = " --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
+                makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+                cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
+
+
+    for ch in ['plus', 'minus']:
+        processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch)]
+        extraopts = ' --plotmode=nostack -W 1. '
         makeplots = ['w{ch}_wy_central'.format(ch=ch)]
-        runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])#, True, '{ch}_central'.format(ch=ch))
+        cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_central'.format(ch=ch)))
+
+    for c in cmds:
+        condorf_op.write('\narguments = {c}\nqueue 1\n'.format(c=c))
+    condorf_op.close()
+    print 'wrote condor file', os.path.abspath(condorf_name)
     
 def compareScales():
     print '=========================================='
@@ -659,7 +772,6 @@ def compareScales():
             showratio = True
             runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [])
     
-    
 def fakesDataMC():
     print '=========================================='
     print 'running fake closure/validation plots'
@@ -680,6 +792,34 @@ def fakesDataMC():
     makeplots = ['ptl1', 'analysisetal1']#'mtl1pf', 'pfmet']#mtl1pf', 'pfmet']#'ptl1', 'etal1', 'mtl1pf', 'pfmet']
     showratio = True
     runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts)
+
+    
+def fakeClosure():
+    print '=========================================='
+    print 'running fake closure/validation plots'
+    print '=========================================='
+    trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+    friends   = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/friends/'
+    fmca      = 'w-helicity-13TeV/wmass_mu/simple/mca_simple.txt'
+    fcut      = 'w-helicity-13TeV/wmass_mu/FRfast/cuts_fr_closure.txt'
+    fplots    = 'w-helicity-13TeV/wmass_mu/FRfast/plots.txt'
+
+    for fakes in ['QCD', 'fakes_data', 'fakes_data_awayJetPt45', 'fakes_data_awayJetPt40']:
+        postfix = opts.postfix+'-'+fakes
+        targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/fakesClosure/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
+        enable    = []
+        disable   = []
+        processes = [fakes, 'data', 'W', 'Top', 'DiBosons', 'Z', 'TauDecaysW']
+        fittodata = []
+        scalethem = {}
+        sfString = '_get_muonSF_selectionToTrigger(13,LepGood_pt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(13,LepGood_pt[0],LepGood_eta[0])'
+        extraopts  = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*'+sfString+'" --maxRatioRange 0.7 1.3 --fixRatioRange '
+        #extraopts += ' --ratioDen fakes_data --ratioNums fakes_data,fakes_data_awayJetPt45,fakes_data_awayJetPt40,QCD --plotmode=nostack ' #--fitData '
+        makeplots = ['ptl1', 'etal1']
+        showratio = True
+        for plot in makeplots:
+            mp = [plot]
+            runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, mp, showratio, extraopts, submitit=True, name=fakes+'_'+plot)
 
 def makeGenRecoEfficiencies(LO):
     print '=========================================='
@@ -730,7 +870,9 @@ def fractionReweighting():
     doSignal = True
 
     if doSignal:
-        trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
+        ## trees     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_1muskim/'
+        ## friends   = trees+'/friends/'
+        trees     = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_skim_1genmu/'
         friends   = trees+'/friends/'
         targetdir = '/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/helicityTemplates/{date}{pf}/'.format(date=date, pf=('-'+postfix if postfix else '') )
         fmca      = 'w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt'
@@ -743,7 +885,9 @@ def fractionReweighting():
             processes = ['W{c}_left'.format(c=ch), 'W{c}_right'.format(c=ch), 'W{c}_long'.format(c=ch)]
             fittodata = []
             scalethem = {}
-            makeplots = ['w{ch}_wyVsEta'.format(ch=ch)]#, 'etaPt', 'etaPtYgen', 'mtwtk', 'etal1', 'ptl1', 'etal1gen', 'ptl1gen', 'wpt']#, 'etaPtY']
+            #makeplots = ['w{ch}_wyVsEta'.format(ch=ch)]#, 'etaPt', 'etaPtYgen', 'mtwtk', 'etal1', 'ptl1', 'etal1gen', 'ptl1gen', 'wpt']#, 'etaPtY']
+            plots = ['wy', 'wyVsEta', 'etaPt', 'etaPtYgen', 'mtwtk', 'etal1', 'ptl1', 'etal1gen', 'ptl1gen', 'wpt', 'etaPtY']
+            makeplots = ['w{ch}_'.format(ch=ch)+ i for i in plots]#, 'etaPt', 'etaPtYgen', 'mtwtk', 'etal1', 'ptl1', 'etal1gen', 'ptl1gen', 'wpt']#, 'etaPtY']
             extraopts = ' -W 1. --plotmode=nostack'
 
             showratio = False
@@ -1015,6 +1159,10 @@ def makeFakeRatesFast(recalculate):
         h_pr_smoothed_data = ROOT.TH2F('promptrates_smoothed_data',' promptrates - smoothed data', len(binningeta)-1, array.array('f',binningeta), 2, array.array('f',[0., 1., 2.]))
         #h_fr_smoothed_mc   = ROOT.TH2F(h_name+'_qcd' ,h_title+' - qcd' , len(binning)-1, array.array('f',binning), len(binningeta)-1, array.array('f',binningeta))
 
+        h_fr_smoothed_data_offset = ROOT.TH2F('fakerates_smoothed_data_offset'  ,' fakerates - offset'  , len(binningeta)-1, array.array('f',binningeta), 1, array.array('f',[0., 1.]))
+        h_fr_smoothed_data_slope  = ROOT.TH2F('fakerates_smoothed_data_slope'   ,' fakerates - slope '  , len(binningeta)-1, array.array('f',binningeta), 1, array.array('f',[0., 1.]))
+        h_pr_smoothed_data_offset = ROOT.TH2F('promptrates_smoothed_data_offset'  ,' promptrates - offset'  , len(binningeta)-1, array.array('f',binningeta), 1, array.array('f',[0., 1.]))
+        h_pr_smoothed_data_slope  = ROOT.TH2F('promptrates_smoothed_data_slope'   ,' promptrates - slope '  , len(binningeta)-1, array.array('f',binningeta), 1, array.array('f',[0., 1.]))
 
 
         for j,eta in enumerate(binningeta[:-1]):
@@ -1089,12 +1237,25 @@ def makeFakeRatesFast(recalculate):
                     h_fr_smoothed_data.SetBinContent(etabin, 2, bestfunc.GetParameter(1) if bestfunc.GetNpar() > 1 else 0.)
                     h_fr_smoothed_data.SetBinError  (etabin, 2, bestfunc.GetParError (1) if bestfunc.GetNpar() > 1 else 0.)
 
+                    h_fr_smoothed_data_offset.SetBinContent(etabin, 1, bestfunc.GetParameter(0))
+                    h_fr_smoothed_data_offset.SetBinError  (etabin, 1, bestfunc.GetParError (0))
+
+                    h_fr_smoothed_data_slope .SetBinContent(etabin, 1, bestfunc.GetParameter(1) if bestfunc.GetNpar() > 1 else 0.)
+                    h_fr_smoothed_data_slope .SetBinError  (etabin, 1, bestfunc.GetParError (1) if bestfunc.GetNpar() > 1 else 0.)
+
                 else:
                     h_pr_smoothed_data.SetBinContent(etabin, 1, bestfunc.GetParameter(0))
                     h_pr_smoothed_data.SetBinError  (etabin, 1, bestfunc.GetParError (0))
 
                     h_pr_smoothed_data.SetBinContent(etabin, 2, bestfunc.GetParameter(1) if bestfunc.GetNpar() > 1 else 0.)
                     h_pr_smoothed_data.SetBinError  (etabin, 2, bestfunc.GetParError (1) if bestfunc.GetNpar() > 1 else 0.)
+
+                    h_pr_smoothed_data_offset.SetBinContent(etabin, 1, bestfunc.GetParameter(0))
+                    h_pr_smoothed_data_offset.SetBinError  (etabin, 1, bestfunc.GetParError (0))
+
+                    h_pr_smoothed_data_slope .SetBinContent(etabin, 1, bestfunc.GetParameter(1) if bestfunc.GetNpar() > 1 else 0.)
+                    h_pr_smoothed_data_slope .SetBinError  (etabin, 1, bestfunc.GetParError (1) if bestfunc.GetNpar() > 1 else 0.)
+
 
                 pols.append(copy.deepcopy(pol0))
                 pols.append(copy.deepcopy(pol1))
@@ -1119,7 +1280,32 @@ def makeFakeRatesFast(recalculate):
         h_fr_smoothed_data.GetYaxis().SetBinLabel(2, 'slope')
         canv.SaveAs(targetdir+'fakerate_smoothed_data_{date}.png'.format(date=date))
         canv.SaveAs(targetdir+'fakerate_smoothed_data_{date}.pdf'.format(date=date))
+
+        canvtemp = ROOT.TCanvas()
+        canvtemp.Divide(1,2)
+        canvtemp.cd(1)
+        h_fr_smoothed_data_slope .Draw("colz text45 e")
+        h_fr_smoothed_data_slope.GetZaxis().SetRangeUser(0.0, 0.01)
+        canvtemp.cd(2)
+        h_fr_smoothed_data_offset.Draw("colz text45 e")
+        h_fr_smoothed_data_offset.GetZaxis().SetRangeUser(0.0, 0.6)
+        canvtemp.SaveAs(targetdir+'fakerate_smoothed_data_{date}_twopanels.png'.format(date=date))
+        canvtemp.SaveAs(targetdir+'fakerate_smoothed_data_{date}_twopanels.pdf'.format(date=date))
+
+        canvtemp.cd(1)
+        h_fr_smoothed_data_slope .Draw("colz text45 e")
+        h_fr_smoothed_data_slope.GetZaxis().SetRangeUser(0.0, 0.01)
+        canvtemp.cd(2)
+        h_fr_smoothed_data_offset.Draw("colz text45 e")
+        h_fr_smoothed_data_offset.GetZaxis().SetRangeUser(0.0, 0.8)
+        canvtemp.SaveAs(targetdir+'promptrate_smoothed_data_{date}_twopanels.png'.format(date=date))
+        canvtemp.SaveAs(targetdir+'promptrate_smoothed_data_{date}_twopanels.pdf'.format(date=date))
+
         
+        canv.cd()
+
+        
+        canv.cd()
         h_pr_smoothed_data.Draw("colz text45")
         h_pr_smoothed_data.GetZaxis().SetRangeUser(0.00, 1.0)
         h_pr_smoothed_data.GetXaxis().SetTitle('#eta_{#mu}')
