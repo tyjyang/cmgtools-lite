@@ -1,5 +1,6 @@
 import ROOT, optparse, os
 
+## usage resultPlots.py --config results_config_mu.txt --outdir <outputdirectory>
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage='usage: %prog [opts] ', version='%prog 1.0')
