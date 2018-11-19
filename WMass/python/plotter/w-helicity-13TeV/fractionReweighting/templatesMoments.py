@@ -1,4 +1,4 @@
-import ROOT,os
+import ROOT,os,commands
 from array import array
 
 ## USAGE:
@@ -40,7 +40,7 @@ def symmetrizeCoefficients(dic):
 
 
 from optparse import OptionParser
-parser = OptionParser(usage='%prog [options] cards/card*.txt')
+parser = OptionParser(usage='python %prog --outdir <plotsDirectory> --infile <dir/file with trees> (-c x)')
 parser.add_option('--nlo'    , dest='doNLO'    , default=False, action='store_true', help='Use the amc@nlo sample.')
 parser.add_option('--bins-atlas', dest='atlasBins'    , default=False, action='store_true', help='Use the binning of the ATLAS paper.')
 parser.add_option('--bins-fractions', dest='fractionsBins'    , default='', type='string', help='Use the bins from a specified input file.')
@@ -48,8 +48,10 @@ parser.add_option('-v', dest='verbose'    , default=False, action='store_true', 
 parser.add_option('-i','--infile', dest='infile', default='', type='string', help='Specify the input file. should be a single (big) friendtree.')
 parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='Specify the output directory for the plots. It makes a lot of plots.')
 parser.add_option('-c','--coefficient', dest='coefficient', default='', type='string', help='Specify the exact angular coefficient you want to run.')
+parser.add_option('--preFSR', default=False, action='store_true', help='use preFSR lepton and W instead of dressed (default %default)')
 (options, args) = parser.parse_args()
 
+typeString = 'preFSR' if options.preFSR else 'dressed'
 
 if options.coefficient:
     print('RUNNING ON ONLY', options.coefficient)
@@ -57,26 +59,32 @@ if options.coefficient:
 ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(0)
 
-nlostring = 'NLO' if options.doNLO else 'LO'
-
-
 if not (options.outdir or options.infile):
     raise RuntimeError( 'You have to give an input file and an output directory!')
 
-plotsdir = '{od}/moments_muEl/{nlo}/'.format(od=options.outdir,nlo=nlostring)
+plotsdir = '{od}/moments_muEl/'.format(od=options.outdir)
 
 if not os.path.isdir(plotsdir):
     os.system('mkdir -p {pd}'.format(pd=plotsdir))
     os.system('cp ~/index.php {pd}/'.format(pd=plotsdir))
 
-maxYW = 6.
+maxYW = 10.
 
-var_wy  = 'genw_y'
-var_wpt = 'genw_pt'
-var_wch = 'genw_charge'
-var_dec = 'genw_decayId'
-var_cos = 'genw_costcs'
-var_phi = 'genw_phics'
+if not options.preFSR:
+    var_wy  = 'abs(genw_y)'
+    var_wpt = 'genw_pt'
+    var_wch = 'genw_charge'
+    var_dec = 'genw_decayId'
+    var_cos = 'genw_costcs'
+    var_phi = 'genw_phics'
+
+else:
+    var_wy  = 'abs(prefsrw_y)'
+    var_wpt = 'prefsrw_pt'
+    var_wch = 'prefsrw_charge'
+    var_dec = 'prefsrw_decayId'
+    var_cos = 'prefsrw_costcs'
+    var_phi = 'prefsrw_phics'
 
 ## weightstring
 gen_weight = '(weightGen/abs(weightGen))'
@@ -86,9 +94,10 @@ if os.path.isfile(options.infile):
     tree = infile.Get('Friends')
 else:
     tree = ROOT.TChain('Friends')
-    rootlist = list( i for i in os.listdir(options.infile) if '.root' in i)
+    ## rootlist = list( i for i in os.listdir(options.infile) if '.root' in i)
+    rootlist = list( i for i in commands.getoutput('eos ls '+options.infile).split('\n') if '.root' in i)
     for f in rootlist:
-        tree.Add(options.infile+'/'+f)
+        tree.Add('root://eoscms.cern.ch//'+options.infile+'/'+f)
 
 
 
@@ -97,14 +106,18 @@ if not options.atlasBins and not options.fractionsBins:
     ## ===================================
     print('FILLING FOR THE W-rapidity QUANTILES')
     
-    nqy = 15
-    h_tmp_wy  = ROOT.TH1F('h_tmp_wy','quantile calculation Yw', 1000, 0., maxYW)
-    tree.Draw(var_wy+'>>h_tmp_wy', '('+var_wch + ' > 0 && abs(genw_decayId)==14 )*'+gen_weight)
-    xqy = array('d', [i/float(nqy)+1./float(nqy) for i in range(nqy)])
-    yqy = array('d', [1. for i in range(nqy)])
-    foobar = h_tmp_wy.GetQuantiles(nqy,yqy,xqy);
+    ## do binning in deltaY 0.25 nqy = 15
+    ## do binning in deltaY 0.25 h_tmp_wy  = ROOT.TH1F('h_tmp_wy','quantile calculation Yw', 1000, 0., maxYW)
+    ## do binning in deltaY 0.25 tree.Draw(var_wy+'>>h_tmp_wy', '('+var_wch + ' > 0 && abs(genw_decayId)==14 )*'+gen_weight)
+    ## do binning in deltaY 0.25 xqy = array('d', [i/float(nqy)+1./float(nqy) for i in range(nqy)])
+    ## do binning in deltaY 0.25 yqy = array('d', [1. for i in range(nqy)])
+    ## do binning in deltaY 0.25 foobar = h_tmp_wy.GetQuantiles(nqy,yqy,xqy);
+    ## do binning in deltaY 0.25 
+    ## do binning in deltaY 0.25 yqnewy = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yqy])
     
-    yqnewy = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yqy])
+    ## yqnewy = [-6.0] + [-3.0+i*0.25 for i in range(25)] + [6.0]
+
+    yqnewy = [0.0+i*0.25 for i in range(17)] + [maxYW] ## keep it the same as the fraction derivation
     
     wrap_nbins = len(yqnewy)-1
     wrap_bins = array('d', yqnewy)
@@ -114,15 +127,15 @@ if not options.atlasBins and not options.fractionsBins:
     
     print('FILLING FOR THE W-pT QUANTILES')
     nq =  20 ## number of quantiles
-    h_tmp_wpt = ROOT.TH1F('h_tmp_wpt','quantile calculation', 1000, 0., 100.)
-    tree.Draw(var_wpt+'>>h_tmp_wpt', '(abs(genw_decayId)==14 || abs(genw_decayId)== 12) *'+gen_weight)
-    xq = array('d', [i/float(nq)+1./float(nq) for i in range(int(nq))])
-    yq = array('d', [1 for i in range(nq)])
-    h_tmp_wpt.GetQuantiles(nq,yq,xq);
+    ## use fixed binning h_tmp_wpt = ROOT.TH1F('h_tmp_wpt','quantile calculation', 1000, 0., 100.)
+    ## use fixed binning tree.Draw(var_wpt+'>>h_tmp_wpt', '(abs(genw_decayId)==14 || abs(genw_decayId)== 12) *'+gen_weight)
+    ## use fixed binning xq = array('d', [i/float(nq)+1./float(nq) for i in range(int(nq))])
+    ## use fixed binning yq = array('d', [1 for i in range(nq)])
+    ## use fixed binning h_tmp_wpt.GetQuantiles(nq,yq,xq);
     
     
-    yqnew = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yq])
-    hnew = ROOT.TH1F('h_wpt_quantiles', 'wpt rebinned', len(yq), yqnew)
+    ## use fixed binning yqnew = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yq])
+    yqnew = array('d', [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 100.0])
     
     wpt_nbins = nq
     wpt_bins = yqnew
@@ -213,7 +226,7 @@ for term,arg in sorted(allterms.items()) :
                 yhi = h3_argVsRapVsWPt.GetYaxis().GetBinUpEdge(iy)
                 plo = h3_argVsRapVsWPt.GetZaxis().GetBinLowEdge(iz)
                 phi = h3_argVsRapVsWPt.GetZaxis().GetBinUpEdge(iz)
-                h_cm.SetTitle('{arg}: W{ch}: y_{{W}} #in [{ylo:.2f},{yhi:.2f}] , p_{{T}}^{{W}} #in [{plo:.2f},{phi:.2f}]'.format(ch=wch, ylo=ylo,yhi=yhi,plo=plo,phi=phi,arg=term) )
+                h_cm.SetTitle('{arg}: W{ch}: y_{{W}} #in [{ylo:.2f},{yhi:.2f}] , p_{{T}}^{{W}} #in [{plo:.2f},{phi:.2f}] {ts}'.format(ch=wch, ylo=ylo,yhi=yhi,plo=plo,phi=phi,arg=term,ts=typeString) )
                 h_cm.GetXaxis().SetTitle(arg.replace(var_cos,'cos #theta^{*}').replace(var_phi, '#phi'))
     
                 #h_cm_norm = h_cm.Clone(h_cm.GetName()+'_norm')
@@ -239,7 +252,7 @@ for term,arg in sorted(allterms.items()) :
     all_2d[term+'_minus'] = h2_rapVsWPtMinus.Clone(term+'_minus')
 
 outfilename = 'allAngularHistos.root' if not options.coefficient else options.coefficient+'CoefficientHistos.root'
-outfile = ROOT.TFile('{od}/{ofn}'.format(od=plotsdir,ofn=outfilename),'RECREATE')
+outfile = ROOT.TFile('{od}/{ofn}'.format(od=plotsdir,ofn=outfilename).replace('.root','_'+typeString+'.root'),'RECREATE')
 
 all_2d_sym = symmetrizeCoefficients(all_2d)
 

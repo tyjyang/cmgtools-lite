@@ -1,2 +1,2 @@
 alwaystrue : 1
-wtomu      : abs(genw_decayId) == 14
+wtomu      : abs(prefsrw_decayId) == 14

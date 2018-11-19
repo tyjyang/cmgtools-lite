@@ -6,8 +6,10 @@ BASECONFIG   = 'w-helicity-13TeV/wmass_mu'
 MCA          = BASECONFIG+'/mca-wmu-helicity.txt'
 CUTFILE      = BASECONFIG+'/cuts_wmu.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
-TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
-QUEUE        = '1nd'
+#TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
+#TREEPATH     = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/'
+TREEPATH     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/'
+QUEUE        = '2nd'
 VAR          = '\'ptMuFull(LepGood1_calPt,LepGood1_eta):LepGood1_eta\''
 
 ## old variable binning in eta
@@ -25,11 +27,11 @@ etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF3[0]\' '
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
-#components=[' -b ', ' -s ']
-components=[' -s ']
+components=[' -b ', ' -s ']
+#components=[' -s ']
     
 
 if __name__ == '__main__':
@@ -51,4 +53,5 @@ if __name__ == '__main__':
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if options.longBkg: cmd += ' --long-bkg '
         if not options.genw: cmd += ' --wvar prefsrw '
+        cmd += ' -g 20 '
         os.system(cmd)
