@@ -280,7 +280,7 @@ class util:
         num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
         #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
         expr = '{num}/{den}'.format(num=num,den=den)
-        ret = self.getExprFromToys('normDiffXsec',expr,infile, friendTree=friendTree)
+        ret = self.getExprFromToys('normDiffXsec',expr,infile)
         return ret
 
 
