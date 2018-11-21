@@ -3723,9 +3723,15 @@ Double_t getSumGenWeightFromSampleName(const string& sample, const string& treeD
 
 //=========================================================
 
-void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSample = true, const string& treePath = "", const Sample& sample = Sample::data_doubleEG, 
+void buildChain(TChain* chain, 
+		vector<Double_t>& genwgtVec, 
+		const bool use8TeVSample = true, 
+		const string& treePath = "", 
+		const Sample& sample = Sample::data_doubleEG, 
 		TChain* chFriend = NULL, 
-		TChain* chSfFriend = NULL
+		TChain* chSfFriend = NULL,
+		const string& nameMatch = "",
+		const bool noSumGenWeight = false
 		) {
   
   cout << "Creating chain ..." << endl;
@@ -3777,30 +3783,9 @@ void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSa
   } else {
 
     if (sample == Sample::wjets || sample == Sample::wenujets || sample == Sample::wmunujets) {
-      subSampleNameVector.push_back("WJetsToLNu_NLO_part1");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_part2");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_part3");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part1");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part2");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part3");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part4");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part5");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part6");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part7");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part8");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part9");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part10");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part11");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part12");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part13");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part14");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part15");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part16");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part17");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part18");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part19");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part20");
-      subSampleNameVector.push_back("WJetsToLNu_NLO_ext_part21");
+      for (Int_t i = 1; i <= 5; ++i) subSampleNameVector.push_back(Form("WJetsToLNu_NLO_part%d",i));
+      for (Int_t i = 1; i <= 43; ++i) subSampleNameVector.push_back(Form("WJetsToLNu_NLO_ext_part%d",i));
+      for (Int_t i = 1; i <= 60; ++i) subSampleNameVector.push_back(Form("WJetsToLNu_NLO_ext2v5_part%d",i));
     } else if (sample == Sample::wtaunujets) {
       subSampleNameVector.push_back("NoSkim_WJetsToLNu_NLO_part1");
       subSampleNameVector.push_back("NoSkim_WJetsToLNu_NLO_part2");
@@ -4070,6 +4055,8 @@ void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSa
   
   for(UInt_t i = 0; i < subSampleNameVector.size(); i++) {
   
+    if ((nameMatch != "") and (subSampleNameVector[i].find(nameMatch.c_str()) == string::npos)) continue;
+
     string treeRootFile = "";
     if (use8TeVSample) {
 
@@ -4124,9 +4111,11 @@ void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSa
 
     } else {
 
-      string sampleDir = getStringFromEnumSample(sample).c_str();
-      if (sampleDir.find("data") == string::npos && sampleDir.find("fake") == string::npos) {
-	genwgtVec.push_back(1./getSumGenWeightFromSampleName(subSampleNameVector[i],treePath));    
+      if (not noSumGenWeight) {
+	string sampleDir = getStringFromEnumSample(sample).c_str();
+	if (sampleDir.find("data") == string::npos && sampleDir.find("fake") == string::npos) {
+	  genwgtVec.push_back(1./getSumGenWeightFromSampleName(subSampleNameVector[i],treePath));    
+	}
       }
 
     }
@@ -4146,6 +4135,8 @@ void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSa
 
     for(UInt_t i = 0; i < subSampleNameVector.size(); i++) {
   
+      if ((nameMatch != "") and (subSampleNameVector[i].find(nameMatch.c_str()) == string::npos)) continue;
+
       string friend_treeRootFile = "";
       if (use8TeVSample) friend_treeRootFile = treePath + "friends/evVarFriend_" + subSampleNameVector[i]+ ".root";
       else friend_treeRootFile = treePath + "friends/tree_Friend_" + subSampleNameVector[i]+ ".root";
@@ -4178,6 +4169,8 @@ void buildChain(TChain* chain, vector<Double_t>& genwgtVec, const bool use8TeVSa
 
     for(UInt_t i = 0; i < subSampleNameVector.size(); i++) {
   
+      if ((nameMatch != "") and (subSampleNameVector[i].find(nameMatch.c_str()) == string::npos)) continue;
+
       string friend_treeRootFile = treePath + "friends/sfFriend_" + subSampleNameVector[i]+ ".root";
       chSfFriend->Add(TString(friend_treeRootFile.c_str()));
 

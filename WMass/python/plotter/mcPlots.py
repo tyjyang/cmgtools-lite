@@ -9,7 +9,8 @@ CMS_lumi.writeExtraText = 1
 _global_workspaces=[] # avoid crash in 80X, to be investigated
 
 if "/bin2Dto1Dlib_cc.so" not in ROOT.gSystem.GetLibraries():
-    compileMacro("src/CMGTools/TTHAnalysis/python/plotter/bin2Dto1Dlib.cc")
+    #compileMacro("src/CMGTools/TTHAnalysis/python/plotter/bin2Dto1Dlib.cc")
+    compileMacro("src/CMGTools/WMass/python/plotter/bin2Dto1Dlib.cc")
 
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("src/CMGTools/WMass/python/plotter/fakeRate.cc")

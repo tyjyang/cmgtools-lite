@@ -9,8 +9,13 @@ using namespace std;
 
 //static float intLumi = 30.9 // 35.9 for muons, 30.9 for electrons, measured in 1/fb
 //static vector<Double_t> eleEtaBinEdges_double = {0.0, 1.0, 1.479, 2.1, 2.5};
-static vector<Double_t> etaBinEdgesTemplate = {-2.5,-2.3,-2.1,-1.9,-1.7,-1.566,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4442,1.566,1.7,1.9,2.1,2.3,2.5};
+static vector<Double_t> etaBinEdgesTemplate = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.4442,1.5,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5};
 static vector<Double_t> ptBinEdgesTemplate = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+
+static vector<Double_t> genEtaBinEdgesTemplate = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+static vector<Double_t> genPtBinEdgesTemplate = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+
+static vector<Double_t> wptbins = {0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0};
 static Int_t nPDFweight = 60;
 
 //=============================================================
@@ -18,7 +23,8 @@ static Int_t nPDFweight = 60;
 void fillHistograms(const string& treedir = "./", 
 		    const string& outdir = "./", 
 		    const Sample& sample = Sample::wjets, 
-		    TFile* outputFile = NULL
+		    TFile* outputFile = NULL,
+		    const string& nameMatch = "WJetsToLNu_NLO_part1"
 		    ) 
 {
 
@@ -47,7 +53,10 @@ void fillHistograms(const string& treedir = "./",
 
   Int_t netaBins = etaBinEdgesTemplate.size() -1;
   Int_t nptBins = ptBinEdgesTemplate.size() -1;
-  Int_t nBinsTemplate = netaBins * netaBins;
+  Int_t nBinsTemplate = nptBins * netaBins;
+  Int_t nGenEtaBins = genEtaBinEdgesTemplate.size() -1;
+  Int_t nGenPtBins = genPtBinEdgesTemplate.size() -1;
+  Int_t nGenBinsTemplate = nGenEtaBins * nGenPtBins;
 
   TChain* chain = new TChain("tree");
   // INFO: the new friend trees at 13 TeV are inside a "tree_Friend_<sampleName>.root" file, and the tree's name is "Friends"
@@ -58,8 +67,9 @@ void fillHistograms(const string& treedir = "./",
   //if (sampleDir.find("data") == string::npos && sampleDir.find("fake") == string::npos) SfFriendChain = new TChain("sf/t");  
   // leave as NULL if you don't use friend trees
 
+  Bool_t noSumGenWeight = true;
   vector<Double_t> sumGenWeightVector;
-  buildChain(chain, sumGenWeightVector, use8TeVSample, treedir, sample, friendChain, SfFriendChain); 
+  buildChain(chain, sumGenWeightVector, use8TeVSample, treedir, sample, friendChain, SfFriendChain, nameMatch, noSumGenWeight); 
 
   // change directory again, when building chain something was messed up
   dirSample->cd();
@@ -68,6 +78,7 @@ void fillHistograms(const string& treedir = "./",
   Bool_t isWsignal = false;
   if (sampleDir.find("wenujets") != string::npos or sampleDir.find("wmunujets") != string::npos) isWsignal = true;
 
+  //cout << "Setting TTreeReader and branches" << endl;
   TTreeReader reader (chain);
 
   TTreeReaderValue<Int_t> isData(reader,"isData");
@@ -94,6 +105,9 @@ void fillHistograms(const string& treedir = "./",
   TTreeReaderArray<Float_t> lep_pt  (reader,"LepGood_pt");
   TTreeReaderArray<Float_t> lep_eta (reader,"LepGood_eta");
   TTreeReaderArray<Float_t> lep_phi (reader,"LepGood_phi");
+  TTreeReaderArray<Float_t> lep_SF1 (reader,"LepGood_SF1");
+  TTreeReaderArray<Float_t> lep_SF2 (reader,"LepGood_SF2");
+  TTreeReaderArray<Float_t> lep_SF3 (reader,"LepGood_SF3");
 
   // for electronID
   TTreeReaderArray<Int_t> lep_hltId (reader,"LepGood_hltId");  
@@ -107,11 +121,12 @@ void fillHistograms(const string& treedir = "./",
   TTreeReaderArray<Int_t>   lep_mcMatchId(reader,"LepGood_mcMatchId");
 
   // W MC specific branches
-  TTreeReaderArray<Float_t> GenLepDressed_pt(reader,"GenLepDressed_pt");
-  TTreeReaderArray<Float_t> GenLepDressed_eta(reader,"GenLepDressed_eta");
-  TTreeReaderValue<Float_t> genw_charge(reader,"genw_charge");
-  TTreeReaderValue<Float_t> genw_decayId(reader,"genw_decayId");
-  TTreeReaderValue<Float_t> genw_pt(reader,"genw_pt");
+  TTreeReaderArray<UInt_t> nGenLepPreFSR(reader,"nGenLepPreFSR");
+  TTreeReaderArray<Float_t> GenLepPreFSR_pt(reader,"GenLepPreFSR_pt");
+  TTreeReaderArray<Float_t> GenLepPreFSR_eta(reader,"GenLepPreFSR_eta");
+  TTreeReaderValue<Float_t> genw_charge(reader,"prefsrw_charge");
+  TTreeReaderValue<Float_t> genw_decayId(reader,"prefsrw_decayId");
+  TTreeReaderValue<Float_t> genw_pt(reader,"prefsrw_pt");
   // syst weights for W
   TTreeReaderValue<Float_t> qcd_muRUp(reader,"qcd_muRUp");
   TTreeReaderValue<Float_t> qcd_muRDn(reader,"qcd_muRDn");
@@ -126,6 +141,7 @@ void fillHistograms(const string& treedir = "./",
   for (Int_t i = 1; i <= nPDFweight; ++i) {
     pdfwgt.push_back( new TTreeReaderValue<Float_t>(reader,Form("hessWgt%d",i)) );
   }
+  //cout << "Branches have been set" << endl;
 
   //////////////////////////////
   // Following is the same as before, in case I decide to use all the samples 
@@ -138,8 +154,8 @@ void fillHistograms(const string& treedir = "./",
   // TTreeReaderValue<Float_t>* genWeight = nullptr;
 
   // // W MC specific branches
-  // TTreeReaderArray<Float_t>* GenLepDressed_pt = nullptr;
-  // TTreeReaderArray<Float_t>* GenLepDressed_eta = nullptr;
+  // TTreeReaderArray<Float_t>* GenLepPreFSR_pt = nullptr;
+  // TTreeReaderArray<Float_t>* GenLepPreFSR_eta = nullptr;
   // TTreeReaderValue<Float_t>* genw_charge = nullptr;
   // TTreeReaderValue<Float_t>* genw_decayId = nullptr;
   // // syst weights for W
@@ -161,8 +177,8 @@ void fillHistograms(const string& treedir = "./",
   //   lep_mcMatchId = new TTreeReaderArray<Int_t>(reader,"LepGood_mcMatchId");  
 
   //   if (isWsignal) {
-  //     GenLepDressed_pt  = new TTreeReaderArray<Float_t>(reader,"GenLepDressed_pt");
-  //     GenLepDressed_eta = new TTreeReaderArray<Float_t>(reader,"GenLepDressed_eta");
+  //     GenLepPreFSR_pt  = new TTreeReaderArray<Float_t>(reader,"GenLepPreFSR_pt");
+  //     GenLepPreFSR_eta = new TTreeReaderArray<Float_t>(reader,"GenLepPreFSR_eta");
   //     genw_charge       = new TTreeReaderValue<Float_t>(reader,"genw_charge");
   //     genw_decayId      = new TTreeReaderValue<Float_t>(reader,"genw_decayId");
   //     // weights
@@ -191,9 +207,11 @@ void fillHistograms(const string& treedir = "./",
   // TTreeReaderArray variables are used as normal array variables (if they are pointers to TTreeReaderArray.then you still need a * to access the array)
   //////////////////////////
 
+  //cout << "Defining histograms" << endl;
+
   /////////////////////////////////////
   // dummy histogram to easily retrieve information on eta-pt bins
-  TH2F* h2_etaPt = new TH2F("h2_etaPt","",netaBins,etaBinEdgesTemplate.data(),nptBins,ptBinEdgesTemplate.data());
+  TH2F* h2_etaPt = new TH2F("h2_etaPt","",nGenEtaBins,genEtaBinEdgesTemplate.data(),nGenPtBins,genPtBinEdgesTemplate.data());
   h2_etaPt->SetDirectory(0); // I don't want to save this histogram in the output file
 
   // 1 histogram for each bin of the template and for each charge, hence a double vector of histograms
@@ -207,15 +225,23 @@ void fillHistograms(const string& treedir = "./",
   vector<TH3F*> h3_charge_eta_pt_globalBin;
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_pdf(charges.size());  // will have 60 replicas of pairs of TH3 (the pair is for charge + and -)
   vector<TH3F*> h3_charge_eta_pt_globalBin_alphaSUp;
-  vector<TH3F*> h3_charge_eta_pt_globalBin_wptSlopeUp;
+  //vector<TH3F*> h3_charge_eta_pt_globalBin_wptSlopeUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muRUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muFUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muRmuFUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_alphaSDn;
-  vector<TH3F*> h3_charge_eta_pt_globalBin_wptSlopeDn;
+  //vector<TH3F*> h3_charge_eta_pt_globalBin_wptSlopeDn;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muRDn;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muFDn;
   vector<TH3F*> h3_charge_eta_pt_globalBin_muRmuFDn;
+
+  // will use 10 bins of wptbins array for now
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRUp_wpt(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muFUp_wpt(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRmuFUp_wpt(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRDn_wpt(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muFDn_wpt(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRmuFDn_wpt(charges.size());
 
   for (UInt_t ch = 0; ch < charges.size(); ++ch) {  
     // for (Int_t bin = 0; bin  < nBinsTemplate; ++bin) {
@@ -223,8 +249,8 @@ void fillHistograms(const string& treedir = "./",
     //   Int_t ipt = 0;
     //   h2_etaPt->GetBinXYZ(bin+1,ieta,ipt)
     vector<Double_t> globalBin_binning; // temporary vector to be used in TH3 constructor
-    for (Int_t bin = 0; bin  <= nBinsTemplate; ++bin) 
-      globalBin_binning.push_back(0.5+(Double_t)bin); // note that loop goes from 0 to 600 included
+    for (Int_t bin = 0; bin  <= nGenBinsTemplate; ++bin) 
+      globalBin_binning.push_back(0.5+(Double_t)bin);
 
     h1_charge_pt.push_back(new TH1F(Form("h1_%s_pt",charges[ch].c_str()),"",35,30,65));
     h1_charge_eta.push_back(new TH1F(Form("h1_%s_eta",charges[ch].c_str()),"",50,-2.5,2.5));
@@ -279,16 +305,16 @@ void fillHistograms(const string& treedir = "./",
 							   nptBins,ptBinEdgesTemplate.data(),
 							   nBinsTemplate,globalBin_binning.data())
 					 );
-    h3_charge_eta_pt_globalBin_wptSlopeUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_wptSlopeUp",charges[ch].c_str()),"",
-							   netaBins,etaBinEdgesTemplate.data(),
-							   nptBins,ptBinEdgesTemplate.data(),
-							   nBinsTemplate,globalBin_binning.data())
-					 );
-    h3_charge_eta_pt_globalBin_wptSlopeDn.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_wptSlopeDn",charges[ch].c_str()),"",
-							   netaBins,etaBinEdgesTemplate.data(),
-							   nptBins,ptBinEdgesTemplate.data(),
-							   nBinsTemplate,globalBin_binning.data())
-					 );
+    // h3_charge_eta_pt_globalBin_wptSlopeUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_wptSlopeUp",charges[ch].c_str()),"",
+    // 							   netaBins,etaBinEdgesTemplate.data(),
+    // 							   nptBins,ptBinEdgesTemplate.data(),
+    // 							   nBinsTemplate,globalBin_binning.data())
+    // 					 );
+    // h3_charge_eta_pt_globalBin_wptSlopeDn.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_wptSlopeDn",charges[ch].c_str()),"",
+    // 							   netaBins,etaBinEdgesTemplate.data(),
+    // 							   nptBins,ptBinEdgesTemplate.data(),
+    // 							   nBinsTemplate,globalBin_binning.data())
+    // 					 );
 
     for (Int_t ipdf = 1; ipdf <= nPDFweight; ++ipdf) {
       h3_charge_eta_pt_globalBin_pdf[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_pdf%d",charges[ch].c_str(),ipdf),"",
@@ -298,7 +324,44 @@ void fillHistograms(const string& treedir = "./",
 						   );
     }
 
+    for (Int_t iwpt = 1; iwpt <= 10; ++iwpt) {     
+      h3_charge_eta_pt_globalBin_muRmuFUp_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muRmuFUp_wpt%d",charges[ch].c_str(),iwpt),"",
+								     netaBins,etaBinEdgesTemplate.data(),
+								     nptBins,ptBinEdgesTemplate.data(),
+								     nBinsTemplate,globalBin_binning.data())
+							    );
+      h3_charge_eta_pt_globalBin_muRUp_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muRUp_wpt%d",charges[ch].c_str(),iwpt),"",
+								  netaBins,etaBinEdgesTemplate.data(),
+								  nptBins,ptBinEdgesTemplate.data(),
+								  nBinsTemplate,globalBin_binning.data())
+							 );
+      h3_charge_eta_pt_globalBin_muFUp_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muFUp_wpt%d",charges[ch].c_str(),iwpt),"",
+								  netaBins,etaBinEdgesTemplate.data(),
+								  nptBins,ptBinEdgesTemplate.data(),
+								  nBinsTemplate,globalBin_binning.data())
+							 );
+      h3_charge_eta_pt_globalBin_muRmuFDn_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muRmuFDn_wpt%d",charges[ch].c_str(),iwpt),"",
+								     netaBins,etaBinEdgesTemplate.data(),
+								     nptBins,ptBinEdgesTemplate.data(),
+								     nBinsTemplate,globalBin_binning.data())
+							    );
+      h3_charge_eta_pt_globalBin_muRDn_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muRDn_wpt%d",charges[ch].c_str(),iwpt),"",
+								  netaBins,etaBinEdgesTemplate.data(),
+								  nptBins,ptBinEdgesTemplate.data(),
+								  nBinsTemplate,globalBin_binning.data())
+							 );
+      h3_charge_eta_pt_globalBin_muFDn_wpt[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_muFDn_wpt%d",charges[ch].c_str(),iwpt),"",
+								  netaBins,etaBinEdgesTemplate.data(),
+								  nptBins,ptBinEdgesTemplate.data(),
+								  nBinsTemplate,globalBin_binning.data())
+							 );
+    }
+
+
+
   }
+  //cout << "Done histograms" << endl;
+
   ////////////////////
   ////////////////////
 
@@ -315,6 +378,8 @@ void fillHistograms(const string& treedir = "./",
 
   Double_t wgt = 1.0;
   Double_t lep1pt = 0.0;
+  Double_t ptlow = 0.0;
+  Double_t pthigh = 0.0;
   ////////////////////////////////////////////
   // to get correct weight depending on sample in chain
   string currentFile = "";
@@ -322,11 +387,18 @@ void fillHistograms(const string& treedir = "./",
   ////////////////////
 
   Double_t intLumiPb = 1000.0 * intLumi;
-  Double_t intLumiPbXsecZ = intLumiPb * 1921.8 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
-  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 3.54324749853e+13;  // WJetsToLNu_NLO, just to speed up
- 
+  Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
+  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 9.56169443709e+13;  // WJetsToLNu_NLO, just to speed up, 
+  // 3.54324749853e+13; // without ext2v5 
+
+  //cout << "Starting loop" << endl;
+
+  cout << "check -2" << endl;
   while (reader.Next()) {
   
+    cout << "check -1" << endl;
+
+
     cout.flush();
     if (nEvents % CHECK_EVERY_N == 0) cout << "\r" << "Analyzing events " << ((Double_t) nEvents)/nTotal*100.0 << " % ";
     //cout << "entry : " << nEvents << endl;
@@ -351,7 +423,9 @@ void fillHistograms(const string& treedir = "./",
     Double_t lep1calPt = ptElFull(lep_calPt[0],lep_eta[0]);
     Double_t absLep1eta = fabs(lep_eta[0]);  
 
-    // selection
+    cout << "check 0" << endl;
+
+    // selection electrons
     if (lep_hltId[0] < 1) continue;
     if (*HLT_SingleElectron != 1) continue;
     if (*nlep != 1) continue;
@@ -393,12 +467,14 @@ void fillHistograms(const string& treedir = "./",
     //   else                                              wgt = intLumiPb *  *genWeight * *xsec * sumGenWeightVector[ifile]; 
     // }
 
+    cout << "check 1.1" << endl;
+
     wgt = wjets_NLO_wgt_partial * *genWeight; // done like this to speed it up
     // PU reweigthing, trigger scale factors, lepton efficiency scale factors
-    wgt *= (puw2016_nTrueInt_36fb(*nTrueInt) * 
-	    trgSF_We(lep_pdgId[0],lep_pt[0],lep_eta[0],2) *// * 
-	    leptonSF_We(lep_pdgId[0],lep_pt[0],lep_eta[0])
-	    );    
+    wgt *= (puw2016_nTrueInt_36fb(*nTrueInt) * lepSF(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]));
+	    //trgSF_We(lep_pdgId[0],lep_pt[0],lep_eta[0],2) *// * 
+	    //leptonSF_We(lep_pdgId[0],lep_pt[0],lep_eta[0])
+	    //);    
     
     // Get charge index: 0 for positive, 1 for negative
     Int_t chargeIndex = 0; 
@@ -410,16 +486,18 @@ void fillHistograms(const string& treedir = "./",
       chargeIndex = 0;
     }
 
+    cout << "check 1" << endl;
+    
     // Now start filling histograms
     h1_charge_pt[chargeIndex]->Fill(lep1calPt, wgt);
     h1_charge_eta[chargeIndex]->Fill(lep_eta[0], wgt);
     h2_charge_eta_pt_inclusive[chargeIndex]->Fill(lep_eta[0],lep1calPt, wgt);
-    Int_t globalBinEtaPt = h2_etaPt->FindFixBin(GenLepDressed_eta[0], GenLepDressed_pt[0]);
+    Int_t globalBinEtaPt = h2_etaPt->FindFixBin(GenLepPreFSR_eta[0], GenLepPreFSR_pt[0]);
     // fill with reco quantities the bin corresponding to the gen level quantities (it is equivalent to cutting on gen level variables)
     h3_charge_eta_pt_globalBin[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
     // wpt syst
-    h3_charge_eta_pt_globalBin_wptSlopeUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wpt_slope_weight(*genw_pt,0.95,0.005) * wgt);
-    h3_charge_eta_pt_globalBin_wptSlopeDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wpt_slope_weight(*genw_pt,1.05,-0005) * wgt);
+    //h3_charge_eta_pt_globalBin_wptSlopeUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wpt_slope_weight(*genw_pt,0.95,0.005) * wgt);
+    //h3_charge_eta_pt_globalBin_wptSlopeDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wpt_slope_weight(*genw_pt,1.05,-0005) * wgt);
     // qcd syst
     h3_charge_eta_pt_globalBin_muRUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRUp * wgt);
     h3_charge_eta_pt_globalBin_muRDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRDn * wgt);
@@ -432,6 +510,29 @@ void fillHistograms(const string& treedir = "./",
     // pdf syst
     for (Int_t ipdf = 0; ipdf < nPDFweight; ++ipdf) {
       h3_charge_eta_pt_globalBin_pdf[chargeIndex][ipdf]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, **(pdfwgt[ipdf]) * wgt);
+    }
+
+    cout << "check 2" << endl;
+
+    for (Int_t iwpt = 0; iwpt < 10; ++iwpt) {
+      // hardcoded, get 1 every 2 bins instead of defining a different wptbins
+      ptlow = wptbins[2*iwpt];
+      pthigh = wptbins[2*(iwpt+1)];
+      if (*genw_pt > ptlow and *genw_pt < pthigh) {
+	h3_charge_eta_pt_globalBin_muRUp_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRUp * wgt);
+	h3_charge_eta_pt_globalBin_muFUp_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muFUp * wgt);
+	h3_charge_eta_pt_globalBin_muRmuFUp_wpt[chargeIndex][iwpt]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRmuFUp * wgt);
+	h3_charge_eta_pt_globalBin_muRDn_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRDn * wgt);
+	h3_charge_eta_pt_globalBin_muFDn_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muFDn * wgt);
+	h3_charge_eta_pt_globalBin_muRmuFDn_wpt[chargeIndex][iwpt]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_muRmuFDn * wgt);     
+      } else {
+	h3_charge_eta_pt_globalBin_muRUp_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
+	h3_charge_eta_pt_globalBin_muFUp_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
+	h3_charge_eta_pt_globalBin_muRmuFUp_wpt[chargeIndex][iwpt]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
+	h3_charge_eta_pt_globalBin_muRDn_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
+	h3_charge_eta_pt_globalBin_muFDn_wpt[chargeIndex][iwpt]   ->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
+	h3_charge_eta_pt_globalBin_muRmuFDn_wpt[chargeIndex][iwpt]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);     
+      }
     }
 
   }
@@ -451,7 +552,7 @@ void fillHistograms(const string& treedir = "./",
 
 //=============================================================
 
-void loopNtuplesSkeleton(const string& treedir = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY/", 
+void loopNtuplesSkeleton(const string& treedir = "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_WSKIM_NEW/", 
 			 const string& outdir = "./", 
 			 const string& outfileName = "wmass_varhists.root"
 			 ) {
@@ -495,7 +596,7 @@ void loopNtuplesSkeleton(const string& treedir = "/eos/cms/store/group/dpg_ecal/
 
   outputFile->cd();
 
-  fillHistograms(treedir, outdir, Sample::wenujets, outputFile);
+  fillHistograms(treedir, outdir, Sample::wenujets, outputFile,"WJetsToLNu_NLO_part1");
   // fillHistograms(treedir, outdir, Sample::data_singleEG, outputFile);
   // if (useFakeRateForElectron) 
   //   fillHistograms(treedir, outdir, Sample::qcd_ele_fake, outputFile); // use fake rate only in SR

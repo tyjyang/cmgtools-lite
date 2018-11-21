@@ -1,7 +1,9 @@
 import re, sys, os, os.path
 
 #folder = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/"
-folder = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY/"
+#folder = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY/"
+#folder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREE_4_XSEC_AFS/"
+folder = "/afs/cern.ch/work/e/emanuele/TREES/TREES_electrons_1l_V6_TINY/"
 print "Folder: %s " % folder
 
 
@@ -23,24 +25,27 @@ print ""
 
 # regular expression pattern
 # ^ means 'startswith'
-sampleRoots = ['^DYJetsToLL_M50.*', 
-               '^WW.*',
-               '^WZ.*',
-               '^ZZ.*',
-               '^TBar_tWch_ext.*',
-               '^T_tWch_ext.*',
-               '^TTJets_SingleLeptonFromT_.*',
-               '^TTJets_SingleLeptonFromTbar_.*',
-               '^T_tch_powheg.*',
-               '^TToLeptons_sch_amcatnl.*',
-               '^TBar_tch_powheg_.*',
-               '^WJetsToLNu_NLO.*',
-               '^WJetsToLNu_LO.*',
-               '^NoSkim_WJetsToLNu_NLO.*',
-#               '.*_Mu5.*',
-#               '.*_Mu15.*',
-               '.*_bcTo.*',
-               '.*_EMEnriched.*'
+# sampleRoots = ['^DYJetsToLL_M50.*', 
+#                '^WW.*',
+#                '^WZ.*',
+#                '^ZZ.*',
+#                '^TBar_tWch_ext.*',
+#                '^T_tWch_ext.*',
+#                '^TTJets_SingleLeptonFromT_.*',
+#                '^TTJets_SingleLeptonFromTbar_.*',
+#                '^T_tch_powheg.*',
+#                '^TToLeptons_sch_amcatnl.*',
+#                '^TBar_tch_powheg_.*',
+#                '^WJetsToLNu_NLO.*',
+#                '^WJetsToLNu_LO.*',
+#                '^NoSkim_WJetsToLNu_NLO.*',
+# #               '.*_Mu5.*',
+# #               '.*_Mu15.*',
+#                '.*_bcTo.*',
+#                '.*_EMEnriched.*'
+#                ]
+sampleRoots = ['^WJetsToLNu_NLO.*',               
+               '^NoSkim_WJetsToLNu_NLO.*'
                ]
 
 sumgenwgt = {}
@@ -55,19 +60,17 @@ for sampleRoot in sampleRoots:
         if re.match(sampleRoot,str(sample)):
             #print str(sample)
             filename= folder + sample + "/skimAnalyzerCount/SkimReport.txt"
-            file = open(str(filename), 'r')
-            lines = file.readlines()
-            file.close()
-
-            for line in lines:
-                if "Sum Weights" in str(line):
-                    parts = line.split()
-                    #print parts
-                    #print str(parts[2].strip())
-                    genwgt[str(sample)] = float(parts[2].strip())
+            with open(str(filename), 'r') as thisfile:
+                for line in thisfile:
+                    if "Sum Weights" in str(line):
+                        parts = line.split()
+                        #print parts
+                        #print str(parts[2].strip())
+                        genwgt[str(sample)] = float(parts[2].strip())
 
     isFirst = True
-    for key in genwgt:
+    sortedKeys = sorted(genwgt.keys())
+    for key in sortedKeys:
         print "%s : %s" % (key, genwgt[key])
         if isFirst:
             sumgenwgt[str(sampleRoot)] = float(genwgt[key])
@@ -76,6 +79,7 @@ for sampleRoot in sampleRoots:
         isFirst = False
 
     print "####"
+    print "N(keys) = %d" % len(sortedKeys)
     print "sumgenwgt[%s] : %s" % (str(sampleRoot), sumgenwgt[str(sampleRoot)])
     print "####"
     print ""

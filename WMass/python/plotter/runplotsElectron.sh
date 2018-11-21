@@ -92,9 +92,9 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runBatch="y"
+runBatch="n"
 queueForBatch="cmscaf1nd"
-nameTag="_testTreeAFS" 
+nameTag="_trashcompile" 
 #nameTag="_varStudy"
 useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 

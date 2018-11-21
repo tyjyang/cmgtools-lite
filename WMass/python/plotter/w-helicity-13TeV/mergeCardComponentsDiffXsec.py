@@ -383,18 +383,28 @@ if __name__ == "__main__":
                                             plots[newname].Write()                                    
                                 else:
                                     #if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                    if any(sysname in newname for sysname in ['pdf','Effstat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                        sysname = 'pdf' if 'pdf' in newname else 'Effstat'
-                                        tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
-                                        ipdf = int(pdf.split('pdf')[-1])
-                                        newname = "{pfx}_{sysname}{ipdf}".format(pfx=pfx,sysname=sysname,ipdf=ipdf)
+                                    # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                    if any(sysname in newname for sysname in ['pdf','Effstat']): 
+                                        pfx = '_'.join(newname.split("_")[:-2])
+                                        if 'pdf' in newname:
+                                            patt = re.compile('(pdf)(\d+)')
+                                            tokens = patt.findall(newname)
+                                            sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                        else:
+                                            #fullsysname = (newname.split("_")[-1]).split('.')[0]
+                                            patt = re.compile('(ErfPar\dEffStat)(\d+)')
+                                            tokens = patt.findall(newname)
+                                            sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                        newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)                                        
                                         (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                         for alt in [alternate,mirror]:
                                             if alt.GetName() not in plots:
                                                 plots[alt.GetName()] = alt.Clone()
                                                 plots[alt.GetName()].Write()
                                     elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',newname): # these changes by default shape and normalization
-                                        tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
+                                        tokens = newname.split("_") 
+                                        pfx = '_'.join(tokens[:-2])
+                                        syst = tokens[-1].replace('Dn','Down')
                                         newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
                                         if 'wptSlope' in newname: # this needs to be scaled not to change normalization
                                             obj.Scale(nominals[pfx].Integral()/obj.Integral())
@@ -425,7 +435,7 @@ if __name__ == "__main__":
                 if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',name):
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*EffStat.*',name):
+                if re.match('.*ErfPar\dEffStat.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         pdfsyst = {k:v for k,v in theosyst.iteritems() if 'pdf' in k}
@@ -601,14 +611,12 @@ if __name__ == "__main__":
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
  
         ## xsecfilename                                                                                                                                                    
-        xsecfile = /afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root
+        xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root"
         if options.xsecMaskedYields:
             xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
         hists = getXsecs_etaPt(tmp_sigprocs,
                                [i for i in sortedsystkeys if not 'wpt' in i], # wptslope is not used anymore, anyway, do not pass it
                                binning,
-                               # no need to pass a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
-                               # 35.9 if channel == 'mu' else 30.9,  
                                xsecfile
                                )
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
