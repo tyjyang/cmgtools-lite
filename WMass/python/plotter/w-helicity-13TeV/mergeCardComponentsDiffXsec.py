@@ -601,7 +601,7 @@ if __name__ == "__main__":
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
  
         ## xsecfilename                                                                                                                                                    
-        xsecfile = /afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root
+        xsecfile = '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root'
         if options.xsecMaskedYields:
             xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
         hists = getXsecs_etaPt(tmp_sigprocs,
