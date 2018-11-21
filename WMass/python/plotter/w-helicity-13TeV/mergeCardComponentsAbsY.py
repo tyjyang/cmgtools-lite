@@ -97,9 +97,13 @@ def combCharges(options):
     for charge in ['plus','minus']:
         datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_card.txt'.format(ch=charge))
         channels.append('{bin}_{ch}'.format(bin=options.bin,ch=charge))
+        maskedChannels = ['InAcc']
+        if options.ybinsOutAcc:
+            maskedChannels.append('OutAcc')
         if not options.freezePOIs:
-            datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_xsec_card.txt'.format(ch=charge))
-            channels.append('{bin}_{ch}_xsec'.format(bin=options.bin,ch=charge))
+            for mc in maskedChannels:
+                datacards.append(os.path.abspath(options.inputdir)+"/"+options.bin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+                channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=options.bin,ch=charge,maskchan=mc))
 
     if options.combineCharges and sum([os.path.exists(card) for card in datacards])==len(datacards):
         print "Cards for W+ and W- done. Combining them now..."
@@ -109,7 +113,7 @@ def combCharges(options):
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
             txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=combinedCard,sp="--sparse" if options.sparse else "")
         else:
-            maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
+            maskchan = [' --maskedChan {bin}_{charge}_xsec_{mc}'.format(bin=options.bin,charge=ch,mc=mc) for ch in ['plus','minus'] for mc in maskedChannels]
             txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard,sp="--sparse" if options.sparse else "")
         ## here running the combine cards command first 
         print ccCmd
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    parser.add_option(     '--fix-YBins', dest='fixYBins', type='string', default='plusR=99;plusL=99;minusR=99;minusL=99', help='add here replacement of default rate-fixing. with format plusR=10,11,12;plusL=11,12;minusR=10,11,12;minusL=10,11 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default=None, help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
     parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
@@ -163,20 +167,10 @@ if __name__ == "__main__":
     nbins = {}
     for i,j in binningYW.items():
         nbins[i] = len(j)-1
-       
-    ## we have the last bin constructed in a way that it has ~5k events.
-    fixedYBins = {'plusR' : [nbins['plus_right' ]],
-                  'plusL' : [nbins['plus_left'  ]],
-                  'minusR': [nbins['minus_right']],
-                  'minusL': [nbins['minus_left' ]],
-                 }
-    
-    if options.fixYBins:
-        splitted = options.fixYBins.split(';')
-        for comp in splitted:
-            chhel = comp.split('=')[0]
-            bins  = comp.split('=')[1]
-            fixedYBins[chhel] = list(int(i) for i in bins.split(','))
+
+    fixedYBins = []
+    if options.ybinsOutAcc:
+        fixedYBins = list(int(i) for i in options.ybinsOutAcc.split(','))
     print 'I WILL FIX THESE BINS IN THE FIT:'
     print fixedYBins
     print '---------------------------------'
@@ -294,11 +288,17 @@ if __name__ == "__main__":
                                                 plots[newname].Write()
                                     else:
                                         if any(sysname in newname for sysname in ['pdf','EffStat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                        #if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                            sysname = 'pdf' if 'pdf' in newname else 'EffStat'
-                                            tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
-                                            ipdf = int(pdf.split(sysname)[-1])
-                                            newname = "{pfx}_{sysname}{ipdf}".format(pfx=pfx,sysname=sysname,ipdf=ipdf)
+                                            pfx = '_'.join(newname.split("_")[:-2])
+                                            if 'pdf' in newname:
+                                                patt = re.compile('(pdf)(\d+)')
+                                                tokens = patt.findall(newname)
+                                                sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                            else:
+                                                #fullsysname = (newname.split("_")[-1]).split('.')[0]
+                                                patt = re.compile('(ErfPar\dEffStat)(\d+)')
+                                                tokens = patt.findall(newname)
+                                                sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                            newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
@@ -336,7 +336,7 @@ if __name__ == "__main__":
                 if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',name):
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*_EffStat.*',name):
+                if re.match('.*ErfPar\dEffStat.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical sysematics: ",theosyst.keys()
@@ -532,9 +532,9 @@ if __name__ == "__main__":
         # remove the channel to allow ele/mu combination when fitting for GEN
         POIs = [poi.replace('_{channel}_'.format(channel=channel),'_') for poi in  POIs]
         for poi in POIs:
-            if 'right' in poi and any('Ybin_'+str(i) in poi for i in fixedYBins[charge+'R']):
+            if 'right' in poi and any('Ybin_'+str(i) in poi for i in fixedYBins):
                 fixedPOIs.append(poi)
-            if 'left'  in poi and any('Ybin_'+str(i) in poi for i in fixedYBins[charge+'L']):
+            if 'left'  in poi and any('Ybin_'+str(i) in poi for i in fixedYBins):
                 fixedPOIs.append(poi)
         floatPOIs = list(poi for poi in POIs if not poi in fixedPOIs)
         allPOIs = fixedPOIs+floatPOIs
@@ -569,8 +569,6 @@ if __name__ == "__main__":
 
         ## first make a list of all the signal processes. this excludes the long!!!!
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
-        ## long now signal tmp_sigprocs = [p for p in tmp_sigprocs if not 'long' in p]
-
         ## xsecfilname 
         lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
         hists = getXsecs(tmp_sigprocs, 
@@ -585,31 +583,36 @@ if __name__ == "__main__":
             hist.Write()
         tmp_xsec_hists.Close()
 
-        tmp_xsec_dc_name = os.path.join(options.inputdir,options.bin+'_{ch}_xsec_card.txt'   .format(ch=charge))
-        tmp_xsec_dc = open(tmp_xsec_dc_name, 'w')
-        tmp_xsec_dc.write("imax 1\n")
-        tmp_xsec_dc.write("jmax *\n")
-        tmp_xsec_dc.write("kmax *\n")
-        tmp_xsec_dc.write('##----------------------------------\n') 
-        tmp_xsec_dc.write("shapes *  *  %s %s\n" % (tmp_xsec_histfile_name, 'x_$PROCESS x_$PROCESS_$SYSTEMATIC'))
-        tmp_xsec_dc.write('##----------------------------------\n')
-        tmp_xsec_dc.write('bin {b}\n'.format(b=options.bin))
-        tmp_xsec_dc.write('observation -1\n') ## don't know if that will work...
-        tmp_xsec_dc.write('bin      {s}\n'.format(s=' '.join(['{b}'.format(b=options.bin) for p in tmp_sigprocs])))
-        tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join([p for p in tmp_sigprocs])))
-        ###tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join(str(i+1)  for i in range(len(tmp_sigprocs)))))
-        tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join(procids[procnames.index(pname)]  for pname in tmp_sigprocs)))
-        tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs)))))
-        tmp_xsec_dc.write('# --------------------------------------------------------------\n')
-
-        for sys,procs in theosyst.iteritems():
-            if 'wpt' in sys or 'EffStat': continue
-            # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs  else '  -  ' for p in tmp_sigprocs]))) )
-
-        tmp_xsec_dc.close()
-
-        ## end of all the xsec construction of datacard and making the file
+        maskedChannels = ['InAcc']
+        if options.ybinsOutAcc: maskedChannels.append('OutAcc')
+        maskedChannelsCards = {}
+        for maskChan in maskedChannels:
+            if maskChan=='InAcc': tmp_sigprocs_mcha = [p for p in tmp_sigprocs if not any('Ybin_%d'%fixb in p for fixb in fixedYBins)]
+            else:                 tmp_sigprocs_mcha = [p for p in tmp_sigprocs if any('Ybin_%d'%fixb in p for fixb in fixedYBins)]
+            ## long now signal tmp_sigprocs_mcha = [p for p in tmp_sigprocs if not 'long' in p]
+            tmp_xsec_dc_name = os.path.join(options.inputdir,options.bin+'_{ch}_xsec_{acc}_card.txt'   .format(ch=charge,acc=maskChan))
+            maskedChannelsCards['{bin}_{ch}_xsec_{mc}'.format(bin=options.bin,ch=charge,mc=maskChan)] = tmp_xsec_dc_name
+            tmp_xsec_dc = open(tmp_xsec_dc_name, 'w')
+            tmp_xsec_dc.write("imax 1\n")
+            tmp_xsec_dc.write("jmax *\n")
+            tmp_xsec_dc.write("kmax *\n")
+            tmp_xsec_dc.write('##----------------------------------\n')
+            tmp_xsec_dc.write("shapes *  *  %s %s\n" % (tmp_xsec_histfile_name, 'x_$PROCESS x_$PROCESS_$SYSTEMATIC'))
+            tmp_xsec_dc.write('##----------------------------------\n')
+            tmp_xsec_dc.write('bin {b}\n'.format(b=options.bin))
+            tmp_xsec_dc.write('observation -1\n') ## don't know if that will work...
+            tmp_xsec_dc.write('bin      {s}\n'.format(s=' '.join(['{b}'.format(b=options.bin) for p in tmp_sigprocs_mcha])))
+            tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join([p for p in tmp_sigprocs_mcha])))
+            ###tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join(str(i+1)  for i in range(len(tmp_sigprocs_mcha)))))
+            tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join(procids[procnames.index(pname)]  for pname in tmp_sigprocs_mcha)))
+            tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
+            tmp_xsec_dc.write('# --------------------------------------------------------------\n')
+            for sys,procs in theosyst.iteritems():
+                if 'wpt' in sys or 'EffStat': continue
+                # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
+                tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+            tmp_xsec_dc.close()
+            ## end of all the xsec construction of datacard and making the file
 
         ## command to make the workspace. should be done after combineCards.py!
         ## os.system('text2workspace.py --X-allow-no-signal -o {ws} {dc}'.format(ws=tmp_xsec_dc_name.replace('_card','_ws'), dc=tmp_xsec_dc_name))
@@ -632,8 +635,9 @@ if __name__ == "__main__":
 
             cardfile_xsec = cardfile.replace('_card', '_card_withXsecMask')
             chname = options.bin+'_{ch}'.format(ch=charge)
-            chname_xsec = chname+'_xsec'
-            ccCmd = 'combineCards.py {oc}={odc} {xc}={xdc} > {out}'.format(oc=chname,odc=cardfile,xc=chname_xsec,xdc=tmp_xsec_dc_name,out=cardfile_xsec)
+            chname_xsecs = [chname+'_xsec_{acc}'.format(acc=mc) for mc in maskedChannels]
+            maskChansCombCards = ' '.join(['{chName}={cardfile}'.format(chName=k,cardfile=val) for k,val in maskedChannelsCards.iteritems()])
+            ccCmd = 'combineCards.py {oc}={odc} {maskchan} > {out}'.format(oc=chname,odc=cardfile,maskchan=maskChansCombCards,out=cardfile_xsec)
 
             newws = cardfile_xsec.replace('_card','_ws').replace('.txt','.root')
 
@@ -641,9 +645,10 @@ if __name__ == "__main__":
             txt2wsCmd_noXsec = 'text2workspace.py {cf} -o {ws} --X-no-check-norm -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose {pos} '.format(cf=cardfile, ws=ws, pos=multisig)
             if options.freezePOIs:
                 # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(maskch=chname_xsec,cf=cardfile,sp="--sparse" if options.sparse else "")
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=cardfile,sp="--sparse" if options.sparse else "")
             else:
-                txt2hdf5Cmd = 'text2hdf5.py {sp} --maskedChan {maskch} --X-allow-no-background {cf}'.format(maskch=chname_xsec,cf=cardfile_xsec,sp="--sparse" if options.sparse else "")
+                mcstr = '--maskedChan '+' --maskedChan '.join([k for k,val in maskedChannelsCards.iteritems()])
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=mcstr,cf=cardfile_xsec,sp="--sparse" if options.sparse else "")
             #combineCmd = 'combine {ws} -M MultiDimFit    -t -1 -m 999 --saveFitResult --keepFailures --cminInitialHesse 1 --cminFinalHesse 1 --cminPreFit 1       --redefineSignalPOIs {pois} --floatOtherPOIs=0 -v 9'.format(ws=ws, pois=','.join(['r_'+p for p in signals]))
             # combineCmd = 'combine {ws} -M MultiDimFit -t -1 -m 999 --saveFitResult {minOpts} --redefineSignalPOIs {pois} -v 9 --setParameters mask_{xc}=1 '.format(ws=newws, pois=','.join(['r_'+p for p in signals]),minOpts=minimizerOpts, xc=chname_xsec)
         ## here running the combine cards command first
@@ -657,6 +662,7 @@ if __name__ == "__main__":
         # os.system(txt2wsCmd_noXsec)
         ## here making the TF meta file
         print '--- will run text2hdf5 ---------------------'
+        print "running ",txt2hdf5Cmd
         os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
         if options.freezePOIs:

@@ -8,7 +8,7 @@ from wmass_parameters import *
 
 def wptBinsScales(i):
     wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
-    if len>2*i:
+    if len(wptbins)<2*i:
         print 'you are asking too much from the wpt binning for decorrelation of scales'
     ptlo = wptbins[2*(i-1)]
     pthi = wptbins[2*i]
