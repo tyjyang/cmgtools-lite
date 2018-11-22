@@ -747,7 +747,7 @@ class PlotMaker:
         self._options = options
         self._dir = tdir
         ROOT.gROOT.ProcessLine(".x tdrstyle.cc")
-        ROOT.gROOT.ProcessLine(".L smearer.cc+")
+        # ROOT.gROOT.ProcessLine(".L smearer.cc+") # this should not be here, smearer has already been compiled (if smearer_cc.so not in ROOT.gSystem.GetLibraries())
         ROOT.gStyle.SetOptStat(0)
         ROOT.gStyle.SetOptTitle(0)
         if self._options.perBin and not "txt" in self._options.printPlots: raise RuntimeError, "Error: cannot print yields per bin if txt option not given" 
