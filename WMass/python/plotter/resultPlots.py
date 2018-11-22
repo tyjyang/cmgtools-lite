@@ -66,6 +66,9 @@ if __name__ == '__main__':
             cmd += ' -C plus,minus --xsecfiles {xp},{xm} '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'])
             cmd +=  '--infile {inf} --outdir {od} --type {t} --suffix floatingPOIs_{t} '.format(od=tmp_outdir, t=t, inf=results['both_floatingPOIs_'+t])
             os.system(cmd)
+            print "===> plotting normalized xsecs..."
+            cmd += ' --normxsec '
+            os.system(cmd)
     
     ## do this at the end, it takes the longest
     ## diff nuisances
@@ -76,7 +79,7 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for nuis in ['pdf', 'muR,muF,muRmuF,wpt', 'CMS_']:
+            for nuis in ['pdf', 'muR,muF,wpt', 'CMS_', 'ErfPar0EffStat', 'ErfPar1EffStat', 'ErfPar2EffStat']:
                 diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                 os.system('{cmd} --infile {inf} --suffix floatingPOIs_{t} --type {t} '.format(cmd=diffNuisances_cmd, inf=results['both_floatingPOIs_'+t], t=t))
                 os.system('{cmd} --infile {inf} --suffix fixedPOIs_{t}    --type {t} '.format(cmd=diffNuisances_cmd, inf=results['both_fixedPOIs_'+t]   , t=t))
