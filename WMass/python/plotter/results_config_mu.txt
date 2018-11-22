@@ -1,8 +1,9 @@
 basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2018_11_13_cardsAFS/'
-both_floatingPOIs_hessian = basedir+'/fitresults_both_floatingPOIs_hessian.root'
+##both_floatingPOIs_hessian = basedir+'/fitresults_both_floatingPOIs_hessian.root'
+both_floatingPOIs_hessian = basedir+'/fitresults_both_floatingPOIs_hessian_fix14and15.root'
 both_floatingPOIs_toys    = basedir+'/toys/fitresults_both_floatingPOIs_toys.root'
 
-both_fixedPOIs_hessian    = basedir+'/fitresults_both_fixedPOIs_hessian.root'
+both_fixedPOIs_hessian    = basedir+'/fitresults_both_fixedPOIs_hessian_fix14and15.root'
 both_fixedPOIs_toys       = basedir+'/toys/fitresults_both_fixedPOIs_toys.root'
 
 shapes_files = basedir+'/Wmu_shapes.root'
