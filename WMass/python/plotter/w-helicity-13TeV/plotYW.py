@@ -366,16 +366,12 @@ if __name__ == "__main__":
                     if   options.type == 'toys': 
                         xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
                     elif options.type == 'hessian':
-                        # to be correct, this shoould be done with _pmaskedexpnorm, but cannot exclude the outer bins
-                        xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
-                        xsecnorm = sum(valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=tmpiy)][0] for allpol in ['left','right', 'long'] for tmpiy in xrange(len(ybins[cp])-nOuterBinsToExclude-1))
-                        scale = 1./xsecnorm
+                        xsec_fit = valuesAndErrors[parname+'_pmaskedexpnorm']
                     else:
                         print "--normxsec not implemented yet for scans."
                         sys.exit()
                 else:
-                    xsec_parname = parname+'_pmaskedexp'
-                    xsec_fit = valuesAndErrors[xsec_parname]
+                    xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
                 
                 tmp_val.val_fit.append(xsec_fit[0]*scale/ybinwidths[cp][iy])
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])*scale/ybinwidths[cp][iy])

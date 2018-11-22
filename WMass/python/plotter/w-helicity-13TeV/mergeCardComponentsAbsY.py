@@ -645,7 +645,7 @@ if __name__ == "__main__":
             txt2wsCmd_noXsec = 'text2workspace.py {cf} -o {ws} --X-no-check-norm -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose {pos} '.format(cf=cardfile, ws=ws, pos=multisig)
             if options.freezePOIs:
                 # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(maskch=chname_xsec,cf=cardfile,sp="--sparse" if options.sparse else "")
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=cardfile,sp="--sparse" if options.sparse else "")
             else:
                 mcstr = '--maskedChan '+' --maskedChan '.join([k for k,val in maskedChannelsCards.iteritems()])
                 txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=mcstr,cf=cardfile_xsec,sp="--sparse" if options.sparse else "")

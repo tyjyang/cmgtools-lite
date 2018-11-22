@@ -60,7 +60,7 @@ class CardsChecker:
         if splitdir:
             os.system("mkdir -p {jd}/logs/".format(jd=self.resub_card_dir))
             os.system("mkdir -p {jd}/errs/".format(jd=self.resub_card_dir))
-            os.system("mkdir -p {jd}/errs/".format(jd=self.resub_card_dir))
+            os.system("mkdir -p {jd}/outs/".format(jd=self.resub_card_dir))
             # write new logs overwriting the original ones for failed jobs
             logdir = self.resub_card_dir + "/logs/"
             outdirCondor = self.resub_card_dir + "/outs/"

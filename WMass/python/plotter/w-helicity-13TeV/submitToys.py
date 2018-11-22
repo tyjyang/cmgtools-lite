@@ -66,6 +66,7 @@ if __name__ == "__main__":
     parser.add_option('-t'  , '--threads'       , dest='nThreads'      , type=int           , default=1    , help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
+    parser.add_option(        '--bbb'           , dest='binByBin'      , action='store_true', default=False, help='Use the bin by bin uncertainties to incorporate the templates MC stat');
     parser.add_option('--outdir', dest='outdir', type="string", default=None, help='outdirectory');
     (options, args) = parser.parse_args()
 
@@ -104,8 +105,9 @@ if __name__ == "__main__":
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat --correlateXsecStat'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr}'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
         if fixPOIs: cmd += ' --POIMode none '
+        if options.binByBin: cmd += ' --binByBinStat --correlateXsecStat '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
