@@ -143,7 +143,7 @@ def getCondorTime(qstr):
         retval = 24*3600
     elif qstr == '2nd':
         retval = 48*3600
-    elif qstr == '1nw':
+    elif qstr == '1nw'or qstr == 'cmscaf1nw':
         retval = 7*24*3600
     else:
         retval = int(qstr)*60*60
@@ -276,47 +276,49 @@ def writeEfficiencyStatErrorSystsToMCA_diffXsec(mcafile,odir,channel,syst="EffSt
     nbins = int(2*(abs(etalo)+0.001)/deta) # sum an epsilon to etalow before division, to avoid rounding effects
     print "nbins = %s" % str(nbins)
 
-    for i in range(0,nbins):
-        etamin = etalo + i*deta 
-        etamax = etamin + deta;
-        # 3 parameters used in the Erf fit vs pt per eta bin
+    for charge in ['plus','minus']:
 
-        # get the gen bin number that contains the reco bins considered here
-        # note that the gen bins in eta cannot be more granular than deta 
-        # indeed, it would not make sense that reco binning is less granular than the gen, and the reco will never be more granular than 0.1 in eta
-        genbin = getArrayBinNumberFromValue(genEtaBins,abs((etamax+etamin)/2.)) 
-        ietaMatch = "_ieta_"+str(genbin)+"_"
-        print "eff. bin [%.1f, %.1f] --> ietaMatch = %s" %  (etamin,etamax,ietaMatch)
+        for i in range(0,nbins):
+            etamin = etalo + i*deta 
+            etamax = etamin + deta;
+            # 3 parameters used in the Erf fit vs pt per eta bin
 
-        # might implement the variation for the neighboring bins as well
+            # get the gen bin number that contains the reco bins considered here
+            # note that the gen bins in eta cannot be more granular than deta 
+            # indeed, it would not make sense that reco binning is less granular than the gen, and the reco will never be more granular than 0.1 in eta
+            genbin = getArrayBinNumberFromValue(genEtaBins,abs((etamax+etamin)/2.)) 
+            ietaMatch = "_ieta_"+str(genbin)+"_"
+            #print "eff. bin [%.1f, %.1f] --> ietaMatch = %s" %  (etamin,etamax,ietaMatch)
 
-        for ipar in xrange(3):
-            postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
-            mcafile_syst = None
-            try:
-                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-            finally:
-                if mcafile_syst is not None:
-                    weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
-                    etaeffsysts.append(postfix)
-                    # incl_file is something like "w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt"
-                    # must remove the " to use the path
-                    incl_file_path = incl_file.replace('"','') 
-                    with open(incl_file_path, "r") as fileMCA:   
-                        for line in fileMCA:
-                            if line.startswith("W"):
-                                line  = line.rstrip('\n')  # remove newline at the end
-                                procName = line.split(":")[0]
-                                procName = procName.strip()
-                                if "outliers" in procName or ietaMatch in procName:
-                                    #ieta,ipt = get_ieta_ipt_from_process_name(procName) # only for non-outliers
-                                    # same line but different process name and one additional weight
-                                    newline = procName+postfix + " : " + ":".join(line.split(":")[1:]) + ', AddWeight="' + weightFcn + '"\n'
-                                    newline = line.replace(procName,procName+postfix) + ', AddWeight="' + weightFcn + '"\n'
-                                    mcafile_syst.write(newline)
-                    mcafile_syst.close()
-                else:
-                    raise RuntimeError, "Could not open file mcafile_syst in writeEfficiencyStatErrorSystsToMCA_diffXsec()"
+            # might implement the variation for the neighboring bins as well
+
+            for ipar in xrange(3):
+                postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
+                mcafile_syst = None
+                try:
+                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s_%s.txt" % (odir,postfix,charge), "w")
+                finally:
+                    if mcafile_syst is not None:
+                        weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+                        etaeffsysts.append(postfix)
+                        # incl_file is something like "w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-sigInclCharge_binned_eta_pt.txt"
+                        # must remove the " to use the path
+                        incl_file_path = incl_file.replace('"','') 
+                        with open(incl_file_path, "r") as fileMCA:   
+                            for line in fileMCA:
+                                if line.startswith("W"+charge):
+                                    line  = line.rstrip('\n')  # remove newline at the end
+                                    procName = line.split(":")[0]
+                                    procName = procName.strip()
+                                    if "outliers" in procName or ietaMatch in procName:
+                                        #ieta,ipt = get_ieta_ipt_from_process_name(procName) # only for non-outliers
+                                        # same line but different process name and one additional weight
+                                        #newline = procName+postfix + " : " + ":".join(line.split(":")[1:]) + ', AddWeight="' + weightFcn + '"\n'
+                                        newline = line.replace(procName,procName+postfix) + ', AddWeight="' + weightFcn + '"\n'
+                                        mcafile_syst.write(newline)
+                        mcafile_syst.close()
+                    else:
+                        raise RuntimeError, "Could not open file mcafile_syst in writeEfficiencyStatErrorSystsToMCA_diffXsec()"
 
     print "written ",syst," systematics relative to ",incl_mca
     print "="*20
@@ -403,6 +405,7 @@ if __name__ == "__main__":
     parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="Choose between genw (for dressed lepton) and prefsrw (preFSR lepton)");  
     parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used"); 
+    parser.add_option("--maxJobs-condor", dest="maxJobsCondorFile", type="int", default='3000', help="Maximum number of jobs per condor file");
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 6:
@@ -418,7 +421,7 @@ if __name__ == "__main__":
     T=options.path
     print "\n"
     print "Used trees from: ",T
-    J=2
+    J=4
     MCA = args[0]
     CUTFILE = args[1]
     fitvar = args[2]
@@ -532,35 +535,41 @@ if __name__ == "__main__":
         # for the same reason, it must be done one time only, so just for ibin == 0
         if len(etaeffsysts):
             for ivar, var in enumerate(etaeffsysts):
+                
+                # split by charge to have less process (as of now, all pt bins corresponding to a given eta bin are grouped together for EffStat)
+                for charge in ['plus','minus']:
 
-                if "EffStat" in var:
+                    #antich = 'plus' if charge == 'minus' else 'minus'
+                    recoChargeCut = POSCUT if charge=='plus' else NEGCUT
 
-                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                    IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                    #print "Running the systematic: ",var
-                    if not os.path.exists(outdir): os.makedirs(outdir)
-                    if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
+                    if "EffStat" in var:
 
-                    dcname = "W_{channel}{syst}".format(channel=options.channel,syst=var)
-                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --asimov --od "+outdir
-                    if options.queue:
-                        mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                        if options.useLSF:
-                            submitBatch(dcname,outdir,mkShCardsCmd,options)
+                        IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}_{ch}.txt".format(outdir=outdir,syst=var,ch=charge))
+                        IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                        #print "Running the systematic: ",var
+                        if not os.path.exists(outdir): os.makedirs(outdir)
+                        if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
+
+                        dcname = "W_{channel}{syst}_{ch}".format(channel=options.channel,syst=var,ch=charge)
+                        BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --asimov --od "+outdir + recoChargeCut
+                        if options.queue:
+                            mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                            if options.useLSF:
+                                submitBatch(dcname,outdir,mkShCardsCmd,options)
+                            else:
+                                fullJobList.append(mkShCardsCmd)
                         else:
-                            fullJobList.append(mkShCardsCmd)
-                    else:
-                        cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
-                        if options.dryRun: print cmd
-                        else:
-                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                            out, err = p.communicate() 
-                            result = out.split('\n')
-                            for lin in result:
-                                if not lin.startswith('#'):
-                                    print(lin)
+                            cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                            if options.dryRun: print cmd
+                            else:
+                                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                                out, err = p.communicate() 
+                                result = out.split('\n')
+                                for lin in result:
+                                    if not lin.startswith('#'):
+                                        print(lin)
 
-                ######  if not EffStat go on with the rest
+                    ######  if not EffStat go on with the rest
 
 
         # we will use a trick to make the outliers (gen bins outside the reco template)
@@ -585,7 +594,7 @@ if __name__ == "__main__":
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
 
-                    # scale, lepEff, ... added to signal, with ivar==0, otherwise eclude (I don't want elescale variation on pdfs)
+                    # scale, lepEff, ... added to signal, with ivar==0, otherwise exclude (I don't want elescale variation on pdfs)
                     if options.channel == "el":
                         scaleXP = "" if ivar == 0 else ",.*_elescale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ",Flips"
@@ -609,12 +618,7 @@ if __name__ == "__main__":
                                 lepscale = ",W{charge}_{channel}_outliers_muscale.*,W{charge}_{channel}_outliers_lepeff_.*".format(charge=charge, channel=options.channel)
                             selectedSigProcess = ' -p W{charge}_{channel}_outliers{lepscale}  '.format(charge=charge, channel=options.channel,lepscale=lepscale)  
                         else:
-                            if "EffStat" in syst:
-                                # EffStat systematics are not applied to any bins, there is a specific MCA. For the outliers, it is always applied
-                                # but let's not define the card from here
-                                pass
-                            else:
-                                selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
+                            selectedSigProcess = ' -p W{charge}_{channel}_outliers{syst}  '.format(charge=charge, channel=options.channel,syst=syst)  
 
                         ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,syst=syst)
                         ## keep same logic as before for the datacard name
@@ -801,7 +805,6 @@ if __name__ == "__main__":
         outdirCondor = outdir+'/outs/'
         errdir = outdir+'/errs/'
         os.system('mkdir -p '+jobdir)
-        subcommands = []
 
         sourcefiles = []
         ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first
@@ -811,8 +814,6 @@ if __name__ == "__main__":
             tmp_srcfile.write(ib)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
-            #makeCondorFile(tmp_srcfile_name)
-            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
 
         ## now do the others.
         for ij in range(njobs):
@@ -827,15 +828,13 @@ if __name__ == "__main__":
                 one = False
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
-            #makeCondorFile(tmp_srcfile_name)
-            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
 
         dummy_exec = open(jobdir+'/dummy_exec.sh','w')
         dummy_exec.write('#!/bin/bash\n')
         dummy_exec.write('bash $*\n')
         dummy_exec.close()
 
-        condor_file_name = jobdir+'/condor_submit.condor'
+        condor_file_name = jobdir+'/condor_submit_dummy.condor'
         condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
 Executable = {de}
@@ -852,26 +851,45 @@ request_memory = 4000
            rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
-        for sf in sourcefiles:
-            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
         condor_file.close()
+
+        nBunches = (len(sourcefiles) - 1)/options.maxJobsCondorFile + 1
+        headers = []
+        with open(condor_file_name, 'r') as dummy:
+            for line in dummy:
+                headers.append(line)
+
+        sourceToProcess = list(sourcefiles)
+        for bunch in range(nBunches):
+            name = condor_file_name.replace("_dummy","_%d" % bunch)
+            condor_file = open(name,'w')
+            for line in headers:
+                condor_file.write(line)
+            condor_file.write("\n")
+
+            tmp_n = options.maxJobsCondorFile
+            while len(sourceToProcess) and tmp_n:
+                tmp_src = sourceToProcess[0]
+                condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(tmp_src)))
+                sourceToProcess.remove(tmp_src)            
+                tmp_n -= 1
+            condor_file.close()
 
         #print 'i have {n} jobs to submit!'.format(n=len(subcommands))
         if options.dryRun:
             print 'running dry, printing the commands...'
-            print 'condor_submit ',condor_file_name
+            for bunch in range(nBunches):
+                print 'condor_submit ',condor_file_name.replace("_dummy","_%d" % bunch)
             #for cmd in subcommands:
             #    print cmd
-        else:
+        else:            
             print 'submitting for real...'
-            os.system('condor_submit {cfn}'.format(cfn=condor_file_name))
-            ##sigDyBkg = '_signal' if options.signalCards else '_background'
-            ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
-            ##pipefile = open(pipefilename, 'w')
-            ##print 'piping all the commands in file', pipefilename
-            ##for cmd in subcommands:
-            ##    pipefile.write(cmd+'\n')
-            ##pipefile.close()
-            ##os.system('bash '+pipefilename)
+            print "Jobs were grouped in %d bunches of %d jobs each" % (nBunches, options.maxJobsCondorFile)
+            print "Will submit the first bunch, but you have to submit the rest yourself (I will print the commands)"
+            for bunch in range(nBunches):
+                if bunch == 0:
+                    os.system('condor_submit {cfn}'.format(cfn=condor_file_name.replace("_dummy","_0")))
+                else:
+                    print 'condor_submit ',condor_file_name.replace("_dummy","_%d" % bunch)
 
     print 'done'

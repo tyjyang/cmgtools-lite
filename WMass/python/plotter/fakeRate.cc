@@ -1,5 +1,5 @@
-#ifndef FAKERATE_CC
-#define FAKERATE_CC
+//#ifndef FAKERATE_CC
+//#define FAKERATE_CC
 
 #include <TH2.h>
 #include <TH2D.h>
@@ -423,4 +423,4 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
 }
 
 
-#endif
+//#endif
