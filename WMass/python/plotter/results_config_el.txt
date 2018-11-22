@@ -1,0 +1,17 @@
+basedir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV'
+cardsdir = basedir+'/cards_el'
+fitsdir = basedir+'/fits/tf/21-11-18'
+toysdir = basedir+'/toys/tf/21-11-18'
+
+both_floatingPOIs_hessian       = fitsdir+'/asimov_el_bothch_floatingPOI.root'
+both_floatingPOIs_nobbb_hessian = fitsdir+'/asimov_el_bothch_floatingPOI_nobbb.root'
+both_floatingPOIs_toys          = toysdir+'/floatPOIs/bbb/toys_floatPOIs.root'
+
+both_fixedPOIs_hessian       = fitsdir+'/asimov_el_bothch_fixPOI.root'
+both_fixedPOIs_nobbb_hessian = fitsdir+'/asimov_el_bothch_fixPOI_nobbb.root'
+both_fixedPOIs_toys          = toysdir+'/fixPOIs/bbb/toys_fixPOIs_bbb.root'
+
+shapes_files = cardsdir+'/Wel_shapes.root'
+
+xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
+xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'

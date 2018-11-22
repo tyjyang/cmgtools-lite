@@ -39,7 +39,7 @@ if __name__ == '__main__':
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
         for nuis in systs:
-            os.system('python w-helicity-13TeV/systRatios.py --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['basedir'], ch=muEl))
+            os.system('python w-helicity-13TeV/systRatios.py --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
 
     ## plot correlation matrices
     ## ================================
@@ -64,12 +64,12 @@ if __name__ == '__main__':
         for t in toysHessian:
             cmd  = 'python w-helicity-13TeV/plotYW.py '
             cmd += ' -C plus,minus --xsecfiles {xp},{xm} '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'])
-            cmd +=  '--infile {inf} --outdir {od} --type {t} --suffix floatingPOIs_{t} '.format(od=tmp_outdir, t=t, inf=results['both_floatingPOIs_'+t])
+            cmd += ' -y {cd}/binningYW.txt --infile {inf} --outdir {od} --type {t} --suffix floatingPOIs_{t} '.format(cd=results['cardsdir'],od=tmp_outdir, t=t, inf=results['both_floatingPOIs_'+t])
             os.system(cmd)
             print "===> plotting normalized xsecs..."
             cmd += ' --normxsec '
             os.system(cmd)
-    
+
     ## do this at the end, it takes the longest
     ## diff nuisances
     ## ================================
