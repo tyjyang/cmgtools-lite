@@ -185,9 +185,9 @@ class util:
 
             print 'gettin parameter ', p.GetName(), 'from toys file'
             
-            #tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
-            tree.Draw(p.GetName()+'>>foob')#+p.GetName())
-            tmp_hist = ROOT.gPad.GetPrimitive('foob')
+            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
+            tree.Draw(p.GetName()+'>>'+p.GetName())
+            #tmp_hist = ROOT.gPad.GetPrimitive('foob')
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
             _dict[p.GetName()] = (mean, mean+err, mean-err)

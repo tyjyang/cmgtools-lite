@@ -49,7 +49,7 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for nuis in ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_']:
+            for nuis in ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']:
                 basecmd = 'python w-helicity-13TeV/subMatrix.py '
                 os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix floatingPOIs_{t} '.format(od=tmp_outdir, t=t, p=nuis, inf=results['both_floatingPOIs_'+t]))
                 os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix fixedPOIs_{t} '   .format(od=tmp_outdir, t=t, p=nuis, inf=results['both_fixedPOIs_'+t]))
