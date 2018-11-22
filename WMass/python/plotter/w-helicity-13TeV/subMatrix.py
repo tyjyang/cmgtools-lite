@@ -140,6 +140,9 @@ if __name__ == "__main__":
 
     print "===> Build covariance matrix from this set of params: ", params
 
+    p_tmp = set(params)
+    params = list(p_tmp)
+
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     params = sorted(params, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
