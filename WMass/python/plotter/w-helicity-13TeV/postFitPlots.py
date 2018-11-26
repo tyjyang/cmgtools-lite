@@ -162,7 +162,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] fitresults.root cards_dir")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
-    parser.add_option(     '--no2Dplot', dest="no2Dplot", default=True, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
+    parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
     parser.add_option(     '--prefit', dest="prefit", default=False, action='store_true', help="");
     groupJobs=5 # used in make_helicity_cards.py
@@ -197,6 +197,16 @@ if __name__ == "__main__":
     outfile = ROOT.TFile(full_outfileName, 'recreate')
     print "Will save 2D templates in file --> " + full_outfileName
 
+    ## get the pT and eta binning from the file in the directory
+    binninPtEtaFile = open(args[1]+'/binningPtEta.txt','r')
+    bins = binninPtEtaFile.readlines()[1].split()[1]
+    ## hack. easier
+    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+    nbinseta = len(etabins)-1
+    nbinspt  = len( ptbins)-1
+    binning = [nbinseta, etabins, nbinspt, ptbins]
+
     # doing signal
     total_sig = {}
     canv = ROOT.TCanvas()
@@ -211,26 +221,6 @@ if __name__ == "__main__":
             jobind = min(groupJobs * group - 1,nYbins-1)
             line = ybin%groupJobs
             
-
-            ## old jobsdir = args[1]+'/jobs/'
-            ## old jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
-            ## old tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-            ## old lineno = (-groupJobs+line)*2 + 1 # white lines
-            ## old if ybin==nYbins-1: lineno = -1 # not general hack!!!
-            ## old tmp_line = tmp_jobfile.readlines()[lineno].split()
-            ## old ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
-            ## old ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
-            ## old binning = getbinning(tmp_line)
-
-            binninPtEtaFile = open(args[1]+'/binningPtEta.txt','r')
-            bins = binninPtEtaFile.readlines()[1].split()[1]
-            ## hack. easier
-            etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-            ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-            nbinseta = len(etabins)-1
-            nbinspt  = len( ptbins)-1
-            binning = [nbinseta, etabins, nbinspt, ptbins]
-
             ymin = ybins[chpol][ybin]
             ymax = ybins[chpol][ybin+1]
             
