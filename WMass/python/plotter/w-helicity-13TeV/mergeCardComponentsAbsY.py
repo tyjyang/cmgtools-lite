@@ -138,13 +138,12 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default=None, help='Define which Y bins are out-of-acceptance. With format 14,15 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="14,15", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
     parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
     parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
     parser.add_option(     '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
-    parser.add_option(     '--wXsecLnN'   , dest='wLnN'       , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_option('-M','--minimizer'   , dest='minimizer' , type='string', default='GSLMultiMinMod', help='Minimizer to be used for the fit')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
@@ -403,7 +402,7 @@ if __name__ == "__main__":
                         procids = []; procnames = []
                         pos = 1; neg =  0;
                         for i,proc in enumerate(realprocesses):
-                            if 'Ybin' in proc:
+                            if 'left' in proc or 'right' in proc or ('long' in proc and not options.longLnN):
                                 procnames.append(proc)
                                 procids.append( str(neg)); neg -= 1
                             else:
@@ -554,6 +553,7 @@ if __name__ == "__main__":
         for sys,procs in allsyst.iteritems():
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
             combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
+        
         combinedCard.write('\npdfs group    = '+' '.join([sys for sys,procs in pdfsyst.iteritems()])+'\n')
         combinedCard.write('\nscales group  = '+' '.join([sys for sys,procs in qcdsyst.iteritems()])+'\n')
         combinedCard.write('\nalphaS group  = '+' '.join([sys for sys,procs in alssyst.iteritems()])+'\n')
