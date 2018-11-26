@@ -176,7 +176,7 @@ if __name__ == "__main__":
     ybinfile = open(ybinfile, 'r')
     ybins = eval(ybinfile.read())
     ybinfile.close()
-    
+
     outname = options.outdir
     if not os.path.exists(outname):
         os.system("mkdir -p "+outname)
@@ -212,16 +212,28 @@ if __name__ == "__main__":
             line = ybin%groupJobs
             
 
-            jobsdir = args[1]+'/jobs/'
-            jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
-            tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-            lineno = (-groupJobs+line)*2 + 1 # white lines
-            if ybin==nYbins-1: lineno = -1 # not general hack!!!
-            tmp_line = tmp_jobfile.readlines()[lineno].split()
-            ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
-            ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
+            ## old jobsdir = args[1]+'/jobs/'
+            ## old jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
+            ## old tmp_jobfile = open(jobsdir+jobfile_name, 'r')
+            ## old lineno = (-groupJobs+line)*2 + 1 # white lines
+            ## old if ybin==nYbins-1: lineno = -1 # not general hack!!!
+            ## old tmp_line = tmp_jobfile.readlines()[lineno].split()
+            ## old ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
+            ## old ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
+            ## old binning = getbinning(tmp_line)
+
+            binninPtEtaFile = open(args[1]+'/binningPtEta.txt','r')
+            bins = binninPtEtaFile.readlines()[1].split()[1]
+            ## hack. easier
+            etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+            ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+            nbinseta = len(etabins)-1
+            nbinspt  = len( ptbins)-1
+            binning = [nbinseta, etabins, nbinspt, ptbins]
+
+            ymin = ybins[chpol][ybin]
+            ymax = ybins[chpol][ybin+1]
             
-            binning = getbinning(tmp_line)
 
             chs = '+' if charge == 'plus' else '-' 
             h1_1 = infile.Get('expproc_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}_postfit'.format(ch=charge,pol=pol,flav=channel,ybin=ybin))
