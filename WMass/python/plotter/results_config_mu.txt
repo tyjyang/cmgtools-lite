@@ -17,4 +17,5 @@ shapes_files = basedir+'/Wmu_shapes.root'
 xsecs_plus  = basedir+'/Wmu_plus_shapes_xsec.root'
 xsecs_minus = basedir+'/Wmu_minus_shapes_xsec.root'
 
-postfit = basedir+'/fitresults_both_floatingPOIs_hessian_fix14and15_postfit.root'
+postfit_plus  = basedir+'/fitresults_both_floatingPOIs_hessian_fix14and15_postfit.root'
+postfit_minus = basedir+'/fitresults_both_floatingPOIs_hessian_fix14and15_postfit.root'

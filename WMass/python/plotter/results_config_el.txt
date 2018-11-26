@@ -16,4 +16,5 @@ shapes_files = cardsdir+'/Wel_shapes.root'
 xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
 xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
 
-postfit = fitsdir+'/asimov_el_bothch_floatingPOI_postfit.root'
+postfit_plus  = fitsdir+'/asimov_el_bothch_floatingPOI_postfit.root'
+postfit_minus = fitsdir+'/asimov_el_bothch_floatingPOI_postfit.root'
