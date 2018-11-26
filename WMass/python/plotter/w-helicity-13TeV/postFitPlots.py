@@ -172,6 +172,7 @@ if __name__ == "__main__":
         parser.print_usage()
         quit()
 
+    ## get the binning of the YW bins
     ybinfile = args[1]+'/binningYW.txt'
     ybinfile = open(ybinfile, 'r')
     ybins = eval(ybinfile.read())
