@@ -8,7 +8,7 @@ if __name__ == '__main__':
     parser.add_option('', '--config' , type='string'       , default=''    , help='config file with location of fitresults files')
     parser.add_option('', '--outdir' , type='string'       , default=''    , help='output directory with directory structure and plots')
     parser.add_option('', '--runtoys', action='store_true' , default=False , help='run also toys, not only hessian. takes longer')
-    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (nuis,rap,corr,syst)')
+    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (nuis,rap,corr,syst,post)')
     (options, args) = parser.parse_args()
 
 
@@ -62,12 +62,26 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            cmd  = 'python w-helicity-13TeV/plotYW.py '
-            cmd += ' -C plus,minus --xsecfiles {xp},{xm} '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'])
-            cmd += ' -y {cd}/binningYW.txt --infile {inf} --outdir {od} --type {t} --suffix floatingPOIs_{t} '.format(cd=results['cardsdir'],od=tmp_outdir, t=t, inf=results['both_floatingPOIs_'+t])
-            os.system(cmd)
-            print "===> plotting normalized xsecs..."
-            cmd += ' --normxsec '
+            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+                tmp_suffix = '_'.join(tmp_file.split('_')[1:])
+                cmd  = 'python w-helicity-13TeV/plotYW.py '
+                cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, suf=tmp_suffix, inf=results[tmp_file])
+                os.system(cmd)
+                print "===> plotting normalized xsecs..."
+                cmd += ' --normxsec '
+                os.system(cmd)
+
+    ## plot postfit plots
+    ## ================================
+    if options.make in ['all', 'post']:
+        for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
+            print 'making postfit plots'
+            tmp_outdir = options.outdir+'/postFitPlots/'
+            os.system('mkdir -p {od}'.format(od=tmp_outdir))
+            os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+            cmd  = 'python w-helicity-13TeV/postFitPlots.py '
+            cmd += ' {inf} {cd} --outdir {od} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir)
             os.system(cmd)
 
     ## do this at the end, it takes the longest
