@@ -75,7 +75,7 @@ if __name__ == '__main__':
     ## plot postfit plots
     ## ================================
     if options.make in ['all', 'post']:
-        for tmp_file in [i for i in results.keys() if 'postfit_'+t in i]:
+        for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
             print 'making postfit plots'
             tmp_outdir = options.outdir+'/postFitPlots/'
             os.system('mkdir -p {od}'.format(od=tmp_outdir))
