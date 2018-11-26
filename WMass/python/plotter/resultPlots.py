@@ -75,13 +75,14 @@ if __name__ == '__main__':
     ## plot postfit plots
     ## ================================
     if options.make in ['all', 'post']:
-        print 'making postfit plots'
-        tmp_outdir = options.outdir+'/postFitPlots/'
-        os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-        cmd  = 'python w-helicity-13TeV/postFitPlots.py '
-        cmd += ' {inf} {cd} --outdir {od} '.format(inf=results['postfit'], cd=results['cardsdir'], od=tmp_outdir)
-        os.system(cmd)
+        for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
+            print 'making postfit plots'
+            tmp_outdir = options.outdir+'/postFitPlots/'
+            os.system('mkdir -p {od}'.format(od=tmp_outdir))
+            os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+            cmd  = 'python w-helicity-13TeV/postFitPlots.py '
+            cmd += ' {inf} {cd} --outdir {od} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir)
+            os.system(cmd)
 
     ## do this at the end, it takes the longest
     ## diff nuisances
