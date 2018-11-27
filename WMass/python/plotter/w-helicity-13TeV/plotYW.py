@@ -125,8 +125,10 @@ def plotValues(values,charge,options):
             mg.GetXaxis().SetTitle('|Y_{W}|')
             if options.normxsec: 
                 mg.GetYaxis().SetTitle('d#sigma/dy/#sigma_{tot}')
+                mg.GetYaxis().SetRangeUser(-0.05,0.8)
             else: 
                 mg.GetYaxis().SetTitle('d#sigma/dy (pb)')
+                mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetXaxis().SetTitleSize(0.06)
             mg.GetXaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleSize(0.06)
@@ -138,7 +140,7 @@ def plotValues(values,charge,options):
             lat.DrawLatex(0.65, 0.92, '36 fb^{-1} (13 TeV)')
      
             for ext in ['png', 'pdf']:
-                c2.SaveAs('{od}/genAbsY{norm}_pdfs_{date}_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, date=date, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+                c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
         ## now make the relative error plot:
         ## ======================================
@@ -156,7 +158,7 @@ def plotValues(values,charge,options):
                 yaxrange['left'] = (0, 0.4); yaxrange['right'] = (-0.4, 0.4); yaxrange['long'] = (-1, 1)
             else:
                 yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{d#sigma/dy}{d#sigma^{exp}/dy}'
-                yaxrange['left'] = (0.85, 1.15); yaxrange['right'] = (0.85, 1.15); yaxrange['long'] = (0.5, 1.5)
+                yaxrange['left'] = (0.70, 1.30); yaxrange['right'] = (0.70, 1.30); yaxrange['long'] = (-1., 3.0)
      
             legs = []
             pad_height, pad_width = 0.30, 0.85
@@ -214,9 +216,10 @@ def plotValues(values,charge,options):
             lat.SetTextSize(0.04)
             lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
             for ext in ['png', 'pdf']:
-                c2.SaveAs('{od}/genAbsY{norm}_pdfs_{date}_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, date=date, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+                c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
 NPDFs = 60
+LUMINOSITY = 35900
 
 if __name__ == "__main__":
 
@@ -336,17 +339,21 @@ if __name__ == "__main__":
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
+        nOuterBinsToExclude = 2  ### EDM hardcoded: out of acceptance Y bins
+
         allValues = {}
         for pol in ['left','right', 'long']:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
-            nOuterBinsToExclude = 2
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
-            normsigma = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
-            print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigma)
+            normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+            print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaIn)
+            print "total xsec beyond |Y|>{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaOut)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
+                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                 parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
@@ -372,10 +379,11 @@ if __name__ == "__main__":
                         sys.exit()
                 else:
                     xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
-                
-                tmp_val.val_fit.append(xsec_fit[0]*scale/ybinwidths[cp][iy])
-                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])*scale/ybinwidths[cp][iy])
-                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])*scale/ybinwidths[cp][iy])
+                    scale = LUMINOSITY
+
+                tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
+                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
+                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidths[cp][iy]/scale)
 
                 units = '' if options.normxsec else '(pb)'
                 print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
@@ -383,7 +391,7 @@ if __name__ == "__main__":
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
 
                 if options.normxsec:
-                    rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma*scale for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
+                    rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
                 else:
                     rfit = valuesAndErrors[parname+'_mu'] # r values: contain all the common norm uncertainties (lumi, eff...)
 
