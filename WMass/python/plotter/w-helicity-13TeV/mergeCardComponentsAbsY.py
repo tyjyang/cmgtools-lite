@@ -217,9 +217,9 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|wptSlope\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
+                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
                     if ifile==0:
-                        rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
+                        rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     rootfiles_syst.sort()
                     if re.match('process\s+',l): 
                         if len(l.split()) > 1 and all(n.isdigit() for n in l.split()[1:]) : continue
@@ -303,11 +303,9 @@ if __name__ == "__main__":
                                                 if alt.GetName() not in plots:
                                                     plots[alt.GetName()] = alt.Clone()
                                                     plots[alt.GetName()].Write()
-                                        elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',newname): # these changes by default shape and normalization
+                                        elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',newname): # these changes by default shape and normalization
                                             tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
                                             newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
-                                            if 'wptSlope' in newname: # this needs to be scaled not to change normalization
-                                                obj.Scale(nominals[pfx].Integral()/obj.Integral())
                                             if newname not in plots:
                                                 plots[newname] = obj.Clone(newname)
                                                 plots[newname].Write()
@@ -332,7 +330,8 @@ if __name__ == "__main__":
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
-                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',name):
+                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',name):
+                    if re.match('.*_muR.*|.*_muF.*',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
                 if re.match('.*ErfPar\dEffStat.*',name):
@@ -346,7 +345,7 @@ if __name__ == "__main__":
         pdfsyst = {k:v for k,v in theosyst.iteritems() if 'pdf' in k}
         qcdsyst = {k:v for k,v in theosyst.iteritems() if 'muR' in k or 'muF' in k}
         alssyst = {k:v for k,v in theosyst.iteritems() if 'alphaS' in k }
-        wmodelsyst = {k:v for k,v in theosyst.iteritems() if 'wptSlope' in k or 'mW' in k}
+        wmodelsyst = {k:v for k,v in theosyst.iteritems() if 'mW' in k}
         effsyst = {k:v for k,v in expsyst.iteritems() if 'EffStat' in k}
     
         combineCmd="combineCards.py "
@@ -572,7 +571,7 @@ if __name__ == "__main__":
         ## xsecfilname 
         lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
         hists = getXsecs(tmp_sigprocs, 
-                         [i for i in theosyst.keys() if not 'wpt' in i],
+                         [i for i in theosyst.keys()],
                          ybins, 
                          lumiScale, 
                          '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections.root' ## hard coded for now
