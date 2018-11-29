@@ -26,7 +26,7 @@ def niceName(name):
         nn  = '#mu: ' if '_mu_' in name else 'el: '
         nn += 'W+ ' if 'plus' in name else 'W- '
         nn += 'left ' if 'left' in name else 'right ' if 'right' in name else 'long '
-        idx = -2 if 'masked' in name else -1
+        idx = -2 if ('masked' in name or name.endswith('mu')) else -1
         nn += name.split('_')[idx]
         if 'pmaskedexp' in name: nn += ' #sigma'
         if 'norm' in name: nn += '_{norm}'
