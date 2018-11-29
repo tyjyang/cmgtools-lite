@@ -97,8 +97,11 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for nuis in ['pdf', 'muR,muF,wpt', 'CMS_', 'ErfPar0EffStat', 'ErfPar1EffStat', 'ErfPar2EffStat']:
-                diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
-                os.system('{cmd} --infile {inf} --suffix floatingPOIs_{t} --type {t} '.format(cmd=diffNuisances_cmd, inf=results['both_floatingPOIs_'+t], t=t))
-                os.system('{cmd} --infile {inf} --suffix fixedPOIs_{t}    --type {t} '.format(cmd=diffNuisances_cmd, inf=results['both_fixedPOIs_'+t]   , t=t))
-
+            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+                tmp_suffix = '_'.join(tmp_file.split('_')[1:])
+                nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
+                if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                for nuis in nuisancesAndPOIs:
+                    diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
+                    os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
+                    print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)

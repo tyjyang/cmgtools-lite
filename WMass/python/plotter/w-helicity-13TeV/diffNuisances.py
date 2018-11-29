@@ -7,6 +7,7 @@ from sys import argv, stdout, stderr, exit
 import datetime
 from optparse import OptionParser
 #import HiggsAnalysis.CombinedLimit.calculate_pulls as CP 
+from subMatrix import niceName
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -69,6 +70,8 @@ if __name__ == "__main__":
 
     if any(re.match('pdf.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]), reverse=False)
+    elif any('masked' in x or x.endswith('mu') for x in params):
+        params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
 
     nuis_p_i=0
     title = "#theta"
@@ -95,7 +98,7 @@ if __name__ == "__main__":
             nuis_p_i+=1
             hist_fit_s.SetBinContent(nuis_p_i,val_f)
             hist_fit_s.SetBinError(nuis_p_i,err_f)
-            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,name)
+            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,niceName(name.replace('CMS_','')))
 
         if options.absolute_values:
             valShift = val_f
@@ -187,7 +190,7 @@ if __name__ == "__main__":
         fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>"
 
     names = table.keys()
-    names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if 'masked' in x else -1)
+    names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
     highlighters = { 1:highlight, 2:morelight };
     for n in names:
         v = table[n]
@@ -213,7 +216,12 @@ if __name__ == "__main__":
 
         canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", 800, 600)
         ## some style stuff
-        hist_fit_s.GetYaxis().SetRangeUser(-1.5,1.5)
+        if '_mu' in options.pois:
+            ymin,yhalfd,ycen,yhalfu,ymax = (0.,0.5,1,1.5,2.)
+        else:
+            ymin,yhalfd,ycen,yhalfu,ymax = (-1.,-0.5,0,0.5,1.)
+
+        hist_fit_s.GetYaxis().SetRangeUser(ymin-0.5,ymax+0.5)
         hist_fit_s.SetLineColor  (39)
         hist_fit_s.SetMarkerColor(ROOT.kGray+3)
         hist_fit_s.SetMarkerStyle(20)
@@ -221,19 +229,21 @@ if __name__ == "__main__":
         hist_fit_s.SetLineWidth(2)
         hist_fit_s.Draw("PE1")
         hist_fit_s.GetXaxis().SetLabelSize(0.045 if len(params) < 20 else 0.035)
+        hist_fit_s.GetXaxis().LabelsOption("v")
 
         hist_fit_s.GetYaxis().SetTitle('S+B fit #theta')
         hist_fit_s.GetYaxis().SetTitleSize(0.05)
         hist_fit_s.GetYaxis().SetTitleOffset(0.80)
+        canvas_nuis.SetBottomMargin(0.30);
 
         lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
         lat.DrawLatex(0.71, 0.92, '36 fb^{-1} (13 TeV)')
-        line.DrawLine(0.,  0., len(params),  0.)
-        line.DrawLine(0.,  1., len(params),  1.)
-        line.DrawLine(0., -1., len(params), -1.)
+        line.DrawLine(0., ycen, len(params), ycen)
+        line.DrawLine(0., ymax, len(params), ymax)
+        line.DrawLine(0., ymin, len(params), ymin)
         line.SetLineStyle(2)
-        line.DrawLine(0.,  0.5, len(params),  0.5)
-        line.DrawLine(0., -0.5, len(params), -0.5)
+        line.DrawLine(0., yhalfu, len(params), yhalfu)
+        line.DrawLine(0., yhalfd, len(params), yhalfd)
         hist_fit_s.Draw("PE1 same") ## draw again over the lines
 
         canvas_nuis.SetGridx()
