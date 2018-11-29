@@ -49,10 +49,13 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for nuis in ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']:
-                basecmd = 'python w-helicity-13TeV/subMatrix.py '
-                os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix floatingPOIs_{t} '.format(od=tmp_outdir, t=t, p=nuis, inf=results['both_floatingPOIs_'+t]))
-                os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix fixedPOIs_{t} '   .format(od=tmp_outdir, t=t, p=nuis, inf=results['both_fixedPOIs_'+t]))
+            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+                tmp_suffix = '_'.join(tmp_file.split('_')[1:])
+                nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
+                if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                for nuis in nuisancesAndPOIs:
+                    basecmd = 'python w-helicity-13TeV/subMatrix.py '
+                    os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix))
 
     ## plot rapidity spectra
     ## ================================
@@ -77,12 +80,13 @@ if __name__ == '__main__':
     if options.make in ['all', 'post']:
         print 'making postfit plots'
         for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
-            tmp_outdir = options.outdir+'/postFitPlots/'
-            os.system('mkdir -p {od}'.format(od=tmp_outdir))
-            os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-            cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot --prefit '
-            cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
-            os.system(cmd)
+            for prepostfit in ['--prefit', '']:
+                tmp_outdir = options.outdir+'/postFitPlots/'
+                os.system('mkdir -p {od}'.format(od=tmp_outdir))
+                os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+                cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot {pf} '.format(pf=prepostfit)
+                cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
+                os.system(cmd)
 
     ## do this at the end, it takes the longest
     ## diff nuisances
