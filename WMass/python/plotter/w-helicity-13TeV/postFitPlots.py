@@ -81,9 +81,9 @@ def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
     h2_backrolled_1 .GetZaxis().SetRangeUser(0.01*h2_backrolled_1.GetMaximum(),1.1*h2_backrolled_1.GetMaximum())
     return h2_backrolled_1
 
-def chargeUnrolledBinShifts(infile,nCharges=2,nMaskedCha=2):
+def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
     # guess from a signal with charge defined name
-    h1d = infile.Get('expproc_Wplus_left_Wplus_left_el_Ybin_0_postfit')
+    h1d = infile.Get('expproc_Wplus_left_Wplus_left_{ch}_Ybin_0_postfit'.format(ch=channel))
     # shift the 1D to remove the empty bins of the other charge
     nbins = int((h1d.GetNbinsX()-nCharges*nMaskedCha)/2)
     ret = {}
@@ -183,6 +183,7 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D.root', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
     parser.add_option(     '--prefit', dest="prefit", default=False, action='store_true', help="");
+    parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
     groupJobs=5 # used in make_helicity_cards.py
     nCharges = 2; nMaskedChanPerCharge = 2; # edm hardcoded, but to be guessed 
     
@@ -192,6 +193,7 @@ if __name__ == "__main__":
         quit()
 
     prepost = 'prefit' if options.prefit else 'postfit'
+    suffix = prepost+options.suffix
 
     ## get the binning of the YW bins
     ybinfile = args[1]+'/binningYW.txt'
@@ -224,7 +226,7 @@ if __name__ == "__main__":
     nbinspt  = len( ptbins)-1
     binning = [nbinseta, etabins, nbinspt, ptbins]
 
-    shifts = chargeUnrolledBinShifts(infile,nCharges,nMaskedChanPerCharge)
+    shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
     # doing signal
     for charge in ['plus','minus']:
@@ -259,13 +261,13 @@ if __name__ == "__main__":
                 h2_backrolled_1.Write(name2D)
                 if not options.no2Dplot:
                     for ext in ['pdf', 'png']:
-                        canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=prepost,ext=ext))
+                        canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=suffix,ext=ext))
             total_sig["W"+chpol].Draw('colz')
             total_sig["W"+chpol].Write(total_sig["W"+chpol].GetName())
      
             if not options.no2Dplot:
                 for ext in ['pdf', 'png']:
-                    canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,sfx=prepost,ext=ext))
+                    canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,sfx=suffix,ext=ext))
 
 
         # do backgrounds now
@@ -283,7 +285,7 @@ if __name__ == "__main__":
             h2_backrolled_1.Write(str(p))
             if not options.no2Dplot:
                 for ext in ['pdf', 'png']:
-                    canv.SaveAs('{odir}/{proc}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proc=p,ch=charge,flav=channel,sfx=prepost,ext=ext))
+                    canv.SaveAs('{odir}/{proc}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proc=p,ch=charge,flav=channel,sfx=suffix,ext=ext))
                 
 
         # now draw the 1D projections
@@ -369,10 +371,10 @@ if __name__ == "__main__":
             lat.DrawLatex(0.65, 0.92, '36 fb^{-1} (13 TeV)')
      
             p2.cd()
-            maxrange = [0.99,1.01] if prepost == 'postfit' else [0.90,1.10]
+            maxrange = [0.95,1.05] if prepost == 'postfit' else [0.95,1.05]
             rdata,rnorm,rline = doRatioHists(hdata, hexpfull, maxRange=maxrange, fixRange=True)
             c1.cd()
             for ext in ['pdf', 'png']:
-                c1.SaveAs('{odir}/projection{proj}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proj=projection,ch=charge,flav=channel,sfx=prepost,ext=ext))
+                c1.SaveAs('{odir}/projection{proj}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proj=projection,ch=charge,flav=channel,sfx=suffix,ext=ext))
         
     outfile.Close()
