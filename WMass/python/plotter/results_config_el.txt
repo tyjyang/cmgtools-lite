@@ -21,4 +21,5 @@ shapes_files = cardsdir+'/Wel_shapes.root'
 xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
 xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
 
-postfit_both  = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noBinByBin_mt0.root'
+postfit_noBBB  = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noBinByBin_mt0.root'
+postfit_BBB  = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_withBinByBin_mt0.root'

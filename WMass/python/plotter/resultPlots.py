@@ -87,6 +87,10 @@ if __name__ == '__main__':
                 cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot {pf} '.format(pf=prepostfit)
                 cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
                 os.system(cmd)
+                for charge in ['plus','minus']:
+                    prepost = 'prefit' if prepostfit=='--prefit' else 'postfit'
+                    cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{prepost}{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,prepost=prepost,suf=tmp_file.replace('postfit',''),ch=charge)
+                    os.system(cmdpull)
 
     ## do this at the end, it takes the longest
     ## diff nuisances
