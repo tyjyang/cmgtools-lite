@@ -195,7 +195,8 @@ class util:
 
         return _dict
 
-    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None, selection=""):
+    def getHistosFromToys(self, infile, nbins=100, xlow=-3.0, xup=3.0, getPull=False, matchBranch=None,excludeBranch=None, selection="", 
+                          setStatOverflow=False, getMedian=False):
 
         # getPull = True will return a histogram centered at 0 and with expected rms=1, obtained as (x-x_gen)/x_err
 
@@ -204,20 +205,37 @@ class util:
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')
         lok  = tree.GetListOfLeaves()
-        
+
+        #nMaxBranch = 10
+        #np = 0
+
+        tree.SetBranchStatus("*",0)  # disabling and enabling branches makes the loop on events faster, at least if the median is used
+
         for p in lok:
+
+            tree.SetBranchStatus(p.GetName(),1)
+            
             if '_err'   in p.GetName(): continue
             if '_minos' in p.GetName(): continue
             if '_gen'   in p.GetName(): continue
             if '_In'    in p.GetName(): continue
             if matchBranch and not any(re.match(poi,p.GetName()) for poi in matchBranch.split(',')): continue
             if excludeBranch and any(re.match(excl,p.GetName()) for excl in excludeBranch.split(',')): continue
+
+            # mainly for tests
+            #if np == nMaxBranch: break
+            #np += 1
             
             #print "Loading parameter --> %s " % p.GetName()
+            cmssw_version = os.environ['CMSSW_VERSION']
+            isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
 
             if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
                 #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
                 tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
+                if isRecentRelease:
+                    if setStatOverflow: tmp_hist_tmp.SetStatOverflows(1)
+                    else              : tmp_hist_tmp.SetStatOverflows(0)
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3, 3)
                 expression = "({p}-{pgen})/{perr}".format(p=p.GetName(),pgen=p.GetName()+"_gen",perr=p.GetName()+"_err")
                 tree.Draw(expression+'>>'+p.GetName(),selection)
@@ -226,14 +244,37 @@ class util:
                 err  = tmp_hist_tmp.GetRMS()
             else:
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
+                if isRecentRelease:
+                    if setStatOverflow: tmp_hist.SetStatOverflows(1)
+                    else              : tmp_hist.SetStatOverflows(0)
                 tree.Draw(p.GetName()+'>>'+p.GetName(),selection)
                 mean = tmp_hist.GetMean()
                 err  = tmp_hist.GetRMS()
-
             tmp_hist.SetDirectory(None)
-            _dict[p.GetName()] = (mean, mean+err, mean-err, tmp_hist)
+
+            if getMedian:
+                print "Computing median for ", p.GetName()
+                vals = []
+                binCount = 1
+                tot = tree.GetEntries()
+                for ev in tree:
+                    sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=tot))
+                    sys.stdout.flush()
+                    binCount += 1
+                    vals.append(getattr(ev, p.GetName()))
+                    
+                vals.sort()
+                nElements = len(vals)            
+                if nElements%2: median = vals[(nElements-1)/2]
+                else:           median = 0.5 * (vals[nElements/2] +  vals[nElements/2 + 1])
+                _dict[p.GetName()] = (median, median+err, median-err, tmp_hist)
+            else:
+                _dict[p.GetName()] = (mean, mean+err, mean-err, tmp_hist)
+
+            tree.SetBranchStatus(p.GetName(),0)
      
         return _dict
+
 
 
     def getExprFromToys(self, name, expression, infile):
@@ -264,9 +305,11 @@ class util:
         return ret
 
     def getDiffXsecAsymmetryFromToys(self, channel, ieta, ipt, netabins, ngroup, infile):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
         expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
         ret = self.getExprFromToys('chargeAsym',expr,infile)
         return ret
@@ -275,53 +318,63 @@ class util:
         binsToNormalize = []
         for ieta in range(netabins):
             for ipt in range(nptbins):
-                igroup = int(int(ieta + ipt * netabins)/ngroup)
-                denChunk = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+                #igroup = int(int(ieta + ipt * netabins)/ngroup)
+                #denChunk = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+                denChunk = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
                 binsToNormalize.append(denChunk)
         den = "+".join(x for x in binsToNormalize)
         den = "(" + den + ")"
         return den
 
     def getNormalizedDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile, den, friendTree=""):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        ##den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
         expr = '{num}/{den}'.format(num=num,den=den)
         ret = self.getExprFromToys('normDiffXsec',expr,infile)
         return ret
 
 
     def getDiffXsecFromToys(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
         ret = self.getExprFromToys('diffXsec',expr,infile)
         return ret
 
     def getExprFromToysFast(self, name, expression, nHistBins=100000, minHist=-100., maxHist=5000., tree=None):
         tmp_hist = ROOT.TH1F(name,name, nHistBins, minHist, maxHist)
+        cmssw_version = os.environ['CMSSW_VERSION']
+        isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
+        if isRecentRelease: tmp_hist.SetStatOverflows(1)
         tree.Draw(expression+'>>'+name)
         mean = tmp_hist.GetMean()
         err  = tmp_hist.GetRMS()
         return (mean, mean+err, mean-err)
 
     def getNormalizedDiffXsecFromToysFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, den, nHistBins=1000, minHist=0., maxHist=0.1, tree=None):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        ##den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
         expr = '{num}/{den}'.format(num=num,den=den)
         ret = self.getExprFromToysFast('normDiffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
 
     def getDiffXsecFromToysFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=2000, minHist=0., maxHist=200., tree=None):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
         ret = self.getExprFromToysFast('diffXsec',expr,nHistBins, minHist, maxHist, tree=tree)
         return ret
 
     def getDiffXsecAsymmetryFromToysFast(self, channel, ieta, ipt, netabins, ngroup, nHistBins=2000, minHist=0., maxHist=1.0, tree=None):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
         expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
         ret = self.getExprFromToysFast('chargeAsym',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
@@ -335,28 +388,76 @@ class util:
         #err  = tmp_hist.GetRMS()  # not used in this context, (we are going to use this expression mainly for charge asymmetry, the uncertainty must be taken from toys)
         return mean
 
-
     def getDiffXsecAsymmetryFromHessian(self, channel, ieta, ipt, netabins, ngroup, infile):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
         expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
         ret = self.getExprFromHessian('chargeAsym',expr,infile)
         return ret
 
+
     def getNormalizedDiffXsecFromHessian(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile,den):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
-        #den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        ##den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
         expr = '{num}/{den}'.format(num=num,den=den)
         ret = self.getExprFromHessian('normDiffXsec',expr,infile)
         return ret
 
     def getDiffXsecFromHessian(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, infile):
-        igroup = int(int(ieta + ipt * netabins)/ngroup)
-        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
         ret = self.getExprFromHessian('diffXsec',expr,infile)
         return ret
+
+    ######## HESSIAN FAST
+
+    def getExprFromHessianFast(self, name, expression, nHistBins=100000, minHist=-100., maxHist=5000., tree=None):
+        tmp_hist = ROOT.TH1F(name,name, nHistBins, minHist, maxHist)
+        cmssw_version = os.environ['CMSSW_VERSION']
+        isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
+        if isRecentRelease: tmp_hist.SetStatOverflows(1)
+        tree.Draw(expression+'>>'+name)
+        mean = tmp_hist.GetMean()  # if this is hessian and not toys, there is just one entry, so the mean is the entry
+        #err  = tmp_hist.GetRMS()  # not used in this context, (we are going to use this expression mainly for charge asymmetry, the uncertainty must be taken from toys)
+        return mean
+
+    def getDiffXsecAsymmetryFromHessianFast(self, channel, ieta, ipt, netabins, ngroup, nHistBins=2000, minHist=0., maxHist=1.0, tree=None):
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        #xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_group_{ig}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        xplus  = "Wplus_{ch}_ieta_{ieta}_ipt_{ipt}_Wplus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
+        xminus = "Wminus_{ch}_ieta_{ieta}_ipt_{ipt}_Wminus_{ch}_pmaskedexp".format(ch=channel,ieta=ieta,ipt=ipt)
+        expr = '({pl}-{mn})/({pl}+{mn})'.format(pl=xplus,mn=xminus)
+        ret = self.getExprFromHessianFast('chargeAsym',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+
+    def getNormalizedDiffXsecFromHessianFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=1000, minHist=0., maxHist=0.1, tree=None, getErr=False, getGen=False):
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexpnorm".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ##den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        ret = self.getExprFromHessianFast('normDiffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+    def getDiffXsecFromHessianFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=2000, minHist=0., maxHist=200., tree=None, getErr=False, getGen=False):
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ret = self.getExprFromHessianFast('diffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+    #################################### 
 
     def getFromScans(self, indir):
         _dict = {}
