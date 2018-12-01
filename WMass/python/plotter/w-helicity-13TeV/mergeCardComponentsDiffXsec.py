@@ -33,7 +33,7 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
         charge = "plus" if "plus" in process else "minus"
         # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
-        etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
+        etavar = "absetal1_preFSR" if (float(etabins[0]) >= 0.0) else "etal1_preFSR" 
         cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_central' 
         cen_hist = histo_file.Get(cen_name)  # this is a TH2
         useEleXsec = False
@@ -89,9 +89,14 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
         for sys in systs:
 
-            # scales muR, muF, muRmuF in bins of pt are named like muR_wpt1Up, where the number after wpt goes from 1 to 10
+            # scales muR, muF, muRmuF in bins of pt are named like mu1RUp, where the number after muR goes from 1 to 10
+            # pdf do not have Up and Dn inside file
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
+
+            if sys == "mW":
+                upn = sys + "_80470"
+                dnn = sys + "_80370"
 
             if useEleXsec:
                 sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
@@ -163,6 +168,7 @@ def combCharges(options):
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
         if not options.skip_text2hdf5:
@@ -172,6 +178,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
+            print ""
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
             print combineCmd
 

@@ -29,7 +29,7 @@ COMBINESTRING
 
 '''
 
-def makeCondorFile(jobdir, srcFiles, options):
+def makeCondorFile(jobdir, srcFiles, options, logdir, errdir, outdirCondor):
     dummy_exec = open(jobdir+'/dummy_exec.sh','w')
     dummy_exec.write('#!/bin/bash\n')
     dummy_exec.write('bash $*\n')
@@ -40,14 +40,16 @@ def makeCondorFile(jobdir, srcFiles, options):
     condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = {jd}/$(ProcId).log
-Output     = {jd}/$(ProcId).out
-Error      = {jd}/$(ProcId).error
+Log        = {ld}/$(ProcId).log
+Output     = {od}/$(ProcId).out
+Error      = {ed}/$(ProcId).error
 getenv      = True
+next_job_start_delay = 1
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor),ed=os.path.abspath(errdir),
+           rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
     for sf in srcFiles:
@@ -67,11 +69,13 @@ if __name__ == "__main__":
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option('--outdir', dest='outdir', type="string", default=None, help='outdirectory');
+    parser.add_option("","--correlateXsecStat", default=False, action='store_true', help="Assume that cross sections in masked channels are correlated with expected values in templates (ie computed from the same MC events)")
     (options, args) = parser.parse_args()
 
-    ## for tensorflow the ws has to be the datacard!
+    ## for tensorflow the ws has to be the .hdf5 file made from the datacard with text2hdf5.py!
     
-    workspace = args[0]; wsbase = os.path.basename(workspace).split('.')[0]
+    workspace = args[0]; 
+    wsbase = os.path.basename(workspace).split('.')[0]
     ntoys = int(args[1])
     prefix = args[2] if len(args)>2 else wsbase
     charge = 'plus' if 'plus' in wsbase else 'minus'
@@ -81,7 +85,7 @@ if __name__ == "__main__":
 
     absopath  = os.path.abspath(options.outdir)
     if not options.outdir:
-        raise RuntimeError, 'ERROR: give at least an output directory. there will be a YUGE number of jobs!'
+        raise RuntimeError, 'ERROR: give at least an output directory. there will be a HUGE number of jobs!'
     else:
         if not os.path.isdir(absopath):
             print 'making a directory and running in it'
@@ -93,7 +97,13 @@ if __name__ == "__main__":
     logdir = absopath+'/logs/'
     if not os.path.isdir(logdir):
         os.system('mkdir {od}'.format(od=logdir))
-
+    errdir = absopath+'/errs/'
+    if not os.path.isdir(errdir):
+        os.system('mkdir {od}'.format(od=errdir))
+    outdirCondor = absopath+'/outs/'
+    if not os.path.isdir(outdirCondor):
+        os.system('mkdir {od}'.format(od=outdirCondor))
+        
     random.seed()
 
     srcfiles = []
@@ -104,15 +114,16 @@ if __name__ == "__main__":
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat --correlateXsecStat'.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)        
         if fixPOIs: cmd += ' --POIMode none '
+        if options.correlateXsecStat: cmd += ' --correlateXsecStat '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
         tmp_file.write(tmp_filecont)
         tmp_file.close()
         srcfiles.append(job_file_name)
-    cf = makeCondorFile(jobdir,srcfiles,options)
+    cf = makeCondorFile(jobdir,srcfiles,options, logdir, errdir, outdirCondor)
     subcmd = 'condor_submit {rf} '.format(rf = cf)
 
     print subcmd

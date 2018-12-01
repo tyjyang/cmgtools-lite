@@ -25,7 +25,7 @@ lat = ROOT.TLatex(); lat.SetNDC()
 def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir='./', suffix='', analysis='helicity', 
              excludeName=None, paramFamily=None,plotPull=False,
              channel='el', charge='plus',
-             selection=""):
+             selection="",useMedian=False):
  
     
 
@@ -36,21 +36,38 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
     if paramFamily:
         if paramFamily == "pdf":
             pois="pdf.*"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,
+                                                              selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "scale":
-            pois="muR,muF,muRmuF,alphaS,wptSlope" 
+            pois="" 
+            for i in range(1,11):
+                pois += "muR{n},muF{n},muRmuF{n},".format(n=str(i))
+            if pois.endswith(','): pois = pois[:-1]
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,
+                                                              selection=selection,setStatOverflow=True,getMedian=useMedian)
+        elif paramFamily == "shapesyst":
             if channel == "el":
-                pois += ",CMS_We_sig_lepeff,CMS_We_elescale,CMS_We_FRe_slope,CMS_We_FRe_continuous"
+                pois = "alphaS,CMS_We_sig_lepeff,CMS_We_elescale,CMS_We_FRe_slope,CMS_We_FRe_continuous"
             else:
-                pois += ",CMS_Wmu_sig_lepeff,CMS_Wmu_muscale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_continuous"
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+                pois = "alphaS,CMS_Wmu_sig_lepeff,CMS_Wmu_muscale,CMS_Wmu_FRmu_slope,CMS_Wmu_FR_continuous"
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
+        elif paramFamily == "normsyst":
+            if channel == "el":
+                pois = "CMS_We_lepVeto,CMS_We_bkg_lepeff,CMS_VV,CMS_Top,CMS_W,CMS_DY,CMS_lumi_13TeV,CMS_We_flips,CMS_Wbkg"
+            else:
+                pois = "CMS_Wmu_lepVeto,CMS_Wmu_bkg_lepeff,CMS_VV,CMS_Top,CMS_W,CMS_DY,CMS_lumi_13TeV,CMS_Wbkg"
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "signalStrength":
             pois="W{ch}.*_mu".format(ch=charge)
             isSignalStrength = True
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "absxsec":
             pois="W{ch}.*_pmaskedexp".format(ch=charge)
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,200,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,200,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
     else:
         # warning: utilities.getHistosFromToys is working only for parameters centered around 0 (histogram is defined in -3,3)
         # this script will not work if using parameters with pmaskedexp
@@ -60,11 +77,13 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                 print "You might want to change behaviour of function utilities.getHistosFromToys to use those parameters as well" 
                 exit(0)
         if any ([wc in poi for wc in ["Wplus","Wminus"] for poi in pois.split(",")]):
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
             if not any("pmaskedexp" in poi for poi in pois.split(",")):
                 isSignalStrength = True
         else:
-            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,excludeBranch=excludeName,selection=selection)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
             
 
     print "From the list of parameters it seems that you are plotting results for channel ",channel
@@ -312,7 +331,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage='%prog toys.root [options] ')
     parser.add_option(      '--parameters'  , dest='pois'     , default='pdf.*', type='string', help='comma separated list of regexp parameters to run. default is all parameters! Better to select parameters belonging to the same family, like, pdfs, qcd scales, signal strengths ...')
-    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, signalStrength, absxsec')
+    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, shapesyst, normsyst, signalStrength, absxsec')
     parser.add_option(      '--exclude-param'  , dest='excludeParam'     , default=None, type='string', help='Work as --parameters, but matches will be excluded from the list of parameters (e.g., can exclude a given pdf, pmaskednorm to match only pmasked and so on)')
     parser.add_option('-c', '--charge'      , dest='charge'  , default=''      , type='string', help='Specify charge (plus,minus)')
     parser.add_option('-f', '--flavour'     , dest='flavour'  , default=''      , type='string', help='Specify flavour (el,mu)')
@@ -320,6 +339,7 @@ if __name__ == "__main__":
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''     , type='string', help='suffix to give to the plot files')
     parser.add_option('-a', '--analysis'    , dest='analysis' , default='helicity', type='string', help='Which analysis: helicity or diffXsec') 
     parser.add_option(      '--pull'    , dest="plotpull", action="store_true", default=False, help="When making the pull plot, get really the pull from histogram (define histogram using (x-x_gen)/x_err for parameter x");
+    parser.add_option(      '--median'    , dest="useMedian", action="store_true", default=False, help="Use median instead of mean for the pull");
     parser.add_option('-s',  '--selection'  , dest="selection", default="", help="Selection to apply when reading trees to make pull distributions");
     (options, args) = parser.parse_args()
 
@@ -353,5 +373,5 @@ if __name__ == "__main__":
     toyfile = args[0]
     plotPars(toyfile,pois=options.pois,maxPullsPerPlot=30,plotdir=outname,suffix=options.suffix,analysis=options.analysis,
              excludeName=options.excludeParam,paramFamily=options.poisFamily,plotPull=options.plotpull,channel=options.flavour,charge=options.charge,
-             selection=options.selection)
+             selection=options.selection, useMedian=options.useMedian)
 

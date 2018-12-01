@@ -67,6 +67,7 @@ def getArrayBinNumberFromValue(binEdgesArray,val):
 
 def get_ieta_ipt_from_process_name(name):
     # name is something like  Wplus_el_ieta_1_ipt_14_Wplus_el_group_18
+    # group might not be present depending on how signal bins are made
     if not all([x in name for x in ["ieta","ipt"]]):
         print "Error in get_ieta_ipt_from_process_name(): 'ieta' or 'ipt' not found in %s. Exit" % name
         quit()
@@ -85,13 +86,25 @@ class templateBinning:
         self.ptBins = ptBins
         self.Neta = len(etaBins)-1
         self.Npt  = len(ptBins)-1
+        self.NTotBins = self.Neta * self.Npt
 
     def printBin(self):
         print "###########################"
         print "Binning: eta-pt on x-y axis"
         print "eta bins: %s" % str(self.Neta)
         print "pt  bins: %s" % str(self.Npt)
+        print ""
 
+    def printBinAll(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins
+        print "eta bins: %s" % str(self.Neta)
+        print "%s" % str(self.etaBins)
+        print "-"*20
+        print "pt  bins: %s" % str(self.Npt)
+        print "%s" % str(self.ptBins)
+        print "-"*20
+        print ""
 
 def getDiffXsecBinning(inputBins, whichBins="reco"):
 
@@ -473,17 +486,17 @@ if __name__ == "__main__":
     
     if options.addPdfSyst:
         # write the additional systematic samples in the MCA file
-        writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
-        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
+        if options.signalCards:  writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
+        if options.bkgdataCards: writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
         # write the complete systematics file (this was needed when trying to run all systs in one job)
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
         #writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # no more wpt inclusive, now we have the QCD scales in bins of wpt
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
+        if options.signalCards:  writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # no more wpt inclusive, now we have the QCD scales in bins of wpt
+        if options.bkgdataCards: writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
 
-    writeEfficiencyStatErrorSystsToMCA_diffXsec(MCA,outdir+"/mca",options.channel,genEtaBins=[float(x) for x in etabinning])
+    if options.signalCards: writeEfficiencyStatErrorSystsToMCA_diffXsec(MCA,outdir+"/mca",options.channel,genEtaBins=[float(x) for x in etabinning])
 
     ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
     BASECONFIG=os.path.dirname(MCA)
@@ -622,7 +635,7 @@ if __name__ == "__main__":
 
                         ##dcname = "W{charge}_{channel}_ieta_{ieta}_ipt_{ipt}{syst}".format(charge=charge, channel=options.channel,syst=syst)
                         ## keep same logic as before for the datacard name
-                        dcname = "W{charge}_{channel}_outliers_group_{gr}{syst}".format(charge=charge,channel=options.channel,gr=ibin,syst=syst)
+                        dcname = "W{charge}_{channel}_group_{gr}{syst}".format(charge=charge,channel=options.channel,gr=ibin,syst=syst)
 
 
                     else:

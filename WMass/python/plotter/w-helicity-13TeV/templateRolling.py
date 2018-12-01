@@ -12,6 +12,10 @@
 # muon
 # python w-helicity-13TeV/templateRolling.py /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2018_09_23_withFixes/ -o plots/helicity/templates/fromMarc/helicity_2018_09_23_withFixes/ -c mu --plot-binned-signal -a helicity --draw-all-bins --skipSyst
 
+# example 25/11/2018
+# python w-helicity-13TeV/templateRolling.py cards/diffXsec_mu_2018_11_24_group10_onlyBkg/ -o plots/diffXsec/templates/diffXsec_mu_2018_11_24_group10_onlyBkg/ -c mu --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 --skipSyst -C minus
+
+# python w-helicity-13TeV/templateRolling.py cards/diffXsec_el_2018_11_24_group10_onlyBkg/ -o plots/diffXsec/templates/diffXsec_el_2018_11_24_group10_onlyBkg/ -c el --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 --skipSyst -C minus
 
 import ROOT, os
 from array import array
@@ -91,6 +95,7 @@ if __name__ == "__main__":
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
     parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)') 
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
+    #parser.add_option(     '--no-group-name', dest="noGroupInName", default=False, action='store_true', help="If True, _group_<N> is not in the signal process name");
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -268,12 +273,21 @@ if __name__ == "__main__":
                     obj=k.ReadObj()
                     # example of name in shapes.root: x_Wplus_el_ieta_3_ipt_0_Wplus_el_group_0
                     # example of name in shapes.root: x_Wplus_mu_outliers_Wplus_mu_outliers_group_37
+                    # group might actually not appear in name
                     signalMatch = "{ch}_{flav}_".format(ch=charge,flav=channel)                      
-                    # name.split('_')[-2] == "group" : this condition excludes systematics
 
                     if obj.InheritsFrom("TH1") and signalMatch in name:
 
-                        if name.split('_')[-2] == "group":
+                        notSystProcess = False
+                        # if options.noGroupInName:
+                        #     if name.endswith("{ch}_{flav}".format(ch=charge,flav=channel)): notSystProcess = True
+                        # else:
+                        #     if name.split('_')[-2] == "group": notSystProcess = True
+
+                        if any(name.endswith(x) for x in ["Up","Down"]): notSystProcess = False
+                        else:                                            notSystProcess = True
+                            
+                        if notSystProcess:
 
                             if "outliers" in name:
                                 drawThisBin = True

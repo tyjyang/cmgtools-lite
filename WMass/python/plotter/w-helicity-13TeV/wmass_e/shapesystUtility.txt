@@ -7,7 +7,8 @@
 # Fake rate uncertainties
 # Measurement of the fake rate: shapes (slope of FR)
 # ==================================================================
-CMS_We_FRe_pt        : data_fakes  
+CMS_We_FRe_slope        : data_fakes  
+CMS_We_FRe_continuous   : data_fakes  
 
 # ==================================================================
 # PDF and QCD scales 
@@ -18,8 +19,10 @@ muR                  : W.*|Z
 muF                  : W.*|Z
 muRmuF               : W.*|Z
 
+
 # ==================================================================
 # W only 
 # ==================================================================
 CMS_We_elescale      : W.*        
-wptSlope             : W.*
+CMS_We_sig_lepeff    : W.*
+#wptSlope             : W.*

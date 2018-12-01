@@ -3,7 +3,8 @@ import re, sys, os, os.path
 #folder = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/"
 #folder = "/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY/"
 #folder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREE_4_XSEC_AFS/"
-folder = "/afs/cern.ch/work/e/emanuele/TREES/TREES_electrons_1l_V6_TINY/"
+#folder = "/afs/cern.ch/work/e/emanuele/TREES/TREES_electrons_1l_V6_TINY/"
+folder = "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT/"
 print "Folder: %s " % folder
 
 
@@ -44,8 +45,7 @@ print ""
 #                '.*_bcTo.*',
 #                '.*_EMEnriched.*'
 #                ]
-sampleRoots = ['^WJetsToLNu_NLO.*',               
-               '^NoSkim_WJetsToLNu_NLO.*'
+sampleRoots = ['^WJetsToLNu_.*',               
                ]
 
 sumgenwgt = {}
