@@ -2,6 +2,9 @@ import ROOT, os, sys, re, array, math, json
 
 class util:
 
+    def __init__(self):
+        self.cmssw_version = os.environ['CMSSW_VERSION']
+        self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
     def solvePol2(self, a,b,c):
     
@@ -208,6 +211,7 @@ class util:
 
         #nMaxBranch = 10
         #np = 0
+        im = 1  # for median
 
         tree.SetBranchStatus("*",0)  # disabling and enabling branches makes the loop on events faster, at least if the median is used
 
@@ -227,13 +231,13 @@ class util:
             #np += 1
             
             #print "Loading parameter --> %s " % p.GetName()
-            cmssw_version = os.environ['CMSSW_VERSION']
-            isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
+            #self.cmssw_version = os.environ['CMSSW_VERSION']
+            #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
             if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
                 #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
                 tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
-                if isRecentRelease:
+                if self.isRecentRelease:
                     if setStatOverflow: tmp_hist_tmp.SetStatOverflows(1)
                     else              : tmp_hist_tmp.SetStatOverflows(0)
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100, -3, 3)
@@ -244,7 +248,7 @@ class util:
                 err  = tmp_hist_tmp.GetRMS()
             else:
                 tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), nbins, xlow, xup)
-                if isRecentRelease:
+                if self.isRecentRelease:
                     if setStatOverflow: tmp_hist.SetStatOverflows(1)
                     else              : tmp_hist.SetStatOverflows(0)
                 tree.Draw(p.GetName()+'>>'+p.GetName(),selection)
@@ -253,14 +257,15 @@ class util:
             tmp_hist.SetDirectory(None)
 
             if getMedian:
-                print "Computing median for ", p.GetName()
+                print "{n}) Computing median for {pn}".format(n=im,pn=p.GetName())
+                im += 1
                 vals = []
-                binCount = 1
+                #binCount = 1
                 tot = tree.GetEntries()
                 for ev in tree:
-                    sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=tot))
-                    sys.stdout.flush()
-                    binCount += 1
+                    #sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=tot))
+                    #sys.stdout.flush()
+                    #binCount += 1
                     vals.append(getattr(ev, p.GetName()))
                     
                 vals.sort()
@@ -345,9 +350,9 @@ class util:
 
     def getExprFromToysFast(self, name, expression, nHistBins=100000, minHist=-100., maxHist=5000., tree=None):
         tmp_hist = ROOT.TH1F(name,name, nHistBins, minHist, maxHist)
-        cmssw_version = os.environ['CMSSW_VERSION']
-        isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
-        if isRecentRelease: tmp_hist.SetStatOverflows(1)
+        #self.cmssw_version = os.environ['CMSSW_VERSION']
+        #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
+        if self.isRecentRelease: tmp_hist.SetStatOverflows(1)
         tree.Draw(expression+'>>'+name)
         mean = tmp_hist.GetMean()
         err  = tmp_hist.GetRMS()
@@ -368,6 +373,14 @@ class util:
         expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
         ret = self.getExprFromToysFast('diffXsec',expr,nHistBins, minHist, maxHist, tree=tree)
         return ret
+
+    def getSignalStrengthFromToysFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=400, minHist=0., maxHist=2., tree=None):
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_mu".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        ret = self.getExprFromToysFast('diffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
 
     def getDiffXsecAsymmetryFromToysFast(self, channel, ieta, ipt, netabins, ngroup, nHistBins=2000, minHist=0., maxHist=1.0, tree=None):
         #igroup = int(int(ieta + ipt * netabins)/ngroup)
@@ -419,9 +432,9 @@ class util:
 
     def getExprFromHessianFast(self, name, expression, nHistBins=100000, minHist=-100., maxHist=5000., tree=None):
         tmp_hist = ROOT.TH1F(name,name, nHistBins, minHist, maxHist)
-        cmssw_version = os.environ['CMSSW_VERSION']
-        isRecentRelease = (len(cmssw_version) and int(cmssw_version.split('_')[1]) > 8)
-        if isRecentRelease: tmp_hist.SetStatOverflows(1)
+        #self.cmssw_version = os.environ['CMSSW_VERSION']
+        #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
+        if self.isRecentRelease: tmp_hist.SetStatOverflows(1)
         tree.Draw(expression+'>>'+name)
         mean = tmp_hist.GetMean()  # if this is hessian and not toys, there is just one entry, so the mean is the entry
         #err  = tmp_hist.GetRMS()  # not used in this context, (we are going to use this expression mainly for charge asymmetry, the uncertainty must be taken from toys)
@@ -456,6 +469,17 @@ class util:
         elif getGen: expr += "_gen"
         ret = self.getExprFromHessianFast('diffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
+
+    def getSignalStrengthFromHessianFast(self, channel, charge, ieta, ipt, netabins, nptbins, ngroup, nHistBins=200, minHist=0.5, maxHist=1.5, tree=None, getErr=False, getGen=False):
+        #igroup = int(int(ieta + ipt * netabins)/ngroup)
+        #num = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_group_{ig}_pmaskedexp".format(c=charge,ch=channel,ieta=ieta,ipt=ipt,ig=igroup)
+        expr = "W{c}_{ch}_ieta_{ieta}_ipt_{ipt}_W{c}_{ch}_mu".format(c=charge,ch=channel,ieta=ieta,ipt=ipt)
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ##den = getDenExpressionForNormDiffXsec(channel, charge, netabins, nptbins, ngroup)
+        ret = self.getExprFromHessianFast('normDiffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
 
     #################################### 
 

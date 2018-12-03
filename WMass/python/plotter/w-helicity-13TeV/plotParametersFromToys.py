@@ -139,8 +139,14 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         if isSignalStrength and histo.GetStdDev() > 0.05:
             histo.Rebin(2)
         histo.Draw()
-        histo.GetXaxis().SetTitle(histo.GetTitle());        histo.GetYaxis().SetTitle("no toys (%d total)" % histo.Integral());         histo.SetTitle("")
-        histo.GetYaxis().SetTitleOffset(1.05);     histo.GetXaxis().SetTitleOffset(0.9);        histo.GetYaxis().SetTitleSize(0.05);        histo.GetXaxis().SetTitleSize(0.05);        histo.GetXaxis().SetTitle(name)
+        histo.GetXaxis().SetTitle(histo.GetTitle());        
+        histo.GetYaxis().SetTitle("number of toys (%d total)" % histo.Integral());         
+        histo.SetTitle("")
+        histo.GetYaxis().SetTitleOffset(1.05);     
+        histo.GetXaxis().SetTitleOffset(0.9);        
+        histo.GetYaxis().SetTitleSize(0.05);        
+        histo.GetXaxis().SetTitleSize(0.05);        
+        histo.GetXaxis().SetTitle(name)
      
         fitPull = histo.Integral()>0
         if fitPull:
@@ -152,8 +158,12 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             lat.DrawLatex(0.16, 0.6, 'chi2/ndf: {cn:.2f}'.format(cn=fit.GetChisquare()/fit.GetNDF() if fit.GetNDF()>0 else 999))
             lat.DrawLatex(0.65, 0.8, 'mean:  {me:.3f}'.format(me=histo.GetMean()))
             lat.DrawLatex(0.65, 0.7, 'RMS :  {er:.2f}'.format(er=histo.GetStdDev()))
+            if useMedian:
+                lat.DrawLatex(0.65, 0.6, 'median:  {me:.3f}'.format(me=mean_p))  # in this case mean_p stores the median
 
             if isSignalStrength:
+                if fit.GetParameter(2) < 0.1:
+                    histo.GetXaxis().SetRangeUser(0.5,1.5)        
                 if fit.GetParameter(2) < 0.05:
                     histo.GetXaxis().SetRangeUser(0.8,1.2)        
                 if fit.GetNDF()>0:
@@ -163,7 +173,9 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         distrdir = plotdir+'/pulldistr'
         createPlotDirAndCopyPhp(distrdir)
         for ext in ['png', 'pdf']:
-            c.SaveAs("{pdir}/{name}_postfit_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,name=name,ch=charge,suffix="_"+suffix,channel=channel,ext=ext))
+            c.SaveAs("{pdir}/{name}_postfit_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,name=name,ch=charge,
+                                                                                 suffix=("_"+suffix) if len(suffix) else "",
+                                                                                 channel=channel,ext=ext))
 
         if fitPull:
             # tlatex = ROOT.TLatex(); tlatex.SetNDC(); 
@@ -217,12 +229,15 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             # else:
             #     print "Warning: no stat box found for Chi^2" 
             for ext in ['png', 'pdf']:
-                canvas_Chi2.SaveAs("{pdir}/chi2_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,ch=charge,suffix="_"+suffix,channel=channel,ext=ext))
+                canvas_Chi2.SaveAs("{pdir}/chi2_{ch}_{channel}{suffix}.{ext}".format(pdir=distrdir,ch=charge,
+                                                                                     suffix=("_"+suffix) if len(suffix) else "",
+                                                                                     channel=channel,ext=ext))
         
 
         print "Generating Pull Summaries...\n"
         nRemainingPulls = nPulls
-        hc = ROOT.TCanvas("hc","",3000,2000); hc.SetGrid(0);
+        hc = ROOT.TCanvas("hc","",3000,2000); 
+        hc.SetGrid(0);
         pullPlots = 1;
         while nRemainingPulls > 0:
             nThisPulls = min(maxPullsPerPlot,nRemainingPulls)
@@ -358,7 +373,7 @@ if __name__ == "__main__":
         print "Warning: you must specify lepton charge. Use -c plus|minus. Exit"
         exit(0)
         
-    allowedPOIfamily = ["pdf", "scale", "signalStrength", "absxsec"]
+    allowedPOIfamily = ["pdf", "scale", "signalStrength", "absxsec", "normsyst", "shapesyst"]
     if options.poisFamily and not (options.poisFamily in allowedPOIfamily):
         print "Warning: POI family not recognized, must be one of %s" % ",".join(allowedPOIfamily)
         exit(0)
@@ -371,7 +386,18 @@ if __name__ == "__main__":
     createPlotDirAndCopyPhp(outname)
 
     toyfile = args[0]
-    plotPars(toyfile,pois=options.pois,maxPullsPerPlot=30,plotdir=outname,suffix=options.suffix,analysis=options.analysis,
-             excludeName=options.excludeParam,paramFamily=options.poisFamily,plotPull=options.plotpull,channel=options.flavour,charge=options.charge,
-             selection=options.selection, useMedian=options.useMedian)
+    plotPars(toyfile,
+             pois=options.pois,
+             maxPullsPerPlot=30,
+             plotdir=outname,
+             suffix=options.suffix,
+             analysis=options.analysis,
+             excludeName=options.excludeParam,
+             paramFamily=options.poisFamily,
+             plotPull=options.plotpull,
+             channel=options.flavour,
+             charge=options.charge,
+             selection=options.selection, 
+             useMedian=options.useMedian
+             )
 

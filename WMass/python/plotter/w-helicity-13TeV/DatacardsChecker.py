@@ -61,7 +61,6 @@ class CardsChecker:
             os.system("mkdir -p {jd}/logs/".format(jd=self.resub_card_dir))
             os.system("mkdir -p {jd}/errs/".format(jd=self.resub_card_dir))
             os.system("mkdir -p {jd}/outs/".format(jd=self.resub_card_dir))
-            # write new logs overwriting the original ones for failed jobs
             logdir = self.resub_card_dir + "/logs/"
             outdirCondor = self.resub_card_dir + "/outs/"
             errdir = self.resub_card_dir + "/errs/"
@@ -181,7 +180,7 @@ request_memory = 4000
 
 if __name__ == '__main__':
     from optparse import OptionParser
-    parser = OptionParser(usage='%prog dir channel (el,mu) [nRapBins] [nPdfBins]')
+    parser = OptionParser(usage='%prog dir')
     parser.add_option('-c', '--check-cards', dest='checkCards', default=False, action='store_true', help='Check if there are all the datacards and ROOT files');
     parser.add_option('-z', '--check-zombies', dest='checkZombies', default=False, action='store_true', help='Check if all the ROOT files are sane');
     parser.add_option('-q', '--queue', dest='queue', type='string', default='1nd', help='choose the queue to submit batch jobs (default is 8nh)');
@@ -189,7 +188,7 @@ if __name__ == '__main__':
     parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
     parser.add_option('-r', '--runtime', default=12, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option('-g', '--grouping', default=10, type=int,  help='Group resubmit commands into groups of size N');
-    parser.add_option(      '--splitdir', dest='splitdir', default=False, action='store_true', help='Use thsi option if .log, .err, .out files of condor are put in separate folders (needed for diff.xsec, might become useful for helciity as well)');
+    parser.add_option(      '--splitdir', dest='splitdir', default=False, action='store_true', help='Use this option if .log, .err, .out files of condor are put in separate folders (needed for diff.xsec, might become useful for helciity as well)');
     (options, args) = parser.parse_args()
 
     if options.checkCards:

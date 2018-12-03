@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# python w-helicity-13TeV/makeNewBranchToyTree.py -i toys/diffXsec_mu_2018_09_25_group10_legacySF/comb_WchargeAsymmetry/toys_comb_WchargeAsymmetry.root -c mu
+# python w-helicity-13TeV/makeNewBranchToyTree.py -i toys/diffXsec_mu_2018_09_25_group10_legacySF/comb_WchargeAsymmetry/toys_comb_WchargeAsymmetry.root
 
 
 import ROOT, os, sys, re, array, math
@@ -60,7 +60,6 @@ if __name__ == "__main__":
         quit()
     lok  = tree.GetListOfLeaves()
 
-
     fout = ROOT.TFile( outname+options.name, 'recreate' )    
     t = ROOT.TTree( 'toyFriend', 'friend tree for toys' )
     totxsec_plus  = array( 'f', [ 0. ] )
@@ -76,22 +75,32 @@ if __name__ == "__main__":
     #     fillStatus = t.Fill()
     #     #print "fillStatus = %d" % fillStatus
 
+    print "Filtering branches ending with '_pmaskedexp' to make loop faster"
     lok_pruned = []
+    #tree.SetBranchStatus("*",0)  # disabling and enabling branches makes the loop on events faster
     for p in lok:
+        tree.SetBranchStatus(p.GetName(),1)
         pname = p.GetName()
-        if not pname.endswith("_pmaskedexp"): continue
-        if "outliers" in pname: continue  # use only bins inside acceptance for the total xsec (it only exists for diff.xsec in pt-|eta|)              
+        if not pname.endswith("_pmaskedexp"): 
+            tree.SetBranchStatus(pname,0)
+            continue
+        if "outliers" in pname: 
+            tree.SetBranchStatus(pname,0)
+            continue  # use only bins inside acceptance for the total xsec (it only exists for diff.xsec in pt-|eta|)              
+        tree.SetBranchStatus(pname,1) # enable branches to be used
         lok_pruned.append(p)
 
     print "I filtered {fin} elements out of {init}".format(fin=str(len(lok_pruned)),init=str(len(lok)))
 
     nEvents = tree.GetEntries()
-    for i,ev in enumerate(tree):
+    i = 1
+    for ev in tree:
 
         sum_plus = 0
         sum_minus = 0
         sys.stdout.write('Event {num}/{tot}   \r'.format(num=i,tot=nEvents))
         sys.stdout.flush()
+        i += 1
 
         # loop on leaves (branches)
         for p in lok_pruned:  

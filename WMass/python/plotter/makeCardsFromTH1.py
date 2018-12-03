@@ -90,7 +90,7 @@ parser.add_option("-s", "--syst-file", dest="systfile", default="", type="string
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates, by default it is expected to be in input folder')
 parser.add_option( '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
 parser.add_option( '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', default=False, action='store_true', help='Assign muR, muF and muRmuF to W, not just on Z (those in bins of W-pt will be used for W in any case)')
-parser.add_option( '--wXsecLnN'   , dest='wLnN'        , default=0.038, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background')
+parser.add_option( '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
 parser.add_option( '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 #parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option( '--sig-out-outAcc', dest='sig_out_outAcc' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as an out of acceptance channel, it will be fitted as any signal bin, but form a separate channel')
@@ -348,7 +348,7 @@ if options.systfile != "":
 
 # norm unc on signal processes treated as background
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
-if options.sig_out_bkg:
+if options.sig_out_bkg and options.WlnN > 0.0:
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
     card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
 

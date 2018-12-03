@@ -23,7 +23,7 @@ TH2 * helicityFractions_R = 0;
 // see for example: w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt 
 // Index 7 is the shape variation when awayJetPt > 45 (one could add other systematics, adding other indices)
 // Index 8 and 9 accounts for FR obtained subtracting EWK scaled up and down by 1 sigma of their cross section
-// Keep array index larger than the number of index you will use, so you don't have to increase it everytime you another index
+// Keep array index larger than the number of index you will use, so you don't have to increase it everytime you add another index
 TH2 * FR_mu = 0;
 TH2 * FRi_mu[15] = {0};  
 TH2 * FR_el = 0;
@@ -244,6 +244,18 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   }
 
   float weight;
+
+  // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
+  // so in that case the weight can be safely set as 0, because those events are not used in the analysis
+  if (pr < fr) {
+    //std::cout << "### Error in weight: FR > PR. Please check!" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  } else if (pr == fr) {
+    //std::cout << "### Error in weight: division by 0. Please check" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  }
 
   if (passWP) {
     // tight

@@ -2,6 +2,8 @@ import ROOT, os, datetime, re, operator, math
 from array import array
 ROOT.gROOT.SetBatch(True)
 
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
+
 ## ===================================================================
 ## USAGE:
 ## needs as infile a toys.root with limit tree from toys
@@ -34,8 +36,25 @@ def niceName(name):
         if 'eff_unc' in name:
             nn = '#epsilon_{unc}^{'+nn+'}'
         return nn
-        
-    else:
+
+    elif '_ieta_' and '_ipt_' in name:
+        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn += 'W+ ' if 'plus' in name else 'W- '
+        ieta,ipt = get_ieta_ipt_from_process_name(name)
+        nn += "i#eta,ip_{{T}}={neta},{npt} ".format(neta=ieta,npt=ipt)
+        if 'pmaskedexp' in name: nn += ' #sigma'
+        if 'norm' in name: nn += '_{norm}'
+        return nn
+
+    elif "CMS_" in name:
+        if "CMS_Wmu" in name:
+            return name.replace("CMS_Wmu_","")
+        elif "CMS_We" in name:
+            return name.replace("CMS_We_","")
+        else:
+            return name
+      
+    else:  
         return name
         
 
@@ -52,6 +71,11 @@ if __name__ == "__main__":
     parser.add_option('-p','--params', dest='params',    default='', type='string', help='parameters for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option('-t','--type'  , dest='type'  ,    default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
     parser.add_option(     '--suffix', dest='suffix',    default='', type='string', help='suffix for the correlation matrix')
+    parser.add_option(     '--parNameCanvas', dest='parNameCanvas',    default='', type='string', help='The canvas name is built using the parameters selected with --params. If they are many, better to pass a name, like QCDscales or PDF for example')
+    parser.add_option(     '--nContours', dest='nContours',    default=0, type=int, help='Number of contours in palette. Default is 20')
+    parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
+    parser.add_option(     '--vertical-labels-X', dest='verticalLabelsX',    default=False, action='store_true', help='Set labels on X axis vertically (sometimes they overlap if rotated)')
+    parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ("small correlation matrix" is used as default=')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -141,11 +165,13 @@ if __name__ == "__main__":
     print "===> Build covariance matrix from this set of params: ", params
 
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
+    ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
     params = sorted(params, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
+    params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
-    params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
-    params = sorted(params, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
-    params = sorted(params, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+    params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
             
     print "sorted params = ", params
 
@@ -154,6 +180,9 @@ if __name__ == "__main__":
     c.SetGridy()
     #ROOT.gStyle.SetPalette(55)
     #ROOT.gStyle.SetNumberContours(200); # default is 20 (values on palette go from -1 to 1)
+    if options.nContours: ROOT.gStyle.SetNumberContours(options.nContours)
+    if options.palette:   ROOT.gStyle.SetPalette(options.palette)
+
 
     c.SetLeftMargin(0.15)
     c.SetRightMargin(0.11)
@@ -181,7 +210,13 @@ if __name__ == "__main__":
     if len(params)<30: th2_sub.Draw('colz text45')
     else: th2_sub.Draw('colz')
 
-    paramsName = options.params.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
+    if options.verticalLabelsX: th2_sub.LabelsOption("v","X")
+    if options.title: th2_sub.SetTitle(options.title)
+
+    if options.parNameCanvas: 
+        paramsName = options.parNameCanvas
+    else : 
+        paramsName = options.params.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
 
     if options.outdir:
         for i in ['pdf', 'png']:

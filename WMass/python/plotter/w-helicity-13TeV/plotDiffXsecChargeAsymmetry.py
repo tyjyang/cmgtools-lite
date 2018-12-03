@@ -207,6 +207,13 @@ if __name__ == "__main__":
 
         chargeSign = "+" if charge == "plus" else "-"
 
+        hMu = ROOT.TH2F("hMu_{lep}_{ch}".format(lep=lepton,ch=charge),
+                              "signal strength: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                              genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
+        hMuErr = ROOT.TH2F("hMuErr_{lep}_{ch}".format(lep=lepton,ch=charge),
+                                 "signal strength uncertainty: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                 genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
+
         hDiffXsec = ROOT.TH2F("hDiffXsec_{lep}_{ch}".format(lep=lepton,ch=charge),
                               "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                               genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -243,13 +250,28 @@ if __name__ == "__main__":
                 sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
                 sys.stdout.flush()
                 binCount += 1
+
+                # signal strength
+                if options.hessian:                    
+                    central = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                                                                         nHistBins=100, minHist=0.5, maxHist=1.5, tree=tree)                    
+                    error = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                                                                       nHistBins=200, minHist=0.0, maxHist=1., tree=tree, getErr=True)                    
+                else:
+                    central,up,down = utilities.getSignalStrengthFromToysFast(channel,charge,
+                                                                              ieta-1,ipt-1,genBins.Neta,genBins.Npt,
+                                                                              ngroup, nHistBins=200, minHist=0.5, maxHist=1.5, tree=tree)
+                    error = up - central
+                hMu.SetBinContent(ieta,ipt,central)        
+                hMu.SetBinError(ieta,ipt,error)         
+                hMuErr.SetBinContent(ieta,ipt,error)
                 
                 # normalized cross section
                 if options.hessian:                    
                     central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
                                                                              nHistBins=2000, minHist=0., maxHist=200., tree=tree)                    
                     error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
-                                                                           nHistBins=2000, minHist=0., maxHist=200., tree=tree, getErr=True)                    
+                                                                           nHistBins=2000, minHist=0., maxHist=10., tree=tree, getErr=True)                    
                 else:
                     central,up,down = utilities.getNormalizedDiffXsecFromToysFast(channel,charge,
                                                                                   ieta-1,ipt-1,genBins.Neta,genBins.Npt,
@@ -299,6 +321,21 @@ if __name__ == "__main__":
         hDiffXsecNormRelErr.SetTitle(hDiffXsecNormErr.GetTitle().replace('uncertainty','rel.unc.'))
 
         # now starting to draw the cross sections
+
+        zaxisTitle = "Signal strength #mu::0.98,1.02"
+        if options.hessian: zaxisTitle = "Signal strength #mu::0.995,1.005"
+        drawCorrelationPlot(hMu,
+                            xaxisTitle, yaxisTitle, zaxisTitle,
+                            hMu.GetName(),
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=55)
+
+        zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
+        if options.hessian: zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
+        drawCorrelationPlot(hMuErr,
+                            xaxisTitle, yaxisTitle, zaxisTitle,
+                            hMuErr.GetName(),
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=55)
+
 
         if options.fitData:
             if charge == "plus": zmin,zmax = 30,130
