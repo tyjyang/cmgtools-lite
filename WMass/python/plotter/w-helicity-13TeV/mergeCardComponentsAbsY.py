@@ -191,16 +191,13 @@ def putEffStatHistos(infile,regexp,charge):
                     phistybin = parhist.GetYaxis().FindBin(ybincenter)
                     tmp_scale = parhist.GetBinContent(parhist.GetXaxis().FindBin(eta),parhist.GetYaxis().FindBin(ybincenter))
                     scaling = math.sqrt(2.)*tmp_scale
+                    ## scale up and down with what we got from the histo
                     tmp_bincontent_up = tmp_bincontent*(1+scaling)
                     tmp_bincontent_dn = tmp_bincontent*(1-scaling)
-                    ## debugging if ipt == 4 and ieta == 21:
-                    ## debugging     print 'at eta', eta
-                    ## debugging     print 'at eta bin number', ieta
-                    ## debugging     print 'getting scale factor from bin', phistxbin, phistybin
-                    ## debugging     print 'scaling by', 1+scaling
                     tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
                     tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
 
+                ## re-roll the 2D to a 1D histo
                 tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
                 tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
 
@@ -261,13 +258,10 @@ if __name__ == "__main__":
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
-        ## debugging putEffStatHistos(outfile,'(.*Wminus.*|.*Wplus.*)')
-        ## debugging sys.exit()
         cardfile = os.path.join(options.inputdir,options.bin+'_{ch}_card.txt'   .format(ch=charge))
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        # files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*EffStat.*|.*mW.*',f) and f.endswith('.card.txt')]
         files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
         
@@ -303,7 +297,6 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    ## rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
                     rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
                     if ifile==0:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
@@ -373,16 +366,10 @@ if __name__ == "__main__":
                                                 #print 'replacing old %s with %s' % (name,newname)
                                                 plots[newname].Write()
                                     else:
-                                        ## if any(sysname in newname for sysname in ['pdf','EffStat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                         if any(sysname in newname for sysname in ['pdf']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             pfx = '_'.join(newname.split("_")[:-2])
                                             if 'pdf' in newname:
                                                 patt = re.compile('(pdf)(\d+)')
-                                                tokens = patt.findall(newname)
-                                                sysname = tokens[0][0]; isys = int(tokens[0][1])
-                                            else:
-                                                #fullsysname = (newname.split("_")[-1]).split('.')[0]
-                                                patt = re.compile('(ErfPar\dEffStat)(\d+)')
                                                 tokens = patt.findall(newname)
                                                 sysname = tokens[0][0]; isys = int(tokens[0][1])
                                             newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
