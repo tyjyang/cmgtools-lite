@@ -6,7 +6,8 @@
 # [--fp] is used to make the meta file freezing ALL the rates (POIs). Use it to make the fit for PDFs only. When not used the xsecs are tracked via masked channel trick
 
 import ROOT
-import sys,os,re,json, copy
+import sys,os,re,json, copy, math
+from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 
 def getXsecs(processes, systs, ybins, lumi, infile):
     histo_file = ROOT.TFile(infile, 'READ')
@@ -129,6 +130,88 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
+def putEffStatHistos(infile,regexp,charge):
+    binninPtEtaFile = open(options.inputdir+'/binningPtEta.txt','r')
+    bins = binninPtEtaFile.readlines()[1].split()[1]
+    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+    nbinseta = len(etabins)-1
+    nbinspt  = len( ptbins)-1
+    binning = [nbinseta, etabins, nbinspt, ptbins]
+
+    isMu = 'mu' in options.bin
+
+    if isMu:
+        parfile_name = '../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+    else:
+        parfile_name = '../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
+
+    parfile = ROOT.TFile(parfile_name, 'read')
+    
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    outfile = ROOT.TFile(options.inputdir+'/ErfParEffStat_{ch}.root'.format(ch=charge), 'recreate')
+
+    ndone = 0
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+
+        #if ndone: continue
+        ndone += 1
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting erfpareffstat nuisances for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        ## loop over the three parameters
+        for npar in range(3):
+            parhist = parfile.Get('p'+str(npar))
+            ## loop over all eta bins of the 2d histogram
+            for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+                eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{eta}2DROLLED'.format(p=npar,eta=ieta)
+            
+                tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+                tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+                
+                ## loop over all pT bins in that bin of eta (which is ieta)
+                for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                    tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                    ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
+                    ## now get the content of the parameter variation!
+                    phistxbin = parhist.GetXaxis().FindBin(eta)
+                    phistybin = parhist.GetYaxis().FindBin(ybincenter)
+                    tmp_scale = parhist.GetBinContent(parhist.GetXaxis().FindBin(eta),parhist.GetYaxis().FindBin(ybincenter))
+                    scaling = math.sqrt(2.)*tmp_scale
+                    tmp_bincontent_up = tmp_bincontent*(1+scaling)
+                    tmp_bincontent_dn = tmp_bincontent*(1-scaling)
+                    ## debugging if ipt == 4 and ieta == 21:
+                    ## debugging     print 'at eta', eta
+                    ## debugging     print 'at eta bin number', ieta
+                    ## debugging     print 'getting scale factor from bin', phistxbin, phistybin
+                    ## debugging     print 'scaling by', 1+scaling
+                    tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                    tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+
+                tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
+                tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+
+                outfile.cd()
+                tmp_scaledHisto_up_1d.Write()
+                tmp_scaledHisto_dn_1d.Write()
+    outfile.Close()
+    print 'done with the many reweightings for the erfpar effstat'
+            
+        
+
 if __name__ == "__main__":
     
 
@@ -178,11 +261,14 @@ if __name__ == "__main__":
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
+        ## debugging putEffStatHistos(outfile,'(.*Wminus.*|.*Wplus.*)')
+        ## debugging sys.exit()
         cardfile = os.path.join(options.inputdir,options.bin+'_{ch}_card.txt'   .format(ch=charge))
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*EffStat.*|.*mW.*',f) and f.endswith('.card.txt')]
+        # files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*EffStat.*|.*mW.*',f) and f.endswith('.card.txt')]
+        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
         
         existing_bins = {'left': [], 'right': [], 'long': []}
@@ -217,9 +303,10 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
+                    ## rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|ErfPar\dEffStat\d+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
+                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
                     if ifile==0:
-                        rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|alphaS\S+\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
+                        rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     rootfiles_syst.sort()
                     if re.match('process\s+',l): 
                         if len(l.split()) > 1 and all(n.isdigit() for n in l.split()[1:]) : continue
@@ -286,7 +373,8 @@ if __name__ == "__main__":
                                                 #print 'replacing old %s with %s' % (name,newname)
                                                 plots[newname].Write()
                                     else:
-                                        if any(sysname in newname for sysname in ['pdf','EffStat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        ## if any(sysname in newname for sysname in ['pdf','EffStat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        if any(sysname in newname for sysname in ['pdf']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             pfx = '_'.join(newname.split("_")[:-2])
                                             if 'pdf' in newname:
                                                 patt = re.compile('(pdf)(\d+)')
@@ -313,11 +401,14 @@ if __name__ == "__main__":
         if any(len(empty_bins[pol]) for pol in ['left','right']):
             print 'found a bunch of empty bins:', empty_bins
         if options.mergeRoot:
-            haddcmd = 'hadd -f {of} {indir}/tmp_*.root'.format(of=outfile, indir=options.inputdir )
-            #print 'would run this now: ', haddcmd
-            #sys.exit()
+            haddcmd = 'hadd -f {of}.noErfPar {indir}/tmp_*.root'.format(of=outfile, indir=options.inputdir )
             os.system(haddcmd)
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
+
+            print 'now putting the erfpar systeamtics into the file'
+            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge)
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir )
+            os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
@@ -607,7 +698,7 @@ if __name__ == "__main__":
             tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
             tmp_xsec_dc.write('# --------------------------------------------------------------\n')
             for sys,procs in theosyst.iteritems():
-                if 'wpt' in sys or 'EffStat': continue
+                if 'wpt' in sys or 'EffStat' in sys: continue
                 # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
                 tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
             tmp_xsec_dc.close()
