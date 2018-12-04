@@ -1,7 +1,6 @@
-import ROOT, math, os
-
 ## usage python monsterPull.py -i <inputfile> -d <distribution>
-
+import ROOT, math, os
+ROOT.gROOT.SetBatch()
 
 if __name__ == '__main__':
     
@@ -9,17 +8,19 @@ if __name__ == '__main__':
     parser = OptionParser(usage='%prog workspace ntoys [prefix] [options] ')
     parser.add_option('-i', '--infile'      , dest='infile'      , type='string',                     help='input file name');
     parser.add_option('-d', '--distribution', dest='distribution', type='string', default='unrolled', help='name of distribution in file');
+    parser.add_option(      '--suffix',       dest="suffix",       type='string', default='',         help="define suffix for each plot");
     (options, args) = parser.parse_args()
 
     infile = ROOT.TFile(options.infile, 'read')
-
-    hist_bkg = infile.Get(options.distribution+'_background')
-    hist_sig = infile.Get(options.distribution+'_signal')
+    if options.distribution+'_full' in [histos.GetName() for histos in infile.GetListOfKeys()]:
+        hist_full = infile.Get(options.distribution+'_full')
+    else:
+        hist_bkg  = infile.Get(options.distribution+'_background')
+        hist_sig  = infile.Get(options.distribution+'_signal')
+        hist_full = hist_bkg.Clone(options.distribution+'_full')
+        hist_full.Add(hist_sig)
 
     hist_dat = infile.Get(options.distribution+'_data')
-
-    hist_bkg.Add(hist_sig)
-    
 
     pull_min, pull_max = -5., 5.
 
@@ -30,12 +31,12 @@ if __name__ == '__main__':
     pulls.GetYaxis().SetLabelSize(0.04), pulls.GetYaxis().SetTitleSize(0.05), pulls.GetYaxis().SetTitleOffset(0.90)
     pulls.SetLineColor(ROOT.kBlack), pulls.SetLineWidth(2)
     
-    for ib in range(1,hist_bkg.GetNbinsX()+1):
-        if hist_bkg.GetBinError(ib) == 0. or hist_dat.GetBinError(ib) == 0.:
+    for ib in range(1,hist_full.GetNbinsX()+1):
+        if hist_full.GetBinError(ib) == 0. or hist_dat.GetBinError(ib) == 0.:
             continue
 
-        pull_num = hist_dat.GetBinContent(ib) - hist_bkg.GetBinContent(ib)
-        pull_den = math.sqrt(hist_dat.GetBinError(ib)**2 + hist_bkg.GetBinError(ib)**2)
+        pull_num = hist_dat.GetBinContent(ib) - hist_full.GetBinContent(ib)
+        pull_den = math.sqrt(hist_dat.GetBinError(ib)**2 + hist_full.GetBinError(ib)**2)
 
         pull = pull_num/pull_den
 
@@ -72,4 +73,4 @@ if __name__ == '__main__':
 
 
     for ext in ['png', 'pdf']:
-        canv.SaveAs(os.path.dirname(options.infile)+'/pulls_'+options.distribution+'.'+ext)
+        canv.SaveAs('{odir}/pulls_{distr}{sfx}.{ext}'.format(odir=os.path.dirname(options.infile),distr=options.distribution,sfx=options.suffix,ext=ext))

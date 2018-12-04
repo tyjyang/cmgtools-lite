@@ -5,13 +5,15 @@ toysdir = basedir+'/toys/tf/21-11-18'
 
 
 both_floatingPOIs_hessian = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15.root'
-both_floatingPOIs_hessian_withSyst_noBBB = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_withSystematic_noBinByBin.root'
-both_floatingPOIs_hessian_noSyst_withBBB = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noSystematic_withBinByBin.root'
-both_floatingPOIs_hessian_noSyst_noBBB   = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noSystematic_noBinByBin.root'
-both_floatingPOIs_hessian_mt0 = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_fullSystematics_mt0.root'
+#both_floatingPOIs_hessian_withSyst_noBBB = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_withSystematic_noBinByBin.root'
+#both_floatingPOIs_hessian_noSyst_withBBB = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noSystematic_withBinByBin.root'
+#both_floatingPOIs_hessian_noSyst_noBBB   = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noSystematic_noBinByBin.root'
+both_floatingPOIs_hessian_mt0 = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_withBinByBin_mt0.root'
+#both_floatingPOIs_hessian_mt0_noBBB = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noBinByBin_mt0.root'
 both_floatingPOIs_toys    = toysdir+'/floatPOIs/bbb/toys_floatPOIs.root'
 
 both_fixedPOIs_hessian       = fitsdir+'/fitresults_both_fixedPOIs_hessian_fix14and15.root'
+both_fixedPOIs_hessian_mt0   = fitsdir+'/fitresults_both_fixedPOIs_hessian_fix14and15_withBinByBin_mt0.root'
 both_fixedPOIs_toys          = toysdir+'/fixPOIs/bbb/toys_fixPOIs_bbb.root'
 
 shapes_files = cardsdir+'/Wel_shapes.root'
@@ -19,5 +21,5 @@ shapes_files = cardsdir+'/Wel_shapes.root'
 xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
 xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
 
-postfit_plus  = fitsdir+'/asimov_el_bothch_floatingPOI_postfit.root'
-postfit_minus = fitsdir+'/asimov_el_bothch_floatingPOI_postfit.root'
+postfit_noBBB  = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_noBinByBin_mt0.root'
+postfit_BBB  = fitsdir+'/fitresults_both_floatingPOIs_hessian_fix14and15_withBinByBin_mt0.root'
