@@ -1,4 +1,4 @@
-import ROOT, optparse, os
+import ROOT, optparse, os, re
 
 ## usage:
 ## python resultPlots.py --config results_config_mu.txt --outdir <outputdirectory> (--runtoys)
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
         for nuis in systs:
-            os.system('python w-helicity-13TeV/systRatios.py --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
+            os.system('python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
 
     ## plot correlation matrices
     ## ================================
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+            for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
