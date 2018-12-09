@@ -142,9 +142,9 @@ def putEffStatHistos(infile,regexp,charge):
     isMu = 'mu' in options.bin
 
     if isMu:
-        parfile_name = '../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+        parfile_name = '{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'.format(cmssw=os.environ['CMSSW_BASE'])
     else:
-        parfile_name = '../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
+        parfile_name = '{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root'.format(cmssw=os.environ['CMSSW_BASE'])
 
     parfile = ROOT.TFile(parfile_name, 'read')
     
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',f) and f.endswith('.card.txt')]
+        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
         
         existing_bins = {'left': [], 'right': [], 'long': []}
@@ -298,7 +298,7 @@ if __name__ == "__main__":
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
                     rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
-                    if ifile==0:
+                    if 'Z_' in f:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     rootfiles_syst.sort()
                     if re.match('process\s+',l): 
