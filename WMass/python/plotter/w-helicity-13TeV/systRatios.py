@@ -179,7 +179,7 @@ if __name__ == "__main__":
                         ratio_pdfi.Divide(histo_central)
                         for ib in xrange(1, ratio_pdfi.GetNbinsX()+1):
                             ##ratio_pdfi.SetBinContent(ib, abs(1.-ratio_pdfi.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
-                            ratio_pdfi.SetBinContent(ib, 1.-ratio_pdfi.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0)
+                            ratio_pdfi.SetBinContent(ib, ratio_pdfi.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
                         h2_backrolled_1 = dressed2D(ratio_pdfi,binning,title2D)
                         h2_backrolled_1.GetZaxis().SetRangeUser(-0.02,0.02)
                         ratios[key] = h2_backrolled_1
@@ -210,7 +210,8 @@ if __name__ == "__main__":
                         ratio = copy.deepcopy(histo_syst)
                         ratio.Divide(histo_central)
                         for ib in xrange(1, ratio.GetNbinsX()+1):
-                            ratio.SetBinContent(ib, abs(1.-ratio.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
+                            ##ratio.SetBinContent(ib, abs(1.-ratio.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
+                            ratio.SetBinContent(ib, ratio.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
                         h2_backrolled_1 = dressed2D(ratio,binning,title2D)
                         hmax = 0.05 if 'muF' in syst else 0.04
                         if 'effstat' in syst: hmax = 0.005
