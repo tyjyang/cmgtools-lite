@@ -221,6 +221,47 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
 
     return (ratio, unity, line)
 
+def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix):
+    ROOT.gStyle.SetPadLeftMargin(0.13)
+    ROOT.gStyle.SetPadRightMargin(0.07)
+    ROOT.gStyle.SetPadBottomMargin(0.3);
+
+    plotformat = (2400,600)
+    c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
+    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
+
+    rmin = 0.5; rmax = 1.5
+    ROOT.gStyle.SetErrorX(0.5);
+    hratio.GetYaxis().SetRangeUser(rmin,rmax);
+    hratio.GetXaxis().SetTitleFont(42)
+    hratio.GetXaxis().SetTitleSize(0.14)
+    hratio.GetXaxis().SetTitleOffset(0.9)
+    hratio.GetXaxis().SetLabelFont(42)
+    hratio.GetXaxis().SetLabelSize(0.1)
+    hratio.GetXaxis().SetLabelOffset(0.007)
+    hratio.GetYaxis().SetNdivisions(505)
+    hratio.GetYaxis().SetTitleFont(42)
+    hratio.GetYaxis().SetTitleSize(0.14)
+    hratio.GetYaxis().SetLabelFont(42)
+    hratio.GetYaxis().SetLabelSize(0.11)
+    hratio.GetYaxis().SetLabelOffset(0.01)
+    hratio.GetYaxis().SetDecimals(True) 
+    hratio.GetYaxis().SetTitle('post-fit/pre-fit')
+    hratio.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
+    hratio.GetYaxis().SetTitleOffset(0.40)
+    hratio.SetLineColor(ROOT.kRed+2)
+    hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
+    line = ROOT.TLine(hratio.GetXaxis().GetXmin(),1,hratio.GetXaxis().GetXmax(),1)
+    line.SetLineWidth(2);
+    line.SetLineColor(58);
+    line.Draw("L")
+    lat = ROOT.TLatex()
+    lat.SetNDC(); lat.SetTextFont(42)
+    lat.DrawLatex(0.15, 0.92, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.85, 0.92, '36 fb^{-1} (13 TeV)')
+    for ext in ['pdf', 'png']:
+        c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
+
 def getNormSysts(channel):
     systs = {}
     sysfile = "{cmsswbase}/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_{ch}/systsEnv.txt".format(cmsswbase=os.environ['CMSSW_BASE'],ch='e' if channel=='el' else 'mu')
@@ -242,7 +283,6 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] fitresults.root cards_dir")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_option(     '--prefit', dest="prefit", default=False, action='store_true', help="");
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
     groupJobs=5 # used in make_helicity_cards.py
     nCharges = 2; nMaskedChanPerCharge = 2; # edm hardcoded, but to be guessed 
@@ -251,9 +291,6 @@ if __name__ == "__main__":
     if len(args) < 1:
         parser.print_usage()
         quit()
-
-    prepost = 'prefit' if options.prefit else 'postfit'
-    suffix = prepost+options.suffix
 
     ## get the binning of the YW bins
     ybinfile = args[1]+'/binningYW.txt'
@@ -270,7 +307,7 @@ if __name__ == "__main__":
     channel = 'el' if any(['el_Ybin' in k.GetName() for k in infile.GetListOfKeys()]) else 'mu'
     print "From the list of histograms it seems that you are plotting results for channel ",channel
 
-    full_outfileName = '{odir}/plots_{sfx}.root'.format(odir=outname,sfx=suffix)
+    full_outfileName = '{odir}/plots_{sfx}.root'.format(odir=outname,sfx=options.suffix)
     outfile = ROOT.TFile(full_outfileName, 'recreate')
     print "Will save 2D templates in file --> " + full_outfileName
 
@@ -287,136 +324,162 @@ if __name__ == "__main__":
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
     savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kWarning;
-    # doing signal
+    
     for charge in ['plus','minus']:
-        total_sig = {}
-        total_sig_unrolled = {}
-        canv = ROOT.TCanvas()
         binshift = shifts[charge]
-        for pol in ['right', 'left', 'long']:
-            print "\tPOLARIZATION ",pol
-            chpol = '{ch}_{pol}'.format(ch=charge,pol=pol)
-            nYbins=len(ybins[chpol])-1
-            #for ybin in range(1):
-            for ybin in range(nYbins): 
+        
+        total_sig = {};     total_sig_unrolled = {}
+        bkg_and_data = {};  bkg_and_data_unrolled = {}
+        all_procs = {};     all_procs_unrolled = {};    ratios_unrolled = {}
+
+        for prepost in ['postfit','prefit']:
+            suffix = prepost+options.suffix
+            # doing signal
+            canv = ROOT.TCanvas()
+            for pol in ['right', 'left', 'long']:
+                print "\tPOLARIZATION ",pol
+                chpol = '{ch}_{pol}'.format(ch=charge,pol=pol)
+                keyplot = 'W'+chpol+'_'+prepost
+                nYbins=len(ybins[chpol])-1
+                #for ybin in range(1):
+                for ybin in range(nYbins): 
+         
+                    group = ybin/groupJobs + 1
+                    jobind = min(groupJobs * group - 1,nYbins-1)
+                    line = ybin%groupJobs
+                    
+                    ymin = ybins[chpol][ybin]
+                    ymax = ybins[chpol][ybin+1]
+         
+                    chs = '+' if charge == 'plus' else '-' 
+                    h1_1 = infile.Get('expproc_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}_{sfx}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin,sfx=prepost))
+                    name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                    title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
+                    h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift)
+                    h1_unrolled = singleChargeUnrolled(h1_1,binshift)
+                    if ybin==0:
+                        total_sig[keyplot] = h2_backrolled_1.Clone('W{ch}_{pol}_{flav}'.format(ch=charge,pol=pol,flav=channel))
+                        total_sig_unrolled[keyplot] = h1_unrolled.Clone('W{ch}_{pol}_{flav}_unrolled'.format(ch=charge,pol=pol,flav=channel))
+                    else:
+                        total_sig[keyplot].Add(h2_backrolled_1)
+                        total_sig_unrolled[keyplot].Add(h1_unrolled)
+                    total_sig[keyplot].SetDirectory(None)
+                    total_sig_unrolled[keyplot].SetDirectory(None)
+                    if prepost=='prefit':
+                        postfitkey = 'W'+chpol+'_postfit'
+                        if total_sig_unrolled[postfitkey]!=None:
+                            keyratio = 'W'+chpol+'_ratio'
+                            ratios_unrolled[keyratio] = total_sig_unrolled[postfitkey].Clone(total_sig_unrolled[postfitkey].GetName()+'_ratio')
+                            ratios_unrolled[keyratio].SetDirectory(None)
+                            ratios_unrolled[keyratio].Divide(total_sig_unrolled[keyplot])
+                    if not options.no2Dplot:
+                        h2_backrolled_1.Draw('colz')
+                        h2_backrolled_1.Write(name2D)
+                        for ext in ['pdf', 'png']:
+                            canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=suffix,ext=ext))
+                        total_sig[keyplot].Draw('colz')
+                        total_sig[keyplot].Write(total_sig[keyplot].GetName())
+         
+                if not options.no2Dplot:
+                    for ext in ['pdf', 'png']:
+                        canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,sfx=suffix,ext=ext))
      
-                group = ybin/groupJobs + 1
-                jobind = min(groupJobs * group - 1,nYbins-1)
-                line = ybin%groupJobs
-                
-                ymin = ybins[chpol][ybin]
-                ymax = ybins[chpol][ybin+1]
      
-                chs = '+' if charge == 'plus' else '-' 
-                h1_1 = infile.Get('expproc_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}_{sfx}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin,sfx=prepost))
-                name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
-                title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
-                h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift)
-                h1_unrolled = singleChargeUnrolled(h1_1,binshift)
-                if ybin==0:
-                    total_sig["W"+chpol] = h2_backrolled_1.Clone('W{ch}_{pol}_{flav}'.format(ch=charge,pol=pol,flav=channel))
-                    total_sig_unrolled["W"+chpol] = h1_unrolled.Clone('W{ch}_{pol}_{flav}_unrolled'.format(ch=charge,pol=pol,flav=channel))
-                else:
-                    total_sig["W"+chpol].Add(h2_backrolled_1)
-                    total_sig_unrolled["W"+chpol].Add(h1_unrolled)
-                total_sig["W"+chpol].SetDirectory(None)
-                total_sig_unrolled["W"+chpol].SetDirectory(None)
+            # do backgrounds now
+            procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
+            titles=["charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","data"]
+            procsAndTitles = dict(zip(procs,titles))
+            for i,p in enumerate(procs):
+                keyplot = p if 'obs' in p else p+'_'+prepost
+                h1_1 = infile.Get('expproc_{p}_{sfx}'.format(p=p,sfx=prepost)) if 'obs' not in p else infile.Get('obs')
+                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
+                if not h1_1: continue # muons don't have Flips components
+                h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift)
+                bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
+                bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
+                if prepost=='prefit' and p!='obs':
+                    postfitkey = p+'_postfit'
+                    if bkg_and_data_unrolled[postfitkey]!=None:
+                        keyratio = p+'_ratio'
+                        ratios_unrolled[keyratio] = bkg_and_data_unrolled[postfitkey].Clone(bkg_and_data_unrolled[postfitkey].GetName()+'_ratio')
+                        ratios_unrolled[keyratio].SetDirectory(None)
+                        ratios_unrolled[keyratio].Divide(bkg_and_data_unrolled[keyplot])
                 if not options.no2Dplot:
                     h2_backrolled_1.Draw('colz')
-                    h2_backrolled_1.Write(name2D)
+                    h2_backrolled_1.Write(str(p))
                     for ext in ['pdf', 'png']:
-                        canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=suffix,ext=ext))
-                    total_sig["W"+chpol].Draw('colz')
-                    total_sig["W"+chpol].Write(total_sig["W"+chpol].GetName())
-     
-            if not options.no2Dplot:
-                for ext in ['pdf', 'png']:
-                    canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,sfx=suffix,ext=ext))
-
-
-        # do backgrounds now
-        procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
-        titles=["charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","data"]
-        procsAndTitles = dict(zip(procs,titles))
-        bkg_and_data = {}
-        bkg_and_data_unrolled = {}
-        for i,p in enumerate(procs):
-            h1_1 = infile.Get('expproc_{p}_{sfx}'.format(p=p,sfx=prepost)) if 'obs' not in p else infile.Get('obs')
-            h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
-            if not h1_1: continue # muons don't have Flips components
-            h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift)
-            bkg_and_data[p] = h2_backrolled_1;  bkg_and_data_unrolled[p] = h1_unrolled
-            bkg_and_data[p].SetDirectory(None); bkg_and_data_unrolled[p].SetDirectory(None)
-            if not options.no2Dplot:
-                h2_backrolled_1.Draw('colz')
-                h2_backrolled_1.Write(str(p))
-                for ext in ['pdf', 'png']:
-                    canv.SaveAs('{odir}/{proc}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proc=p,ch=charge,flav=channel,sfx=suffix,ext=ext))
-                
-        ROOT.gErrorIgnoreLevel = savErrorLevel;
-
-        # now draw the 1D projections
-        all_procs = total_sig.copy();   all_procs_unrolled = total_sig_unrolled.copy();
-        all_procs.update(bkg_and_data); all_procs_unrolled.update(bkg_and_data_unrolled); 
-        polsym = {'left': 'L', 'right': 'R', 'long': '0'}; chargesym={'plus':'+', 'minus':'-'}
-        for pol in ['right', 'left', 'long']:
-            procsAndTitles['W{ch}_{pol}'.format(ch=charge,pol=pol)] = 'W^{{{sign}}}_{{{pol}}}'.format(sign=chargesym[charge],pol=polsym[pol])
-     
-        colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kBlue-1,   'Wplus_right' : ROOT.kGreen+1,
-                  'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
-                  'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
-                  'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
-     
-        for p,h in all_procs.iteritems():
-            h.integral = h.Integral()
-
-        # this has the uncertainty propagated with the full covariance matrix
-        h1_expfull = infile.Get('expfull_{sfx}'.format(sfx=prepost))
-        h2_expfull_backrolled = dressed2D(h1_expfull,binning,'expfull','expfull',binshift)
-
-        for projection in ['X','Y']:
-            nbinsProj = all_procs['obs'].GetNbinsY() if projection=='X' else all_procs['obs'].GetNbinsX()
-            hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{ch}".format(ch=charge),1,nbinsProj,"e")
-            hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj,"e")
-            htot = hdata.Clone('tot'); htot.Reset(); htot.Sumw2()
-            stack = ROOT.THStack("stack","")
-            
-            leg = prepareLegend()
-        
-            for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
-                if key=='obs': continue
-                proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+"_px",0,-1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+"_py",0,-1,"e")
-                proj1d.SetFillColor(colors[key])
-                stack.Add(proj1d)
-                htot.Add(proj1d) 
-                leg.AddEntry(proj1d,procsAndTitles[key],'F')
-     
-            leg.AddEntry(hdata,'data','PE')
-            
-            hexpfull.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
-            hexpfull.GetYaxis().SetTitle('Events')
+                        canv.SaveAs('{odir}/{proc}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,proc=p,ch=charge,flav=channel,sfx=suffix,ext=ext))
+                    
+            # now draw the 1D projections
+            all_procs.update(total_sig);   all_procs_unrolled.update(total_sig_unrolled);
+            all_procs.update(bkg_and_data); all_procs_unrolled.update(bkg_and_data_unrolled); 
+            polsym = {'left': 'L', 'right': 'R', 'long': '0'}; chargesym={'plus':'+', 'minus':'-'}
+            for pol in ['right', 'left', 'long']:
+                procsAndTitles['W{ch}_{pol}'.format(ch=charge,pol=pol)] = 'W^{{{sign}}}_{{{pol}}}'.format(sign=chargesym[charge],pol=polsym[pol])
          
-            plotOne(charge,channel,stack,hexpfull,hdata,leg,outname,'projection%s'%projection,suffix)
-        
-        # now the unrolled, assign names to run monsterPull.py on them
-        hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge).Clone('unrolled_{ch}_data'.format(ch=charge))
-        hdata_unrolled.SetDirectory(None)
-        htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
-        htot_unrolled.SetDirectory(None)
-        stack_unrolled = ROOT.THStack("stack_unrolled","") 
-        leg_unrolled = prepareLegend(legWidth=0.10)
-        for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
-            if key=='obs': continue
-            proc_unrolled = all_procs_unrolled[key]
-            proc_unrolled.SetFillColor(colors[key])
-            stack_unrolled.Add(proc_unrolled)
-            htot_unrolled.Add(proc_unrolled)
-            leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[key],'F')
-        leg_unrolled.AddEntry(hdata_unrolled,'data','PE')
-        htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
-        htot_unrolled.GetYaxis().SetTitle('Events')
-        htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
-        plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True)
-        hdata_unrolled.Write(); htot_unrolled.Write()
+            colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kBlue-1,   'Wplus_right' : ROOT.kGreen+1,
+                      'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
+                      'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
+                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
+         
+            for p,h in all_procs.iteritems():
+                h.integral = h.Integral()
+     
+            # this has the uncertainty propagated with the full covariance matrix
+            h1_expfull = infile.Get('expfull_{sfx}'.format(sfx=prepost))
+            h2_expfull_backrolled = dressed2D(h1_expfull,binning,'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),binshift)
+     
+            for projection in ['X','Y']:
+                nbinsProj = all_procs['obs'].GetNbinsY() if projection=='X' else all_procs['obs'].GetNbinsX()
+                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e")
+                hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj,"e")
+                htot = hdata.Clone('tot_{ch}'.format(ch=charge)); htot.Reset(); htot.Sumw2()
+                stack = ROOT.THStack("stack_{sfx}_{ch}".format(sfx=prepost,ch=charge),"")
+                
+                leg = prepareLegend()
+            
+                for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
+                    keycolor = key.replace('_prefit','').replace('_postfit','')
+                    if key=='obs' or prepost not in key: continue
+                    proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",0,-1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",0,-1,"e")
+                    proj1d.SetFillColor(colors[keycolor])
+                    stack.Add(proj1d)
+                    htot.Add(proj1d) 
+                    leg.AddEntry(proj1d,procsAndTitles[keycolor],'F')
+         
+                leg.AddEntry(hdata,'data','PE')
+                
+                hexpfull.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
+                hexpfull.GetYaxis().SetTitle('Events')
+             
+                plotOne(charge,channel,stack,hexpfull,hdata,leg,outname,'projection%s'%projection,suffix)
+            
+            # now the unrolled, assign names to run monsterPull.py on them
+            hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge).Clone('unrolled_{ch}_data'.format(ch=charge))
+            hdata_unrolled.SetDirectory(None)
+            htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
+            htot_unrolled.SetDirectory(None)
+            stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
+            leg_unrolled = prepareLegend(legWidth=0.10)
+            for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
+                keycolor = key.replace('_prefit','').replace('_postfit','')
+                if key=='obs' or prepost not in key: continue
+                proc_unrolled = all_procs_unrolled[key]
+                proc_unrolled.SetFillColor(colors[keycolor])
+                stack_unrolled.Add(proc_unrolled)
+                htot_unrolled.Add(proc_unrolled)
+                leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor],'F')
+            leg_unrolled.AddEntry(hdata_unrolled,'data','PE')
+            htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
+            htot_unrolled.GetYaxis().SetTitle('Events')
+            htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
+            plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True)
+            hdata_unrolled.Write(); htot_unrolled.Write()
+
+        # plot the postfit/prefit ratio
+        for key,histo in ratios_unrolled.iteritems():
+            plotPostFitRatio(charge,channel,histo,outname,'postfit2prefit_'+key,options.suffix)
+                
+    ROOT.gErrorIgnoreLevel = savErrorLevel;
 
     outfile.Close()
