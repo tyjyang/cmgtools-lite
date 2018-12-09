@@ -80,17 +80,15 @@ if __name__ == '__main__':
     if options.make in ['all', 'post']:
         print 'making postfit plots'
         for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
-            for prepostfit in ['--prefit', '']:
-                tmp_outdir = options.outdir+'/postFitPlots/'
-                os.system('mkdir -p {od}'.format(od=tmp_outdir))
-                os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-                cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot {pf} '.format(pf=prepostfit)
-                cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
-                os.system(cmd)
-                for charge in ['plus','minus']:
-                    prepost = 'prefit' if prepostfit=='--prefit' else 'postfit'
-                    cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{prepost}{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,prepost=prepost,suf=tmp_file.replace('postfit',''),ch=charge)
-                    os.system(cmdpull)
+            tmp_outdir = options.outdir+'/postFitPlots/'
+            os.system('mkdir -p {od}'.format(od=tmp_outdir))
+            os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+            cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
+            cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
+            os.system(cmd)
+            for charge in ['plus','minus']:
+                cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
+                os.system(cmdpull)
 
     ## do this at the end, it takes the longest
     ## diff nuisances
