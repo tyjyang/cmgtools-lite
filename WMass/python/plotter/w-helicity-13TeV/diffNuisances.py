@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_option("-A", "--abs",      dest="absolute_values",    default=False,  action="store_true", help="Report also absolute values of nuisance values, not only the ones normalized to the input values")
     parser.add_option("-a", "--all",      dest="show_all_parameters",    default=False,  action="store_true", help="Print all nuisances, even the ones which are unchanged w.r.t. pre-fit values.")
     parser.add_option("-p", "--pois",      dest="pois",  default=None,   type="string",  help="Name of the nuisances to be fitted (comma separated list of regexps)")
-    parser.add_option("-f", "--format",   dest="format", default="text", type="string",  help="Output format ('text', 'latex', 'twiki'")
+    parser.add_option("-f", "--format",   dest="format", default="text", type="string",  help="Output format ('text', 'latex', 'html'")
     parser.add_option('-o','--outdir', dest='outdir', default=None, type='string', help='If given, plot the pulls of the nuisances in this output directory')
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
@@ -139,6 +139,9 @@ if __name__ == "__main__":
     #----------
     # print the results
     #----------
+    uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
+    txtfilename = "{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=options.format)
+    txtfile = open(txtfilename,'w')
 
     #print details
     print setUpString
@@ -149,7 +152,7 @@ if __name__ == "__main__":
     morelight = "!%s!"
     pmsub, sigsub = None, None
     if options.format == 'text':
-        print fmtstring % ('name', 's+b fit')
+        txtfile.write(fmtstring % ('name', 's+b fit\n'))
     elif options.format == 'latex':
         pmsub  = (r"(\S+) \+/- (\S+)", r"$\1 \\pm \2$")
         sigsub = ("sig", r"$\\sigma$")
@@ -157,20 +160,20 @@ if __name__ == "__main__":
         morelight = "{{\\color{red}\\textbf{%s}}}"
         if options.absolute_values:
             fmtstring = "%-40s &  %15s & %30s \\\\"
-            print "\\begin{tabular}{|l|r|r|r|} \\hline ";
-            print (fmtstring % ('name', 'pre fit', '$s+b$ fit')), " \\hline"
+            txtfile.write( "\\begin{tabular}{|l|r|r|r|} \\hline \n")
+            txtfile.write( (fmtstring % ('name', 'pre fit', '$s+b$ fit')), " \\hline \n")
         else:
             fmtstring = "%-40s & %15s \\\\"
-            print "\\begin{tabular}{|l|r|} \\hline ";
+            txtfile.write( "\\begin{tabular}{|l|r|} \\hline \n")
             what = r"\Delta x/\sigma_{\text{in}}$, $\sigma_{\text{out}}/\sigma_{\text{in}}$"
-            print  fmtstring % ('', '$s+b$ fit', '')
-            print (fmtstring % ('name', what)), " \\hline"
+            txtfile.write( fmtstring % ('', '$s+b$ fit', '\n'))
+            txtfile.write((fmtstring % ('name', what)), " \\hline \n")
     elif options.format == 'html':
         pmsub  = (r"(\S+) \+/- (\S+)", r"\1 &plusmn; \2")
         sigsub = ("sig", r"&sigma;")
         highlight = "<b>%s</b>"
         morelight = "<strong>%s</strong>"
-        print """
+        txtfile.write("""
     <html><head><title>Comparison of nuisances</title>
     <style type="text/css">
         td, th { border-bottom: 1px solid black; padding: 1px 1em; }
@@ -179,15 +182,15 @@ if __name__ == "__main__":
     </style>
     </head><body style="font-family: 'Verdana', sans-serif; font-size: 10pt;"><h1>Comparison of nuisances</h1>
     <table>
-    """
+    """)
 
 
         if options.absolute_values:
             what = "x, &sigma;<sub>fit</sub>";
         else:
             what = "&Delta;x, &sigma;<sub>fit</sub>";
-        print "<tr><th>nuisance</th><th>signal fit<br/>%s</th>" % (what)
-        fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>"
+        txtfile.write("<tr><th>nuisance</th><th>signal fit<br/>%s</th>\n" % (what))
+        fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>\n"
 
     names = table.keys()
     names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
@@ -198,13 +201,15 @@ if __name__ == "__main__":
         if pmsub  != None: v = [ re.sub(pmsub[0],  pmsub[1],  i) for i in v ]
         if sigsub != None: v = [ re.sub(sigsub[0], sigsub[1], i) for i in v ]
         if (n) in isFlagged: v[-1] = highlighters[isFlagged[n]] % v[-1]
-        print fmtstring % (n, v[0])
+        txtfile.write(fmtstring % (n, v[0]))
+        txtfile.write('\n')
 
     if options.format == "latex":
-        print " \\hline\n\end{tabular}"
+        txtfile.write(" \\hline\n\end{tabular}\n")
     elif options.format == "html":
-        print "</table></body></html>"
-
+        txtfile.write("</table></body></html>\n")
+    txtfile.close()
+    print "Info: ",options.format," file ",txtfilename," has been created"
 
     if options.outdir:
         import ROOT
@@ -256,7 +261,6 @@ if __name__ == "__main__":
         # leg.Draw()
         fout.WriteTObject(canvas_nuis)
 
-        uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
         for ext in ['png', 'pdf']:
             canvas_nuis.SaveAs("{od}/nuisances_{date}_{ps}_{suff}.{ext}".format(od=options.outdir, date=date, ps=uniquestr, suff=options.suffix, ext=ext))
 
