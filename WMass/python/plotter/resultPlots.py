@@ -8,7 +8,7 @@ if __name__ == '__main__':
     parser.add_option('', '--config' , type='string'       , default=''    , help='config file with location of fitresults files')
     parser.add_option('', '--outdir' , type='string'       , default=''    , help='output directory with directory structure and plots')
     parser.add_option('', '--runtoys', action='store_true' , default=False , help='run also toys, not only hessian. takes longer')
-    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (nuis,rap,corr,syst,post)')
+    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (nuis,rap,corr,syst,post,imp)')
     (options, args) = parser.parse_args()
 
 
@@ -89,6 +89,30 @@ if __name__ == '__main__':
             for charge in ['plus','minus']:
                 cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
                 os.system(cmdpull)
+
+    ## plot impacts
+    ## ================================
+    if options.make in ['all','imp']:
+        print 'making impact plots'
+        tmp_outdir = options.outdir+'/impactPlots/'
+        poisGroups = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
+        singleNuisGroups = ['CMS.*','pdf.*','mu.*','ErfPar0.*','ErfPar1.*','ErfPar2.*']
+        targets = ['mu','xsecnorm']
+        for t in toysHessian:
+            for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
+                tmp_suffix = '_'.join(tmp_file.split('_')[1:])
+                for target in targets:
+                    for poig in poisGroups:
+                        print "RUNNING SINGLE NUISANCE IMPACTS..."
+                        for nuis in singleNuisGroups:
+                            cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuis {nuis} --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, nuis=nuis, pois=poig, tg=target, sfx=tmp_suffix)
+                            print "running ",cmd
+                            os.system(cmd)
+                        # now do the groups of systematics
+                        print "RUNNING GROUPED NUISANCE IMPACTS..."
+                        cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix)
+                        print "running ",cmd
+                        os.system(cmd)
 
     ## do this at the end, it takes the longest
     ## diff nuisances

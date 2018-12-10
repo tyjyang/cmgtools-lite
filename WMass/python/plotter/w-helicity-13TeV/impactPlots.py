@@ -44,7 +44,7 @@ if __name__ == "__main__":
         print "Will plot the impact for all the single nuisances. It may be a big matrix"
         nuis_regexps = ['.*']
     else:
-        nuis_regexps = list(options.nuis.split(',')) if len(options.nuis) else list(options.poigroups.split(','))
+        nuis_regexps = list(options.nuis.split(',')) if len(options.nuis) else list(options.nuisgroups.split(','))
         print "Filtering nuisances or nuisance groups with the following regex: ",nuis_regexps
 
     if len(options.pois)==0:
@@ -55,11 +55,15 @@ if __name__ == "__main__":
     hessfile = ROOT.TFile(args[0],'read')
     
     group = 'group_' if len(options.nuisgroups) else ''
-    if   options.target=='xsec':     suffix = 'pmaskedexp'
-    elif options.target=='xsecnorm': suffix = 'pmaskedexpnorm'
-    else:                            suffix = 'mu'
+    if   options.target=='xsec':     target = 'pmaskedexp'
+    elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
+    else:                            target = 'mu'
 
-    impMat = hessfile.Get('nuisance_{group}impact_{sfx}'.format(group=group,sfx=suffix))
+    th2name = 'nuisance_{group}impact_{sfx}'.format(group=group,sfx=target)
+    impMat = hessfile.Get(th2name)
+    if impMat==None:
+        print "ERROR: Cannot find the impact TH2 named ",th2name," in the input file. Maybe you didn't run --doImpacts?\nSkipping."
+        sys.exit()
     
     pois = []; pois_indices = []
     for ib in xrange(1,impMat.GetNbinsX()+1):
@@ -82,20 +86,22 @@ if __name__ == "__main__":
 
     ## sort the pois and nuisances alphabetically, except for pdfs, which are sorted by number
     pois = sorted(pois, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
-    nuisances = sorted(nuisances, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
-    nuisances = sorted(nuisances, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
-    nuisances = sorted(nuisances, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
-    nuisances = sorted(nuisances, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
+    if len(options.nuisgroups)==0:
+        nuisances = sorted(nuisances, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
+        nuisances = sorted(nuisances, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
+        nuisances = sorted(nuisances, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
+        nuisances = sorted(nuisances, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
+        nuisances = sorted(nuisances, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)
 
-    print "sorted pois = ", pois
-    print "\n\nsorted nuisances = ", nuisances
+    #print "sorted pois = ", pois
+    #print "\n\nsorted nuisances = ", nuisances
 
-    c = ROOT.TCanvas("c","",1200,800)
+    c = ROOT.TCanvas("c","",1200,1200)
     c.SetGridx()
     c.SetGridy()
 
     c.SetLeftMargin(0.15)
-    c.SetRightMargin(0.11)
+    c.SetRightMargin(0.15)
     c.SetBottomMargin(0.15)
 
     ## make the new, smaller TH2F correlation matrix
@@ -115,18 +121,21 @@ if __name__ == "__main__":
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
 
-    th2_sub.GetZaxis().SetRangeUser(-0.05, 0.05)
+    rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
+    th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
     th2_sub.GetXaxis().LabelsOption("v")
     ROOT.gStyle.SetPaintTextFormat('1.3f')
-    if len(pois)<30: th2_sub.Draw('colz text45')
-    else: th2_sub.Draw('colz')
+    if len(pois)<30 and len(nuisances)<30: th2_sub.Draw('colz0 text45')
+    else: th2_sub.Draw('colz0')
+    if len(nuisances)>30: th2_sub.GetYaxis().SetLabelSize(0.02)
 
-    nuisName = options.nuisgroups if len(options.nuisgroups) else options.nuis
+
+    nuisName = 'NuisGroup'+options.nuisgroups if len(options.nuisgroups) else options.nuis
     nuisName = nuisName.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
     poisName = options.pois.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
 
     if options.outdir:
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallImpacts{suff}_{nn}_On_{pn}.{i}'.format(suff=suff,i=i,nn=nuisName,pn=poisName))
+            c.SaveAs(options.outdir+'/smallImpacts{suff}_{target}_{nn}_On_{pn}.{i}'.format(suff=suff,target=target,i=i,nn=nuisName,pn=poisName))
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
