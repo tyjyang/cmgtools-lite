@@ -4,6 +4,7 @@
 import ROOT, os, re
 from array import array
 from CMGTools.WMass.plotter.mcPlots import doShadedUncertainty
+from rollingFunctions import roll1Dto2D, unroll2Dto1D
 
 import utilities
 utilities = utilities.util()
@@ -28,37 +29,6 @@ def getbinning(splitline):
 
 ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetPadRightMargin(0.13)
-
-def roll1Dto2D(h1d, histo):  #,h2dname):#,plotfile,options):
-    for i in xrange(1,h1d.GetNbinsX()+1):
-        xbin = i % histo.GetNbinsX()
-        if not xbin: xbin = xbin+histo.GetNbinsX()
-        ybin = i / histo.GetNbinsX() + (1 if i%histo.GetNbinsX() else 0)
-        val = h1d.GetBinContent(i)
-        histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
-        histo.SetBinError(xbin,ybin,h1d.GetBinError(i))
-    return histo
-
-def unroll2Dto1D(h):
-    nbins = h.GetNbinsX() * h.GetNbinsY()
-    goodname = h.GetName()
-    h.SetName(goodname+"_oldbinning")
-    newh = ROOT.TH1D(goodname,h.GetTitle(),nbins,0.5,nbins+0.5)
-    newh.Sumw2()
-    if 'TH2' not in h.ClassName(): raise RuntimeError, "Calling rebin2Dto1D on something that is not TH2"
-    for i in xrange(h.GetNbinsX()):
-        for j in xrange(h.GetNbinsY()):
-            bin = 1 + i + j*h.GetNbinsX()
-            newh.SetBinContent(bin,h.GetBinContent(i+1,j+1))
-            newh.SetBinError(bin,h.GetBinError(i+1,j+1))
-    for bin in range(1,nbins+1):
-        if newh.GetBinContent(bin)<0:
-            print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
-            newh.SetBinContent(bin,0)
-    newh.SetLineWidth(h.GetLineWidth())
-    newh.SetLineStyle(h.GetLineStyle())
-    newh.SetLineColor(h.GetLineColor())
-    return newh
 
 def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
     if len(binning) == 4:
@@ -230,7 +200,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix):
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
 
-    rmin = 0.5; rmax = 1.5
+    rmin = max(0.1, histo.GetMinimum()); rmax = min(10., histo.GetMaximum())
     ROOT.gStyle.SetErrorX(0.5);
     hratio.GetYaxis().SetRangeUser(rmin,rmax);
     hratio.GetXaxis().SetTitleFont(42)
@@ -249,7 +219,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix):
     hratio.GetYaxis().SetTitle('post-fit/pre-fit')
     hratio.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
     hratio.GetYaxis().SetTitleOffset(0.40)
-    hratio.SetLineColor(ROOT.kRed+2)
+    hratio.SetLineColor(ROOT.kBlack)
     hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
     line = ROOT.TLine(hratio.GetXaxis().GetXmin(),1,hratio.GetXaxis().GetXmax(),1)
     line.SetLineWidth(2);
@@ -303,6 +273,8 @@ if __name__ == "__main__":
         os.system("mkdir -p "+outname)
         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outname)
 
+    savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
+    
     infile = ROOT.TFile(args[0], 'read')
     channel = 'el' if any(['el_Ybin' in k.GetName() for k in infile.GetListOfKeys()]) else 'mu'
     print "From the list of histograms it seems that you are plotting results for channel ",channel
@@ -323,8 +295,6 @@ if __name__ == "__main__":
 
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
-    savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kWarning;
-    
     for charge in ['plus','minus']:
         binshift = shifts[charge]
         
@@ -480,6 +450,7 @@ if __name__ == "__main__":
         for key,histo in ratios_unrolled.iteritems():
             plotPostFitRatio(charge,channel,histo,outname,'postfit2prefit_'+key,options.suffix)
                 
+    outfile.Close()
+
     ROOT.gErrorIgnoreLevel = savErrorLevel;
 
-    outfile.Close()
