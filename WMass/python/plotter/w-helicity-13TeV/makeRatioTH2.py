@@ -62,6 +62,8 @@ if __name__ == "__main__":
     parser.add_option(     '--h1Dbinning',  dest='h1Dbinning',  default='50,0.9,1.1', type='string', help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_option('-v','--valBadRatio', dest='valBadRatio', default='0', type='float', help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
     parser.add_option(     '--buildFakeRate', dest="buildFakeRate", action="store_true", default=False, help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta")
+    parser.add_option(     '--xRange'     , dest='xRange', default=(0,-1), type='float', nargs=2, help='Select range for X axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
+    parser.add_option(     '--yRange'     , dest='yRange', default=(0,-1), type='float', nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -151,6 +153,10 @@ if __name__ == "__main__":
         hinput1 = hFR1
         hinput2 = hFR2
 
+    xMin = options.xRange[0]
+    xMax = options.xRange[1]
+    yMin = options.yRange[0]
+    yMax = options.yRange[1]
 
     hratio = hinput1.Clone(options.outhistname)
     hratio.SetTitle(options.histTitle)
@@ -164,6 +170,10 @@ if __name__ == "__main__":
             yval = hratio.GetYaxis().GetBinCenter(iy) 
             hist2xbin = hinput2.GetXaxis().FindFixBin(xval)
             hist2ybin = hinput2.GetYaxis().FindFixBin(yval)
+            if xMin < xMax:
+                if xval < xMin or xval > xMax: continue
+            if yMin < yMax:
+                if yval < yMin or yval > yMax: continue
             if hinput2.GetBinContent(hist2xbin, hist2ybin) != 0:
                 ratio = hratio.GetBinContent(ix,iy) / hinput2.GetBinContent(hist2xbin, hist2ybin)
                 hratioDistr.Fill(ratio)
@@ -177,6 +187,11 @@ if __name__ == "__main__":
     xAxisTitle = hratio.GetXaxis().GetTitle()
     yAxisTitle = hratio.GetYaxis().GetTitle()
     zAxisTitle = hratio.GetZaxis().GetTitle()
+
+    if xMax > xMin and not "::" in xAxisTitle: 
+        xAxisTitle = xAxisTitle + "::" + str(options.xRange[0]) + "," + str(options.xRange[1])
+    if yMax > yMin and not "::" in yAxisTitle: 
+        yAxisTitle = yAxisTitle + "::" + str(options.yRange[0]) + "," + str(options.yRange[1])
 
     # print "xAxisTitle = " + xAxisTitle
     # print "yAxisTitle = " + yAxisTitle
@@ -224,6 +239,8 @@ if __name__ == "__main__":
     ###########################
     # Now save things
     ###########################
+    if not options.outfilename.endswith(".root"):
+        options.outfilename = options.outfilename + ".root"
     tf = ROOT.TFile.Open(outname+options.outfilename,'recreate')
     hratio.Write(options.outhistname)
     tf.Close()

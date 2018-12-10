@@ -356,7 +356,7 @@ if __name__ == "__main__":
         else:
             if charge == "plus": zmin,zmax = 0.5,4.5
             else:                zmin,zmax = 0.5,3.5
-        zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (0.9*hDiffXsecErr.GetMinimum(),min(10,hDiffXsecErr.GetMaximum()))
+        zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (0.9*hDiffXsecErr.GetMinimum(),min(25,hDiffXsecErr.GetMaximum()))
         #zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsecErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,

@@ -321,34 +321,9 @@ if options.systfile != "":
         card.write(('%-16s lnN' % name) + " ".join([kpatt % effmap[p]   for p in allprocesses]) +"\n")
 
 
-
-## now the shape systematics
-# systProc = {}  # associate array of processes to a given systematic (to write the datacard)
-# if options.shapesystfile != "":
-#     shapesysfile = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/python/plotter/'+options.shapesystfile
-#     #print shapesysfile
-#     for line in open(shapesysfile, 'r'):
-#         if re.match("\s*#.*", line): continue
-#         line = re.sub("#.*","",line).strip()
-#         if len(line) == 0: continue
-#         field = [f.strip() for f in line.split(':')]
-#         #print field
-#         if len(field) >= 2: 
-#             systname = field[0]
-#             procmap = field[1]        
-#             for proc in processes:
-#                 if re.match(procmap, proc):            
-#                     varsyst = 1
-#                     if len(field)>2:
-#                         varsyst = int(field[2])
-#                     for i in range(varsyst):
-#                         systname_var = systname + (str(i+1) if varsyst > 1 else "")
-#                         if systname_var not in systProc: systProc[systname_var] = []
-#                         systProc[systname_var].append(proc)
-
 # norm unc on signal processes treated as background
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
-if options.sig_out_bkg and options.WlnN > 0.0:
+if options.sig_out_bkg and options.wLnN > 0.0:
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
     card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
 
@@ -389,6 +364,7 @@ for i in range(1,11):
 for syst in qcdScale_wptBins:
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
+    
 
 wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 for syst in wExpSysts:

@@ -39,13 +39,33 @@ def getZaxisReasonableExtremesTH2(h,nSigma=3,minZtoUse=None,maxZtoUse=None):
 
 #########################################################################
 
-def getMinMaxHisto(h, excludeEmpty=True, sumError=True):
+def getMinMaxHisto(h, excludeEmpty=True, sumError=True, 
+                   excludeUnderflow=True, excludeOverflow=True,
+                   excludeMin=None, excludeMax=None):
     
+    # Warning, fix this function, GetBinContent with TH2 is not that simple, there are the underflow and overflow in each row and column
+    # must check whether bin is underflow or overflow
+    # therefore, the global bin is obtained as the number of bins +2, multiplied for each axis
+
+    # excludeEmpty = True exclude bins with content 0.0. Useful when a histogram is filled with values in, for example, [1,2] but hassome empty bins
+    # excludeMin/Max are used to select a range in which to look for maximum and minimum, useful to reject outliers, crazy or empty bins and so on
+    # for histograms with non-negative values, excludeEmpty=True is equal to excludeMin==0.0
+
+    # sumError is used to add or subtract error when looking for min/max (to have full error band in range)
+    # when using excludeMin/Max, the errors are still ignored when evaluating the range
+
+    # the better combination of options depends on dimension: for a TH1 is useful to visualize the error band in the plot range, while for a TH2 
+    # only the bin content is interesting in the plot (the error is not reported with TH2::Draw, unless plotting it in a 3D space
+
+    # one might exploit excludeMin/Max to select a rage depending on the distribution on the histogram bin content
+    # for example, one can pass excludeMin=h.GetMean()-2*h.GetStdDev() and excludeMax=h.GetMean()+2*h.GetStdDev() so to 
+    # select a range of 2 sigma around the mean
+
     dim = h.GetDimension()
     nbins = 0
-    if   dim == 1: nbins = h.GetNbinsX()
-    elif dim == 2: nbins = h.GetNbinsX() * h.GetNbinsY()
-    elif dim == 3: nbins = h.GetNbinsX() * h.GetNbinsY() * h.GetNbinsZ()
+    if   dim == 1: nbins = h.GetNbinsX() + 2
+    elif dim == 2: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2)
+    elif dim == 3: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2) * (h.GetNbinsZ() + 2)
     else:
         print "Error in getMaxHisto(): dim = %d is not supported. Exit" % dim
         quit()
@@ -54,9 +74,13 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True):
     minval = 0
     firstValidBin = -1
     for ibin in range (1,nbins+1):
+        if excludeUnderflow and h.IsBinUnderflow(ibin): continue
+        if excludeOverflow and h.IsBinOverflow(ibin): continue
         tmpmax = h.GetBinContent(ibin)
         tmpmin = h.GetBinContent(ibin)
         if excludeEmpty and tmpmin == 0.0: continue
+        if excludeMin != None and tmpmin <= excludeMin: continue
+        if excludeMax != None and tmpmax >= excludeMax: continue
         if firstValidBin < 0: 
             #print "ibin %d:   tmpmin,tmpmax = %.2f, %.2f" % (ibin,tmpmin,tmpmax)
             firstValidBin = ibin
@@ -74,6 +98,89 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True):
         #print "ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval)
     
     return minval,maxval
+
+#########################################################################
+
+def getMinimumTH(h, excludeMin=None):
+    # get minimum excluding some values. For example, if an histogram has an empty bin, one might want to get the minimum such that it is > 0
+    # underflow are not considered
+    
+    dim = h.GetDimension()
+    retmin = sys.float_info.max
+
+    if dim == 1:
+        for ix in range(1,h.GetNbinsX()+1):
+            if retmin > h.GetBinContent(ix):
+                if excludeMin != None:
+                    if h.GetBinContent(ix) > excludeMin: retmin = h.GetBinContent(ix)
+                else:
+                    retmin = h.GetBinContent(ix)
+
+    elif dim == 2:
+        for ix in range(1,h.GetNbinsX()+1):
+            for iy in range(1,h.GetNbinsY()+1):
+                if retmin > h.GetBinContent(ix,iy):
+                    if excludeMin != None:
+                        if h.GetBinContent(ix,iy) > excludeMin: retmin = h.GetBinContent(ix,iy)
+                    else:
+                        retmin = h.GetBinContent(ix,iy)
+
+    elif dim == 3:
+        for ix in range(1,h.GetNbinsX()+1):
+            for iy in range(1,h.GetNbinsY()+1):
+                for iz in range(1,h.GetNbinsZ()+1):
+                    if retmin > h.GetBinContent(ix,iy,iz):
+                        if excludeMin != None:
+                            if h.GetBinContent(ix,iy,iz) > excludeMin: retmin = h.GetBinContent(ix,iy,iz)
+                        else:
+                            retmin = h.GetBinContent(ix,iy,iz)
+                            
+
+    else:
+        raise RuntimeError, "Error in getMinimumTH(): unsupported histogram's dimension (%d)" % dim
+
+    return retmin
+
+
+def getMaximumTH(h, excludeMax=None):
+    # get maximum excluding some values. For example, if an histogram has a crazy bin, one might want to get the maximum value that is lower than that
+    # overflow are not considered
+    
+    dim = h.GetDimension()
+    retmax = sys.float_info.min
+
+    if dim == 1:
+        for ix in range(1,h.GetNbinsX()+1):
+            if retmax < h.GetBinContent(ix):
+                if excludeMax != None:
+                    if h.GetBinContent(ix) < excludeMax: retmax = h.GetBinContent(ix)
+                else:
+                    retmax = h.GetBinContent(ix)
+
+    elif dim == 2:
+        for ix in range(1,h.GetNbinsX()+1):
+            for iy in range(1,h.GetNbinsY()+1):
+                if retmax < h.GetBinContent(ix,iy):
+                    if excludeMax != None:
+                        if h.GetBinContent(ix,iy) < excludeMax: retmax = h.GetBinContent(ix,iy)                        
+                    else:
+                        retmax = h.GetBinContent(ix,iy)
+
+    elif dim == 3:
+        for ix in range(1,h.GetNbinsX()+1):
+            for iy in range(1,h.GetNbinsY()+1):
+                for iz in range(1,h.GetNbinsZ()+1):
+                    if retmax < h.GetBinContent(ix,iy,iz):
+                        if excludeMax != None:
+                            if h.GetBinContent(ix,iy,iz) < excludeMax: retmax = h.GetBinContent(ix,iy,iz)                            
+                        else:
+                            retmax = h.GetBinContent(ix,iy,iz)
+
+    else:
+        raise RuntimeError, "Error in getMaximumTH(): unsupported histogram's dimension (%d)" % dim
+
+    return retmax
+
 
 #########################################################################
 
@@ -185,6 +292,8 @@ def drawCorrelationPlot(h2D_tmp,
     cw,ch = canvasSize.split(',')
     #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
     canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
     canvas.SetLeftMargin(leftMargin)
     canvas.SetRightMargin(rightMargin)
     canvas.SetBottomMargin(bottomMargin)

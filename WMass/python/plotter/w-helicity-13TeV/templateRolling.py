@@ -76,10 +76,15 @@ def dressed2D(h1d,binning,name,title=''):
     return h2_backrolled_1
 
 
+
+
+
+
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] shapesdir")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save things. A subfolder named options.charge is automatically added for each charge passed to option -C')
+    parser.add_option('-i','--infile', dest='infile', default='', type='string', help='input file. Normally it would be taken from args[0] and the name built automatically based on the charge, but it can be passed from an independent location. args[0] is still needed to get binning file (which must be consistent)')
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
     parser.add_option('-p','--postfix', dest='postfix', default='', type='string', help='Postfix for input file with shapes (e.g: "_addInclW" in "Wel_plus_shapes_addInclW.root"). Default is ""')
@@ -93,9 +98,12 @@ if __name__ == "__main__":
     parser.add_option(     '--draw-selected-etaPt', dest='draw_selected_etaPt', default='', type='string', help='Only for xsection. Pass pairs of eta,pt: only the corresponding gen bins will be plotted (inclusive signal is still drawn, unless options --noplot is used as well).')
     parser.add_option(     '--draw-all-bins', dest='draw_all_bins', default=False, action='store_true', help='Draw all bins for signal (default is false, it is quite a huge bunch of plots).')
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
-    parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template)') 
+    parser.add_option(     '--do-signal-syst', dest='doSigSyst', default=".*scale.*|.*lepeff.*", type='string', help='If --skipSyst is not given, make ratios for signal templates with only systematics matching this regular expression for example ".*pdf.*|.*muR.*|.*muF.*". Pass ".*" to make all of them ')
+    parser.add_option(     '--skipBkg', dest='skipBackground', default=False, action='store_true', help='Skip histograms for background processes')
+    parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template). This option is for signal templates only') 
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
     #parser.add_option(     '--no-group-name', dest="noGroupInName", default=False, action='store_true', help="If True, _group_<N> is not in the signal process name");
+    parser.add_option(      '--palette', dest='palette', default=55, type=int, help='Pass number for palette (default is kRainbow, but check)')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -154,13 +162,21 @@ if __name__ == "__main__":
 
     lepton = "electron" if channel == "el" else "muon"
 
-    qcdsyst = ["muR", "muF", "muRmuF", "alphaS"]
+    qcdsyst = ["alphaS"]
+    for i in range(1,11):
+        qcdsyst.append("muR%d" % i)
+        qcdsyst.append("muF%d" % i)
+        qcdsyst.append("muRmuF%d" % i)
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["wptSlope", "elescale" "lepeff"] # might add others
+    allsysts = qcdsyst + pdfsyst + ["mW", "elescale" if channel == "el" else "muscale", "lepeff"] # might add others
     allsystsUpDn = []
     for x in allsysts:
+        if not re.match(options.doSigSyst,x): continue
         allsystsUpDn.append(x+"Up")
         allsystsUpDn.append(x+"Down")
+
+    
+    
 
     xaxisTitle = '%s #eta' % lepton
     if options.ptRange == "template":
@@ -181,7 +197,10 @@ if __name__ == "__main__":
         outnameSyst = outname + "systematics/"
         createPlotDirAndCopyPhp(outnameSyst)
 
-        shapesfile = "{indir}/W{flav}_{ch}_shapes{pf}.root".format(indir=args[0],flav=channel,ch=charge,pf=options.postfix)
+        if options.infile: 
+            shapesfile = options.infile
+        else:
+            shapesfile = "{indir}/W{flav}_{ch}_shapes{pf}.root".format(indir=args[0],flav=channel,ch=charge,pf=options.postfix)
         infile = ROOT.TFile(shapesfile, 'read')
         print ""
         print "==> RUNNING FOR CHARGE ",charge
@@ -201,6 +220,7 @@ if __name__ == "__main__":
 
         if options.plotBinnedSignal:
         # doing binned signal
+            print ""
             print "Signal"
             if analysis == "helicity":                
                 hSigInclusive = {}
@@ -245,7 +265,7 @@ if __name__ == "__main__":
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
-                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
+                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
 
                     hSigInclusive[pol].Write()
                     if not options.noplot:
@@ -253,7 +273,7 @@ if __name__ == "__main__":
                         drawCorrelationPlot(hSigInclusive[pol], 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
-                                            "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
+                                            "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                                                 
             else:  
 
@@ -263,6 +283,7 @@ if __name__ == "__main__":
                 hSigInclusive_syst = {}
                 if not options.skipSyst:
                     for systvar in allsystsUpDn:
+                        #print "Syst: ", systvar
                         sysName  = inclSigName  + "_" + systvar
                         sysTitle = inclSigTitle + "_" + systvar
                         hSigInclusive_syst[systvar] = ROOT.TH2F(sysName,sysTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
@@ -319,12 +340,14 @@ if __name__ == "__main__":
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     h2_backrolled_1.GetName(),
-                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
+                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
 
                         elif not options.skipSyst:
-                            h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
                             systvar = name.split('_')[-1]
-                            hSigInclusive_syst[systvar].Add(h2_backrolled_1)
+                            if re.match(options.doSigSyst,systvar):
+                                h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
+                                hSigInclusive_syst[systvar].Add(h2_backrolled_1)
+                                #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusive_syst[systvar].Integral())
                             
                 hSigInclusive.Write()
                 if not options.noplot:
@@ -332,55 +355,72 @@ if __name__ == "__main__":
                     drawCorrelationPlot(hSigInclusive, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         hSigInclusive.GetName(),
-                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
+                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
+                            #print "systvar = %s: integral = %.1f" % (systvar, hSigInclusive_syst[systvar].Integral())
+                            #print "Inclusive template: integral = %.1f" % hSigInclusive.Integral()
                             hSigInclusive_syst[systvar].Divide(hSigInclusive)
                             if options.syst_ratio_range == "template":
-                                zaxisTitle = "Events::%.1f,%.1f" % (hSigInclusive_syst[systvar].GetMinimum(),hSigInclusive_syst[systvar].GetMaximum())
+                                zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusive_syst[systvar],excludeMin=0.0),
+                                                                                 getMaximumTH(hSigInclusive_syst[systvar]))
                             else:
                                 ratiomin = options.syst_ratio_range.split(',')[0]
                                 ratiomax = options.syst_ratio_range.split(',')[1]
-                            zaxisTitle = "Events::%s,%s" % (ratiomin,ratiomax)
+                                zaxisTitle = "Events::%s,%s" % (ratiomin,ratiomax)
                             drawCorrelationPlot(hSigInclusive_syst[systvar], 
                                                 xaxisTitle, yaxisTitle, zaxisTitle, 
                                                 "systOverNorm_"+hSigInclusive_syst[systvar].GetName(),
-                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas)
+                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
 
 
-        # do backgrounds and, if requested, inclusive signal
-        print "Backgrounds" + (" and inclusive signal" if options.hasInclusiveSignal else "")
-        procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes"]
-        titles=["charge flips","DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
-        if options.hasInclusiveSignal: 
-            procs.append("W{ch}_{flav}".format(ch=charge,flav=channel))
-            signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
-            titles.append(signalTitle)
+        if not options.skipBackground:
 
-        for i,p in enumerate(procs):
-            h1_1 = infile.Get('x_{p}'.format(p=p))
-            if not h1_1: continue # muons don't have Flips components
-            h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
-            h2_backrolled_1.Write(str(p))
-            
-            zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
+            # do backgrounds and, if requested, inclusive signal
+            print ""
+            print "Backgrounds" + (" and inclusive signal" if options.hasInclusiveSignal else "")
+            procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes"]
+            titles=["charge flips","DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
+            if options.hasInclusiveSignal: 
+                procs.append("W{ch}_{flav}".format(ch=charge,flav=channel))
+                signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
+                titles.append(signalTitle)
 
-            if not options.noplot:
-                drawCorrelationPlot(h2_backrolled_1, 
-                                    xaxisTitle, yaxisTitle, zaxisTitle, 
-                                    '{proc}_{ch}_{flav}'.format(proc=p,ch=charge,flav=channel),
-                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas)
+            fakesysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if channel == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
 
-            # canv = ROOT.TCanvas()
-            # h2_backrolled_1.Draw('colz')
-            # if not options.noplot:
-            #     for ext in ['pdf', 'png']:
-            #         canv.SaveAs('{odir}/{proc}_{ch}_{flav}.{ext}'.format(odir=outname,proc=p,ch=charge,flav=channel,ext=ext))
+            for i,p in enumerate(procs):
+                h1_1 = infile.Get('x_{p}'.format(p=p))
+                if not h1_1: continue # muons don't have Flips components
+                h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
+                h2_backrolled_1.Write(str(p))
+
+                zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
+
+                if not options.noplot:
+                    drawCorrelationPlot(h2_backrolled_1, 
+                                        xaxisTitle, yaxisTitle, zaxisTitle, 
+                                        '{proc}_{ch}_{flav}'.format(proc=p,ch=charge,flav=channel),
+                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
+                # draw fakes systematics
+                if "data_fakes" in p:
+                    # 4 systs for now (2 Up and 2 Down)
+                    for fs in fakesysts:
+                        for idir in ["Up", "Down"]:
+                            title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
+                            name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
+                            h1_1_fs = infile.Get('x_{p}'.format(p=name_fs))                            
+                            h2_backrolled_1_fs = dressed2D(h1_1_fs,binning,name_fs,title_fs)
+                            h2_backrolled_1_fs.Write(name_fs)
+                            h2_backrolled_1_fs.Divide(h2_backrolled_1)
+                            zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0), 
+                                                                             getMaximumTH(h2_backrolled_1_fs))
+                            drawCorrelationPlot(h2_backrolled_1_fs, 
+                                                xaxisTitle, yaxisTitle, zaxisTitle, 
+                                                'syst_{proc}_{ch}_{flav}'.format(proc=name_fs,ch=charge,flav=channel),
+                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
+
             
         outfile.Close()
 
-    ## canv.Divide(1,2)
-    ## canv.cd(1)
-    ## h2.Draw('colz')
-    ## canv.cd(2)
-    ## h2backrolled.Draw('colz')

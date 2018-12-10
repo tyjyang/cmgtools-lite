@@ -20,7 +20,7 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import mirrorShape
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] shapes.root")
 parser.add_option("-o", "--outdir",    dest="outdir", type="string", default="./", help="Output folder (current one as default)");
-parser.add_option("-n", "--name",      dest="name",   type="string", default="", help="Name for output root file (if not given, name is W<flavou>_<charge>_shapes_signal.root ).");
+parser.add_option("-n", "--name",      dest="name",   type="string", default="", help="Name for output root file (if not given, name is W<flavour>_<charge>_shapes_signal.root ).");
 parser.add_option("-s", "--suffix",    dest="suffix", type="string", default="", help="Suffix to add to output file before extension. Ineffective if using option -n < name>");
 parser.add_option("-f", "--flavour",   dest="flavour", type="string", default='', help="Channel: either 'el' or 'mu'");
 #parser.add_option("-g", "--group",     dest="group", type="int", default='0', help="In case signal bins for diff.xsec were grouped, the number of grouped bins appeara in the name of the process as '<name>_group<n>'");
@@ -28,7 +28,7 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
 parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*EffStat.*|.*pdf.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
-parser.add_option(      "--fixmuRmuFNUp", dest="fixmuRmuFNUp",   action="store_true", default=False, help="Make a fix: muRmuXXFUp should become muRmuFXXUp");
+#parser.add_option(      "--fixmuRmuFNUp", dest="fixmuRmuFNUp",   action="store_true", default=False, help="Make a fix: muRmuXXFUp should become muRmuFXXUp");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -140,12 +140,12 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
     if lasttoken == "globalBin": isNominal = True
     elif re.match(symSystMatch,lasttoken): toBeMirrored = True
 
-    if options.fixmuRmuFNUp and "muRmu" in lasttoken:
-        tkn = pattBug.findall(lasttoken)
-        if len(tkn):
-            wrong = "muRmu" + str(tkn[0][1]) + "FUp"
-            correct = "muRmuF" + str(tkn[0][1]) + "Up"
-            lasttoken = lasttoken.replace(wrong,correct)
+    # if options.fixmuRmuFNUp and "muRmu" in lasttoken:
+    #     tkn = pattBug.findall(lasttoken)
+    #     if len(tkn):
+    #         wrong = "muRmu" + str(tkn[0][1]) + "FUp"
+    #         correct = "muRmuF" + str(tkn[0][1]) + "Up"
+    #         lasttoken = lasttoken.replace(wrong,correct)
 
     # if needed, select the gen eta bin that will be affected by effstat
     if not options.effStatAll and re.match('.*EffStat.*',lasttoken) :

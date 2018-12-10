@@ -60,6 +60,9 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,getPull=plotPull,matchBranch=pois,
                                                               excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "signalStrength":
+            # add some exclusion matches if not already present
+            if excludeName != None: excludeName += ",.*pmaskedexp.*" if "pmaskedexp" not in excludeName else ""
+            else : excludeName = ".*pmaskedexp.*"
             pois="W{ch}.*_mu".format(ch=charge)
             isSignalStrength = True
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,200,0,2,getPull=plotPull,matchBranch=pois,
