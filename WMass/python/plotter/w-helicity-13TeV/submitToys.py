@@ -3,6 +3,9 @@
 # usage: python submitToys.py cards_el/Wel_card_withXsecMask.hdf5 10000 -n 20 --outdir output -q 8nh
 #
 # python w-helicity-13TeV/submitToys.py cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/Wel_plus_card_withXsecMask.meta 11000 -n 2 --outdir toys/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin_newGenXsec/ -t 1 -q cmscaf1nd
+#
+# python w-helicity-13TeV/submitToys.py cards/diffXsec_mu_2018_11_24_group10_onlyBkg/Wmu_card_withXsecMask_sparse_outBkgNorm3p8_noSyst.hdf5 11000 -n 5 -t 1 -r 24 --outdir toys/diffXsec_mu_2018_11_24_group10_onlyBkg_noSyst/
+
 
 jobstring  = '''#!/bin/sh
 ulimit -c 0 -S
@@ -69,6 +72,7 @@ if __name__ == "__main__":
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option('--outdir', dest='outdir', type="string", default=None, help='outdirectory');
+    parser.add_option("","--binByBinStat", default=False, action='store_true', help="add bin-by-bin statistical uncertainties on templates (using Barlow and Beeston 'lite' method")
     parser.add_option("","--correlateXsecStat", default=False, action='store_true', help="Assume that cross sections in masked channels are correlated with expected values in templates (ie computed from the same MC events)")
     (options, args) = parser.parse_args()
 
@@ -90,6 +94,9 @@ if __name__ == "__main__":
         if not os.path.isdir(absopath):
             print 'making a directory and running in it'
             os.system('mkdir -p {od}'.format(od=absopath))
+
+    if options.correlateXsecStat and not options.binByBinStat:
+        raise RuntimeError, 'ERROR: --correlateXsecStat makes sense only with --binByBinStat!'
 
     jobdir = absopath+'/jobs/'
     if not os.path.isdir(jobdir):
@@ -114,9 +121,11 @@ if __name__ == "__main__":
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} --binByBinStat '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)        
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)        
         if fixPOIs: cmd += ' --POIMode none '
-        if options.correlateXsecStat: cmd += ' --correlateXsecStat '
+        if options.binByBinStat : 
+            cmd += ' --binByBinStat '
+            if options.correlateXsecStat: cmd += ' --correlateXsecStat '  # make sense only with --binByBinStat
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')

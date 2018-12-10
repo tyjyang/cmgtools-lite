@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# python w-helicity-13TeV/toyChecker.py toys/diffXsec_el_2018_09_20_group10_legacySF/ -c -q cmscaf1nd > testResubToys.txt
-# then
-# cat testResubToys.txt | grep bsub | bash
+# python w-helicity-13TeV/toyChecker.py toys/diffXsec_mu_2018_11_24_group10_onlyBkg/ -c
+# this script will print the command to submit the jobs using condor
+
 
 import os.path
 import sys,ROOT,os
