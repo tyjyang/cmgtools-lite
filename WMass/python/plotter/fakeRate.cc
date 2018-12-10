@@ -231,9 +231,9 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
-  if (fid == 11){
-    // if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
-    // else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
+  if(fid == 11){
+    //if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
+    //else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
     if      (iFR==5) FRnormWgt = 1.05 + feta*0.06; // from 1.05 to 1.20
     else if (iFR==6) FRnormWgt = 0.95 - feta*0.06;
   }
