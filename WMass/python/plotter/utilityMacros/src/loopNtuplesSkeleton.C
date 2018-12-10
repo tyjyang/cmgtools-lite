@@ -26,6 +26,7 @@ void fillHistograms(const string& treedir = "./",
 		    const string& outdir = "./", 
 		    const Sample& sample = Sample::wjets, 
 		    TFile* outputFile = NULL,
+		    const bool usePreFSRvar = true,  // if false, use DressedLepton
 		    const string& nameMatch = ""
 		    ) 
 {
@@ -181,7 +182,7 @@ void fillHistograms(const string& treedir = "./",
 
   // // for electronID
   TTreeReaderArray<Int_t> lep_Id  (reader, isMuon ? "LepGood_mediumMuonId" : "LepGood_customId");  
-  TTreeReaderArray<Float_t> lep_Iso (reader, isMuon ? "LepGood_relIso04" : "LepGood_relIso04EA");  // actually, for ele the iso is already in LepGood_customId
+  //TTreeReaderArray<Float_t> lep_Iso (reader, isMuon ? "LepGood_relIso04" : "LepGood_relIso04EA");  // actually, for ele the iso is already in LepGood_customId
   TTreeReaderArray<Int_t> *lep_hltId = nullptr;  
   TTreeReaderArray<Int_t> *lep_tightChargeFix = nullptr;  
   TTreeReaderArray<Int_t> *lep_mcMatchId = nullptr;
@@ -197,16 +198,16 @@ void fillHistograms(const string& treedir = "./",
   TTreeReaderValue<Float_t> genWeight(reader,"genWeight");
 
   // // W MC specific branches
-  TTreeReaderValue<UInt_t> nGenLep(reader,"nGenLepPreFSR");
+  TTreeReaderValue<Int_t> nGenLep(reader,usePreFSRvar ? "nGenLepPreFSR" : "nGenLepDressed");
 
   // value instead of array because they have only 1 entry per event
   // this suppresses the following error
   // Error in <TTreeReaderValueBase::CreateProxy()>: The branch nGenLepPreFSR contains data of type unsigned int. It cannot be accessed by a TTreeReaderValue<int>
-  TTreeReaderValue<Float_t> GenLep_pt(reader,"GenLepPreFSR_pt"); 
-  TTreeReaderValue<Float_t> GenLep_eta(reader,"GenLepPreFSR_eta");
+  TTreeReaderValue<Float_t> GenLep_pt( reader, usePreFSRvar ? "GenLepPreFSR_pt"  : "GenLepDressed_pt"); 
+  TTreeReaderValue<Float_t> GenLep_eta(reader, usePreFSRvar ? "GenLepPreFSR_eta" : "GenLepDressed_eta");
 
-  TTreeReaderValue<Float_t> genw_charge(reader,"prefsrw_charge");
-  TTreeReaderValue<Float_t> genw_decayId(reader,"prefsrw_decayId");
+  TTreeReaderValue<Float_t> genw_charge( reader, usePreFSRvar ? "prefsrw_charge"  : "genw_charge");
+  TTreeReaderValue<Float_t> genw_decayId(reader, usePreFSRvar ? "prefsrw_decayId" : "genw_decayId");
   TTreeReaderValue<Float_t> genw_pt(reader,"prefsrw_pt");
   // // syst weights for W
   TTreeReaderValue<Float_t> mass_80470(reader,"mass_80470"); // mw up, central is 80420
@@ -696,7 +697,8 @@ void loopNtuplesSkeleton(//const string& treedir = "/eos/cms/store/cmst3/group/w
 			 const string& treedir = "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY/", 
 			 const string& outdir = "./", 
 			 const string& outfileName = "wmass_varhists.root",
-			 const bool isMuon = false
+			 const bool isMuon = false,
+			 const bool usePreFSRvar = true  // if false, use DressedLepton
 			 ) {
 
   createPlotDirAndCopyPhp(outdir);
@@ -740,10 +742,10 @@ void loopNtuplesSkeleton(//const string& treedir = "/eos/cms/store/cmst3/group/w
 
   //fillHistograms(treedir, outdir, Sample::wenujets, outputFile,"WJetsToLNu_NLO_ext2v5_part1");
   if (isMuon) {
-    //fillHistograms(treedir, outdir, Sample::wmunujets, outputFile, "WJetsToLNu_ext2v5_part1");
-    fillHistograms(treedir, outdir, Sample::wmunujets, outputFile);
+    //fillHistograms(treedir, outdir, Sample::wmunujets, outputFile, usePreFSRvar, "WJetsToLNu_ext2v5_part1");
+    fillHistograms(treedir, outdir, Sample::wmunujets, outputFile, usePreFSRvar);
   } else {
-    fillHistograms(treedir, outdir, Sample::wenujets, outputFile);
+    fillHistograms(treedir, outdir, Sample::wenujets, outputFile, usePreFSRvar);
   }
 
   // fillHistograms(treedir, outdir, Sample::data_singleEG, outputFile);
