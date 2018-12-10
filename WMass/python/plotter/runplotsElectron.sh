@@ -92,9 +92,9 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runBatch="y"
+runBatch="n"
 queueForBatch="cmscaf1nd"
-nameTag="_FRpol1_systPtAndNorm" 
+nameTag="_sigEffAndScaleSyst" 
 #nameTag="_varStudy"
 useLessMC="n"
 useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
@@ -144,7 +144,7 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="ptl1_narrow,etal1_binFR"
 selectplots="etal1_binFR"
 #selectplots="ptl1_wmass,pfmt_wmass"
-#selectplots="ptl1,ptl1noCorr"
+#selectplots="ptl1_narrow"
 #selectplots="ptl1__etal1_binFR"
 #selectplots="ptl1_granBin"
 #selectplots="trkmt_trkmetEleCorr_dy"
@@ -167,7 +167,8 @@ plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherw
 
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
 #ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
-ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi' "
+#ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi' "
+ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -277,12 +278,14 @@ runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 #skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
-skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
+#skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
+skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
 regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,TopVVFlips --fitData " #--scaleSigToData --sp data_fakes "
-scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,TopVVFlips --scaleSigToData --sp data_fakes " # " --fitData "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn  "
+scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
@@ -385,7 +388,7 @@ evalScram="eval \`scramv1 runtime -sh\`"
 batchFolder="${mypath}/jobsLog/${batchDirName}"
 mkdir -p ${batchFolder}/src
 mkdir -p ${batchFolder}/log
-baseBatchScript="${batchFolder}/baseBatchScript.sh"
+baseBatchScript="${mypath}/jobsLog/baseBatchScript.sh"
 batchFileName="${batchFolder}/src/PLOTREGION_ETABIN.sh"  # PLOTREGION and ETABIN will be changed to proper names later in the script depending on region
 ###############################################
 # now we build base script to submit batch jobs
@@ -517,6 +520,8 @@ do
 	    treepath="/u2/emanuele/wmass/" # from pccmsrm28 
 	elif [[ ${host} == *"lxplus"* ]]; then
 	    treepath="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco"
+	elif [[ ${host} == *"pccmsrm29"* ]]; then
+	    treepath="/u2/mciprian/TREES_13TeV/electron/"
 	fi
 
 	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V9" ]]; then		
@@ -537,6 +542,10 @@ do
 
 	if [[ "${treedir}" == "TREE_4_XSEC_AFS" ]]; then		
 	    treepath="/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
+	fi
+
+	if [[ "${treedir}" == "signalSkim" ]]; then		
+	    treepath="/u2/mciprian/TREES_13TeV/electron/"
 	fi
 
 
