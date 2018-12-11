@@ -31,7 +31,7 @@ WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
 components=[' -b ', ' -s ']
-#components=[' -s ']
+components=[' -b ']
     
 
 if __name__ == '__main__':
@@ -53,5 +53,5 @@ if __name__ == '__main__':
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if options.longBkg: cmd += ' --long-bkg '
         if not options.genw: cmd += ' --wvar prefsrw '
-        cmd += ' -g 20 '
+        cmd += ' -g 5 '
         os.system(cmd)

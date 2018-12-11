@@ -149,12 +149,20 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
             elif 'muR' in scale or 'muF' in scale:
-                for ipt in range(1,11): ## start from 1 to 10
-                    ## have to redo the postfix for these
-                    postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
+                if options.signalCards:
+                    for ipt in range(1,11): ## start from 1 to 10
+                        ## have to redo the postfix for these
+                        postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
+                        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                        ptcut = wptBinsScales(ipt)
+                        wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                        qcdsysts.append(postfix)
+                else:
+                    ## for the Z only do the unnumbered ones
+                    postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
                     mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                    ptcut = wptBinsScales(ipt)
-                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                    wgtstr = 'qcd_{sc}{idir}'.format(sc=scale,idir=idir)
                     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
                     qcdsysts.append(postfix)
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope

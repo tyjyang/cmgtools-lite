@@ -28,7 +28,7 @@ def niceName(name):
         nn  = '#mu: ' if '_mu_' in name else 'el: '
         nn += 'W+ ' if 'plus' in name else 'W- '
         nn += 'left ' if 'left' in name else 'right ' if 'right' in name else 'long '
-        idx = -2 if 'masked' in name else -1
+        idx = -2 if ('masked' in name or name.endswith('mu')) else -1
         nn += name.split('_')[idx]
         if 'pmaskedexp' in name: nn += ' #sigma'
         if 'norm' in name: nn += '_{norm}'
@@ -164,6 +164,9 @@ if __name__ == "__main__":
         
 
     print "===> Build covariance matrix from this set of params: ", params
+
+    p_tmp = set(params)
+    params = list(p_tmp)
 
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10

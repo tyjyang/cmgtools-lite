@@ -73,7 +73,7 @@ class util:
                 err = ROOT.Double()
                 istart = histo.FindBin(val+epsilon)
                 iend   = histo.FindBin(ybins[cp][iv+1]+epsilon)
-                val = histo.IntegralAndError(istart, iend-1, err) ## do not include next bin
+                val = histo.IntegralAndError(istart, iend-1, err)/36000. ## do not include next bin
                 conts.append(float(int(val)))
             histos[pol] = conts
         histo_file.Close()
@@ -100,7 +100,7 @@ class util:
             for iv, val in enumerate(ybins[cp][:-1]):
                 name = 'x_W{ch}_{pol}_W{ch}_{pol}_{channel}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,channel=channel,iy=iv,ip=ip,suffix=pstr)
                 histo = histo_file.Get(name)
-                val = histo.Integral()
+                val = histo.Integral()/36000. # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()
@@ -188,9 +188,9 @@ class util:
 
             print 'gettin parameter ', p.GetName(), 'from toys file'
             
-            #tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
-            tree.Draw(p.GetName()+'>>foob')#+p.GetName())
-            tmp_hist = ROOT.gPad.GetPrimitive('foob')
+            tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
+            tree.Draw(p.GetName()+'>>'+p.GetName())
+            #tmp_hist = ROOT.gPad.GetPrimitive('foob')
             mean = tmp_hist.GetMean()
             err  = tmp_hist.GetRMS()
             _dict[p.GetName()] = (mean, mean+err, mean-err)

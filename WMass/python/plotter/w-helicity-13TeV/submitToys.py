@@ -71,6 +71,7 @@ if __name__ == "__main__":
     parser.add_option('-t'  , '--threads'       , dest='nThreads'      , type=int           , default=1    , help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
+    parser.add_option(        '--bbb'           , dest='binByBin'      , action='store_true', default=False, help='Use the bin by bin uncertainties to incorporate the templates MC stat');
     parser.add_option('--outdir', dest='outdir', type="string", default=None, help='outdirectory');
     parser.add_option("","--binByBinStat", default=False, action='store_true', help="add bin-by-bin statistical uncertainties on templates (using Barlow and Beeston 'lite' method")
     parser.add_option("","--correlateXsecStat", default=False, action='store_true', help="Assume that cross sections in masked channels are correlated with expected values in templates (ie computed from the same MC events)")
@@ -97,6 +98,10 @@ if __name__ == "__main__":
 
     if options.correlateXsecStat and not options.binByBinStat:
         raise RuntimeError, 'ERROR: --correlateXsecStat makes sense only with --binByBinStat!'
+
+    if options.binByBin:
+        if options.correlateXsecStat or options.binByBinStat:
+            raise RuntimeError, '--bbb cannot be used with --binByBinStat or --correlateXsecStat. The first is equivalent to calling both the second ones'
 
     jobdir = absopath+'/jobs/'
     if not os.path.isdir(jobdir):
@@ -126,6 +131,7 @@ if __name__ == "__main__":
         if options.binByBinStat : 
             cmd += ' --binByBinStat '
             if options.correlateXsecStat: cmd += ' --correlateXsecStat '  # make sense only with --binByBinStat
+        if options.binByBin: cmd += ' --binByBinStat --correlateXsecStat '
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
