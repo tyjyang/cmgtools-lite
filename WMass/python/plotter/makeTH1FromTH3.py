@@ -210,7 +210,7 @@ for i,key in enumerate(symmetrizedTH1):
 
     # get name prefix to retrieve nominal
     pfx = "_".join(key.split('_')[:-1])  # remove last piece (might be 'pdf10')
-    (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key)
+    (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,use2xNomiIfAltIsZero=True)
     for alt in [alternate,mirror]:
         alt.Write()    
 

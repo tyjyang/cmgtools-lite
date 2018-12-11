@@ -21,6 +21,14 @@ from w_helicity_13TeV.mergeCardComponentsDiffXsec import getXsecs_etaPt
 
 ## python makeCardsFromTH1.py -i cards/diffXsec_el_2018_11_25_group10_onlyBkg_recoEta2p5/ -f el -c plus -s w-helicity-13TeV/wmass_e/systsEnv.txt --sig-out-outAcc --eta-range-outAcc 1.45 2.55 
 
+def isExcludedNuisance(excludeNuisances=[], name=""):
+    if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances): 
+        print ">>>>> Excluding nuisance: ", name
+        return True
+    else:
+        return False
+
+
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
     datacards=[]; channels=[]
@@ -58,6 +66,8 @@ def combCharges(options):
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
         if not options.doSystematics:
             txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")
+        if len(options.postfix):
+            txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
         print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
@@ -69,7 +79,7 @@ def combCharges(options):
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
             print ""
-            print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
+            print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
             print combineCmd
 
     else:
@@ -83,24 +93,28 @@ parser.add_option("-i", "--indir",     dest="indir", type="string", default="./"
 parser.add_option("-o", "--outdir",    dest="outdir", type="string", default="SAME", help="Output folder (if SAME, use the same as input)");
 parser.add_option("-n", "--name",      dest="name",   type="string", default="", help="Name for output datacard (if not given, name is W<flavou>_<charge>_card.txt ).");
 parser.add_option("-f", "--flavour",   dest="flavour", type="string", default='', help="Channel: either 'el' or 'mu'");
-parser.add_option("-g", "--group",     dest="group", type="int", default='0', help="In case signal bins for diff.xsec were grouped, the number of grouped bins appears in the name of the process as '<name>_group<n>'");
+parser.add_option("-g", "--group",     dest="group", type="int", default='0', help="In case signal bins for diff.xsec were grouped, the number of grouped bins appears in the name of the process as '<name>_group<n>'. Just for backward compatibility");
 parser.add_option("-c", "--charge",    dest="charge", type="string", default='', help="Charge: either 'plus' or 'minus'");
 parser.add_option("-b", "--bin",       dest="bin", default="", type="string", help="name of the bin. If not given, it becomes 'W<flavour>'")
 parser.add_option("-s", "--syst-file", dest="systfile", default="", type="string", help="File defining the systematics (only the constant ones are used)")
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates, by default it is expected to be in input folder')
-parser.add_option( '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
-parser.add_option( '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', default=False, action='store_true', help='Assign muR, muF and muRmuF to W, not just on Z (those in bins of W-pt will be used for W in any case)')
-parser.add_option( '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
-parser.add_option( '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
-#parser.add_option(   '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
-parser.add_option( '--sig-out-outAcc', dest='sig_out_outAcc' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as an out of acceptance channel, it will be fitted as any signal bin, but form a separate channel')
-parser.add_option(   '--eta-range-outAcc', dest='eta_range_outAcc', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as a separate out-of-acceptance channel in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as out-of-acceptance if at least one edge is outside this range. For the outliers template, use option --sig-out-outAcc')
-parser.add_option(     '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
+parser.add_option(      '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
+parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', default=False, action='store_true', help='Assign muR, muF and muRmuF to W (those in bins of W-pt will be used for W in any case)')
+parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
+parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
+parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
+#parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+parser.add_option(       '--sig-out-outAcc', dest='sig_out_outAcc' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as an out of acceptance channel, it will be fitted as any signal bin, but form a separate channel')
+parser.add_option(       '--eta-range-outAcc', dest='eta_range_outAcc', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as a separate out-of-acceptance channel in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as out-of-acceptance if at least one edge is outside this range. For the outliers template, use option --sig-out-outAcc')
+parser.add_option(       '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
 parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
 parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
-parser.add_option("-S","--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
+parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
+parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics (for now, only works for those passed with --syst-file)")
+parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 (options, args) = parser.parse_args()
 
+print ""
 if not options.indir:
     print "Warning: you must specify an input folder containing the shape files with option -i <dir>"
     quit()
@@ -158,6 +172,11 @@ genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 #genBins.printBinAll()
 
 binning = [genBins.Neta, genBins.etaBins, genBins.Npt, genBins.ptBins]
+
+
+excludeNuisances = []
+if len(options.excludeNuisances):
+    excludeNuisances = options.excludeNuisances.split(",")
 
 # consider some signal bins as background
 # etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
@@ -318,6 +337,7 @@ if options.systfile != "":
             effmap[p] = effect
         systs[name] = effmap
     for name,effmap in systs.iteritems():
+        if isExcludedNuisance(excludeNuisances, name): continue
         card.write(('%-16s lnN' % name) + " ".join([kpatt % effmap[p]   for p in allprocesses]) +"\n")
 
 
@@ -330,31 +350,36 @@ if options.sig_out_bkg and options.wLnN > 0.0:
 # fakes
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
 for syst in fakeSysts:
+    if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
 sortedsystkeys = []
 
-procQCDunbin = ["Z"]
-if options.unbinnedQCDscaleW: WandZ.append(signalMatch)
+procQCDunbin = []
+if options.unbinnedQCDscaleZ: procQCDunbin.append("Z")
+if options.unbinnedQCDscaleW: procQCDunbin.append(signalMatch)
 
 # QCD scales unbinned
 qcdUnbinned = ["muR", "muF", "muRmuF"] 
-for syst in qcdUnbinned:
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
-    if options.unbinnedQCDscaleW: sortedsystkeys.append(syst)
+if len(procQCDunbin):
+    for syst in qcdUnbinned:
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
+        if options.unbinnedQCDscaleW: sortedsystkeys.append(syst)
 
 # W and Z common systematics
 WandZ = [signalMatch, "Z"]
-
 qcdAndPDF = ["pdf%d" % i for i in range(1,61)]
 qcdAndPDF.append("alphaS")
 for syst in qcdAndPDF:
+    if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
 
 # W only
-card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
-sortedsystkeys.append("mW")
+if not isExcludedNuisance(excludeNuisances, "mW"): 
+    card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
+    sortedsystkeys.append("mW")
 
 qcdScale_wptBins = [] 
 for i in range(1,11):
@@ -362,12 +387,14 @@ for i in range(1,11):
     qcdScale_wptBins.append("muF%d" % i)
     qcdScale_wptBins.append("muRmuF%d" % i)
 for syst in qcdScale_wptBins:
+    if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
     
 
 wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 for syst in wExpSysts:
+    if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
 
 effstatOffset = 25 if genBins.Neta == 24 else 26
@@ -377,6 +404,7 @@ for ipar in range(3):
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "ErfPar%dEffStat%d" % (ipar,ietabin)
         EffStat_systs.append(syst)
+        if isExcludedNuisance(excludeNuisances, syst): continue
         etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
         if etaEffStat < 0:
@@ -392,8 +420,9 @@ card.write("scales group = " + ' '.join(qcdScale_wptBins) + "\n\n")
 card.write("alphaS group = alphaS\n\n")
 card.write("wmodel group = mW\n\n")
 card.write("EffStat group = %s\n\n" % ' '.join(EffStat_systs))
-#card.write("scales group = muR muF muRmuF alphaS") 
-#card.write("frshape group = CMS_We_FRe_slope CMS_We_FRe_continuous\n\n")
+if options.unbinnedQCDscaleZ:
+    card.write("Zscales group = muR muF muRmuF") 
+#card.write("fakes group = " + ' '.join(fakeSysts) + " \n\n")
 
 card.write("\n")
 card.write("## THE END!\n")
@@ -477,28 +506,6 @@ for maskChan in maskedChannels:
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     tmp_xsec_dc.close()
 
-
-
-tmp_xsec_dc_name = os.path.join(options.indir,binname+'_{ch}_xsec_card.txt'.format(ch=charge))
-tmp_xsec_dc = open(tmp_xsec_dc_name, 'w')
-tmp_xsec_dc.write("imax 1\n")
-tmp_xsec_dc.write("jmax *\n")
-tmp_xsec_dc.write("kmax *\n")
-tmp_xsec_dc.write('##----------------------------------\n')
-tmp_xsec_dc.write("shapes *  *  %s %s\n" % (tmp_xsec_histfile_name, 'x_$PROCESS x_$PROCESS_$SYSTEMATIC'))
-tmp_xsec_dc.write('##----------------------------------\n')
-tmp_xsec_dc.write('bin {b}\n'.format(b=binname))
-tmp_xsec_dc.write('observation -1\n') ## don't know if that will work...                                                     
-tmp_xsec_dc.write('bin      {s}\n'.format(s=' '.join(['{b}'.format(b=binname) for p in tmp_sigprocs])))
-tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join([p for p in tmp_sigprocs])))
-tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join([str(procNum[pname])  for pname in tmp_sigprocs])))
-tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs)))))
-tmp_xsec_dc.write('# --------------------------------------------------------------\n')
-
-for sys in sortedsystkeys: # this is only theoretical systs
-    # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE                      
-    tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs  else '  -  ' for p in tmp_sigprocs]))) )
-tmp_xsec_dc.close()
 
 ## end of all the xsec construction of datacard and making the file                                                               
 print "Wrote cross section datacard in %s" % tmp_xsec_dc_name

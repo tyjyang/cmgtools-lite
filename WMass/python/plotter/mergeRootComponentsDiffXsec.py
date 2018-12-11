@@ -1,4 +1,5 @@
-#!/usr/bin/env python                                                                                                                                                        
+#!/usr/bin/env python                                                       
+ 
 #from shutil import copyfile
 import re, sys, os, os.path, ROOT
 from array import array
@@ -31,6 +32,7 @@ parser.add_option("-n", "--name",      dest="name",   type="string", default="",
 parser.add_option("-s", "--suffix",    dest="suffix", type="string", default="", help="Suffix to add to output file before extension. Ineffective if using option -n < name>");
 parser.add_option("-f", "--flavour",   dest="flavour", type="string", default='', help="Channel: either 'el' or 'mu'");
 parser.add_option("-c", "--charge",    dest="charge", type="string", default='', help="Charge: either 'plus' or 'minus'");
+parser.add_option(      "--qcdsyst-Z", dest="useQCDsystForZ", action="store_true", default=False, help="If False (default) do not store the muR,muF,muRmuF variations for Z (if they were be present)");
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -89,6 +91,8 @@ if not options.dryrun: os.system(cmdMerge)
 
 print "Remove x_data_obs from Z, and replace 'x_Z_dy_' with 'x_Z_'"
 print "Also changing Dn to Down"
+if not options.useQCDsystForZ:
+    print "Will reject the QCD scales variations on Z (muR, muF, muRmuF)"
 nZcopied = 0
 # open new Z file to remove data from input file
 #----------------------------------
@@ -112,6 +116,8 @@ if not options.dryrun:
         if not obj:
             raise RuntimeError('Unable to read object {n}'.format(n=name))
         if "data_obs" in name: continue
+        if not options.useQCDsystForZ:
+            if any(x in name for x in ["muR", "muF", "muRmuF"]): continue
         if "x_Z_dy_" in name: newname = name.replace("x_Z_dy_","x_Z_")
         else: newname = name
         if name == "x_Z": znominal = obj.Clone(name)
@@ -125,7 +131,7 @@ if not options.dryrun:
 
     for h in zpdf:
         nMirroredPDF += 1
-        (alternate,mirror) = mirrorShape(znominal,h,h.GetName())
+        (alternate,mirror) = mirrorShape(znominal,h,h.GetName(),use2xNomiIfAltIsZero=True)
         for alt in [alternate,mirror]:
             alt.Write()
 

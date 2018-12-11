@@ -1,9 +1,5 @@
 #! /bin/bash
 
-# lumi = 35.9/fb if using run2016 B to H, otherwise it is 19.3
-# check in mca file which MC is being used for Z, amc@NLO, madgraph or powheg
-# selection and mca of fake rate to see how plots look like
-
 # This script prints the commands to produce plots or send jobs to manage the production 
 
 echo ""
@@ -18,33 +14,9 @@ plotterPath="${CMSSW_BASE}/src/CMGTools/WMass/python/plotter"
 #ptcorr="LepGood1_calPt"
 ptcorr="ptElFull(LepGood1_calPt,LepGood1_eta)"
 
-inEB=" -A eleKin EB 'abs(LepGood1_eta) < 1.479' "
-inEE=" -A eleKin EE 'abs(LepGood1_eta) > 1.479' "
-
-not_pass_tightWP="-A eleKin not-fullTightID 'LepGood1_tightId < 3 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0588 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.0571 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0695 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.0821 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP_iso0p2="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP_iso0p15="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.15 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.15 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_looseWP="-A eleKin not-fullLooseID 'LepGood1_tightId < 1 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0994 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.107 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_looseWP_iso0p2="-A eleKin not-fullLooseID 'LepGood1_tightId < 1 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-# use bult-in functions in functions.cc, which automatically select EB or EE, manage cuts and so on
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator2016((abs(LepGood1_eta)<1.479),LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#notFRnumSel="-A eleKin failFRnumSel 'pass_FakerateApplicationRegion2016(abs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-
 # use variables in friend trees, which were filled with the conditions to pass the ID+iso (the one we decided to use at the moment)
 FRnumSel=" -A eleKin FRnumSel 'LepGood1_customId == 1 && LepGood1_tightChargeFix == 2' "  #looseID + iso<0.2 in EB, medium ID in EE
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator_loose2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator_medium2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-
 notFRnumSel="-A eleKin failFRnumSel 'LepGood1_customId == 0 || LepGood1_tightChargeFix != 2' " #looseID + iso<0.2 in EB, medium ID in EE
-#notFRnumSel="-A eleKin failFRnumSel ' !pass_FakerateNumerator_loose2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#notFRnumSel="-A eleKin failFRnumSel ' !pass_FakerateNumerator2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
 
 #Wsel="-A eleKin WregionSel 'ptElFull(LepGood1_calPt,LepGood1_eta) > 30 && ptElFull(LepGood1_calPt,LepGood1_eta) < 45'"
 Wsel="-A eleKin WregionSel 'ptElFull(LepGood1_calPt,LepGood1_eta) > 30'"
@@ -93,11 +65,9 @@ fi
 
 #useHLTpt27="y" # already in selection txt file
 runCondor="y"
-queueForCondor="cmscaf1nd"
 nameTag="_sigEffAndScaleSyst" 
 #nameTag="_varStudy"
 useLessMC="n"
-useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
 #etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
@@ -535,13 +505,9 @@ do
 	echo "# Doing ${thisRegionKey}"
 	echo "#----------------------------------"
 
-	if [[ "${useSkimmedTrees}" == "y" ]]; then
-	    treedir="${skimTreeDir[${region}]}" 
-	else 
-	    treedir="TREES_1LEP_80X_V3"
-	fi
-
+	treedir="${skimTreeDir[${region}]}" 
 	treepath="" # set below depending on where we are
+
 	if [[ ${host} == *"pccmsrm28"* ]]; then
 	    treepath="/u2/emanuele/wmass/" # from pccmsrm28 
 	elif [[ ${host} == *"lxplus"* ]]; then
@@ -603,18 +569,6 @@ do
 	    else
 		regionCommand="${regionCommand} --xp data_fakes"
 	    fi
-
-	    # if [[ "${useWinclusive}" != "y" ]]; then
-	    # 	if [[ "${skimTreeDir[${region}]}" == "TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ]]; then
-	    # 	    #regionCommand="${regionCommand/${mcafile}/${mcafileTINY}}"
-	    # 	    regionCommand="${regionCommand} --xp Wincl"	
-	    # 	elif [[ "${skimTreeDir[${region}]}" == *"TREES_1LEP_80X_V3_FRELSKIM_V"* ]]; then
-	    # 	    #regionCommand="${regionCommand/${mcafile}/${mcafileFRskim}}"
-	    # 	    regionCommand="${regionCommand} --xp W,TauDecaysW,WFlips"	
-	    # 	else
-	    # 	    regionCommand="${regionCommand} --xp Wincl"		
-	    # 	fi
-	    # fi
 
 	fi
 
