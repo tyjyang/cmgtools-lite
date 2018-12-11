@@ -12,9 +12,8 @@ expected = [' -t 0 ',' -t -1 ']
 BBBs = ['',' --binByBinStat --correlateXsecStat ']
 
 for ipm,POImode in enumerate(pois):
-    card = cardsdir+"W{chan}_card_withXsecMask.hdf5".format(chan=channel) if len(POImode)==0 else cardsdir+'W{chan}_card.hdf5'.format(chan=channel)
+    card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if len(POImode)==0 else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
     doImpacts = ' --doImpacts ' if ipm==1 else ''
-    if ipm==0: continue
     for iexp,exp in enumerate(expected):
         saveHist = ' --saveHists --computeHistErrors ' #if (iexp==0 and ipm==1) else ''
         for ibbb,bbb in enumerate(BBBs):
