@@ -34,7 +34,7 @@ if __name__ == '__main__':
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-        systs  = ['pdf', 'alphaS']
+        systs  = ['pdf', 'alphaS', 'mW']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
             os.system(cmd)
             for charge in ['plus','minus']:
-                cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
+                cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
                 os.system(cmdpull)
 
     ## do this at the end, it takes the longest
