@@ -130,6 +130,78 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
+def putUncorrelatedFakes(infile,regexp,charge):
+    binninPtEtaFile = open(options.inputdir+'/binningPtEta.txt','r')
+    bins = binninPtEtaFile.readlines()[1].split()[1]
+    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+    nbinseta = len(etabins)-1
+    nbinspt  = len( ptbins)-1
+    binning = [nbinseta, etabins, nbinspt, ptbins]
+
+    isMu = 'mu' in options.bin
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    outfile = ROOT.TFile(options.inputdir+'/FakesEtaUncorrelated_{ch}.root'.format(ch=charge), 'recreate')
+
+    ndone = 0
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+
+        #if ndone: continue
+        ndone += 1
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting the fake contribution for uncorrelated bins in eta for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        ## absolute eta borders:
+        etaBorders = [0.5, 1.0, 1.5, 2.0]
+        ## construct positive and negative eta borders symmetrically
+        etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
+        borderBins = [1]
+        ## now get the actual bin number of the border bins
+        for i in etaBorders:
+            borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
+        borderBins += [len(etabins)]
+
+        ## loop over all eta bins of the 2d histogram
+        for ib, borderBin in enumerate(borderBins[:-1]):
+
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_FakesEtaUncorrelated{ib}2DROLLED'.format(ib=ib+1)
+        
+            tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+            tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+            
+            for ieta in range(borderBin,borderBins[ib+1]):
+                ## loop over all pT bins in that bin of eta (which is ieta)
+                for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                    tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                    scaling = 0.05
+                    ## scale up and down with what we got from the histo
+                    tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                    tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                    tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                    tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+
+            ## re-roll the 2D to a 1D histo
+            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
+            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+
+            outfile.cd()
+            tmp_scaledHisto_up_1d.Write()
+            tmp_scaledHisto_dn_1d.Write()
+    outfile.Close()
+    print 'done with the reweightings for the uncorrelated fake systematics'
+            
+
 def putEffStatHistos(infile,regexp,charge):
     binninPtEtaFile = open(options.inputdir+'/binningPtEta.txt','r')
     bins = binninPtEtaFile.readlines()[1].split()[1]
@@ -192,8 +264,8 @@ def putEffStatHistos(infile,regexp,charge):
                     tmp_scale = parhist.GetBinContent(parhist.GetXaxis().FindBin(eta),parhist.GetYaxis().FindBin(ybincenter))
                     scaling = math.sqrt(2.)*tmp_scale
                     ## scale up and down with what we got from the histo
-                    tmp_bincontent_up = tmp_bincontent*(1+scaling)
-                    tmp_bincontent_dn = tmp_bincontent*(1-scaling)
+                    tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                    tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
                     tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
                     tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
 
@@ -394,7 +466,10 @@ if __name__ == "__main__":
 
             print 'now putting the erfpar systeamtics into the file'
             putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge)
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir )
+            print 'now putting the uncorrelated eta variations for fakes'
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge)
+
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{ch}.root {indir}/FakesEtaUncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir )
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -412,7 +487,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR.*|.*_muF.*',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*ErfPar\dEffStat.*',name):
+                if re.match('.*ErfPar\dEffStat.*|.*FakesEtaUncorrelated.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical sysematics: ",theosyst.keys()
