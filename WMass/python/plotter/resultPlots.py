@@ -34,7 +34,7 @@ if __name__ == '__main__':
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-        systs  = ['pdf', 'alphaS']
+        systs  = ['pdf', 'alphaS', 'mW']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]

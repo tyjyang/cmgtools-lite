@@ -378,8 +378,8 @@ if __name__ == "__main__":
             for i,p in enumerate(procs):
                 keyplot = p if 'obs' in p else p+'_'+prepost
                 h1_1 = infile.Get('expproc_{p}_{sfx}'.format(p=p,sfx=prepost)) if 'obs' not in p else infile.Get('obs')
-                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
                 if not h1_1: continue # muons don't have Flips components
+                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
                 h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift)
                 bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
