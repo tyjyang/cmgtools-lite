@@ -70,6 +70,8 @@ if __name__ == "__main__":
 
     if any(re.match('pdf.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]), reverse=False)
+    elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
+        params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
         params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
 
