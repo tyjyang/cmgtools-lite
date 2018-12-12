@@ -213,10 +213,11 @@ def putEffStatHistos(infile,regexp,charge):
 
     isMu = 'mu' in options.bin
 
+    basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
-        parfile_name = '{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'.format(cmssw=os.environ['CMSSW_BASE'])
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
     else:
-        parfile_name = '{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root'.format(cmssw=os.environ['CMSSW_BASE'])
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
     parfile = ROOT.TFile(parfile_name, 'read')
     
