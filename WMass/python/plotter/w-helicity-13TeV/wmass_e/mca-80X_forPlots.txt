@@ -75,18 +75,18 @@ TopVVFlips  : WZ+WZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="others", NormSys
 TopVVFlips  : ZZ+ZZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.05
 TopVVFlips  : WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge==-24 ; FillColor=ROOT.kGreen+2  , Label="others", NormSystematic=0.10
 
-TauTopVV  : NoSkim_WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kSpring+9   ,  Label="other EWK", NormSystematic=0.30
-TauTopVV  : TTJets_SingleLeptonFromT_* :  xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.09
-TauTopVV  : TTJets_SingleLeptonFromTbar_* :  xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.09
-TauTopVV  : TToLeptons_sch_amcatnlo :      xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.04
-TauTopVV  : T_tch_powheg_part* :     xsec;  FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.04
-TauTopVV  : TBar_tch_powheg_part* :     xsec;  FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.04
-TauTopVV  : T_tWch_ext :      xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.06
-TauTopVV  : TBar_tWch_ext :   xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.06
-TauTopVV : WW+WW_ext : xsec;      FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.03
-TauTopVV : WZ+WZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.05
-TauTopVV : ZZ+ZZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="other EWK", NormSystematic=0.05
-
+TauTopVVFlips  : NoSkim_WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kGreen+2   ,  Label="others", NormSystematic=0.30
+TauTopVVFlips  : TTJets_SingleLeptonFromT_* :  xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.09
+TauTopVVFlips  : TTJets_SingleLeptonFromTbar_* :  xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.09
+TauTopVVFlips  : TToLeptons_sch_amcatnlo :      xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.04
+TauTopVVFlips  : T_tch_powheg_part* :     xsec;  FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.04
+TauTopVVFlips  : TBar_tch_powheg_part* :     xsec;  FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.04
+TauTopVVFlips  : T_tWch_ext :      xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.06
+TauTopVVFlips  : TBar_tWch_ext :   xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.06
+TauTopVVFlips  : WW+WW_ext : xsec;      FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.03
+TauTopVVFlips  : WZ+WZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.05
+TauTopVVFlips  : ZZ+ZZ_ext : xsec; FillColor=ROOT.kGreen+2, Label="others", NormSystematic=0.05
+TauTopVVFlips  : WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge==-24 ; FillColor=ROOT.kGreen+2  , Label="others", NormSystematic=0.10
 
 TauDecaysW : NoSkim_WJetsToLNu_NLO* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kSpring+9   ,  Label="W\#rightarrow\#tau\#nu", NormSystematic=0.30
 

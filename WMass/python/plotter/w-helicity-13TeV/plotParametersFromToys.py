@@ -18,7 +18,7 @@ syspath.append(os.getcwd() + "/plotUtils/")
 from utility import addStringToEnd,createPlotDirAndCopyPhp
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
-
+from subMatrix import niceName
 
 lat = ROOT.TLatex(); lat.SetNDC()
 
@@ -70,6 +70,10 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         elif paramFamily == "absxsec":
             pois="W{ch}.*_pmaskedexp".format(ch=charge)
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,200,getPull=plotPull,matchBranch=pois,
+                                                              excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
+        elif paramFamily == "normxsec":
+            pois="W{ch}.*_pmaskedexpnorm".format(ch=charge)
+            all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,1,getPull=plotPull,matchBranch=pois,
                                                               excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
     else:
         # warning: utilities.getHistosFromToys is working only for parameters centered around 0 (histogram is defined in -3,3)
@@ -123,6 +127,8 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
     c.cd()
     c.SetLeftMargin(0.14)
     c.SetRightMargin(0.06)
+    c.SetTopMargin(0.05)
+    c.SetBottomMargin(0.2)
     c.cd()
 
     if isSignalStrength:
@@ -247,6 +253,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
 
             pull_rms      = ROOT.TH1F("pull_rms_{pp}".format(pp=str(pullPlots)) ,"", 3*nThisPulls+1,0,nThisPulls*3+1);
             pull_effsigma = ROOT.TH1F("pull_effsigma_{pp}".format(pp=str(pullPlots)) ,"", 3*nThisPulls+1,0,nThisPulls*3+1);
+            pull_median   = ROOT.TH1F("pull_median_{pp}".format(pp=str(pullPlots)) ,"", 3*nThisPulls+1,0,nThisPulls*3+1);
             pi=1
             sortedpulls = []
             if 'pdf' in pois:
@@ -254,7 +261,7 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             # following condition should not happen (parameter is not centered around 0)
             #elif 'masked' in pois:
             #elif any([x in pois for x in ["Wplus","Wminus"]]) and not "masked" in pois:
-            elif isSignalStrength or paramFamily == "absxsec":
+            elif isSignalStrength or paramFamily == "absxsec" or paramFamily == "normxsec":
                 keys = pullSummaryMap.keys()
                 if analysis == "helicity":
                     keys_l = list(k for k in keys if 'left' in k)
@@ -276,14 +283,25 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             for name in sortedpulls:
                 if pi>nThisPulls: break
                 pull = pullSummaryMap[name]
-                pull_rms     .SetBinContent(3*pi+0,pull[0]);  pull_rms     .SetBinError(3*pi+0,pull[1])
-                pull_effsigma.SetBinContent(3*pi+1,pull[2]);  pull_effsigma.SetBinError(3*pi+1,pull[3])
+
+                pull_rms.SetBinContent(3*pi+0,pull[0])
+                pull_rms.SetBinError(3*pi+0,pull[1])
+
+                pull_effsigma.SetBinContent(3*pi+1,pull[2])
+                pull_effsigma.SetBinError(3*pi+1,pull[3])
+                if useMedian:
+                    pull_median.SetBinContent(3*pi+1,mean_p)  
+                    pull_median.SetBinError(3*pi+1,0)
 
                 newname = name
-                if isSignalStrength:
-                    newname = "_".join(name.split("_")[:6])
-                elif paramFamily == "absxsec":
-                    newname = "_".join(name.split("_")[:6]) + "_xsec"
+                # if isSignalStrength:
+                #     newname = "_".join(name.split("_")[:6])
+                # elif paramFamily == "absxsec":
+                #     newname = "_".join(name.split("_")[:6]) + "_xsec"
+                # elif paramFamily == "normxsec":
+                #     newname = "_".join(name.split("_")[:6]) + "_xsecNorm"
+                if isSignalStrength or paramFamily == "absxsec" or paramFamily == "normxsec":
+                    newname = niceName(name)
                 pull_rms.GetXaxis().SetBinLabel(3*pi,newname)
                 pull_rms.GetXaxis().SetTickSize(0.)
                 
@@ -296,11 +314,11 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             #pull_rms .SetMarkerColor(46); pull_rms .SetLineColor(45); pull_rms .SetLineWidth(2); pull_rms .SetMarkerSize(1.0); pull_rms .SetMarkerStyle(21); 
             #pull_effsigma .SetMarkerColor(21); pull_effsigma .SetLineColor(24); pull_effsigma .SetLineWidth(2); pull_effsigma .SetMarkerSize(1.0); pull_effsigma .SetMarkerStyle(22)
 
-            NmaxChar = 1
-            for name in sortedpulls:
-                NmaxChar = max(NmaxChar,len(name))
-            if NmaxChar >= 8:
-                hc.SetBottomMargin(0.2)  # hardcoded and not optimized I just looked at a random pull plot with the CMS_We_elescale and QCD scales parameters            
+            # NmaxChar = 1
+            # for name in sortedpulls:
+            #     NmaxChar = max(NmaxChar,len(name))
+            # if NmaxChar >= 8:
+            #     hc.SetBottomMargin(0.2)  # hardcoded and not optimized I just looked at a random pull plot with the CMS_We_elescale and QCD scales parameters            
 
             pull_rms .SetMarkerColor(ROOT.kRed+2); 
             pull_rms .SetLineColor(ROOT.kRed); pull_rms .SetLineWidth(3); 
@@ -309,6 +327,12 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             pull_effsigma .SetMarkerColor(ROOT.kBlack); 
             pull_effsigma .SetLineColor(ROOT.kGray+2);   pull_effsigma .SetLineWidth(3); 
             pull_effsigma .SetMarkerSize(1.0);           pull_effsigma .SetMarkerStyle(22)
+
+            pull_median.SetMarkerColor(ROOT.kBlack); 
+            pull_median.SetLineColor(ROOT.kBlack);    
+            pull_median.SetLineWidth(3); 
+            pull_median.SetMarkerSize(1.5);           
+            pull_median.SetMarkerStyle(20)
 
             pull_rms.SetLabelSize(pullLabelSize)
             pull_rms.LabelsOption("v")
@@ -333,6 +357,14 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             leg.AddEntry(pull_rms,"Gaussian #sigma")
             leg.AddEntry(pull_effsigma,"Effective #sigma")
             leg.Draw("same")
+
+            legMedian = ROOT.TLegend(0.15, 0.80, 0.4, 0.90)
+            if useMedian:
+                legMedian.SetFillStyle(0)
+                legMedian.SetBorderSize(0)
+                legMedian.AddEntry(pull_median,"Median","PL")
+                legMedian.Draw("same")
+
             param_group=pois.replace('.*','').replace(',','_')
             for ext in ['png', 'pdf']:
                 hc.SaveAs("{pdir}/pullSummaryToys_{params}_{igroup}_{ch}_{c}.{ext}".format(pdir=plotdir,ch=charge,suffix="_"+suffix,params=param_group,igroup=pullPlots,c=channel,ext=ext))
@@ -349,7 +381,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage='%prog toys.root [options] ')
     parser.add_option(      '--parameters'  , dest='pois'     , default='pdf.*', type='string', help='comma separated list of regexp parameters to run. default is all parameters! Better to select parameters belonging to the same family, like, pdfs, qcd scales, signal strengths ...')
-    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, shapesyst, normsyst, signalStrength, absxsec')
+    parser.add_option(      '--param-family'  , dest='poisFamily'     , default=None, type='string', help='Parameter family: pdf, scale, shapesyst, normsyst, signalStrength, absxsec, normxsec')
     parser.add_option(      '--exclude-param'  , dest='excludeParam'     , default=None, type='string', help='Work as --parameters, but matches will be excluded from the list of parameters (e.g., can exclude a given pdf, pmaskednorm to match only pmasked and so on)')
     parser.add_option('-c', '--charge'      , dest='charge'  , default=''      , type='string', help='Specify charge (plus,minus)')
     parser.add_option('-f', '--flavour'     , dest='flavour'  , default=''      , type='string', help='Specify flavour (el,mu)')
@@ -376,7 +408,7 @@ if __name__ == "__main__":
         print "Warning: you must specify lepton charge. Use -c plus|minus. Exit"
         exit(0)
         
-    allowedPOIfamily = ["pdf", "scale", "signalStrength", "absxsec", "normsyst", "shapesyst"]
+    allowedPOIfamily = ["pdf", "scale", "signalStrength", "absxsec", "normxsec", "normsyst", "shapesyst"]
     if options.poisFamily and not (options.poisFamily in allowedPOIfamily):
         print "Warning: POI family not recognized, must be one of %s" % ",".join(allowedPOIfamily)
         exit(0)
@@ -386,6 +418,7 @@ if __name__ == "__main__":
     outname = options.plotdir
     addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
     outname = outname + options.charge + "/"
+    if options.poisFamily: outname = outname + options.poisFamily + ("_pull/" if options.plotpull else "/") 
     createPlotDirAndCopyPhp(outname)
 
     toyfile = args[0]

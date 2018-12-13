@@ -1,3 +1,4 @@
+
 import ROOT, os, sys, re, array, math, json
 
 class util:
@@ -235,6 +236,8 @@ class util:
             #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
             if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
+                tree.SetBranchStatus(p.GetName()+"_gen",1)
+                tree.SetBranchStatus(p.GetName()+"_err",1)
                 #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
                 tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
                 if self.isRecentRelease:
@@ -277,6 +280,8 @@ class util:
                 _dict[p.GetName()] = (mean, mean+err, mean-err, tmp_hist)
 
             tree.SetBranchStatus(p.GetName(),0)
+            tree.SetBranchStatus(p.GetName()+"_gen",0)
+            tree.SetBranchStatus(p.GetName()+"_err",0)
      
         return _dict
 

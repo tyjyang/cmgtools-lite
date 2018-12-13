@@ -198,7 +198,9 @@ void fillHistograms(const string& treedir = "./",
   TTreeReaderValue<Float_t> genWeight(reader,"genWeight");
 
   // // W MC specific branches
-  TTreeReaderValue<Int_t> nGenLep(reader,usePreFSRvar ? "nGenLepPreFSR" : "nGenLepDressed");
+  // apparently it is UInt_t for electrons, and Int_t for muons
+  //TTreeReaderValue<UInt_t> nGenLep(reader,usePreFSRvar ? "nGenLepPreFSR" : "nGenLepDressed");
+  //TTreeReaderValue<Int_t> nGenLep(reader,usePreFSRvar ? "nGenLepPreFSR" : "nGenLepDressed");
 
   // value instead of array because they have only 1 entry per event
   // this suppresses the following error

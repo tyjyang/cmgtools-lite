@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_option('-f','--friend', dest='friend', default='', type='string', help='Root file with friend tree containing total xsec (it does not include the outliers). Tree name is assumed to be "toyFriend"')
     parser.add_option('-l','--lumi-norm', dest='lumiNorm', default='-1', type='float', help='If > 0, divide cross section by this factor (lumi in 1/Pb)')
     parser.add_option('-n','--norm-width', dest='normWidth' , default=False , action='store_true',   help='Normalize cross section histograms dividing by bin width')
-    parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty, and will not plot the differential cross section')
+    parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty')
     parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
     parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='.', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data. If SAME, use same file as data and take _gen variables to get the expected')
     (options, args) = parser.parse_args()
@@ -163,6 +163,9 @@ if __name__ == "__main__":
     else:
         zaxisTitle = "Asymmetry::0.05,0.35"
         if channel == "el": zaxisTitle = "Asymmetry::0.05,0.35"
+    zaxisTitle = "Asymmetry::%.3f,%.3f" % (hChAsymm.GetBinContent(hChAsymm.GetMinimumBin()),
+                                           hChAsymm.GetBinContent(hChAsymm.GetMaximumBin()))
+
     drawCorrelationPlot(hChAsymm,
                         xaxisTitle, yaxisTitle, zaxisTitle,
                         hChAsymm.GetName(),
@@ -170,7 +173,8 @@ if __name__ == "__main__":
 
     if not options.hessian:
 
-        zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,0.99*hChAsymmErr.GetMinimum()),min(0.10,1.01*hChAsymmErr.GetMaximum()))
+        zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
+                                                           min(0.50,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
         #zaxisTitle = "Asymmetry uncertainty::0,0.04" 
         drawCorrelationPlot(hChAsymmErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
@@ -180,10 +184,12 @@ if __name__ == "__main__":
         hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
         hChAsymmRelErr.Divide(hChAsymm)
         hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
-        zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+        #zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
                                                                     min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
                                                                     )
-        zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
+        #zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
+        zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+                                                                    min(0.50,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
         drawCorrelationPlot(hChAsymmRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hChAsymmRelErr.GetName(),
@@ -329,7 +335,7 @@ if __name__ == "__main__":
                             hMu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=55)
 
-        zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
+        zaxisTitle = "uncertainty on signal strength #mu::0.0,0.5"
         if options.hessian: zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
         drawCorrelationPlot(hMuErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,

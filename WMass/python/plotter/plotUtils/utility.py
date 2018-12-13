@@ -345,32 +345,35 @@ def drawCorrelationPlot(h2D_tmp,
     #     print "Check: hist %s: Z axis title = %s" % (h2DPlot.GetName(),h2DPlot.GetZaxis().GetTitle())
     #     print "="*20
 
-    # attempt to make Z axis title farther depending on how many digits are printed
-    maxZaxisVal = h2DPlot.GetBinContent(h2DPlot.GetMaximumBin())
-    if (setZAxisRangeFromUser): maxZaxisVal = zmax
+    # # attempt to make Z axis title farther depending on how many digits are printed
+    # maxZaxisVal = h2DPlot.GetBinContent(h2DPlot.GetMaximumBin())
+    # if (setZAxisRangeFromUser): maxZaxisVal = zmax
 
-    if maxZaxisVal >= 1.0:
-        rootYear = int(str(ROOT.gROOT.GetVersionDate())[:4])        
-        if (rootYear > 2016):
-            h2DPlot.GetZaxis().SetMaxDigits(3)
-        else:
-            print "Warning in drawCorrelationPlot: TAxis::SetMaxDigits() not implemented for ROOT versions before 2017 (rough estimate)"
-            print "Will not exit, but instruction will be neglected"
-        if maxZaxisVal > 9999.:
-            h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.15)
-            print "Changing title offset by 0.15"
-    else:
-        i = 1
-        tryNext = True
-        while (tryNext and i < 6):
-            tmpVal = maxZaxisVal * pow(10,i)
-            if tmpVal >= 1.0: tryNext = False 
-            else: i += 1
-        if i > 1:            
-            print "Max Z axis < 1, will try to adjust distance of Z axis title to Z axis"
-            print "i = %d: will move Z axis offset by 0.45" % i
-            # for numbers like 0.025 or with more 0 after ., make increase distance between Z axis title and the Z axis
-            h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.45)
+    # if maxZaxisVal >= 1.0:
+    #     rootYear = int(str(ROOT.gROOT.GetVersionDate())[:4])        
+    #     if (rootYear > 2016):
+    #         h2DPlot.GetZaxis().SetMaxDigits(3)
+    #     else:
+    #         print "Warning in drawCorrelationPlot: TAxis::SetMaxDigits() not implemented for ROOT versions before 2017 (rough estimate)"
+    #         print "Will not exit, but instruction will be neglected"
+    #     if maxZaxisVal > 9999.:
+    #         h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.15)
+    #         print "Changing title offset by 0.15"
+    # else:
+    #     i = 1
+    #     tryNext = True
+    #     while (tryNext and i < 6):
+    #         tmpVal = maxZaxisVal * pow(10,i)
+    #         if tmpVal >= 1.0: tryNext = False 
+    #         else: i += 1
+    #     if i > 1:            
+    #         print "Max Z axis < 1, will try to adjust distance of Z axis title to Z axis"
+    #         print "i = %d: will move Z axis offset by 0.45" % i
+    #         # for numbers like 0.025 or with more 0 after ., make increase distance between Z axis title and the Z axis
+    #         h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.45)
+
+    h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.4)
+
 
     h2DProfile = 0
     if drawProfileX:

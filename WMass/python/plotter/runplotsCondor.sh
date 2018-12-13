@@ -65,7 +65,7 @@ fi
 
 #useHLTpt27="y" # already in selection txt file
 runCondor="y"
-nameTag="_sigEffAndScaleSyst" 
+nameTag="_PUtest_withPUweight" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -112,7 +112,7 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
 #selectplots="ptl1_narrow,etal1_binFR"
-selectplots="etal1_binFR"
+selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
 #selectplots="ptl1_narrow"
 #selectplots="ptl1__etal1_binFR"
@@ -136,9 +136,9 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-#ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi' "
-ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
+#ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -199,7 +199,7 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="y"
+runRegion["FRcheckRegion"]="n"
 regionName["FRcheckRegion"]="FR_check_region"
 #skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
 skimTreeDir["FRcheckRegion"]="TREE_4_XSEC_AFS"
@@ -248,14 +248,14 @@ runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 #skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
-#skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
-skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
+skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
+#skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
 regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,TopVVFlips --scaleSigToData --sp data_fakes " # " --fitData "
+scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips " #--scaleSigToData --sp data_fakes " # " --fitData "
 #scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn  "
-scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
@@ -413,6 +413,7 @@ if [[ "${useDataGH}" == "y" ]]; then
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
     MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    #MCweigthOption=" -W 'lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
     #MCweigthOption=" -W '1' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
