@@ -123,13 +123,13 @@ if __name__ == '__main__':
         print 'running diffNuisances'
         tmp_outdir = options.outdir+'/diffNuisances/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        os.system('cp ~emanuele/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
-                    diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
+                    diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)
