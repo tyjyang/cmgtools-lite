@@ -1,6 +1,6 @@
 basedir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV'
 cardsdir = basedir+'/cards_el'
-fitsdir = basedir+'/fits/tf/11-12-18-lnN50fakes'
+fitsdir = basedir+'/fits/tf/13-12-18'
 toysdir = basedir+'/toys/tf/21-11-18'
 
 ### FLOATING POIS ###
