@@ -168,8 +168,9 @@ if __name__ == "__main__":
             fmtstring = "%-40s & %15s \\\\"
             txtfile.write( "\\begin{tabular}{|l|r|} \\hline \n")
             what = r"\Delta x/\sigma_{\text{in}}$, $\sigma_{\text{out}}/\sigma_{\text{in}}$"
-            txtfile.write( fmtstring % ('', '$s+b$ fit', '\n'))
-            txtfile.write((fmtstring % ('name', what)), " \\hline \n")
+            txtfile.write( fmtstring % ('', '$s+b$ fit\n'))
+            txtfile.write((fmtstring % ('name', what)))
+            txtfile.write(" \\hline \n")
     elif options.format == 'html':
         pmsub  = (r"(\S+) \+/- (\S+)", r"\1 &plusmn; \2")
         sigsub = ("sig", r"&sigma;")
