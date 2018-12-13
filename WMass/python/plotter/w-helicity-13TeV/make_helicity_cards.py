@@ -313,7 +313,8 @@ if options.addQCDSyst:
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')
 
-writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
+# not needed if we fit eta/pt. Will be needed if we fit another variable correlated with eta/pt
+# writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
 
 ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
 BASECONFIG=os.path.dirname(MCA)
