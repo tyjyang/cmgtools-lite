@@ -314,7 +314,9 @@ float eleSF_Clustering(float pt, float eta) {
 
 float eleSF_L1Eff(float pt, float eta, bool geterr=false) {
   float sf;
-  if (fabs(eta)<1.479 || pt<35) sf = geterr ? 0.0 : 1.0;
+  if (fabs(eta)<1.479 || pt<35) {
+    sf = geterr ? 0.0 : 1.0;
+  }
   else sf = _get_electronSF_anyStep(pt,eta,4,geterr);
   return sf;
 }

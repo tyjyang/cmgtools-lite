@@ -34,10 +34,12 @@ if __name__ == '__main__':
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
-        systs  = ['pdf', 'alphaS']
+        systs  = ['pdf', 'alphaS', 'mW']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += ['CMS_We_FRe_continuous,CMS_We_FRe_slope','CMS_We_sig_lepeff']
+        systs += [','+','.join(['FakesEtaUncorrelated%d'%i for i in xrange(1,11)])]
         for nuis in systs:
             os.system('python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
 
@@ -87,7 +89,7 @@ if __name__ == '__main__':
             cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
             os.system(cmd)
             for charge in ['plus','minus']:
-                cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {prepost}{suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
+                cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
                 os.system(cmdpull)
 
     ## plot impacts
@@ -121,13 +123,13 @@ if __name__ == '__main__':
         print 'running diffNuisances'
         tmp_outdir = options.outdir+'/diffNuisances/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        os.system('cp ~emanuele/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
-                    diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
+                    diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)

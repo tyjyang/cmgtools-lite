@@ -32,7 +32,7 @@ if __name__ == "__main__":
     infile = options.infile
 
     os.system('mkdir -p {od}'.format(od=options.outdir))
-    os.system('cp ~mdunser/public/index.php {od}'.format(od=options.outdir))
+    os.system('cp ~emanuele/public/index.php {od}'.format(od=options.outdir))
 
     #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
     pois_regexps = list(options.pois.split(','))
@@ -44,11 +44,6 @@ if __name__ == "__main__":
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
-
-
-    setUpString = "diffNuisances run on %s, at %s with the following options ... "%(infile,datetime.datetime.utcnow())+str(options)
-    date = datetime.date.today().isoformat()
-
 
     print 'looking for regexp match', pois_regexps    
     valuesAndErrors = {}
@@ -70,6 +65,8 @@ if __name__ == "__main__":
 
     if any(re.match('pdf.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]), reverse=False)
+    elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
+        params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
         params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
 
@@ -139,77 +136,81 @@ if __name__ == "__main__":
     #----------
     # print the results
     #----------
-    uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
-    txtfilename = "{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=options.format)
-    txtfile = open(txtfilename,'w')
-
-    #print details
-    print setUpString
-    print 
-
-    fmtstring = "%-40s     %15s"
-    highlight = "*%s*"
-    morelight = "!%s!"
-    pmsub, sigsub = None, None
-    if options.format == 'text':
-        txtfile.write(fmtstring % ('name', 's+b fit\n'))
-    elif options.format == 'latex':
-        pmsub  = (r"(\S+) \+/- (\S+)", r"$\1 \\pm \2$")
-        sigsub = ("sig", r"$\\sigma$")
-        highlight = "\\textbf{%s}"
-        morelight = "{{\\color{red}\\textbf{%s}}}"
-        if options.absolute_values:
-            fmtstring = "%-40s &  %15s & %30s \\\\"
-            txtfile.write( "\\begin{tabular}{|l|r|r|r|} \\hline \n")
-            txtfile.write( (fmtstring % ('name', 'pre fit', '$s+b$ fit')), " \\hline \n")
-        else:
-            fmtstring = "%-40s & %15s \\\\"
-            txtfile.write( "\\begin{tabular}{|l|r|} \\hline \n")
-            what = r"\Delta x/\sigma_{\text{in}}$, $\sigma_{\text{out}}/\sigma_{\text{in}}$"
-            txtfile.write( fmtstring % ('', '$s+b$ fit', '\n'))
-            txtfile.write((fmtstring % ('name', what)), " \\hline \n")
-    elif options.format == 'html':
-        pmsub  = (r"(\S+) \+/- (\S+)", r"\1 &plusmn; \2")
-        sigsub = ("sig", r"&sigma;")
-        highlight = "<b>%s</b>"
-        morelight = "<strong>%s</strong>"
-        txtfile.write("""
-    <html><head><title>Comparison of nuisances</title>
-    <style type="text/css">
-        td, th { border-bottom: 1px solid black; padding: 1px 1em; }
-        td { font-family: 'Consolas', 'Courier New', courier, monospace; }
-        strong { color: red; font-weight: bolder; }
-    </style>
-    </head><body style="font-family: 'Verdana', sans-serif; font-size: 10pt;"><h1>Comparison of nuisances</h1>
-    <table>
-    """)
-
-
-        if options.absolute_values:
-            what = "x, &sigma;<sub>fit</sub>";
-        else:
-            what = "&Delta;x, &sigma;<sub>fit</sub>";
-        txtfile.write("<tr><th>nuisance</th><th>signal fit<br/>%s</th>\n" % (what))
-        fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>\n"
-
-    names = table.keys()
-    names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
-    highlighters = { 1:highlight, 2:morelight };
-    for n in names:
-        v = table[n]
-        if options.format == "latex": n = n.replace(r"_", r"\_")
-        if pmsub  != None: v = [ re.sub(pmsub[0],  pmsub[1],  i) for i in v ]
-        if sigsub != None: v = [ re.sub(sigsub[0], sigsub[1], i) for i in v ]
-        if (n) in isFlagged: v[-1] = highlighters[isFlagged[n]] % v[-1]
-        txtfile.write(fmtstring % (n, v[0]))
-        txtfile.write('\n')
-
-    if options.format == "latex":
-        txtfile.write(" \\hline\n\end{tabular}\n")
-    elif options.format == "html":
-        txtfile.write("</table></body></html>\n")
-    txtfile.close()
-    print "Info: ",options.format," file ",txtfilename," has been created"
+    for ext in options.format.split(','):
+        uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
+        txtfilename = "{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext)
+        txtfile = open(txtfilename,'w')
+     
+        fmtstring = "%-40s     %15s"
+        highlight = "*%s*"
+        morelight = "!%s!"
+        pmsub, sigsub = None, None
+        if ext == 'text':
+            txtfile.write(fmtstring % ('name', 's+b fit\n'))
+        elif ext == 'latex':
+            pmsub  = (r"(\S+) \+/- (\S+)", r"$\1 \\pm \2$")
+            sigsub = ("sig", r"$\\sigma$")
+            highlight = "\\textbf{%s}"
+            morelight = "{{\\color{red}\\textbf{%s}}}"
+            if options.absolute_values:
+                fmtstring = "%-40s &  %15s & %30s \\\\"
+                txtfile.write( "\\begin{tabular}{|l|r|r|r|} \\hline \n")
+                txtfile.write( (fmtstring % ('name', 'pre fit', '$s+b$ fit')), " \\hline \n")
+            else:
+                fmtstring = "%-40s & %15s \\\\"
+                txtfile.write( "\\begin{tabular}{|l|r|} \\hline \n")
+                what = r"\Delta x/\sigma_{\text{in}}$, $\sigma_{\text{out}}/\sigma_{\text{in}}$"
+                txtfile.write( fmtstring % ('', '$s+b$ fit\n'))
+                txtfile.write((fmtstring % ('name', what)))
+                txtfile.write(" \\hline \n")
+        elif ext == 'html':
+            pmsub  = (r"(\S+) \+/- (\S+)", r"\1 &plusmn; \2")
+            sigsub = ("sig", r"&sigma;")
+            highlight = "<b>%s</b>"
+            morelight = "<strong>%s</strong>"
+            txtfile.write("""
+        <html><head><title>Comparison of nuisances</title>
+        <style type="text/css">
+            td, th { border-bottom: 1px solid black; padding: 1px 1em; }
+            td { font-family: 'Consolas', 'Courier New', courier, monospace; }
+            strong { color: red; font-weight: bolder; }
+        </style>
+        </head><body style="font-family: 'Verdana', sans-serif; font-size: 10pt;"><h1>Comparison of nuisances</h1>
+        <table>
+        """)
+     
+     
+            if options.absolute_values:
+                what = "x, &sigma;<sub>fit</sub>";
+            else:
+                what = "&Delta;x, &sigma;<sub>fit</sub>";
+            txtfile.write("<tr><th>nuisance</th><th>signal fit<br/>%s</th>\n" % (what))
+            fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>\n"
+     
+        names = table.keys()
+        #names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
+        names = sorted(names, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
+        names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
+        names = sorted(names, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
+        names = sorted(names, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
+        names = sorted(names, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)
+     
+        highlighters = { 1:highlight, 2:morelight };
+        for n in names:
+            v = table[n]
+            if ext == "latex": n = n.replace(r"_", r"\_")
+            if pmsub  != None: v = [ re.sub(pmsub[0],  pmsub[1],  i) for i in v ]
+            if sigsub != None: v = [ re.sub(sigsub[0], sigsub[1], i) for i in v ]
+            if (n) in isFlagged: v[-1] = highlighters[isFlagged[n]] % v[-1]
+            txtfile.write(fmtstring % (n, v[0]))
+            txtfile.write('\n')
+     
+        if ext == "latex":
+            txtfile.write(" \\hline\n\end{tabular}\n")
+        elif ext == "html":
+            txtfile.write("</table></body></html>\n")
+        txtfile.close()
+        print "Info: ",ext," file ",txtfilename," has been created"
 
     if options.outdir:
         import ROOT
@@ -217,7 +218,7 @@ if __name__ == "__main__":
         lat  = ROOT.TLatex(); lat.SetNDC(); lat.SetTextFont(42); lat.SetTextSize(0.04)
         ROOT.gROOT.SetBatch()
         ROOT.gStyle.SetOptStat(0)
-        fout = ROOT.TFile("{od}/postfit_{date}_{suff}.root".format(od=options.outdir, date=date, suff=options.suffix),"RECREATE")
+        fout = ROOT.TFile("{od}/postfit_{suff}.root".format(od=options.outdir, suff=options.suffix),"RECREATE")
 
         canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", 800, 600)
         ## some style stuff
@@ -262,7 +263,7 @@ if __name__ == "__main__":
         fout.WriteTObject(canvas_nuis)
 
         for ext in ['png', 'pdf']:
-            canvas_nuis.SaveAs("{od}/nuisances_{date}_{ps}_{suff}.{ext}".format(od=options.outdir, date=date, ps=uniquestr, suff=options.suffix, ext=ext))
+            canvas_nuis.SaveAs("{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
 
    
 

@@ -272,6 +272,10 @@ if __name__ == "__main__":
     if not os.path.exists(outname):
         os.system("mkdir -p "+outname)
         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outname)
+    outnamesub = outname+'/singleRapidities'
+    if not os.path.exists(outnamesub):
+        os.system("mkdir -p "+outnamesub)
+        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outnamesub)
 
     savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
     
@@ -300,7 +304,10 @@ if __name__ == "__main__":
         
         total_sig = {};     total_sig_unrolled = {}
         bkg_and_data = {};  bkg_and_data_unrolled = {}
-        all_procs = {};     all_procs_unrolled = {};    ratios_unrolled = {}
+        all_procs = {};     all_procs_unrolled = {};    
+
+        single_sig_unrolled = {}; 
+        ratios_unrolled = {}
 
         for prepost in ['postfit','prefit']:
             suffix = prepost+options.suffix
@@ -313,7 +320,7 @@ if __name__ == "__main__":
                 nYbins=len(ybins[chpol])-1
                 #for ybin in range(1):
                 for ybin in range(nYbins): 
-         
+                    ykeyplot = 'Y{iy}_{k}'.format(iy=ybin,k=keyplot)
                     group = ybin/groupJobs + 1
                     jobind = min(groupJobs * group - 1,nYbins-1)
                     line = ybin%groupJobs
@@ -327,6 +334,8 @@ if __name__ == "__main__":
                     title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
                     h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift)
                     h1_unrolled = singleChargeUnrolled(h1_1,binshift)
+                    single_sig_unrolled[ykeyplot] = h1_unrolled.Clone('Y{iy}_W{ch}_{pol}_{flav}_unrolled'.format(iy=ybin,ch=charge,pol=pol,flav=channel))
+                    single_sig_unrolled[ykeyplot].SetDirectory(None)
                     if ybin==0:
                         total_sig[keyplot] = h2_backrolled_1.Clone('W{ch}_{pol}_{flav}'.format(ch=charge,pol=pol,flav=channel))
                         total_sig_unrolled[keyplot] = h1_unrolled.Clone('W{ch}_{pol}_{flav}_unrolled'.format(ch=charge,pol=pol,flav=channel))
@@ -336,12 +345,12 @@ if __name__ == "__main__":
                     total_sig[keyplot].SetDirectory(None)
                     total_sig_unrolled[keyplot].SetDirectory(None)
                     if prepost=='prefit':
-                        postfitkey = 'W'+chpol+'_postfit'
-                        if total_sig_unrolled[postfitkey]!=None:
-                            keyratio = 'W'+chpol+'_ratio'
-                            ratios_unrolled[keyratio] = total_sig_unrolled[postfitkey].Clone(total_sig_unrolled[postfitkey].GetName()+'_ratio')
-                            ratios_unrolled[keyratio].SetDirectory(None)
-                            ratios_unrolled[keyratio].Divide(total_sig_unrolled[keyplot])
+                        ypostfitkey = 'Y{iy}_W{chpol}_postfit'.format(iy=ybin,chpol=chpol) 
+                        if single_sig_unrolled[ypostfitkey]!=None:
+                            ykeyratio = 'Y{iy}_W{chpol}_ratio'.format(iy=ybin,chpol=chpol)
+                            ratios_unrolled[ykeyratio] = single_sig_unrolled[ypostfitkey].Clone(single_sig_unrolled[ypostfitkey].GetName()+'_ratio')
+                            ratios_unrolled[ykeyratio].SetDirectory(None)
+                            ratios_unrolled[ykeyratio].Divide(single_sig_unrolled[ykeyplot])
                     if not options.no2Dplot:
                         h2_backrolled_1.Draw('colz')
                         h2_backrolled_1.Write(name2D)
@@ -349,6 +358,13 @@ if __name__ == "__main__":
                             canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=suffix,ext=ext))
                         total_sig[keyplot].Draw('colz')
                         total_sig[keyplot].Write(total_sig[keyplot].GetName())
+                if prepost=='prefit':
+                    postfitkey  = 'W'+chpol+'_postfit'
+                    if total_sig_unrolled[postfitkey]!=None:
+                        keyratio = 'W'+chpol+'_ratio'
+                        ratios_unrolled[keyratio] = total_sig_unrolled[postfitkey].Clone(total_sig_unrolled[postfitkey].GetName()+'_ratio')
+                        ratios_unrolled[keyratio].SetDirectory(None)
+                        ratios_unrolled[keyratio].Divide(total_sig_unrolled[keyplot])
          
                 if not options.no2Dplot:
                     for ext in ['pdf', 'png']:
@@ -362,8 +378,8 @@ if __name__ == "__main__":
             for i,p in enumerate(procs):
                 keyplot = p if 'obs' in p else p+'_'+prepost
                 h1_1 = infile.Get('expproc_{p}_{sfx}'.format(p=p,sfx=prepost)) if 'obs' not in p else infile.Get('obs')
-                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
                 if not h1_1: continue # muons don't have Flips components
+                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
                 h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift)
                 bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
@@ -447,8 +463,11 @@ if __name__ == "__main__":
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
+        print "NOW PLOTTING THE RATIOS..."
         for key,histo in ratios_unrolled.iteritems():
-            plotPostFitRatio(charge,channel,histo,outname,'postfit2prefit_'+key,options.suffix)
+            print "Making unrolled ratio for ",key
+            outdir = outnamesub if key.startswith('Y') else outname
+            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix)
                 
     outfile.Close()
 

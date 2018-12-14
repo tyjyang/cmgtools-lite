@@ -566,3 +566,25 @@ class util:
         if ismin == nrms or ismin == -nrms: ierr=3
         if ierr != 0: print "effsigma: Error of type ", ierr
         return widmin
+
+    def doShadedUncertainty(self,h):
+        xaxis = h.GetXaxis()
+        points = []; errors = []
+        for i in xrange(h.GetNbinsX()):
+            N = h.GetBinContent(i+1); dN = h.GetBinError(i+1);
+            if N == 0 and dN == 0: continue
+            x = xaxis.GetBinCenter(i+1);
+            points.append( (x,N) )
+            EYlow, EYhigh  = dN, min(dN,N);
+            EXhigh, EXlow = (xaxis.GetBinUpEdge(i+1)-x, x-xaxis.GetBinLowEdge(i+1))
+            errors.append( (EXlow,EXhigh,EYlow,EYhigh) )
+        ret = ROOT.TGraphAsymmErrors(len(points))
+        ret.SetName(h.GetName()+"_errors")
+        for i,((x,y),(EXlow,EXhigh,EYlow,EYhigh)) in enumerate(zip(points,errors)):
+            ret.SetPoint(i, x, y)
+            ret.SetPointError(i, EXlow,EXhigh,EYlow,EYhigh)
+        ret.SetFillStyle(3244);
+        ret.SetFillColor(ROOT.kGray+2)
+        ret.SetMarkerStyle(0)
+        ret.Draw("PE2 SAME")
+        return ret
