@@ -75,7 +75,11 @@ def combCharges(options):
             print '--- will run text2hdf5 for the combined charges ---------------------'
             os.system(txt2hdf5Cmd)
             ## print out the command to run in combine
-            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
+            metafilename = combinedCard.replace('.txt','_sparse.hdf5')
+            if len(options.postfix):
+                metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
+
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=metafilename)
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
             print ""
@@ -345,7 +349,7 @@ if options.systfile != "":
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
 if options.sig_out_bkg and options.wLnN > 0.0:
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
-    card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
+    card.write(('%-16s lnN' % "CMS_OUT") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
 
 # fakes
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
