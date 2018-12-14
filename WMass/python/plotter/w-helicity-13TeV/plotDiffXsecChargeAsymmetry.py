@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='charges to run')
     parser.add_option('-s','--suffix', dest='suffix', default='', type='string', help='Suffix added to output dir (i.e, either to hessian or toys in the path)')
     parser.add_option('-f','--friend', dest='friend', default='', type='string', help='Root file with friend tree containing total xsec (it does not include the outliers). Tree name is assumed to be "toyFriend"')
+    parser.add_option('-p','--palette', dest='palette', default='55', type='int', help='Palette for plots')
     parser.add_option('-l','--lumi-norm', dest='lumiNorm', default='-1', type='float', help='If > 0, divide cross section by this factor (lumi in 1/Pb)')
     parser.add_option('-n','--norm-width', dest='normWidth' , default=False , action='store_true',   help='Normalize cross section histograms dividing by bin width')
     parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty')
@@ -163,37 +164,37 @@ if __name__ == "__main__":
     else:
         zaxisTitle = "Asymmetry::0.05,0.35"
         if channel == "el": zaxisTitle = "Asymmetry::0.05,0.35"
-    zaxisTitle = "Asymmetry::%.3f,%.3f" % (hChAsymm.GetBinContent(hChAsymm.GetMinimumBin()),
+    zaxisTitle = "Asymmetry::%.3f,%.3f" % (0.99*hChAsymm.GetBinContent(hChAsymm.GetMinimumBin()),
                                            hChAsymm.GetBinContent(hChAsymm.GetMaximumBin()))
 
     drawCorrelationPlot(hChAsymm,
                         xaxisTitle, yaxisTitle, zaxisTitle,
                         hChAsymm.GetName(),
-                        "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                        "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
     if not options.hessian:
 
         zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
-                                                           min(0.50,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
+                                                           min(1.0,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
         #zaxisTitle = "Asymmetry uncertainty::0,0.04" 
         drawCorrelationPlot(hChAsymmErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hChAsymmErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
         hChAsymmRelErr.Divide(hChAsymm)
         hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
         #zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
-                                                                    min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
-                                                                    )
+                                                                     # min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
+                                                                     #)
         #zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
         zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
-                                                                    min(0.50,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
+                                                                    min(0.5,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
         drawCorrelationPlot(hChAsymmRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hChAsymmRelErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
     else:
@@ -333,14 +334,14 @@ if __name__ == "__main__":
         drawCorrelationPlot(hMu,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hMu.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=55)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         zaxisTitle = "uncertainty on signal strength #mu::0.0,0.5"
         if options.hessian: zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
         drawCorrelationPlot(hMuErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hMuErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=55)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
         if options.fitData:
@@ -354,7 +355,7 @@ if __name__ == "__main__":
         drawCorrelationPlot(hDiffXsec,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsec.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         if options.fitData:
             if charge == "plus": zmin,zmax = 0.5,4.5
@@ -367,17 +368,17 @@ if __name__ == "__main__":
         drawCorrelationPlot(hDiffXsecErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         #zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::%.3f,%.3f" % (0.9*hDiffXsecRelErr.GetMinimum(),hDiffXsecRelErr.GetMaximum())
         if options.fitData:
             zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::0.010,0.2"
         else:
-            zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::0.025,0.1"
+            zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::0.025,0.2"
         drawCorrelationPlot(hDiffXsecRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecRelErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         if charge == "plus": zmin,zmax = 0.008,0.028
         else:                zmin,zmax = 0.008,0.029
@@ -386,7 +387,7 @@ if __name__ == "__main__":
         drawCorrelationPlot(hDiffXsecNorm,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNorm.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
         if charge == "plus": zmin,zmax = 0.0,0.0015
         else:                zmin,zmax = 0.0,0.0015
@@ -395,14 +396,14 @@ if __name__ == "__main__":
         drawCorrelationPlot(hDiffXsecNormErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNormRelErr.GetMinimum(),min(0.1,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
+        zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNormRelErr.GetMinimum(),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
         #zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::0,0.1"
         drawCorrelationPlot(hDiffXsecNormRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormRelErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas)
+                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
 
