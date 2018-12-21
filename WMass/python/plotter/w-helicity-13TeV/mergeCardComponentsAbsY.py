@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[]):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -153,6 +153,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True):
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
 
     tmp_infile = ROOT.TFile(infile, 'read')
     
@@ -175,8 +176,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True):
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
 
-        ## absolute eta borders:
-        etaBorders = [0.5, 1.0, 1.5, 2.0]
+        ## absolute eta borders:        
+        etaBorders = etaBordersTmp if len(etaBordersTmp) else [0.5, 1.0, 1.5, 2.0]
         ## construct positive and negative eta borders symmetrically
         etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
         borderBins = [1]
@@ -234,6 +235,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
