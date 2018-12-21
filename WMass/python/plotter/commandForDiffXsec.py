@@ -1,0 +1,48 @@
+#!/bin/env python
+
+import ROOT, os, sys, re, array
+
+dryrun=0
+skipUnpack=1
+folder = "diffXsec_el_2018_12_18_onlyBkg_pt2GeV_last3GeV_eta0p2From2p0/" # keep "/" at the end
+th3file = "cards/" + folder + "wmass_varhists_ele_pt2GeV_last3GeV_eta0p2From1p3.root"
+optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.5,2.1 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
+optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg --exclude-nuisances 'CMS_DY' "
+optionsForCardMakerMerger = " --postfix allSyst "  # --no-text2hdf5
+
+# folder = "diffXsec_el_2018_12_16_onlyBkg_pt1GeV_eta0p2From1p3/"  # keep "/" at the end
+# th3file = "cards/" + folder + "wmass_varhists_ele_pt1GeV_eta0p2From1p3.root"
+# optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.5,2.1 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
+# optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg --exclude-nuisances 'CMS_DY' "
+# optionsForCardMakerMerger = " --postfix allSyst "  # --no-text2hdf5
+
+flavour = "el" if "_el_" in folder else "mu"
+
+charges = ["plus", "minus"]
+
+print ""
+
+for charge in charges:
+
+    unpack = "python makeTH1FromTH3.py {th3file} -o cards/{fd} -f {fl} -c {ch} --binfile cards/{fd}binningPtEta.txt".format(th3file=th3file, fd=folder, fl=flavour, ch=charge)
+    if not skipUnpack:
+        print unpack
+        if not dryrun: os.system(unpack)
+
+    mergeRoot = "python mergeRootComponentsDiffXsec.py -f {fl} -c {ch} --indir-bkg  cards/{fd}part0/  --indir-sig cards/{fd} -o cards/{fd} {opt}".format(fd=folder, fl=flavour, ch=charge, opt=optionsForRootMerger)
+    print mergeRoot
+    if not dryrun: os.system(mergeRoot)
+
+
+    makeCards = "python makeCardsFromTH1.py -i cards/{fd} -f {fl} -c {ch} -s w-helicity-13TeV/wmass_{lep}/systsEnv.txt {opt} ".format(fd=folder, fl=flavour, ch=charge, lep="e" if flavour == "el" else "mu", opt=optionsForCardMaker)
+    print makeCards
+    if not dryrun: os.system(makeCards)
+
+
+combineCards = "python makeCardsFromTH1.py -i cards/{fd} -f {fl} --comb-charge {opt}".format(fd=folder, fl=flavour, opt=optionsForCardMakerMerger)
+print combineCards
+if not dryrun: os.system(combineCards)
+
+print ""
+print "DONE"
+print ""

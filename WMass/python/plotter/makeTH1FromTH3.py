@@ -8,6 +8,7 @@ from w_helicity_13TeV.make_diff_xsec_cards import getXYBinsFromGlobalBin
 from w_helicity_13TeV.make_diff_xsec_cards import getArrayParsingString
 from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
+from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 
 from w_helicity_13TeV.mergeCardComponentsAbsY import mirrorShape
 
@@ -109,13 +110,16 @@ name = ""
 obj = None
 nominalTH1 = {}
 symmetrizedTH1 = {}
-effstatOffset = 25 if (genBins.etaBins[-1] < 2.45) else 26  # if gen eta goes up to 2.4, set offset to 25, it is used below
+#effstatOffset = 25 if (genBins.etaBins[-1] < 2.45) else 26  # if gen eta goes up to 2.4, set offset to 25, it is used below
+#### FIXME: previous line this doesn't work if the range stops before either 2.4 or 2.5
+effstatOffset = 25 if flavour == "mu" else 26  # efficiencies are made with 0.1 eta bins, even though the template might have a coarser binning
 
 print "Going to unroll TH3 into TH1 ..."
 nKeys = tf.GetNkeys()
 
 pattBug = re.compile('(muRmu)(\d+)(FUp)')
 pattEffStat = re.compile('(EffStat)(\d+)')
+ietaTemplate = -1
 
 for ikey,e in enumerate(tf.GetListOfKeys()):
 
@@ -156,15 +160,16 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
         # since ieta goes from 0 to XX, make etaEffStat goes from 0 to XX
         if etaEffStat < 0: 
             etaEffStat = abs(etaEffStat) - 1
-        #else:
-        #    etaEffStat = etaEffStat        
+        # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
+        etaBinCenter = etaEffStat * 0.1 + 0.05  
+        ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)
 
     # now loop on bins along Z, each is a signal template, bin 0 (underflow) has the outliers (this convention might change, please check)
     for iz in range(obj.GetNbinsZ()+1):         
         globalbin = iz
         if globalbin > 0:
             ieta,ipt = getXYBinsFromGlobalBin(globalbin-1,genBins.Neta,binFrom0=True)
-            if isEffStat and etaEffStat != ieta: continue  # if this is EffStat and the ieta bin does not correspond to the effstat continue
+            if isEffStat and ietaTemplate != ieta: continue  # if this is EffStat and the ieta bin does not correspond to the effstat continue
             newname = "x_" + signalRoot + "_ieta_{ie}_ipt_{ip}_".format(ie=str(ieta),ip=str(ipt)) + signalRoot
         else:
             newname = "x_" + signalRoot + "_outliers_" + signalRoot

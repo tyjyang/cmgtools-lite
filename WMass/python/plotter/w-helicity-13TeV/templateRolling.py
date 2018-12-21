@@ -386,7 +386,7 @@ if __name__ == "__main__":
                 signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
                 titles.append(signalTitle)
 
-            fakesysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if channel == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
+            fakesysts = ["CMS_We_FRe_slope"] if channel == "el" else ["CMS_Wmu_FRmu_slope"]
 
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))

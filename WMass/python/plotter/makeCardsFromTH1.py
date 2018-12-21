@@ -7,6 +7,7 @@ import numpy as np
 from w_helicity_13TeV.make_diff_xsec_cards import getXYBinsFromGlobalBin
 from w_helicity_13TeV.make_diff_xsec_cards import getArrayParsingString
 from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
+from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
@@ -82,9 +83,27 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=metafilename)
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
+            fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
+            fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
+            if not os.path.exists(fitdir_data):
+                print "Creating folder", fitdir_data
+                os.system("mkdir -p " + fitdir_data)
+            if not os.path.exists(fitdir_Asimov):
+                print "Creating folder", fitdir_Asimov
+                os.system("mkdir -p " + fitdir_Asimov)
             print ""
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
-            print combineCmd
+            combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
+            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data)
+            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov)
+            print combineCmd_data
+            if not options.skip_combinetf:
+                os.system(combineCmd_data)
+            print ""
+            print combineCmd_Asimov            
+            if not options.skip_combinetf:
+                os.system(combineCmd_Asimov)
+            
 
     else:
         print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
@@ -105,6 +124,7 @@ parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt
 parser.add_option(      '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
 parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', default=False, action='store_true', help='Assign muR, muF and muRmuF to W (those in bins of W-pt will be used for W in any case)')
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
+parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 #parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
@@ -113,6 +133,7 @@ parser.add_option(       '--eta-range-outAcc', dest='eta_range_outAcc', action="
 parser.add_option(       '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
 parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
 parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
+parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges, skip running combinetf.py at the end')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics (for now, only works for those passed with --syst-file)")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
@@ -125,9 +146,10 @@ if not options.indir:
 if options.flavour not in ["el", "mu"]:
     print "Warning: you must specify a lepton flavour with option -f el|mu"
     quit()
-if options.charge not in ["plus", "minus"]:
-    print "Warning: you must specify a charge with option -c plus|minus"
-    quit()
+if not options.combineCharges:
+    if options.charge not in ["plus", "minus"]:
+        print "Warning: you must specify a charge with option -c plus|minus"
+        quit()
 
 if options.sig_out_bkg and options.sig_out_outAcc:
     print "Warning: outliers cannot be considered as a background and an out-of-acceptance template. Select either --sig-out-outAcc or --sig-out-bkg"
@@ -352,10 +374,29 @@ if options.sig_out_bkg and options.wLnN > 0.0:
     card.write(('%-16s lnN' % "CMS_OUT") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
 
 # fakes
-fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
+#fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
+fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
 for syst in fakeSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
+
+# independent eta normalizations variations for fakes, by 5%. 
+# Get the actual number counting the histograms in case it changes or is not present
+ffile = options.indir + "FakesEtaUncorrelated_{ch}.root".format(ch=charge)
+nFakesEtaUncorrelated = 0
+ff = ROOT.TFile.Open(ffile,"READ")
+if not ff or not ff.IsOpen():
+    raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+else:
+    # count number of histograms and divide by 2 (there are up and down variations)
+    nFakesEtaUncorrelated = ff.GetNkeys()/2
+ff.Close()
+
+if nFakesEtaUncorrelated:
+    for i in range(1,nFakesEtaUncorrelated+1):
+        syst = "FakesEtaUncorrelated{d}".format(d=i)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
 sortedsystkeys = []
 
@@ -401,9 +442,12 @@ for syst in wExpSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
 
-effstatOffset = 25 if genBins.Neta == 24 else 26
+#effstatOffset = 25 if genBins.Neta == 24 else 26  ## FIXME: doesn't work if the binning is not 0.1 wide in eta
+#effstatOffset = 25 if genBins.etaBins[-1] < 2.45 else 26  ## FIXME: it assumes the range extends up to 2.4 or 2.5
 EffStat_systs = []
-nSystEffStat = 2* genBins.Neta
+#nSystEffStat = int(2* (genBins.etaBins[-1] + 0.001) * 10)
+effstatOffset = 25 if flavour == "mu" else 26
+nSystEffStat = 48 if flavour == "mu" else 50
 for ipar in range(3):
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "ErfPar%dEffStat%d" % (ipar,ietabin)
@@ -413,10 +457,14 @@ for ipar in range(3):
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
         if etaEffStat < 0:
             etaEffStat = abs(etaEffStat) - 1
-        #else:
-        #    etaEffStat = etaEffStat
-        matchesForEffStat = ["outliers", "_ieta_%d_" % etaEffStat]
-        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
+        # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
+        # a template bin might have more than 1 efficiency variation if binning is coarser
+        etaBinCenter = etaEffStat * 0.1 + 0.05  
+        ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)  
+        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
+        if not options.noEffStatZ: matchesForEffStat.append("Z")
+        #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
 card.write("\n")
 card.write("pdfs group = %s\n\n" % ' '.join(["pdf%d" % i for i in range(1,61)] ) )
