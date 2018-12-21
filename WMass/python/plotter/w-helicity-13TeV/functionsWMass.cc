@@ -654,6 +654,15 @@ int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
   return (ptbin*50 + etabin);
 }
 
+int unroll2DTo1D_etaSlices(int pdgid, float pt, float eta){
+  float ptmin = abs(pdgid)==13 ? 26. : 30.;
+  int nptbins  =abs(pdgid)==13 ? 19 : 15;
+  int etabin = (int) ((eta+2.5)*10. );
+  int ptbin  = (int) (pt-ptmin );
+  return (ptbin + nptbins * etabin);
+}
+
+
 TFile *_file_effCov_trg_staterr_mu = NULL;
 TH2F *_hist_relSystErr0_mu = NULL;
 TH2F *_hist_relSystErr1_mu = NULL;

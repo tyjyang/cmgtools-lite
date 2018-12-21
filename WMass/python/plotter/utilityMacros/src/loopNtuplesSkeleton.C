@@ -65,20 +65,38 @@ void fillHistograms(const string& treedir = "./",
   // BINNING: will have to implement parsing from file
 
   // muon
-  vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+  vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0, 2.2, 2.4};
+  //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
+  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
 
   // electron
-  vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
-					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,
-					    1.4442,1.5,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
-  vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,
+  // 					    1.4442,1.5,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5};
+  //vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  // vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+  // vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  //
+  // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.3,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
+  // 					    1.4442,1.5,1.566,1.7,1.9,2.1,2.3,2.5};
+  // vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  // vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
+  // vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.3,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
+					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
+					    1.4442,1.5,1.566,1.7,1.9,2.1,2.3,2.5};
+  vector<Double_t> ptBinEdgesTemplateEl = {30,32,34,36,38,40,42,45};
+  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
+  vector<Double_t> genPtBinEdgesTemplateEl = {30,32,34,36,38,40,42,45};
 
   
   vector<Double_t> etaBinEdgesTemplate;
@@ -108,6 +126,9 @@ void fillHistograms(const string& treedir = "./",
   genPtBinEdgesTemplateMu.clear();
   genPtBinEdgesTemplateEl.clear();
 
+
+  Double_t etaCutReco = etaBinEdgesTemplate.back(); 
+  Double_t ptCutReco = ptBinEdgesTemplate.back(); 
 
   //=============================
 
@@ -537,10 +558,10 @@ void fillHistograms(const string& treedir = "./",
       // selection electrons
       if (**HLT_SingleMuon_1 < 1 and **HLT_SingleMuon_2 < 1) continue;
       if (*nlep != 1) continue;
-      if (lep1calPt < 26 or lep1calPt > 45) continue;
+      if (lep1calPt < 26 or lep1calPt > ptCutReco) continue;
       if (lep_Id[0] < 1) continue;
       if (fabs(lep_pdgId[0]) != 13) continue;
-      if (absLep1eta >= 2.4) continue;
+      if (absLep1eta >= etaCutReco) continue;
       if (not isFloatEqual(fabs(*genw_decayId), 14.0, 0.001)) continue;
       // genw_charge is saved as float, while lep_charge is integer, protect against floating point precision in the comparison
       if (fabs(*genw_charge - lep_charge[0]) > 0.01) continue;   
@@ -562,10 +583,10 @@ void fillHistograms(const string& treedir = "./",
       if ((*lep_hltId)[0] < 1) continue;
       if (**HLT_SingleElectron != 1) continue;
       if (*nlep != 1) continue;
-      if (lep1calPt < 30 or lep1calPt > 45) continue;
+      if (lep1calPt < 30 or lep1calPt > ptCutReco) continue;
       if (lep_Id[0] != 1 or (*lep_tightChargeFix)[0] != 2) continue;
       if (absLep1eta > 1.4442 and absLep1eta < 1.566) continue;
-      if (absLep1eta > 2.5) continue;
+      if (absLep1eta > etaCutReco) continue;
       if (fabs(lep_pdgId[0]) != 11) continue;
       if (not isFloatEqual(*genw_decayId, 12.0, 0.001)) continue;
       if ((*lep_mcMatchId)[0] * lep_charge[0] == -24) continue;

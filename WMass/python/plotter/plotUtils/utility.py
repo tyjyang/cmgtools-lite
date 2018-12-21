@@ -625,7 +625,7 @@ def drawDataAndMC(h1, h2,
                   rightMargin=0.04,
                   labelRatioTmp="Data/pred.::0.5,1.5",
                   drawStatBox=False,
-                  legendCoords="0.15,0.35,0.7,0.9",  # x1,x2,y1,y2
+                  legendCoords="0.15,0.35,0.76,0.9",  # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
@@ -701,7 +701,7 @@ def drawDataAndMC(h1, h2,
     h1.GetYaxis().SetTitleOffset(1.15)
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
-    h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.1)
+    h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.5)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("EP")
     #h1err = h1.Clone("h1err")
@@ -776,7 +776,8 @@ def drawDataAndMC(h1, h2,
         ratio.Divide(den_noerr)
         den.Divide(den_noerr)
         den.SetFillColor(ROOT.kGray+1)
-        den.SetLineColor(ROOT.kGray+1)
+        den.SetFillStyle(1001)  # make it solid again
+        den.SetLineColor(ROOT.kRed)
         frame.Draw()        
         ratio.SetMarkerSize(0.85)
         ratio.SetMarkerStyle(20) 
@@ -788,11 +789,11 @@ def drawDataAndMC(h1, h2,
         line.SetLineWidth(2)
         line.Draw("Lsame")
 
-        leg2 = ROOT.TLegend(0.15,0.22,0.35,0.32)
+        leg2 = ROOT.TLegend(0.15,0.25,0.35,0.30)
         leg2.SetFillColor(0)
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)
-        leg2.AddEntry(den,"total syst. background","LF")
+        leg2.AddEntry(den,"total unc. exp.","LF")
         leg2.Draw("same")
         
         pad2.RedrawAxis("sameaxis")
