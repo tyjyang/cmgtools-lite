@@ -397,7 +397,7 @@ float residualScale(float pt, float eta, int isData, const char *fileCorr="../po
 
   if(!_histo_residualcorr_scale) {
     _file_residualcorr_scale = new TFile(fileCorr);
-    _histo_residualcorr_scale = (TH2D*)(_file_residualcorr_scale->Get("plot_dm_diff"));
+    _histo_residualcorr_scale = (TH2D*)(_file_residualcorr_scale->Get("histSmooth"));
   }
   
   TH2D *hist = _histo_residualcorr_scale;
@@ -432,7 +432,7 @@ float ptElFull(float pt, float eta, int nSigma=0) {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
-  float syst = 1-residualScale(pt,eta,1,Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonScale/el/plot_dm_diff_closure.root",_cmssw_base_.c_str()));
+  float syst = 1-residualScale(pt,eta,1,Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonScale/el/plot_dm_diff_closure_smoothWithSpline.root",_cmssw_base_.c_str()));
   return (1. + nSigma*syst) * pt;
 
 }
