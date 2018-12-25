@@ -202,8 +202,14 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   float p2 = (nFRfitParam > 2) ? hist_fr->GetBinContent(etabin, 3) : 0.0;
   if      (iFR==1) p0 += hist_fr->GetBinError(etabin, 1);
   else if (iFR==2) p0 -= hist_fr->GetBinError(etabin, 1);
-  else if (iFR==3) p1 += hist_fr->GetBinError(etabin, 2);
-  else if (iFR==4) p1 -= hist_fr->GetBinError(etabin, 2);
+  // offset and slope are anticorrelated, when changing slope, have to move the offset as well
+  else if (iFR==3) {
+    p1 += hist_fr->GetBinError(etabin, 2);
+    p0 -= hist_fr->GetBinError(etabin, 1);
+  } else if (iFR==4) {
+    p1 -= hist_fr->GetBinError(etabin, 2);
+    p0 += hist_fr->GetBinError(etabin, 1);
+  }
   // now PR
   // eta bin is typically the same as for fake rate, but let's allow the possibility that it is different
   etabin = std::max(1, std::min(hist_pr->GetNbinsX(), hist_pr->GetXaxis()->FindBin(hasNegativeEta ? leta : feta)));
@@ -213,8 +219,14 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   if      (iPR==1) p0_pr += hist_pr->GetBinError(etabin, 1);
   else if (iPR==2) p0_pr -= hist_pr->GetBinError(etabin, 1);
-  else if (iPR==3) p1_pr += hist_pr->GetBinError(etabin, 2);
-  else if (iPR==4) p1_pr -= hist_pr->GetBinError(etabin, 2);
+  // offset and slope are anticorrelated, when changing slope, have to move the offset as well
+  else if (iPR==3) {
+    p1_pr += hist_pr->GetBinError(etabin, 2);
+    p0_pr -= hist_pr->GetBinError(etabin, 1);
+  } else if (iPR==4) {
+    p1_pr -= hist_pr->GetBinError(etabin, 2);
+    p0_pr += hist_pr->GetBinError(etabin, 1);
+  }
 
   // Marc added the crop at pt=50, but for electrons I think it is not needed
   // I will make so to have it only for muon channel

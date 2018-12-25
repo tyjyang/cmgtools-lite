@@ -4,6 +4,7 @@
 // for Graph painting options in root
 
 const static int smoothPolinDegree = 2; 
+const static Bool_t smoothPromptRateAlwaysPol1 = true;  // for FR might use pol2 to smooth, but for PR always use pol1 (it is mainly linear, pol2 might fit fluctuations)
 static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 32;
 const static Bool_t excludePoints_Data = false;
 static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true
@@ -146,7 +147,7 @@ void fillFakeRateTH2smooth(TH2* h2 = nullptr, const TH2* h2fit = nullptr) {
       pt = h2->GetXaxis()->GetBinCenter(ipt);
       offset = h2fit->GetBinContent(ieta, 1);
       slope = h2fit->GetBinContent(ieta, 2);
-      if (smoothPolinDegree > 1) concavity = h2fit->GetBinContent(ieta, 3);
+      if (smoothPolinDegree > 1 and h2fit->GetNbinsY() > 2) concavity = h2fit->GetBinContent(ieta, 3);
       h2->SetBinContent(ipt,ieta, std::max(0.0, offset + slope * pt + concavity * pt * pt));
       
     }
@@ -208,6 +209,9 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 		       ) 
 {
 
+
+  Int_t polNdegree = isPromptRate ? (smoothPromptRateAlwaysPol1 ? 1 : smoothPolinDegree) : smoothPolinDegree;
+  
   string xAxisName = "";
   Double_t xmin = 0;
   Double_t xmax = 0;
@@ -240,7 +244,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   // create a new graph excluding points in a given range
   TGraphAsymmErrors* gr = nullptr;
   TGraphAsymmErrors* gr_excl = nullptr;
-  if (smoothPolinDegree == 1 and excludePoints) {
+  if (polNdegree == 1 and excludePoints) {
     gr = new TGraphAsymmErrors();
     gr_excl = new TGraphAsymmErrors();
     Int_t ip_good = 0;
@@ -258,8 +262,11 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     }    
   } else gr = (TGraphAsymmErrors*) gr_tmp;
   
-
-  string polN = string(Form("pol%d",smoothPolinDegree));
+  
+  string polN = "pol1";
+  if (polNdegree > 1) polN = "pol2";
+  //string polN = string(Form("pol%d",smoothPolinDegree));
+ 
   // see fit options here: https://root.cern.ch/doc/master/classTGraph.html#aa978c8ee0162e661eae795f6f3a35589
   Double_t xMaxFit = isPromptRate ? 65 : 60;
   Double_t xMinFit = isData ? ptMin_fitRangeData : 30;
@@ -282,7 +289,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
       //f1->SetParLimits(1,-0.02,maxslope);
       //f2->SetParLimits(0,0.0,1.5);
       //f2->SetParLimits(1,-0.02,maxslope);      
-      if (smoothPolinDegree > 1) {
+      if (polNdegree > 1) {
   	f1->SetParameters(0.95,0.0,0.0);
   	f2->SetParameters(0.95,0.0,0.0);
   	//f1->SetParLimits(2,-0.05,0.05);
@@ -298,7 +305,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
       //f1->SetParLimits(1,-0.03,maxslope);
       //f2->SetParLimits(0,0.0,1.0);
       //f2->SetParLimits(1,-0.03,maxslope);
-      if (smoothPolinDegree > 1) {
+      if (polNdegree > 1) {
   	f1->SetParameters(0.8,0.0,0.0);
   	f2->SetParameters(0.8,0.0,0.0);
   	//f1->SetParLimits(2,-0.05,0.05);
@@ -319,7 +326,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
       //f2->SetParLimits(0,0.0,1.5);
       //f2->SetParLimits(1,-0.02,maxslope);      
 
-      if (smoothPolinDegree > 1) {
+      if (polNdegree > 1) {
   	f1->SetParameters(0.8,0.0,0.0);	
   	//f1->SetParLimits(2,-0.02,0.02);
   	f2->SetParameters(0.8,0.0,0.0);	
@@ -336,7 +343,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
       //f2->SetParLimits(0,0.0,1.5);
       //f2->SetParLimits(1,-0.03,maxslope);      
 
-      if (smoothPolinDegree > 1) {
+      if (polNdegree > 1) {
   	f1->SetParameters(0.3,0.0,0.0);	
   	//f1->SetParLimits(2,-0.02,0.02);
   	f2->SetParameters(0.3,0.0,0.0);	
@@ -351,7 +358,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   }
 
   TFitResultPtr fitres = gr->Fit("f1","EMFRS+"); // fit with straigth line
-  TFitResultPtr fitres2 = gr->Fit("f2",(smoothPolinDegree > 1) ? "EMFRS+" : "0EMFRS+"); // fit with straigth line in narrow range, but don't draw
+  TFitResultPtr fitres2 = gr->Fit("f2",(polNdegree > 1) ? "EMFRS+" : "0EMFRS+"); // fit with straigth line in narrow range, but don't draw
   TF1 *linefit = gr->GetFunction("f1");
   linefit->SetLineWidth(3);
   Double_t xminfit = 0.0;
@@ -362,12 +369,12 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   linefit_p0up->SetNpx(10000);
   linefit_p0up->SetParameter(0, linefit->GetParameter(0)+nSigmaVarInPlot*linefit->GetParError(0));
   linefit_p0up->SetParameter(1, linefit->GetParameter(1));
-  if (smoothPolinDegree > 1) linefit_p0up->SetParameter(2, linefit->GetParameter(2));
+  if (polNdegree > 1) linefit_p0up->SetParameter(2, linefit->GetParameter(2));
   TF1 * linefit_p0dn = new TF1("linefit_p0dn",polN.c_str(),xminfit,xmaxfit);
   linefit_p0dn->SetNpx(10000);
   linefit_p0dn->SetParameter(0, linefit->GetParameter(0)-nSigmaVarInPlot*linefit->GetParError(0));
   linefit_p0dn->SetParameter(1, linefit->GetParameter(1));
-  if (smoothPolinDegree > 1) linefit_p0dn->SetParameter(2, linefit->GetParameter(2));
+  if (polNdegree > 1) linefit_p0dn->SetParameter(2, linefit->GetParameter(2));
 
   linefit_p0up->SetLineColor(kGreen+1);
   linefit_p0dn->SetLineColor(kGreen+1);
@@ -391,7 +398,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
 
   TF1 *linefit2 = nullptr;
-  if (smoothPolinDegree > 1) {
+  if (polNdegree > 1) {
     linefit2 = gr->GetFunction("f2");
     linefit2->SetLineWidth(3);
     linefit2->SetLineColor(kBlue);
@@ -421,8 +428,8 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     fitrespol2 = gr->Fit("pol2", "EMFRS+"); // fit with pol2
     pol2fit = gr->GetFunction("pol2");
     pol2fit->SetLineWidth(3);
-    if (smoothPolinDegree == 1 and excludePoints) pol2fit->SetLineColor(kGreen+2);
-    else               pol2fit->SetLineColor(kAzure+2);
+    if (polNdegree == 1 and excludePoints) pol2fit->SetLineColor(kGreen+2);
+    else                                   pol2fit->SetLineColor(kAzure+2);
   }
 
   TCanvas* canvas = new TCanvas("canvas","",700,700);
@@ -445,7 +452,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   gr->SetLineWidth(2);
   gr->Draw("ap");  
   leg.AddEntry(gr,legEntry.c_str(),"PLE");
-  if (smoothPolinDegree == 1 and excludePoints) {
+  if (polNdegree == 1 and excludePoints) {
     //gr_tmp->Draw("p same"); // draw all points, but not all of them were used for the fit
     gr_excl->SetMarkerColor(kRed+1);
     gr_excl->SetMarkerStyle(47);
@@ -457,7 +464,7 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     leg.AddEntry(gr_excl,"excluded points","PLE");
   }
 
-  if (smoothPolinDegree == 1) {
+  if (polNdegree == 1) {
     leg.AddEntry(linefit,Form("fit: %.2g %s %.2g #upoint x",fitres->Parameter(0),((fitres->Parameter(1) > 0) ? "+":"-"), fabs(fitres->Parameter(1))),"L");
     //leg.AddEntry(linefit2,Form("fit: %.2g %s %.2g #upoint x",fitres2->Parameter(0),((fitres2->Parameter(1) > 0) ? "+":"-"), fabs(fitres2->Parameter(1))),"L");
     leg.AddEntry(linefit_p0dn,"offset up/down (1#sigma)","L");
@@ -952,12 +959,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 	    Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), 
 	    "Events/bin [GeV^{-1 }]", 
 	    Form("ele_pt_%s_%s_numerator",detId.c_str(),plotPostFix.c_str()), 
-	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false);
+	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false, true);
   draw_nTH1(pt_den_proc, 
 	    Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), 
 	    "Events/bin [GeV^{-1 }]", 
 	    Form("ele_pt_%s_%s_denominator",detId.c_str(),plotPostFix.c_str()), 
-	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false);	    
+	    outDirPt, leg_pt_proc, "", inputLuminosity, 1, false, false, true);	    
 
   // now create new FR as (data - EWK') where EWK' is the scaled EWK
   hpass_data_subtr_scaledUpEWK->Add(hpass_ewk_scaledUp,-1);  
@@ -1094,7 +1101,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   ptr_ewk = fitGraph(fr_ewk, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_ewk_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"ewk/", "EWK MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, true);
   // fit is Y=a*X+b
   // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-  for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+  for (UInt_t ipar = 0; ipar < ptr_ewk->NPar(); ++ipar) {      
     frSmoothParameter_ewk->SetBinContent(etaBinTH1,ipar+1,ptr_ewk->Parameter(ipar));
     frSmoothParameter_ewk->SetBinError(etaBinTH1,ipar+1,ptr_ewk->ParError(ipar));
   }
@@ -1106,7 +1113,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       ptr_wz = fitGraph(fr_wz, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_wz_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"wz/", "W,Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+      for (UInt_t ipar = 0; ipar < ptr_wz->NPar(); ++ipar) {      
 	frSmoothParameter_wz->SetBinContent(etaBinTH1,ipar+1,ptr_wz->Parameter(ipar));
 	frSmoothParameter_wz->SetBinError(etaBinTH1,ipar+1,ptr_wz->ParError(ipar));
       }
@@ -1116,7 +1123,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       ptr_w = fitGraph(fr_w, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"w/", "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {        
+      for (UInt_t ipar = 0; ipar < ptr_w->NPar(); ++ipar) {        
 	frSmoothParameter_w->SetBinContent(etaBinTH1,ipar+1,ptr_w->Parameter(ipar));
 	frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
       }
@@ -1124,7 +1131,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       ptr_z = fitGraph(fr_z, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"z/", "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+      for (UInt_t ipar = 0; ipar < ptr_z->NPar(); ++ipar) {  
 	frSmoothParameter_z->SetBinContent(etaBinTH1,ipar+1,ptr_z->Parameter(ipar));
 	frSmoothParameter_z->SetBinError(etaBinTH1,ipar+1,ptr_z->ParError(ipar));
       }
@@ -1136,7 +1143,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       ptr_top_vv = fitGraph(fr_top_vv, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Prompt Rate::%s",yrange_ewk.c_str()), Form("fr_top_vv_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"top_vv/", "Top,VV MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
-      for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {      
+      for (UInt_t ipar = 0; ipar < ptr_top_vv->NPar(); ++ipar) {      
 	frSmoothParameter_top_vv->SetBinContent(etaBinTH1,ipar+1,ptr_top_vv->Parameter(ipar));
 	frSmoothParameter_top_vv->SetBinError(etaBinTH1,ipar+1,ptr_top_vv->ParError(ipar));
       }
@@ -1152,7 +1159,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     
     ptr_qcd = fitGraph(fr_qcd, isEB, Form("electron p_{T} [GeV]::%f,%f",ptMin,ptMax), Form("Fake Rate::%s",yrange_qcdmc.c_str()), Form("fr_qcd_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"qcd/", "QCD MC            ", legCoordFit,inputLuminosity,false, false, false);
 
-    for (UInt_t ipar = 0; ipar < ptr_data->NPar(); ++ipar) {  
+    for (UInt_t ipar = 0; ipar < ptr_qcd->NPar(); ++ipar) {  
       frSmoothParameter_qcd->SetBinContent(etaBinTH1,ipar+1,ptr_qcd->Parameter(ipar));
       frSmoothParameter_qcd->SetBinError(etaBinTH1,ipar+1,ptr_qcd->ParError(ipar));
     }
@@ -1169,8 +1176,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 //================================================================
 void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2/", 
-					const string& outfileTag = "fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2_tests/", 
+					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_tests",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

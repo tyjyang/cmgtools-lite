@@ -4,7 +4,7 @@
 # merge file will be created in outdir and will have <charge> in its name
 
 charge="comb_WchargeAsymmetry"
-toydir="toys/diffXsec_mu_2018_12_10_onlyBkg_noOutDYnorm_noBBB_noCorrStat/"
+toydir="toys/diffXsec_mu_2018_12_18_onlyBkg_pt2GeV_eta0p2From2p0/"
 outdir="${toydir}${charge}/"
 outname="toys_${charge}.root"
 sizemin="1000"

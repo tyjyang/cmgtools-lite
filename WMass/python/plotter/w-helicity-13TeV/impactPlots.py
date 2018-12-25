@@ -20,22 +20,42 @@ if __name__ == "__main__":
     parser.add_option(     '--suffix',     dest='suffix',     default='',   type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm)')
     parser.add_option(     '--zrange',     dest='zrange',     default='', type='string', help='Pass range for z axis as "min,max". If not given, it is set automatically based on the extremes of the histogram')
-    parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "height,width" ')
+    parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height" ')
     parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
     parser.add_option(     '--nContours', dest='nContours',    default=0, type=int, help='Number of contours in palette. Default is 20')
     parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
+    parser.add_option(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     parser.add_option(     '--parNameCanvas', dest='parNameCanvas',    default='', type='string', help='The canvas name is built using the parameters selected with --nuis or nuisgroups. If they are many, better to pass a name, like QCDscales or PDF for example')
+    parser.add_option(     '--abs-value', dest='absValue' , default=False , action='store_true',   help='Use absolute values for impacts (groups are already positive)')
     (options, args) = parser.parse_args()
 
+    # palettes:
+    # 69 + inverted, using TColor::InvertPalette(), kBeach
+    # 70 + inverted, using TColor::InvertPalette(), kBlackBody
+    # 107, kCool
+    # 57 kBird
+    # 55 kRainBow
+
     ROOT.TColor.CreateGradientColorTable(3,
-                                      array ("d", [0.00, 0.50, 1.00]),
-                                      ##array ("d", [1.00, 1.00, 0.00]),
-                                      ##array ("d", [0.70, 1.00, 0.34]),
-                                      ##array ("d", [0.00, 1.00, 0.82]),
-                                      array ("d", [0.00, 1.00, 1.00]),
-                                      array ("d", [0.34, 1.00, 0.65]),
-                                      array ("d", [0.82, 1.00, 0.00]),
-                                      255,  0.95)
+                                         array ("d", [0.00, 0.50, 1.00]),
+                                         ##array ("d", [1.00, 1.00, 0.00]),
+                                         ##array ("d", [0.70, 1.00, 0.34]),
+                                         ##array ("d", [0.00, 1.00, 0.82]),
+                                         array ("d", [0.00, 1.00, 1.00]),
+                                         array ("d", [0.34, 1.00, 0.65]),
+                                         array ("d", [0.82, 1.00, 0.00]),
+                                         255,  0.95)
+
+    if options.absValue:
+        ROOT.TColor.CreateGradientColorTable(2,
+                                             array ("d", [0.00, 1.00]),
+                                             ##array ("d", [1.00, 1.00, 0.00]),
+                                             ##array ("d", [0.70, 1.00, 0.34]),
+                                             ##array ("d", [0.00, 1.00, 0.82]),
+                                             array ("d", [1.00, 1.00]),
+                                             array ("d", [1.00, 0.65]),
+                                             array ("d", [1.00, 0.00]),
+                                             255,  0.95)
 
     if len(options.nuis) and len(options.nuisgroups):
         print 'You can specify either single nuis (--nuis) or poi groups (--nuisgroups), not both!'
@@ -109,13 +129,15 @@ if __name__ == "__main__":
     ch = 1200
     cw = 1200
     if options.canvasSize:
-        ch = int(options.canvasSize.split(',')[0])
-        cw = int(options.canvasSize.split(',')[1])
-    c = ROOT.TCanvas("c","",ch,cw)
+        cw = int(options.canvasSize.split(',')[0])
+        ch = int(options.canvasSize.split(',')[1])
+    c = ROOT.TCanvas("c","",cw,ch)
     c.SetGridx()
     c.SetGridy()
     if options.nContours: ROOT.gStyle.SetNumberContours(options.nContours)
     if options.palette:   ROOT.gStyle.SetPalette(options.palette)
+    if options.invertePalette:    ROOT.TColor.InvertPalette()
+
 
     clm = 0.15
     crm = 0.15
@@ -138,7 +160,7 @@ if __name__ == "__main__":
     for i,x in enumerate(pois):
         for j,y in enumerate(nuisances):
             ## set it into the new sub-matrix
-            th2_sub.SetBinContent(i+1, j+1, mat[(x,y)])
+            th2_sub.SetBinContent(i+1, j+1, abs(mat[(x,y)]) if options.absValue else mat[(x,y)])
             ## set the labels correctly
             new_x = niceName(x)
             new_y = niceName(y)
@@ -146,7 +168,11 @@ if __name__ == "__main__":
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
 
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))    
-    th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
+    if options.absValue:
+        th2_sub.GetZaxis().SetRangeUser(0,rmax)
+    else :
+        th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
+
     if options.zrange:
         rmin,rmax = (float(x) for x in options.zrange.split(','))
         th2_sub.GetZaxis().SetRangeUser(rmin,rmax)

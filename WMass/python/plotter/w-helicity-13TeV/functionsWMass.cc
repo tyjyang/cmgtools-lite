@@ -335,7 +335,7 @@ float eleSF_L1Eff_2l(float pt1, float eta1, float pt2, float eta2) {
 }
 
 
-float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, int nSigma=0) {
+float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, int nSigma=0, int L1muon = 0) {
   float abseta = fabs(eta);
   float syst=0;
   float sf4=1.0; float sf4_err=0.0;
@@ -351,12 +351,17 @@ float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, in
     if (abseta<1)          syst = 0.002;
     else if (abseta<1.5)   syst = 0.004;
     else                   syst = 0.014;
+    if (L1muon) {
+      sf4 = eleSF_L1Eff(pt,eta);
+      sf4_err = eleSF_L1Eff(pt,eta,true);
+      if (abseta>1.479) syst = hypot(syst,sf4_err);
+    }
   }
   return sf1*sf2*sf3*sf4 + nSigma*syst;
 }
 
-float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {
-  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,0);
+float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, int L1muon = 0) {
+  return _lepSF(pdgId,pt,eta,sf1,sf2,sf3,0, L1muon);
 }
 
 float lepSFRelUp(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {

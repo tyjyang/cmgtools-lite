@@ -1989,7 +1989,8 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
 	       const Double_t lumi = -1.0, 
 	       const Int_t rebinFactor = 1, 
 	       const Bool_t drawPlotLogY = true,
-	       const Bool_t drawRatioWithNominal_tmp = false 
+	       const Bool_t drawRatioWithNominal_tmp = false,
+	       const Bool_t drawError = false 
 	       ) 
 {
 
@@ -2122,12 +2123,12 @@ void draw_nTH1(vector<TH1*> vecHist1d = {},
 
   if (setXAxisRangeFromUser) vecHist1d[0]->GetXaxis()->SetRangeUser(xmin,xmax);
   //////////////////////
-
-  vecHist1d[0]->Draw("Hist");
+  string drawOption = drawError ? "HE" : "Hist";
+  vecHist1d[0]->Draw(drawOption.c_str());
   vecHist1d[0]->SetFillColor(0);
   vecHist1d[0]->SetMarkerStyle(0);
   for (UInt_t i = 1; i < vecHist1d.size(); i++) {
-    vecHist1d[i]->Draw("hist same");
+    vecHist1d[i]->Draw(Form("%s same",drawOption.c_str()));
   }
 
   double legLowY = 0.70;
