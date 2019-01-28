@@ -3,6 +3,8 @@ import ROOT, os, datetime, re, operator, math
 from array import array
 from subMatrix import niceName
 ROOT.gROOT.SetBatch(True)
+import utilities
+utilities = utilities.util()
 
 
 if __name__ == "__main__":
@@ -18,6 +20,7 @@ if __name__ == "__main__":
     parser.add_option(     '--nuisgroups', dest='nuisgroups', default='',   type='string', help='nuis groups for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option(     '--suffix',     dest='suffix',     default='',   type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm)')
+    parser.add_option('-a','--absolute',   dest='absolute',   default=False, action='store_true',              help='absolute uncertainty (default is relative)')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -53,7 +56,8 @@ if __name__ == "__main__":
         pois_regexps = list(options.pois.split(','))
     
     hessfile = ROOT.TFile(args[0],'read')
-    
+    valuesAndErrors = utilities.getFromHessian(args[0])
+
     group = 'group_' if len(options.nuisgroups) else ''
     if   options.target=='xsec':     target = 'pmaskedexp'
     elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
@@ -114,12 +118,14 @@ if __name__ == "__main__":
     for i,x in enumerate(pois):
         for j,y in enumerate(nuisances):
             ## set it into the new sub-matrix
-            th2_sub.SetBinContent(i+1, j+1, mat[(x,y)])
+            val = mat[(x,y)] if options.absolute else mat[(x,y)]/valuesAndErrors[x+'_'+target][0]
+            th2_sub.SetBinContent(i+1, j+1, val)
             ## set the labels correctly
             new_x = niceName(x)
             new_y = niceName(y)
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
+            
 
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
     th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
@@ -137,5 +143,5 @@ if __name__ == "__main__":
     if options.outdir:
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallImpacts{suff}_{target}_{nn}_On_{pn}.{i}'.format(suff=suff,target=target,i=i,nn=nuisName,pn=poisName))
+            c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisName))
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
