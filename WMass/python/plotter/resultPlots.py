@@ -38,6 +38,7 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += [','.join(['FakeEtaUncorrelated'+str(i) for i in range(1,11)]) ]
         for nuis in systs:
             os.system('python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
 
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs = ['FakesEtaUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
