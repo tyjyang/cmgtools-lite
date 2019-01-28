@@ -23,18 +23,18 @@ CMS_W                : TauDecaysW                   : .* : 1.30
 # ==================================================================
 # lepton scale
 # ==================================================================
-CMS_We_elescale      :  W.*: .* : elescale         : templates 
+CMS_We_elescale      :  W.*: .* : elescale         : templates
 
 # ==================================================================
 # Fake rate uncertainties
 # 1+2) Measurement of the fake rate: normalization and shapes
 # ==================================================================
 # first is the normalization uncertainty
-#CMS_We_FRe_norm        : data_fakes  : .* : 1.30
+CMS_We_FRe_lnN        : data_fakes  : .* : 1.30
 
 # shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
 CMS_We_FRe_slope         : data_fakes  : .* : FRe_slope       : templatesShapeOnly
-CMS_We_FRe_continuous    : data_fakes  : .* : FRe_continuous  : templates
+#CMS_We_FRe_continuous    : data_fakes  : .* : FRe_continuous  : templates
 #CMS_We_FRe_awayJetPt45   : data_fakes  : .* : data_fakes_FRe_awayJetPt45 : alternateShapeOnly
 
 # ==================================================================
