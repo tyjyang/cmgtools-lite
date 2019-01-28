@@ -3,7 +3,18 @@ import ROOT, os, datetime, re, operator, math
 from array import array
 from subMatrix import niceName
 ROOT.gROOT.SetBatch(True)
+import utilities
+utilities = utilities.util()
 
+def latexLabel(label):
+    bin = int(label.split(' ')[-1]) if any(pol in label for pol in ['left','right','long']) else -1
+    deltaYW = 0.2 ### should use binningYW.txt, but let's  not make it too complicated
+    minY,maxY=bin*deltaYW,(bin+1)*deltaYW
+    binLbl = ' {minY}<|Y_\mathrm{{ W }}|<{maxY}'.format(minY=minY,maxY=maxY)
+    lblNoBin = ' '.join(label.split(' ')[:-1])
+    lblNoBin = lblNoBin.replace('+','^+').replace(' left','_L').replace(' right','_R')
+    lblNoBin += binLbl
+    return lblNoBin
 
 if __name__ == "__main__":
 
@@ -18,6 +29,8 @@ if __name__ == "__main__":
     parser.add_option(     '--nuisgroups', dest='nuisgroups', default='',   type='string', help='nuis groups for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option(     '--suffix',     dest='suffix',     default='',   type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm)')
+    parser.add_option('-a','--absolute',   dest='absolute',   default=False, action='store_true', help='absolute uncertainty (default is relative)')
+    parser.add_option(     '--latex',      dest='latex',      default=False, action='store_true', help='target POI (can be mu,xsec,xsecnorm)')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -53,7 +66,8 @@ if __name__ == "__main__":
         pois_regexps = list(options.pois.split(','))
     
     hessfile = ROOT.TFile(args[0],'read')
-    
+    valuesAndErrors = utilities.getFromHessian(args[0])
+
     group = 'group_' if len(options.nuisgroups) else ''
     if   options.target=='xsec':     target = 'pmaskedexp'
     elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
@@ -114,12 +128,17 @@ if __name__ == "__main__":
     for i,x in enumerate(pois):
         for j,y in enumerate(nuisances):
             ## set it into the new sub-matrix
-            th2_sub.SetBinContent(i+1, j+1, mat[(x,y)])
+            if options.absolute: 
+                val = mat[(x,y)]
+            else: 
+                val = mat[(x,y)]/valuesAndErrors[x+'_'+target][0] if valuesAndErrors[x+'_'+target][0] !=0 else 0.0
+            th2_sub.SetBinContent(i+1, j+1, val)
             ## set the labels correctly
             new_x = niceName(x)
             new_y = niceName(y)
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
+            
 
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
     th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
@@ -134,8 +153,21 @@ if __name__ == "__main__":
     nuisName = nuisName.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
     poisName = options.pois.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
 
-    if options.outdir:
+    suff = '' if not options.suffix else '_'+options.suffix
+    poisNameNice = poisName.replace('(','').replace(')','').replace('\|','or')
+    if options.latex:
+        txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisNameNice)
+        if options.outdir: txtfilename = options.outdir + '/' + txtfilename
+        txtfile = open(txtfilename,'w')
+        txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
+        txtfile.write('                    ' + " & ".join(['{poi}'.format(poi=latexLabel(th2_sub.GetXaxis().GetBinLabel(i+1))) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \\hline \n")
+        for j in xrange(th2_sub.GetNbinsY()):
+            txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=100*th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
+        txtfile.write("\\end{tabular}\n")
+        txtfile.close()
+        print "Saved the latex table in file ",txtfilename
+
+    if options.outdir and not options.latex:
         for i in ['pdf', 'png']:
-            suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallImpacts{suff}_{target}_{nn}_On_{pn}.{i}'.format(suff=suff,target=target,i=i,nn=nuisName,pn=poisName))
+            c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisNameNice))
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
