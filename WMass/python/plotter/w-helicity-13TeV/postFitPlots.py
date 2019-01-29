@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # USAGE: python postFitPlots.py wel_minus_floatPOI.root cards_el -o outputdir [--prefit]
-
 import ROOT, os, re
 from array import array
-from CMGTools.WMass.plotter.mcPlots import doShadedUncertainty
 from rollingFunctions import roll1Dto2D, unroll2Dto1D
 
 import utilities
@@ -107,7 +105,7 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     hdata.SetMarkerStyle(ROOT.kFullCircle)
     hdata.Draw("E SAME")
     htot.Draw("AXIS SAME")
-    totalError = doShadedUncertainty(htot)            
+    totalError = utilities.doShadedUncertainty(htot)            
     legend.Draw()
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)

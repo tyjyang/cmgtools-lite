@@ -114,15 +114,16 @@ if __name__ == "__main__":
     c.SetGridx()
     c.SetGridy()
 
-    c.SetLeftMargin(0.15)
-    c.SetRightMargin(0.15)
-    c.SetBottomMargin(0.15)
+    c.SetLeftMargin(0.20)
+    c.SetRightMargin(0.20)
+    c.SetBottomMargin(0.20)
 
     ## make the new, smaller TH2F correlation matrix
     nbinsx = len(pois); nbinsy = len(nuisances)
     th2_sub = ROOT.TH2F('sub_imp_matrix', '', nbinsx, 0., nbinsx, nbinsy, 0., nbinsy)
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
+    th2_sub.GetZaxis().SetTitle("impact on POI {units}".format(units='' if options.absolute else '(%)'))
 
     ## pretty nested loop. enumerate the tuples
     for i,x in enumerate(pois):
@@ -131,7 +132,7 @@ if __name__ == "__main__":
             if options.absolute: 
                 val = mat[(x,y)]
             else: 
-                val = mat[(x,y)]/valuesAndErrors[x+'_'+target][0] if valuesAndErrors[x+'_'+target][0] !=0 else 0.0
+                val = 100*mat[(x,y)]/valuesAndErrors[x+'_'+target][0] if valuesAndErrors[x+'_'+target][0] !=0 else 0.0
             th2_sub.SetBinContent(i+1, j+1, val)
             ## set the labels correctly
             new_x = niceName(x)
@@ -143,7 +144,10 @@ if __name__ == "__main__":
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
     th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
     th2_sub.GetXaxis().LabelsOption("v")
-    ROOT.gStyle.SetPaintTextFormat('1.3f')
+    if options.absolute: 
+        ROOT.gStyle.SetPaintTextFormat('1.3f')
+    else: 
+        ROOT.gStyle.SetPaintTextFormat('1.1f')
     if len(pois)<30 and len(nuisances)<30: th2_sub.Draw('colz0 text45')
     else: th2_sub.Draw('colz0')
     if len(nuisances)>30: th2_sub.GetYaxis().SetLabelSize(0.02)
@@ -162,7 +166,7 @@ if __name__ == "__main__":
         txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
         txtfile.write('                    ' + " & ".join(['{poi}'.format(poi=latexLabel(th2_sub.GetXaxis().GetBinLabel(i+1))) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \\hline \n")
         for j in xrange(th2_sub.GetNbinsY()):
-            txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=100*th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
+            txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
         txtfile.write("\\end{tabular}\n")
         txtfile.close()
         print "Saved the latex table in file ",txtfilename
