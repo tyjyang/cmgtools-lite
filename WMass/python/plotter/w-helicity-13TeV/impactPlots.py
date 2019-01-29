@@ -142,6 +142,7 @@ if __name__ == "__main__":
             
 
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
+    if not options.absolute: rmax = min(20.,rmax)
     th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
     th2_sub.GetXaxis().LabelsOption("v")
     if options.absolute: 
