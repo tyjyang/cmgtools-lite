@@ -4,6 +4,7 @@ import os
 import ROOT
 
 def compileMacro(x,basedir=os.environ['CMSSW_BASE']):
+    # ROOT.gROOT.ProcessLine(".L %s/%s+" % (os.environ['CMSSW_BASE'],x));
     success = ROOT.gSystem.CompileMacro("%s/%s" % (os.environ['CMSSW_BASE'],x),"k")
     if not success:
         print ("Loading and compiling %s failed! Exit" % x)
