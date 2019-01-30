@@ -17,6 +17,9 @@ ROOT.gROOT.SetBatch(True)
 # Indeed, the TH2 returned by the graphs is created with the same number of bins of the input TH2, but slightly narrower axis range (and probably uniform binning)
 # This results in an output histogram not consistent with the input (cannot divide, or add for example)
 
+# To avoid these issues with the built-in smoothing of TH2 in root, we can do a simple interpolation by hand. The histogram is name h2HandSmooth in this code
+# It works by splitting bins along a given direction (we used that for eta, on x axis) in N parts (3 should be the default) and making a linear interpolation
+
 #-------------------------
 
 def printBins(hist2d,text=""):
@@ -46,6 +49,7 @@ if __name__ == "__main__":
     parser.add_option('-o', '--outdir'         , dest='outdir'     , default=''      , type='string', help='output directory')
     parser.add_option('-n', '--name'           , dest='name'       , default='smoothGraph.root'      , type='string', help='output file name')
     parser.add_option(      '--hist'           , dest='hist'       , default='scaleFactor'      , type='string', help='name of histogram to smooth')
+    parser.add_option('-a', '--draw-all'       , dest='drawAll'    , default=False   , action="store_true", help='Draw all smoothed versions. By default, only the result of the smoothing by hand with interpolation is drawn, to avoid confusion')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -114,19 +118,16 @@ if __name__ == "__main__":
             # now interpolate eta
             if ix == 1 or ix == h2HandSmooth.GetNbinsX(): continue # do not modify the outer bins
             etabinID = ix%binSplitFactor  # which sub-bin inside the bin (if binSplitFactor=3, can be 1,2,0 for first, second and third sub-bin)
+            thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+            otherVal = 0
             if  etabinID == 1:   
-                # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)
-                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
+                # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)      
                 otherVal = hist2d.GetBinContent(hist2xbin-1,hist2ybin)
-                val = thisVal - 1. * (thisVal - otherVal) / 3.
-                h2HandSmooth.SetBinContent(ix,iy,val)
             elif etabinID == 0:
                 # if sub-bin on the right, take this -1/3 of the difference between this and the following (computed in the central sub-bin)
-                thisVal = hist2d.GetBinContent(hist2xbin,hist2ybin)
                 otherVal = hist2d.GetBinContent(hist2xbin+1,hist2ybin)
-                val = thisVal - 1. * (thisVal - otherVal) / 3.
-                h2HandSmooth.SetBinContent(ix,iy,val)
-
+            val = thisVal - 1. * (thisVal - otherVal) / 3.
+            h2HandSmooth.SetBinContent(ix,iy,val)
 
 
     h2new = ROOT.TH2D("Graph2D_from_"+hist2d.GetName()+"_smoothedByGraph","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
@@ -205,14 +206,16 @@ if __name__ == "__main__":
 
     adjustSettings_CMS_lumi()
     canvas2D = ROOT.TCanvas("canvas","",800,700)
-    drawCorrelationPlot(hist2d,xAxisTitle,yAxisTitle,zAxisTitle,
-                        hist2d.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
-    drawCorrelationPlot(graphFrom_h2new,xAxisTitle,yAxisTitle,zAxisTitle,
-                        graphFrom_h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
-    drawCorrelationPlot(h2new,xAxisTitle,yAxisTitle,zAxisTitle,
-                        h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
-    drawCorrelationPlot(h2smooth,xAxisTitle,yAxisTitle,zAxisTitle,
+    if options.drawAll:
+        drawCorrelationPlot(hist2d,xAxisTitle,yAxisTitle,zAxisTitle,
+                            hist2d.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+        drawCorrelationPlot(graphFrom_h2new,xAxisTitle,yAxisTitle,zAxisTitle,
+                            graphFrom_h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+        drawCorrelationPlot(h2new,xAxisTitle,yAxisTitle,zAxisTitle,
+                            h2new.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+        drawCorrelationPlot(h2smooth,xAxisTitle,yAxisTitle,zAxisTitle,
                         h2smooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+
     drawCorrelationPlot(h2HandSmooth,xAxisTitle,yAxisTitle,zAxisTitle,
                         h2HandSmooth.GetName(),"",outdir,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
 
@@ -222,8 +225,8 @@ if __name__ == "__main__":
     outfile = ROOT.TFile(outfileName, 'recreate')    
     outfile.cd()
     #graphFrom_h2new.Write()
-    h2new.Write()
-    hist2d.Write()
+    #h2new.Write()
+    #hist2d.Write()
     #h2smooth.Write()
     h2HandSmooth.Write()
     outfile.Close()
