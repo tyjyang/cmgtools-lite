@@ -4,24 +4,66 @@ Do not use fancy names for the file, unless you need to distinguish two files to
 The nominal file should be named as written below, so we don't have to change all the txt files everytime we change the file
 
 At the moment we have variations for:
-- awayJetPt > 45 (nominal was made with 30)
+- awayJetPt > 45 (nominal was made with 30) --> NOW OBSOLETE, but we do not use it in the datacards
 
 Each fake rate file has inside a variation of FR obtained scaling all EWK up and down by their cross section normalization uncertainty (as written in MCA files)
 
+OBSOLETE (now we do it in fakeRate.cc if needed)
 There is another file named fakeRatenormWeight_etaPt_el.root
 This is used to apply an eta-pt-dependent normalization scaling on FR (currently only for eta: 30% in EE; 10% (20%) in EB with |eta| < (>) 1.0)
 This file is used to provide a weight on top of the usual fake rate weight
 
 =============================
 
-Last Update: 17/09/2018 20.00
+Last Update: 26/12/2018 11.00
 
 =============================
+
+FR is fitted either with pol1 or pol2, PR always with pol1
+When computing the FR, a cut is applied for M(e,jet) in 90,110 to exclude the large Z background, which peaks at around 100 GeV
+See here:
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREES_1LEP_80X_V3_FRELSKIM_V9/FR_computation_region/full2016data_07_11_2018_newSkimMassJetEle/
+See also some more plots here:
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREES_1LEP_80X_V3_FRELSKIM_V9/FR_computation_region/full2016data_06_11_2018_newFRskim/
+
+frAndPrSmoothed_el_newPol1.root           --> use pol1 in pt range [32,60] (in spite of its name, it is not the newest FR file) 
+frAndPrSmoothed_el_frPol1fitPt30to48.root --> use pol1 in pt range [30,48]
+frAndPrSmoothed_el_frPol2_prPol1.root     --> use pol2 in pt range [30,60]
+
+Properties: 
+Subtracting all EWK MC from data (inclusive W, Z, Top, DiBosons)
+Using 35.9/fb (Full 2016)
+Using latest scale factors for electrons (applied through the following expression, which include L1 prefire)
+      -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)"
+
+File produced with:
+$CMSSW_BASE/src/CMGTools/WMass/python/plotter/utilityMacros/src/makeFakeRateGraphPlotsAndSmoothing.C
 
 
 ROOT FILE NAMES
 Nominal: frAndPrSmoothed_el.root
-Variation: frAndPrSmoothed_el_awayJetPt45.root
+
+plots:
+pol1 in 32,60 as central (frAndPrSmoothed_el_newPol1.root)
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/
+
+pol1 in 30,60 as central (file not copied here, but available at following link):
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits/
+
+pol1 in 30,48 as central:
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48/
+
+pol2 in 30,60 (it is hard to define variations changing the parameters of pol2)
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2_compareManyFits/
+
+comparison (nominal is FR fitted with pol1 in [32,60], as well as slope Up)
+http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREE_4_XSEC_AFS/whelicity_signal_region/full2016data_25_12_2018_compareFR/eta_0p0_2p5/
+
+###############################
+###############################
+for reference (but OBSOLETE):
+
+Variation: frAndPrSmoothed_el_awayJetPt45.root (now obsolete)
 
 Properties: 
 Subtracting all EWK MC from data (inclusive W, Z, Top, DiBosons)
