@@ -18,7 +18,7 @@ from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
-def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
+def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True):  # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
 
     #print "Inside getXsecs_etaPt"
     # etaPtBins is a list of 4 things: Netabins, etabins, Nptbins,ptbins
@@ -33,7 +33,8 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
         charge = "plus" if "plus" in process else "minus"
         # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
-        etavar = "absetal1" if (float(etabins[0]) >= 0.0) else "etal1" 
+        etavar = "absetal1_preFSR" if (float(etabins[0]) >= 0.0) else "etal1_preFSR" 
+        if not usePreFSR: etavar = etavar.replace("preFSR","dressed")
         cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_central' 
         cen_hist = histo_file.Get(cen_name)  # this is a TH2
         useEleXsec = False
@@ -89,9 +90,14 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile):  # in my case here, the
 
         for sys in systs:
 
-            # scales muR, muF, muRmuF in bins of pt are named like muR_wpt1Up, where the number after wpt goes from 1 to 10
+            # scales muR, muF, muRmuF in bins of pt are named like mu1RUp, where the number after muR goes from 1 to 10
+            # pdf do not have Up and Dn inside file
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
+
+            if sys == "mW":
+                upn = sys + "_80470"
+                dnn = sys + "_80370"
 
             if useEleXsec:
                 sys_upname = 'gen_ptl1_'+etavar+'_W'+charge+'_el_'+upn
@@ -163,6 +169,7 @@ def combCharges(options):
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec'.format(bin=options.bin,charge=ch) for ch in ['plus','minus']]
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
         if not options.skip_text2hdf5:
@@ -172,6 +179,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5'))
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
+            print ""
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed)"
             print combineCmd
 
@@ -383,18 +391,28 @@ if __name__ == "__main__":
                                             plots[newname].Write()                                    
                                 else:
                                     #if 'pdf' in newname: # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                    if any(sysname in newname for sysname in ['pdf','Effstat']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                                        sysname = 'pdf' if 'pdf' in newname else 'Effstat'
-                                        tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); pdf = tokens[-1]
-                                        ipdf = int(pdf.split('pdf')[-1])
-                                        newname = "{pfx}_{sysname}{ipdf}".format(pfx=pfx,sysname=sysname,ipdf=ipdf)
+                                    # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                    if any(sysname in newname for sysname in ['pdf','Effstat']): 
+                                        pfx = '_'.join(newname.split("_")[:-2])
+                                        if 'pdf' in newname:
+                                            patt = re.compile('(pdf)(\d+)')
+                                            tokens = patt.findall(newname)
+                                            sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                        else:
+                                            #fullsysname = (newname.split("_")[-1]).split('.')[0]
+                                            patt = re.compile('(ErfPar\dEffStat)(\d+)')
+                                            tokens = patt.findall(newname)
+                                            sysname = tokens[0][0]; isys = int(tokens[0][1])
+                                        newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)                                        
                                         (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                         for alt in [alternate,mirror]:
                                             if alt.GetName() not in plots:
                                                 plots[alt.GetName()] = alt.Clone()
                                                 plots[alt.GetName()].Write()
                                     elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',newname): # these changes by default shape and normalization
-                                        tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
+                                        tokens = newname.split("_") 
+                                        pfx = '_'.join(tokens[:-2])
+                                        syst = tokens[-1].replace('Dn','Down')
                                         newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
                                         if 'wptSlope' in newname: # this needs to be scaled not to change normalization
                                             obj.Scale(nominals[pfx].Integral()/obj.Integral())
@@ -425,7 +443,7 @@ if __name__ == "__main__":
                 if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*',name):
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*EffStat.*',name):
+                if re.match('.*ErfPar\dEffStat.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         pdfsyst = {k:v for k,v in theosyst.iteritems() if 'pdf' in k}
@@ -601,16 +619,14 @@ if __name__ == "__main__":
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
  
         ## xsecfilename                                                                                                                                                    
-        xsecfile = '/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root'
+        xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root"
         if options.xsecMaskedYields:
             xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
         hists = getXsecs_etaPt(tmp_sigprocs,
                                [i for i in sortedsystkeys if not 'wpt' in i], # wptslope is not used anymore, anyway, do not pass it
                                binning,
-                               # no need to pass a luminosity, histograms in xsection_genEtaPt.root are already divided by it (xsec in pb)
-                               # 35.9 if channel == 'mu' else 30.9,  
-                               xsecfile
-                               )
+                               xsecfile,
+                               usePreFSR = True if "_preFSR_" in xsecfile else False)
         tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
         tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
         for hist in hists:

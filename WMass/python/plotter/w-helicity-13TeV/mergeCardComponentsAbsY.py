@@ -9,6 +9,10 @@ import ROOT
 import sys,os,re,json, copy, math
 from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 
+# to manage binning reading from file
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
+
 def getXsecs(processes, systs, ybins, lumi, infile):
     histo_file = ROOT.TFile(infile, 'READ')
 
@@ -130,20 +134,30 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge):
-    binninPtEtaFile = open(options.inputdir+'/binningPtEta.txt','r')
-    bins = binninPtEtaFile.readlines()[1].split()[1]
-    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    nbinseta = len(etabins)-1
-    nbinspt  = len( ptbins)-1
-    binning = [nbinseta, etabins, nbinspt, ptbins]
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[]):
 
-    isMu = 'mu' in options.bin
+    # for differential cross section I don't use the same option for inputs, so I pass it from outside
+    indir = outdir if outdir != None else options.inputdir 
+
+    # this doesn't work for differential cross section because I have line 2 with the comment for gen binning
+    # in all my scripts I developed some specific functions to read the binning, either reco or gen: here we only need reco
+    # binninPtEtaFile = open(indir+'/binningPtEta.txt','r')
+    # bins = binninPtEtaFile.readlines()[1].split()[1]
+    # etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+    # ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+    # nbinseta = len(etabins)-1
+    # nbinspt  = len( ptbins)-1
+    # binning = [nbinseta, etabins, nbinspt, ptbins]
+
+    # get eta-pt binning for both reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
 
     tmp_infile = ROOT.TFile(infile, 'read')
-
-    outfile = ROOT.TFile(options.inputdir+'/FakesEtaUncorrelated_{ch}.root'.format(ch=charge), 'recreate')
+    
+    outfile = ROOT.TFile('{od}/FakesEtaUncorrelated_{ch}.root'.format(od=indir, ch=charge), 'recreate')
 
     ndone = 0
     for k in tmp_infile.GetListOfKeys():
@@ -162,8 +176,8 @@ def putUncorrelatedFakes(infile,regexp,charge):
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
 
-        ## absolute eta borders:
-        etaBorders = [0.5, 1.0, 1.5, 2.0]
+        ## absolute eta borders:        
+        etaBorders = etaBordersTmp if len(etaBordersTmp) else [0.5, 1.0, 1.5, 2.0]
         ## construct positive and negative eta borders symmetrically
         etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
         borderBins = [1]
@@ -202,16 +216,26 @@ def putUncorrelatedFakes(infile,regexp,charge):
     print 'done with the reweightings for the uncorrelated fake systematics'
             
 
-def putEffStatHistos(infile,regexp,charge):
-    binninPtEtaFile = open(options.inputdir+'/binningPtEta.txt','r')
-    bins = binninPtEtaFile.readlines()[1].split()[1]
-    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    nbinseta = len(etabins)-1
-    nbinspt  = len( ptbins)-1
-    binning = [nbinseta, etabins, nbinspt, ptbins]
+def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
-    isMu = 'mu' in options.bin
+    # for differential cross section I don't use the same option for inputs, so I pass it from outside
+    indir = outdir if outdir != None else options.inputdir
+
+    # this doesn't work for differential cross section because I have line 2 with the comment for gen binning
+    # in all my scripts I developed some specific functions to read the binning, either reco or gen: here we only need reco
+    # binninPtEtaFile = open(indir+'/binningPtEta.txt','r')
+    # bins = binninPtEtaFile.readlines()[1].split()[1]
+    # etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
+    # ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
+    # nbinseta = len(etabins)-1
+    # nbinspt  = len( ptbins)-1
+    # binning = [nbinseta, etabins, nbinspt, ptbins]
+
+    # get eta-pt binning for both reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
@@ -224,7 +248,7 @@ def putEffStatHistos(infile,regexp,charge):
 
     tmp_infile = ROOT.TFile(infile, 'read')
 
-    outfile = ROOT.TFile(options.inputdir+'/ErfParEffStat_{ch}.root'.format(ch=charge), 'recreate')
+    outfile = ROOT.TFile(indir+'/ErfParEffStat_{ch}.root'.format(ch=charge), 'recreate')
 
     ndone = 0
     for k in tmp_infile.GetListOfKeys():
@@ -466,9 +490,9 @@ if __name__ == "__main__":
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
 
             print 'now putting the erfpar systeamtics into the file'
-            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge)
+            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge)
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
 
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{ch}.root {indir}/FakesEtaUncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir )
             os.system(final_haddcmd)

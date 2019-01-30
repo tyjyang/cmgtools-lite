@@ -42,7 +42,8 @@ genwVar = "prefsrw" if options.leptonDef == "preFSR" else "genw"
 charges = [ "plus", "minus"]
 flav=options.channel
 
-scaleVars = ['muR','muF',"muRmuF", "alphaS"] 
+#scaleVars = ['muR','muF',"muRmuF", "alphaS"] 
+scaleVars = ["alphaS"] 
 # scales are also done in bins of wpt
 # let's consider 10 bins (using every other value of the following array, defined also in make_diff_xsec_cards.py)
 wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
