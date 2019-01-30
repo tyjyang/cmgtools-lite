@@ -347,7 +347,7 @@ if __name__ == "__main__":
     fixedYBins = []
     if options.ybinsOutAcc:
         fixedYBins = list(int(i) for i in options.ybinsOutAcc.split(','))
-    print 'I WILL FIX THESE BINS IN THE FIT:'
+    print 'I WILL MAKE THESE BINS OUT OF ACCEPTANCE IN THE FIT:'
     print fixedYBins
     print '---------------------------------'
     
@@ -512,12 +512,12 @@ if __name__ == "__main__":
                     if re.match('.*_muR.*|.*_muF.*',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*ErfPar\dEffStat.*|.*FakesEtaUncorrelated.*',name):
+                if re.match('.*ErfPar\dEffStat.*|.*FakesEtaUncorrelated.*|.*(ele|mu)scale.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
-        if len(theosyst): print "Found a bunch of theoretical sysematics: ",theosyst.keys()
+        if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
         else: print "You are running w/o theory systematics. Lucky you!"
-        if len(expsyst): print "Found a bunch of experimental sysematics: ",expsyst.keys()
+        if len(expsyst): print "Found a bunch of experimental shape systematics: ",expsyst.keys()
         allsyst = theosyst.copy()
         allsyst.update(expsyst)
         pdfsyst = {k:v for k,v in theosyst.iteritems() if 'pdf' in k}
@@ -730,13 +730,21 @@ if __name__ == "__main__":
         for sys,procs in allsyst.iteritems():
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
             combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
-        
-        combinedCard.write('\npdfs group    = '+' '.join([sys for sys,procs in pdfsyst.iteritems()])+'\n')
-        combinedCard.write('\nscales group  = '+' '.join([sys for sys,procs in qcdsyst.iteritems()])+'\n')
-        combinedCard.write('\nalphaS group  = '+' '.join([sys for sys,procs in alssyst.iteritems()])+'\n')
-        combinedCard.write('\nwmodel group  = '+' '.join([sys for sys,procs in wmodelsyst.iteritems()])+'\n')
-        combinedCard.write('\nEffStat group = '+' '.join([sys for sys,procs in effsyst.iteritems()])+'\n')
+        combinedCard.close() 
 
+        cardlines = [line.rstrip('\n') for line in open(cardfile,'r')]
+        finalsystnames = [line.split()[0] for line in cardlines if len(line.split())>1 and any(systtype in line.split()[1] for systtype in ['shape','lnN'])]
+
+        combinedCard = open(cardfile,'a+')        
+        combinedCard.write('\nluminosity group = CMS_lumi_13TeV\n')
+        combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
+        combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
+        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
+        combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
+        combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('FakesEtaUncorrelated.*',x),finalsystnames) +
+                                                       filter(lambda x: re.match('.*FR.*(lnN|slope|continuous)',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_W$|CMS_We_flips',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.close() 
 
             

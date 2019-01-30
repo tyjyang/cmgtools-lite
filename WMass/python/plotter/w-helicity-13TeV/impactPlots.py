@@ -6,6 +6,18 @@ ROOT.gROOT.SetBatch(True)
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
+import utilities
+utilities = utilities.util()
+
+def latexLabel(label):
+    bin = int(label.split(' ')[-1]) if any(pol in label for pol in ['left','right','long']) else -1
+    deltaYW = 0.2 ### should use binningYW.txt, but let's  not make it too complicated
+    minY,maxY=bin*deltaYW,(bin+1)*deltaYW
+    binLbl = ' {minY}<|Y_\mathrm{{ W }}|<{maxY}'.format(minY=minY,maxY=maxY)
+    lblNoBin = ' '.join(label.split(' ')[:-1])
+    lblNoBin = lblNoBin.replace('+','^+').replace(' left','_L').replace(' right','_R')
+    lblNoBin += binLbl
+    return lblNoBin
 
 if __name__ == "__main__":
 
@@ -27,6 +39,8 @@ if __name__ == "__main__":
     parser.add_option(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     parser.add_option(     '--parNameCanvas', dest='parNameCanvas',    default='', type='string', help='The canvas name is built using the parameters selected with --nuis or nuisgroups. If they are many, better to pass a name, like QCDscales or PDF for example')
     parser.add_option(     '--abs-value', dest='absValue' , default=False , action='store_true',   help='Use absolute values for impacts (groups are already positive)')
+    parser.add_option('-a','--absolute',   dest='absolute',   default=False, action='store_true', help='absolute uncertainty (default is relative)')
+    parser.add_option(     '--latex',      dest='latex',      default=False, action='store_true', help='target POI (can be mu,xsec,xsecnorm)')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -81,7 +95,8 @@ if __name__ == "__main__":
         pois_regexps = list(options.pois.split(','))
     
     hessfile = ROOT.TFile(args[0],'read')
-    
+    valuesAndErrors = utilities.getFromHessian(args[0])
+
     group = 'group_' if len(options.nuisgroups) else ''
     if   options.target=='xsec':     target = 'pmaskedexp'
     elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
@@ -139,9 +154,9 @@ if __name__ == "__main__":
     if options.invertePalette:    ROOT.TColor.InvertPalette()
 
 
-    clm = 0.15
-    crm = 0.15
-    cbm = 0.15
+    clm = 0.2
+    crm = 0.2
+    cbm = 0.2
     ctm = 0.1
     if options.margin:
         clm,crm,ctm,cbm = (float(x) for x in options.margin.split(','))
@@ -155,31 +170,40 @@ if __name__ == "__main__":
     th2_sub = ROOT.TH2F('sub_imp_matrix', '', nbinsx, 0., nbinsx, nbinsy, 0., nbinsy)
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
+    th2_sub.GetZaxis().SetTitle("impact on POI {units}".format(units='' if options.absolute else '(%)'))
 
     ## pretty nested loop. enumerate the tuples
     for i,x in enumerate(pois):
         for j,y in enumerate(nuisances):
             ## set it into the new sub-matrix
-            th2_sub.SetBinContent(i+1, j+1, abs(mat[(x,y)]) if options.absValue else mat[(x,y)])
+            if options.absolute: 
+                val = mat[(x,y)]
+            else: 
+                val = 100*mat[(x,y)]/valuesAndErrors[x+'_'+target][0] if valuesAndErrors[x+'_'+target][0] !=0 else 0.0
+            th2_sub.SetBinContent(i+1, j+1, abs(val) if options.absValue else val)
             ## set the labels correctly
             new_x = niceName(x)
             new_y = niceName(y)
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
-
-    rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))    
+            
+    rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
+    if not options.absolute: rmax = min(20.,rmax)
     if options.absValue:
         th2_sub.GetZaxis().SetRangeUser(0,rmax)
     else :
         th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
-
     if options.zrange:
         rmin,rmax = (float(x) for x in options.zrange.split(','))
         th2_sub.GetZaxis().SetRangeUser(rmin,rmax)
     th2_sub.GetXaxis().LabelsOption("v")
-    ROOT.gStyle.SetPaintTextFormat('1.3f')
-    if options.target != "mu":
-        ROOT.gStyle.SetPaintTextFormat('.3g')
+    if options.absolute: 
+        ROOT.gStyle.SetPaintTextFormat('1.3f')
+        if options.target != "mu":
+            ROOT.gStyle.SetPaintTextFormat('.3g')
+    else: 
+        ROOT.gStyle.SetPaintTextFormat('1.1f')
+
     if len(pois)<30 and len(nuisances)<30: th2_sub.Draw('colz0 text45')
     else: th2_sub.Draw('colz0')
     if len(nuisances)>30: th2_sub.GetYaxis().SetLabelSize(0.02)
@@ -192,8 +216,23 @@ if __name__ == "__main__":
         poisName = options.pois.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
         cname = "{nn}_On_{pn}".format(nn=nuisName,pn=poisName)
 
-    if options.outdir:
+    suff = '' if not options.suffix else '_'+options.suffix
+    poisNameNice = poisName.replace('(','').replace(')','').replace('\|','or')
+    if options.latex:
+        txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisNameNice)
+        if options.outdir: txtfilename = options.outdir + '/' + txtfilename
+        txtfile = open(txtfilename,'w')
+        txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
+        txtfile.write('                    ' + " & ".join(['{poi}'.format(poi=latexLabel(th2_sub.GetXaxis().GetBinLabel(i+1))) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \\hline \n")
+        for j in xrange(th2_sub.GetNbinsY()):
+            txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
+        txtfile.write("\\end{tabular}\n")
+        txtfile.close()
+        print "Saved the latex table in file ",txtfilename
+
+    if options.outdir and not options.latex:
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallImpacts{suff}_{target}_{cn}.{i}'.format(suff=suff,target=target,i=i,cn=cname))
+            c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,cn=cname))
+
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
