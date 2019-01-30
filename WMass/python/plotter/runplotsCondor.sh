@@ -64,7 +64,7 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runCondor="y"
+runCondor="n"
 nameTag="_mT40to100_fitData" 
 #nameTag="_varStudy"
 useLessMC="n"

@@ -13,8 +13,8 @@ def compileMacro(x,basedir=os.environ['CMSSW_BASE']):
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
    compileMacro("src/CMGTools/WMass/python/plotter/fakeRate.cc")
 
-#from CMGTools.TTHAnalysis.plotter.mcCorrections import SimpleCorrection
-from CMGTools.WMass.plotter.mcCorrections import SimpleCorrection
+from CMGTools.TTHAnalysis.plotter.mcCorrections import SimpleCorrection
+#from CMGTools.WMass.plotter.mcCorrections import SimpleCorrection
 from CMGTools.WMass.plotter.cutsFile import *
 
 _loads = {}

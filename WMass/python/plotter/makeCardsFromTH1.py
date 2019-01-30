@@ -141,6 +141,7 @@ parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='stor
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics (for now, only works for those passed with --syst-file)")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
+parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
 (options, args) = parser.parse_args()
 
 print ""
@@ -561,15 +562,18 @@ for p in allprocesses:
                 else:
                     isInAccProc[p] = True
 
-## xsecfilename                                                                                                                                                    
+## xsecfilename                                                                                           
 xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt0p5_eta0p1_etaGap_yields.root"
 # FIXME: following file has pt binning with width = 1GeV!
 if options.xsecMaskedYields:
-    xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
+    xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"
+if options.preFSRxsec:
+    xsecfile = xsecfile.replace("_dressed_","_preFSR_")
 hists = getXsecs_etaPt(tmp_sigprocs,
                        [i for i in sortedsystkeys], 
                        binning,
-                       xsecfile
+                       xsecfile,
+                       usePreFSR = True if options.preFSRxsec else False
                        )
 tmp_xsec_histfile_name = shapefile.replace('_shapes.root','_shapes_xsec.root')
 tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
@@ -601,7 +605,7 @@ for maskChan in maskedChannels:
     tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
     tmp_xsec_dc.write('# --------------------------------------------------------------\n')
     for sys in sortedsystkeys: # this is only theoretical systs
-        # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE                      
+        # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE           
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     tmp_xsec_dc.close()
 
