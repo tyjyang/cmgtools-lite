@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python w-helicity-13TeV/plotDiffXsecFromFit.py fitresults_42.root -o plots/diffXsec/fitresults/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/ -c el -C plus -b cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/binningPtEta.txt -n
+# python w-helicity-13TeV/plotDiffXsecFromFit.py fitresults_42.root -o plots/diffXsec/fitresults/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/ -c el -C plus -b cards/diffXsec_2018_06_29_group10_absGenEta_moreEtaPtBin/binningPtEta.txt -n [--lumi-norm 35900. ]
 # use -t toys to run of toys
 
 import ROOT, os
@@ -51,13 +51,18 @@ if __name__ == "__main__":
     parser.add_option('-s','--suffix', dest='suffix', default='', type='string', help='Suffix appended to folder name (e.g. hessian_<suffix>)')
     parser.add_option('-c','--channel', dest='channel', default='el', type='string', help='Channel (el, mu)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='Charges to consider')
+    parser.add_option('-l','--lumi-norm', dest='lumiNorm', default='-1', type='float', help='If > 0, divide cross section by this factor (lumi in 1/Pb)')
     parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='[-2.5,-1.566,-1.4442,0,1.4442,1.566,2.5]*[30,35,40,45]', type='string', help='eta-pt binning for templates (will have to implement reading it from file). Use -b file=<name> to read binning from file <name>')
     parser.add_option('-n','--norm-width', dest='normWidth' , default=False , action='store_true',   help='if given, normalize cross section histograms dividing by bin width')
+    parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
     (options, args) = parser.parse_args()
 
     if len(args) < 1:
         parser.print_usage()
         quit()
+
+    ROOT.TH1.SetDefaultSumw2()
+    ROOT.TH1.StatOverflows(True)
 
     channel = options.channel
     if channel not in ["el","mu"]:
@@ -125,8 +130,13 @@ if __name__ == "__main__":
                 h_pmaskedexpnorm_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,err) 
                 h_pmaskedexpnorm_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,mean) 
             elif "pmaskedexp" in key:
-                h_pmaskedexp_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,err) 
-                h_pmaskedexp_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,mean) 
+                if options.lumiNorm > 0:
+                    h_pmaskedexp_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,err/options.lumiNorm) 
+                    h_pmaskedexp_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,mean/options.lumiNorm) 
+                else:
+                    h_pmaskedexp_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,err) 
+                    h_pmaskedexp_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,mean) 
+
             else: 
                 hmu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,err)
                 hmu    .SetBinContent(etabinIndex+1, ptbinIndex+1,mean)
@@ -137,37 +147,15 @@ if __name__ == "__main__":
             h_pmaskedexp_mu_err.Scale(1.,"width")
             h_pmaskedexp_mu.Scale(1.,"width")
 
-        # infile = ROOT.TFile(args[0], 'read')
-        # tree = infile.Get("fitresults")
-        # entries = tree.GetEntries()
-        # leaves  = tree.GetListOfLeaves()
-        # for entry in range(entries):  # actually it is just 1 entry 
-        #     tree.GetEntry(entry)
-        #     for p in leaves:
-        #         name = p.GetName()
-        #         if not "W{ch}".format(ch=charge) in name: continue
-        #         if any(x in name for x in ["_minos", "_In", "_gen"]): continue
-        #         # name should be like Wplus_el_ieta_4_ipt_1_Wplus_el_group_6_mu
-        #         etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(name)
-        #         # eta and pt index start from 0, the corresponding histogram bin number is bin+1
-
-        #         print "%s = %f" % (name, p.GetValue())
-        #         # could ask whether name.endswith("_mu"), but this would depend on the argument passed to --POIMode in text2tf.py
-        #         if "pmaskedexpnorm" in name: 
-        #             if name.endswith("_err"): h_pmaskedexpnorm_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
-        #             else:                     h_pmaskedexpnorm_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
-        #         elif "pmaskedexp" in name:
-        #             if name.endswith("_err"): h_pmaskedexp_mu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
-        #             else:                     h_pmaskedexp_mu    .SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
-        #         else:
-        #             if name.endswith("_err"): hmu_err.SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
-        #             else:                     hmu    .SetBinContent(etabinIndex+1, ptbinIndex+1,p.GetValue())
                 
         xaxisTitle = 'gen %s |#eta|' % lepton
         yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
         #zaxisTitle = "#mu::%.3g,%.3g" % (hmu.GetMinimum(), hmu.GetMaximum())
 
-        zaxisTitle = "#mu::0.998,1.002"
+        if options.fitData:
+            zaxisTitle = "#mu::0.75,1.25"
+        else:
+            zaxisTitle = "#mu::0.998,1.002"
         drawCorrelationPlot(hmu, 
                             xaxisTitle, yaxisTitle, zaxisTitle, 
                             hmu.GetName(),

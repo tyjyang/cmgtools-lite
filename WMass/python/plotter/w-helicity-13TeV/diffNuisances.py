@@ -7,6 +7,7 @@ from sys import argv, stdout, stderr, exit
 import datetime
 from optparse import OptionParser
 #import HiggsAnalysis.CombinedLimit.calculate_pulls as CP 
+from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from subMatrix import niceName
 
 import ROOT
@@ -27,6 +28,8 @@ if __name__ == "__main__":
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
+    parser.add_option('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type='float', help='Bottom margin for the canvas')
+    parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
 
     (options, args) = parser.parse_args()
     infile = options.infile
@@ -64,11 +67,22 @@ if __name__ == "__main__":
         sys.exit()
 
     if any(re.match('pdf.*',x) for x in params):
-        params = sorted(params, key = lambda x: int(x.split('pdf')[-1]), reverse=False)
+        # generally there will be alphaS along with pdfs
+        params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
+    elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
+        params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
+    elif any(re.match('.*EffStat.*',x) for x in params):
+        params = sorted(params, key = lambda x: int(x.split('EffStat')[-1]), reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
-        params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
+        if any('_ieta_' in x for x in params):
+            # differential xsection: get ieta, ipt index and use them as keys to sort
+            params = sorted(params, key = lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x), reverse=False )
+        else:
+            params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
 
     nuis_p_i=0
     title = "#theta"
@@ -190,10 +204,13 @@ if __name__ == "__main__":
         names = table.keys()
         #names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
         names = sorted(names, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
-        names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if 'muRmuF' in x else 0)
-        names = sorted(names, key= lambda x: int(x.replace('muR','')) if ''.join([j for j in x if not j.isdigit()]) == 'muR'  else 0)
-        names = sorted(names, key= lambda x: int(x.replace('muF','')) if ''.join([j for j in x if not j.isdigit()]) == 'muF'  else 0)
+        ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
+        names = sorted(names, key= lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x) )
+        names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        names = sorted(names, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        names = sorted(names, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
         names = sorted(names, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)
+        names = sorted(names, key= lambda x: int(x.split('FakesEtaUncorrelated')[-1]) if 'FakesEtaUncorrelated' in x else 0)
      
         highlighters = { 1:highlight, 2:morelight };
         for n in names:
@@ -220,13 +237,25 @@ if __name__ == "__main__":
         ROOT.gStyle.SetOptStat(0)
         fout = ROOT.TFile("{od}/postfit_{suff}.root".format(od=options.outdir, suff=options.suffix),"RECREATE")
 
-        canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", 800, 600)
+        # customize canvas width a bit
+        cw = 800
+        ch = 600
+        if len(params) >= 100:
+            cw = 2000            
+        elif len(params) >= 50:
+            cw = 1200            
+        if options.canvasSize:
+            cw = int(options.canvasSize.split(',')[0])
+            ch = int(options.canvasSize.split(',')[1])
+        canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", cw, ch)
         ## some style stuff
         if '_mu' in options.pois:
             ymin,yhalfd,ycen,yhalfu,ymax = (0.,0.5,1,1.5,2.)
         else:
             ymin,yhalfd,ycen,yhalfu,ymax = (-1.,-0.5,0,0.5,1.)
 
+        canvas_nuis.SetTickx(1)
+        canvas_nuis.SetTicky(1)
         hist_fit_s.GetYaxis().SetRangeUser(ymin-0.5,ymax+0.5)
         hist_fit_s.SetLineColor  (39)
         hist_fit_s.SetMarkerColor(ROOT.kGray+3)
@@ -240,10 +269,18 @@ if __name__ == "__main__":
         hist_fit_s.GetYaxis().SetTitle('S+B fit #theta')
         hist_fit_s.GetYaxis().SetTitleSize(0.05)
         hist_fit_s.GetYaxis().SetTitleOffset(0.80)
-        canvas_nuis.SetBottomMargin(0.30);
+
+        clm = 0.1 if len(params) < 100 else 0.05
+        crm = 0.05 if len(params) < 100 else 0.02
+        cbm = options.setBottomMargin
+        ctm = 0.1
+        canvas_nuis.SetLeftMargin(clm)
+        canvas_nuis.SetRightMargin(crm)
+        canvas_nuis.SetBottomMargin(cbm)
+        canvas_nuis.SetTopMargin(ctm)
 
         lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
-        lat.DrawLatex(0.71, 0.92, '36 fb^{-1} (13 TeV)')
+        lat.DrawLatex(0.71 +(0.1-crm), 0.92, '36 fb^{-1} (13 TeV)')
         line.DrawLine(0., ycen, len(params), ycen)
         line.DrawLine(0., ymax, len(params), ymax)
         line.DrawLine(0., ymin, len(params), ymin)
