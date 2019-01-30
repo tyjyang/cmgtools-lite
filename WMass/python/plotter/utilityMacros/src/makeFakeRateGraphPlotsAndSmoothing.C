@@ -3,14 +3,16 @@
 // see https://root.cern.ch/doc/master/classTGraphPainter.html
 // for Graph painting options in root
 
-const static int smoothPolinDegree = 2; 
+const static int smoothPolinDegree = 1; 
+const static Double_t xMaxFitFakeRateData = (smoothPolinDegree == 1) ? 48 : 60;
+const static Bool_t drawPol1NarrowRange = (smoothPolinDegree == 1 and xMaxFitFakeRateData > 48) ? true : false;  // set first argument as false not to draw the fit in narrow range (only for pol1) 
 const static Bool_t smoothPromptRateAlwaysPol1 = true;  // for FR might use pol2 to smooth, but for PR always use pol1 (it is mainly linear, pol2 might fit fluctuations)
-static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 32;
+static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 30; // can use 32 for pol1
 const static Bool_t excludePoints_Data = false;
 static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true
 static const Double_t ptMax_excludeRangeData = 50;  // used only if excludePoints_Data = true
 
-const static Bool_t addfitpol2 = false;  // will also fit with a pol2 and draw (this is needed only when smoothPolinDegree = 1)
+const static Bool_t addfitpol2 = (smoothPolinDegree == 1) ? true : false;  // will also fit with a pol2 and draw (this is needed only when smoothPolinDegree = 1)
 // when I search for a bin given the boundary, the lower boundary should belong to the bin, the upper not, but rounding could ruin this logic 
 // so I add an epsilon
 const static Double_t epsilon = 0.0001;  
@@ -211,6 +213,9 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
 
   Int_t polNdegree = isPromptRate ? (smoothPromptRateAlwaysPol1 ? 1 : smoothPolinDegree) : smoothPolinDegree;
+
+  Int_t linewidth = 3; // keep 3, more visible
+  //if (addfitpol2 or drawPol1NarrowRange) linewidth = 2;
   
   string xAxisName = "";
   Double_t xmin = 0;
@@ -268,10 +273,10 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   //string polN = string(Form("pol%d",smoothPolinDegree));
  
   // see fit options here: https://root.cern.ch/doc/master/classTGraph.html#aa978c8ee0162e661eae795f6f3a35589
-  Double_t xMaxFit = isPromptRate ? 65 : 60;
+  Double_t xMaxFit = isPromptRate ? 65 : xMaxFitFakeRateData;
   Double_t xMinFit = isData ? ptMin_fitRangeData : 30;
   TF1 * f1 = new TF1("f1",polN.c_str(),xMinFit,xMaxFit);
-  TF1 * f2 = new TF1("f2",polN.c_str(),xMinFit,50);
+  TF1 * f2 = new TF1("f2",polN.c_str(),xMinFit,48);
   // TF1 * f1 = new TF1("f1","[0] * (x - 25.) + [1]",25,60);
   // TF1 * f2 = new TF1("f2","[0] * (x - 25.) + [1]",30,46);
 
@@ -358,9 +363,15 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   }
 
   TFitResultPtr fitres = gr->Fit("f1","EMFRS+"); // fit with straigth line
-  TFitResultPtr fitres2 = gr->Fit("f2",(polNdegree > 1) ? "EMFRS+" : "0EMFRS+"); // fit with straigth line in narrow range, but don't draw
+  // fit with straigth line in narrow range, but don't draw if not requested explicitely
+  string fit2drawOption = "EMFRS+";
+  if (polNdegree == 1) {
+    if (drawPol1NarrowRange) fit2drawOption = "EMFRS+";
+    else                     fit2drawOption = "0EMFRS+";
+  }
+  TFitResultPtr fitres2 = gr->Fit("f2",fit2drawOption.c_str()); 
   TF1 *linefit = gr->GetFunction("f1");
-  linefit->SetLineWidth(3);
+  linefit->SetLineWidth(linewidth);
   Double_t xminfit = 0.0;
   Double_t xmaxfit = 0.0;
   linefit->GetRange(xminfit,xmaxfit);
@@ -378,31 +389,50 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
   linefit_p0up->SetLineColor(kGreen+1);
   linefit_p0dn->SetLineColor(kGreen+1);
-  linefit_p0up->SetLineWidth(3);
-  linefit_p0dn->SetLineWidth(3);
+  linefit_p0up->SetLineWidth(linewidth);
+  linefit_p0dn->SetLineWidth(linewidth);
 
-  // for slope (in case of pol1 only), try scaling slope up and offset down or viceversa, otherwise the fit goes out of the points
+  // for slope (in case of pol1), try scaling slope up and offset down or viceversa, otherwise the fit goes out of the points
   TF1 * linefit_p1up = new TF1("linefit_p1up",polN.c_str(),xminfit,xmaxfit);
   linefit_p1up->SetNpx(10000);
-  linefit_p1up->SetParameter(0, linefit->GetParameter(0)-nSigmaVarInPlot*linefit->GetParError(0));
+  if (polNdegree == 1) linefit_p1up->SetParameter(0, linefit->GetParameter(0)-nSigmaVarInPlot*linefit->GetParError(0));
   linefit_p1up->SetParameter(1, linefit->GetParameter(1)+nSigmaVarInPlot*linefit->GetParError(1));
   TF1 * linefit_p1dn = new TF1("linefit_p1dn",polN.c_str(),xminfit,xmaxfit);
   linefit_p1dn->SetNpx(10000);
-  linefit_p1dn->SetParameter(0, linefit->GetParameter(0)+nSigmaVarInPlot*linefit->GetParError(0));
+  if (polNdegree == 1) linefit_p1dn->SetParameter(0, linefit->GetParameter(0)+nSigmaVarInPlot*linefit->GetParError(0));
   linefit_p1dn->SetParameter(1, linefit->GetParameter(1)-nSigmaVarInPlot*linefit->GetParError(1));
 
   linefit_p1up->SetLineColor(kBlue);
   linefit_p1dn->SetLineColor(kBlue);
-  linefit_p1up->SetLineWidth(3);
-  linefit_p1dn->SetLineWidth(3);
+  linefit_p1up->SetLineWidth(linewidth);
+  linefit_p1dn->SetLineWidth(linewidth);
+
+  // for concavity (in case of pol2 only), try scaling convavity up 
+  TF1 * linefit_p2up = new TF1("linefit_p2up",polN.c_str(),xminfit,xmaxfit);
+  TF1 * linefit_p2dn = new TF1("linefit_p2dn",polN.c_str(),xminfit,xmaxfit);
+  if (polNdegree > 1) {
+    linefit_p2up->SetNpx(10000);
+    linefit_p2up->SetParameter(2, linefit->GetParameter(2)+nSigmaVarInPlot*linefit->GetParError(2));
+    linefit_p2dn->SetNpx(10000);
+    linefit_p2dn->SetParameter(2, linefit->GetParameter(2)-nSigmaVarInPlot*linefit->GetParError(2));
+    linefit_p2up->SetLineColor(kGreen+1);
+    linefit_p2dn->SetLineColor(kGreen+1);
+    linefit_p2up->SetLineWidth(linewidth);
+    linefit_p2dn->SetLineWidth(linewidth);
+  }
 
 
   TF1 *linefit2 = nullptr;
   if (polNdegree > 1) {
     linefit2 = gr->GetFunction("f2");
-    linefit2->SetLineWidth(3);
-    linefit2->SetLineColor(kBlue);
+    linefit2->SetLineWidth(linewidth);
+    linefit2->SetLineColor(kAzure+1);
+  } else if (drawPol1NarrowRange) {
+    linefit2 = gr->GetFunction("f2");
+    linefit2->SetLineWidth(linewidth);
+    linefit2->SetLineColor(kOrange+2);    
   }
+  
   // Double_t xminfit2 = 0.0;
   // Double_t xmaxfit2 = 0.0;
   // linefit2->GetRange(xminfit2,xmaxfit2);
@@ -419,17 +449,17 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
 
   // linefit2_p0up->SetLineColor(kOrange+2);
   // linefit2_p0dn->SetLineColor(kOrange+2);
-  // linefit2_p0up->SetLineWidth(3);
-  // linefit2_p0dn->SetLineWidth(3);
+  // linefit2_p0up->SetLineWidth(linewidth);
+  // linefit2_p0dn->SetLineWidth(linewidth);
 
   TF1 *pol2fit = nullptr;
   TFitResultPtr fitrespol2 = 0;
   if (addfitpol2) {
     fitrespol2 = gr->Fit("pol2", "EMFRS+"); // fit with pol2
     pol2fit = gr->GetFunction("pol2");
-    pol2fit->SetLineWidth(3);
+    pol2fit->SetLineWidth(linewidth);
     if (polNdegree == 1 and excludePoints) pol2fit->SetLineColor(kGreen+2);
-    else                                   pol2fit->SetLineColor(kAzure+2);
+    else                                   pol2fit->SetLineColor(kMagenta);  // kAzure+1
   }
 
   TCanvas* canvas = new TCanvas("canvas","",700,700);
@@ -474,9 +504,16 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
     linefit_p0dn->Draw("Lsame");
     linefit_p1up->Draw("Lsame");
     linefit_p1dn->Draw("Lsame");
+    if (drawPol1NarrowRange) linefit2->Draw("Lsame"); // draw on top of other stuff
   } else {
     leg.AddEntry(linefit,"fit: pol2","L");
-    leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
+    leg.AddEntry(linefit_p1dn,"slope  up/down (1#sigma)","L");
+    leg.AddEntry(linefit_p2dn,"concavity up/down (1#sigma)","L");
+    // draw envelope
+    linefit_p2up->Draw("Lsame");
+    linefit_p2dn->Draw("Lsame");
+    linefit_p1up->Draw("Lsame");
+    linefit_p1dn->Draw("Lsame");
   }
 
   leg.Draw("same");
@@ -497,12 +534,18 @@ TFitResultPtr fitGraph(TGraph* gr_tmp = NULL,
   if (setXAxisRangeFromUser) gr->GetXaxis()->SetRangeUser(xmin,xmax);
   if (setYAxisRangeFromUser) gr->GetYaxis()->SetRangeUser(ymin,ymax);
 
-  TLegend legpol2(0.6,0.8,0.9,0.9);
-  if (addfitpol2) {
-    legpol2.SetFillColor(0);
-    legpol2.SetFillStyle(0);
-    legpol2.SetBorderSize(0);
-    legpol2.AddEntry(pol2fit,"fit: pol2","L");
+  Double_t leg2ymin = 0.85;
+  if (addfitpol2 and drawPol1NarrowRange) leg2ymin = 0.8;
+  TLegend legpol2(0.6,leg2ymin,0.9,0.9);
+  legpol2.SetFillColor(0);
+  legpol2.SetFillStyle(0);
+  legpol2.SetBorderSize(0);
+  if (polNdegree > 1) {
+    leg.AddEntry(linefit2,"fit: pol2 narrow range","L");
+    legpol2.Draw("same");    
+  } else if (addfitpol2 or drawPol1NarrowRange) {
+    if (addfitpol2) legpol2.AddEntry(pol2fit,"fit: pol2","L");
+    if (drawPol1NarrowRange) legpol2.AddEntry(linefit2,"fit: pol1 narrow range","L");
     legpol2.Draw("same");    
   }
 
@@ -1176,8 +1219,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 //================================================================
 void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_06_11_2018_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol2_tests/", 
-					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_tests",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48/", 
+					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

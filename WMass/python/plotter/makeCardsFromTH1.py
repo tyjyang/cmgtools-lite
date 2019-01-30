@@ -80,7 +80,8 @@ def combCharges(options):
             if len(options.postfix):
                 metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
 
-            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=metafilename)
+            bbboptions = " --binByBinStat --correlateXsecStat "
+            combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
             fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
@@ -92,6 +93,7 @@ def combCharges(options):
                 print "Creating folder", fitdir_Asimov
                 os.system("mkdir -p " + fitdir_Asimov)
             print ""
+            # add --saveHists --computeHistErrors 
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
             combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
             combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data)
@@ -127,13 +129,15 @@ parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', defau
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
-#parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--sig-out-outAcc', dest='sig_out_outAcc' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as an out of acceptance channel, it will be fitted as any signal bin, but form a separate channel')
 parser.add_option(       '--eta-range-outAcc', dest='eta_range_outAcc', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as a separate out-of-acceptance channel in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as out-of-acceptance if at least one edge is outside this range. For the outliers template, use option --sig-out-outAcc')
 parser.add_option(       '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
 parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
 parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
 parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges, skip running combinetf.py at the end')
+parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics (for now, only works for those passed with --syst-file)")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
@@ -191,8 +195,8 @@ etaPtBinningFile = options.indir + options.binfile
 # get eta-pt binning for both reco and gen
 etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
 recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
-etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
-genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+etaPtGenBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
+genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
 #
 #recoBins.printBinAll()
 #genBins.printBinAll()
@@ -205,22 +209,38 @@ if len(options.excludeNuisances):
     excludeNuisances = options.excludeNuisances.split(",")
 
 # consider some signal bins as background
-# etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
-# for bin in range(genBins.Neta):
-#     etaBinIsBackground.append(False)
-# etaRangesBkg = options.eta_range_bkg
-# if len(etaRangesBkg):
-#     hasEtaRangeBkg = True
-#     print "Signal bins with gen eta in the following ranges will be considered as background processes"
-#     print options.eta_range_bkg            
-#     for index in range(genBins.Neta):
-#         for pair in etaRangesBkg:
-#         #print pair
-#             if genBins.etaBins[index] >= pair[0] and genBins.etaBins[index+1] <= pair[1]:
-#                 etaBinIsBackground[index] = True
-# else:
-#     hasEtaRangeBkg = False
+etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
+for bin in range(genBins.Neta):
+    etaBinIsBackground.append(False)
+etaRangesBkg = options.eta_range_bkg
+if len(etaRangesBkg):
+    hasEtaRangeBkg = True
+    print "Signal bins with gen eta in the following ranges will be considered as background processes"
+    print options.eta_range_bkg            
+    for index in range(genBins.Neta):
+        for pair in etaRangesBkg:
+        #print pair
+            if genBins.etaBins[index] >= pair[0] and genBins.etaBins[index+1] <= pair[1]:
+                etaBinIsBackground[index] = True
+else:
+    hasEtaRangeBkg = False
 
+# consider some signal bins as background
+ptBinIsBackground = []  # will store a bool to assess whether the given ipt index is considered as background
+for bin in range(genBins.Npt):
+    ptBinIsBackground.append(False)
+ptRangesBkg = options.pt_range_bkg
+if len(ptRangesBkg):
+    hasPtRangeBkg = True
+    print "Signal bins with gen pt in the following ranges will be considered as background processes"
+    print options.pt_range_bkg            
+    for index in range(genBins.Npt):
+        for pair in ptRangesBkg:
+        #print pair
+            if genBins.ptBins[index] >= pair[0] and genBins.ptBins[index+1] <= pair[1]:
+                ptBinIsBackground[index] = True
+else:
+    hasPtRangeBkg = False
 
 ### outAcc
 etaBinIsOutAcc = []  # will store a bool to assess whether the given ieta index is considered as background
@@ -267,14 +287,24 @@ allprocesses = bkgprocesses + signalprocesses
 procNum = {}
 isig = 0
 ibkg = 1
+procIsSignalBkg = {}
+
 for p in allprocesses:
+    procIsSignalBkg[p] = False
     if signalMatch in p: 
         if "outliers" in p and options.sig_out_bkg:            
             procNum[p] = ibkg
             ibkg += 1
+            procIsSignalBkg[p] = True
         else:
-            procNum[p] = isig
-            isig -= 1
+            ieta,ipt = get_ieta_ipt_from_process_name(p)
+            if ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
+                procNum[p] = ibkg
+                ibkg += 1    
+                procIsSignalBkg[p] = True
+            else:
+                procNum[p] = isig
+                isig -= 1
     else:
         procNum[p] = ibkg
         ibkg += 1
@@ -369,9 +399,9 @@ if options.systfile != "":
 
 # norm unc on signal processes treated as background
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
-if options.sig_out_bkg and options.wLnN > 0.0:
+if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bkg):
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
-    card.write(('%-16s lnN' % "CMS_OUT") + ' '.join([kpatt % (Wxsec if (signalMatch in p and "outliers" in p) else "-") for p in allprocesses]) + "\n")
+    card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
 
 # fakes
 #fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
@@ -418,7 +448,11 @@ qcdAndPDF = ["pdf%d" % i for i in range(1,61)]
 qcdAndPDF.append("alphaS")
 for syst in qcdAndPDF:
     if isExcludedNuisance(excludeNuisances, syst): continue
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
+    nSigma = "1.0"
+    if "alphaS" in syst:
+        # the alphaS variations should be scaled so that one sigma corresponds to +-0.0015 (weights correspond to +-0.001)
+        nSigma = 0.67
+    card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
 
 # W only
@@ -440,18 +474,18 @@ for syst in qcdScale_wptBins:
 wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 for syst in wExpSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
+    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
 
 #effstatOffset = 25 if genBins.Neta == 24 else 26  ## FIXME: doesn't work if the binning is not 0.1 wide in eta
 #effstatOffset = 25 if genBins.etaBins[-1] < 2.45 else 26  ## FIXME: it assumes the range extends up to 2.4 or 2.5
 EffStat_systs = []
-#nSystEffStat = int(2* (genBins.etaBins[-1] + 0.001) * 10)
+#nSystEffStat = int(2* (genBins.etaBins[-1] + 0.001) * 10)  # this allows to have 48 nuisances for electrons when gen_eta arrives to 2.4 (even if reco gets up to 2.5)
+#effstatOffset = 1 + int( (genBins.etaBins[-1] + 0.001) * 10)
 effstatOffset = 25 if flavour == "mu" else 26
 nSystEffStat = 48 if flavour == "mu" else 50
 for ipar in range(3):
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "ErfPar%dEffStat%d" % (ipar,ietabin)
-        EffStat_systs.append(syst)
         if isExcludedNuisance(excludeNuisances, syst): continue
         etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
@@ -461,6 +495,15 @@ for ipar in range(3):
         # a template bin might have more than 1 efficiency variation if binning is coarser
         etaBinCenter = etaEffStat * 0.1 + 0.05  
         ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)  
+        # if genBins extends below the reco, the returned value is negative, so no match for signal
+        # for outliers, must also check the reco binning
+
+        # if the reco binning along eta is narrower than the EffStat histogram used for the reweighting, skip this etaEffStat              
+        # this happens for example for bin 1 and 50 in the electron channel if the reco binning (and therefore also the gen) stops at |eta|=2.4    
+        if etaBinCenter < recoBins.etaBins[0] or etaBinCenter > recoBins.etaBins[-1]:
+            continue
+
+        EffStat_systs.append(syst)
         matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
         if not options.noEffStatZ: matchesForEffStat.append("Z")
         #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
@@ -502,21 +545,25 @@ for p in allprocesses:
         if options.sig_out_bkg and "outliers" in p:
             pass
         else:
-            tmp_sigprocs.append(p)
-            if hasEtaRangeOutAcc or options.sig_out_outAcc:
-                if "outliers" in p:
-                    isInAccProc[p] = False if options.sig_out_outAcc else True
-                else:                    
-                    ieta,ipt = get_ieta_ipt_from_process_name(p)
-                    if etaBinIsOutAcc[ieta]:
-                        isInAccProc[p] = False
-                    else:
-                        isInAccProc[p] = True
+            ieta,ipt = get_ieta_ipt_from_process_name(p)    
+            if ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
+                pass
             else:
-                isInAccProc[p] = True
+                tmp_sigprocs.append(p)
+                if hasEtaRangeOutAcc or options.sig_out_outAcc:
+                    if "outliers" in p:
+                        isInAccProc[p] = False if options.sig_out_outAcc else True
+                    else:                    
+                        if etaBinIsOutAcc[ieta]:
+                            isInAccProc[p] = False
+                        else:
+                            isInAccProc[p] = True
+                else:
+                    isInAccProc[p] = True
 
 ## xsecfilename                                                                                                                                                    
-xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_yields.root"
+xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt0p5_eta0p1_etaGap_yields.root"
+# FIXME: following file has pt binning with width = 1GeV!
 if options.xsecMaskedYields:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt1_eta0p1_etaGap_xsecPb.root"
 hists = getXsecs_etaPt(tmp_sigprocs,

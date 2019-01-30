@@ -68,15 +68,15 @@ etaPtBinningFile = options.binfile
 # get eta-pt binning for both reco and gen
 etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
 recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
-etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
-genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+etaPtGenBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
+genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
 #
 print ""
 recoBins.printBinAll()
 genBins.printBinAll()
 print ""
 
-# creating binning to define TH1D lated
+# creating binning to define TH1D later
 thd1binning = [(0.5 + float(i)) for i in range(1+recoBins.NTotBins)]
 #print thd1binning
 
@@ -110,9 +110,10 @@ name = ""
 obj = None
 nominalTH1 = {}
 symmetrizedTH1 = {}
-#effstatOffset = 25 if (genBins.etaBins[-1] < 2.45) else 26  # if gen eta goes up to 2.4, set offset to 25, it is used below
-#### FIXME: previous line this doesn't work if the range stops before either 2.4 or 2.5
-effstatOffset = 25 if flavour == "mu" else 26  # efficiencies are made with 0.1 eta bins, even though the template might have a coarser binning
+# efficiencies are made with 0.1 eta bins between -2.5 and 2.5, even though the template might have a coarser binning
+# if genEta ends at 2.4, only the nuisances EffStatXX with X from 2 to 49 are used
+effstatOffset = 25 if flavour == "mu" else 26  
+#effstatOffset = int(1 + 10*(genBins.etaBins[-1] + 0.001))
 
 print "Going to unroll TH3 into TH1 ..."
 nKeys = tf.GetNkeys()
@@ -162,7 +163,11 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
             etaEffStat = abs(etaEffStat) - 1
         # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
         etaBinCenter = etaEffStat * 0.1 + 0.05  
-        ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)
+        ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)        
+        # if the reco binning along eta is narrower than the EffStat histogram used for the reweighting, skip this etaEffStat
+        # this happens for example for bin 1 and 50 in the electron channel if the reco binning (and therefore also the gen) stops at |eta|=2.4
+        if etaBinCenter < recoBins.etaBins[0] or etaBinCenter > recoBins.etaBins[-1]:
+            continue
 
     # now loop on bins along Z, each is a signal template, bin 0 (underflow) has the outliers (this convention might change, please check)
     for iz in range(obj.GetNbinsZ()+1):         

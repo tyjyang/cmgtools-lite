@@ -26,8 +26,6 @@ from make_diff_xsec_cards import templateBinning
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 import sys
-#sys.path.append(os.environ['CMSSW_BASE']+"/src/CMGTools/WMass/python/plotter/")
-#from plotUtils.utility import *
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
@@ -52,7 +50,6 @@ from utility import *
 #     return binning
 
 ROOT.gStyle.SetOptStat(0)
-#ROOT.gStyle.SetPadRightMargin(0.13)
 ROOT.gROOT.SetBatch()
 
 def roll1Dto2D(h1d, histo):
@@ -104,6 +101,7 @@ if __name__ == "__main__":
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
     #parser.add_option(     '--no-group-name', dest="noGroupInName", default=False, action='store_true', help="If True, _group_<N> is not in the signal process name");
     parser.add_option(      '--palette', dest='palette', default=55, type=int, help='Pass number for palette (default is kRainbow, but check)')
+    parser.add_option(      '--zmin', dest='zaxisMin', default=0, type=float, help='Minimum value for Z axis (default is 0)')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -261,7 +259,7 @@ if __name__ == "__main__":
                             else: drawThisBin = False
 
                             if not options.noplot and drawThisBin:
-                                zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
+                                zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
@@ -269,7 +267,7 @@ if __name__ == "__main__":
 
                     hSigInclusive[pol].Write()
                     if not options.noplot:
-                        zaxisTitle = "Events::0,%.1f" % hSigInclusive[pol].GetMaximum()
+                        zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive[pol].GetMaximum())
                         drawCorrelationPlot(hSigInclusive[pol], 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
@@ -313,7 +311,7 @@ if __name__ == "__main__":
                             if "outliers" in name:
                                 drawThisBin = True
                                 name2D = 'W{ch}_{flav}_outliers'.format(ch=charge,flav=channel)
-                                title2D = 'W{chs}: |#eta| > {etamax}#; p_{{T}} #notin [{ptmin:.0f},{ptmax:.0f})'.format(etamax=genBins.etaBins[-1],
+                                title2D = 'W{chs}: |#eta| > {etamax}#; p_{{T}} #notin [{ptmin:3g},{ptmax:.3g})'.format(etamax=genBins.etaBins[-1],
                                                                                                                         ptmin=genBins.ptBins[0],
                                                                                                                         ptmax=genBins.ptBins[-1],
                                                                                                                         chs=chs)
@@ -325,7 +323,7 @@ if __name__ == "__main__":
                                     else: drawThisBin = True
                                 else: drawThisBin = False
                                 name2D = 'W{ch}_{flav}_ieta_{ieta}_ipt_{ipt}'.format(ch=charge,flav=channel,ieta=etabinIndex,ipt=ptbinIndex)
-                                title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})#; p_{{T}} #in [{ptmin:.0f},{ptmax:.0f})'.format(etamin=genBins.etaBins[etabinIndex],
+                                title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})#; p_{{T}} #in [{ptmin:.3g},{ptmax:.3g})'.format(etamin=genBins.etaBins[etabinIndex],
                                                                                                                                   etamax=genBins.etaBins[etabinIndex+1],
                                                                                                                                   ptmin=genBins.ptBins[ptbinIndex],
                                                                                                                                   ptmax=genBins.ptBins[ptbinIndex+1],
@@ -336,7 +334,7 @@ if __name__ == "__main__":
                             hSigInclusive.Add(h2_backrolled_1)
 
                             if not options.noplot and drawThisBin:
-                                zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
+                                zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     h2_backrolled_1.GetName(),
@@ -351,7 +349,7 @@ if __name__ == "__main__":
                             
                 hSigInclusive.Write()
                 if not options.noplot:
-                    zaxisTitle = "Events::0,%.1f" % hSigInclusive.GetMaximum()
+                    zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive.GetMaximum())
                     drawCorrelationPlot(hSigInclusive, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         hSigInclusive.GetName(),
@@ -387,6 +385,8 @@ if __name__ == "__main__":
                 titles.append(signalTitle)
 
             fakesysts = ["CMS_We_FRe_slope"] if channel == "el" else ["CMS_Wmu_FRmu_slope"]
+            # for i in range(1,11):
+            #     fakesysts.append("FakesEtaUncorrelated%d" % i)
 
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
@@ -394,7 +394,7 @@ if __name__ == "__main__":
                 h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
                 h2_backrolled_1.Write(str(p))
 
-                zaxisTitle = "Events::0,%.1f" % h2_backrolled_1.GetMaximum()
+                zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
 
                 if not options.noplot:
                     drawCorrelationPlot(h2_backrolled_1, 
@@ -415,6 +415,9 @@ if __name__ == "__main__":
                             h2_backrolled_1_fs.Divide(h2_backrolled_1)
                             zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0), 
                                                                              getMaximumTH(h2_backrolled_1_fs))
+                            if "FakesEtaUncorrelated" in fs:
+                                zaxisTitle = "variation / nominal::0.9,1.1"
+
                             drawCorrelationPlot(h2_backrolled_1_fs, 
                                                 xaxisTitle, yaxisTitle, zaxisTitle, 
                                                 'syst_{proc}_{ch}_{flav}'.format(proc=name_fs,ch=charge,flav=channel),

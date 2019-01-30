@@ -68,14 +68,19 @@ void fillHistograms(const string& treedir = "./",
   // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
   // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
-  vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
-					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0, 2.2, 2.4};
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0, 2.2, 2.4};
+  vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.1,-1.0,-0.9,
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
+  //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45};
+  //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
+  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45};
 
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
@@ -91,13 +96,13 @@ void fillHistograms(const string& treedir = "./",
   // vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   // vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
   // vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.3,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
-					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
-					    1.4442,1.5,1.566,1.7,1.9,2.1,2.3,2.5};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,32,34,36,38,40,42,45};
-  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
-  vector<Double_t> genPtBinEdgesTemplateEl = {30,32,34,36,38,40,42,45};
-
+  vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
+					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
+					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
+  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
+  //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
+  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
+  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
   
   vector<Double_t> etaBinEdgesTemplate;
   vector<Double_t> ptBinEdgesTemplate;
@@ -231,7 +236,7 @@ void fillHistograms(const string& treedir = "./",
 
   TTreeReaderValue<Float_t> genw_charge( reader, usePreFSRvar ? "prefsrw_charge"  : "genw_charge");
   TTreeReaderValue<Float_t> genw_decayId(reader, usePreFSRvar ? "prefsrw_decayId" : "genw_decayId");
-  TTreeReaderValue<Float_t> genw_pt(reader,"prefsrw_pt");
+  TTreeReaderValue<Float_t> genw_pt(reader,      usePreFSRvar ? "prefsrw_pt"      : "genw_pt");
   // // syst weights for W
   TTreeReaderValue<Float_t> mass_80470(reader,"mass_80470"); // mw up, central is 80420
   TTreeReaderValue<Float_t> mass_80370(reader,"mass_80370"); // mw down, central is 80420
@@ -307,8 +312,19 @@ void fillHistograms(const string& treedir = "./",
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar1EffStat(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar2EffStat(charges.size());
 
-  Int_t maxEffStat = (genEtaBinEdgesTemplate.back() < 2.45) ? 48 : 50;
-  Double_t  etaminForEffStat = (maxEffStat == 48) ? -2.4 : -2.5;
+  // better to do it as done below
+  //Int_t maxEffStat = 2 * ((Int_t) (10 * (genEtaBinEdgesTemplate.back() + 0.0001)));
+  //Double_t  etaminForEffStat = -1. * genEtaBinEdgesTemplate.back();
+
+  // the reweighting template has 48 (50) bins for muons from -2.4 to 2.4 (for electrons from -2.5 to 2.5)
+  // for signal, we will eventually keep only the nuisances that affect the specific gen_eta bin (in this macro we will define them all and filter them later)
+  // if gen_eta for electrons stops at 2.5, then the only relevant EffStat nuisances will go from 2 to 49 rather than from 1 to 50
+  // this works whatever gen_eta is used as the upper boundary, meaning that the EffStat 25 and 26 will always be associated to get_eta_bin = 0
+  // in general, the gen_eta binning might be coarser than 0.1. This will be handled later by keeping more EffStat nuisances for that bin
+  // the match should be based on the reco bins asociated to the gen bins, but generally the template binning (reco) will match the width of the gen_eta binning
+  Int_t maxEffStat = isMuon ? 48 : 50;
+  Double_t  etaminForEffStat = isMuon ? -2.4 : -2.5;
+  cout << "maxEffStat | etaminForEffStat = " << maxEffStat << " | " << etaminForEffStat << endl;
 
   for (UInt_t ch = 0; ch < charges.size(); ++ch) {  
     // for (Int_t bin = 0; bin  < nBinsTemplate; ++bin) {
@@ -323,8 +339,8 @@ void fillHistograms(const string& treedir = "./",
     h1_charge_eta.push_back(new TH1F(Form("h1_%s_eta",charges[ch].c_str()),"",50,-2.5,2.5));
 
     h2_charge_eta_pt_inclusive.push_back(new TH2F(Form("h2_%s_eta_pt_inclusive",charges[ch].c_str()),"",
-						  netaBins,etaBinEdgesTemplate.data(),
-						  nptBins,ptBinEdgesTemplate.data())	  
+						  50,-2.5,2.5,
+						  40,25,65)	  
 					 );
 
     h3_charge_eta_pt_globalBin.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin",charges[ch].c_str()),"",
@@ -515,6 +531,13 @@ void fillHistograms(const string& treedir = "./",
   Double_t intLumiPb = 1000.0 * intLumi;
   Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
   Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 9.56169443709e+13;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+
+  //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 7.97011396982e+11;  // test with WJetsToLNu_ext2v5_part1 in pccmsrm
+  
+  // use 9.56169443709e+13 for ntuples in /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/
+  // use 9.56169443709e+13 for ntuples in /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/
+  // use 9.56169443709e+13 for ntuples in /u2/mciprian/TREES_13TeV/muon/signalSkim/
+  // use 9.47291822594e+13 with /afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/   // requires reading tree.root.url, might not work
   // 3.54324749853e+13; // obsolete without ext2v5                      
 
   cout << "Starting loop" << endl;

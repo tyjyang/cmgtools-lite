@@ -4,10 +4,10 @@
 # merge file will be created in outdir and will have <charge> in its name
 
 charge="comb_WchargeAsymmetry"
-toydir="toys/diffXsec_mu_2018_12_18_onlyBkg_pt2GeV_eta0p2From2p0/"
+toydir="toys/diffXsec_mu_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2_eosSkim_noZandWoutNorm/"
 outdir="${toydir}${charge}/"
 outname="toys_${charge}.root"
-sizemin="1000"
+sizemin="5000"
 maxFilePerHadd=100
 
 goodfiles_tmp=`ls -l ${toydir} | grep root | awk -v sizemin="$sizemin" '$5 > sizemin {print $9}'`

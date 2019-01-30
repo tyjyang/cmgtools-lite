@@ -5,7 +5,10 @@ import re, sys, os, os.path
 #folder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREE_4_XSEC_AFS/"
 #folder = "/afs/cern.ch/work/e/emanuele/TREES/TREES_electrons_1l_V6_TINY/"
 #folder = "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT/"
-folder = "/u2/mciprian/TREES_13TeV/muon/signalSkim/"
+#folder = "/u2/mciprian/TREES_13TeV/muon/signalSkim/"
+#folder = "/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/"
+#folder = "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/"
+folder = "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/"
 print "Folder: %s " % folder
 
 

@@ -65,7 +65,7 @@ fi
 
 #useHLTpt27="y" # already in selection txt file
 runCondor="y"
-nameTag="_TestFRpol1_slopeVarChangeOffsetToo" 
+nameTag="_mT40to100_fitData" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -75,6 +75,7 @@ usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: u
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
 etaBinBoundaries=("0.0" "2.5")
+useAllEta="n"
 #etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
 today=`date +"%d_%m_%Y"`
@@ -111,7 +112,8 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
-selectplots="ptl1_narrow,etal1_binFR"
+selectplots="ptl1_narrow,etal1_binFR,pfmt"
+#selectplots="wminus_wpt,wminus_wy"
 #selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
 #selectplots="ptl1_narrow"
@@ -136,8 +138,8 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-#ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
-ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn --ratioYLabel 'var/nomi' "
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
@@ -207,7 +209,7 @@ outputDir["FRcheckRegion"]="full2016data_${today}"
 regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30}"
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes,TauTopVVFlips --fitData " # --scaleSigToData --sp data_fakes  " # --fitData
+scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes_pol1,TauTopVVFlips --scaleSigToData --sp data_fakes_pol1" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
 #
 # --noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3
 #
@@ -251,10 +253,10 @@ regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
 #skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40} ${mtMax/XX/100}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips " #--scaleSigToData --sp data_fakes " # " --fitData "
-scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn  "
+scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
@@ -312,23 +314,24 @@ runRegion["TestPlots"]="n"
 regionName["TestPlots"]="TestPlots"
 skimTreeDir["TestPlots"]="TREES_electrons_1l_V6_TINY"
 outputDir["TestPlots"]="sigRegion_${today}"
-regionCuts["TestPlots"]=" -X nJet30  ${fiducial} ${mtMin/XX/40} ${FRnumSel} ${ptMax/XX/50}"
+regionCuts["TestPlots"]=" " #-X nJet30  ${fiducial} ${mtMin/XX/40} ${FRnumSel} ${ptMax/XX/50}"
 #processManager["TestPlots"]="  "
 qcdFromFR["TestPlots"]="y"   # this is not used for this regino key
-scaleMCdata["TestPlots"]=" -p W_nomi,W_mWup50,W_mWdn50 --canvasSize 900 600 --noErrorBarsOnRatio "
+scaleMCdata["TestPlots"]=" -p Wminus_long,Wminus_left,Wminus_right " # -p W_nomi,W_mWup50,W_mWdn50 --canvasSize 900 600 --noErrorBarsOnRatio "
 #----------------------------------
-mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
+#mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
 #cutfileTest="wenu_80X.txt"
 #optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
-mcafileTest="${mcafile}" # "mca-80X-wchargeTest.txt" #${mcafile}"  #"mca-80X_V5_TINY_testJson.txt"
-cutfileTest="${cutfile}"
+mcafileTest="mca-includes/mca-80X-wenu-sig_genCutOnly.txt" # "${mcafile}" # "mca-80X-wchargeTest.txt" #${mcafile}"  #"mca-80X_V5_TINY_testJson.txt"
+cutfileTest="alwaystrue.txt"  #${cutfile}"
+plotfileTest="wenu_plots.txt"   #"${plotfile}"
 #mcafileTest="mca-testFRnormSyst.txt"
-ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.99 1.01 --fixRatioRange --ratioDen W_nomi --ratioNums W_mWup50,W_mWdn50 --ratioYLabel 'Var./Nomi.'"
+ratioPlotDataOptions_TestPlots=" " #--showRatio --maxRatioRange 0.99 1.01 --fixRatioRange --ratioDen W_nomi --ratioNums W_mWup50,W_mWdn50 --ratioYLabel 'Var./Nomi.'"
 #optionsTest=" --sp 'data_noJson' --xp 'data_withJson' --noStackSig  --showIndivSigs"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #ratioPlotDataOptions_TestPlots=" "
 #optionsTest=" --sp 'dataAll' --plotmode norm -X json --noLegendRatioPlot"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi'"
-optionsTest=" --plotmode norm --noLegendRatioPlot --noErrorBandOnRatio --contentAxisTitle 'arbitrary units' --legendFontSize 0.06"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
+optionsTest=" --plotmode nostack " #--noLegendRatioPlot --noErrorBandOnRatio --contentAxisTitle 'arbitrary units' --legendFontSize 0.06"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #
 #############################
 
@@ -394,6 +397,7 @@ getenv      = True
 environment = "LS_SUBCWD=${PWD}"         
 request_memory = 4000                    
 +MaxRuntime = 86400
++JobBatchName = "runplotsCondor${nameTag}"
 EOF
 
 # might add a delay to submit multiple jobs with  --> next_job_start_delay = 1                 
@@ -412,8 +416,8 @@ if [[ "${useDataGH}" == "y" ]]; then
     echo "# Using all data from 2016"
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
-    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
-    #MCweigthOption=" -W 'lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    MCweigthOption=" -W 'lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
     #MCweigthOption=" -W '1' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
@@ -560,6 +564,7 @@ do
 	    
 	    regionCommand="${regionCommand/${mcafile}/${mcafileTest}}"
 	    regionCommand="${regionCommand/${cutfile}/${cutfileTest}}"
+	    regionCommand="${regionCommand/${plotfile}/${plotfileTest}}"
 	    regionCommand="${regionCommand/${ratioPlotDataOptions}/}"  # remove ratio plot options (add new one later, to avoid problems in case match is not found
 	    regionCommand="${regionCommand} ${optionsTest} ${ratioPlotDataOptions_TestPlots}"
 
@@ -590,12 +595,18 @@ do
 	    etalow="${etaBinBoundaries[$i]/./p}"
 	    etahigh="${etaBinBoundaries[($i+1)]/./p}"
 	    etabin="eta_${etalow}_${etahigh}"
+	    if [[ "${useAllEta}" == "y" ]]; then
+		etabin="allEta"
+	    fi
 	    srcCondorFileName="${thisCondorFileName/ETABIN/${etabin}}"
             #echo "${etabin}"
 	    #echo "${thisCondorFileName}"
 	    cp ${baseBashScript} ${srcCondorFileName}
 
 	    etaRangeCut=" -A eleKin ${etabin} 'abs(LepGood1_eta) >= ${etaBinBoundaries[$i]} && abs(LepGood1_eta) <= ${etaBinBoundaries[($i+1)]}' "
+	    if [[ "${useAllEta}" == "y" ]]; then
+		etaRangeCut=""
+	    fi
 	    regionCommand_eta="${regionCommand} --pdir ${plotterPath}/plots/distribution/${treedir}/${thisRegionName}/${outputdirThisRegion}/${etabin}/ ${etaRangeCut}" 
 	    echo "${regionCommand_eta}" >> ${srcCondorFileName}
 	    echo "" >> ${srcCondorFileName}

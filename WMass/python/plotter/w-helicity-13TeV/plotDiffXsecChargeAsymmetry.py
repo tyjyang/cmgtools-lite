@@ -55,7 +55,10 @@ if __name__ == "__main__":
     parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty')
     parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
     parser.add_option(     '--unrollEta', dest='unrollEta' , default=False , action='store_true',   help='If True, make unroll along eta direction instead of pt')
-    parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data. If SAME, use same file as data and take _gen variables to get the expected')
+    parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data). If SAME, use same file as data and take _gen variables to get the expected')
+    parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
+    parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
+    parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used.')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -112,6 +115,48 @@ if __name__ == "__main__":
     netabins = genBins.Neta
     nptbins  = genBins.Npt
 
+    ptBinIsBackground = []  # will store a bool to assess whether the given ipt index is considered as background
+    nPtBinsBkg = 0
+    for bin in range(genBins.Npt):
+        ptBinIsBackground.append(False)
+    ptRangesBkg = options.pt_range_bkg
+    if len(ptRangesBkg):
+        hasPtRangeBkg = True
+        print "Signal bins with gen pt in the following ranges were considered as background processes, so there is no POI for them"
+        print options.pt_range_bkg            
+        for index in range(genBins.Npt):
+            for pair in ptRangesBkg:
+        #print pair
+                if genBins.ptBins[index] >= pair[0] and genBins.ptBins[index+1] <= pair[1]:
+                    ptBinIsBackground[index] = True
+                    nPtBinsBkg += 1
+    else:
+        hasPtRangeBkg = False
+
+    etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
+    nEtaBinsBkg = 0
+    for bin in range(genBins.Neta):
+        etaBinIsBackground.append(False)
+    etaRangesBkg = options.eta_range_bkg
+    if len(etaRangesBkg):
+        hasEtaRangeBkg = True
+        print "Signal bins with gen eta in the following ranges were considered as background processes, so there is no POI for them"
+        print options.eta_range_bkg            
+        for index in range(genBins.Neta):
+            for pair in etaRangesBkg:
+        #print pair
+                if genBins.etaBins[index] >= pair[0] and genBins.etaBins[index+1] <= pair[1]:
+                    etaBinIsBackground[index] = True
+                    nEtaBinsBkg += 1
+    else:
+        hasEtaRangeBkg = False
+
+
+    # if hasPtRangeBkg and not options.ptRange:
+    #     for index in range(genBins.Npt):
+    #         if ptBinIsBackground[index]:
+    #             if firstBin: 
+
     unrollAlongEta = options.unrollEta
     unrollVar = "eta" if unrollAlongEta else "pt"
 
@@ -124,7 +169,7 @@ if __name__ == "__main__":
                             genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
     
 
-    nbins = genBins.Neta * genBins.Npt
+    nbins = (genBins.Neta - nEtaBinsBkg) * (genBins.Npt - nPtBinsBkg)
     binCount = 1        
     print "Now filling histograms with charge asymmetry"
 
@@ -135,6 +180,8 @@ if __name__ == "__main__":
 
     for ieta in range(1,genBins.Neta+1):
         for ipt in range(1,genBins.Npt+1):
+            if ptBinIsBackground[ipt-1]: continue
+            if etaBinIsBackground[ieta-1]: continue
             #print "\rBin {num}/{tot}".format(num=binCount,tot=nbins),
             sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
             sys.stdout.flush()
@@ -161,6 +208,9 @@ if __name__ == "__main__":
 
     xaxisTitle = 'gen %s |#eta|' % lepton
     yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
+    if options.ptRange != "template":
+        ptmin,ptmax = options.ptRange.split(',')
+        yaxisTitle = yaxisTitle + "::%s,%s" % (ptmin, ptmax)
     #zaxisTitle = "Asymmetry::%.3f,%.3f" % (hChAsymm.GetMinimum(),hChAsymm.GetMaximum())
     if options.fitData:
         zaxisTitle = "Asymmetry::0.0,0.45"
@@ -181,8 +231,8 @@ if __name__ == "__main__":
 
     if not options.hessian:
 
-        zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
-                                                           min(1.0,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
+        zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,0.9*hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
+                                                           min(0.3,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
         #zaxisTitle = "Asymmetry uncertainty::0,0.04" 
         drawCorrelationPlot(hChAsymmErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
@@ -192,12 +242,12 @@ if __name__ == "__main__":
         hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
         hChAsymmRelErr.Divide(hChAsymm)
         hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
-        #zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+        #zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
                                                                      # min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
                                                                      #)
         #zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
-        zaxisTitle = "Asymmetry relative uncertainty::%.3f,%.3f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
-                                                                    min(0.5,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
+        zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+                                                                    min(0.4,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
         drawCorrelationPlot(hChAsymmRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hChAsymmRelErr.GetName(),
@@ -241,7 +291,7 @@ if __name__ == "__main__":
                                      "normalized cross section uncertainty: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                      genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
-        nbins = genBins.Neta * genBins.Npt
+        #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
         binCount = 1        
         print "Now filling histograms with differential cross section (charge = %s)" % charge
 
@@ -259,7 +309,8 @@ if __name__ == "__main__":
 
         for ieta in range(1,genBins.Neta+1):
             for ipt in range(1,genBins.Npt+1):
-
+                if ptBinIsBackground[ipt-1]: continue
+                if etaBinIsBackground[ieta-1]: continue
                 #print "\rBin {num}/{tot}".format(num=binCount,tot=nbins),
                 sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
                 sys.stdout.flush()
@@ -406,7 +457,7 @@ if __name__ == "__main__":
                             hDiffXsecNormErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNormRelErr.GetMinimum(),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
+        zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.4f,%.4f" % (min(0.01,0.9*hDiffXsecNormRelErr.GetMinimum()),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
         #zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::0,0.1"
         drawCorrelationPlot(hDiffXsecNormRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
@@ -439,7 +490,9 @@ if __name__ == "__main__":
 
 
 # for data, add plot with ratio with expected
-        if options.fitData:
+# might be used for toys to compare with asimov
+        #if options.fitData:
+        if True:
             if options.exptoyfile:
                 
                 getExpFromGen = False
@@ -469,7 +522,8 @@ if __name__ == "__main__":
                 print "Now reading Hessian to make ratio of data with expected"
                 for ieta in range(1,genBins.Neta+1):
                     for ipt in range(1,genBins.Npt+1):
-
+                        if ptBinIsBackground[ipt-1]: continue
+                        if etaBinIsBackground[ieta-1]: continue
                         #print "\rBin {num}/{tot}".format(num=binCount,tot=nbins),
                         sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
                         sys.stdout.flush()
@@ -508,7 +562,7 @@ if __name__ == "__main__":
                     xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
 
                 h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
-                drawDataAndMC(h1D_pmaskedexp, h1D_pmaskedexp_exp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]",
+                drawDataAndMC(h1D_pmaskedexp, h1D_pmaskedexp_exp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]::0,220",
                               "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
                               outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll)
 

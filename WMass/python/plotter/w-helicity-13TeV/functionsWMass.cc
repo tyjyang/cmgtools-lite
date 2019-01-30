@@ -661,7 +661,7 @@ int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
 
 int unroll2DTo1D_etaSlices(int pdgid, float pt, float eta){
   float ptmin = abs(pdgid)==13 ? 26. : 30.;
-  int nptbins  =abs(pdgid)==13 ? 19 : 15;
+  int nptbins = abs(pdgid)==13 ? 19 : 15;
   int etabin = (int) ((eta+2.5)*10. );
   int ptbin  = (int) (pt-ptmin );
   return (ptbin + nptbins * etabin);

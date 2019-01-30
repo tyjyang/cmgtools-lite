@@ -10,17 +10,22 @@ onlyData = 0
 
 skipPlot = 1
 skipDiffNuis = 1
-skipCorr = 1
-skipImpacts = 0
+skipCorr = 0
+skipImpacts = 1
 
 seed = 123456789
-folder = "diffXsec_mu_2018_12_18_onlyBkg_pt2GeV_eta0p2From2p0/"
+#folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
+folder = "diffXsec_mu_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
+#folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
 #folder = "diffXsec_el_2018_12_18_onlyBkg_pt2GeV_last3GeV_eta0p2From2p0/"
-postfix = "allSyst_bbb1_cxs1"
+#postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
+postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
 fits = ["Asimov", "Data"]
+
+ptBinsSetting = " --pt-range-bkg 25.9 30.1 --eta-range-bkg 1.39 1.61  --pt-range '30,45' " if flavour == "el"  else ""
 
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
@@ -39,7 +44,7 @@ diffNuisances_pois = ["pdf.*|alphaS",
 #correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*_ieta_6_ipt_6_Wplus_.*_mu"  
 #                        }
 # need to specify which matrix, by default the one for mu is chosen and the bin label looks like Wplus_el_ieta_1_ipt_0_Wplus_el, without ending mu
-correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*_ieta_6_ipt_6_Wplus_.*"
+correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*_ieta_6_ipt_8_Wplus_.*"
                         }
 
 correlationNuisRegexp = {"allPDF"           : "pdf.*", 
@@ -71,23 +76,26 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 # for impacts
 targets = ["mu", 
            #"xsec", 
-           "xsecnorm"]
+           #"xsecnorm"
+           ]
 
-impacts_nuis = [".*pdf.*", 
-                ".*muR.*|.*muF.*", 
-                ".*ErfPar0EffStat.*", 
-                ".*ErfPar1EffStat.*", 
-                ".*ErfPar2EffStat.*", 
-                ".*CMS_.*",
-                "GROUP"     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
-                ]
+# impacts_nuis = [".*pdf.*", 
+#                 ".*muR.*|.*muF.*", 
+#                 ".*ErfPar0EffStat.*", 
+#                 ".*ErfPar1EffStat.*", 
+#                 ".*ErfPar2EffStat.*", 
+#                 ".*CMS_.*",
+#                 "GROUP"     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
+#                 ]
+impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
+                
 
-impacts_pois = ["Wplus.*_ipt_0_.*",
-                "Wplus.*_ipt_6_.*",
-                "Wplus.*_ipt_9_.*",
+impacts_pois = ["Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
+                "Wplus.*_ipt_8_.*",
+                "Wplus.*_ipt_11_.*",
                 "Wplus.*_ieta_0_.*",
-                "Wplus.*_ieta_12_.*",
-                "Wplus.*_ieta_21_.*"
+                "Wplus.*_ieta_10_.*",
+                "Wplus.*_ieta_17_.*"
                 ]
 
 
@@ -116,7 +124,7 @@ for fit in fits:
     command += " -i cards/{fd} -c {fl}".format(fd=folder, fl=flavour)
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
     command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --lumi-norm 35900.0  -n --palette 55 --hessian --suffix {fit}_{pf}".format(fit=fit,pf=postfix)
+    command += " --lumi-norm 35900.0  -n --palette 57 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
     if fit == "Data":
         command += " --fit-data --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
     if not skipPlot:
@@ -134,8 +142,8 @@ for fit in fits:
     ## POSTFIT NUISANCES
     command = "python w-helicity-13TeV/diffNuisances.py"
     command += " --infile cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/diffNuisances/".format(lep=lepton,fd=folder)
-    command += " -a --format html --type hessian  --suffix  {fit}_{pf} ".format(fit=fit,pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/diffNuisances/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " -a --format html --type hessian  --suffix  {fit} ".format(fit=fit)
     for poi in diffNuisances_pois:
         tmpcommand = command + " --pois '{poi}' ".format(poi=poi)
         if not skipDiffNuis:
@@ -151,8 +159,8 @@ for fit in fits:
 
     ## ADD CORRELATION
     command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/subMatrix/".format(lep=lepton,fd=folder)
-    command += " --nContours 51 --type hessian --suffix  {fit}_{pf}".format(fit=fit,pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
     for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
             tmpcommand = command + " --params '{nuis},{poi}' ".format(nuis=correlationNuisRegexp[nuisRegexp],poi=correlationSigRegexp[poiRegexp])
@@ -171,13 +179,14 @@ for fit in fits:
 
     ## IMPACTS
     command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/  --suffix {fit}_{pf} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
+    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
     command += " --abs-value --nContours 50 --margin '0.18,0.15,0.05,0.22' --canvasSize '1500,1200' "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     for poi in impacts_pois:
         for nuis in impacts_nuis:
             if nuis == "GROUP":
-                varopt = " --nuisgroups '.*' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
+                #varopt = " --nuisgroups '.*' --pois '{poi_regexp}' ".format(poi_regexp=poi)
+                varopt = " --nuisgroups 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS' --pois '{poi_regexp}' ".format(poi_regexp=poi)
             else:
                 varopt = " --nuis '{nuis_regexp}' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
             for target in targets:

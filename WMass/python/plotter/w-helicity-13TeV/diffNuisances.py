@@ -28,6 +28,7 @@ if __name__ == "__main__":
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
+    parser.add_option('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type='float', help='Bottom margin for the canvas')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
 
     (options, args) = parser.parse_args()
@@ -269,9 +270,9 @@ if __name__ == "__main__":
         hist_fit_s.GetYaxis().SetTitleSize(0.05)
         hist_fit_s.GetYaxis().SetTitleOffset(0.80)
 
-        clm = 0.1
-        crm = 0.05
-        cbm = 0.3
+        clm = 0.1 if len(params) < 100 else 0.05
+        crm = 0.05 if len(params) < 100 else 0.02
+        cbm = options.setBottomMargin
         ctm = 0.1
         canvas_nuis.SetLeftMargin(clm)
         canvas_nuis.SetRightMargin(crm)

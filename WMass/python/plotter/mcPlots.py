@@ -135,6 +135,7 @@ def doSpam(text,x1,y1,x2,y2,align=12,fill=False,textSize=0.033,_noDelete={}):
     _noDelete[text] = cmsprel; ## so it doesn't get deleted by PyROOT
     return cmsprel
 
+
 def doTinyCmsPrelim(textLeft="_default_",textRight="_default_",hasExpo=False,textSize=0.033,lumi=None, xoffs=0, options=None, doWide=False):
     if textLeft  == "_default_": textLeft  = options.lspam
     if textRight == "_default_": textRight = options.rspam
@@ -149,7 +150,7 @@ def doTinyCmsPrelim(textLeft="_default_",textRight="_default_",hasExpo=False,tex
     textLeft = textLeft.replace("%(lumi)",lumitext)
     textRight = textRight.replace("%(lumi)",lumitext)
     if textLeft not in ['', None]:
-        doSpam(textLeft, (.28 if hasExpo else 0.07 if doWide else .17)+xoffs, .955, .60+xoffs, .995, align=12, textSize=textSize)
+        doSpam(textLeft, (.30 if hasExpo else 0.07 if doWide else .19)+xoffs, .955, .60+xoffs, .995, align=12, textSize=textSize)
     if textRight not in ['', None]:
         doSpam(textRight,(0.6 if doWide else .68)+xoffs, .955, .99+xoffs, .995, align=32, textSize=textSize)
 
@@ -522,7 +523,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity.GetYaxis().SetRangeUser(rmin,rmax);
     unity.GetXaxis().SetTitleFont(42)
     unity.GetXaxis().SetTitleSize(0.14)
-    unity.GetXaxis().SetTitleOffset(0.9)
+    unity.GetXaxis().SetTitleOffset(options.setTitleXoffset)
     unity.GetXaxis().SetLabelFont(42)
     unity.GetXaxis().SetLabelSize(0.1)
     unity.GetXaxis().SetLabelOffset(0.007)
@@ -620,7 +621,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         # ratio = pmap[numkey].Clone("data_div"); 
         # build in the hard way
         xbins, ybins = pmap[numkey].GetXaxis().GetXbins(), pmap[numkey].GetYaxis().GetXbins()
-        ratio = ROOT.TH2D("data_div","data_div",len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
+        ratio = ROOT.TH2D("data_div_{n}".format(n=numkey),"data_div",len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
         for ix in xrange(1,ratio.GetNbinsX()+1):
@@ -958,7 +959,7 @@ class PlotMaker:
                 ytitle = "Events" if not self._options.printBinning else "Events / %s" %(self._options.printBinning)
                 total.GetXaxis().SetTitleFont(42)
                 total.GetXaxis().SetTitleSize(0.05)
-                total.GetXaxis().SetTitleOffset(0.9)
+                total.GetXaxis().SetTitleOffset(options.setTitleXoffset)
                 total.GetXaxis().SetLabelFont(42)
                 total.GetXaxis().SetLabelSize(0.05)
                 total.GetXaxis().SetLabelOffset(0.007)
@@ -1075,12 +1076,15 @@ class PlotMaker:
                     CMS_lumi.lumi_sqrtS = self._options.cmssqrtS
                     CMS_lumi.CMS_lumi(ROOT.gPad, 4, 0, -0.005 if doWide and doRatio else 0.01 if doWide else 0.05)
                 else: 
-                    doTinyCmsPrelim(hasExpo = total.GetMaximum() > 9e4 or c1.GetLogy(),textSize=(0.045 if doRatio else 0.033)*options.topSpamSize, options=options,doWide=doWide)
+                    rightTextOffset = 0.04 - p1.GetRightMargin() -0.02 # 0.04 should be the default, then subtract other 0.02
+                    #print "rightTextOffset = ", str(rightTextOffset)
+                    # xoffs should be negative if the right text goes outside the right margin of the canvas
+                    doTinyCmsPrelim(hasExpo = total.GetMaximum() > 9e4 or c1.GetLogy(),textSize=(0.040 if doRatio else 0.033)*options.topSpamSize, options=options,doWide=doWide, xoffs=rightTextOffset)  
                 if options.addspam:
                     if pspec.getOption('Legend','TR')=="TL":
-                        doSpam(options.addspam, .68, .855, .9, .895, align=32, textSize=(0.045 if doRatio else 0.033)*options.topSpamSize)
+                        doSpam(options.addspam, .68, .855, .9, .895, align=32, textSize=(0.040 if doRatio else 0.033)*options.topSpamSize)
                     else:
-                        doSpam(options.addspam, .23, .855, .6, .895, align=12, textSize=(0.045 if doRatio else 0.033)*options.topSpamSize)
+                        doSpam(options.addspam, .23, .855, .6, .895, align=12, textSize=(0.040 if doRatio else 0.033)*options.topSpamSize)
                 signorm = None; datnorm = None; sfitnorm = None
                 if options.showSigShape or options.showIndivSigShapes or options.showIndivSigs: 
                     signorms = doStackSignalNorm(pspec,pmap,options.showIndivSigShapes or options.showIndivSigs,extrascale=options.signalPlotScale, norm=not options.showIndivSigs)
@@ -1249,6 +1253,7 @@ class PlotMaker:
                                     for r in rdata:
                                         r.Draw(pspec.getOption("PlotMode","COLZ0"))
                                         c1.Print("%s/%s_ratio.%s" % (fdir, outputName, ext))
+                                        r.Write(r.GetName())
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))
                             ROOT.gErrorIgnoreLevel = savErrorLevel;
@@ -1310,6 +1315,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--verywide", dest="veryWide", action="store_true", default=False, help="Draw a very wide canvas")
     parser.add_option("--canvasSize", dest="setCanvasSize", type="int", nargs=2, default=(600, 600), help="Set canvas height and width")
     parser.add_option("--setTitleYoffset", dest="setTitleYoffset", type="float", default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
+    parser.add_option("--setTitleXoffset", dest="setTitleXoffset", type="float", default=0.90, help="Set Y axis offset for title. The default is 0.9, which is fine unless there are superscripts, in that case 1.1 is suggested. It should be tuned based on the canvas size and presence of ratio plot.")
     parser.add_option("--elist", dest="elist", action="store_true", default='auto', help="Use elist (on by default if making more than 2 plots)")
     parser.add_option("--no-elist", dest="elist", action="store_false", default='auto', help="Don't elist (which are on by default if making more than 2 plots)")
     if not parser.has_option("--yrange"): parser.add_option("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");

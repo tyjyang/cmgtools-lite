@@ -40,6 +40,10 @@ Z    : DYJetsToLL_M50_NLO* : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z", NormS
 Z_less    : DYJetsToLL_M50_NLO_part* : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04
 Z_LO : DYJetsToLL_M50_LO_* : 5765.40 ; FillColor=ROOT.kAzure+2, Label="Z (Madgraph)", NormSystematic=0.04
 
+# this will apply the L1 SF twice, just to see the effect
+#Z_L1prefire    : DYJetsToLL_M50_NLO* : 2008.4*3 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, AddWeight="eleSF_L1Eff(LepGood1_pt\,if3(abs(LepGood1_eta) > 1.479\, 2.5\, LepGood1_eta))"
+
+
 Top  : TTJets_SingleLeptonFromT_* :  xsec; FillColor=ROOT.kGreen+2, Label="Top", NormSystematic=0.09
 Top  : TTJets_SingleLeptonFromTbar_* :  xsec; FillColor=ROOT.kGreen+2, Label="Top", NormSystematic=0.09
 Top  : TToLeptons_sch_amcatnlo :      xsec; FillColor=ROOT.kGreen+2, Label="Top", NormSystematic=0.04
@@ -181,6 +185,12 @@ data_fakes_slopeDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-1
 data_fakes_normUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt", Label="Fakes (norm Up)", FillColor=ROOT.kBlue, NormSystematic=0.20
 
 data_fakes_normDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normdown.txt", Label="Fakes (norm Down)", FillColor=ROOT.kBlack, NormSystematic=0.20
+
+data_fakes_pol1fitPt30to48: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol1fitPt30to48.txt", Label="Fakes (fit 30-48)", FillColor=ROOT.kRed+2, NormSystematic=0.20
+
+data_fakes_pol1: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol1fitPt30to48.txt", Label="Fakes (fit 30-48)", FillColor=ROOT.kGray, NormSystematic=0.20
+
+data_fakes_pol2: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol2.txt", Label="Fakes (pol2)", FillColor=ROOT.kBlue, NormSystematic=0.20
 
 
 data_fakes_EBp_0p0_1p0: SingleElectron_07Aug17_Run2016* : LepGood1_eta > 0.0 && LepGood1_eta < 1.0 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes EB+ in", FillColor=ROOT.kGray, NormSystematic

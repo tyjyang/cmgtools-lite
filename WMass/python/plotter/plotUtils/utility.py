@@ -141,6 +141,7 @@ def getMinimumTH(h, excludeMin=None):
 
     return retmin
 
+#########################################################################
 
 def getMaximumTH(h, excludeMax=None):
     # get maximum excluding some values. For example, if an histogram has a crazy bin, one might want to get the maximum value that is lower than that
@@ -189,7 +190,7 @@ def createPlotDirAndCopyPhp(outdir):
     if outdir != "./":
         if not os.path.exists(outdir):
             os.system("mkdir -p "+outdir)
-            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outdir)
+            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/e/emanuele/public/index.php "+outdir)
     
 
 #########################################################################
@@ -252,7 +253,8 @@ def drawCorrelationPlot(h2D_tmp,
                         canvasSize="700,625",
                         passCanvas=None,
                         bottomMargin=0.1,
-                        plotError=False):
+                        plotError=False,
+                        lumi=None):
 
 
     # if h2D.GetName() == "scaleFactor_origBinPt":
@@ -384,7 +386,9 @@ def drawCorrelationPlot(h2D_tmp,
         h2DProfile.Draw("EPsame")
         
     # not yet implemented
-    if not plotLabel == "ForceTitle": CMS_lumi(canvas,"",True,False)
+    if not plotLabel == "ForceTitle": 
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
     setTDRStyle()
     #print ">>>>>>>>>>>>>> check <<<<<<<<<<<<<<<<<<<"
 
@@ -431,7 +435,8 @@ def drawSingleTH1(h1,
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   drawLineLowerPanel="lumi. uncertainty::0.025", # if not empty, draw band at 1+ number after ::, and add legend with title
-                  passCanvas=None
+                  passCanvas=None,
+                  lumi=None
                   ):
 
     if (rebinFactorX): 
@@ -539,8 +544,8 @@ def drawSingleTH1(h1,
   #   pvtxt.Draw()
   # }
 
-    #if lumi < 0: CMS_lumi(canvas,"",false,false)
-    #else: CMS_lumi(canvas,Form("%.1f",lumi),false,false)
+    if lumi != None: CMS_lumi(canvas,"",True,False)
+    else:            CMS_lumi(canvas,lumi,True,False)
     setTDRStyle()
 
     if lowerPanelHeight:
@@ -616,6 +621,8 @@ def drawSingleTH1(h1,
         canvas.SetLogy(0)
 
 
+################################################################
+
 def drawDataAndMC(h1, h2,
                   labelXtmp="xaxis", labelYtmp="yaxis",
                   canvasName="default", outdir="./",
@@ -630,7 +637,8 @@ def drawDataAndMC(h1, h2,
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
                   #drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
-                  passCanvas=None
+                  passCanvas=None,
+                  lumi=None
                   ):
 
     # h1 is data, h2 in MC
@@ -701,7 +709,10 @@ def drawDataAndMC(h1, h2,
     h1.GetYaxis().SetTitleOffset(1.15)
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
-    h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.5)
+    if setYAxisRangeFromUser:
+        h1.GetYaxis().SetRangeUser(ymin, ymax)    
+    else:
+        h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.5)    
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("EP")
     #h1err = h1.Clone("h1err")
@@ -719,7 +730,7 @@ def drawDataAndMC(h1, h2,
     leg.SetFillColor(0)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
-    leg.AddEntry(h1,"data","LP")
+    leg.AddEntry(h1,"data","LPE")
     leg.AddEntry(h2,"expected","LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
     leg.Draw("same")
@@ -742,8 +753,8 @@ def drawDataAndMC(h1, h2,
   #   pvtxt.Draw()
   # }
 
-    #if lumi < 0: CMS_lumi(canvas,"",false,false)
-    #else: CMS_lumi(canvas,Form("%.1f",lumi),false,false)
+    if lumi != None: CMS_lumi(canvas,"",True,False)
+    else:            CMS_lumi(canvas,lumi,True,False)
     setTDRStyle()
 
     if lowerPanelHeight:
@@ -814,4 +825,443 @@ def drawDataAndMC(h1, h2,
         canvas.SetLogy(0)
         
           
+#########################################################################
+
+def drawTH1dataMCstack_backup(h1, thestack, 
+                       labelXtmp="xaxis", labelYtmp="yaxis",
+                       canvasName="default", 
+                       outdir="./",
+                       legend=None,
+                       ratioPadYaxisNameTmp="data/MC::0.5,1.5", 
+                       draw_both0_noLog1_onlyLog2=0,
+                       #minFractionToBeInLegend=0.001,
+                       fillStyle=3001,
+                       leftMargin=0.16,
+                       rightMargin=0.05,
+                       nContours=50,
+                       palette=55,
+                       canvasSize="700,625",
+                       passCanvas=None,
+                       normalizeMCToData=False,
+                       hErrStack=None,   # might need to define an error on the stack in a special way
+                       lumi=None,
+                       yRangeScaleFactor=1.5, # if range of y axis is not explicitely passed, use (max-min) times this value
+                       wideCanvas=False
+                       ):
+
+    # if normalizing stack to same area as data, we need to modify the stack
+    # however, the stack might be used outside the function. In order to avoid any changes in the stack, it is copied here just for the plot
+
+    ROOT.TH1.SetDefaultSumw2()
+    adjustSettings_CMS_lumi()
+    
+    ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
+    ROOT.gStyle.SetNumberContours(nContours) # default is 20 
+
+    labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    labelRatioY,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(ratioPadYaxisNameTmp)
+    
+    cw,ch = canvasSize.split(',')
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
+    canvas.SetBottomMargin(0.3)
+    canvas.cd()
+
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+
+    dataNorm = h1.Integral()
+    stackNorm = 0.0
+
+    #dummystack = thestack
+    dummystack = ROOT.THStack("dummy_{sn}".format(sn=thestack.GetName()),"")
+    for hist in thestack.GetHists():        
+        stackNorm += hist.Integral()
+    for hist in thestack.GetHists():        
+        hnew = copy.deepcopy(hist.Clone("dummy_{hn}".format(hn=hist.GetName())))
+        if normalizeMCToData:
+            hnew.Scale(dataNorm/stackNorm)
+        dummystack.Add(hnew)    
+        
+    stackCopy = dummystack.GetStack().Last() # used to make ratioplot without affecting the plot and setting maximum
+    # the error of the last should be the sum in quadrature of the errors of single components, as the Last is the sum of them
+    # however, better to recreate it
+    stackErr = stackCopy
+    if hErrStack != None:
+        stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
+    # else:
+    #     isFirst = True
+    #     for hist in thestack.GetHists():        
+    #         if isFirst:
+    #             stackErr = copy.deepcopy(hist.Clone("stackErr"))
+    #             isFirst = False
+    #         else:
+    #             stackErr.Add(hist.Clone())
+
+    print "drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()) 
+    print "drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()) 
+    print "drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()) 
+
+    h1.SetStats(0)
+    titleBackup = h1.GetTitle()
+    h1.SetTitle("")
+
+    pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+    pad2.SetTopMargin(0.7)
+    pad2.SetRightMargin(rightMargin)
+    pad2.SetLeftMargin(leftMargin)
+    pad2.SetFillColor(0)
+    pad2.SetGridy(1)
+    pad2.SetFillStyle(0)
+    
+    frame = h1.Clone("frame")
+    frame.GetXaxis().SetLabelSize(0.04)
+    frame.SetStats(0)
+
+    h1.SetLineColor(ROOT.kBlack)
+    h1.SetMarkerColor(ROOT.kBlack)
+    h1.SetMarkerStyle(20)
+    h1.SetMarkerSize(1)
+
+    h1.GetXaxis().SetLabelSize(0)
+    h1.GetXaxis().SetTitle("")
+    h1.GetYaxis().SetTitle(labelY)
+    h1.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
+    h1.GetYaxis().SetTitleSize(0.05)
+    h1.GetYaxis().SetLabelSize(0.04)
+    if setYAxisRangeFromUser: 
+        h1.GetYaxis().SetRangeUser(ymin,ymax)
+    else:
+        h1.GetYaxis().SetRangeUser(0.0, max(h1.GetBinContent(h1.GetMaximumBin()),stackCopy.GetBinContent(stackCopy.GetMaximumBin())) * yRangeScaleFactor)
+    if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
+    h1.Draw("EP")
+    dummystack.Draw("HIST SAME")
+    h1.Draw("EP SAME")
+
+    # legend.SetFillColor(0)
+    # legend.SetFillStyle(0)
+    # legend.SetBorderSize(0)
+    legend.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    reduceSize = False
+    offset = 0
+    # check whether the Y axis will have exponential notatio
+    if h1.GetBinContent(h1.GetMaximumBin()) > 1000000:
+        reduceSize = True
+        offset = 0.1
+    if wideCanvas: offset = 0.1
+    if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
+    else:            CMS_lumi(canvas,"",True,False)
+    setTDRStyle()
+
+    pad2.Draw();
+    pad2.cd();
+
+    frame.Reset("ICES")
+    if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+    #else:                          
+    #frame.GetYaxis().SetRangeUser(0.5,1.5)
+    frame.GetYaxis().SetNdivisions(5)
+    frame.GetYaxis().SetTitle(labelRatioY)
+    frame.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
+    frame.GetYaxis().SetTitleSize(0.05)
+    frame.GetYaxis().SetLabelSize(0.04)
+    frame.GetYaxis().CenterTitle()
+    frame.GetXaxis().SetTitle(labelX)
+    if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
+    frame.GetXaxis().SetTitleOffset(1.2)
+    frame.GetXaxis().SetTitleSize(0.05)
+
+    #ratio = copy.deepcopy(h1.Clone("ratio"))
+    #den_noerr = copy.deepcopy(stackErr.Clone("den_noerr"))
+    ratio = h1.Clone("ratio")
+    den_noerr = stackErr.Clone("den_noerr")
+    den = stackErr.Clone("den")
+    for iBin in range (1,den_noerr.GetNbinsX()+1):
+        den_noerr.SetBinError(iBin,0.)
+
+    ratio.Divide(den_noerr)
+    den.Divide(den_noerr)
+    den.SetFillColor(ROOT.kCyan)
+    den.SetFillStyle(1001)  # make it solid again
+    #den.SetLineColor(ROOT.kRed)
+    frame.Draw()        
+    ratio.SetMarkerSize(0.85)
+    ratio.SetMarkerStyle(20) 
+    den.Draw("E2same")
+    ratio.Draw("EPsame")
+
+    if not "unrolled_" in canvasName:
+        for i in range(1,1+ratio.GetNbinsX()):
+            print "Error data bin {bin}: {val}".format(bin=i,val=ratio.GetBinError(i))
+
+    line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+    line.SetLineColor(ROOT.kRed)
+    line.SetLineWidth(2)
+    line.Draw("Lsame")
+
+    leg2 = ROOT.TLegend(0.2,0.25,0.4,0.30)
+    leg2.SetFillColor(0)
+    leg2.SetFillStyle(0)
+    leg2.SetBorderSize(0)
+    leg2.AddEntry(den,"tot. unc. exp.","LF")
+    leg2.Draw("same")
+
+    pad2.RedrawAxis("sameaxis")
+
+
+    if draw_both0_noLog1_onlyLog2 != 2:
+        canvas.SaveAs(outdir + canvasName + ".png")
+        canvas.SaveAs(outdir + canvasName + ".pdf")
+
+    if draw_both0_noLog1_onlyLog2 != 1:        
+        if yAxisName == "a.u.": 
+            h1.GetYaxis().SetRangeUser(max(0.0001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        else:
+            h1.GetYaxis().SetRangeUser(max(0.001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+            canvas.SetLogy()
+            canvas.SaveAs(outdir + canvasName + "_logY.png")
+            canvas.SaveAs(outdir + canvasName + "_logY.pdf")
+            canvas.SetLogy(0)
+            
+
+    h1.SetTitle(titleBackup)
+
+##########################################
+
+def drawTH1dataMCstack(h1, thestack, 
+                       labelXtmp="xaxis", labelYtmp="yaxis",
+                       canvasName="default", 
+                       outdir="./",
+                       legend=None,
+                       ratioPadYaxisNameTmp="data/MC::0.5,1.5", 
+                       draw_both0_noLog1_onlyLog2=0,
+                       #minFractionToBeInLegend=0.001,
+                       fillStyle=3001,
+                       leftMargin=0.16,
+                       rightMargin=0.05,
+                       nContours=50,
+                       palette=55,
+                       canvasSize="700,625",
+                       passCanvas=None,
+                       normalizeMCToData=False,
+                       hErrStack=None,   # might need to define an error on the stack in a special way
+                       lumi=None,
+                       yRangeScaleFactor=1.5, # if range of y axis is not explicitely passed, use (max-min) times this value
+                       wideCanvas=False,
+                       drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+                       textForLines=[],                       
+                       ):
+
+    # if normalizing stack to same area as data, we need to modify the stack
+    # however, the stack might be used outside the function. In order to avoid any changes in the stack, it is copied here just for the plot
+
+    ROOT.TH1.SetDefaultSumw2()
+    adjustSettings_CMS_lumi()
+    
+    ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
+    ROOT.gStyle.SetNumberContours(nContours) # default is 20 
+
+    labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    labelRatioY,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(ratioPadYaxisNameTmp)
+    
+    cw,ch = canvasSize.split(',')
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
+    canvas.SetBottomMargin(0.3)
+    canvas.cd()
+
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+
+    dataNorm = h1.Integral()
+    stackNorm = 0.0
+
+    #dummystack = thestack
+    dummystack = ROOT.THStack("dummy_{sn}".format(sn=thestack.GetName()),"")
+    for hist in thestack.GetHists():        
+        stackNorm += hist.Integral()
+    for hist in thestack.GetHists():        
+        hnew = copy.deepcopy(hist.Clone("dummy_{hn}".format(hn=hist.GetName())))
+        if normalizeMCToData:
+            hnew.Scale(dataNorm/stackNorm)
+        dummystack.Add(hnew)    
+        
+    stackCopy = dummystack.GetStack().Last() # used to make ratioplot without affecting the plot and setting maximum
+    # the error of the last should be the sum in quadrature of the errors of single components, as the Last is the sum of them
+    # however, better to recreate it
+    stackErr = stackCopy
+    if hErrStack != None:
+        stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
+    # else:
+    #     isFirst = True
+    #     for hist in thestack.GetHists():        
+    #         if isFirst:
+    #             stackErr = copy.deepcopy(hist.Clone("stackErr"))
+    #             isFirst = False
+    #         else:
+    #             stackErr.Add(hist.Clone())
+
+    print "drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()) 
+    print "drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()) 
+    print "drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()) 
+
+    h1.SetStats(0)
+    titleBackup = h1.GetTitle()
+    h1.SetTitle("")
+
+    pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+    pad2.SetTopMargin(0.7)
+    pad2.SetRightMargin(rightMargin)
+    pad2.SetLeftMargin(leftMargin)
+    pad2.SetFillColor(0)
+    pad2.SetGridy(1)
+    pad2.SetFillStyle(0)
+    
+    frame = h1.Clone("frame")
+    frame.GetXaxis().SetLabelSize(0.04)
+    frame.SetStats(0)
+
+    h1.SetLineColor(ROOT.kBlack)
+    h1.SetMarkerColor(ROOT.kBlack)
+    h1.SetMarkerStyle(20)
+    h1.SetMarkerSize(1)
+
+    h1.GetXaxis().SetLabelSize(0)
+    h1.GetXaxis().SetTitle("")
+    h1.GetYaxis().SetTitle(labelY)
+    h1.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
+    h1.GetYaxis().SetTitleSize(0.05)
+    h1.GetYaxis().SetLabelSize(0.04)
+    ymaxBackup = 0
+    if setYAxisRangeFromUser: 
+        ymaxBackup = ymax
+        h1.GetYaxis().SetRangeUser(ymin,ymax)
+    else:
+        ymaxBackup = max(h1.GetBinContent(h1.GetMaximumBin()),stackCopy.GetBinContent(stackCopy.GetMaximumBin())) * yRangeScaleFactor
+        h1.GetYaxis().SetRangeUser(0.0, ymaxBackup)
+    if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
+    h1.Draw("EP")
+    dummystack.Draw("HIST SAME")
+    h1.Draw("EP SAME")
+
+    vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.03)
+    bintext.SetTextFont(42)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        for i in range(1,nptBins): # do not need line at canvas borders
+            #vertline.DrawLine(etarange*i,0,etarange*i,canvas.GetUymax())
+            vertline.DrawLine(etarange*i,0,etarange*i,ymaxBackup)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                bintext.DrawLatex(etarange*i + etarange/4., ymaxBackup/2., textForLines[i])
+
+    # legend.SetFillColor(0)
+    # legend.SetFillStyle(0)
+    # legend.SetBorderSize(0)
+    legend.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    reduceSize = False
+    offset = 0
+    # check whether the Y axis will have exponential notatio
+    if h1.GetBinContent(h1.GetMaximumBin()) > 1000000:
+        reduceSize = True
+        offset = 0.1
+    if wideCanvas: offset = 0.1
+    if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
+    else:            CMS_lumi(canvas,"",True,False)
+    setTDRStyle()
+
+    pad2.Draw();
+    pad2.cd();
+
+    frame.Reset("ICES")
+    if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+    #else:                          
+    #frame.GetYaxis().SetRangeUser(0.5,1.5)
+    frame.GetYaxis().SetNdivisions(5)
+    frame.GetYaxis().SetTitle(labelRatioY)
+    frame.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
+    frame.GetYaxis().SetTitleSize(0.05)
+    frame.GetYaxis().SetLabelSize(0.04)
+    frame.GetYaxis().CenterTitle()
+    frame.GetXaxis().SetTitle(labelX)
+    if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
+    frame.GetXaxis().SetTitleOffset(1.2)
+    frame.GetXaxis().SetTitleSize(0.05)
+
+    #ratio = copy.deepcopy(h1.Clone("ratio"))
+    #den_noerr = copy.deepcopy(stackErr.Clone("den_noerr"))
+    ratio = h1.Clone("ratio")
+    den_noerr = stackErr.Clone("den_noerr")
+    den = stackErr.Clone("den")
+    for iBin in range (1,den_noerr.GetNbinsX()+1):
+        den_noerr.SetBinError(iBin,0.)
+
+    ratio.Divide(den_noerr)
+    den.Divide(den_noerr)
+    den.SetFillColor(ROOT.kCyan)
+    den.SetFillStyle(1001)  # make it solid again
+    #den.SetLineColor(ROOT.kRed)
+    frame.Draw()        
+    ratio.SetMarkerSize(0.85)
+    ratio.SetMarkerStyle(20) 
+    den.Draw("E2same")
+    ratio.Draw("EPsame")
+
+    # if not "unrolled_" in canvasName:
+    #     for i in range(1,1+ratio.GetNbinsX()):
+    #         print "Error data bin {bin}: {val}".format(bin=i,val=ratio.GetBinError(i))
+
+    line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+    line.SetLineColor(ROOT.kRed)
+    line.SetLineWidth(2)
+    line.Draw("Lsame")
+
+    leg2 = ROOT.TLegend(0.2,0.25,0.4,0.30)
+    leg2.SetFillColor(0)
+    leg2.SetFillStyle(0)
+    leg2.SetBorderSize(0)
+    leg2.AddEntry(den,"tot. unc. exp.","LF")
+    leg2.Draw("same")
+
+    pad2.RedrawAxis("sameaxis")
+
+
+    if draw_both0_noLog1_onlyLog2 != 2:
+        canvas.SaveAs(outdir + canvasName + ".png")
+        canvas.SaveAs(outdir + canvasName + ".pdf")
+
+    if draw_both0_noLog1_onlyLog2 != 1:        
+        if yAxisName == "a.u.": 
+            h1.GetYaxis().SetRangeUser(max(0.0001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        else:
+            h1.GetYaxis().SetRangeUser(max(0.001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+            canvas.SetLogy()
+            canvas.SaveAs(outdir + canvasName + "_logY.png")
+            canvas.SaveAs(outdir + canvasName + "_logY.pdf")
+            canvas.SetLogy(0)
+            
+
+    h1.SetTitle(titleBackup)
   

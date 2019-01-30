@@ -35,6 +35,8 @@
 # muon FR (need to build the FR versu pt and eta
 # python w-helicity-13TeV/makeRatioTH2.py ../../data/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root fakerates_smoothed_data_interpolated ../../data/fakerate/frAndPr_fit_mu_2018-09-19_jetPt45_finerETA.root fakerates_smoothed_data_interpolated_awayJetPt45 -o /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/muon/ratio_FR_PR/fromMarc_jetPt30_Over_jetPt45/ -f ratio_FR -n FILE -t "FR jet p_{T} > 30 / jet p_{T} > 45" -z "Fake rate ratio" -r 0.9 1.2   --buildFakeRate -x "muon p_{T} [GeV]" -y "muon #eta" --h1Dbinning "75,0.9,1.2"
 
+# python w-helicity-13TeV/makeRatioTH2.py plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metJecUp_plus/test_plots.root ptl1__etal1_W plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metNominal_plus/test_plots.root ptl1__etal1_W -o plots/distribution/muonPlots/SKIMS_muons_latest/ratio_metJecUpMT/ -f ratio MetJecUp_nominal_W -n FILE -z "yields ratio for W^{+}" --ratioRange 0.97 1.005 -t "E_{T}^{miss}(JEC Up) / nominal"
+
 ################################
 ################################
 
@@ -163,6 +165,8 @@ if __name__ == "__main__":
 
     nbins,minx,maxx = options.h1Dbinning.split(',')
     hratioDistr = ROOT.TH1D(options.outhistname+"_1D","Distribution of ratio values",int(nbins),float(minx),float(maxx))
+    # profX = ROOT.TProfile("profX",1,-1)
+    # profY = ROOT.TProfile("profY",1,-1)
 
     for ix in range(1,1+hratio.GetNbinsX()):
         for iy in range(1,1+hratio.GetNbinsY()):
@@ -178,6 +182,7 @@ if __name__ == "__main__":
                 ratio = hratio.GetBinContent(ix,iy) / hinput2.GetBinContent(hist2xbin, hist2ybin)
                 hratioDistr.Fill(ratio)
                 hratio.SetBinContent(ix,iy,ratio)
+                #profX.Fill()
             else: 
                 hratio.SetBinContent(ix,iy,options.valBadRatio)
 
@@ -235,6 +240,41 @@ if __name__ == "__main__":
     #
     for ext in ["png","pdf"]:
         canvas.SaveAs(outname + "ratioDistribution_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
+
+    # profX.SetLineColor(ROOT.kBlack)
+    # profX.SetFillColor(ROOT.kWhite)
+    # profX.SetLineWidth(2)
+    # #profX.GetXaxis().SetTitle(hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio")
+    # profX.GetXaxis().SetTitleOffset(1.2)
+    # profX.GetXaxis().SetTitleSize(0.05)
+    # profX.GetXaxis().SetLabelSize(0.04)
+    # profX.GetYaxis().SetTitle("number of events")
+    # profX.GetYaxis().SetTitleOffset(1.15)
+    # profX.GetYaxis().SetTitleSize(0.05)
+    # profX.GetYaxis().SetLabelSize(0.04)
+    # profX.Draw("Hist")
+    # canvas.RedrawAxis("sameaxis")
+    # setTDRStyle()
+    # for ext in ["png","pdf"]:
+    #     canvas.SaveAs(outname + "profileX_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
+
+    # profY.SetLineColor(ROOT.kBlack)
+    # profY.SetFillColor(ROOT.kWhite)
+    # profY.SetLineWidth(2)
+    # #profY.GetXaxis().SetTitle(hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio")
+    # profY.GetXaxis().SetTitleOffset(1.2)
+    # profY.GetXaxis().SetTitleSize(0.05)
+    # profY.GetXaxis().SetLabelSize(0.04)
+    # profY.GetYaxis().SetTitle("number of events")
+    # profY.GetYaxis().SetTitleOffset(1.15)
+    # profY.GetYaxis().SetTitleSize(0.05)
+    # profY.GetYaxis().SetLabelSize(0.04)
+    # profY.Draw("Hist")
+    # canvas.RedrawAxis("sameaxis")
+    # setTDRStyle()
+    # for ext in ["png","pdf"]:
+    #     canvas.SaveAs(outname + "profileY_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
+
  
     ###########################
     # Now save things

@@ -31,11 +31,16 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
     # nbinspt  = len( ptbins)-1
     # binning = [nbinseta, etabins, nbinspt, ptbins]
 
-    # get eta-pt binning for both reco 
+    # get eta-pt binning for reco 
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etabins = recoBins.etaBins
+
+    # not needed
+    #gen_etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
+    #genBins = templateBinning(gen_etaPtBinningVec[0],gen_etaPtBinningVec[1])        # this create a class to manage the binnings
+
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
@@ -75,11 +80,23 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
 
         # get width of bins in multiples of 0.1
         # for electrons the region around the gap is odd
+        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represeted with float in python
+        # which entails that 0.2/0.1 might not yield 2.0, but 1.999
         binwidths = []
         for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
             binwidths.append(tmp_nominal_2d.GetXaxis().GetBinWidth(ieta)/0.1)  
 
         nEtaErfPar = 48 if isMu else 50
+
+        #nEtaErfPar = int(2* (genBins.etaBins[-1] + 0.001) * 10)
+        #parhistBinOffset = 0
+        #if nEtaErfPar == 48 and not isMu: 
+        #    parhistBinOffset = 1
+        # the offset is needed when for electrons the gen_eta bins arrive up to 2.4 (even though the reco arrives to 2.5)
+        # the reason is that the histogram h used for the reweigthing is defined from -2.5 to 2.5 for electrons, therefore in case the gen_bins stops at 2.4
+        # we prefer to skip thefirst and last bin of h
+        # this is because for the diffxsec we only reweight the strip whose eta correspond to the gen_eta bin, otherwise we would just need to consider the reco 
+        # binning, which can get up to 2.5 regardless the gen binning
 
         ## loop over the three parameters
         for npar in range(3):
@@ -90,7 +107,22 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
                 # FIXME, need more care for electron channel, template binning can be odd around the gap
                 # identify template eta which contain that erfPar eta
 
-                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf) )
+                etabinOffset = 0
+                # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
+                # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
+                if isMu and parhist.GetNbinsX() == 50:
+                    etabinOffset = 1
+
+                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
+                #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf + parhistBinOffset) )
+
+                # if template has eta range narrower than parhist, continue
+                if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):
+                    continue
+
+                if not isMu:
+                    if parhist.GetXaxis().GetBinCenter(ietaErf) > 1.4 and parhist.GetXaxis().GetBinCenter(ietaErf) < 1.5:
+                        ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 )
 
                 # for electrons there is the gap:
                 # eg, we can have 1.3, 1.4442, 1.5, 1.566, 1.7

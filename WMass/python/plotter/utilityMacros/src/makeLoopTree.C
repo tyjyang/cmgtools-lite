@@ -41,6 +41,11 @@ void makeLoopTree(const bool isMuon = false,
 
     if (host_name.find("lxplus") != string::npos) 
       command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+    
+    // the following does not work, requires to read tree.root.url
+    //command = "loopNtuplesSkeleton(\"/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+
     else if (host_name.find("pccmsrm") != string::npos) 
       command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/muon/signalSkim/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
 

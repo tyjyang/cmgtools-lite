@@ -172,9 +172,14 @@ if __name__ == "__main__":
     p_tmp = set(params)
     params = list(p_tmp)
 
+    # to help sorting with helicity
+    # if using more helicity and Y bins, sort by hel,Ybin
+    helSorted = { "left" : 1, "right" : 2, "long" : 3}
+    chargeSorted = { "Wplus" : 1, "Wminus" : 2}
+
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
-    params = sorted(params, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
+    params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-1])) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
     params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)

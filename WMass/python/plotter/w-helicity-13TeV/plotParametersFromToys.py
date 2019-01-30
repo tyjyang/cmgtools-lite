@@ -69,6 +69,8 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
                                                               excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "absxsec":
             pois="W{ch}.*_pmaskedexp".format(ch=charge)
+            if excludeName != None: excludeName += ",.*pmaskedexpnorm.*" if "pmaskedexpnorm" not in excludeName else ""
+            else : excludeName = ".*pmaskedexpnorm.*"
             all_valuesAndErrors = utilities.getHistosFromToys(inputFile,1000,0,200,getPull=plotPull,matchBranch=pois,
                                                               excludeBranch=excludeName,selection=selection,setStatOverflow=True,getMedian=useMedian)
         elif paramFamily == "normxsec":
@@ -246,6 +248,9 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
         print "Generating Pull Summaries...\n"
         nRemainingPulls = nPulls
         hc = ROOT.TCanvas("hc","",3000,2000); 
+        hc.SetTopMargin(0.05)
+        hc.SetBottomMargin(0.2)
+        hc.SetRightMargin(0.05)
         hc.SetGrid(0);
         pullPlots = 1;
         while nRemainingPulls > 0:
@@ -351,14 +356,14 @@ def plotPars(inputFile, pois=None, selectString='', maxPullsPerPlot=30, plotdir=
             line0 = ROOT.TLine(pull_rms.GetXaxis().GetXmin(), 0., pull_rms.GetXaxis().GetXmax(), 0.); line0.SetLineStyle(7)
             line0.Draw('same')
 
-            leg = ROOT.TLegend(0.60, 0.70, 0.85, 0.90)
+            leg = ROOT.TLegend(0.60, 0.75, 0.85, 0.95)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(pull_rms,"Gaussian #sigma")
             leg.AddEntry(pull_effsigma,"Effective #sigma")
             leg.Draw("same")
 
-            legMedian = ROOT.TLegend(0.15, 0.80, 0.4, 0.90)
+            legMedian = ROOT.TLegend(0.15, 0.85, 0.4, 0.95)
             if useMedian:
                 legMedian.SetFillStyle(0)
                 legMedian.SetBorderSize(0)
