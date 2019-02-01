@@ -743,7 +743,7 @@ if __name__ == "__main__":
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('FakesEtaUncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(lnN|slope|continuous)',x),finalsystnames))+'\n')
-        combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_W$|CMS_We_flips',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.close() 
 
