@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_option('-d', '--directory' , type=str, default=''     , help='directory with the main trees inside. has to be given')
     parser.add_option('-N', '--nperjob'   , type=int, default=250000 , help='number of entries to process per job (default: %default)')
     parser.add_option('-o', '--targetdir' , type=str, default=''     , help='target directory for the output. has to be given')
-    parser.add_option('-s', '--singleDS'  , type=str, default=''     , help='run only on signle datasets. comma separated list')
+    parser.add_option('-s', '--singleDS'  , type=str, default=''     , help='run only on single datasets. comma separated list')
     parser.add_option('-p', '--pretend'   , action='store_true', default=False     , help='do everything except for submitting to the batch')
     (options, args) = parser.parse_args()
 
