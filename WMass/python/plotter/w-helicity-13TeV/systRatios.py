@@ -171,7 +171,7 @@ if __name__ == "__main__":
                             histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
                             key = 'syst_{proc}_{ch}_{flav}_pdf{ip}'.format(proc=proc,ch=charge,flav=channel,ip=ip)
-                        if not histo_central.GetEntries() == histo_pdfi.GetEntries():
+                        if not histo_central.GetEntries() == histo_pdfi.GetEntries() or histo_pdfi.Integral() == 0.:
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
                             print 'this just happened for {ch} and {pol} and pdf {syst}'.format(ch=charge, pol=pol, syst=ip)
                             errors.append('{ch}_{pol}_pdf{syst}'.format(ch=charge, pol=pol, syst=ip))

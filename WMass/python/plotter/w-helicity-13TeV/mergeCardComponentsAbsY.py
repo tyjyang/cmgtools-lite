@@ -509,7 +509,7 @@ if __name__ == "__main__":
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
                 if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',name):
-                    if re.match('.*_muR.*|.*_muF.*',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
+                    if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
                 if re.match('.*ErfPar\dEffStat.*|.*FakesEtaUncorrelated.*|.*(ele|mu)scale.*',name):
@@ -743,7 +743,7 @@ if __name__ == "__main__":
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('FakesEtaUncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(lnN|slope|continuous)',x),finalsystnames))+'\n')
-        combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_W$|CMS_We_flips',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.close() 
 
