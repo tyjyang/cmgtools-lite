@@ -1,9 +1,5 @@
 #! /bin/bash
 
-# lumi = 35.9/fb if using run2016 B to H, otherwise it is 19.3
-# check in mca file which MC is being used for Z, amc@NLO, madgraph or powheg
-# selection and mca of fake rate to see how plots look like
-
 # This script prints the commands to produce plots or send jobs to manage the production 
 
 echo ""
@@ -18,33 +14,9 @@ plotterPath="${CMSSW_BASE}/src/CMGTools/WMass/python/plotter"
 #ptcorr="LepGood1_calPt"
 ptcorr="ptElFull(LepGood1_calPt,LepGood1_eta)"
 
-inEB=" -A eleKin EB 'abs(LepGood1_eta) < 1.479' "
-inEE=" -A eleKin EE 'abs(LepGood1_eta) > 1.479' "
-
-not_pass_tightWP="-A eleKin not-fullTightID 'LepGood1_tightId < 3 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0588 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.0571 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0695 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.0821 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP_iso0p2="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_mediumWP_iso0p15="-A eleKin not-fullMediumID 'LepGood1_tightId < 2 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.15 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.15 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_looseWP="-A eleKin not-fullLooseID 'LepGood1_tightId < 1 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.0994 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.107 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-not_pass_looseWP_iso0p2="-A eleKin not-fullLooseID 'LepGood1_tightId < 1 || if3(abs(LepGood1_eta)<1.479,LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.1 || abs(LepGood1_dxy) > 0.05, LepGood1_relIso04EA > 0.2 || abs(LepGood1_dz) > 0.2 || abs(LepGood1_dxy) > 0.1) || LepGood1_lostHits > 1 || LepGood1_convVeto == 0'"
-
-# use bult-in functions in functions.cc, which automatically select EB or EE, manage cuts and so on
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator2016((abs(LepGood1_eta)<1.479),LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#notFRnumSel="-A eleKin failFRnumSel 'pass_FakerateApplicationRegion2016(abs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-
 # use variables in friend trees, which were filled with the conditions to pass the ID+iso (the one we decided to use at the moment)
 FRnumSel=" -A eleKin FRnumSel 'LepGood1_customId == 1 && LepGood1_tightChargeFix == 2' "  #looseID + iso<0.2 in EB, medium ID in EE
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator_loose2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#FRnumSel=" -A eleKin FRnumSel 'pass_FakerateNumerator_medium2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-
 notFRnumSel="-A eleKin failFRnumSel 'LepGood1_customId == 0 || LepGood1_tightChargeFix != 2' " #looseID + iso<0.2 in EB, medium ID in EE
-#notFRnumSel="-A eleKin failFRnumSel ' !pass_FakerateNumerator_loose2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
-#notFRnumSel="-A eleKin failFRnumSel ' !pass_FakerateNumerator2016(fabs(LepGood1_eta)<1.479,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA)' "
 
 #Wsel="-A eleKin WregionSel 'ptElFull(LepGood1_calPt,LepGood1_eta) > 30 && ptElFull(LepGood1_calPt,LepGood1_eta) < 45'"
 Wsel="-A eleKin WregionSel 'ptElFull(LepGood1_calPt,LepGood1_eta) > 30'"
@@ -92,12 +64,10 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runBatch="n"
-queueForBatch="cmscaf1nd"
-nameTag="_sigEffAndScaleSyst" 
+runCondor="n"
+nameTag="_mT40to100_fitData" 
 #nameTag="_varStudy"
 useLessMC="n"
-useSkimmedTrees="y" # skimmed samples are on both pccmsrm28 and eos 
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
 # eta bin boundaries to divide regions in eta
 #etaBinBoundaries=("0.0" "1.479" "2.1" "2.5")
@@ -105,10 +75,11 @@ usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: u
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
 etaBinBoundaries=("0.0" "2.5")
+useAllEta="n"
 #etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
 today=`date +"%d_%m_%Y"`
-batchDirName="plots_${today}${nameTag}"  # name of directory to create inside jobsLog
+condorDirName="plots_${today}${nameTag}"  # name of directory to create inside jobsLog
 ##################################
 ##################################
 # MCA files
@@ -141,8 +112,9 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
-#selectplots="ptl1_narrow,etal1_binFR"
-selectplots="etal1_binFR"
+selectplots="ptl1_narrow,etal1_binFR,pfmt"
+#selectplots="wminus_wpt,wminus_wy"
+#selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
 #selectplots="ptl1_narrow"
 #selectplots="ptl1__etal1_binFR"
@@ -166,9 +138,9 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-#ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
-#ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi' "
-ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
+#ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
 
 #############################
@@ -237,7 +209,7 @@ outputDir["FRcheckRegion"]="full2016data_${today}"
 regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30}"
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,TauDecaysW,data_fakes,TopVV --scaleSigToData --sp data_fakes  " # --fitData
+scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes_pol1,TauTopVVFlips --scaleSigToData --sp data_fakes_pol1" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
 #
 # --noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3
 #
@@ -278,14 +250,14 @@ runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 #skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
-#skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
-skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
+skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
+#skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40} ${mtMax/XX/100}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauDecaysW,TopVVFlips --scaleSigToData --sp data_fakes " # " --fitData "
-#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_normUp,data_fakes_normDn  "
-scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
+scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
@@ -335,30 +307,31 @@ scaleMCdata["FRclosureMC"]=""
 #
 #############################
 #############################
-# Some random plots, they are here to exploit the batch submission
+# Some random plots, they are here to exploit the condor submission
 #----------------------------
 regionKey["TestPlots"]="TestPlots"
 runRegion["TestPlots"]="n"
 regionName["TestPlots"]="TestPlots"
 skimTreeDir["TestPlots"]="TREES_electrons_1l_V6_TINY"
 outputDir["TestPlots"]="sigRegion_${today}"
-regionCuts["TestPlots"]=" -X nJet30  ${fiducial} ${mtMin/XX/40} ${FRnumSel} ${ptMax/XX/50}"
+regionCuts["TestPlots"]=" " #-X nJet30  ${fiducial} ${mtMin/XX/40} ${FRnumSel} ${ptMax/XX/50}"
 #processManager["TestPlots"]="  "
 qcdFromFR["TestPlots"]="y"   # this is not used for this regino key
-scaleMCdata["TestPlots"]=" -p W_nomi,W_mWup50,W_mWdn50 --canvasSize 900 600 --noErrorBarsOnRatio "
+scaleMCdata["TestPlots"]=" -p Wminus_long,Wminus_left,Wminus_right " # -p W_nomi,W_mWup50,W_mWdn50 --canvasSize 900 600 --noErrorBarsOnRatio "
 #----------------------------------
-mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
+#mcafileTest="mca-includes/mca-data-legacy2016_eras.txt"
 #cutfileTest="wenu_80X.txt"
 #optionsTest=" --plotmode nostack --xp data -p 'data_noJson,data_withJson' "
-mcafileTest="${mcafile}" # "mca-80X-wchargeTest.txt" #${mcafile}"  #"mca-80X_V5_TINY_testJson.txt"
-cutfileTest="${cutfile}"
+mcafileTest="mca-includes/mca-80X-wenu-sig_genCutOnly.txt" # "${mcafile}" # "mca-80X-wchargeTest.txt" #${mcafile}"  #"mca-80X_V5_TINY_testJson.txt"
+cutfileTest="alwaystrue.txt"  #${cutfile}"
+plotfileTest="wenu_plots.txt"   #"${plotfile}"
 #mcafileTest="mca-testFRnormSyst.txt"
-ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.99 1.01 --fixRatioRange --ratioDen W_nomi --ratioNums W_mWup50,W_mWdn50 --ratioYLabel 'Var./Nomi.'"
+ratioPlotDataOptions_TestPlots=" " #--showRatio --maxRatioRange 0.99 1.01 --fixRatioRange --ratioDen W_nomi --ratioNums W_mWup50,W_mWdn50 --ratioYLabel 'Var./Nomi.'"
 #optionsTest=" --sp 'data_noJson' --xp 'data_withJson' --noStackSig  --showIndivSigs"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #ratioPlotDataOptions_TestPlots=" "
 #optionsTest=" --sp 'dataAll' --plotmode norm -X json --noLegendRatioPlot"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #ratioPlotDataOptions_TestPlots=" --showRatio --maxRatioRange 0.5 1.5 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_normUp,data_fakes_normDn --ratioYLabel 'var/nomi'"
-optionsTest=" --plotmode norm --noLegendRatioPlot --noErrorBandOnRatio --contentAxisTitle 'arbitrary units' --legendFontSize 0.06"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
+optionsTest=" --plotmode nostack " #--noLegendRatioPlot --noErrorBandOnRatio --contentAxisTitle 'arbitrary units' --legendFontSize 0.06"  # --showIndivSigShapes or --showIndivSigs or --showSigShape
 #
 #############################
 
@@ -375,9 +348,9 @@ optionsTest=" --plotmode norm --noLegendRatioPlot --noErrorBandOnRatio --content
 
 
 host=`echo "$HOSTNAME"`
-if [[ "${runBatch}" == "y" ]]; then
+if [[ "${runCondor}" == "y" ]]; then
     if [[ ${host} != *"lxplus"* ]]; then
-	echo "Error! You must be on lxplus to run on batch queues. Do ssh -XY lxplus and work from a release."
+	echo "Error! You must be on lxplus to run on condor queues. Do ssh -XY lxplus and work from a release."
 	return 0
     fi
 fi
@@ -385,22 +358,49 @@ fi
 mypath="$PWD"
 
 evalScram="eval \`scramv1 runtime -sh\`"
-batchFolder="${mypath}/jobsLog/${batchDirName}"
-mkdir -p ${batchFolder}/src
-mkdir -p ${batchFolder}/log
-baseBatchScript="${mypath}/jobsLog/baseBatchScript.sh"
-batchFileName="${batchFolder}/src/PLOTREGION_ETABIN.sh"  # PLOTREGION and ETABIN will be changed to proper names later in the script depending on region
+condorFolder="${mypath}/jobsLogCondor/${condorDirName}"
+mkdir -p ${condorFolder}/src
+mkdir -p ${condorFolder}/logs
+baseBashScript="${mypath}/jobsLogCondor/baseBashScript.sh"
+dummyScript="${mypath}/jobsLogCondor/dummy_exec.sh"
+condorScript="${condorFolder}/condor_submit.condor"
+condorFileName="${condorFolder}/src/PLOTREGION_ETABIN.sh"  # PLOTREGION and ETABIN will be changed to proper names later in the script depending on region
 ###############################################
-# now we build base script to submit batch jobs
-# it will be used later to create script to submit batch jobs
+# now we build base script to submit condor jobs
+# it will be used later to create script to submit condor jobs
 ###############################################
-cat > ${baseBatchScript} <<EOF
+cat > ${baseBashScript} <<EOF
 #! /bin/bash
 
 cd ${mypath}
 ${evalScram}
 
 EOF
+# dummy bash script to run condor
+cat > ${dummyScript} <<EOF
+#! /bin/bash
+
+bash \$*
+
+EOF
+
+# condor file to submit jobs
+
+cat > ${condorScript} <<EOF
+Universe = vanilla                                                                                                                              
+Executable = ${dummyScript} 
+use_x509userproxy = \$ENV(X509_USER_PROXY)
+Log        = ${condorFolder}/logs/\$(ProcId).log          
+Output     = ${condorFolder}/logs/\$(ProcId).out          
+Error      = ${condorFolder}/logs/\$(ProcId).error        
+getenv      = True                       
+environment = "LS_SUBCWD=${PWD}"         
+request_memory = 4000                    
++MaxRuntime = 86400
++JobBatchName = "runplotsCondor${nameTag}"
+EOF
+
+# might add a delay to submit multiple jobs with  --> next_job_start_delay = 1                 
 ###############################################
 ptForScaleFactors="LepGood1_pt"
 if [[ "${usePtCorrForScaleFactors}" == "y" ]]; then
@@ -416,7 +416,8 @@ if [[ "${useDataGH}" == "y" ]]; then
     echo "# Using all data from 2016"
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
-    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    MCweigthOption=" -W 'lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
     #MCweigthOption=" -W '1' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "
@@ -446,7 +447,7 @@ if [[ "X${maxentries}" != "X" ]]; then
     commonCommand="${commonCommand} --max-entries ${maxentries} "
 fi
 
-if [[ "${runBatch}" != "y" ]]; then
+if [[ "${runCondor}" != "y" ]]; then
     commonCommand="${commonCommand} -j 8 "
 else
     commonCommand="${commonCommand} -j 4 "
@@ -509,13 +510,9 @@ do
 	echo "# Doing ${thisRegionKey}"
 	echo "#----------------------------------"
 
-	if [[ "${useSkimmedTrees}" == "y" ]]; then
-	    treedir="${skimTreeDir[${region}]}" 
-	else 
-	    treedir="TREES_1LEP_80X_V3"
-	fi
-
+	treedir="${skimTreeDir[${region}]}" 
 	treepath="" # set below depending on where we are
+
 	if [[ ${host} == *"pccmsrm28"* ]]; then
 	    treepath="/u2/emanuele/wmass/" # from pccmsrm28 
 	elif [[ ${host} == *"lxplus"* ]]; then
@@ -567,6 +564,7 @@ do
 	    
 	    regionCommand="${regionCommand/${mcafile}/${mcafileTest}}"
 	    regionCommand="${regionCommand/${cutfile}/${cutfileTest}}"
+	    regionCommand="${regionCommand/${plotfile}/${plotfileTest}}"
 	    regionCommand="${regionCommand/${ratioPlotDataOptions}/}"  # remove ratio plot options (add new one later, to avoid problems in case match is not found
 	    regionCommand="${regionCommand} ${optionsTest} ${ratioPlotDataOptions_TestPlots}"
 
@@ -578,18 +576,6 @@ do
 		regionCommand="${regionCommand} --xp data_fakes"
 	    fi
 
-	    # if [[ "${useWinclusive}" != "y" ]]; then
-	    # 	if [[ "${skimTreeDir[${region}]}" == "TREES_1LEP_80X_V3_WENUSKIM_V5_TINY" ]]; then
-	    # 	    #regionCommand="${regionCommand/${mcafile}/${mcafileTINY}}"
-	    # 	    regionCommand="${regionCommand} --xp Wincl"	
-	    # 	elif [[ "${skimTreeDir[${region}]}" == *"TREES_1LEP_80X_V3_FRELSKIM_V"* ]]; then
-	    # 	    #regionCommand="${regionCommand/${mcafile}/${mcafileFRskim}}"
-	    # 	    regionCommand="${regionCommand} --xp W,TauDecaysW,WFlips"	
-	    # 	else
-	    # 	    regionCommand="${regionCommand} --xp Wincl"		
-	    # 	fi
-	    # fi
-
 	fi
 
 	if [[ "${treedir}" == "TREES_1LEP_80X_V3_FRELSKIM_V9" ]]; then		
@@ -600,7 +586,7 @@ do
 	    regionCommand="${regionCommand} ${MCweigthOption}"
 	fi
 
-	thisBatchFileName="${batchFileName/PLOTREGION/${thisRegionKey}}"
+	thisCondorFileName="${condorFileName/PLOTREGION/${thisRegionKey}}"
 
 	for i in `seq 0 ${nEtaBins_minus1}`;
 	do
@@ -609,26 +595,24 @@ do
 	    etalow="${etaBinBoundaries[$i]/./p}"
 	    etahigh="${etaBinBoundaries[($i+1)]/./p}"
 	    etabin="eta_${etalow}_${etahigh}"
-	    srcBatchFileName="${thisBatchFileName/ETABIN/${etabin}}"
-	    logPatternToChange="${batchFolder}/src/"
-	    logPatternToPut="${batchFolder}/log/"
-	    logBatchFileName="${srcBatchFileName/${logPatternToChange}/${logPatternToPut}}" # change folder from /src/ to /log/
-	    logBatchFileName="${logBatchFileName/.sh/.log}"
+	    if [[ "${useAllEta}" == "y" ]]; then
+		etabin="allEta"
+	    fi
+	    srcCondorFileName="${thisCondorFileName/ETABIN/${etabin}}"
             #echo "${etabin}"
-	    #echo "${thisBatchFileName}"
-	    cp ${baseBatchScript} ${srcBatchFileName}
+	    #echo "${thisCondorFileName}"
+	    cp ${baseBashScript} ${srcCondorFileName}
 
 	    etaRangeCut=" -A eleKin ${etabin} 'abs(LepGood1_eta) >= ${etaBinBoundaries[$i]} && abs(LepGood1_eta) <= ${etaBinBoundaries[($i+1)]}' "
+	    if [[ "${useAllEta}" == "y" ]]; then
+		etaRangeCut=""
+	    fi
 	    regionCommand_eta="${regionCommand} --pdir ${plotterPath}/plots/distribution/${treedir}/${thisRegionName}/${outputdirThisRegion}/${etabin}/ ${etaRangeCut}" 
-	    echo "${regionCommand_eta}" >> ${srcBatchFileName}
-	    echo "" >> ${srcBatchFileName}
-	    ######
-	    # echo "corefiles=\`ls core.* 2&>1\`" >> ${srcBatchFileName}
-	    # echo "for file in \${corefiles}" >> ${srcBatchFileName}
-	    # echo "do" >> ${srcBatchFileName}
-	    # echo "    rm ${mypath}/core.*" >> ${srcBatchFileName}
-	    # echo "done" >> ${srcBatchFileName}
-	    cat >> ${srcBatchFileName} <<EOF
+	    echo "${regionCommand_eta}" >> ${srcCondorFileName}
+	    echo "" >> ${srcCondorFileName}
+##############################
+# write snippet to delete possible core.* files at the end (appear if seg.fault occurs and can take a lot of space on disk
+	    cat >> ${srcCondorFileName} <<EOF
 
 if ls ${mypath}/core.* 1> /dev/null 2>&1; then
     echo "Found core.* files in ${mypath}/."
@@ -639,14 +623,19 @@ else
 fi
 
 EOF
+#################################
 
-	    #echo "rm ${mypath}/core.*" >> ${srcBatchFileName}
+       	    # now, if running condor jobs, append command for this eta bin in the condor submission file
+	    # else, just print the command on stdout
 
-	    if [[ "${runBatch}" == "y" ]]; then
-		commandBatch="bsub -q ${queueForBatch} -oo ${logBatchFileName}  \"source ${srcBatchFileName}\" "
-		echo "${commandBatch}"
-	    #echo "${commandBatch}" | bash
+	    if [[ "${runCondor}" == "y" ]]; then
+		echo "" >> ${condorScript}
+		echo "arguments = ${srcCondorFileName} " >> ${condorScript}
+		echo "queue 1 " >> ${condorScript}
+		echo "" >> ${condorScript}
+		echo "" >> ${condorScript}
 	    else
+		# print command for this eta bin
 		echo "${regionCommand_eta}"
 	    fi
 	done
@@ -658,6 +647,14 @@ EOF
     fi
 
 done
+
+# print submission command if using condor
+
+commandCondor="condor_submit ${condorScript} "
+if [[ "${runCondor}" == "y" ]]; then
+    echo "${commandCondor}"
+fi
+
 
 echo ""
 echo ""

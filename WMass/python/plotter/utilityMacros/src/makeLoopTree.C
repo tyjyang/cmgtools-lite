@@ -12,21 +12,52 @@ using namespace std;
 
 // root -l -b -q makeLoopTree.C++
 
-void makeLoopTree(const string& outfileName = "wmass_varhists.root") {
+void makeLoopTree(const bool isMuon = false, 
+		  const string& outfileName = "wmass_varhists.root",
+		  const string& usePreFSRvar = "true"  // if "false", use DressedLepton. Pass it as a string to build command below ("1" or "0" work as well)
+		  ) 
+
+{
 
   // load source codes with ++, so that they are always compiled (you never know ...)
 
   string cmssw_base = getEnvVariable("CMSSW_BASE");
   cout << "CMSSW_BASE = " << cmssw_base << endl;
+
+  string host_name = getEnvVariable("HOSTNAME");
+  cout << "HOSTNAME = " << host_name << endl;
+
  
   cout << "Loading functions.cc" << endl;
-  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/functions.cc++",cmssw_base.c_str())); 
+  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/functions.cc+",cmssw_base.c_str())); 
   cout << "Loading functionsWMass.cc" << endl;
-  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/functionsWMass.cc++",cmssw_base.c_str()));
+  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/functionsWMass.cc+",cmssw_base.c_str()));
   cout << "Loading loopNtuplesSkeleton.cc" << endl;
   gROOT->ProcessLine(".L loopNtuplesSkeleton.C++");
 
-  string command = "loopNtuplesSkeleton(\"/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_WENUSKIM_V5_TINY/\",\"./\",\"" + outfileName + "\")";
+  //string command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_WSKIM_NEW/\",\"./\",\"" + outfileName + "\")";
+  string command = "";
+  if (isMuon) {
+
+    if (host_name.find("lxplus") != string::npos) 
+      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+    
+    // the following does not work, requires to read tree.root.url
+    //command = "loopNtuplesSkeleton(\"/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+
+    else if (host_name.find("pccmsrm") != string::npos) 
+      command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/muon/signalSkim/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+
+  } else {
+
+    if (host_name.find("lxplus") != string::npos) 
+      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WENU_FULLSEL_NOMT/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
+    else if (host_name.find("pccmsrm") != string::npos) 
+      command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/electron/signalSkim/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
+  }
+
+  //string command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY/\",\"./\",\"" + outfileName + "\")";
   cout << "Executing " << command << endl;
   gROOT->ProcessLine(command.c_str());
   cout << endl;                                          

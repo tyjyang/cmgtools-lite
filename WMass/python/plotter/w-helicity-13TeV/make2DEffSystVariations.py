@@ -1,8 +1,12 @@
 # usage: python make2DEffSystVariations.py electrons_triggerSF_covariance.root effsyst.root --pdir plots
-import os
+import os, sys
 import numpy as np
 import ROOT
 ROOT.gROOT.SetBatch(True)
+
+sys.path.append(os.getcwd() + "/plotUtils/")
+from utility import *
+
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -22,9 +26,18 @@ if __name__ == "__main__":
         ROOT.gROOT.ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include")
         ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/EtaPtCorrelatedEfficiency.cc+" % os.environ['CMSSW_BASE'])
 
+    isEle = False
+    if 'ele' in args[0]: isEle = True
+    lepton = "electron" if isEle else "muon"
+
     outfilename = args[1]
     if options.suffix: outfilename = outfilename.replace('.root','_%s.root' % options.suffix)
+    if isEle: outfilename = outfilename.replace('.root','_el.root')
+    else    : outfilename = outfilename.replace('.root','_mu.root')
     if options.printDir: outfilename = '%s/%s' % (options.printDir,outfilename)
+
+    # defined in plotUtils/utility.h
+    createPlotDirAndCopyPhp(options.printDir)    
     
     outf = ROOT.TFile.Open(outfilename,'recreate')
     nbins_eta = 50; nbins_pt=200
@@ -52,24 +65,47 @@ if __name__ == "__main__":
     outf.cd()
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetPalette(ROOT.kRainBow)
-    canv = ROOT.TCanvas()
+    canv = ROOT.TCanvas("canv","",900,700)
     basename = os.path.basename(outfilename)
     basename = os.path.splitext(basename)[0]
+
     for ivar in xrange(3):
+
+        # systHistos[ivar].SetTitle('nuisance for Erf p%d' % ivar)
+        # systHistos[ivar].GetXaxis().SetTitle("lepton #eta")
+        # systHistos[ivar].GetYaxis().SetTitle("lepton p_{T} (GeV)")
+        # if 'ele' in args[0]:
+        #     systHistos[ivar].GetYaxis().SetRangeUser(30,45)
+        # systHistos[ivar].Draw('COLZ0')
+        # if ivar==0:
+        #     systHistos[ivar].GetZaxis().SetRangeUser(-0.002,0.002)
+        # else:
+        #     systHistos[ivar].GetZaxis().SetRangeUser(-0.01,0.01)
+        # for ext in ['pdf', 'png']:
+        #     canv.SaveAs('{odir}/{name}.{ext}'.format(odir='.' if not options.printDir else options.printDir,
+        #                                              name='%s_p%d%s' % (basename,ivar,"_"+options.suffix if options.suffix else ''),
+        #                                              ext=ext))
+
         systHistos[ivar].SetTitle('nuisance for Erf p%d' % ivar)
-        systHistos[ivar].GetXaxis().SetTitle("lepton #eta")
-        systHistos[ivar].GetYaxis().SetTitle("lepton p_{T} (GeV)")
-        if 'ele' in args[0]:
-            systHistos[ivar].GetYaxis().SetRangeUser(30,45)
-        systHistos[ivar].Draw('COLZ0')
-        if ivar==0:
-            systHistos[ivar].GetZaxis().SetRangeUser(-0.002,0.002)
-        else:
-            systHistos[ivar].GetZaxis().SetRangeUser(-0.01,0.01)
-        for ext in ['pdf', 'png']:
-            canv.SaveAs('{odir}/{name}.{ext}'.format(odir='.' if not options.printDir else options.printDir,
-                                                     name='%s_p%d%s' % (basename,ivar,"_"+options.suffix if options.suffix else ''),
-                                                     ext=ext))
+        xaxisTitle = "%s #eta" % lepton
+        yaxisTitle = "%s p_{T} [GeV]" % lepton
+        if isEle: yaxisTitle += "::30,45"
+        zaxisTitle = "variation / nominal"
+        if ivar==0: zaxisTitle += "::-0.004,0.001" # 0.002,0.002
+        else      : zaxisTitle += "::-0.01,0.01"
+        canvasName ='%s_p%d%s' % (basename,ivar,("_"+options.suffix) if options.suffix else '')
+
+        # defined in plotUtils/utility.h
+        drawCorrelationPlot(systHistos[ivar],
+                            xaxisTitle, yaxisTitle, zaxisTitle,
+                            canvasName,
+                            "ForceTitle",
+                            '.' if not options.printDir else options.printDir,
+                            1,1,False,False,False,1,leftMargin=0.14,rightMargin=0.22,
+                            palette=ROOT.kRainBow,passCanvas=canv)
+
+
+
         systHistos[ivar].Write()
     outf.Close()
 

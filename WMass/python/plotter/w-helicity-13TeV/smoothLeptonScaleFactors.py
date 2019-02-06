@@ -15,22 +15,10 @@
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/tnp/egm_tnp_analysis/results/elFullData/triggerEl/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/trigger/ -c el -n smoothEfficiency.root -t -r 30 55
 
 
-################################
-# Exaples (obsolete)
-################################
+# 30/01/2019 muon trigger
+# https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50/triggerMu/
 
-# muon trigger scale factors
-#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/user/m/mdunser/public/triggerTnP_muons_fullData.root -o ~/www/wmass/13TeV/scaleFactors/muon/trigger/ -c mu -n smoothEfficiency.root -t
-
-# muon isolation (replace ISO with ID for ID scale factors)
-#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/efficienciesISO.root -o ~/www/wmass/13TeV/scaleFactors/muon/efficiency_ISO_GH/ -c mu -n smoothEfficiency.root -e GH -v ISO
-
-# electron trigger
-#    python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_trigger_pt30to55.root -o ~/www/wmass/13TeV/scaleFactors/electron/trigger/ -c el -n smoothEfficiency.root -t
-
-################################
-################################
-
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50/ -c mu -n smoothEfficiency.root -t
 
 import ROOT, os, sys, re, array, math
 
@@ -41,6 +29,12 @@ ROOT.gROOT.SetBatch(True)
 
 import utilities
 utilities = utilities.util()
+
+# for a quick summary at the end
+badFitsID_data = {}
+badFitsID_mc = {}
+badCovMatrixID_data = {}
+badCovMatrixID_mc = {}
 
 def getReducedChi2andLabel(func):
     if func.GetNDF():
@@ -140,10 +134,11 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
               hist_ErfCovMatrix_vs_eta=0  # TH3, eta on x and cov matrix in yz
               ):
 
+    # there might be some obsolete options below
+
     forcePol3 = False
-    forceErfByKey = True  # if True, force the Erf specifyin gin which bin it should happen
+    forceErfByKey = True  # if True, force the Erf specifying in which bin it should happen
     doOnlyErf = True
-    excludeErfPlusLine = True # patch, Erf+line was useful with weird efficiencies, but if possible, a simple Erf is more meaningful
 
     originalMaxPt = hist.GetXaxis().GetBinLowEdge(1+hist.GetNbinsX())
 
@@ -229,16 +224,17 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     # here I decide to override the range of some fits to be able to use Erf (the graph is still drawn in the full range, because the TH1 range is already set above)
     # in case I ovverride the range for all bins with the option fitRange, the range here is still overriden, but the X axis setting is modified according to the option
     if isTrigger and not isEle:
-        if mc == "Data":
-            if any(key == x for x in [9]):
-                maxFitRange = 45
-            elif any(key == x for x in [14]):
-                maxFitRange = 50
-        elif mc == "MC":
-            if any(key == x for x in [9]):
-                maxFitRange = 45
-            # elif any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
-            #     maxFitRange = 48
+        pass
+        # if mc == "Data":
+        #     if any(key == x for x in [9]):
+        #         maxFitRange = 45
+        #     elif any(key == x for x in [14]):
+        #         maxFitRange = 50
+        # elif mc == "MC":
+        #     if any(key == x for x in [9]):
+        #         maxFitRange = 45
+        #     # elif any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
+        #     #     maxFitRange = 48
 
 
     ###################
@@ -254,22 +250,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     tf1_erf.SetLineWidth(2)
     tf1_erf.SetLineColor(ROOT.kOrange+1)
 
-    tf1_ln = ROOT.TF1("tf1_ln","[0]*TMath::Log([2]*x-[1])",minFitRange,maxFitRange)
-    tf1_ln.SetParameter(0,1)
-    tf1_ln.SetParameter(1,30)
-    tf1_ln.SetParameter(2,1)
-    tf1_ln.SetLineWidth(2)
-    tf1_ln.SetLineColor(ROOT.kBlue)
-
-    # tf1_ln2 = ROOT.TF1("tf1_ln2","[0]*TMath::Log([2]*x-[1]) + [3] + [4]*x",minFitRange,maxFitRange)
-    # tf1_ln2.SetParameter(0,1)
-    # tf1_ln2.SetParameter(1,30)
-    # tf1_ln2.SetParameter(2,1)
-    # tf1_ln2.SetParameter(3,0)    
-    # tf1_ln2.SetParameter(4,0); tf1_ln2.SetParLimits(4,0, 1e12) 
-    # tf1_ln2.SetLineWidth(2)
-    # tf1_ln2.SetLineColor(ROOT.kOrange+1)
-
     tf1_pol1 = ROOT.TF1("tf1_pol1","pol1",minFitRange,maxFitRange)
     tf1_pol1.SetLineWidth(2)
     tf1_pol1.SetLineColor(ROOT.kBlue)
@@ -282,84 +262,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     tf1_pol3.SetLineWidth(2)
     tf1_pol3.SetLineColor(ROOT.kCyan+1)
 
-    # tf1_sqrt = ROOT.TF1("tf1_sqrt","[0]*TMath::Sqrt([2]*x-[1])",minFitRange,maxFitRange)
-    # tf1_sqrt.SetParameter(0,1)
-    # tf1_sqrt.SetParameter(1,30)
-    # tf1_sqrt.SetParameter(2,1)
-    # tf1_sqrt.SetLineWidth(2)
-    # tf1_sqrt.SetLineColor(ROOT.kOrange+2)
-
-    # tf1_exp = ROOT.TF1("tf1_exp","[0] - [3]*TMath::Exp([1]*x-[2])",minFitRange,maxFitRange)
-    # tf1_exp.SetParameter(0,1)
-    # tf1_exp.SetParameter(1,-5);    tf1_exp.SetParLimits(1,-1e12,0.0) # negative
-    # tf1_exp.SetParameter(2,30)
-    # tf1_exp.SetParameter(3,1); #    tf1_exp.SetParLimits(3,0,10) # positive
-    # tf1_exp.SetLineWidth(2)
-    # tf1_exp.SetLineColor(ROOT.kOrange+1)
-
-    tf1_erf2 = ROOT.TF1("tf1_erf2","[0]*TMath::Erf((x-[1])/[2]) + [4] + [3]*x",minFitRange,maxFitRange) 
-    tf1_erf2.SetParameter(0,1.0); #tf1_erf2.SetParLimits(0,0.1,1e12)
-    tf1_erf2.SetParameter(1,32)
-    tf1_erf2.SetParameter(2,3.0)
-
-    # tune Erf+line
-    if isTrigger:
-        if isEle:
-            if mc =="Data":
-                if key == 29:
-                    tf1_erf2.SetParameter(1,31)
-            elif mc == "MC":
-                if any(key == x for x in [20,29]):
-                    tf1_erf2.SetParameter(1,31)                
-                elif key == 12:
-                    tf1_erf2.SetParameter(1,30.545)
-                    tf1_erf2.SetParameter(2,5.0)
-                elif key == 17:
-                    tf1_erf2.SetParameter(1,31.2)
-        else:
-            tf1_erf2.SetParameter(1,30)
-            if mc == "Data":
-                # with narrow pt range [26,45]
-                # if key == 27:
-                #     tf1_erf2.SetParameter(1,32)
-                # # elif key == 13:
-                # #     tf1_erf2.SetParameter(1,29.5)
-                # elif any(key == x for x in [11,14,26]):
-                #     tf1_erf2.SetParameter(1,29.5)
-                # elif any(key == x for x in [10]):
-                #     tf1_erf2.SetParameter(1,30.5)
-                #     tf1_erf2.SetParameter(2,4.0)
-                # elif key == 23:
-                #     tf1_erf2.SetParameter(1,31.2)
-                #     tf1_erf2.SetParameter(2,4.0)
-                # elif key == 13:
-                #     tf1_erf2.SetParameter(1,29.65)
-                #     tf1_erf2.SetParameter(2,4.0)                
-                # with broader pt range [24,55]
-                # if key == 27:
-                #     tf1_erf2.SetParameter(1,32)
-                # # elif key == 13:
-                # #     tf1_erf2.SetParameter(1,29.5)
-                # elif any(key == x for x in [11,14,26]):
-                #     tf1_erf2.SetParameter(1,29.5)
-                # elif any(key == x for x in [10]):
-                #     tf1_erf2.SetParameter(1,30.5)
-                #     tf1_erf2.SetParameter(2,4.0)
-                # elif key == 23:
-                #     tf1_erf2.SetParameter(1,31.2)
-                #     tf1_erf2.SetParameter(2,4.0)
-                if key == 13:
-                    tf1_erf2.SetParameter(1,26.4)
-                    tf1_erf2.SetParameter(2,4.0)
-                elif key == 26:
-                    tf1_erf2.SetParameter(1,26.35)
-                    tf1_erf2.SetParameter(2,4.0)
-                    #forcePol3 = True
-            if mc == "MC":
-                if any(key == x for x in [0,8,26,27,37]):
-                    tf1_erf2.SetParameter(1,29.5)
-                elif key == 33:
-                    tf1_erf2.SetParameter(1,27)
     # tune Erf
     if isTrigger:
         if isEle:
@@ -375,29 +277,19 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             #     elif key == 17:
             #         tf1_erf2.SetParameter(1,31.2)
             pass
-        else:            
-            # old tuning, then files changed
-            # if mc == "Data":
-            #     if any(key == x for x in [8,11,25,26,29,34]):
-            #         tf1_erf.SetParameter(1,32)
-            #     elif any(key == x for x in [9,23,28]):
-            #         tf1_erf.SetParameter(1,27)
-            #         tf1_erf.SetParameter(2,2.0)
-            # if mc == "MC":
-            #     if any(key == x for x in [3,9,23,25,26,28]):
-            #         tf1_erf.SetParameter(1,32)
-            pass
+        else:                        
             if mc == "Data":
-                pass
-            #    if any(key == x for x in [1,39]):
-            #        tf1_erf.SetParameter(1,32)
+                if any(key == x for x in [13,14,19,21,26,28,33,34]):
+                    tf1_erf.SetParameter(1,32)
                 #elif any(key == x for x in [9,23,28]):
                 #    tf1_erf.SetParameter(1,27)
                 #    tf1_erf.SetParameter(2,2.0)
             elif mc == "MC":
-                if any(key == x for x in [33]):
+                if any(key == x for x in [19,20,26,27,28,34]):
+                    tf1_erf.SetParameter(1,32)
+                    #tf1_erf.SetParameter(2,5.0)
+                elif any(key == x for x in [14]):
                     tf1_erf.SetParameter(1,30)
-                    tf1_erf.SetParameter(2,5.0)
 
     if isFullID:
         if mc == "Data":
@@ -428,24 +320,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             elif any(key == x for x in [5,42]):
                 tf1_erf.SetParameter(1,32)
 
-    tf1_erf2.SetParameter(3,0.0); #tf1_erf2.SetParLimits(3,0,1e12)
-    tf1_erf2.SetParameter(4,0)
-    tf1_erf2.SetLineWidth(2)
-    tf1_erf2.SetLineColor(ROOT.kRed+1)
-
     erf_fitresPtr = None
 
     # fit and draw (if required)
     if isTrigger or isFullID or isMuonRecoToSel:
         erf_fitresPtr = hist.Fit(tf1_erf,fitopt)        
-        # hist.Fit(tf1_ln2,fitopt)   
         fitoptOther = fitopt
         if doOnlyErf:
             fitoptOther = "0" + fitopt # fit but do not draw
-        hist.Fit(tf1_ln,fitoptOther)
-        hist.Fit(tf1_erf2,fitoptOther)        
-        # hist.Fit(tf1_sqrt,fitoptOther)        
-        # hist.Fit(tf1_exp,fitoptOther)        
         hist.Fit(tf1_pol2,fitoptOther)        
         hist.Fit(tf1_pol3,fitopt)        
     else:
@@ -474,13 +356,24 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         #print "fit status: ", str(erf_fitresPtr.Status())
         # status is 0 if all is ok (if option M was used, might be 4000 in case the improve command of Minuit failed, but it is ok)
         # without M the fit sometimes fails and should be tuned by hand (option M does it in some case)
-        if fitstatus != 0 and fitstatus != 4000: print "##### WARNING: FIT HAS STATUS --> ", str(fitstatus)
+        if fitstatus != 0 and fitstatus != 4000: 
+            print "##### WARNING: FIT HAS STATUS --> ", str(fitstatus)
+            if mc == "Data":
+                badFitsID_data[key] = fitstatus
+            else:
+                badFitsID_mc[key] = fitstatus
         cov = erf_fitresPtr.GetCovarianceMatrix()
         #cov.Print()
         #print "%s" % str(erf_fitresPtr.CovMatrix(1,1))
         #print "Covariance matrix status = ", str(erf_fitresPtr.CovMatrixStatus())
         # covariance matrix status code using Minuit convention : =0 not calculated, =1 approximated, =2 made pos def , =3 accurate 
-        if erf_fitresPtr.CovMatrixStatus() != 3: print "##### WARNING: COVARIANCE MATRIX HAS STATUS --> ", str(erf_fitresPtr.CovMatrixStatus())
+        if erf_fitresPtr.CovMatrixStatus() != 3: 
+            print "##### WARNING: COVARIANCE MATRIX HAS STATUS --> ", str(erf_fitresPtr.CovMatrixStatus())
+            if mc == "Data":
+                badCovMatrixID_data[key] = erf_fitresPtr.CovMatrixStatus()
+            else:
+                badCovMatrixID_mc[key] = erf_fitresPtr.CovMatrixStatus()
+
         if hist_ErfCovMatrix_vs_eta: 
             # erf has 3 parameters
             for i in range(3):
@@ -497,23 +390,14 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     leg.SetBorderSize(0)
 
     legEntry = {}
-    legEntry[tf1_erf2.GetName()] = "Erf[x] + ax + b"
     legEntry[tf1_erf.GetName()]  = "Erf[x]"
     legEntry[tf1_pol2.GetName()] = "pol2"
     legEntry[tf1_pol3.GetName()] = "pol3"
-    legEntry[tf1_ln.GetName()]   = "a ln(bx + c)"
     legEntry[tf1_pol1.GetName()] = "pol1"
 
     if isTrigger or isFullID or isMuonRecoToSel:
-        # if not isFullID: leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
-        # else           : leg.AddEntry(combpol2, "2 pol2", 'LF')
         if not doOnlyErf:
-            leg.AddEntry(tf1_erf2, "Erf[x] + ax + b", 'LF')
-            leg.AddEntry(tf1_ln,  "a ln(bx + c)", "LF")
-            #leg.AddEntry(tf1_ln2, "a ln(bx + c) + dx + e", "LF")
-            #leg.AddEntry(tf1_sqrt,"a #sqrt{bx +c} +cx", "LF")
             leg.AddEntry(tf1_erf, "Erf[x]", 'LF')
-            #leg.AddEntry(tf1_exp, "a - exp(-bx -c) +dx", "LF")
             leg.AddEntry(tf1_pol2,"pol2", "LF")
             leg.AddEntry(tf1_pol3,"pol3", "LF")
         else:
@@ -536,21 +420,10 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     setTDRStyle()
     ROOT.gStyle.SetOptTitle(1)  # use histogram title with binning as canvas title
 
-    # for ext in ["pdf","png"]:
-    #     if mc == "SF":
-    #         canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
-    #     else:
-    #         canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
-
     if isTrigger or isFullID or isMuonRecoToSel:
         fit_erf =  hist.GetFunction(tf1_erf.GetName())
         fit_pol2 = hist.GetFunction(tf1_pol2.GetName())
         fit_pol3 = hist.GetFunction(tf1_pol3.GetName())
-        fit_erf2 =  hist.GetFunction(tf1_erf2.GetName())
-        fit_ln =   hist.GetFunction(tf1_ln.GetName())
-        #fit_ln2 = hist.GetFunction(tf1_ln2.GetName())
-        #fit_sqrt = hist.GetFunction(tf1_sqrt.GetName())
-        #fit_exp = hist.GetFunction(tf1_exp.GetName())
     else:
         if isIso: fit_erf = hist.GetFunction(tf1_erf.GetName())
         else:
@@ -563,11 +436,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         functions[tf1_erf.GetName()] = fit_erf
         functions[tf1_pol2.GetName()] = fit_pol2
         functions[tf1_pol3.GetName()] = fit_pol3
-        functions[tf1_ln.GetName()] = fit_ln
-        #functions[tf1_ln2.GetName()] = fit_ln2
-        #functions[tf1_sqrt.GetName()] = fit_sqrt
-        functions[tf1_erf2.GetName()] = fit_erf2
-        #functions[tf1_exp.GetName()] = fit_exp
     else:
         if isIso: functions[tf1_erf.GetName()] = fit_erf
         else:
@@ -594,7 +462,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         funcMinChi2 = 0
         for name,f in functions.iteritems():        
             if doOnlyErf and  name != tf1_erf.GetName(): continue
-            if excludeErfPlusLine and name == tf1_erf2.GetName(): continue
             #print "Name: %s func %s" % (name, f) 
             if f.GetNDF() == 0: continue
             if name == tf1_pol3.GetName(): continue
@@ -636,15 +503,15 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     if forceErfByKey:
         if isTrigger and not isEle:
             pass
-            if mc == "Data":
-                pass
-                #if any(key == x for x in [14,24]):
-                #    retFunc = fit_erf
-                #    line = "Best fit: Erf[x] (forced)"
-            elif mc == "MC":
-                if any(key == x for x in [10]):  # these are ok-ish even without this tuning, I might just force the Erf
-                    retFunc = fit_erf
-                    line = "Best fit: Erf[x] (forced)"
+            # if mc == "Data":
+            #     pass
+            #     #if any(key == x for x in [14,24]):
+            #     #    retFunc = fit_erf
+            #     #    line = "Best fit: Erf[x] (forced)"
+            # elif mc == "MC":
+            #     if any(key == x for x in [10]):  # these are ok-ish even without this tuning, I might just force the Erf
+            #         retFunc = fit_erf
+            #         line = "Best fit: Erf[x] (forced)"
         elif isTrigger and isEle:
             if retFunc.GetName() != fit_erf.GetName():
                 retFunc = fit_erf
@@ -665,12 +532,12 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     if hist_ErfParam_vs_eta and retFunc.GetName() == tf1_erf.GetName():  
         # key is the eta bin number, but starts from 0, so add 1
-        hist_ErfParam_vs_eta.SetBinContent(key+1,1,retFunc.GetParameter(0))
-        hist_ErfParam_vs_eta.SetBinError(key+1,1,retFunc.GetParError(0))
-        hist_ErfParam_vs_eta.SetBinContent(key+1,2,retFunc.GetParameter(1))
-        hist_ErfParam_vs_eta.SetBinError(key+1,2,retFunc.GetParError(1))
-        hist_ErfParam_vs_eta.SetBinContent(key+1,3,retFunc.GetParameter(2))
-        hist_ErfParam_vs_eta.SetBinError(key+1,3,retFunc.GetParError(2))
+        hist_ErfParam_vs_eta.SetBinContent(key+1, 1, retFunc.GetParameter(0))
+        hist_ErfParam_vs_eta.SetBinError(  key+1, 1, retFunc.GetParError(0))
+        hist_ErfParam_vs_eta.SetBinContent(key+1, 2, retFunc.GetParameter(1))
+        hist_ErfParam_vs_eta.SetBinError(  key+1, 2, retFunc.GetParError(1))
+        hist_ErfParam_vs_eta.SetBinContent(key+1, 3, retFunc.GetParameter(2))
+        hist_ErfParam_vs_eta.SetBinError(  key+1, 3, retFunc.GetParError(2))
 
     return retFunc
         
@@ -805,7 +672,7 @@ if __name__ == "__main__":
     parser.add_option('-c','--channel', dest='channel', default='', type='string', help='name of the channel (mu or el)')
     parser.add_option('-e','--era',     dest='era',     default='', type='string', help='For muons: select data era GtoH or BtoF as -e GH or -e BF')
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
-    parser.add_option('-r','--range',     dest='range', type="float", nargs=2, default=(-1, -1), help='Pt range fo the fit: pass two values for min and max. If one of the (or both) is negative, the corresponding histogram range is used')
+    parser.add_option('-r','--range',     dest='range', type="float", nargs=2, default=(-1, -1), help='Pt range fo the fit: pass two values for min and max. If one of them (or both) is negative, the corresponding histogram range is used')
     parser.add_option('-w','--width-pt',     dest='widthPt',default='0.2', type='float', help='Pt bin width for the smoothed histogram')
     parser.add_option('-t','--trigger', dest='isTriggerScaleFactor',action="store_true", default=False, help='Says if using trigger scale factors (electron and muon share the same root file content)')
     parser.add_option(     '--muonRecoToSel', dest='isMuonRecoToSel',action="store_true", default=False, help='Says if using muon reco->selection scale factors')
@@ -1073,7 +940,7 @@ if __name__ == "__main__":
         for y in range(1,hmc.GetNbinsY()+1):
             hmcpt[bin].SetBinContent(y,hmc.GetBinContent(x,y))         
             #hmcpt[bin].SetBinError(y,hmc.GetBinError(x,y))  # no error on MC, have to assign a random value to fit
-            hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use half the corresponding uncertainty on data (any value which is smaller would do)
+            hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use the corresponding uncertainty on data
 
     hdatapt = {}
     for x in range(1,hdata.GetNbinsX()+1):
@@ -1207,10 +1074,10 @@ if __name__ == "__main__":
     if not isEle:
         if options.isTriggerScaleFactor: 
             zaxisRange = "0.70,1.01"
-            zaxisRangeSF = "0.84,1.01"
+            zaxisRangeSF = "0.84,1.12"
         if options.isMuonRecoToSel:
             zaxisRange = "0.7,1.01"
-            zaxisRangeSF = "0.86,1.01"
+            zaxisRangeSF = "0.86,1.12"
     else:
         if options.isTriggerScaleFactor: 
             zaxisRangeSF = "0.55,1.05"
@@ -1494,5 +1361,17 @@ if __name__ == "__main__":
     print "Created file %s" % (outname+outfilename)
     print ""
 
-                               
-         
+    print "=" * 30
+    print "Summary of bad fits (only for Erf)"
+    print "=" * 30
+    print "### Bad fit status (Data/MC,  key,  fitstatus)"
+    for key in sorted(badFitsID_data.keys()):
+        print "DATA  %d  %d" % (key, badFitsID_data[key])
+    for key in sorted(badFitsID_mc.keys()):
+        print "MC  %d  %d" % (key, badFitsID_mc[key])
+    print "-"*30
+    print "### Bad covariance matrix status (Data/MC,  key,  fitstatus)."
+    for key in sorted(badCovMatrixID_data.keys()):
+        print "DATA  %d  %d" % (key, badCovMatrixID_data[key])
+    for key in sorted(badCovMatrixID_mc.keys()):
+        print "MC  %d  %d" % (key, badCovMatrixID_mc[key])

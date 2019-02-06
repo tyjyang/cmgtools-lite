@@ -1,5 +1,5 @@
-// #ifndef FAKERATE_H
-// #define FAKERATE_H
+#ifndef FAKERATE_CC
+#define FAKERATE_CC
 
 #include <TH2.h>
 #include <TH2D.h>
@@ -34,7 +34,7 @@ TH2 * angular_7 = 0;
 // see for example: w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt 
 // Index 7 is the shape variation when awayJetPt > 45 (one could add other systematics, adding other indices)
 // Index 8 and 9 accounts for FR obtained subtracting EWK scaled up and down by 1 sigma of their cross section
-// Keep array index larger than the number of index you will use, so you don't have to increase it everytime you another index
+// Keep array index larger than the number of index you will use, so you don't have to increase it everytime you add another index
 TH2 * FR_mu = 0;
 TH2 * FRi_mu[15] = {0};  
 TH2 * FR_el = 0;
@@ -222,8 +222,14 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   float p2 = (nFRfitParam > 2) ? hist_fr->GetBinContent(etabin, 3) : 0.0;
   if      (iFR==1) p0 += hist_fr->GetBinError(etabin, 1);
   else if (iFR==2) p0 -= hist_fr->GetBinError(etabin, 1);
-  else if (iFR==3) p1 += hist_fr->GetBinError(etabin, 2);
-  else if (iFR==4) p1 -= hist_fr->GetBinError(etabin, 2);
+  // offset and slope are anticorrelated, when changing slope, have to move the offset as well
+  else if (iFR==3) {
+    p1 += hist_fr->GetBinError(etabin, 2);
+    p0 -= hist_fr->GetBinError(etabin, 1);
+  } else if (iFR==4) {
+    p1 -= hist_fr->GetBinError(etabin, 2);
+    p0 += hist_fr->GetBinError(etabin, 1);
+  }
   // now PR
   // eta bin is typically the same as for fake rate, but let's allow the possibility that it is different
   etabin = std::max(1, std::min(hist_pr->GetNbinsX(), hist_pr->GetXaxis()->FindBin(hasNegativeEta ? leta : feta)));
@@ -233,8 +239,14 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   if      (iPR==1) p0_pr += hist_pr->GetBinError(etabin, 1);
   else if (iPR==2) p0_pr -= hist_pr->GetBinError(etabin, 1);
-  else if (iPR==3) p1_pr += hist_pr->GetBinError(etabin, 2);
-  else if (iPR==4) p1_pr -= hist_pr->GetBinError(etabin, 2);
+  // offset and slope are anticorrelated, when changing slope, have to move the offset as well
+  else if (iPR==3) {
+    p1_pr += hist_pr->GetBinError(etabin, 2);
+    p0_pr -= hist_pr->GetBinError(etabin, 1);
+  } else if (iPR==4) {
+    p1_pr -= hist_pr->GetBinError(etabin, 2);
+    p0_pr += hist_pr->GetBinError(etabin, 1);
+  }
 
   // Marc added the crop at pt=50, but for electrons I think it is not needed
   // I will make so to have it only for muon channel
@@ -251,9 +263,11 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
-  if (fid == 11){
-    if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
-    else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
+  if(fid == 11){
+    //if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
+    //else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
+    if      (iFR==5) FRnormWgt = 1.05 + feta*0.06; // from 1.05 to 1.20
+    else if (iFR==6) FRnormWgt = 0.95 - feta*0.06;
   }
   else {
     // for muons vary continuously in eta from 5% to 20% between eta = 0 and eta = 2.4
@@ -262,6 +276,18 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   }
 
   float weight;
+
+  // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
+  // so in that case the weight can be safely set as 0, because those events are not used in the analysis
+  if (pr < fr) {
+    //std::cout << "### Error in weight: FR > PR. Please check!" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  } else if (pr == fr) {
+    //std::cout << "### Error in weight: division by 0. Please check" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  }
 
   if (passWP) {
     // tight
@@ -446,7 +472,7 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
 
 }
 
-
+// ================================================================================
 float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
 {
 
@@ -517,4 +543,4 @@ float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
 }
 
 
-//#endif
+#endif
