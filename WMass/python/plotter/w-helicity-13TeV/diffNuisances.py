@@ -88,7 +88,12 @@ if __name__ == "__main__":
     title = "#theta"
 
     #hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
-    hist_fit_s  = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
+    hist_fit_s    = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
+    pmin, pmax = -3., 3.
+    hist_fit_1d   = ROOT.TH1F("fit_1d " ,'',50,pmin,pmax)
+    hist_fit_1d_e = ROOT.TH1F("fit_1d_e",'',50,pmin,pmax)
+    hist_fit_1d   .SetLineColor(ROOT.kBlack); hist_fit_1d  .SetLineWidth(2)
+    hist_fit_1d_e .SetLineColor(ROOT.kRed  ); hist_fit_1d_e.SetLineWidth(2)
 
     isFlagged = {}
 
@@ -110,6 +115,8 @@ if __name__ == "__main__":
             hist_fit_s.SetBinContent(nuis_p_i,val_f)
             hist_fit_s.SetBinError(nuis_p_i,err_f)
             hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,niceName(name.replace('CMS_','')))
+            hist_fit_1d  .Fill(max(pmin,min(pmax,val_f)))
+            hist_fit_1d_e.Fill(max(pmin,min(pmax,err_f)))
 
         if options.absolute_values:
             valShift = val_f
@@ -301,6 +308,29 @@ if __name__ == "__main__":
 
         for ext in ['png', 'pdf']:
             canvas_nuis.SaveAs("{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
+        if len(params) >= 10:
+            ## hist_fit_1d  .Scale(1./len(params))
+            ## hist_fit_1d_e.Scale(1./len(params))
+            hist_fit_1d.Fit('gaus')
+            ff = hist_fit_1d.GetFunction('gaus')
+            ff.SetLineColor(ROOT.kBlack)
+            hist_fit_1d  .Draw('')
+            canvas_nuis.Update()
+            rightmax = 1.1*hist_fit_1d_e.GetMaximum()
+            scale = ROOT.gPad.GetUymax()/rightmax
+            hist_fit_1d_e.SetLineColor(ROOT.kRed)
+            hist_fit_1d_e.Scale(scale)
+            hist_fit_1d_e.Draw("hist same")
+            ## draw an axis on the right side
+            axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(),ROOT.gPad.GetUymin(), ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),0,rightmax,510,"+L")
+            axis.SetLineColor(ROOT.kRed)
+            axis.SetTextColor(ROOT.kRed)
+            axis.SetLabelColor(ROOT.kRed)
+            axis.Draw()
+            ##hist_fit_1d.GetYaxis().SetRangeUser(0., len(params)/2.)
+            hist_fit_1d_e.Draw(' same')
+            for ext in ['png', 'pdf']:
+                canvas_nuis.SaveAs("{od}/nuisances_{ps}_{suff}_pulls1D.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
 
    
 

@@ -19,17 +19,17 @@ if __name__ == "__main__":
     maindir = args[1]
 
     if options.runChecker:
-        print "Running friendChunkCheck.sh now on ",fdir,". Will take time..."
+        print "Running friendChunkCheck.py now on ",fdir,". Will take time..."
         if len(args)==3:
             print "Can't run the checker if you pass the output file of a previous check (for safety)"
             sys.exit(1)
-        bashCheckScript = '{cmssw}/src/CMGTools/WMass/python/postprocessing/scripts/friendChunkCheck.sh -z {frienddir} > tmpcheck.txt'.format(cmssw=os.environ['CMSSW_BASE'],
+        pyCheckScript = '{cmssw}/src/CMGTools/WMass/python/postprocessing/scripts/friendChunkCheck.py -z {frienddir} > tmpcheck.txt'.format(cmssw=os.environ['CMSSW_BASE'],
                                                                                                                                               frienddir=fdir)
         if os.path.isfile('tmpcheck.txt'):
             print "File tmpcheck.txt exists. It means you could be running friendChunkCheck.sh. If not, remove it, and run it again."
             sys.exit()
         else:
-            os.system(bashCheckScript)
+            os.system(pyCheckScript)
         print "Done. The list of files is in tmpcheck.txt."
 
     tmpfile = 'tmpcheck.txt' if len(args)<3 else args[2]

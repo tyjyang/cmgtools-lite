@@ -4,6 +4,7 @@
 #include <TH2.h>
 #include <TH2D.h>
 #include <TFile.h>
+#include <TMath.h>
 #include <TF1.h>
 #include <cmath>
 #include <iostream>
@@ -15,6 +16,16 @@
 TH2 * helicityFractions_0 = 0;
 TH2 * helicityFractions_L = 0;
 TH2 * helicityFractions_R = 0;
+
+TH2 * angular_c = 0;
+TH2 * angular_0 = 0;
+TH2 * angular_1 = 0;
+TH2 * angular_2 = 0;
+TH2 * angular_3 = 0;
+TH2 * angular_4 = 0;
+TH2 * angular_5 = 0;
+TH2 * angular_6 = 0;
+TH2 * angular_7 = 0;
 
 // Index 0 is for nominal, 1-4 is for variation of FR linear fit parameters (1,2 for up/dn offset, 3,4 for slope)
 // 5-6 is used for normalization systematic variation implemented through an eta(-pt) dependent lnN nuisance. 
@@ -68,6 +79,15 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
   else if (TString(histoName).Contains("helicityFractions_0")) { histo = & helicityFractions_0; }
   else if (TString(histoName).Contains("helicityFractions_L")) { histo = & helicityFractions_L; }
   else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
+  else if (TString(histoName).Contains("angular_c")) { histo = & angular_c; }
+  else if (TString(histoName).Contains("angular_0")) { histo = & angular_0; }
+  else if (TString(histoName).Contains("angular_1")) { histo = & angular_1; }
+  else if (TString(histoName).Contains("angular_2")) { histo = & angular_2; }
+  else if (TString(histoName).Contains("angular_3")) { histo = & angular_3; }
+  else if (TString(histoName).Contains("angular_4")) { histo = & angular_4; }
+  else if (TString(histoName).Contains("angular_5")) { histo = & angular_5; }
+  else if (TString(histoName).Contains("angular_6")) { histo = & angular_6; }
+  else if (TString(histoName).Contains("angular_7")) { histo = & angular_7; }
   else if (TString(histoName).BeginsWith("PR_mu_i")) {histo = & PR_temp; hptr2 = & PRi_mu[TString(histoName).ReplaceAll("PR_mu_i","").Atoi()];}
   else if (TString(histoName).BeginsWith("PR_el_i")) {histo = & PR_temp; hptr2 = & PRi_el[TString(histoName).ReplaceAll("PR_el_i","").Atoi()];}
   else if (histoName == "FRnormSyst_el")  { histo = & FRnormSyst_el;  hptr2 = & FRnormSyst_el_i[0];}
@@ -440,11 +460,85 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
   float weight = 0.;
   float max_weight = 4.;
 
+   //std::cout << "normalization of the weights: " << f0*f0Term+fL*fLTerm+fR*fRTerm << std::endl;
+   //weight = fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm);
+   // if (weight >= max_weight) std::cout << " weight for fR larger than 4!!!!" << weight << std::endl;
+
   if      (pol == 0) return std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
   else if (pol == 1) return std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
   else if (pol == 2) return std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
         
   std::cout << "something went wrong in the helicity reweighting" << std::endl;
+  return -99999.;
+
+}
+
+// ================================================================================
+float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
+{
+
+  float ayw = std::abs(yw);
+
+  if (std::abs(costheta) > 1.) {
+    std::cout << " found an event with weird cosTheta = " << costheta << std::endl;
+    std::cout << " setting event weight to 0" << std::endl;
+    return 0;
+  }
+
+  TH2 *hist_ac = angular_c;
+  TH2 *hist_a0 = angular_0;
+  TH2 *hist_a1 = angular_1;
+  TH2 *hist_a2 = angular_2;
+  TH2 *hist_a3 = angular_3;
+  TH2 *hist_a4 = angular_4;
+  TH2 *hist_a5 = angular_5;
+  TH2 *hist_a6 = angular_6;
+  TH2 *hist_a7 = angular_7;
+
+  // float yval  = std::abs(yw) > hist_f0->GetXaxis()->GetXmax() ? hist_f0->GetXaxis()->GetXmax() : yw;
+  // float ptval = ptw > hist_f0->GetYaxis()->GetXmax() ? hist_f0->GetYaxis()->GetXmax() : ptw;
+
+  int ywbin = std::max(1, std::min(angular_0->GetNbinsX(), angular_0->GetXaxis()->FindBin(ayw)));
+  int ptbin = std::max(1, std::min(angular_0->GetNbinsY(), angular_0->GetYaxis()->FindBin(ptw)));
+
+  float fc = angular_c->GetBinContent(ywbin, ptbin);
+  float f0 = angular_0->GetBinContent(ywbin, ptbin);
+  float f1 = angular_1->GetBinContent(ywbin, ptbin);
+  float f2 = angular_2->GetBinContent(ywbin, ptbin);
+  float f3 = angular_3->GetBinContent(ywbin, ptbin);
+  float f4 = angular_4->GetBinContent(ywbin, ptbin);
+  float f5 = angular_5->GetBinContent(ywbin, ptbin);
+  float f6 = angular_6->GetBinContent(ywbin, ptbin);
+  float f7 = angular_7->GetBinContent(ywbin, ptbin);
+
+  float theta = TMath::ACos(costheta);
+
+  float fcTerm = (1.+costheta*costheta);
+  float f0Term = 0.5*(1.-3.*costheta*costheta);
+  float f1Term = TMath::Sin(2.*theta)*TMath::Cos(phi);
+  float f2Term = 0.5*TMath::Sin(theta)*TMath::Sin(theta)*TMath::Cos(2.*phi);
+  float f3Term = TMath::Sin(theta)*TMath::Cos(phi);
+  float f4Term = costheta;
+  float f5Term = TMath::Sin(theta)*TMath::Sin(theta)*TMath::Sin(2.*phi);
+  float f6Term = TMath::Sin(2.*theta)*TMath::Sin(phi);
+  float f7Term = TMath::Sin(theta)*TMath::Sin(phi);
+
+
+  float weight = 0.;
+
+  float normterm = 3./(16.*TMath::Pi())*(fc*fcTerm + f0*f0Term + f1*f1Term + f2*f2Term + f3*f3Term + f4*f4Term + f5*f5Term + f6*f6Term + f7*f7Term);
+
+  if      (pol == -1) return fc*fcTerm/(normterm);
+  else if (pol ==  0) return f0*f0Term/(normterm);
+  else if (pol ==  1) return f1*f1Term/(normterm);
+  else if (pol ==  2) return f2*f2Term/(normterm);
+  else if (pol ==  3) return f3*f3Term/(normterm);
+  else if (pol ==  4) return f4*f4Term/(normterm);
+  else if (pol ==  5) return f5*f5Term/(normterm);
+  else if (pol ==  6) return f6*f6Term/(normterm);
+  else if (pol ==  7) return f7*f7Term/(normterm);
+        
+  std::cout << "something went wrong in the angular coefficient reweighting" << std::endl;
   return -99999.;
 
 }
