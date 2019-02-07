@@ -44,6 +44,7 @@ TH2 * PRi_el[7] = {0};
 TH2 * FRcorrection = 0;
 TH2 * FRcorrection_i[5];
 
+// following few lines are obsolete
 TH2 * FRnormSyst_el = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)
 TH2 * FRnormSyst_el_i[3] = {0}; // will only have up and down, but let's use 3 to include a nominal variation
 TH2 * FRnormSyst_mu = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)

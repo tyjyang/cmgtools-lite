@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_option(     '--zrange',     dest='zrange',     default='', type='string', help='Pass range for z axis as "min,max". If not given, it is set automatically based on the extremes of the histogram')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height" ')
     parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
-    parser.add_option(     '--nContours', dest='nContours',    default=0, type=int, help='Number of contours in palette. Default is 20')
+    parser.add_option(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (let it be odd, so the central strip is white if not using --abs-value and the range is symmetric)')
     parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
     parser.add_option(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     parser.add_option(     '--parNameCanvas', dest='parNameCanvas',    default='', type='string', help='The canvas name is built using the parameters selected with --nuis or nuisgroups. If they are many, better to pass a name, like QCDscales or PDF for example')
@@ -170,7 +170,15 @@ if __name__ == "__main__":
     th2_sub = ROOT.TH2F('sub_imp_matrix', '', nbinsx, 0., nbinsx, nbinsy, 0., nbinsy)
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
-    th2_sub.GetZaxis().SetTitle("impact on POI {units}".format(units='' if options.absolute else '(%)'))
+    
+    if   options.target=='xsec':     target = 'pmaskedexp'
+    elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
+    else:                            target = 'mu'
+
+    poiName_target = {"mu": "signal strength",
+                      "xsec": "cross section",
+                      "xsecnorm": "normalized cross section"}
+    th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
 
     ## pretty nested loop. enumerate the tuples
     for i,x in enumerate(pois):
@@ -217,7 +225,7 @@ if __name__ == "__main__":
         cname = "{nn}_On_{pn}".format(nn=nuisName,pn=poisName)
 
     suff = '' if not options.suffix else '_'+options.suffix
-    poisNameNice = poisName.replace('(','').replace(')','').replace('\|','or')
+    poisNameNice = options.parNameCanvas if len(options.parNameCanvas) else  poisName.replace('(','').replace(')','').replace('\|','or')
     if options.latex:
         txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisNameNice)
         if options.outdir: txtfilename = options.outdir + '/' + txtfilename
