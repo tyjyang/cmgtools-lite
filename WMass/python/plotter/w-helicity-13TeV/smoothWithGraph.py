@@ -50,6 +50,7 @@ if __name__ == "__main__":
     parser.add_option('-n', '--name'           , dest='name'       , default='smoothGraph.root'      , type='string', help='output file name')
     parser.add_option(      '--hist'           , dest='hist'       , default='scaleFactor'      , type='string', help='name of histogram to smooth')
     parser.add_option('-a', '--draw-all'       , dest='drawAll'    , default=False   , action="store_true", help='Draw all smoothed versions. By default, only the result of the smoothing by hand with interpolation is drawn, to avoid confusion')
+    parser.add_option(   '--copy-inputs'       , dest='copyInputs'    , default=False   , action="store_true", help='Copy all input keys in this output file')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -123,11 +124,13 @@ if __name__ == "__main__":
             if  etabinID == 1:   
                 # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)      
                 otherVal = hist2d.GetBinContent(hist2xbin-1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
             elif etabinID == 0:
                 # if sub-bin on the right, take this -1/3 of the difference between this and the following (computed in the central sub-bin)
                 otherVal = hist2d.GetBinContent(hist2xbin+1,hist2ybin)
-            val = thisVal - 1. * (thisVal - otherVal) / 3.
-            h2HandSmooth.SetBinContent(ix,iy,val)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                h2HandSmooth.SetBinContent(ix,iy,val)
 
 
     h2new = ROOT.TH2D("Graph2D_from_"+hist2d.GetName()+"_smoothedByGraph","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
@@ -228,6 +231,8 @@ if __name__ == "__main__":
     #h2new.Write()
     #hist2d.Write()
     #h2smooth.Write()
-    h2HandSmooth.Write()
+    h2HandSmooth.Write(options.hist + "_etaInterpolated")
+    for k in infile.GetListOfKeys():
+        htocopy = infile.Get(k.GetName()).Write(k.GetName())
     outfile.Close()
 

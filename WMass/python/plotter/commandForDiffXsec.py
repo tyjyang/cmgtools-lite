@@ -8,11 +8,11 @@ skipMergeRoot=1
 skipSingleCard=0
 skipMergeCard=0
 
-folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/" # keep "/" at the end
-th3file = "cards/" + folder + "wmass_varhists_ele_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4.root"
+folder = "diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/" # keep "/" at the end
+th3file = "cards/" + folder + "whistEle_eosTrees_skim_pt2from26to30_pt1p5from30to45_eta0p2From1p2.root"
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/" # keep "/" at the end
 #th3file = "cards/" + folder + "whist_eosTrees_skim_pt2from26to30_pt1p5from30to45_eta0p2From1p2.root"
-#th3file = "cards/" + folder + "wmass_varhists_mu_testEosTrees_TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2.root"
+
 optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.6,2.0 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --exclude-nuisances 'CMS_DY' " # --wXsecLnN 0.038 
 optionsForCardMakerMerger = " --postfix eosSkim_dressed "  # --no-text2hdf5

@@ -66,6 +66,8 @@ if __name__ == "__main__":
     parser.add_option(     '--buildFakeRate', dest="buildFakeRate", action="store_true", default=False, help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta")
     parser.add_option(     '--xRange'     , dest='xRange', default=(0,-1), type='float', nargs=2, help='Select range for X axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_option(     '--yRange'     , dest='yRange', default=(0,-1), type='float', nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
+    parser.add_option('-e', '--divide-error', dest="divideError", action="store_true", default=False, help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")
+    parser.add_option('-E',  '--divide-relative-error', dest="divideRelativeError", action="store_true", default=False, help="Make ratio of relative uncertainties (the output histogram will have no error assigned to it)")
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -168,6 +170,8 @@ if __name__ == "__main__":
     # profX = ROOT.TProfile("profX",1,-1)
     # profY = ROOT.TProfile("profY",1,-1)
 
+    nout = 0
+
     for ix in range(1,1+hratio.GetNbinsX()):
         for iy in range(1,1+hratio.GetNbinsY()):
             xval = hratio.GetXaxis().GetBinCenter(ix) 
@@ -178,13 +182,28 @@ if __name__ == "__main__":
                 if xval < xMin or xval > xMax: continue
             if yMin < yMax:
                 if yval < yMin or yval > yMax: continue
-            if hinput2.GetBinContent(hist2xbin, hist2ybin) != 0:
-                ratio = hratio.GetBinContent(ix,iy) / hinput2.GetBinContent(hist2xbin, hist2ybin)
+            denval = hinput2.GetBinError(hist2xbin, hist2ybin) if options.divideError else hinput2.GetBinContent(hist2xbin, hist2ybin)
+            if options.divideRelativeError:
+                if hinput2.GetBinContent(hist2xbin, hist2ybin) != 0:
+                    denval = hinput2.GetBinError(hist2xbin, hist2ybin) / hinput2.GetBinContent(hist2xbin, hist2ybin)
+                else:
+                    denval = 0
+            if denval != 0:
+                numval = hratio.GetBinError(ix,iy) if options.divideError else hratio.GetBinContent(ix,iy)
+                if options.divideRelativeError:
+                    if hratio.GetBinContent(ix,iy) != 0:
+                        numval = hratio.GetBinError(ix,iy) / hratio.GetBinContent(ix,iy)
+                    else:
+                        numval = 0
+                ratio = numval / denval
                 hratioDistr.Fill(ratio)
                 hratio.SetBinContent(ix,iy,ratio)
+                if ratio < 0.95 or ratio > 1.05: nout += 1
                 #profX.Fill()
             else: 
                 hratio.SetBinContent(ix,iy,options.valBadRatio)
+
+    print "nout = " + str(nout)
 
     if options.xAxisTitle: hratio.GetXaxis().SetTitle(options.xAxisTitle)    
     if options.yAxisTitle: hratio.GetYaxis().SetTitle(options.yAxisTitle)    
@@ -202,9 +221,10 @@ if __name__ == "__main__":
     # print "yAxisTitle = " + yAxisTitle
     # print "zAxisTitle = " + zAxisTitle
 
-    canvas2D = ROOT.TCanvas("canvas","",700,700)
+    #adjustSettings_CMS_lumi()
 
-    adjustSettings_CMS_lumi()
+    canvas2D = ROOT.TCanvas("canvas2D","",700,700)
+    
     # the axis name can be used to set the range if it is in the format "name::min,maz"
     # if this is not already the case, use the selected range from the input option
     if not "::" in zAxisTitle:  
