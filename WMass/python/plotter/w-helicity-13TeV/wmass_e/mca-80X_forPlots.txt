@@ -174,9 +174,9 @@ W_mWdn50   : WJetsToLNu_NLO_* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcM
 
 data_fakes_awayJetPt45: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-jetpt_syst.txt", Label="Fakes (jetPt45)", FillColor=ROOT.kRed+2, NormSystematic=0.20
 
-data_fakes_EWKUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKup.txt", Label="Fakes (EWK Up)", FillColor=ROOT.kGreen+2, NormSystematic=0.20
+data_fakes_EWKUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKup.txt", Label="Fakes (EWK Up)", FillColor=ROOT.kBlack, NormSystematic=0.20
 
-data_fakes_EWKDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKdown.txt", Label="Fakes (EWK Down)", FillColor=ROOT.kRed+2, NormSystematic=0.20
+data_fakes_EWKDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKdown.txt", Label="Fakes (EWK Down)", FillColor=ROOT.kBlue, NormSystematic=0.20
 
 data_fakes_slopeUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", Label="Fakes (slope Up)", FillColor=ROOT.kGreen+2, NormSystematic=0.20
 
@@ -191,6 +191,10 @@ data_fakes_pol1fitPt30to48: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-he
 data_fakes_pol1: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol1fitPt30to48.txt", Label="Fakes (fit 30-48)", FillColor=ROOT.kGray, NormSystematic=0.20
 
 data_fakes_pol2: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol2.txt", Label="Fakes (pol2)", FillColor=ROOT.kBlue, NormSystematic=0.20
+
+data_fakes_nomiColor: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes", FillColor=ROOT.kBlack, NormSystematic=0.20
+
+data_fakes_smearMet10: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-smearMet.txt", Label="Fakes (smear E_{T}^{miss})", FillColor=ROOT.kRed+2, NormSystematic=0.20
 
 
 data_fakes_EBp_0p0_1p0: SingleElectron_07Aug17_Run2016* : LepGood1_eta > 0.0 && LepGood1_eta < 1.0 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes EB+ in", FillColor=ROOT.kGray, NormSystematic

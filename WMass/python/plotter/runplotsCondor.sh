@@ -64,8 +64,8 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runCondor="n"
-nameTag="_mT40to100_fitData" 
+runCondor="nx"
+nameTag="_fakesTest_smearMet10" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -112,7 +112,7 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
-selectplots="ptl1_narrow,etal1_binFR,pfmt"
+selectplots="ptl1_narrow,etal1_binFR,ptl1__etal1_binFR"
 #selectplots="wminus_wpt,wminus_wy"
 #selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
@@ -138,7 +138,8 @@ maxentries=""  # all events if ""
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+ratioPlotDataOptions=" --plotmode nostack  --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes_nomiColor --ratioNums data_fakes_smearMet10 --ratioYLabel 'Var./Nomi.'"
 #ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
@@ -253,10 +254,10 @@ regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
 #skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40} ${mtMax/XX/100}" # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40} " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
-#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
+scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes_nomiColor,data_fakes_smearMet10  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'

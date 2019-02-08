@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # python w-helicity-13TeV/DatacardsChecker.py -c cards/helicity_2018_03_06_testpdf
 
+# for diff. xsec
+# python w-helicity-13TeV/DatacardsChecker.py -c cards/blabla -g 1 --splitdir -q 1nd [-z]
+
 import sys,ROOT,os
 ROOT.gROOT.SetBatch(True)
 
