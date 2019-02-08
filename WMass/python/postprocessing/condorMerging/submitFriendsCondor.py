@@ -102,6 +102,8 @@ Error      = logs/log_condor_{ds}_chunk{ch}.error\n'''.format(ds=ds,ch=n_chunks)
 
     print 'this will result in a total of {n} jobs'.format(n=totalNumberOfJobs)
     print 'submitting to condor...'
+    if not options.pretend:
+        os.system('mkdir -p logs')
     for sc in condorSubmitCommands:
         print sc
         if not options.pretend:
