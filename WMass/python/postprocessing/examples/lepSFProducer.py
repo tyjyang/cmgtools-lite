@@ -192,8 +192,9 @@ class lep2016SFProducer(Module):
 
         # muons have scale factors for trigger, Reco and ID+isolation
         # electrons have scale factors for trigger, Reco, ID+iso+ConversionRejection and one additional parts in EE to correct for EG L1 prefiring
-        self.mu_f = {"trigger"       : "smoothEfficiency_muons_trigger_finerETA.root", 
-                     "reco"          : "smoothEfficiency_muons_recoToSel_finerETA.root",
+        self.mu_f = {"triggerMinus"       : "smoothEfficiency_muons_minus_trigger.root", 
+                     "triggerPlus"        : "smoothEfficiency_muons_plus_trigger.root" , 
+                     "reco"               : "smoothEfficiency_muons_recoToSel_finerETA.root",
                      #"idiso"         : "etaptSmooth_muons_idiso.root", 
                      }
         self.el_f = {"trigger_barrel"  : "etaptSmooth_electrons_trigger_30_55_onlyErf.root",
@@ -207,8 +208,9 @@ class lep2016SFProducer(Module):
 
     def beginJob(self):
         # create muon scale factor manager: pass file name and location, and then the name of histogram to read
-        self.sf1_manager_mu = scaleFactorManager(self.mu_f["trigger"],       self.filePath,"scaleFactor_interpolated")
-        self.sf2_manager_mu = scaleFactorManager(self.mu_f["reco"],          self.filePath,"scaleFactor_interpolated")
+        self.sf1_manager_mu_minus = scaleFactorManager(self.mu_f["triggerMinus"], self.filePath,"scaleFactor_etaInterpolated")
+        self.sf1_manager_mu_plus  = scaleFactorManager(self.mu_f["triggerPlus" ], self.filePath,"scaleFactor_etaInterpolated")
+        self.sf2_manager_mu       = scaleFactorManager(self.mu_f["reco"]        , self.filePath,"scaleFactor_etaInterpolated")
         ## remove thirs scale factor for muons, fill 1. +- 0. later
         #self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
 
@@ -221,7 +223,8 @@ class lep2016SFProducer(Module):
         self.sf4_manager_el   = scaleFactorManager(self.el_f["l1prefire"],           self.filePath,"l1EG_eff")
 
         # load histograms
-        self.sf1_manager_mu.loadHist()
+        self.sf1_manager_mu_minus.loadHist()
+        self.sf1_manager_mu_plus .loadHist()
         self.sf2_manager_mu.loadHist()
         #self.sf3_manager_mu.loadHist()
         self.sf1_manager_el_b.loadHist()
@@ -281,11 +284,16 @@ class lep2016SFProducer(Module):
                     sf_3_err.append(float(sf3_manager_el.getSF_err(l.pt,l.eta)))                    
                     sf_4_err.append(0)                    
                 else:
-                    sf_1.append(float(self.sf1_manager_mu.getSF(l.pt,l.eta)))
+                    ## muon trigger SF now split by charge
+                    if l.charge > 0:
+                        sf_1    .append(float(self.sf1_manager_mu_plus .getSF(l.pt,l.eta)))
+                        sf_1_err.append(float(self.sf1_manager_mu_plus.getSF_err(l.pt,l.eta)))
+                    else:
+                        sf_1    .append(float(self.sf1_manager_mu_minus.getSF(l.pt,l.eta)))
+                        sf_1_err.append(float(self.sf1_manager_mu_minus.getSF_err(l.pt,l.eta)))
                     sf_2.append(float(self.sf2_manager_mu.getSF(l.pt,l.eta)))
                     sf_3.append(1.)#float(self.sf3_manager_mu.getSF(l.pt,l.eta)))
                     sf_4.append(1.)
-                    sf_1_err.append(float(self.sf1_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_2_err.append(float(self.sf2_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_3_err.append(0.)#float(self.sf3_manager_mu.getSF_err(l.pt,l.eta)))
                     sf_4_err.append(0.)
