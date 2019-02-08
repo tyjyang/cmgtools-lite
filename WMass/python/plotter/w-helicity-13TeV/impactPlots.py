@@ -5,9 +5,24 @@ from subMatrix import niceName
 ROOT.gROOT.SetBatch(True)
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from postFitPlots import prepareLegend
 
 import utilities
 utilities = utilities.util()
+
+def niceSystName(label):
+    if 'lepScale' in label: niceName = 'lepton scale'
+    elif 'OtherBkg' in label: niceName = 'other bkg'
+    elif 'pdfs' in label: niceName = 'PDF'
+    elif 'binByBinStat' in label: niceName = 'MC statistics'
+    elif 'EffStat' in label: niceName = 'efficiency stat. unc.'
+    elif 'Fakes' in label: niceName = 'fakes unc.'
+    elif 'OtherExp' in label: niceName = 'other experimental unc.'
+    elif 'lumi' in label: niceName = 'luminosity'
+    elif 'QCDTheo' in label: niceName = '#mu_{F},#mu_{R}, #alpha_{S}'
+    elif 'stat' in label: niceName = 'statistical'
+    elif 'Total' in label: niceName = 'Total unc.'
+    return niceName
 
 def latexLabel(label):
     bin = int(label.split(' ')[-1]) if any(pol in label for pol in ['left','right','long']) else -1
@@ -41,6 +56,7 @@ if __name__ == "__main__":
     parser.add_option(     '--abs-value', dest='absValue' , default=False , action='store_true',   help='Use absolute values for impacts (groups are already positive)')
     parser.add_option('-a','--absolute',   dest='absolute',   default=False, action='store_true', help='absolute uncertainty (default is relative)')
     parser.add_option(     '--latex',      dest='latex',      default=False, action='store_true', help='target POI (can be mu,xsec,xsecnorm)')
+    parser.add_option('-y','--ybinfile',   dest='ybinfile',   default='',  type='string', help='do 1D summary plot as a function of YW using this file with the yw binning')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -76,7 +92,8 @@ if __name__ == "__main__":
         sys.exit()
 
     if options.outdir:
-        options.outdir = options.outdir + "/" + options.target + "/"
+        # emanuele: why this?
+        #options.outdir = options.outdir + "/" + options.target + "/"
         ROOT.gROOT.SetBatch()
         if not os.path.isdir(options.outdir):
             os.system('mkdir -p {od}'.format(od=options.outdir))
@@ -101,6 +118,9 @@ if __name__ == "__main__":
     if   options.target=='xsec':     target = 'pmaskedexp'
     elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
     else:                            target = 'mu'
+
+    if options.ybinfile:
+        pois_regexps = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
 
     th2name = 'nuisance_{group}impact_{sfx}'.format(group=group,sfx=target)
     impMat = hessfile.Get(th2name)
@@ -236,3 +256,77 @@ if __name__ == "__main__":
             c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,cn=cname))
 
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+
+    if options.ybinfile:
+        ybinfile = options.ybinfile
+        ybinfile = open(ybinfile, 'r')
+        ybins = eval(ybinfile.read())
+        ybinfile.close()
+
+        summaries = {}
+        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        for charge in ['plus','minus']:
+            for pol in ['left','right', 'long']:
+                cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
+                for ing,nuisgroup in enumerate(groups):
+                    h = ROOT.TH1D(cp+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
+                    summaries[(charge,pol,nuisgroup)] = h
+                    summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
+                    summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                    summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                    summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,3.)
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
+                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
+                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitleSize(0.06)
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetLabelSize(0.04)
+                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleSize(0.06)
+                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetLabelSize(0.04)
+                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
+        for j,nuisgroup in enumerate(groups):
+            for i in xrange(th2_sub.GetNbinsX()):
+                lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
+                charge = 'plus' if '+' in lbl else 'minus'
+                pol = lbl.split()[-2]
+                ybin = int(lbl.split()[-1])
+                summaries[(charge,pol,nuisgroup)].SetBinContent(ybin+1,th2_sub.GetBinContent(i+1,j+1))
+
+        cs = ROOT.TCanvas("cs","",1800,900)
+        cs.SetLeftMargin(0.1)
+        cs.SetRightMargin(0.05)
+        cs.SetBottomMargin(0.15)
+        cs.SetTopMargin(0.1)
+        cs.SetGridy()
+        for charge in ['plus','minus']:
+            for ipol,pol in enumerate(['left','right']):
+                leg = prepareLegend(xmin=0.5,legWidth=0.40,textSize=0.04)
+                leg.SetNColumns(4)
+                lat = ROOT.TLatex()
+                lat.SetNDC(); lat.SetTextFont(42)
+                latBin = ROOT.TLatex()
+                latBin.SetNDC(); latBin.SetTextFont(42); latBin.SetTextSize(0.07)
+                quadrsum = summaries[(charge,pol,groups[0])].Clone('quadrsum_{ch}_{pol}'.format(ch=charge,pol=pol))
+                for ing,ng in enumerate(groups):
+                    drawopt = 'pl' if ing==0 else 'pl same'
+                    summaries[(charge,pol,ng)].Draw(drawopt)
+                    if   ng=='binByBinStat': summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle)
+                    elif ng=='stat'        : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle); summaries[(charge,pol,ng)].SetMarkerColor(ROOT.kBlack); summaries[(charge,pol,ng)].SetLineColor(ROOT.kBlack);
+                    elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                    else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
+                    leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
+                    # now compute the quadrature sum of all the uncertainties
+                    for y in xrange(quadrsum.GetNbinsX()):
+                        quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,pol,ng)].GetBinContent(y+1)))
+                quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack);
+                quadrsum.Draw('pl same')
+                leg.AddEntry(quadrsum, 'Total unc.', 'pl')
+                leg.Draw('same')
+                lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+                lat.DrawLatex(0.8, 0.92, '36 fb^{-1} (13 TeV)')
+                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}}'.format(pol=pol,chsign='+' if charge=='plus' else '-'))
+                for i in ['pdf', 'png']:
+                    suff = '' if not options.suffix else '_'+options.suffix
+                    cs.SetLogy()
+                    cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,ch=charge,pol=pol))
+
