@@ -120,6 +120,10 @@ if __name__ == '__main__':
                         for charge in ['plus','minus']:
                             cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --latex --nuisgroups .* --pois "W{charge}.*(left|right).*(bin_0|bin_4|bin_7|bin_9)" --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix, charge=charge) 
                             os.system(cmd)
+                    # now do the 1D summaries
+                    print "RUNNING 1D SUMMARIES OF SYSTEMATICS..."
+                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* -y {cd}/binningYW.txt --target {tg} --suffix summary'.format(fr=results[tmp_file], od=tmp_outdir, cd=results['cardsdir'], tg=target)
+                    os.system(cmd)
 
     ## do this at the end, it takes the longest
     ## diff nuisances

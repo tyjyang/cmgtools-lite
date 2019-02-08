@@ -215,6 +215,7 @@ if __name__ == "__main__":
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
             
+
     rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
     if not options.absolute: rmax = min(20.,rmax)
     if options.absValue:
@@ -258,7 +259,7 @@ if __name__ == "__main__":
         txtfile.close()
         print "Saved the latex table in file ",txtfilename
 
-    if options.outdir and not options.latex:
+    if options.outdir and not options.latex and not options.ybinfile:
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
             c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,cn=cname))
@@ -300,6 +301,11 @@ if __name__ == "__main__":
                 ybin = int(lbl.split()[-1])
                 summaries[(charge,pol,nuisgroup)].SetBinContent(ybin+1,th2_sub.GetBinContent(i+1,j+1))
 
+        fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
+        for i,x in enumerate(pois):
+            new_x = niceName(x).replace('el: ','').replace('mu: ','')
+            fitErrors[new_x] = 100*abs((valuesAndErrors[x+'_'+target][1]-valuesAndErrors[x+'_'+target][0])/valuesAndErrors[x+'_'+target][0])
+
         cs = ROOT.TCanvas("cs","",1800,900)
         cs.SetLeftMargin(0.1)
         cs.SetRightMargin(0.05)
@@ -315,6 +321,7 @@ if __name__ == "__main__":
                 latBin = ROOT.TLatex()
                 latBin.SetNDC(); latBin.SetTextFont(42); latBin.SetTextSize(0.07)
                 quadrsum = summaries[(charge,pol,groups[0])].Clone('quadrsum_{ch}_{pol}'.format(ch=charge,pol=pol))
+                totalerr = quadrsum.Clone('totalerr_{ch}_{pol}'.format(ch=charge,pol=pol))
                 for ing,ng in enumerate(groups):
                     drawopt = 'pl' if ing==0 else 'pl same'
                     summaries[(charge,pol,ng)].Draw(drawopt)
@@ -323,12 +330,18 @@ if __name__ == "__main__":
                     elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
                     else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                     leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
-                    # now compute the quadrature sum of all the uncertainties
+                    # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
                     for y in xrange(quadrsum.GetNbinsX()):
                         quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,pol,ng)].GetBinContent(y+1)))
-                quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack);
+                quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack); quadrsum.SetLineStyle(ROOT.kDashed)
                 quadrsum.Draw('pl same')
-                leg.AddEntry(quadrsum, 'Total unc.', 'pl')
+                # now fill the real total error from the fit (with correct correlations)
+                for y in xrange(totalerr.GetNbinsX()):
+                    totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign='+' if charge is 'plus' else '-',pol=pol,bin=y)])
+                totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
+                totalerr.Draw('pl same')
+                leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
+                leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
                 lat.DrawLatex(0.8, 0.92, '36 fb^{-1} (13 TeV)')
