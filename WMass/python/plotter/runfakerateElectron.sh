@@ -38,7 +38,7 @@ fi
 istest="y"
 # following option testdir is used only if istest is 'y'
 today=`date +"%d_%m_%Y"`
-testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim"
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_metSmear10"
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
@@ -50,7 +50,7 @@ testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_s
 #addOption=" -A eleKin pfmet 'met_pt<20' "
 #addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
 #addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
-addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin zveto 'fabs(100 - mass_2(LepGood_awayJet_pt,LepGood_awayJet_eta,LepGood_awayJet_phi,0,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.000511)) > 10' "
+addOption=" -A eleKin pfmtLess40_smearMet10 'mt_2(getSmearedVar(met_pt,0.1,evt,isData),met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin zveto 'fabs(100 - mass_2(LepGood_awayJet_pt,LepGood_awayJet_eta,LepGood_awayJet_phi,0,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.000511)) > 10' "
 # for the Z veto, see plots here:
 # http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREES_1LEP_80X_V3_FRELSKIM_V8/FR_computation_region/full2016data_01_11_2018_FRvarNotNorm/
 

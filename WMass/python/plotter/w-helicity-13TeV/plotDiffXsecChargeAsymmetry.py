@@ -20,7 +20,7 @@ def getTH1fromTH2(h2D,h2Derr=None,unrollAlongX=True):  # unrollAlongX=True --> s
     nX = h2D.GetNbinsX()
     nY = h2D.GetNbinsY()
     nbins = nX * nY
-    name = h2D.GetName() + "_unrollTo1D" 
+    name = h2D.GetName() + "_unrollTo1D_" + "eta" if unrollAlongX else "pt" 
     newh = ROOT.TH1D(name,h2D.GetTitle(),nbins,0.5,nbins+0.5)
     if 'TH2' not in h2D.ClassName(): raise RuntimeError, "Calling getTH1fromTH2 on something that is not TH2"
     for i in xrange(nX):
@@ -51,10 +51,12 @@ if __name__ == "__main__":
     parser.add_option('-f','--friend', dest='friend', default='', type='string', help='Root file with friend tree containing total xsec (it does not include the outliers). Tree name is assumed to be "toyFriend"')
     parser.add_option('-p','--palette', dest='palette', default='55', type='int', help='Palette for plots')
     parser.add_option('-l','--lumi-norm', dest='lumiNorm', default='-1', type='float', help='If > 0, divide cross section by this factor (lumi in 1/Pb)')
+    parser.add_option(     '--lumiInt', dest='lumiInt', default='35.9', type='float', help='Integrated luminosity')
     parser.add_option('-n','--norm-width', dest='normWidth' , default=False , action='store_true',   help='Normalize cross section histograms dividing by bin width')
     parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty')
     parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
-    parser.add_option(     '--unrollEta', dest='unrollEta' , default=False , action='store_true',   help='If True, make unroll along eta direction instead of pt')
+    # now doing both
+    #parser.add_option(     '--unrollEta', dest='unrollEta' , default=False , action='store_true',   help='If True, make unroll along eta direction instead of pt')
     parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data). If SAME, use same file as data and take _gen variables to get the expected')
     parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
     parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
@@ -157,9 +159,6 @@ if __name__ == "__main__":
     #         if ptBinIsBackground[index]:
     #             if firstBin: 
 
-    unrollAlongEta = options.unrollEta
-    unrollVar = "eta" if unrollAlongEta else "pt"
-
     lepton = "electron" if channel == "el" else "muon"
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu")
 
@@ -213,7 +212,7 @@ if __name__ == "__main__":
         yaxisTitle = yaxisTitle + "::%s,%s" % (ptmin, ptmax)
     #zaxisTitle = "Asymmetry::%.3f,%.3f" % (hChAsymm.GetMinimum(),hChAsymm.GetMaximum())
     if options.fitData:
-        zaxisTitle = "Asymmetry::0.0,0.45"
+        zaxisTitle = "Asymmetry::0.05,0.45"
         if channel == "el": zaxisTitle = "Asymmetry::0.0,0.45"
         zaxisTitle = "Asymmetry::%.3f,%.3f" % (max(0,0.99*hChAsymm.GetBinContent(hChAsymm.GetMinimumBin())),
                                                min(0.5,hChAsymm.GetBinContent(hChAsymm.GetMaximumBin())))
@@ -402,15 +401,17 @@ if __name__ == "__main__":
                             hMuErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-
         if options.fitData:
             if charge == "plus": zmin,zmax = 30,130
-            else:                zmin,zmax = 20,110
+            else:                zmin,zmax = 10,110
         else:
             if charge == "plus": zmin,zmax = 30,120
             else:                zmin,zmax = 25,95
-        #zaxisTitle = "d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (0.9*hDiffXsec.GetMinimum(),hDiffXsec.GetMaximum())
-        zaxisTitle = "d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (zmin,zmax)
+
+        zminHist = hDiffXsec.GetBinContent(hDiffXsec.GetMinimumBin())                                                   
+        zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (0.99*(zminHist if zminHist > 1. else zmin),
+                                                                    min(zmax,hDiffXsec.GetBinContent(hDiffXsec.GetMaximumBin())))
+        #zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsec,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsec.GetName(),
@@ -422,18 +423,18 @@ if __name__ == "__main__":
         else:
             if charge == "plus": zmin,zmax = 0.5,4.5
             else:                zmin,zmax = 0.5,3.5
-        zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (0.9*hDiffXsecErr.GetMinimum(),min(25,hDiffXsecErr.GetMaximum()))
-        #zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} [pb/GeV]::%.3f,%.3f" % (zmin,zmax)
+        zaxisTitle = "uncertainty on d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (0.9*hDiffXsecErr.GetMinimum(),min(25,hDiffXsecErr.GetMaximum()))
+        #zaxisTitle = "uncertainty on d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsecErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        #zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::%.3f,%.3f" % (0.9*hDiffXsecRelErr.GetMinimum(),hDiffXsecRelErr.GetMaximum())
+        #zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T}::%.3f,%.3f" % (0.9*hDiffXsecRelErr.GetMinimum(),hDiffXsecRelErr.GetMaximum())
         if options.fitData:
-            zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::0.010,0.2"
+            zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T}::0.010,0.2"
         else:
-            zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T}::0.025,0.2"
+            zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T}::0.025,0.2"
         drawCorrelationPlot(hDiffXsecRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecRelErr.GetName(),
@@ -441,8 +442,8 @@ if __name__ == "__main__":
 
         if charge == "plus": zmin,zmax = 0.008,0.028
         else:                zmin,zmax = 0.008,0.029
-        #zaxisTitle = "d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNorm.GetMinimum(),hDiffXsecNorm.GetMaximum())
-        zaxisTitle = "d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (zmin,zmax)
+        #zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNorm.GetMinimum(),hDiffXsecNorm.GetMaximum())
+        zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsecNorm,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNorm.GetName(),
@@ -450,15 +451,15 @@ if __name__ == "__main__":
 
         if charge == "plus": zmin,zmax = 0.0,0.0015
         else:                zmin,zmax = 0.0,0.0015
-        #zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNormErr.GetMinimum(),hDiffXsecNormErr.GetMaximum())
-        zaxisTitle = "uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.3f,%.3f" % (zmin,zmax)
+        #zaxisTitle = "uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNormErr.GetMinimum(),hDiffXsecNormErr.GetMaximum())
+        zaxisTitle = "uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsecNormErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::%.4f,%.4f" % (min(0.01,0.9*hDiffXsecNormRelErr.GetMinimum()),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
-        #zaxisTitle = "rel. uncertainty on d#sigma / d#etadp_{T} / #sigma_{tot}::0,0.1"
+        zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.4f,%.4f" % (min(0.01,0.9*hDiffXsecNormRelErr.GetMinimum()),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
+        #zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::0,0.1"
         drawCorrelationPlot(hDiffXsecNormRelErr,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormRelErr.GetName(),
@@ -468,25 +469,53 @@ if __name__ == "__main__":
 
 ######
         # now drawing a TH1 unrolling TH2
-        canvUnroll = ROOT.TCanvas("canvUnroll","",3000,2000)
+        chsize = 4500
+        canvUnroll = ROOT.TCanvas("canvUnroll","",chsize,1500) # 3000,1500
+        leftMargin = 0.12 if chsize < 3500 else 0.06
+        rightMargin = 0.04 if chsize < 3500 else 0.02
 
         ratioYaxis = "Rel.Unc.::0.8,1.2"
         if channel == "el": ratioYaxis = "Rel.Unc.::0.8,1.2"
 
         xaxisTitle = "template global bin"
-        if unrollAlongEta:
-            xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-        else:
-            xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-        h1D_pmaskedexp = getTH1fromTH2(hDiffXsec, hDiffXsecErr, unrollAlongX=unrollAlongEta)        
-        drawSingleTH1(h1D_pmaskedexp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]",
-                      "unrolledXsec_{var}_abs_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
-                      outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll)
+        vertLinesArg = ""
+        additionalText = "W{chs} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
-        h1D_pmaskedexp_norm = getTH1fromTH2(hDiffXsecNorm, hDiffXsecNormErr, unrollAlongX=unrollAlongEta)        
-        drawSingleTH1(h1D_pmaskedexp_norm,xaxisTitle,"d#sigma/d#etadp_{T} / #sigma_{tot} [1/GeV]",
-                      "unrolledXsec_{var}_norm_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
-                      outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll)
+        h1D_pmaskedexp = {}
+        h1D_pmaskedexp_norm = {}
+
+        for unrollAlongEta in [True, False]:
+
+            unrollVar = "eta" if unrollAlongEta else "pt"
+
+            varBinRanges = []
+
+            if unrollAlongEta:
+                #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
+                xaxisTitle = "cross section unrolled along |#eta|: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
+                for ipt in range(0,genBins.Npt):
+                    varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
+            else:
+                #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
+                xaxisTitle = "cross section unrolled along p_{T}: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
+                for ieta in range(0,genBins.Neta):
+                    varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
+
+            h1D_pmaskedexp[unrollAlongEta] = getTH1fromTH2(hDiffXsec, hDiffXsecErr, unrollAlongX=unrollAlongEta)        
+            drawSingleTH1(h1D_pmaskedexp[unrollAlongEta],xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]",
+                          "unrolledXsec_{var}_abs_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
+                          outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                          drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                          leftMargin=leftMargin, rightMargin=rightMargin)
+
+            h1D_pmaskedexp_norm[unrollAlongEta] = getTH1fromTH2(hDiffXsecNorm, hDiffXsecNormErr, unrollAlongX=unrollAlongEta)        
+            drawSingleTH1(h1D_pmaskedexp_norm[unrollAlongEta],xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
+                          "unrolledXsec_{var}_norm_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
+                          outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                          drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35,moreText=additionalText,
+                          leftMargin=leftMargin, rightMargin=rightMargin)
 
 
 # for data, add plot with ratio with expected
@@ -554,22 +583,43 @@ if __name__ == "__main__":
                     scaleFactor = 1./options.lumiNorm
                     hDiffXsec_exp.Scale(scaleFactor)
 
-                # now drawing a TH1 unrolling TH2
-                xaxisTitle = "template global bin"
-                if unrollAlongEta:
-                    xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                else:
-                    xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
+                # # now drawing a TH1 unrolling TH2
 
-                h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
-                drawDataAndMC(h1D_pmaskedexp, h1D_pmaskedexp_exp,xaxisTitle,"d#sigma/d#etadp_{T} [pb/GeV]::0,220",
-                              "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                              outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll)
+                for unrollAlongEta in [True, False]:
 
-                h1D_pmaskedexp_norm_exp = getTH1fromTH2(hDiffXsecNorm_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
-                drawDataAndMC(h1D_pmaskedexp_norm, h1D_pmaskedexp_norm_exp,xaxisTitle,"d#sigma/d#etadp_{T} / #sigma_{tot} [1/GeV]",
-                              "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                              outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll)
+                    unrollVar = "eta" if unrollAlongEta else "pt"
+
+                    varBinRanges = []
+
+                    if unrollAlongEta:
+                        #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
+                        xaxisTitle = "cross section unrolled along |#eta|: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                        vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
+                        for ipt in range(0,genBins.Npt):
+                            varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
+                    else:
+                        #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
+                        xaxisTitle = "cross section unrolled along p_{T}: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                        vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
+                        for ieta in range(0,genBins.Neta):
+                            varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
+
+                    h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                    drawDataAndMC(h1D_pmaskedexp[unrollAlongEta], h1D_pmaskedexp_exp,xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::0,220",
+                                  "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
+                                  outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                  drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                                  leftMargin=leftMargin, rightMargin=rightMargin)
+
+
+                    h1D_pmaskedexp_norm_exp = getTH1fromTH2(hDiffXsecNorm_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                    drawDataAndMC(h1D_pmaskedexp_norm[unrollAlongEta], h1D_pmaskedexp_norm_exp,
+                                  xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
+                                  "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
+                                  outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                                  drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                                  leftMargin=leftMargin, rightMargin=rightMargin)
+
 
 
                 

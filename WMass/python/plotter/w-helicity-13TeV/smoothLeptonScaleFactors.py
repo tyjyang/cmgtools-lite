@@ -20,6 +20,9 @@
 
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50/ -c mu -n smoothEfficiency.root -t
 
+# test for muon SF with charge dependency
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50_MINUS/egammaEffi.txt_EGM2D_MINUS.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS_pol3forAbsEta1p5/ -c mu -n smoothEfficiency.root -t -C minus
+
 import ROOT, os, sys, re, array, math
 
 sys.path.append(os.getcwd() + "/plotUtils/")
@@ -131,10 +134,16 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
               fitRange=None,
               hist_reducedChi2=0,
               hist_ErfParam_vs_eta=0,
-              hist_ErfCovMatrix_vs_eta=0  # TH3, eta on x and cov matrix in yz
+              hist_ErfCovMatrix_vs_eta=0,  # TH3, eta on x and cov matrix in yz
+              charge = ""
               ):
 
     # there might be some obsolete options below
+
+    chargeText = ""
+    if charge == "plus": chargeText = "positive"
+    if charge == "minus": chargeText = "negative"
+    
 
     forcePol3 = False
     forceErfByKey = True  # if True, force the Erf specifying in which bin it should happen
@@ -169,7 +178,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     hist.SetMarkerStyle(20)
     hist.SetMarkerSize(1)
 
-    hist.GetXaxis().SetTitle("%s p_{T} [GeV]" % ("electron" if channel == "el" else "muon"))
+    hist.GetXaxis().SetTitle("%s %s p_{T} [GeV]" % (chargeText, "electron" if channel == "el" else "muon"))
     hist.GetXaxis().SetTitleOffset(1.2)
     hist.GetXaxis().SetTitleSize(0.05)
     hist.GetXaxis().SetLabelSize(0.04)
@@ -223,8 +232,15 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     # here I decide to override the range of some fits to be able to use Erf (the graph is still drawn in the full range, because the TH1 range is already set above)
     # in case I ovverride the range for all bins with the option fitRange, the range here is still overriden, but the X axis setting is modified according to the option
-    if isTrigger and not isEle:
-        pass
+    if isTrigger and not isEle:        
+        if charge == "plus":
+            if mc == "Data":
+                if any(key == x for x in [38]): 
+                    maxFitRange = 45
+        if charge == "minus":
+            if mc == "Data":
+                if any(key == x for x in [9]): 
+                    maxFitRange = 45
         # if mc == "Data":
         #     if any(key == x for x in [9]):
         #         maxFitRange = 45
@@ -278,18 +294,37 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             #         tf1_erf2.SetParameter(1,31.2)
             pass
         else:                        
-            if mc == "Data":
-                if any(key == x for x in [13,14,19,21,26,28,33,34]):
-                    tf1_erf.SetParameter(1,32)
-                #elif any(key == x for x in [9,23,28]):
-                #    tf1_erf.SetParameter(1,27)
-                #    tf1_erf.SetParameter(2,2.0)
-            elif mc == "MC":
-                if any(key == x for x in [19,20,26,27,28,34]):
-                    tf1_erf.SetParameter(1,32)
-                    #tf1_erf.SetParameter(2,5.0)
-                elif any(key == x for x in [14]):
-                    tf1_erf.SetParameter(1,30)
+            if charge == "":
+                if mc == "Data":
+                    if any(key == x for x in [13,14,19,21,26,28,33,34]):
+                        tf1_erf.SetParameter(1,32)
+                    #elif any(key == x for x in [9,23,28]):
+                    #    tf1_erf.SetParameter(1,27)
+                    #    tf1_erf.SetParameter(2,2.0)
+                elif mc == "MC":
+                    if any(key == x for x in [19,20,26,27,28,34]):
+                        tf1_erf.SetParameter(1,32)
+                        #tf1_erf.SetParameter(2,5.0)
+                    elif any(key == x for x in [14]):
+                        tf1_erf.SetParameter(1,30)
+            elif charge == "plus":
+                if mc == "Data":
+                    if any(key == x for x in [12,14,22,25,35,40,6,7]):
+                        tf1_erf.SetParameter(1,32)
+                elif mc == "MC":
+                    if any(key == x for x in [12,14,22,25,33,35,40]):
+                        tf1_erf.SetParameter(1,32)
+            elif charge == "minus":
+                if mc == "Data":
+                    if any(key == x for x in [18,20,29,39,6, 9]):
+                        # key 9 actually has an evident drop, should be RPC transition 
+                        # http://mciprian.web.cern.ch/mciprian/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS/Data/effVsPt_Data_mu_eta9_minus.png
+                        # maybe here I should force pol3, or assign a large uncertainty
+                        tf1_erf.SetParameter(1,32)
+                elif mc == "MC":                    
+                    if any(key == x for x in [14,18,20,29,44,47]):
+                        tf1_erf.SetParameter(1,32)
+
 
     if isFullID:
         if mc == "Data":
@@ -524,11 +559,13 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             
     lat.DrawLatex(xmin,yhi,line);
     lat.DrawLatex(xmin,yhi-0.05,lineChi2);
+    tmpch = ""
+    if charge != "": tmpch = "_" + charge
     for ext in ["pdf","png"]:
         if mc == "SF":
-            canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))            
+            canvas.SaveAs("{out}ScaleFactorVsPt_{mc}_{ch}_eta{b}{charge}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,charge=tmpch,ext=ext))            
         else:
-            canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,ext=ext))                            
+            canvas.SaveAs("{out}effVsPt_{mc}_{ch}_eta{b}{charge}.{ext}".format(out=outdir,mc=mc,ch=channel,b=key,charge=tmpch,ext=ext))                            
 
     if hist_ErfParam_vs_eta and retFunc.GetName() == tf1_erf.GetName():  
         # key is the eta bin number, but starts from 0, so add 1
@@ -538,6 +575,28 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         hist_ErfParam_vs_eta.SetBinError(  key+1, 2, retFunc.GetParError(1))
         hist_ErfParam_vs_eta.SetBinContent(key+1, 3, retFunc.GetParameter(2))
         hist_ErfParam_vs_eta.SetBinError(  key+1, 3, retFunc.GetParError(2))
+
+
+    # some hand-fix for bins with muons around |eta| 1.5
+    if isTrigger and not isEle:
+        if charge == "plus":
+            if mc == "MC":
+                if any(key == x for x in [9,38]):
+                    print ">>> Warning: returning pol3 for key {k} in {mc} as interpolating function".format(k=key, mc=mc)
+                    return fit_pol3
+            elif mc == "Data":
+                if any(key == x for x in [38]):
+                    print ">>> Warning: returning pol3 for key {k} in {mc} as interpolating function".format(k=key, mc=mc)
+                    return fit_pol3
+        elif charge == "minus":        
+            if mc == "MC":
+                if any(key == x for x in [9,38]):
+                    print ">>> Warning: returning pol3 for key {k} in {mc} as interpolating function".format(k=key, mc=mc)
+                    return fit_pol3
+            elif mc == "Data":
+                if any(key == x for x in [9]):
+                    print ">>> Warning: returning pol3 for key {k} in {mc} as interpolating function".format(k=key, mc=mc)
+                    return fit_pol3            
 
     return retFunc
         
@@ -670,6 +729,7 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='output directory to save things')
     parser.add_option('-n','--outfilename', dest='outfilename', default='', type='string', help='Name of output file to save fit results')
     parser.add_option('-c','--channel', dest='channel', default='', type='string', help='name of the channel (mu or el)')
+    parser.add_option('-C','--charge', dest='charge', default='', type='string', help='Plus or minus if the efficiencies were derived separately for each charge. If empty, assumes no charge splitting in the inputs')
     parser.add_option('-e','--era',     dest='era',     default='', type='string', help='For muons: select data era GtoH or BtoF as -e GH or -e BF')
     parser.add_option('-v','--var',     dest='variable',default='', type='string', help='For muons: select variable: ISO or ID')
     parser.add_option('-r','--range',     dest='range', type="float", nargs=2, default=(-1, -1), help='Pt range fo the fit: pass two values for min and max. If one of them (or both) is negative, the corresponding histogram range is used')
@@ -702,7 +762,15 @@ if __name__ == "__main__":
         print "Error: unknown channel %s (select 'el' or 'mu')" % channel
         quit()
     isEle = True if channel == "el" else False
-    lepton = "electron" if channel == "el" else "muon"
+
+    if options.charge not in ["", "plus","minus"]:
+        print "Error: unknown charge %s (select '' (means inclusive) or 'plus' or 'minus')" % charge
+        quit()
+        
+    charge = ""
+    if options.charge == "plus": charge = "positive"
+    if options.charge == "minus": charge = "negative"
+    lepton = "{ch} {lep}".format(ch=charge,lep="electron" if channel == "el" else "muon")
 
     if options.isMuonRecoToSel:
         if channel == "el":
@@ -744,6 +812,7 @@ if __name__ == "__main__":
         print "Error: you should specify an output file name using option -n <name>. Exit"
         quit()
     outfilename = ".".join(options.outfilename.split('.')[:-1]) + "_{lep}".format(lep="electrons" if channel=="el" else "muons")
+    if options.charge: outfilename = outfilename + "_" + options.charge
     if options.era: outfilename = outfilename + "_" + options.era
     if options.isWeightedAverage: outfilename = outfilename + "_full2016"
     if options.variable: outfilename = outfilename + "_" + options.variable
@@ -984,7 +1053,8 @@ if __name__ == "__main__":
                                 isMuonRecoToSel=options.isMuonRecoToSel,
                                 fitRange=options.range, hist_reducedChi2=hist_reducedChi2_MC,
                                 hist_ErfParam_vs_eta=hist_ErfParam_vs_eta_mc,
-                                hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_mc)
+                                hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_mc,
+                                charge=options.charge)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1020,7 +1090,8 @@ if __name__ == "__main__":
                                 isMuonRecoToSel=options.isMuonRecoToSel,
                                 fitRange=options.range, hist_reducedChi2=hist_reducedChi2_data,
                                 hist_ErfParam_vs_eta=hist_ErfParam_vs_eta_data,
-                                hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_data)
+                                hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_data,
+                                charge=options.charge)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1055,7 +1126,8 @@ if __name__ == "__main__":
                                 isTrigger=options.isTriggerScaleFactor,
                                 isFullID=options.isFullIDScaleFactor,
                                 isMuonRecoToSel=options.isMuonRecoToSel,
-                                fitRange=options.range, hist_reducedChi2=0)
+                                fitRange=options.range, hist_reducedChi2=0,
+                                charge=options.charge)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1330,10 +1402,63 @@ if __name__ == "__main__":
     for ix in range(1,hdataSmoothCheck.GetNbinsX()+1):
         for iy in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ieta = hdata.GetXaxis().FindFixBin(hdataSmoothCheck.GetXaxis().GetBinCenter(ix))
-            ipt = hdata.GetYaxis().FindFixBin(hdataSmoothCheck.GetYaxis().GetBinCenter(ix))
+            ipt = hdata.GetYaxis().FindFixBin(hdataSmoothCheck.GetYaxis().GetBinCenter(iy))
             hdataSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
             hmcSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
             scaleFactor.SetBinError(ix,iy,hsf.GetBinError(ieta,ipt))
+
+    # now I also smooth the scale factors versus eta
+    xarray = array('d', scaleFactor.GetXaxis().GetXbins())
+    # don't know why I can't get y binning as I did for X axis. Darn you ROOT!
+    # yarray = array('d', hist2d.GetYaxis().GetXbins())
+    # print yarray
+    tmparray = []
+    for i in range(1,scaleFactor.GetNbinsY()+2):
+        tmparray.append(round(scaleFactor.GetYaxis().GetBinLowEdge(i),4))
+    yarray = array('d', tmparray)
+
+    # xarray might not be uniform, so if we want more granularity, we must build the new binning bin by bin
+    binSplitFactor = 3  # 3 is good enough, with more splitting, the smooth affects only a narrower strip between two bins
+    newxarray = []
+    for i in range(len(xarray)-1):
+        width = xarray[i+1]-xarray[i]
+        for j in range(binSplitFactor):
+            newxarray.append(round(xarray[i] + float(j)*width/float(binSplitFactor), 4))
+    newxarray.append(xarray[-1])
+    #print newxarray   # I suggest you print once in life to see what happens
+
+    # do also a manual smoothing interpolating with a line (so modyfing the two sub-bins at the borders of the original bin)
+    scaleFactor_etaInterpolated = ROOT.TH2D("scaleFactor_etaInterpolated","",len(newxarray)-1, array('d',newxarray), len(yarray)-1, yarray)
+    # now fill it from the input (which is coarser)
+    for ix in range(1,1+scaleFactor_etaInterpolated.GetNbinsX()):
+        for iy in range(1,1+scaleFactor_etaInterpolated.GetNbinsY()):
+            xval = scaleFactor_etaInterpolated.GetXaxis().GetBinCenter(ix)
+            yval = scaleFactor_etaInterpolated.GetYaxis().GetBinCenter(iy)
+            hist2xbin = scaleFactor.GetXaxis().FindFixBin(xval)
+            hist2ybin = scaleFactor.GetYaxis().FindFixBin(yval)
+            scaleFactor_etaInterpolated.SetBinContent(ix,iy,scaleFactor.GetBinContent(hist2xbin,hist2ybin))
+            scaleFactor_etaInterpolated.SetBinError(ix,iy,scaleFactor.GetBinError(hist2xbin,hist2ybin))
+            # now interpolate eta
+            if ix == 1 or ix == scaleFactor_etaInterpolated.GetNbinsX(): continue # do not modify the outer bins
+            etabinID = ix%binSplitFactor  # which sub-bin inside the bin (if binSplitFactor=3, can be 1,2,0 for first, second and third sub-bin)
+            thisVal = scaleFactor.GetBinContent(hist2xbin,hist2ybin)
+            otherVal = 0
+            if  etabinID == 1:   
+                # if sub-bin on the left, take this -1/3 of the difference between this and the previous (computed in the central sub-bin)      
+                otherVal = scaleFactor.GetBinContent(hist2xbin-1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                scaleFactor_etaInterpolated.SetBinContent(ix,iy,val)
+            elif etabinID == 0:
+                # if sub-bin on the right, take this -1/3 of the difference between this and the following (computed in the central sub-bin)
+                otherVal = scaleFactor.GetBinContent(hist2xbin+1,hist2ybin)
+                val = thisVal - 1. * (thisVal - otherVal) / 3.
+                scaleFactor_etaInterpolated.SetBinContent(ix,iy,val)
+
+    drawCorrelationPlot(scaleFactor_etaInterpolated,
+                        "{lep} #eta".format(lep=lepton),"{lep} p_{{T}} [GeV]".format(lep=lepton),"Data/MC scale factor::%s" % zaxisRangeSF,
+                        "smoothScaleFactor_etaInterpolated","ForceTitle",
+                        outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)
+
 
     ###########################
     # Now save things
@@ -1344,6 +1469,7 @@ if __name__ == "__main__":
     hdataSmoothCheck.Write()
     hmcSmoothCheck.Write()
     scaleFactor.Write()
+    scaleFactor_etaInterpolated.Write()
     hsf.Write("scaleFactorOriginal")
     hdata.Write("efficiencyDataOriginal")
     hmc.Write("efficiencyMCOriginal")

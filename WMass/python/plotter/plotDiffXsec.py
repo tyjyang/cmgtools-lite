@@ -10,16 +10,19 @@ onlyData = 0
 
 skipPlot = 1
 skipDiffNuis = 1
-skipCorr = 0
-skipImpacts = 1
+skipCorr = 1
+skipImpacts = 0
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
-folder = "diffXsec_mu_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
-#folder = "diffXsec_el_2018_12_18_onlyBkg_pt2GeV_last3GeV_eta0p2From2p0/"
+
+#folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
+folder = "diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
+
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
-postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
+#postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
+postfix = "eosSkim_dressed_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -30,7 +33,7 @@ ptBinsSetting = " --pt-range-bkg 25.9 30.1 --eta-range-bkg 1.39 1.61  --pt-range
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS", 
+diffNuisances_pois = ["pdf.*|alphaS|mW", 
                       "muR.*|muF.*", 
                       "FakesEta.*", 
                       "ErfPar0EffStat.*", 
@@ -76,7 +79,7 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 # for impacts
 targets = ["mu", 
            #"xsec", 
-           #"xsecnorm"
+           "xsecnorm"
            ]
 
 # impacts_nuis = [".*pdf.*", 
@@ -88,8 +91,9 @@ targets = ["mu",
 #                 "GROUP"     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #                 ]
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
+#groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
+groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,lepScale'
                 
-
 impacts_pois = ["Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 "Wplus.*_ipt_8_.*",
                 "Wplus.*_ipt_11_.*",
@@ -180,13 +184,14 @@ for fit in fits:
     ## IMPACTS
     command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
-    command += " --abs-value --nContours 50 --margin '0.18,0.15,0.05,0.22' --canvasSize '1500,1200' "
+    command += " --abs-value --nContours 51 --margin '0.18,0.15,0.05,0.25' --canvasSize '1500,1200' "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     for poi in impacts_pois:
+        poi_noWildCards = poi.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
         for nuis in impacts_nuis:
             if nuis == "GROUP":
                 #varopt = " --nuisgroups '.*' --pois '{poi_regexp}' ".format(poi_regexp=poi)
-                varopt = " --nuisgroups 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS' --pois '{poi_regexp}' ".format(poi_regexp=poi)
+                varopt = " --nuisgroups '{ng}' --pois '{poi_regexp}' --parNameCanvas '_on_{p}' ".format(ng=groupnames,poi_regexp=poi,p=poi_noWildCards)
             else:
                 varopt = " --nuis '{nuis_regexp}' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
             for target in targets:
