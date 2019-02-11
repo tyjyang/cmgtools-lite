@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
     parser.add_option('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type='float', help='Bottom margin for the canvas')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
+    parser.add_option(      "--y-title",      dest="ytitle",  default="S+B fit #theta",   type="string",  help="Title for Y axis")
 
     (options, args) = parser.parse_args()
     infile = options.infile
@@ -273,7 +274,7 @@ if __name__ == "__main__":
         hist_fit_s.GetXaxis().SetLabelSize(0.045 if len(params) < 20 else 0.035)
         hist_fit_s.GetXaxis().LabelsOption("v")
 
-        hist_fit_s.GetYaxis().SetTitle('S+B fit #theta')
+        hist_fit_s.GetYaxis().SetTitle(options.ytitle)
         hist_fit_s.GetYaxis().SetTitleSize(0.05)
         hist_fit_s.GetYaxis().SetTitleOffset(0.80)
 
@@ -311,10 +312,11 @@ if __name__ == "__main__":
         if len(params) >= 10:
             ## hist_fit_1d  .Scale(1./len(params))
             ## hist_fit_1d_e.Scale(1./len(params))
-            hist_fit_1d.Fit('gaus')
-            ff = hist_fit_1d.GetFunction('gaus')
-            ff.SetLineColor(ROOT.kBlack)
-            hist_fit_1d  .Draw('')
+            if hist_fit_1d.GetStdDev() > 0.01:
+                hist_fit_1d.Fit('gaus')
+                ff = hist_fit_1d.GetFunction('gaus')
+                ff.SetLineColor(ROOT.kBlack)
+            hist_fit_1d  .Draw("HIST")
             canvas_nuis.Update()
             rightmax = 1.1*hist_fit_1d_e.GetMaximum()
             scale = ROOT.gPad.GetUymax()/rightmax

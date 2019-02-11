@@ -33,7 +33,7 @@ if __name__ == '__main__':
         print 'running systRatios for a few things'
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs  = ['pdf', 'alphaS', 'mW']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         print 'making correlation matrices'
         tmp_outdir = options.outdir+'/correlationMatrices/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         print 'plotting rapidity spectra'
         tmp_outdir = options.outdir+'/rapiditySpectra/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
-        os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
@@ -84,7 +84,7 @@ if __name__ == '__main__':
         for tmp_file in [i for i in results.keys() if 'postfit_' in i]:
             tmp_outdir = options.outdir+'/postFitPlots/'
             os.system('mkdir -p {od}'.format(od=tmp_outdir))
-            os.system('cp ~mdunser/public/index.php {od}'.format(od=tmp_outdir))
+            os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
             cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
             cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
             os.system(cmd)
