@@ -65,8 +65,8 @@ def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2):
         h1d_shifted.SetBinError(b+1,h1d.GetBinError(b+shift+1))
     return h1d_shifted
 
-def prepareLegend(legWidth=0.50,textSize=0.035):
-    (x1,y1,x2,y2) = (.75-legWidth, .70, .85, .87)
+def prepareLegend(legWidth=0.50,textSize=0.035,xmin=0.75):
+    (x1,y1,x2,y2) = (xmin-legWidth, .70, .85, .87)
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(3)
     leg.SetFillColor(0)
