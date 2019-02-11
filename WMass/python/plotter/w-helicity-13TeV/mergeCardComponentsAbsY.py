@@ -779,13 +779,12 @@ if __name__ == "__main__":
         # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
         ## first make a list of all the signal processes.
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
-        writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
-        writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
-        writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
-        writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
-
+        if not options.freezePOIs:
+            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
+            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
+            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
+            writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
         combinedCard.close()
-
             
         ## here we make a second datacard that will be masked. which for every process
         ## has a 1-bin histogram with the cross section for every nuisance parameter and
