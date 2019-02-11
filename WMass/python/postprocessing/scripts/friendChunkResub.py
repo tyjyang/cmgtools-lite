@@ -36,7 +36,8 @@ if __name__ == "__main__":
     txtfile=open(tmpfile,'r')
     for line in txtfile:
         l = line.rstrip()
-        if not l.endswith('OK') and not l.startswith('#'):
+        if l.startswith('#') or l.startswith('DONE'): continue
+        if not l.endswith('OK'):
             base = os.path.basename(l)
             tokens = base.split('.')
             dataset = '_'.join(tokens[0].split('_')[2:])
