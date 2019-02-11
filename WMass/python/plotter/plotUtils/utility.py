@@ -494,7 +494,8 @@ def drawSingleTH1(h1,
         ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
         ymin *= 0.9
         ymax *= 2.0
-        print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+        if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
     # print "#### WARNING ####"
     # print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
@@ -746,7 +747,8 @@ def drawDataAndMC(h1, h2,
         ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
         ymin *= 0.9
         ymax *= 2.0
-        print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+        if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
     # print "#### WARNING ####"
     # print "Hardcoding ymin = 0 in function drawDataAndMC(): change it if it is not what you need"

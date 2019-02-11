@@ -84,6 +84,8 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
+            else:
+                combineCmd += " --doImpacts  "
             fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
             fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
             if not os.path.exists(fitdir_data):
@@ -96,8 +98,8 @@ def combCharges(options):
             # add --saveHists --computeHistErrors 
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
             combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb1_cxs1 --outputDir {od} --doImpacts --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data)
-            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov)
+            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
+            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
             print combineCmd_data
             if not options.skip_combinetf:
                 os.system(combineCmd_data)
@@ -431,8 +433,8 @@ if nFakesEtaUncorrelated:
 
 
 # fakes
-#fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
-fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
+fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
+#fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
 for syst in fakeSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
