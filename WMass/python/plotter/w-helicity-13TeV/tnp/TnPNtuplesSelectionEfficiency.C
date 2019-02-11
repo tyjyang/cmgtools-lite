@@ -116,6 +116,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
   vector <float> cand_eta       = {};
   vector <float> cand_etaSc     = {};
   vector <float> cand_phi       = {};
+  vector <float> cand_charge    = {};
   vector <float> cand_eleTrgPt  = {};
   vector <float> cand_muTrgPt   = {};
   vector <float> cand_tkMuTrgPt = {};
@@ -218,6 +219,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       float lepEta   = LepGood_eta   [theOrigIndex];
       float lepScEta = LepGood_etaSc [theOrigIndex];
       float lepPhi   = LepGood_phi   [theOrigIndex];
+      float lepCharge= LepGood_charge[theOrigIndex];
 
       // this lep
       TLorentzVector thisRecoLep(0,0,0,0);
@@ -257,6 +259,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       cand_eta         . push_back(lepEta);
       cand_etaSc       . push_back(lepScEta);
       cand_phi         . push_back(lepPhi);
+      cand_charge      . push_back(lepCharge);
       cand_eleTrgPt    . push_back(LepGood_matchedTrgObjElePt[theOrigIndex]);
       cand_muTrgPt     . push_back(LepGood_matchedTrgObjMuPt[theOrigIndex]);
       cand_tkMuTrgPt   . push_back(LepGood_matchedTrgObjTkMuPt[theOrigIndex]);
@@ -280,6 +283,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       cand_eta         . clear();
       cand_etaSc       . clear();
       cand_phi         . clear();
+      cand_charge      . clear();
       cand_eleTrgPt    . clear();
       cand_muTrgPt     . clear();
       cand_tkMuTrgPt   . clear();
@@ -323,6 +327,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
         probe_lep_eta          = cand_eta         [iLep2];
         probe_sc_eta           = cand_etaSc       [iLep2];
         probe_lep_phi          = cand_phi         [iLep2];
+        probe_lep_charge       = cand_charge      [iLep2];
         probe_eleTrgPt         = cand_eleTrgPt    [iLep2];
         probe_muTrgPt          = cand_muTrgPt     [iLep2];
         probe_tkMuTrgPt        = cand_tkMuTrgPt   [iLep2];
@@ -346,6 +351,7 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
     cand_eta         . clear();
     cand_etaSc       . clear();
     cand_phi         . clear();
+    cand_charge      . clear();
     cand_matchMC     . clear();
     cand_hltSafeId   . clear();
     cand_customId    . clear();

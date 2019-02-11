@@ -23,12 +23,30 @@ if __name__ == "__main__":
     if options.outdir == 'indir':
         options.outdir = options.indir
 
+    xrdindir  = options.indir
+    xrdoutdir = options.outdir
+    ## use xrootd
+    if '/eos/cms/store/' in xrdindir and not 'eoscms' in xrdindir:
+        xrdindir = 'root://eoscms.cern.ch/'+xrdindir
+    if '/eos/user/' in xrdindir and not 'eosuser' in xrdindir:
+        xrdindir = 'root://eosuser.cern.ch/'+xrdindir
+
+    ## use xrootd also for output directory and file
+    if '/eos/cms/store/' in xrdoutdir and not 'eoscms' in xrdoutdir:
+        xrdoutdir = 'root://eoscms.cern.ch/'+xrdoutdir
+    if '/eos/user/' in xrdoutdir and not 'eosuser' in xrdoutdir:
+        xrdoutdir = 'root://eosuser.cern.ch/'+xrdoutdir
+
     for sd in os.listdir(options.indir):
         treefile = '/'.join([options.indir,sd,'treeProducerWMass','tree.root'])
+
         if not os.path.isfile(treefile): continue
+        print treefile
 
         if (options.channel == 'el' and 'SingleMu' in sd): continue
         if (options.channel == 'mu' and 'SingleEl' in sd): continue
+        ##if options.analyzer == 'selection' and 'DYJets' in sd: continue
+        if 'DYJets' in sd: continue
 
         print 'runing on file', treefile
 
@@ -38,7 +56,7 @@ if __name__ == "__main__":
         ## make the instance of the worker
         ##if 'el' in options.channel or 'mu' in options.channel:
         ## friends now also for muons!
-        ffile = options.indir+'/friends/tree_Friend_'+sd+'.root'
+        ffile = xrdindir+'/friendsNEWSCALE/tree_Friend_'+sd+'.root'
         tmp_friend_file = ROOT.TFile(ffile)
         tmp_friend_tree = tmp_friend_file.Get('Friends')
         ##else: 
@@ -61,7 +79,7 @@ if __name__ == "__main__":
         else: 
             tnp_worker.setFlavor(11)
 
-        tnp_worker.setOutfile(options.outdir+'/'+options.analyzer+'TnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
+        tnp_worker.setOutfile(xrdoutdir+'/'+options.analyzer+'TnP_'+os.path.basename(sd)+'_{ch}.root'.format(ch=options.channel))
         tnp_worker.Loop(options.maxentries)
     
         del tnp_worker ## this segfaults otherwise
