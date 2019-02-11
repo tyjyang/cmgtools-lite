@@ -83,12 +83,14 @@ class valueClass:
             self.graph_fit_rel.SetMarkerStyle(20)
             self.graph_fit_rel.SetMarkerColor(self.colorf)
 
-def plotValues(values,charge,options):
+def plotValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.15)
         c2.GetPad(0).SetLeftMargin(0.16)
         c2.GetPad(0).SetRightMargin(0.03)
+        c2.GetPad(0).SetTickx(1)
+        c2.GetPad(0).SetTicky(1)
 
         ch = '+' if charge == 'plus' else '-'
         if charge == 'asymmetry': ch = ''
@@ -100,44 +102,53 @@ def plotValues(values,charge,options):
         ## the four graphs exist now. now starting to draw them
         ## ===========================================================
         if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
-            leg = ROOT.TLegend(0.60, 0.50, 0.90, 0.90)
+            leg = ROOT.TLegend(0.60, 0.60 if options.nolong else 0.5, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph     , 'W^{{{ch}}}_{{left}} (PDF unc.)'  .format(ch=ch) , 'f')
-            leg.AddEntry(values['left'] .graph_fit , 'W^{{{ch}}}_{{left}} (fit)'       .format(ch=ch) , 'pl')
-            leg.AddEntry(values['right'].graph     , 'W^{{{ch}}}_{{right}} (PDF unc.)' .format(ch=ch) , 'f')
-            leg.AddEntry(values['right'].graph_fit , 'W^{{{ch}}}_{{right}} (fit)'      .format(ch=ch) , 'pl')
-            leg.AddEntry(values['long'] .graph     , 'W^{{{ch}}}_{{long}} (PDF unc.)'  .format(ch=ch) , 'f')
-            leg.AddEntry(values['long'] .graph_fit , 'W^{{{ch}}}_{{long}} (fit)'       .format(ch=ch) , 'pl')
+            # leg.AddEntry(values['left'] .graph     , 'W^{{{ch}}}_{{left}} (PDF unc.)'  .format(ch=ch) , 'f')
+            # leg.AddEntry(values['left'] .graph_fit , 'W^{{{ch}}}_{{left}} (fit)'       .format(ch=ch) , 'pl')
+            # leg.AddEntry(values['right'].graph     , 'W^{{{ch}}}_{{right}} (PDF unc.)' .format(ch=ch) , 'f')
+            # leg.AddEntry(values['right'].graph_fit , 'W^{{{ch}}}_{{right}} (fit)'      .format(ch=ch) , 'pl')
+            # if not options.nolong:
+            #     leg.AddEntry(values['long'] .graph     , 'W^{{{ch}}}_{{long}} (PDF unc.)'  .format(ch=ch) , 'f')
+            #     leg.AddEntry(values['long'] .graph_fit , 'W^{{{ch}}}_{{long}} (fit)'       .format(ch=ch) , 'pl')
+            leg.AddEntry(values['left'] .graph     , 'left (PDF unc.)'  .format(ch=ch) , 'f')
+            leg.AddEntry(values['left'] .graph_fit , 'left (fit)'       .format(ch=ch) , 'pl')
+            leg.AddEntry(values['right'].graph     , 'right (PDF unc.)' .format(ch=ch) , 'f')
+            leg.AddEntry(values['right'].graph_fit , 'right (fit)'      .format(ch=ch) , 'pl')
+            if not options.nolong:
+                leg.AddEntry(values['long'] .graph     , 'long (PDF unc.)'  .format(ch=ch) , 'f')
+                leg.AddEntry(values['long'] .graph_fit , 'long (fit)'       .format(ch=ch) , 'pl')
      
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
                 
             mg = ROOT.TMultiGraph()
             mg.Add(values['left'] .graph,'P2')
             mg.Add(values['right'].graph,'P2')
-            mg.Add(values['long'] .graph,'P2')
+            if not options.nolong: mg.Add(values['long'] .graph,'P2')
             mg.Add(values['left'] .graph_fit)
             mg.Add(values['right'].graph_fit)
-            mg.Add(values['long'] .graph_fit)
+            if not options.nolong: mg.Add(values['long'] .graph_fit)
      
             mg.Draw('Pa')
-            mg.GetXaxis().SetRangeUser(0.,6.)
+            mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('|Y_{W}|')
             if options.normxsec: 
-                mg.GetYaxis().SetTitle('d#sigma/dy/#sigma_{tot}')
-                mg.GetYaxis().SetRangeUser(-0.05,0.8)
+                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
+                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
             else: 
-                mg.GetYaxis().SetTitle('d#sigma/dy (pb)')
+                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
                 mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetXaxis().SetTitleSize(0.06)
             mg.GetXaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.2)
+            mg.GetYaxis().SetTitleOffset(1.3)
      
             leg.Draw('same')
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.65, 0.92, '36 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
      
             for ext in ['png', 'pdf']:
                 c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
@@ -145,8 +156,10 @@ def plotValues(values,charge,options):
         ## now make the relative error plot:
         ## ======================================
         if sum(hasattr(values[pol],'mg') for pol in ['left','right','long'])==3:
-            c2.Clear()
-            c2.Divide(1,3)
+            c2.Clear()            
+            #c2.SetBottomMargin(0.50)
+            c2.cd()
+            #c2.Divide(1,2 if options.nolong else 3) # not necessary
      
             line = ROOT.TF1("horiz_line","0" if charge=='asymmetry' else '1',0.0,3.0);
             line.SetLineColor(ROOT.kBlack);
@@ -157,46 +170,63 @@ def plotValues(values,charge,options):
                 yaxtitle = 'W charge asymmetry'
                 yaxrange['left'] = (0, 0.4); yaxrange['right'] = (-0.4, 0.4); yaxrange['long'] = (-1, 1)
             else:
-                yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{d#sigma/dy}{d#sigma^{exp}/dy}'
+                #yaxtitle = '#frac{d#sigma/dy/#sigma_{tot}}{d#sigma^{exp}/dy/#sigma^{exp}_{tot}}' if options.normxsec else '#frac{d#sigma/dy}{d#sigma^{exp}/dy}'
                 yaxrange['left'] = (0.70, 1.30); yaxrange['right'] = (0.70, 1.30); yaxrange['long'] = (-1., 3.0)
+                yaxtitle = '#frac{1}{#sigma} #frac{d#sigma}{d|Y_{W}|} / #frac{1}{#sigma^{exp}} #frac{d#sigma^{exp}}{d|Y_{W}|}' if options.normxsec else '#frac{d#sigma}{d|Y_{W}|} / #frac{d#sigma^{exp}}{d|Y_{W}|}'
      
             legs = []
-            pad_height, pad_width = 0.30, 0.85
+            #pad_height = 0.45 if options.nolong else 0.3
+            #pad_width = 0.85
             offset_top = 0.06
+            offset_down = 0.1
 
             pads = []
-            for  ih,hel in enumerate(['left','right','long']):
-                pad = ROOT.TPad('p'+str(ih), 'p'+str(ih), 0.00, 1.-offset_top-(ih+1)*pad_height, 1.00, 1.-offset_top-ih*pad_height)
+            helToPlot = ['left','right']
+            if not options.nolong: helToPlot.append('long')
+            nhelIndex = len(helToPlot) -1
+
+            pad_height = (1.-offset_top - offset_down)/len(helToPlot)
+            #print "pad_height = " + str(pad_height)
+
+            for  ih,hel in enumerate(helToPlot):
+                padbottom = 1.-offset_top - (ih+1)*pad_height
+                padtop = 1.-offset_top - ih*pad_height
+                #if ih ==nhelIndex: 
+                #    padbottom = 0 
+                pad = ROOT.TPad('p'+str(ih), 'p'+str(ih), 0.00, padbottom, 1.00, padtop)                
                 pad.SetRightMargin(0.03)
-                pad.SetLeftMargin (0.12)
+                pad.SetLeftMargin (0.14)
                 pad.SetTopMargin(0.03)
                 pad.SetBottomMargin(0.03)
-                if ih ==2:
-                    pad.SetBottomMargin(0.12)
+                pad.SetTickx(1)
+                pad.SetTicky(1)
+                if ih ==nhelIndex:
+                    pad.SetBottomMargin(offset_down)
+
         
                 pad.Draw()
                 pads.append(pad)
     
 
-            for  ih,hel in enumerate(['left','right','long']):
+            for  ih,hel in enumerate(helToPlot):
      
                 pads[ih].cd()
                 values[hel].mg.Draw('Pa')
                 ## x axis fiddling
-                values[hel].mg.GetXaxis().SetRangeUser(0., 3.)
+                values[hel].mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
                 values[hel].mg.GetXaxis().SetTitleSize(0.00)
-                if not ih == 2:
+                if not ih == nhelIndex:
                     values[hel].mg.GetXaxis().SetLabelSize(0.00)
                 else:
                     values[hel].mg.GetXaxis().SetLabelSize(0.10)
                 ## y axis fiddling
-                values[hel].mg.GetYaxis().SetTitleOffset(0.45)
-                values[hel].mg.GetYaxis().SetTitleSize(0.10)
+                values[hel].mg.GetYaxis().SetTitleOffset(0.75)
+                values[hel].mg.GetYaxis().SetTitleSize(0.08)
                 values[hel].mg.GetYaxis().SetLabelSize(0.08)
                 values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                 values[hel].mg.GetYaxis().SetRangeUser(yaxrange[hel][0],yaxrange[hel][1])
 
-                legx1, legx2, legy1, legy2 = 0.2, 0.7, 0.65, 0.9
+                legx1, legx2, legy1, legy2 = 0.2, 0.75, 0.65, 0.95
 
                 leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
                 leg.SetNColumns(2); leg.SetFillStyle(0); leg.SetBorderSize(0)
@@ -211,8 +241,8 @@ def plotValues(values,charge,options):
      
      
             c2.cd()
-            lat.DrawLatex(0.12, 0.94, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.65, 0.94, '36 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.14, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             lat.SetTextSize(0.04)
             lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
             for ext in ['png', 'pdf']:
@@ -237,6 +267,8 @@ if __name__ == "__main__":
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
+    parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component')
+    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.6'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
 
@@ -407,7 +439,7 @@ if __name__ == "__main__":
 
             allValues[pol] = tmp_val
 
-        plotValues(allValues,charge,options)
+        plotValues(allValues,charge,channel,options)
 
     if len(charges)>1:
         print "Making charge asymmetry plots now..."
@@ -440,4 +472,4 @@ if __name__ == "__main__":
             tmp_val.makeGraphs()
             asymmetryValues[pol] = tmp_val
         
-        plotValues(asymmetryValues,'asymmetry',options)
+        plotValues(asymmetryValues,'asymmetry',channel,options)

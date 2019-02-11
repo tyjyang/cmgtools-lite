@@ -30,10 +30,27 @@ ROOT.gStyle.SetPadRightMargin(0.13)
 
 def normalizeTH2byBinWidth(h2):
     for ix in range(1,1+h2.GetNbinsX()):
-        for iy in range(1,1+h2.GetNbinsX()):
+        for iy in range(1,1+h2.GetNbinsY()):
             binWidth = h2.GetXaxis().GetBinWidth(ix) * h2.GetYaxis().GetBinWidth(iy)
             h2.SetBinContent(ix,iy, h2.GetBinContent(ix,iy)/binWidth)
             h2.SetBinError(ix,iy, h2.GetBinError(ix,iy)/binWidth)
+
+
+def normalizeTH1unrolledSingleChargebyBinWidth(h1, h2, unrollAlongX=True):
+    # h2 is just used to retrieve the binning, the content is not used
+    # unrollAlongX should be true when X is eta and we are taking slices at costant pt
+    for ix in range(1,1+h2.GetNbinsX()):
+        for iy in range(1,1+h2.GetNbinsY()):
+            ibin = 0
+            if  unrollAlongX:
+                ibin = ix + (iy-1) * h2.GetNbinsX()
+            else:
+                ibin = iy + (ix-1) * h2.GetNbinsY()
+            binWidth = h2.GetXaxis().GetBinWidth(ix) * h2.GetYaxis().GetBinWidth(iy)
+            h1.SetBinContent(ibin, h1.GetBinContent(ibin)/binWidth)
+            h1.SetBinError(ibin,   h1.GetBinError(ibin)/binWidth)
+
+
 
 def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
     if len(binning) == 4:
@@ -70,10 +87,10 @@ def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2, name="shift"):
         h1d_shifted.SetBinError(b,h1d.GetBinError(b+shift))
     return h1d_shifted
 
-def prepareLegend(legWidth=0.50,textSize=0.035):
+def prepareLegend(legWidth=0.50,textSize=0.035,nColumns=3):
     (x1,y1,x2,y2) = (.75-legWidth, .73, .85, .90)
     leg = ROOT.TLegend(x1,y1,x2,y2)
-    leg.SetNColumns(3)
+    leg.SetNColumns(nColumns)
     leg.SetFillColor(0)
     leg.SetFillColorAlpha(0,0.6)
     leg.SetShadowColor(0)
@@ -258,7 +275,8 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=1, type='int', help='Number of masked channels in the fit for each charge')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_option(     '--no2Dplot-signal-bin', dest="no2DplotSignalBin", default=False, action='store_true', help="Do not plot templates for each signal bin");
+    parser.add_option(     '--no2Dplot-signal-bin', dest="no2DplotSignalBin", default=True, action='store_true', help="Do not plot templates for each signal bin");
+    parser.add_option('-n','--norm-width', dest="normWidth", default=False, action='store_true', help="Normalize histograms by bin area");
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
 
     (options, args) = parser.parse_args()
@@ -304,13 +322,13 @@ if __name__ == "__main__":
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
     colors = {'Wplus_{fl}'.format(fl=channel) : ROOT.kRed+2,
-              'Wminus_{fl}'.format(fl=channel): ROOT.kRed,
+              'Wminus_{fl}'.format(fl=channel): ROOT.kRed+1,
               'outliers'   : ROOT.kOrange+2,
               'Top'        : ROOT.kGreen+2,  
               'DiBosons'   : ROOT.kViolet+2, 
               'TauDecaysW' : ROOT.kSpring+9,       
               'Z'          : ROOT.kAzure+2,  
-              'Flips'      : ROOT.kGray+1,   
+              'Flips'      : ROOT.kCyan,   
               'data_fakes' : ROOT.kGray 
               }
          
@@ -319,6 +337,8 @@ if __name__ == "__main__":
     lep = "muon" if channel == "mu" else "electron"
     xaxisname2D = "{l} #eta".format(l=lep)
     yaxisname2D = "{l} p_{{T}} [GeV]".format(l=lep)
+
+    verticalAxisName = "Events / bin [GeV^{-1 }]" if options.normWidth else "Events"
 
     cwide = ROOT.TCanvas("cwide","",2400,600)                      
     cnarrow = ROOT.TCanvas("cnarrow","",650,700)                      
@@ -386,6 +406,9 @@ if __name__ == "__main__":
                                                                                                                   chs=chs)
                 h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift,nCharges=2,nMaskedCha=nMaskedChanPerCharge)
                 h1_unrolled = singleChargeUnrolled(h1_1,binshift, nMaskedCha=nMaskedChanPerCharge,name="unroll_"+name2D)
+                if options.normWidth:
+                    normalizeTH2byBinWidth(h2_backrolled_1)
+                    normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
                 single_sig_unrolled[genkeyplot] = h1_unrolled.Clone('W{chfl}_{gk}_unrolled'.format(chfl=chfl, gk=genkeyplot))
                 single_sig_unrolled[genkeyplot].SetDirectory(None)
                 if genEtaPtBin == 0:
@@ -410,7 +433,7 @@ if __name__ == "__main__":
                 if not options.no2DplotSignalBin:
                     h2_backrolled_1.Write(name2D)
                     cname = "W{chfl}_{gk}_diffXsec_{sfx}".format(chfl=chfl,gk=genkey,sfx=suffix)
-                    drawCorrelationPlot(h2_backrolled_1,xaxisname2D,yaxisname2D,"events",cname, "", 
+                    drawCorrelationPlot(h2_backrolled_1,xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
                                         outname, 0,0, False, False, False, 1, palette=57, passCanvas=canvas2D)
 
             if prepost=='prefit':
@@ -427,7 +450,7 @@ if __name__ == "__main__":
             if not options.no2Dplot:
                 total_sig[keyplot].Write(total_sig[keyplot].GetName())
                 cname = "W{chfl}_TOTALSIG_diffXsec_{sfx}".format(chfl=chfl,sfx=suffix)
-                drawCorrelationPlot(total_sig[keyplot],xaxisname2D,yaxisname2D,"events",cname, "", 
+                drawCorrelationPlot(total_sig[keyplot],xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
                                     outname, 0,0, False, False, False, 1, palette=57, passCanvas=canvas2D)
      
      
@@ -454,6 +477,9 @@ if __name__ == "__main__":
                 pname = p+"_"+prepost if 'obs' not in p else "obs"
                 h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=nMaskedChanPerCharge,name="unroll_"+pname)
                 h2_backrolled_1 = dressed2D(h1_1,binning,pname,titles[i],binshift,nMaskedCha=nMaskedChanPerCharge)
+                if options.normWidth:
+                    normalizeTH2byBinWidth(h2_backrolled_1)
+                    normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
                 bkg_and_data[keyplot] = h2_backrolled_1;  
                 bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); 
@@ -473,7 +499,7 @@ if __name__ == "__main__":
                 if not options.no2Dplot:
                     h2_backrolled_1.Write(str(p))
                     cname = "{proc}_{chfl}_diffXsec_{sfx}".format(proc=p, chfl=chfl, sfx=suffix)
-                    drawCorrelationPlot(h2_backrolled_1,xaxisname2D,yaxisname2D,"events",cname, "", 
+                    drawCorrelationPlot(h2_backrolled_1,xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
                                         outname, 0,0, False, False, False, 1, palette=57, passCanvas=canvas2D)
                     
             # now draw the 1D projections
@@ -492,6 +518,9 @@ if __name__ == "__main__":
             expfullName2D = 'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost)
             h2_expfull_backrolled = dressed2D(h1_expfull,binning,expfullName2D,expfullName2D,binshift, nMaskedCha=nMaskedChanPerCharge)
             h1_expfull_unrolled = singleChargeUnrolled(h1_expfull, binshift, nMaskedCha=nMaskedChanPerCharge, name="unroll_"+expfullName2D)
+            if options.normWidth:
+                normalizeTH2byBinWidth(h2_expfull_backrolled)
+                normalizeTH1unrolledSingleChargebyBinWidth(h1_expfull_unrolled,h2_expfull_backrolled,True)
      
             for projection in ['X','Y']:
                 nbinsProj = all_procs[chfl + "_" + 'obs'].GetNbinsY() if projection=='X' else all_procs[chfl + "_" + 'obs'].GetNbinsX()
@@ -521,19 +550,20 @@ if __name__ == "__main__":
                 xaxisProj = xaxisname2D if projection == "X" else yaxisname2D
                 cnameProj = "projection{pj}_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl, sfx=suffix)
                 ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
-                drawTH1dataMCstack(hdata,stack,xaxisProj, "Events", cnameProj, outname, leg, ratioYlabel,
+                drawTH1dataMCstack(hdata,stack,xaxisProj, verticalAxisName, cnameProj, outname, leg, ratioYlabel,
                                    1, passCanvas=cnarrow,hErrStack=hexpfull,lumi=35.9, )
                 #plotOne(charge,channel,stack,hexpfull,hdata,leg,outname,'projection%s'%projection,suffix,passCanvas=cnarrow,canvasSize="600,750")
             
             # now the unrolled, assign names to run monsterPull.py on them
             hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge, name='unrolled_{ch}_data'.format(ch=charge)).Clone('unrolled_{ch}_data'.format(ch=charge))
+            normalizeTH1unrolledSingleChargebyBinWidth(hdata_unrolled,h2_expfull_backrolled,True)            
             hdata_unrolled.SetDirectory(None)
             htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); 
             htot_unrolled.Reset("ICES"); 
             htot_unrolled.Sumw2()
             htot_unrolled.SetDirectory(None)
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
-            leg_unrolled = prepareLegend(legWidth=0.10)
+            leg_unrolled = prepareLegend(legWidth=0.10,nColumns=5)
             for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                 keycolor = key.replace('_prefit','').replace('_postfit','').replace(chfl + "_", "" )
                 if "outliers" in keycolor: keycolor = "outliers"
@@ -550,16 +580,19 @@ if __name__ == "__main__":
             print "Integral stack = " + str(stack_unrolled.GetStack().Last().Integral())
             print "Integral htot  = " + str(htot_unrolled.Integral())
             leg_unrolled.AddEntry(hdata_unrolled,'data','PE')
+            leg_unrolled.SetNColumns(5)
             #htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
-            #htot_unrolled.GetYaxis().SetTitle('Events')
+            #htot_unrolled.GetYaxis().SetTitle(verticalAxisName)
             #htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
 
             cnameUnroll = "unrolled_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl, sfx=suffix)
+            XlabelUnroll = "unrolled template along #eta: #eta #in [%.1f, %.1f]" % (recoBins.etaBins[0], recoBins.etaBins[-1])
+            YlabelUnroll = verticalAxisName + "::%.2f,%.2f" % (0, 2.*hdata_unrolled.GetBinContent(hdata_unrolled.GetMaximumBin()))
             ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
             ptBinRanges = []
             for ipt in range(0,recoBins.Npt):
                 ptBinRanges.append("p_{{T}} #in [{ptmin:3g},{ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
-            drawTH1dataMCstack(hdata_unrolled,stack_unrolled, "unrolled template", "Events", cnameUnroll, outname, leg, ratioYlabel,
+            drawTH1dataMCstack(hdata_unrolled,stack_unrolled, XlabelUnroll, YlabelUnroll, cnameUnroll, outname, leg, ratioYlabel,
                                1, passCanvas=cwide,hErrStack=h1_expfull_unrolled,lumi=35.9,wideCanvas=True, leftMargin=0.05,rightMargin=0.02, 
                                drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
             #plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True,passCanvas=cwide)

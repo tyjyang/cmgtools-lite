@@ -17,6 +17,9 @@
 
 # python w-helicity-13TeV/templateRolling.py cards/diffXsec_el_2018_11_24_group10_onlyBkg/ -o plots/diffXsec/templates/diffXsec_el_2018_11_24_group10_onlyBkg/ -c el --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 --skipSyst -C minus
 
+# example: electron 05/02/2019
+# python w-helicity-13TeV/templateRolling.py cards/diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/ -o plots/diffXsecAnalysis/electron/diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/templateRolling/ -c el --plot-binned-signal -a diffXsec --draw-selected-etaPt 0.75,40.5 -C plus --pt-range "30,45" --syst-ratio-range "template"
+
 import ROOT, os
 from array import array
 from make_diff_xsec_cards import getArrayParsingString
@@ -222,6 +225,18 @@ if __name__ == "__main__":
             print "Signal"
             if analysis == "helicity":                
                 hSigInclusive = {}
+
+                inclSigName = 'W{ch}_{flav}_inclusive'.format(ch=charge,flav=channel)
+                inclSigTitle = 'W{chs} inclusive'.format(chs=chs)
+                hSigInclusiveTot = ROOT.TH2F(inclSigName,inclSigTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
+                hSigInclusive_syst = {}
+                if not options.skipSyst:
+                    for systvar in allsystsUpDn:
+                        #print "Syst: ", systvar
+                        sysName  = inclSigName  + "_" + systvar
+                        sysTitle = inclSigTitle + "_" + systvar
+                        hSigInclusive_syst[systvar] = ROOT.TH2F(sysName,sysTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
+
                 for pol in ['right', 'left','long']:
                     print "\tPOLARIZATION ",pol
                     # at this level we don't know how many bins we have, but we know that, for nominal templates, Ybin will be the second last token if we split the template name on '_' 
@@ -229,50 +244,116 @@ if __name__ == "__main__":
                     inclSigTitle = 'W{chs} {pol} inclusive'.format(pol=pol,chs=chs)
                     hSigInclusive[pol] = ROOT.TH2F(inclSigName,inclSigTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
                     bins_charge_pol = binningYW["{ch}_{pol}".format(ch=charge,pol=pol)]
+                    hSigInclusivePol_syst = {}
+                    if not options.skipSyst:
+                        for systvar in allsystsUpDn:
+                        #print "Syst: ", systvar
+                            sysName  = inclSigName  + "_" + systvar
+                            sysTitle = inclSigTitle + "_" + systvar
+                            hSigInclusivePol_syst[systvar] = ROOT.TH2F(sysName,sysTitle,recoBins.Neta, array('d',recoBins.etaBins), recoBins.Npt, array('d',recoBins.ptBins))
 
                     for k in infile.GetListOfKeys():
                         name=k.GetName()
                         obj=k.ReadObj()
                         signalMatch = "{ch}_{pol}_{flav}_Ybin_".format(ch=charge,pol=pol,flav=channel)                        
                         # name.split('_')[-2] == "Ybin" : this excludes systematics
-                        if obj.InheritsFrom("TH1") and signalMatch in name and name.split('_')[-2] == "Ybin":
+                        if obj.InheritsFrom("TH1") and signalMatch in name:
 
-                            #print ">>>> CHECKPOINT"
-                            ## need to implement a way of getting the rapidity binning    
-                            # jobsdir = args[0]+'/jobs/'
-                            # jobfile_name = 'W{ch}_{flav}_Ybin_{b}.sh'.format(ch=charge,flav=channel,b=ybin)
-                            # tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-                            # tmp_line = tmp_jobfile.readlines()[-1].split()
-                            # ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
-                            # ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]               
-                            ybin = name.split('_')[-1]                            
-                            ymin = str(bins_charge_pol[int(ybin)]) # "X" # dummy for the moment
-                            ymax = str(bins_charge_pol[int(ybin)+1])
-                            name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
-                            title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
-                            h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
-                            h2_backrolled_1.Write(name2D)
-                            hSigInclusive[pol].Add(h2_backrolled_1)
-                            # print "pol {}: Ybin {} --> Integral {}"
+                            notSystProcess = False
+                            if any(name.endswith(x) for x in ["Up","Down"]): notSystProcess = False
+                            else:                                            notSystProcess = True
 
-                            if options.draw_all_bins: drawThisBin = True
-                            else: drawThisBin = False
+                            #if name.split('_')[-2] == "Ybin":
+                            if notSystProcess:                            
 
-                            if not options.noplot and drawThisBin:
-                                zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
-                                drawCorrelationPlot(h2_backrolled_1, 
-                                                    xaxisTitle, yaxisTitle, zaxisTitle, 
-                                                    'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
-                                                    "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+                                #print ">>>> CHECKPOINT"
+                                ## need to implement a way of getting the rapidity binning    
+                                # jobsdir = args[0]+'/jobs/'
+                                # jobfile_name = 'W{ch}_{flav}_Ybin_{b}.sh'.format(ch=charge,flav=channel,b=ybin)
+                                # tmp_jobfile = open(jobsdir+jobfile_name, 'r')
+                                # tmp_line = tmp_jobfile.readlines()[-1].split()
+                                # ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
+                                # ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]               
+                                ybin = name.split('_')[-1]                            
+                                ymin = str(bins_charge_pol[int(ybin)]) # "X" # dummy for the moment
+                                ymax = str(bins_charge_pol[int(ybin)+1])
+                                name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                                title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
+                                h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
+                                h2_backrolled_1.Write(name2D)
+                                hSigInclusive[pol].Add(h2_backrolled_1)
+                                # print "pol {}: Ybin {} --> Integral {}"
+
+                                if options.draw_all_bins: drawThisBin = True
+                                else: drawThisBin = False
+
+                                if not options.noplot and drawThisBin:
+                                    zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
+                                    drawCorrelationPlot(h2_backrolled_1, 
+                                                        xaxisTitle, yaxisTitle, zaxisTitle, 
+                                                        'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
+                                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+                            
+                            elif not options.skipSyst:
+                                systvar = name.split('_')[-1]
+                                if re.match(options.doSigSyst,systvar):
+                                    h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
+                                    hSigInclusivePol_syst[systvar].Add(h2_backrolled_1)
+                                    #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusivePol_syst[systvar].Integral())
+                                
 
                     hSigInclusive[pol].Write()
+                    hSigInclusiveTot.Add(hSigInclusive[pol])
                     if not options.noplot:
                         zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive[pol].GetMaximum())
                         drawCorrelationPlot(hSigInclusive[pol], 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
                                             "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
-                                                
+
+                        if not options.skipSyst:
+                            for systvar in allsystsUpDn:
+                                #print "systvar = %s: integral = %.1f" % (systvar, hSigInclusivePol_syst[systvar].Integral())
+                                #print "Inclusive template: integral = %.1f" % hSigInclusive.Integral()
+                                hSigInclusive_syst[systvar].Add(hSigInclusivePol_syst[systvar])
+                                hSigInclusivePol_syst[systvar].Divide(hSigInclusive[pol])
+                                if options.syst_ratio_range == "template":
+                                    zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusivePol_syst[systvar],excludeMin=0.0),
+                                                                                     getMaximumTH(hSigInclusivePol_syst[systvar]))
+                                else:
+                                    ratiomin = options.syst_ratio_range.split(',')[0]
+                                    ratiomax = options.syst_ratio_range.split(',')[1]
+                                    zaxisTitle = "Events::%s,%s" % (ratiomin,ratiomax)
+                                drawCorrelationPlot(hSigInclusivePol_syst[systvar], 
+                                                    xaxisTitle, yaxisTitle, zaxisTitle, 
+                                                    "systOverNorm_"+hSigInclusivePol_syst[systvar].GetName(),
+                                                    "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
+
+                hSigInclusiveTot.Write()
+                # fully inclusive plots 
+                if not options.noplot:
+                    zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusiveTot.GetMaximum())
+                    drawCorrelationPlot(hSigInclusiveTot, 
+                                        xaxisTitle, yaxisTitle, zaxisTitle, 
+                                        'W_{ch}_{flav}_inclusive'.format(ch=charge,flav=channel),
+                                        "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+                    if not options.skipSyst:
+                        for systvar in allsystsUpDn:
+                            hSigInclusive_syst[systvar].Divide(hSigInclusiveTot)
+                            if options.syst_ratio_range == "template":
+                                zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusive_syst[systvar],excludeMin=0.0),
+                                                                                 getMaximumTH(hSigInclusive_syst[systvar]))
+                            else:
+                                ratiomin = options.syst_ratio_range.split(',')[0]
+                                ratiomax = options.syst_ratio_range.split(',')[1]
+                                zaxisTitle = "Events::%s,%s" % (ratiomin,ratiomax)
+                            drawCorrelationPlot(hSigInclusive_syst[systvar], 
+                                                xaxisTitle, yaxisTitle, zaxisTitle, 
+                                                "systOverNorm_"+hSigInclusive_syst[systvar].GetName(),
+                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
+                                
             else:  
 
                 inclSigName = 'W{ch}_{flav}_inclusive'.format(ch=charge,flav=channel)
@@ -384,7 +465,7 @@ if __name__ == "__main__":
                 signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
                 titles.append(signalTitle)
 
-            fakesysts = ["CMS_We_FRe_slope"] if channel == "el" else ["CMS_Wmu_FRmu_slope"]
+            fakesysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if channel == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
             # for i in range(1,11):
             #     fakesysts.append("FakesEtaUncorrelated%d" % i)
 

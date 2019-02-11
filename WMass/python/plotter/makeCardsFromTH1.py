@@ -84,6 +84,8 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
             if options.freezePOIs:
                 combineCmd += " --POIMode none"
+            else:
+                combineCmd += " --doImpacts  "
             fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
             fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
             if not os.path.exists(fitdir_data):
@@ -96,8 +98,8 @@ def combCharges(options):
             # add --saveHists --computeHistErrors 
             print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
             combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data)
-            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb1_cxs1 --outputDir {od} --doImpacts ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov)
+            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
+            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
             print combineCmd_data
             if not options.skip_combinetf:
                 os.system(combineCmd_data)
@@ -204,7 +206,7 @@ genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
 
 binning = [genBins.Neta, genBins.etaBins, genBins.Npt, genBins.ptBins]
 
-
+allSystForGroups = [] # filled with all systs not excluded by excludeNuisances
 excludeNuisances = []
 if len(options.excludeNuisances):
     excludeNuisances = options.excludeNuisances.split(",")
@@ -395,6 +397,7 @@ if options.systfile != "":
         systs[name] = effmap
     for name,effmap in systs.iteritems():
         if isExcludedNuisance(excludeNuisances, name): continue
+        allSystForGroups.append(name)
         card.write(('%-16s lnN' % name) + " ".join([kpatt % effmap[p]   for p in allprocesses]) +"\n")
 
 
@@ -402,14 +405,12 @@ if options.systfile != "":
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
 if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bkg):
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
-    card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
+    if not isExcludedNuisance(excludeNuisances, "CMS_Wbkg"): 
+        allSystForGroups.append("CMS_Wbkg")
+        card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
 
-# fakes
-#fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
-fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
-for syst in fakeSysts:
-    if isExcludedNuisance(excludeNuisances, syst): continue
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
+###########
+####### Nuisances for fakes
 
 # independent eta normalizations variations for fakes, by 5%. 
 # Get the actual number counting the histograms in case it changes or is not present
@@ -427,7 +428,17 @@ if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
         syst = "FakesEtaUncorrelated{d}".format(d=i)
         if isExcludedNuisance(excludeNuisances, syst): continue
-        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
+
+
+# fakes
+fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
+#fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
+for syst in fakeSysts:
+    if isExcludedNuisance(excludeNuisances, syst): continue
+    allSystForGroups.append(syst)
+    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
 sortedsystkeys = []
 
@@ -440,6 +451,7 @@ qcdUnbinned = ["muR", "muF", "muRmuF"]
 if len(procQCDunbin):
     for syst in qcdUnbinned:
         if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
         if options.unbinnedQCDscaleW: sortedsystkeys.append(syst)
 
@@ -452,12 +464,14 @@ for syst in qcdAndPDF:
     nSigma = "1.0"
     if "alphaS" in syst:
         # the alphaS variations should be scaled so that one sigma corresponds to +-0.0015 (weights correspond to +-0.001)
-        nSigma = 0.67
+        nSigma = "0.67"
+    allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
 
 # W only
 if not isExcludedNuisance(excludeNuisances, "mW"): 
+    allSystForGroups.append("mW")
     card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append("mW")
 
@@ -468,6 +482,7 @@ for i in range(1,11):
     qcdScale_wptBins.append("muRmuF%d" % i)
 for syst in qcdScale_wptBins:
     if isExcludedNuisance(excludeNuisances, syst): continue
+    allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
     sortedsystkeys.append(syst)
     
@@ -475,6 +490,7 @@ for syst in qcdScale_wptBins:
 wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 for syst in wExpSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
+    allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
 
 #effstatOffset = 25 if genBins.Neta == 24 else 26  ## FIXME: doesn't work if the binning is not 0.1 wide in eta
@@ -505,20 +521,24 @@ for ipar in range(3):
             continue
 
         EffStat_systs.append(syst)
+        allSystForGroups.append(syst)
         matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
         if not options.noEffStatZ: matchesForEffStat.append("Z")
         #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
 card.write("\n")
-card.write("pdfs group = %s\n\n" % ' '.join(["pdf%d" % i for i in range(1,61)] ) )
-card.write("scales group = " + ' '.join(qcdScale_wptBins) + "\n\n")
-card.write("alphaS group = alphaS\n\n")
-card.write("wmodel group = mW\n\n")
-card.write("EffStat group = %s\n\n" % ' '.join(EffStat_systs))
-if options.unbinnedQCDscaleZ:
-    card.write("Zscales group = muR muF muRmuF") 
-#card.write("fakes group = " + ' '.join(fakeSysts) + " \n\n")
+if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV"): card.write("luminosity group = CMS_lumi_13TeV\n\n")
+#if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
+card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
+card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
+card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
+card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
+card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|slope|continuous)',x),allSystForGroups) +
+                                            filter(lambda x: re.match('FakesEtaUncorrelated.*',x),allSystForGroups)) + "\n\n")
+card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
+card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
+
 
 card.write("\n")
 card.write("## THE END!\n")
@@ -563,7 +583,7 @@ for p in allprocesses:
                     isInAccProc[p] = True
 
 ## xsecfilename                                                                                           
-xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_preFSR_mu_pt0p5_eta0p1_etaGap_yields.root"
+xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields.root"
 # FIXME: following file has pt binning with width = 1GeV!
 if options.xsecMaskedYields:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"
@@ -605,7 +625,6 @@ for maskChan in maskedChannels:
     tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
     tmp_xsec_dc.write('# --------------------------------------------------------------\n')
     for sys in sortedsystkeys: # this is only theoretical systs
-        # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE           
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     tmp_xsec_dc.close()
 

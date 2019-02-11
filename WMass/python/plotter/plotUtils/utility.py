@@ -386,10 +386,11 @@ def drawCorrelationPlot(h2D_tmp,
         h2DProfile.Draw("EPsame")
         
     # not yet implemented
+    setTDRStyle()
     if not plotLabel == "ForceTitle": 
         if lumi != None: CMS_lumi(canvas,lumi,True,False)
         else:            CMS_lumi(canvas,"",True,False)
-    setTDRStyle()
+    #setTDRStyle()
     #print ">>>>>>>>>>>>>> check <<<<<<<<<<<<<<<<<<<"
 
     if plotLabel == "ForceTitle":
@@ -431,12 +432,15 @@ def drawSingleTH1(h1,
                   rightMargin=0.04,
                   labelRatioTmp="Rel.Unc.::0.5,1.5",
                   drawStatBox=False,
-                  legendCoords="0.15,0.35,0.3,0.45",  # x1,x2,y1,y2
+                  legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
-                  drawLineLowerPanel="lumi. uncertainty::0.025", # if not empty, draw band at 1+ number after ::, and add legend with title
+                  drawLineLowerPanel="luminosity uncertainty::0.025", # if not empty, draw band at 1+ number after ::, and add legend with title
                   passCanvas=None,
-                  lumi=None
+                  lumi=None,
+                  drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+                  textForLines=[],                       
+                  moreText=""
                   ):
 
     if (rebinFactorX): 
@@ -447,6 +451,8 @@ def drawSingleTH1(h1,
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
+
+    yAxisTitleOffset = 1.15 if leftMargin > 0.1 else 0.6
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -485,13 +491,16 @@ def drawSingleTH1(h1,
     #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
     if ymin == ymax == 0.0:
-        ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)    
-        #print "Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+        ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
+        ymin *= 0.9
+        ymax *= 2.0
+        if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
-    print "#### WARNING ####"
-    print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
-    print "#################"
-    ymin = 0 # hardcoded
+    # print "#### WARNING ####"
+    # print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
+    # print "#################"
+    # ymin = 0 # hardcoded
 
     if lowerPanelHeight:
         h1.GetXaxis().SetLabelSize(0)
@@ -502,10 +511,10 @@ def drawSingleTH1(h1,
         h1.GetXaxis().SetTitleSize(0.05)
         h1.GetXaxis().SetLabelSize(0.04)
     h1.GetYaxis().SetTitle(yAxisName)
-    h1.GetYaxis().SetTitleOffset(1.15)
+    h1.GetYaxis().SetTitleOffset(yAxisTitleOffset) 
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
-    h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.1)
+    h1.GetYaxis().SetRangeUser(ymin, ymax)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("HIST")
     h1err = h1.Clone("h1err")
@@ -519,9 +528,9 @@ def drawSingleTH1(h1,
     legcoords = [float(x) for x in legendCoords.split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
-    leg.SetFillColor(0)
-    leg.SetFillStyle(0)
-    leg.SetBorderSize(0)
+    #leg.SetFillColor(0)
+    #leg.SetFillStyle(0)
+    #leg.SetBorderSize(0)
     leg.AddEntry(h1,"Value","L")
     leg.AddEntry(h1err,"Uncertainty","F")
     leg.Draw("same")
@@ -534,6 +543,47 @@ def drawSingleTH1(h1,
     else:
         h1.SetStats(0)
 
+    vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
+            vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = (1.1)*ymax/2.  
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+    # redraw legend, or vertical lines appear on top of it
+    leg.Draw("same")
+
+    if len(moreText):
+        realtext = moreText.split("::")[0]
+        x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
+        if "::" in moreText:
+            x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
+        pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
+        pavetext.AddText(realtext)
+        pavetext.SetFillColor(0)
+        pavetext.SetFillStyle(0)
+        pavetext.SetBorderSize(0)
+        pavetext.SetLineColor(0)
+        pavetext.Draw("same")
+
   # TPaveText *pvtxt = NULL;
   # if (yAxisName == "a.u.") {
   #   pvtxt = new TPaveText(0.6,0.6,0.95,0.7, "BR NDC")
@@ -544,8 +594,8 @@ def drawSingleTH1(h1,
   #   pvtxt.Draw()
   # }
 
-    if lumi != None: CMS_lumi(canvas,"",True,False)
-    else:            CMS_lumi(canvas,lumi,True,False)
+    if lumi != None: CMS_lumi(canvas,lumi,True,False)
+    else:            CMS_lumi(canvas,"",True,False)
     setTDRStyle()
 
     if lowerPanelHeight:
@@ -558,7 +608,7 @@ def drawSingleTH1(h1,
         #frame.GetYaxis().SetRangeUser(0.5,1.5)
         frame.GetYaxis().SetNdivisions(5)
         frame.GetYaxis().SetTitle(yRatioAxisName)
-        frame.GetYaxis().SetTitleOffset(1.15)
+        frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
         frame.GetYaxis().SetTitleSize(0.05)
         frame.GetYaxis().SetLabelSize(0.04)
         frame.GetYaxis().CenterTitle()
@@ -595,7 +645,7 @@ def drawSingleTH1(h1,
             line3.SetLineColor(ROOT.kBlue)
             line3.SetLineWidth(2)
             line3.Draw("Lsame")
-            leg2 = ROOT.TLegend(0.15,0.22,0.35,0.32)
+            leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
             leg2.SetFillColor(0)
             leg2.SetFillStyle(0)
             leg2.SetBorderSize(0)
@@ -632,13 +682,16 @@ def drawDataAndMC(h1, h2,
                   rightMargin=0.04,
                   labelRatioTmp="Data/pred.::0.5,1.5",
                   drawStatBox=False,
-                  legendCoords="0.15,0.35,0.76,0.9",  # x1,x2,y1,y2
+                  legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
                   #drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
                   passCanvas=None,
-                  lumi=None
+                  lumi=None,
+                  drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+                  textForLines=[],                       
+                  moreText=""
                   ):
 
     # h1 is data, h2 in MC
@@ -651,6 +704,8 @@ def drawDataAndMC(h1, h2,
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
+
+    yAxisTitleOffset = 1.15 if leftMargin > 0.1 else 0.6
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -689,13 +744,16 @@ def drawDataAndMC(h1, h2,
     #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
     if ymin == ymax == 0.0:
-        ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)    
-        #print "Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+        ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
+        ymin *= 0.9
+        ymax *= 2.0
+        if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
-    print "#### WARNING ####"
-    print "Hardcoding ymin = 0 in function drawDataAndMC(): change it if it is not what you need"
-    print "#################"
-    ymin = 0 # hardcoded
+    # print "#### WARNING ####"
+    # print "Hardcoding ymin = 0 in function drawDataAndMC(): change it if it is not what you need"
+    # print "#################"
+    # ymin = 0 # hardcoded
 
     if lowerPanelHeight:
         h1.GetXaxis().SetLabelSize(0)
@@ -706,13 +764,10 @@ def drawDataAndMC(h1, h2,
         h1.GetXaxis().SetTitleSize(0.05)
         h1.GetXaxis().SetLabelSize(0.04)
     h1.GetYaxis().SetTitle(yAxisName)
-    h1.GetYaxis().SetTitleOffset(1.15)
+    h1.GetYaxis().SetTitleOffset(yAxisTitleOffset)
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
-    if setYAxisRangeFromUser:
-        h1.GetYaxis().SetRangeUser(ymin, ymax)    
-    else:
-        h1.GetYaxis().SetRangeUser(ymin * 0.9, ymax * 1.5)    
+    h1.GetYaxis().SetRangeUser(ymin, ymax)    
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("EP")
     #h1err = h1.Clone("h1err")
@@ -743,6 +798,47 @@ def drawDataAndMC(h1, h2,
     else:
         h1.SetStats(0)
 
+    vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
+            vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = (1.1)*ymax/2.                  
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+    # redraw legend, or vertical lines appear on top of it
+    leg.Draw("same")
+
+    if len(moreText):
+        realtext = moreText.split("::")[0]
+        x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
+        if "::" in moreText:
+            x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
+        pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
+        pavetext.AddText(realtext)
+        pavetext.SetFillColor(0)
+        pavetext.SetFillStyle(0)
+        pavetext.SetBorderSize(0)
+        pavetext.SetLineColor(0)
+        pavetext.Draw("same")
+
   # TPaveText *pvtxt = NULL;
   # if (yAxisName == "a.u.") {
   #   pvtxt = new TPaveText(0.6,0.6,0.95,0.7, "BR NDC")
@@ -753,8 +849,8 @@ def drawDataAndMC(h1, h2,
   #   pvtxt.Draw()
   # }
 
-    if lumi != None: CMS_lumi(canvas,"",True,False)
-    else:            CMS_lumi(canvas,lumi,True,False)
+    if lumi != None: CMS_lumi(canvas,lumi,True,False)
+    else:            CMS_lumi(canvas,"",True,False)
     setTDRStyle()
 
     if lowerPanelHeight:
@@ -767,7 +863,7 @@ def drawDataAndMC(h1, h2,
         #frame.GetYaxis().SetRangeUser(0.5,1.5)
         frame.GetYaxis().SetNdivisions(5)
         frame.GetYaxis().SetTitle(yRatioAxisName)
-        frame.GetYaxis().SetTitleOffset(1.15)
+        frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
         frame.GetYaxis().SetTitleSize(0.05)
         frame.GetYaxis().SetLabelSize(0.04)
         frame.GetYaxis().CenterTitle()
@@ -800,11 +896,11 @@ def drawDataAndMC(h1, h2,
         line.SetLineWidth(2)
         line.Draw("Lsame")
 
-        leg2 = ROOT.TLegend(0.15,0.25,0.35,0.30)
+        leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
         leg2.SetFillColor(0)
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)
-        leg2.AddEntry(den,"total unc. exp.","LF")
+        leg2.AddEntry(den,"total expected uncertainty","LF")
         leg2.Draw("same")
         
         pad2.RedrawAxis("sameaxis")
@@ -1173,7 +1269,7 @@ def drawTH1dataMCstack(h1, thestack,
             vertline.DrawLine(etarange*i,0,etarange*i,ymaxBackup)
         if len(textForLines):
             for i in range(0,len(textForLines)): # we need nptBins texts
-                bintext.DrawLatex(etarange*i + etarange/4., ymaxBackup/2., textForLines[i])
+                bintext.DrawLatex(etarange*i + etarange/4., 1.1*ymaxBackup/2., textForLines[i])
 
     # legend.SetFillColor(0)
     # legend.SetFillStyle(0)

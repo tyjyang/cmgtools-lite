@@ -186,6 +186,15 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
         borderBins += [len(etabins)]
 
+        if isMu: scalings = [0.05 for b in borderBins]
+        else:
+            scalings = []
+            for ib, borderBin in enumerate(borderBins):
+                distFromCenter = abs(ib-(len(borderBins)-1)/2+0.5)
+                if   distFromCenter<1: scalings.append(0.01)
+                elif distFromCenter<2: scalings.append(0.02)
+                else:                  scalings.append(0.05)
+
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
@@ -198,7 +207,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 ## loop over all pT bins in that bin of eta (which is ieta)
                 for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
-                    scaling = 0.05
+                    scaling = scalings[ib]
                     ## scale up and down with what we got from the histo
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)
                     tmp_bincontent_dn = tmp_bincontent*(1.-scaling)

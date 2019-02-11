@@ -41,7 +41,7 @@ def niceName(name):
         nn  = '#mu: ' if '_mu_' in name else 'el: '
         nn += 'W+ ' if 'plus' in name else 'W- '
         ieta,ipt = get_ieta_ipt_from_process_name(name)
-        nn += "i#eta,ip_{{T}}={neta},{npt} ".format(neta=ieta,npt=ipt)
+        nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
         if 'pmaskedexp' in name: nn += ' #sigma'
         if 'norm' in name: nn += '_{norm}'
         return nn
