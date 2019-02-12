@@ -38,6 +38,8 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("tag_lep_pt"             , &tag_lep_pt             , "tag_lep_pt/F");
   outTree_->Branch("tag_lep_eta"            , &tag_lep_eta            , "tag_lep_eta/F");
   outTree_->Branch("tag_lep_matchMC"        , &tag_lep_matchMC        , "tag_lep_matchMC/I");
+  outTree_->Branch("probe_lep_truept"       , &probe_lep_truept       , "probe_lep_truept/F");
+  outTree_->Branch("probe_lep_trueeta"      , &probe_lep_trueeta      , "probe_lep_trueeta/F");
   outTree_->Branch("probe_lep_pt"           , &probe_lep_pt           , "probe_lep_pt/F");
   outTree_->Branch("probe_lep_eta"          , &probe_lep_eta          , "probe_lep_eta/F");
   outTree_->Branch("probe_sc_eta"           , &probe_sc_eta           , "probe_sc_eta/F");
