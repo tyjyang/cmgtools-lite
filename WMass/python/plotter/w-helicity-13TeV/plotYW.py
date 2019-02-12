@@ -18,9 +18,11 @@ class valueClass:
         self.name = name
 
         self.pol = 'left' if 'left' in self.name else 'right' if 'right' in self.name else 'long'
+        if 'unpolarized' in self.name: self.pol = 'unpolarized'
         self.isleft  = self.pol == 'left'
         self.isright = self.pol == 'right'
         self.islong  = self.pol == 'long'
+        self.isunpolarized = self.pol == 'unpolarized'
 
         self.charge = 'plus' if 'plus' in name else 'minus'
         self.ch     = '+' if 'plus' in name else '-'
@@ -29,6 +31,9 @@ class valueClass:
 
         self.color  = ROOT.kBlue-9 if self.isleft else ROOT.kOrange-4 if self.isright else ROOT.kGray+1
         self.colorf = ROOT.kBlue-3 if self.isleft else ROOT.kOrange-3 if self.isright else ROOT.kGray+3
+        if self.isunpolarized: 
+            self.color = ROOT.kSpring-6
+            self.colorf = ROOT.kSpring-7
 
         ## here all the arrays that will contain the values and errors etc.
         self.val       = array.array('f', []); self.ehi       = array.array('f', []); self.elo       = array.array('f', []);
@@ -248,6 +253,105 @@ def plotValues(values,charge,channel,options):
             for ext in ['png', 'pdf']:
                 c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
+
+
+
+def plotUnpolarizedValues(values,charge,channel,options):
+        c2 = ROOT.TCanvas('foo','', 800, 800)
+        c2.GetPad(0).SetTopMargin(0.09)
+        c2.GetPad(0).SetBottomMargin(0.15)
+        c2.GetPad(0).SetLeftMargin(0.16)
+        c2.GetPad(0).SetRightMargin(0.03)
+        c2.GetPad(0).SetTickx(1)
+        c2.GetPad(0).SetTicky(1)
+
+        ch = '+' if charge == 'plus' else '-'
+        if charge == 'asymmetry': ch = ''
+        date = datetime.date.today().isoformat()
+        normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
+
+        lat = ROOT.TLatex()
+        lat.SetNDC(); lat.SetTextFont(42)
+        legx1, legx2, legy1, legy2 = 0.2, 0.65, 0.75, 0.85
+        ## the graphs exist now. now starting to draw them
+        ## ===========================================================
+        if hasattr(values,'graph') and hasattr(values,'graph_fit'):
+                
+            mg = ROOT.TMultiGraph()
+            mg.Add(values.graph,'P2')
+            mg.Add(values.graph_fit)
+            mg.Draw('Pa')
+            mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
+            mg.GetXaxis().SetTitle('|Y_{W}|')
+            if options.normxsec: 
+                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
+                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
+            else: 
+                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                mg.GetYaxis().SetRangeUser(1500,4000)
+            mg.GetXaxis().SetTitleSize(0.06)
+            mg.GetXaxis().SetLabelSize(0.04)
+            mg.GetYaxis().SetTitleSize(0.06)
+            mg.GetYaxis().SetLabelSize(0.04)
+            mg.GetYaxis().SetTitleOffset(1.3)
+     
+            leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
+            leg.SetFillStyle(0)
+            leg.SetBorderSize(0)
+            leg.AddEntry(values.graph_fit , 'W (fit)', 'pl')
+            leg.AddEntry(values.graph     , 'W (PDF unc.)', 'f')
+
+            leg.Draw('same')
+            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
+     
+            for ext in ['png', 'pdf']:
+                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+
+        ## now make the relative error plot:
+        ## ======================================
+        if hasattr(values,'mg'):
+            line = ROOT.TF1("horiz_line","0" if charge=='asymmetry' else '1',0.0,3.0);
+            line.SetLineColor(ROOT.kBlack);
+            line.SetLineWidth(2);
+
+            yaxrange = (0,0)
+            if charge=='asymmetry':
+                yaxtitle = 'W charge asymmetry'
+                yaxrange = (0, 0.4)
+            else:
+                yaxrange = (0.90, 1.10)
+                yaxtitle = '#frac{1}{#sigma} #frac{d#sigma}{d|Y_{W}|} / #frac{1}{#sigma^{exp}} #frac{d#sigma^{exp}}{d|Y_{W}|}' if options.normxsec else '#frac{d#sigma}{d|Y_{W}|} / #frac{d#sigma^{exp}}{d|Y_{W}|}'
+     
+            values.mg.Draw('Pa')
+            ## x axis fiddling
+            values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
+            values.mg.GetXaxis().SetTitleSize(0.08)
+            values.mg.GetXaxis().SetLabelSize(0.04)
+            ## y axis fiddling
+            values.mg.GetYaxis().SetTitleOffset(0.95)
+            values.mg.GetYaxis().SetTitleSize(0.06)
+            values.mg.GetYaxis().SetLabelSize(0.04)
+            values.mg.GetYaxis().SetTitle(yaxtitle)
+            values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
+
+            leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
+            leg.SetFillStyle(0); leg.SetBorderSize(0)
+            leg.AddEntry(values.graph_fit_rel , 'W^{{{ch}}} (fit)'      .format(ch=ch) , 'pl')
+            leg.AddEntry(values.graph_rel     , 'W^{{{ch}}} (PDF unc.)' .format(ch=ch) , 'f')
+     
+            leg.Draw('same')
+            line.Draw("Lsame");
+     
+            lat.DrawLatex(0.14, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
+            lat.SetTextSize(0.04)
+            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
+            for ext in ['png', 'pdf']:
+                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+
+
 NPDFs = 60
 LUMINOSITY = 35900
 
@@ -315,6 +419,7 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
+    polarizations = ['left','right', 'long']
     for ic,charge in enumerate(charges):
 
         ##file_pdfs = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
@@ -441,11 +546,53 @@ if __name__ == "__main__":
 
         plotValues(allValues,charge,channel,options)
 
+        if not options.normxsec: # this is only implemented for absolute xsecs
+            # now do the unpolarized ones
+            cp = 'plus_left' # this works if the binning for all the pol is the same
+            tmp_val = valueClass('values_'+charge+'_unpolarized')
+     
+            for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
+                parname = 'W{charge}_{ch}_Ybin_{iy}_sumxsec'.format(charge=charge,ch=channel,iy=iy)
+     
+                tmp_val.val.append(sum([xsec_nominal[pol][iy] for pol in polarizations])/ybinwidths[cp][iy])
+                experr = math.sqrt(sum([math.pow(xsec_systematics[pol][iy]/ybinwidths[cp][iy],2) for pol in polarizations]))
+                tmp_val.ehi.append(experr)
+                tmp_val.elo.append(experr) # symmetric for the expected
+     
+                tmp_val.relv. append(1.);
+                experrrel = math.sqrt(sum([math.pow(xsec_systematics[pol][iy]/nominal[pol][iy],2) for pol in polarizations]))
+                tmp_val.rello.append(experrrel)
+                tmp_val.relhi.append(experrrel) # symmetric for the expected
+                
+                xsec_fit = valuesAndErrors[parname]
+                scale = LUMINOSITY
+     
+                tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
+                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
+                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidths[cp][iy]/scale)
+     
+                units = '' if options.normxsec else '(pb)'
+                print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
+                                                                                                                                          sigma=tmp_val.val[-1],units=units,
+                                                                                                                                          val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+                tmp_val.relv_fit .append(tmp_val.val_fit[-1]/tmp_val.val[-1])
+                tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
+                tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
+     
+                tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
+                tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+                tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+     
+            tmp_val.makeGraphs()
+            plotUnpolarizedValues(tmp_val,charge,channel,options)
+        
+
+
     if len(charges)>1:
         print "Making charge asymmetry plots now..."
         asymmetryValues = {}
         
-        for pol in ['left','right', 'long']:
+        for pol in polarizations:
             cp = 'plus_'+pol
             tmp_val = valueClass('asymmetry_'+pol)
             for iy,y in enumerate(ybinwidths[cp]):
@@ -460,7 +607,10 @@ if __name__ == "__main__":
                 tmp_val.relhi.append(asy_err)
                 tmp_val.rello.append(asy_err)
 
-                asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
+                if options.type == 'toys':
+                    asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
+                else:
+                    asy_fit = valuesAndErrors['W_{pol}_{ch}_Ybin_{iy}_chargeasym'.format(pol=pol,ch=channel,iy=iy)]
                 tmp_val.relv_fit .append(asy_fit[0])
                 tmp_val.rello_fit.append(abs(asy_fit[0]-asy_fit[1]))
                 tmp_val.relhi_fit.append(abs(asy_fit[0]-asy_fit[2]))
@@ -470,6 +620,32 @@ if __name__ == "__main__":
                 tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
 
             tmp_val.makeGraphs()
-            asymmetryValues[pol] = tmp_val
-        
+            asymmetryValues[pol] = tmp_val        
         plotValues(asymmetryValues,'asymmetry',channel,options)
+            
+        # now do the unpolarized ones
+        tmp_val = valueClass('asymmetry_unpolarized')
+        for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
+            plus = sum([xsec_nominal_allCharges['plus'][pol][iy] for pol in polarizations])
+            minus = sum([xsec_nominal_allCharges['minus'][pol][iy] for pol in polarizations])
+            ch_sum = plus+minus; ch_diff = plus-minus
+            asy_val = ch_diff / ch_sum
+            err_sum = math.sqrt(sum([math.pow(xsec_systematics_allCharges[charge][pol][iy],2) for charge in ['plus','minus'] for pol in polarizations]))
+            asy_err = asy_val * math.hypot(err_sum/ch_sum,err_sum/ch_diff)
+            tmp_val.relv .append(asy_val)
+            tmp_val.relhi.append(asy_err)
+            tmp_val.rello.append(asy_err)
+
+            if options.type == 'hessian': # should make the right expression from toys, if needed... 
+                asy_fit = valuesAndErrors['W_{ch}_Ybin_{iy}_chargemetaasym'.format(ch=channel,iy=iy)]
+            tmp_val.relv_fit .append(asy_fit[0])
+            tmp_val.rello_fit.append(abs(asy_fit[0]-asy_fit[1]))
+            tmp_val.relhi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+
+            tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
+            tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+            tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+
+        tmp_val.makeGraphs()
+        plotUnpolarizedValues(tmp_val,'asymmetry',channel,options)
+            
