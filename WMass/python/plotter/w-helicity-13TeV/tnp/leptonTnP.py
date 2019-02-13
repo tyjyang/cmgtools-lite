@@ -46,7 +46,7 @@ if __name__ == "__main__":
         if (options.channel == 'el' and 'SingleMu' in sd): continue
         if (options.channel == 'mu' and 'SingleEl' in sd): continue
         ##if options.analyzer == 'selection' and 'DYJets' in sd: continue
-        if 'DYJets' in sd: continue
+        ##if 'DYJets' not in sd: continue
 
         print 'runing on file', treefile
 
