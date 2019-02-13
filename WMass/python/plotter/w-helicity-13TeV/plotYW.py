@@ -268,7 +268,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
         ch = '+' if charge == 'plus' else '-'
         if charge == 'asymmetry': ch = ''
         date = datetime.date.today().isoformat()
-        normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
+        if 'values_a0' in values.name: normstr = 'A0'
+        elif 'values_a4' in values.name: normstr = 'A4'
+        elif 'values_sumxsec' in values.name: normstr = 'xsec'
+        else: normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
 
         lat = ROOT.TLatex()
         lat.SetNDC(); lat.SetTextFont(42)
@@ -283,12 +286,16 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('|Y_{W}|')
-            if options.normxsec: 
-                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
-            else: 
-                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
-                mg.GetYaxis().SetRangeUser(1500,4000)
+            if normstr=='xsec':
+                if options.normxsec: 
+                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
+                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
+                else: 
+                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                    mg.GetYaxis().SetRangeUser(1500,4500)
+            else:
+                mg.GetYaxis().SetRangeUser(-0.5 if normstr=='A0' else -1,1 if normstr=='A0' else 4)
+                mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
             mg.GetXaxis().SetTitleSize(0.06)
             mg.GetXaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleSize(0.06)
@@ -304,7 +311,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.Draw('same')
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
+            lat.DrawLatex(0.70, 0.20,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
      
             for ext in ['png', 'pdf']:
                 c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
@@ -321,17 +328,21 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 yaxtitle = 'W charge asymmetry'
                 yaxrange = (0, 0.4)
             else:
-                yaxrange = (0.90, 1.10)
-                yaxtitle = '#frac{1}{#sigma} #frac{d#sigma}{d|Y_{W}|} / #frac{1}{#sigma^{exp}} #frac{d#sigma^{exp}}{d|Y_{W}|}' if options.normxsec else '#frac{d#sigma}{d|Y_{W}|} / #frac{d#sigma^{exp}}{d|Y_{W}|}'
-     
+                if normstr=='xsec':
+                    yaxtitle = '#frac{1}{#sigma} #frac{d#sigma}{d|Y_{W}|} / #frac{1}{#sigma^{exp}} #frac{d#sigma^{exp}}{d|Y_{W}|}' if options.normxsec else '#frac{d#sigma}{d|Y_{W}|} / #frac{d#sigma^{exp}}{d|Y_{W}|}'
+                    yaxrange = (0.70, 1.30)
+                else:
+                    yaxtitle = '|A_{0}|' if normstr=='A0' else '|A_{4}|'
+                    yaxrange = (-1.5, 3.5)
+
             values.mg.Draw('Pa')
             ## x axis fiddling
             values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
-            values.mg.GetXaxis().SetTitleSize(0.08)
+            values.mg.GetXaxis().SetTitleSize(0.1)
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
-            values.mg.GetYaxis().SetTitleOffset(0.95)
-            values.mg.GetYaxis().SetTitleSize(0.06)
+            values.mg.GetYaxis().SetTitleOffset(1.2)
+            values.mg.GetYaxis().SetTitleSize(0.05)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -422,6 +433,8 @@ if __name__ == "__main__":
     polarizations = ['left','right', 'long']
     for ic,charge in enumerate(charges):
 
+        sign = 1. if charge=='plus' else -1.
+
         ##file_pdfs = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
         base = "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/"
         file_pdfs = base+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
@@ -432,7 +445,7 @@ if __name__ == "__main__":
 
         shape_syst = {}
         value_syst = {}
-        for pol in ['left','right', 'long']:
+        for pol in polarizations:
             histos = []
             values = []
             for ip in xrange(1,NPDFs+1):
@@ -447,7 +460,7 @@ if __name__ == "__main__":
 
         systematics = {}
         xsec_systematics = {}
-        for pol in ['left','right', 'long']:
+        for pol in polarizations:
             #print "===> Running pol = ",pol
             systs=[]
             xsec_systs=[]
@@ -476,14 +489,27 @@ if __name__ == "__main__":
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
+        angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
+        angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}
+        for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
+            xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
+            angcoeff_nominal['sumxsec'].append(xsec_unpolarized_nominal_iy)
+            angcoeff_nominal['a0'].append(2*xsec_nominal['long'][iy]/xsec_unpolarized_nominal_iy)
+            angcoeff_nominal['a4'].append(sign*2*(xsec_nominal['left'][iy]-xsec_nominal['right'][iy])/xsec_unpolarized_nominal_iy)
+
+            xsec_unpolarized_iy = sum([xsec_systematics[pol][iy] for pol in polarizations])
+            angcoeff_systematics['sumxsec'].append(xsec_unpolarized_iy)
+            angcoeff_systematics['a0'].append(2*xsec_systematics['long'][iy]/xsec_unpolarized_iy)
+            angcoeff_systematics['a4'].append(sign*2*(xsec_systematics['left'][iy]-xsec_systematics['right'][iy])/xsec_unpolarized_iy)
+
         nOuterBinsToExclude = 2  ### EDM hardcoded: out of acceptance Y bins
 
         allValues = {}
-        for pol in ['left','right', 'long']:
+        for pol in polarizations:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
-            normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
-            normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in ['left','right', 'long'] for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+            normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
             print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaIn)
             print "total xsec beyond |Y|>{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaOut)
 
@@ -549,43 +575,47 @@ if __name__ == "__main__":
         if not options.normxsec: # this is only implemented for absolute xsecs
             # now do the unpolarized ones
             cp = 'plus_left' # this works if the binning for all the pol is the same
-            tmp_val = valueClass('values_'+charge+'_unpolarized')
-     
-            for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                parname = 'W{charge}_{ch}_Ybin_{iy}_sumxsec'.format(charge=charge,ch=channel,iy=iy)
-     
-                tmp_val.val.append(sum([xsec_nominal[pol][iy] for pol in polarizations])/ybinwidths[cp][iy])
-                experr = math.sqrt(sum([math.pow(xsec_systematics[pol][iy]/ybinwidths[cp][iy],2) for pol in polarizations]))
-                tmp_val.ehi.append(experr)
-                tmp_val.elo.append(experr) # symmetric for the expected
-     
-                tmp_val.relv. append(1.);
-                experrrel = math.sqrt(sum([math.pow(xsec_systematics[pol][iy]/nominal[pol][iy],2) for pol in polarizations]))
-                tmp_val.rello.append(experrrel)
-                tmp_val.relhi.append(experrrel) # symmetric for the expected
-                
-                xsec_fit = valuesAndErrors[parname]
-                scale = LUMINOSITY
-     
-                tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
-                tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
-                tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidths[cp][iy]/scale)
-     
-                units = '' if options.normxsec else '(pb)'
-                print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
-                                                                                                                                          sigma=tmp_val.val[-1],units=units,
-                                                                                                                                          val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
-                tmp_val.relv_fit .append(tmp_val.val_fit[-1]/tmp_val.val[-1])
-                tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
-                tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
-     
-                tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
-                tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-                tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-     
-            tmp_val.makeGraphs()
-            plotUnpolarizedValues(tmp_val,charge,channel,options)
-        
+            xsec_params = ['sumxsec','a0','a4']
+            for xs in xsec_params:
+                tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
+                for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
+                    parname = 'W{charge}_{ch}_Ybin_{iy}_{xs}'.format(charge=charge,ch=channel,iy=iy,xs=xs)
+                    if xs=='sumxsec':
+                        ybinwidth_scale = ybinwidths[cp][iy]
+                        scale = LUMINOSITY
+                    else:
+                        ybinwidth_scale = 1.
+                        scale = 1.
+                    tmp_val.val.append(abs(angcoeff_nominal[xs][iy]/ybinwidth_scale))
+                    experr = angcoeff_systematics[xs][iy]/ybinwidth_scale
+                    tmp_val.ehi.append(experr)
+                    tmp_val.elo.append(experr) # symmetric for the expected
+         
+                    tmp_val.relv. append(1.);
+                    experrrel = angcoeff_systematics[xs][iy]/angcoeff_nominal[xs][iy]
+                    tmp_val.rello.append(experrrel)
+                    tmp_val.relhi.append(experrrel) # symmetric for the expected
+                    
+                    xsec_fit = valuesAndErrors[parname]
+                    scale = LUMINOSITY if xs=='sumxsec' else 1.
+         
+                    tmp_val.val_fit.append(xsec_fit[0]/ybinwidth_scale/scale)
+                    tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
+                    tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidth_scale/scale)
+
+                    units = '(pb)' if xs=='sumxsec' else ''
+                    print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,
+                                                                                                                                              val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+                    tmp_val.relv_fit .append(tmp_val.val_fit[-1]/tmp_val.val[-1])
+                    tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
+                    tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
+         
+                    tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
+                    tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+                    tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+         
+                tmp_val.makeGraphs()
+                plotUnpolarizedValues(tmp_val,charge,channel,options)
 
 
     if len(charges)>1:

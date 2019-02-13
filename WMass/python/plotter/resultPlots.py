@@ -75,6 +75,7 @@ if __name__ == '__main__':
                 os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
+                print cmd
                 os.system(cmd)
 
     ## plot postfit plots
