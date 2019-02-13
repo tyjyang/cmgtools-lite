@@ -248,7 +248,10 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
-        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+        if charge == 'plus':
+            parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root'
+        else:
+            parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root'
     else:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
