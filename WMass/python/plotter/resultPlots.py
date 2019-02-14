@@ -75,6 +75,7 @@ if __name__ == '__main__':
                 os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
+                print cmd
                 os.system(cmd)
 
     ## plot postfit plots
@@ -122,7 +123,7 @@ if __name__ == '__main__':
                             os.system(cmd)
                     # now do the 1D summaries
                     print "RUNNING 1D SUMMARIES OF SYSTEMATICS..."
-                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* -y {cd}/binningYW.txt --target {tg} --suffix summary'.format(fr=results[tmp_file], od=tmp_outdir, cd=results['cardsdir'], tg=target)
+                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx}'.format(fr=results[tmp_file], od=tmp_outdir, cd=results['cardsdir'], tg=target, sfx=tmp_suffix)
                     os.system(cmd)
 
     ## do this at the end, it takes the longest
