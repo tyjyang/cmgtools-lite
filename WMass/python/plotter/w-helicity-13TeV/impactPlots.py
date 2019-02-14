@@ -22,6 +22,7 @@ def niceSystName(label):
     elif 'QCDTheo' in label: niceName = '#mu_{F},#mu_{R}, #alpha_{S}'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total unc.'
+    else: niceName = label
     return niceName
 
 def latexLabel(label):
@@ -148,7 +149,7 @@ if __name__ == "__main__":
             mat[(poi,nuis)] = impMat.GetBinContent(pois_indices[ipoi], nuisances_indices[inuis])
 
     ## sort the pois and nuisances alphabetically, except for pdfs, which are sorted by number
-    pois = sorted(pois, key= lambda x: int(x.split('_')[-1]) if '_Ybin_' in x else 0)
+    pois = sorted(pois, key= lambda x: int(x.split('_')[-2]) if '_Ybin_' in x else 0)
     pois = sorted(pois, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     if len(options.nuisgroups)==0:
         ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
@@ -207,7 +208,7 @@ if __name__ == "__main__":
             if options.absolute: 
                 val = mat[(x,y)]
             else: 
-                val = 100*mat[(x,y)]/valuesAndErrors[x+'_'+target][0] if valuesAndErrors[x+'_'+target][0] !=0 else 0.0
+                val = 100*mat[(x,y)]/valuesAndErrors[x][0] if valuesAndErrors[x][0] !=0 else 0.0
             th2_sub.SetBinContent(i+1, j+1, abs(val) if options.absValue else val)
             ## set the labels correctly
             new_x = niceName(x)
@@ -304,7 +305,7 @@ if __name__ == "__main__":
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
             new_x = niceName(x).replace('el: ','').replace('mu: ','')
-            fitErrors[new_x] = 100*abs((valuesAndErrors[x+'_'+target][1]-valuesAndErrors[x+'_'+target][0])/valuesAndErrors[x+'_'+target][0])
+            fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
         cs = ROOT.TCanvas("cs","",1800,900)
         cs.SetLeftMargin(0.1)
