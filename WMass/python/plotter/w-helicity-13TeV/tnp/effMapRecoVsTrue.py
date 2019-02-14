@@ -77,7 +77,7 @@ if __name__ == "__main__":
             v.SetContour(100)
         else:
             gopt = 'hist'
-            v.GetXaxis().SetTitle('(#epsilon_{truebin}-#epsilon_{recobin})/#sigma_{#epsilon}')
+            v.GetXaxis().SetTitle('(#epsilon_{recobin}-#epsilon_{truebin})/#sigma_{#epsilon}')
         v.Draw(gopt)
         for ext in ['pdf', 'png']:
             canv.SaveAs('{od}/{name}.{ext}'.format(od=options.outdir,name=k,ext=ext))
