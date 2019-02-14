@@ -294,7 +294,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
                     mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
                     mg.GetYaxis().SetRangeUser(1500,4500)
             else:
-                mg.GetYaxis().SetRangeUser(-0.5 if normstr=='A0' else -1,1 if normstr=='A0' else 2)
+                mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
                 mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
             mg.GetXaxis().SetTitleSize(0.06)
             mg.GetXaxis().SetLabelSize(0.04)
@@ -458,6 +458,7 @@ if __name__ == "__main__":
             shape_syst[pol] = histos
             value_syst[pol] = values
 
+
         systematics = {}
         xsec_systematics = {}
         for pol in polarizations:
@@ -465,12 +466,13 @@ if __name__ == "__main__":
             systs=[]
             xsec_systs=[]
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-                #print "\tBin iy=%d,y=%f = " % (iy,y)
                 nom = nominal[pol][iy]
                 xsec_nom = xsec_nominal[pol][iy]
+                #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
                 totUp=0; xsec_totUp=0
                 for ip,pdf in enumerate(shape_syst[pol]):
                     xsec_pdf = value_syst[pol][ip]
+                    #print "\tip = {ip}  pdf = {pdf}".format(ip=ip,pdf=pdf[iy])
                     # debug
                     relsyst = abs(nom-pdf[iy])/nom
                     xsec_relsyst = abs(xsec_nom-xsec_pdf[iy])/xsec_nom if xsec_nom else 0.0
