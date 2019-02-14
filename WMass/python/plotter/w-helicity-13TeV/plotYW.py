@@ -294,7 +294,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
                     mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
                     mg.GetYaxis().SetRangeUser(1500,4500)
             else:
-                mg.GetYaxis().SetRangeUser(-0.5 if normstr=='A0' else -1,1 if normstr=='A0' else 4)
+                mg.GetYaxis().SetRangeUser(-0.5 if normstr=='A0' else -1,1 if normstr=='A0' else 2)
                 mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
             mg.GetXaxis().SetTitleSize(0.06)
             mg.GetXaxis().SetLabelSize(0.04)
@@ -494,13 +494,17 @@ if __name__ == "__main__":
         for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
             xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
             angcoeff_nominal['sumxsec'].append(xsec_unpolarized_nominal_iy)
-            angcoeff_nominal['a0'].append(2*xsec_nominal['long'][iy]/xsec_unpolarized_nominal_iy)
-            angcoeff_nominal['a4'].append(sign*2*(xsec_nominal['left'][iy]-xsec_nominal['right'][iy])/xsec_unpolarized_nominal_iy)
+
+            coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
+                                             xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
+
+            angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
+            angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
 
             xsec_unpolarized_iy = sum([xsec_systematics[pol][iy] for pol in polarizations])
             angcoeff_systematics['sumxsec'].append(xsec_unpolarized_iy)
-            angcoeff_systematics['a0'].append(2*xsec_systematics['long'][iy]/xsec_unpolarized_iy)
-            angcoeff_systematics['a4'].append(sign*2*(xsec_systematics['left'][iy]-xsec_systematics['right'][iy])/xsec_unpolarized_iy)
+            angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
+            angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
 
         nOuterBinsToExclude = 2  ### EDM hardcoded: out of acceptance Y bins
 
@@ -626,16 +630,11 @@ if __name__ == "__main__":
             cp = 'plus_'+pol
             tmp_val = valueClass('asymmetry_'+pol)
             for iy,y in enumerate(ybinwidths[cp]):
-                
-                ch_sum  = xsec_nominal_allCharges['plus'][pol][iy] + xsec_nominal_allCharges['minus'][pol][iy]
-                ch_diff = xsec_nominal_allCharges['plus'][pol][iy] - xsec_nominal_allCharges['minus'][pol][iy]
-                asy_val = ch_diff / ch_sum
-                # the following is not completely correct, since it doesn't account correlations in exp. uncertainties
-                err_sum = math.hypot(xsec_systematics_allCharges['plus'][pol][iy],xsec_systematics_allCharges['minus'][pol][iy])
-                asy_err = asy_val * math.hypot(err_sum/ch_sum,err_sum/ch_diff)
-                tmp_val.relv .append(asy_val)
-                tmp_val.relhi.append(asy_err)
-                tmp_val.rello.append(asy_err)
+                chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
+                                                   xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
+                tmp_val.relv .append(chasy_val['asy'][0])
+                tmp_val.relhi.append(chasy_val['asy'][1])
+                tmp_val.rello.append(chasy_val['asy'][1])
 
                 if options.type == 'toys':
                     asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
@@ -656,15 +655,19 @@ if __name__ == "__main__":
         # now do the unpolarized ones
         tmp_val = valueClass('asymmetry_unpolarized')
         for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
-            plus = sum([xsec_nominal_allCharges['plus'][pol][iy] for pol in polarizations])
-            minus = sum([xsec_nominal_allCharges['minus'][pol][iy] for pol in polarizations])
-            ch_sum = plus+minus; ch_diff = plus-minus
-            asy_val = ch_diff / ch_sum
-            err_sum = math.sqrt(sum([math.pow(xsec_systematics_allCharges[charge][pol][iy],2) for charge in ['plus','minus'] for pol in polarizations]))
-            asy_err = asy_val * math.hypot(err_sum/ch_sum,err_sum/ch_diff)
-            tmp_val.relv .append(asy_val)
-            tmp_val.relhi.append(asy_err)
-            tmp_val.rello.append(asy_err)
+            xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
+            for charge in ['plus','minus']:
+                for pol in polarizations:
+                    xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
+                    xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
+                xerr[charge] = math.sqrt(xerr[charge])
+
+            chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
+                                               xerr['plus'], xerr['minus'])
+            
+            tmp_val.relv .append(chasy_val['asy'][0])
+            tmp_val.relhi.append(chasy_val['asy'][1])
+            tmp_val.rello.append(chasy_val['asy'][1])
 
             if options.type == 'hessian': # should make the right expression from toys, if needed... 
                 asy_fit = valuesAndErrors['W_{ch}_Ybin_{iy}_chargemetaasym'.format(ch=channel,iy=iy)]

@@ -1,5 +1,6 @@
 
 import ROOT, os, sys, re, array, math, json
+import numpy as np
 
 class util:
 
@@ -593,3 +594,32 @@ class util:
         SAFE_COLOR_LIST=[ROOT.kBlack, ROOT.kRed, ROOT.kGreen+2, ROOT.kBlue, ROOT.kMagenta+1, ROOT.kOrange+7, ROOT.kCyan+1, ROOT.kGray+2, ROOT.kViolet+5, ROOT.kSpring+5, ROOT.kAzure+1, ROOT.kPink+7, ROOT.kOrange+3, ROOT.kBlue+3, ROOT.kMagenta+3, ROOT.kRed+2]+range(11,40)
         if index<len(SAFE_COLOR_LIST): return SAFE_COLOR_LIST[index]
         else: return index
+
+    def getCoeffs(self,xL,xR,x0,err_xL,err_xR,err_x0, toyEvents=10000):
+        histos = { 'a0': ROOT.TH1D('a0','',100,-0.4,0.6),
+                   'a4': ROOT.TH1D('a4','',100,-0.4,3.0)
+                   }
+        print "getCoeffs: ",toyEvents," toyMC running..."
+        for i in xrange(toyEvents):
+            ixL = np.random.normal(xL,err_xL)
+            ixR = np.random.normal(xR,err_xR)
+            ix0 = np.random.normal(x0,err_x0)
+            sumPol = ixL+ixR+ix0
+            histos['a0'].Fill(2*ix0/sumPol)
+            histos['a4'].Fill(2*(ixL-ixR)/sumPol)
+        print "toyMC done"
+        ret = {}
+        for k,h in histos.iteritems():
+            ret[k] = (h.GetMean(),h.GetRMS())
+        return ret
+            
+    def getChargeAsy(self,xplus,xminus,err_xplus,err_xminus,toyEvents=10000):
+        histo = ROOT.TH1D('asy','',100,-0.05,0.5)
+        print "getChargeAsy: ",toyEvents," toyMC running..."
+        for i in xrange(toyEvents):
+            ixplus  = np.random.normal(xplus,err_xplus)
+            ixminus = np.random.normal(xminus,err_xminus)
+            histo.Fill((ixplus-ixminus)/(ixplus+ixminus))
+        print "toyMC done"
+        ret = {'asy': (histo.GetMean(),histo.GetRMS())}
+        return ret
