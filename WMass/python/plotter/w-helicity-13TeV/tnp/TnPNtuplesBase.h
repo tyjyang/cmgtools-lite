@@ -31,10 +31,10 @@ public :
 
   float tag_lep_pt, tag_lep_eta;
   int tag_lep_matchMC;
-  float probe_lep_pt, probe_lep_eta, probe_sc_eta, probe_lep_phi;
+  float probe_lep_pt, probe_lep_eta, probe_sc_eta, probe_lep_phi, probe_lep_charge, probe_lep_truept, probe_lep_trueeta;
   float probe_eleTrgPt, probe_muTrgPt, probe_tkMuTrgPt;
   int probe_lep_matchMC;
-  int probe_lep_hltSafeId, probe_lep_customId, probe_lep_tightCharge, probe_lep_fullLepId;
+  int probe_lep_hltSafeId, probe_lep_customId, probe_lep_tightCharge, probe_lep_fullLepId, probe_lep_pdgId;
   int probe_lep_alsoTag;
   float pair_mass;
   int nvtx;

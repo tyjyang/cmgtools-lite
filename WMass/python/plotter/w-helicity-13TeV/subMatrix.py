@@ -26,12 +26,17 @@ def niceName(name):
 
     if '_Ybin' in name:
         nn  = '#mu: ' if '_mu_' in name else 'el: '
-        nn += 'W+ ' if 'plus' in name else 'W- '
-        nn += 'left ' if 'left' in name else 'right ' if 'right' in name else 'long '
-        idx = -2 if ('masked' in name or name.endswith('mu')) else -1
+        if 'plus' in name: nn += 'W+ '
+        elif 'minus' in name: nn += 'W- '
+        else: nn += 'W '
+        if 'left' in name: nn += 'left '
+        elif 'right' in name: nn += 'right '
+        elif 'long' in name: nn += 'long '
+        else: nn += 'unpolarized '
+        idx = -2 if (name.endswith('mu') or any([x in name for x in ['masked','sumxsec','charge','a0','a4']])) else -1
         nn += name.split('_')[idx]
-        if 'pmaskedexp' in name: nn += ' #sigma'
-        if 'norm' in name: nn += '_{norm}'
+        #if 'pmaskedexp' in name: nn += ' #sigma'
+        #if 'norm' in name: nn += '_{norm}'
 
         if 'eff_unc' in name:
             nn = '#epsilon_{unc}^{'+nn+'}'

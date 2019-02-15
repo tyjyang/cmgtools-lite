@@ -75,6 +75,7 @@ if __name__ == '__main__':
                 os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
+                print cmd
                 os.system(cmd)
 
     ## plot postfit plots
@@ -94,35 +95,40 @@ if __name__ == '__main__':
 
     ## plot impacts
     ## ================================
-    if options.make in ['all','imp']:
+    if options.make in ['all','imp','imp1D']:
         print 'making impact plots'
         tmp_outdir = options.outdir+'/impactPlots/'
         poisGroups = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
         singleNuisGroups = ['CMS.*','pdf.*','mu.*','ErfPar0.*','ErfPar1.*','ErfPar2.*']
-        targets = ['mu','xsecnorm']
+        targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec', 'A0', 'A4']
+        POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'A0': '.*a0', 'A4': '.*a4'}
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                for target in targets:
-                    for poig in poisGroups:
-                        print "RUNNING SINGLE NUISANCE IMPACTS..."
-                        for nuis in singleNuisGroups:
-                            cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuis {nuis} --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, nuis=nuis, pois=poig, tg=target, sfx=tmp_suffix)
+                if options.make != 'imp1D':
+                    for target in targets[:2]:
+                        for poig in poisGroups:
+                            print "RUNNING SINGLE NUISANCE IMPACTS..."
+                            for nuis in singleNuisGroups:
+                                cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuis {nuis} --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, nuis=nuis, pois=poig, tg=target, sfx=tmp_suffix)
+                                print "running ",cmd
+                                os.system(cmd)
+                            # now do the groups of systematics
+                            print "RUNNING GROUPED NUISANCE IMPACTS..."
+                            cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix)
                             print "running ",cmd
                             os.system(cmd)
-                        # now do the groups of systematics
-                        print "RUNNING GROUPED NUISANCE IMPACTS..."
-                        cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix)
-                        print "running ",cmd
-                        os.system(cmd)
-                        # now make the latex tables for the nuisance groups
-                        print "RUNNING TABLES FOR GROUPED NUISANCE IMPACTS..."
-                        for charge in ['plus','minus']:
-                            cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --latex --nuisgroups .* --pois "W{charge}.*(left|right).*(bin_0|bin_4|bin_7|bin_9)" --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix, charge=charge) 
-                            os.system(cmd)
-                    # now do the 1D summaries
+                            # now make the latex tables for the nuisance groups
+                            print "RUNNING TABLES FOR GROUPED NUISANCE IMPACTS..."
+                            for charge in ['plus','minus']:
+                                cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --latex --nuisgroups .* --pois "W{charge}.*(left|right).*(bin_0|bin_4|bin_7|bin_9)" --target {tg} --suffix {sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=poig, tg=target, sfx=tmp_suffix, charge=charge) 
+                                os.system(cmd)
+                # now do the 1D summaries
+                for target in targets:
                     print "RUNNING 1D SUMMARIES OF SYSTEMATICS..."
-                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* -y {cd}/binningYW.txt --target {tg} --suffix summary'.format(fr=results[tmp_file], od=tmp_outdir, cd=results['cardsdir'], tg=target)
+                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=POIsForSummary[target], cd=results['cardsdir'], tg=target, sfx=tmp_suffix)
+                    if re.match('.*asym|A\d',target): cmd += ' --absolute '
+                    print cmd
                     os.system(cmd)
 
     ## do this at the end, it takes the longest

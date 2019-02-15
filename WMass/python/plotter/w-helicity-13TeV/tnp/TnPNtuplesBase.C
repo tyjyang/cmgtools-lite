@@ -1,3 +1,4 @@
+#ifndef TnPNtuplesBase_cxx
 #define TnPNtuplesBase_cxx
 #include "TnPNtuplesBase.h"
 #include <TH2.h>
@@ -37,10 +38,14 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("tag_lep_pt"             , &tag_lep_pt             , "tag_lep_pt/F");
   outTree_->Branch("tag_lep_eta"            , &tag_lep_eta            , "tag_lep_eta/F");
   outTree_->Branch("tag_lep_matchMC"        , &tag_lep_matchMC        , "tag_lep_matchMC/I");
+  outTree_->Branch("probe_lep_truept"       , &probe_lep_truept       , "probe_lep_truept/F");
+  outTree_->Branch("probe_lep_trueeta"      , &probe_lep_trueeta      , "probe_lep_trueeta/F");
   outTree_->Branch("probe_lep_pt"           , &probe_lep_pt           , "probe_lep_pt/F");
   outTree_->Branch("probe_lep_eta"          , &probe_lep_eta          , "probe_lep_eta/F");
   outTree_->Branch("probe_sc_eta"           , &probe_sc_eta           , "probe_sc_eta/F");
   outTree_->Branch("probe_lep_phi"          , &probe_lep_phi          , "probe_lep_phi/F");
+  outTree_->Branch("probe_lep_charge"       , &probe_lep_charge       , "probe_lep_charge/F");
+  outTree_->Branch("probe_lep_pdgId"        , &probe_lep_pdgId        , "probe_lep_pdgId/I");
 
   outTree_->Branch("probe_eleTrgPt"         , &probe_eleTrgPt         , "probe_eleTrgPt/F");
   outTree_->Branch("probe_muTrgPt"          , &probe_muTrgPt          , "probe_muTrgPt/F");
@@ -74,3 +79,4 @@ float TnPNtuplesBase::puw2016_nTrueInt_36fb(int nTrueInt)
   if (nTrueInt<100) return _puw2016_nTrueInt_36fb[nTrueInt]; 
   else return 0; 
 }
+#endif

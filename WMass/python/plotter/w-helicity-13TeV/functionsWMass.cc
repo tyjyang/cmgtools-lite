@@ -532,12 +532,10 @@ float triggerSF_2l(float l11pass, float l12pass, float l21pass, float l22pass, f
   return weight;
 }
 
-TFile *_file_trigger_leptonSF_mu = NULL;
-TH2F *_histo_trigger_leptonSF_mu = NULL;
 TFile *_file_recoToSelection_leptonSF_mu = NULL;
 TH2F *_histo_recoToSelection_leptonSF_mu = NULL;
 
-static string basedirSF_mu = string("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_mu/scaleFactors/");
+static string basedirSF_mu = string("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/");
 
 float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
 
@@ -549,7 +547,7 @@ float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
   if (!_histo_recoToSelection_leptonSF_mu) {
     // _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_smooth.root",basedirSF_mu.c_str()),"read");
     // _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
-    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_fitted.root",basedirSF_mu.c_str()),"read");
+    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/smoothEfficiency_muons_recoToSel_finerETA.root",basedirSF_mu.c_str()),"read");
     _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("scaleFactor"));
   }
 
@@ -567,24 +565,28 @@ float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
   return 0;
 
 }
-float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
+TFile *_file_trigger_leptonSF_mu_plus = NULL;
+TH2F *_histo_trigger_leptonSF_mu_plus = NULL;
+TFile *_file_trigger_leptonSF_mu_minus = NULL;
+TH2F *_histo_trigger_leptonSF_mu_minus = NULL;
+float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
 
-  if (!_histo_trigger_leptonSF_mu) {
-    //_file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_smooth.root",basedirSF_mu.c_str()),"read");
-    //_histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
-    //_file_trigger_leptonSF_mu = new TFile(Form("%s/muons_trigger_fitted.root",basedirSF_mu.c_str()),"read");
-    //_histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("scaleFactor"));
-    _file_trigger_leptonSF_mu = new TFile("/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/scaleFactor_15Oct2018/trigger/muon/smoothEfficiency_muons_trigger.root","read");
-    _histo_trigger_leptonSF_mu = (TH2F*)(_file_trigger_leptonSF_mu->Get("scaleFactor"));
+  if (!_histo_trigger_leptonSF_mu_plus) {
+    _file_trigger_leptonSF_mu_plus = new TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root","read");
+    _histo_trigger_leptonSF_mu_plus = (TH2F*)(_file_trigger_leptonSF_mu_plus->Get("scaleFactor"));
+  }
+  if (!_histo_trigger_leptonSF_mu_minus) {
+    _file_trigger_leptonSF_mu_minus = new TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root","read");
+    _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get("scaleFactor"));
   }
 
   if(abs(pdgid)==13) {
-    TH2F *histTrigger = _histo_trigger_leptonSF_mu;
+    TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_mu_plus : _histo_trigger_leptonSF_mu_minus );
 
     int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
     int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
@@ -598,54 +600,54 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta) {
 
 }
 
-float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, float l2pt, float l2eta, float l21pass, float l22pass){
-  float weight = -999.;
+//float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, float l2pt, float l2eta, float l21pass, float l22pass){
+//  float weight = -999.;
+//
+//  bool l1pass = (l11pass > -1. || l12pass > -1.);
+//  bool l2pass = (l21pass > -1. || l22pass > -1.);
+//
+//  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+//  float l2sf = _get_muonSF_selectionToTrigger(13,l2pt,l2eta);
+//
+//  int randomize = 0;
+//
+//  if      ( l1pass && !l2pass) weight = l1sf;
+//  else if (!l1pass &&  l2pass) weight = l2sf;
+//  else if ( l1pass &&  l2pass) {
+//    if   (!randomize) weight = (l1sf+l2sf)/2.;
+//    else {
+//      if(!rng) rng = new TRandom3();
+//      float randy = rng->Uniform(-1.,1.);
+//      if (randy < 0.) weight = l1sf;
+//      else            weight = l2sf;
+//    }
+//  }
+//
+//  //else return -999.; // this should never happen
+//
+//  return weight;
+//}
 
-  bool l1pass = (l11pass > -1. || l12pass > -1.);
-  bool l2pass = (l21pass > -1. || l22pass > -1.);
-
-  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
-  float l2sf = _get_muonSF_selectionToTrigger(13,l2pt,l2eta);
-
-  int randomize = 0;
-
-  if      ( l1pass && !l2pass) weight = l1sf;
-  else if (!l1pass &&  l2pass) weight = l2sf;
-  else if ( l1pass &&  l2pass) {
-    if   (!randomize) weight = (l1sf+l2sf)/2.;
-    else {
-      if(!rng) rng = new TRandom3();
-      float randy = rng->Uniform(-1.,1.);
-      if (randy < 0.) weight = l1sf;
-      else            weight = l2sf;
-    }
-  }
-
-  //else return -999.; // this should never happen
-
-  return weight;
-}
-
-float triggerSF_2l_byCharge(float l1pt, float l1eta, float l11pass, float l12pass, float l1charge, int charge){
-  float weight = -999.;
-
-  bool l1pass = (l11pass > -1. || l12pass > -1.);
-
-  float l1sf = 1.;
-  if (l1pass) l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
-
-  if (l1charge*charge > 0) weight = l1sf;
-  else weight = 1.;
-
-  return weight;
-}
-
-float triggerSF_1l_histo(float l1pt, float l1eta){
-
-  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
-
-  return l1sf;
-}
+//float triggerSF_2l_byCharge(float l1pt, float l1eta, float l11pass, float l12pass, float l1charge, int charge){
+//  float weight = -999.;
+//
+//  bool l1pass = (l11pass > -1. || l12pass > -1.);
+//
+//  float l1sf = 1.;
+//  if (l1pass) l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+//
+//  if (l1charge*charge > 0) weight = l1sf;
+//  else weight = 1.;
+//
+//  return weight;
+//}
+//
+//float triggerSF_1l_histo(float l1pt, float l1eta){
+//
+//  float l1sf = _get_muonSF_selectionToTrigger(13,l1pt,l1eta);
+//
+//  return l1sf;
+//}
 
 int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
   float ptmin = abs(pdgid)==13 ? 26. : 30.;

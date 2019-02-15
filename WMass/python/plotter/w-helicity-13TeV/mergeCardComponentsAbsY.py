@@ -113,7 +113,7 @@ def combCharges(options):
     if options.combineCharges and sum([os.path.exists(card) for card in datacards])==len(datacards):
         print "Cards for W+ and W- done. Combining them now..."
         combinedCard = os.path.abspath(options.inputdir)+"/"+options.bin+'_'+suffix+'.txt'
-        ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
         if options.freezePOIs:
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
             txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=combinedCard,sp="--sparse" if options.sparse else "")
@@ -248,7 +248,10 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
-        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+        if charge == 'plus':
+            parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root'
+        else:
+            parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root'
     else:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
@@ -312,8 +315,29 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
                 tmp_scaledHisto_dn_1d.Write()
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
-            
-        
+
+def writeChargeGroup(cardfile,signals,channel):
+    maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+    for pol in ['left','right','long']:
+        cardfile.write('\n')
+        for y in xrange(maxiY+1):
+            cardfile.write('W_{pol}_{flavor}_Ybin_{y} chargeGroup = Wplus_{pol}_Wplus_{pol}_{flavor}_Ybin_{y} Wminus_{pol}_Wminus_{pol}_{flavor}_Ybin_{y}\n'.format(pol=pol,flavor='mu' if 'mu' in channel else 'el',y=y))
+
+def writePolGroup(cardfile,signals,channel,grouping='polGroup'):
+    maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+    flavor='mu' if 'mu' in channel else 'el'
+    for charge in ['plus','minus']:
+        cardfile.write('\n')
+        for y in xrange(maxiY+1):
+            group = ' '.join(['W{charge}_{pol}_W{charge}_{pol}_{flavor}_Ybin_{y}'.format(charge=charge,pol=pol,flavor=flavor,y=y) for pol in ['left','right','long'] ])
+            cardfile.write('W{charge}_{flavor}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,flavor=flavor,y=y,grp=grouping,procs=group))
+
+def writeChargeMetaGroup(cardfile,signals,channel):
+     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+     flavor='mu' if 'mu' in channel else 'el'
+     cardfile.write('\n')
+     for y in xrange(maxiY+1):
+          cardfile.write('W_{flavor}_Ybin_{y} chargeMetaGroup = Wplus_{flavor}_Ybin_{y} Wminus_{flavor}_Ybin_{y}\n'.format(flavor=flavor,y=y))
 
 if __name__ == "__main__":
     
@@ -535,7 +559,7 @@ if __name__ == "__main__":
         wmodelsyst = {k:v for k,v in theosyst.iteritems() if 'mW' in k}
         effsyst = {k:v for k,v in expsyst.iteritems() if 'EffStat' in k}
     
-        combineCmd="combineCards.py "
+        combineCmd="combineCards.py --noDirPrefix "
         for f in files:
             basename = os.path.basename(f).split(".")[0]
             binn = int(basename.split('_')[-1]) if 'Ybin_' in basename else 999
@@ -754,15 +778,21 @@ if __name__ == "__main__":
                                                        filter(lambda x: re.match('.*FR.*(lnN|slope|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
-        combinedCard.close() 
 
+        # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
+        ## first make a list of all the signal processes.
+        tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
+        if not options.freezePOIs:
+            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
+            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
+            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
+            writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
+        combinedCard.close()
             
         ## here we make a second datacard that will be masked. which for every process
         ## has a 1-bin histogram with the cross section for every nuisance parameter and
         ## every signal process inside
 
-        ## first make a list of all the signal processes. this excludes the long!!!!
-        tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
         ## xsecfilname 
         lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
         hists = getXsecs(tmp_sigprocs, 
@@ -831,7 +861,7 @@ if __name__ == "__main__":
             chname = options.bin+'_{ch}'.format(ch=charge)
             chname_xsecs = [chname+'_xsec_{acc}'.format(acc=mc) for mc in maskedChannels]
             maskChansCombCards = ' '.join(['{chName}={cardfile}'.format(chName=k,cardfile=val) for k,val in maskedChannelsCards.iteritems()])
-            ccCmd = 'combineCards.py {oc}={odc} {maskchan} > {out}'.format(oc=chname,odc=cardfile,maskchan=maskChansCombCards,out=cardfile_xsec)
+            ccCmd = 'combineCards.py --noDirPrefix {oc}={odc} {maskchan} > {out}'.format(oc=chname,odc=cardfile,maskchan=maskChansCombCards,out=cardfile_xsec)
 
             newws = cardfile_xsec.replace('_card','_ws').replace('.txt','.root')
 

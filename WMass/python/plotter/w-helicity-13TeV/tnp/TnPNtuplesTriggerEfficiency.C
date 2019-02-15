@@ -101,8 +101,12 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
   // Vectors to store infos
   vector <float> cand_pt        = {};
   vector <float> cand_eta       = {};
+  vector <float> cand_truept    = {};
+  vector <float> cand_trueeta   = {};
   vector <float> cand_etaSc     = {};
   vector <float> cand_phi       = {};
+  vector <float> cand_charge    = {};
+  vector <int>   cand_pdgId     = {};
   vector <float> cand_eleTrgPt  = {};
   vector <float> cand_muTrgPt   = {};
   vector <float> cand_tkMuTrgPt = {};
@@ -125,8 +129,11 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
     if (ientry < 0) break;
     if (maxentries > 0 && ientry >= maxentries) break;
     nb = fChain->GetEntry(jentry);   nbytes += nb;
-    if (!(ientry%250000)) std::cout << ientry << endl;
+    if (!(ientry%500000)) std::cout << ientry << endl;
     thisEntry = ientry;
+    //for (int il = 0; il < nLepGood; il++){
+    //    std::cout << " this is lep " << il << " with pt: " << LepGood_calPt[il] <<  " (pdgId: " << LepGood_pdgId[il] << ")" << std::endl;
+    //}
 
     // To keep track of the total number of events
     h_entries->Fill(5);  
@@ -201,6 +208,8 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       float lepEta   = LepGood_eta   [theOrigIndex];
       float lepScEta = LepGood_etaSc [theOrigIndex];
       float lepPhi   = LepGood_phi   [theOrigIndex];
+      float lepCharge= LepGood_charge[theOrigIndex];
+      int   leppdgId = LepGood_pdgId [theOrigIndex];
 
       // this lep
       TLorentzVector thisRecoLep(0,0,0,0);
@@ -208,9 +217,15 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
 
       // Match with MC truth   
       int matchMC = 0;
+      float truePt = -1;
+      float trueEta = -999;
       if (!isData) {  
-        if(genLepFound && thisRecoLep.DeltaR(myGenLep)<0.3) matchMC = 1;  
-        if(genPosFound && thisRecoLep.DeltaR(myGenPos)<0.3) matchMC = 1;  
+        if(genLepFound && thisRecoLep.DeltaR(myGenLep)<0.3) {
+          matchMC = 1; truePt = myGenLep.Pt(); trueEta = myGenLep.Eta();
+        }
+        if(genPosFound && thisRecoLep.DeltaR(myGenPos)<0.3) {
+          matchMC = 1; truePt = myGenPos.Pt(); trueEta = myGenPos.Eta();
+        }
       } 
       else {
         matchMC = 1;
@@ -232,8 +247,12 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       // Infos to be kept
       cand_pt        . push_back(lepPt);
       cand_eta       . push_back(lepEta);
+      cand_truept    . push_back(truePt);
+      cand_trueeta   . push_back(trueEta);
       cand_etaSc     . push_back(lepScEta);
       cand_phi       . push_back(lepPhi);
+      cand_charge    . push_back(lepCharge);
+      cand_pdgId     . push_back(leppdgId);
       cand_eleTrgPt  . push_back(LepGood_matchedTrgObjElePt[theOrigIndex]);
       cand_muTrgPt   . push_back(LepGood_matchedTrgObjMuPt[theOrigIndex]);
       cand_tkMuTrgPt . push_back(LepGood_matchedTrgObjTkMuPt[theOrigIndex]);
@@ -253,8 +272,12 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       // cleaning vectors
       cand_pt        . clear();
       cand_eta       . clear();
+      cand_truept    . clear();
+      cand_trueeta   . clear();
       cand_etaSc     . clear();
       cand_phi       . clear();
+      cand_charge    . clear();
+      cand_pdgId     . clear();
       cand_eleTrgPt  . clear();
       cand_muTrgPt   . clear();
       cand_tkMuTrgPt . clear();
@@ -273,12 +296,15 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
       if (!cand_alsoTag[iLep1]) continue;
       TLorentzVector thisLep1(0,0,0,0);   
       thisLep1.SetPtEtaPhiM(cand_pt[iLep1],cand_eta[iLep1],cand_phi[iLep1],0);
+      //if (abs(cand_pdgId[iLep1]) != fFlavor) continue ;
 
       // second as probe 
       for(unsigned int iLep2=0; iLep2<cand_pt.size(); ++iLep2) {
         // if (cand_isZero[iLep2]) continue;
         TLorentzVector thisLep2(0,0,0,0);
         thisLep2.SetPtEtaPhiM(cand_pt[iLep2],cand_eta[iLep2],cand_phi[iLep2],0);
+
+        //if (abs(cand_pdgId[iLep2]) != fFlavor) continue ;
 
         // invariant mass
         pair_mass = (thisLep1+thisLep2).M();
@@ -288,14 +314,20 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
         mcTrue = cand_matchMC[iLep1] && cand_matchMC[iLep2];
         
         // first as tag, second as probe
+        //std::cout << " this is the cand pt: " << cand_pt[iLep1] << std::endl;
+        //std::cout << " this is the prob pt: " << cand_pt[iLep2] << std::endl;
         tag_lep_pt          = cand_pt        [iLep1];
         tag_lep_eta         = cand_eta       [iLep1];
         tag_lep_matchMC     = cand_matchMC   [iLep1];
 
         probe_lep_pt        = cand_pt        [iLep2];
         probe_lep_eta       = cand_eta       [iLep2];
+        probe_lep_truept    = cand_truept      [iLep2];
+        probe_lep_trueeta   = cand_trueeta     [iLep2];
         probe_sc_eta        = cand_etaSc     [iLep2];
         probe_lep_phi       = cand_phi       [iLep2];
+        probe_lep_charge    = cand_charge    [iLep2];
+        probe_lep_pdgId     = cand_pdgId     [iLep2];
         probe_eleTrgPt      = cand_eleTrgPt  [iLep2];
         probe_muTrgPt       = cand_muTrgPt   [iLep2];
         probe_tkMuTrgPt     = cand_tkMuTrgPt [iLep2];
@@ -315,8 +347,12 @@ void TnPNtuplesTriggerEfficiency::Loop(int maxentries)
     // cleaning vectors
     cand_pt        . clear();
     cand_eta       . clear();
+    cand_truept    . clear();
+    cand_trueeta   . clear();
     cand_etaSc     . clear();
     cand_phi       . clear();
+    cand_charge    . clear();
+    cand_pdgId     . clear();
     cand_matchMC   . clear();
     cand_hltSafeId . clear();
     cand_customId  . clear();
