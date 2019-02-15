@@ -116,12 +116,16 @@ if __name__ == "__main__":
     valuesAndErrors = utilities.getFromHessian(args[0])
 
     group = 'group_' if len(options.nuisgroups) else ''
-    if   options.target=='xsec':     target = 'pmaskedexp'
-    elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
-    else:                            target = 'mu'
+    if   options.target=='xsec':       target = 'pmaskedexp'
+    elif options.target=='xsecnorm':   target = 'pmaskedexpnorm'
+    elif options.target=='unpolxsec':  target = 'sumpois'
+    elif options.target=='asym':       target = 'chargepois'
+    elif options.target=='unpolasym':  target = 'chargemetapois'
+    elif options.target=='A0' or options.target=='A4': target = 'polpois'
+    else:                              target = 'mu'
 
-    if options.ybinfile:
-        pois_regexps = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
+    #if options.ybinfile:
+    #    pois_regexps = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
 
     th2name = 'nuisance_{group}impact_{sfx}'.format(group=group,sfx=target)
     impMat = hessfile.Get(th2name)
@@ -192,13 +196,15 @@ if __name__ == "__main__":
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
     
-    if   options.target=='xsec':     target = 'pmaskedexp'
-    elif options.target=='xsecnorm': target = 'pmaskedexpnorm'
-    else:                            target = 'mu'
-
-    poiName_target = {"mu": "signal strength",
-                      "xsec": "cross section",
-                      "xsecnorm": "normalized cross section"}
+    poiName_target = {"mu":        "signal strength",
+                      "xsec":      "cross section",
+                      "xsecnorm":  "normalized cross section",
+                      "unpolxsec": "unpolarized cross section",
+                      "asym":      "charge asymmetry",
+                      "unpolasym": "unpolarized charge asymmetry",
+                      "A0":        "A0",
+                      "A4":        "A4",
+                      }
     th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
 
     ## pretty nested loop. enumerate the tuples
@@ -249,7 +255,7 @@ if __name__ == "__main__":
     suff = '' if not options.suffix else '_'+options.suffix
     poisNameNice = options.parNameCanvas if len(options.parNameCanvas) else  poisName.replace('(','').replace(')','').replace('\|','or')
     if options.latex:
-        txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,nn=nuisName,pn=poisNameNice)
+        txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,nn=nuisName,pn=poisNameNice)
         if options.outdir: txtfilename = options.outdir + '/' + txtfilename
         txtfile = open(txtfilename,'w')
         txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
@@ -263,7 +269,7 @@ if __name__ == "__main__":
     if options.outdir and not options.latex and not options.ybinfile:
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,cn=cname))
+            c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname))
 
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
@@ -275,11 +281,13 @@ if __name__ == "__main__":
 
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
-        for charge in ['plus','minus']:
-            for pol in ['left','right', 'long']:
-                cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
+        charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
+        polarizations = ['unpolarized'] if re.match('^unpol|^A\d',options.target) else ['left','right','long']
+        cp = 'plus_left' # groups assume a common Y binning
+        for charge in charges:
+            for pol in polarizations:
                 for ing,nuisgroup in enumerate(groups):
-                    h = ROOT.TH1D(cp+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
+                    h = ROOT.TH1D(charge+'_'+pol+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
                     summaries[(charge,pol,nuisgroup)] = h
                     summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
                     summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
@@ -287,8 +295,12 @@ if __name__ == "__main__":
                     summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,3.)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
-                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
-                    summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
+                    if options.absolute:
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
+                    else:
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitleSize(0.06)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetLabelSize(0.04)
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleSize(0.06)
@@ -297,15 +309,20 @@ if __name__ == "__main__":
         for j,nuisgroup in enumerate(groups):
             for i in xrange(th2_sub.GetNbinsX()):
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
-                charge = 'plus' if '+' in lbl else 'minus'
-                pol = lbl.split()[-2]
+                if '+' in lbl: charge='plus'
+                elif '-' in lbl: charge='minus'
+                else: charge='allcharges' 
+                pol = 'unpolarized' if len(polarizations)==1 else lbl.split()[-2]
                 ybin = int(lbl.split()[-1])
                 summaries[(charge,pol,nuisgroup)].SetBinContent(ybin+1,th2_sub.GetBinContent(i+1,j+1))
 
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
             new_x = niceName(x).replace('el: ','').replace('mu: ','')
-            fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
+            if options.absolute:
+                fitErrors[new_x] = abs(valuesAndErrors[x][1]-valuesAndErrors[x][0])
+            else:
+                fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
         cs = ROOT.TCanvas("cs","",1800,900)
         cs.SetLeftMargin(0.1)
@@ -313,8 +330,8 @@ if __name__ == "__main__":
         cs.SetBottomMargin(0.15)
         cs.SetTopMargin(0.1)
         cs.SetGridy()
-        for charge in ['plus','minus']:
-            for ipol,pol in enumerate(['left','right']):
+        for charge in charges:
+            for ipol,pol in enumerate(polarizations):
                 leg = prepareLegend(xmin=0.5,legWidth=0.40,textSize=0.04)
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
@@ -337,8 +354,10 @@ if __name__ == "__main__":
                 quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack); quadrsum.SetLineStyle(ROOT.kDashed)
                 quadrsum.Draw('pl same')
                 # now fill the real total error from the fit (with correct correlations)
+                if charge=='allcharges': sign=''
+                else: sign='+' if charge is 'plus' else '-'
                 for y in xrange(totalerr.GetNbinsX()):
-                    totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign='+' if charge is 'plus' else '-',pol=pol,bin=y)])
+                    totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign=sign,pol=pol,bin=y)])
                 totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
                 totalerr.Draw('pl same')
                 leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
@@ -346,9 +365,9 @@ if __name__ == "__main__":
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
                 lat.DrawLatex(0.8, 0.92, '36 fb^{-1} (13 TeV)')
-                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}}'.format(pol=pol,chsign='+' if charge=='plus' else '-'))
+                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}}'.format(pol=pol,chsign=sign))
                 for i in ['pdf', 'png']:
                     suff = '' if not options.suffix else '_'+options.suffix
                     cs.SetLogy()
-                    cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=target,i=i,ch=charge,pol=pol))
+                    cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge,pol=pol))
 
