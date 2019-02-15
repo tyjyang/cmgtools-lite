@@ -76,7 +76,7 @@ class util:
                 istart = histo.FindBin(val+epsilon)
                 iend   = histo.FindBin(ybins[cp][iv+1]+epsilon)
                 val = histo.IntegralAndError(istart, iend-1, err)/36000. ## do not include next bin
-                conts.append(float(int(val)))
+                conts.append(float(val))
             histos[pol] = conts
         histo_file.Close()
         return histos
@@ -599,7 +599,7 @@ class util:
         histos = { 'a0': ROOT.TH1D('a0','',100,-0.4,0.6),
                    'a4': ROOT.TH1D('a4','',100,-0.4,3.0)
                    }
-        print "getCoeffs: ",toyEvents," toyMC running..."
+        #print "getCoeffs: ",toyEvents," toyMC running..."
         for i in xrange(toyEvents):
             ixL = np.random.normal(xL,err_xL)
             ixR = np.random.normal(xR,err_xR)
@@ -607,7 +607,7 @@ class util:
             sumPol = ixL+ixR+ix0
             histos['a0'].Fill(2*ix0/sumPol)
             histos['a4'].Fill(2*(ixL-ixR)/sumPol)
-        print "toyMC done"
+        #print "toyMC done"
         ret = {}
         for k,h in histos.iteritems():
             ret[k] = (h.GetMean(),h.GetRMS())
@@ -615,11 +615,11 @@ class util:
             
     def getChargeAsy(self,xplus,xminus,err_xplus,err_xminus,toyEvents=10000):
         histo = ROOT.TH1D('asy','',100,-0.05,0.5)
-        print "getChargeAsy: ",toyEvents," toyMC running..."
+        #print "getChargeAsy: ",toyEvents," toyMC running..."
         for i in xrange(toyEvents):
             ixplus  = np.random.normal(xplus,err_xplus)
             ixminus = np.random.normal(xminus,err_xminus)
             histo.Fill((ixplus-ixminus)/(ixplus+ixminus))
-        print "toyMC done"
+        #print "toyMC done"
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
         return ret
