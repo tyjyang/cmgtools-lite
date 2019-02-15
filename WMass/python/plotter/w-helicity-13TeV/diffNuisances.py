@@ -15,6 +15,13 @@ ROOT.gROOT.SetBatch(True)
 import utilities
 utilities = utilities.util()
 
+def getNEffStat(s):
+    a = s.split('EffStat')[1]
+    a = a.replace('minus','').replace('plus','')
+    a = a.replace('mu','').replace('el','')
+    return int(a)
+
+
 if __name__ == "__main__":
 
     parser = OptionParser(usage="usage: %prog [options] in.root  \nrun with --help to get list of options")
@@ -77,7 +84,7 @@ if __name__ == "__main__":
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
     elif any(re.match('.*EffStat.*',x) for x in params):
-        params = sorted(params, key = lambda x: int(x.split('EffStat')[-1]), reverse=False)
+        params = sorted(params, key = lambda x: getNEffStat(x) , reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
         if any('_ieta_' in x for x in params):
             # differential xsection: get ieta, ipt index and use them as keys to sort
@@ -217,7 +224,7 @@ if __name__ == "__main__":
         names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
         names = sorted(names, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         names = sorted(names, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-        names = sorted(names, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)
+        names = sorted(names, key= lambda x: getNEffStat(x) if 'EffStat' in x else 0)
         names = sorted(names, key= lambda x: int(x.split('FakesEtaUncorrelated')[-1]) if 'FakesEtaUncorrelated' in x else 0)
      
         highlighters = { 1:highlight, 2:morelight };
