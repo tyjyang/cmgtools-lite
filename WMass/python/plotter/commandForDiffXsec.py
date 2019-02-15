@@ -3,19 +3,19 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-skipUnpack=1
-skipMergeRoot=1
+skipUnpack=0
+skipMergeRoot=0
 skipSingleCard=0
 skipMergeCard=0
 
 folder = "diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/" # keep "/" at the end
-th3file = "cards/" + folder + "whistEle_eosTrees_skim_pt2from26to30_pt1p5from30to45_eta0p2From1p2.root"
+th3file = "cards/" + folder + "wele_FixElescale_badSkim_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed.root"
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/" # keep "/" at the end
 #th3file = "cards/" + folder + "whist_eosTrees_skim_pt2from26to30_pt1p5from30to45_eta0p2From1p2.root"
 
 optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.6,2.0 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --exclude-nuisances 'CMS_DY' " # --wXsecLnN 0.038 
-optionsForCardMakerMerger = " --postfix fakesCont_noDYsigBkgNorm_fitgap_dressed "  # --no-text2hdf5
+optionsForCardMakerMerger = " --postfix fixlepscale_fakesCont_noDYsigBkgNorm_fitgap_dressed "  # --no-text2hdf5
 
 # folder = "diffXsec_el_2018_12_16_onlyBkg_pt1GeV_eta0p2From1p3/"  # keep "/" at the end
 # th3file = "cards/" + folder + "wmass_varhists_ele_pt1GeV_eta0p2From1p3.root"

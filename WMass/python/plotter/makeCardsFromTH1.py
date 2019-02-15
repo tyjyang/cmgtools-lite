@@ -54,7 +54,7 @@ def combCharges(options):
     if sum([os.path.exists(card) for card in datacards])==len(datacards):
         print "Cards for W+ and W- done. Combining them now..."
         combinedCard = os.path.abspath(options.outdir)+"/"+options.bin+'_'+suffix+'.txt'
-        ccCmd = 'combineCards.py '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
         ## here running the combine cards command first 
         print ccCmd
         os.system(ccCmd)
@@ -72,41 +72,40 @@ def combCharges(options):
         print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
-        if not options.skip_text2hdf5:
-            print '--- will run text2hdf5 for the combined charges ---------------------'
-            os.system(txt2hdf5Cmd)
-            ## print out the command to run in combine
-            metafilename = combinedCard.replace('.txt','_sparse.hdf5')
-            if len(options.postfix):
-                metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
+        print '--- will run text2hdf5 for the combined charges ---------------------'
+        if not options.skip_text2hdf5: os.system(txt2hdf5Cmd)
+        ## print out the command to run in combine
+        metafilename = combinedCard.replace('.txt','_sparse.hdf5')
+        if len(options.postfix):
+            metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
 
-            bbboptions = " --binByBinStat --correlateXsecStat "
-            combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
-            if options.freezePOIs:
-                combineCmd += " --POIMode none"
-            else:
-                combineCmd += " --doImpacts  "
-            fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
-            fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
-            if not os.path.exists(fitdir_data):
-                print "Creating folder", fitdir_data
-                os.system("mkdir -p " + fitdir_data)
-            if not os.path.exists(fitdir_Asimov):
-                print "Creating folder", fitdir_Asimov
-                os.system("mkdir -p " + fitdir_Asimov)
-            print ""
-            # add --saveHists --computeHistErrors 
-            print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
-            combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-            combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
-            combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
-            print combineCmd_data
-            if not options.skip_combinetf:
-                os.system(combineCmd_data)
-            print ""
-            print combineCmd_Asimov            
-            if not options.skip_combinetf:
-                os.system(combineCmd_Asimov)
+        bbboptions = " --binByBinStat --correlateXsecStat "
+        combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
+        if options.freezePOIs:
+            combineCmd += " --POIMode none"
+        else:
+            combineCmd += " --doImpacts  "
+        fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
+        fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
+        if not os.path.exists(fitdir_data):
+            print "Creating folder", fitdir_data
+            os.system("mkdir -p " + fitdir_data)
+        if not os.path.exists(fitdir_Asimov):
+            print "Creating folder", fitdir_Asimov
+            os.system("mkdir -p " + fitdir_Asimov)
+        print ""
+        # add --saveHists --computeHistErrors 
+        print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
+        combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
+        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
+        print combineCmd_data
+        if not options.skip_combinetf:
+            os.system(combineCmd_data)
+        print ""
+        print combineCmd_Asimov            
+        if not options.skip_combinetf:
+            os.system(combineCmd_Asimov)
             
 
     else:
@@ -440,6 +439,7 @@ for syst in fakeSysts:
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
+# this is only for theory uncertainties that affect the cross section
 sortedsystkeys = []
 
 procQCDunbin = []
@@ -538,23 +538,12 @@ card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(no
                                             filter(lambda x: re.match('FakesEtaUncorrelated.*',x),allSystForGroups)) + "\n\n")
 card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
 card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
-
-
 card.write("\n")
-card.write("## THE END!\n")
-card.close()
-    
-print ""
-print "Wrote datacard in %s" % cardname
-print ""
+card.write("\n")
 
-# now xsec card
-print "Now making cross section shape file and datacard"
-print ""
-
-## here we make a second datacard that will be masked. which for every process                                               
-## has a 1-bin histogram with the cross section for every nuisance parameter and                                             
-## every signal process inside                                                                                               
+## before closing the card, we will add other stuff
+## then we will make the cross section root file
+# we need a list of signal processes, specifying which ones are inside acceptance
 
 ## first make a list of all the signal processes
 #tmp_sigprocs = [p for p in allprocesses if 'Wminus' in p or 'Wplus' in p]
@@ -581,6 +570,49 @@ for p in allprocesses:
                             isInAccProc[p] = True
                 else:
                     isInAccProc[p] = True
+
+# now adding additional stuff for charge asymmetry, and pt-integrated cross section
+# actually, this would only work for the charge-combined card, but it is easier to have it here, so to use combineCards.py later
+for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
+        newp = p.replace("plus","").replace("minus","")        
+        tmpp = p.replace("plus","TMP").replace("minus","TMP")        
+        tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
+        card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
+card.write("\n")
+
+# xsec inclusive in pt
+for ch in ["plus", "minus"]:
+    for ieta in range(genBins.Neta):
+        procsThisIeta = filter( lambda x: re.match('.*_ieta_{ieta}_.*'.format(ieta=ieta),x), isInAccProc.keys() )        
+        procsThisIeta = sorted(procsThisIeta, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+        newp = "W{ch}_{fl}_ieta_{ieta}_W{ch}_{fl}".format(ch=ch, fl=flavour, ieta=str(ieta))
+        tmpnames = [x.replace("plus","TMP").replace("minus","TMP") for x in procsThisIeta]
+        card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
+    card.write("\n")
+card.write("\n")
+
+for ieta in range(genBins.Neta):
+    newp = "W_{fl}_ieta_{ieta}_W_{fl}".format(fl=flavour, ieta=str(ieta))
+    chpair = "Wplus_{fl}_ieta_{ieta}_Wplus_{fl} Wminus_{fl}_ieta_{ieta}_Wminus_{fl}".format(ch=ch, fl=flavour, ieta=str(ieta))
+    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
+
+        
+
+card.write("\n")
+card.write("## THE END!\n")
+card.close()
+    
+print ""
+print "Wrote datacard in %s" % cardname
+print ""
+
+# now xsec card
+print "Now making cross section shape file and datacard"
+print ""
+
+## here we make a second datacard that will be masked. which for every process                                               
+## has a 1-bin histogram with the cross section for every nuisance parameter and                                             
+## every signal process inside                                                                                               
 
 ## xsecfilename                                                                                           
 xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields.root"

@@ -248,7 +248,7 @@ def drawCorrelationPlot(h2D_tmp,
                         draw_both0_noLog1_onlyLog2=0,
                         leftMargin=0.16,
                         rightMargin=0.20,
-                        nContours=50,
+                        nContours=51,
                         palette=55,
                         canvasSize="700,625",
                         passCanvas=None,
@@ -283,8 +283,17 @@ def drawCorrelationPlot(h2D_tmp,
     else:
         h2D = h2D_tmp
 
+    ROOT.TColor.CreateGradientColorTable(3,
+                                         array ("d", [0.00, 0.50, 1.00]),
+                                         ##array ("d", [1.00, 1.00, 0.00]),        
+                                         ##array ("d", [0.70, 1.00, 0.34]),        
+                                         ##array ("d", [0.00, 1.00, 0.82]),        
+                                         array ("d", [0.00, 1.00, 1.00]),
+                                         array ("d", [0.34, 1.00, 0.65]),
+                                         array ("d", [0.82, 1.00, 0.00]),
+                                         255,  0.95)
 
-    ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
+    if palette > 0: ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
     ROOT.gStyle.SetNumberContours(nContours) # default is 20 
 
     labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)

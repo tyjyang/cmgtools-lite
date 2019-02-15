@@ -71,7 +71,7 @@ if __name__ == '__main__':
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 cmd  = 'python w-helicity-13TeV/plotYW.py '
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, suf=tmp_suffix, inf=results[tmp_file])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix, inf=results[tmp_file])
                 os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '

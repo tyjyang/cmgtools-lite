@@ -22,7 +22,7 @@ folder = "diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
-postfix = "fakesCont_noDYsigBkgNorm_fitgap_dressed_bbb1_cxs1"
+postfix = "fixlepscale_fakesCont_noDYsigBkgNorm_fitgap_dressed_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"

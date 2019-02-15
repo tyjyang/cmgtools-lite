@@ -614,7 +614,7 @@ if __name__ == "__main__":
                     else:
                         scaleXP = "" if ivar == 0 else ",.*_muscale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ""
-                    xpsel=' --xp "W{antich}.*{flips},Z,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
+                    xpsel=' --xp "W{antich}.*{flips},Z.*,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
                     recoChargeCut = POSCUT if charge=='plus' else NEGCUT
 
                     if ibin == loopBins:
@@ -727,7 +727,7 @@ if __name__ == "__main__":
         for charge in ['plus','minus']:
             xpsel=' --xp "W.*" ' 
             if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-                xpsel+=' --xp "Z" '
+                xpsel+=' --xp "Z.*" '
             chargecut = POSCUT if charge=='plus' else NEGCUT
             dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut

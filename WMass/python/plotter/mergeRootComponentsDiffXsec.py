@@ -192,6 +192,7 @@ parser.add_option("-f", "--flavour",   dest="flavour", type="string", default=''
 parser.add_option("-c", "--charge",    dest="charge", type="string", default='', help="Charge: either 'plus' or 'minus'");
 parser.add_option(      "--etaBordersForFakesUncorr",    dest="etaBordersForFakesUncorr", type="string", default='0.5,1.0,1.5,2.0', help="Borders passed to function that creates the eta-uncorrelated normalization for fakes. Pass comma separated list (no 0 or outer edges, and only positive values");
 parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_false", default=True, help="If False, do not store the muR,muF,muRmuF variations for Z (if they were present)");
+#parser.add_option(      "--no-effstatsyst-Z", dest="useEffstatsystForZ", action="store_false", default=True, help="If False, do not create the Effstat variations for Z");
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -316,6 +317,9 @@ dataAndBkgFile = "{obkg}bkg_and_data_{fl}_{ch}.input.root".format(obkg=options.i
 dataAndBkgFileTmp = dataAndBkgFile.replace(".input.root","TMP.input.root")
 print "Creating temporary file {bkg} to remove 'x_data' histogram".format(bkg=dataAndBkgFileTmp)
 print "Also changing Dn to Down"
+print "-"*30
+print "WARNING: will also reject histograms whose name starts with x_Z, which are not supposed to stay in this file"
+print "-"*30
 # now remove x_data from bkg_and_data_*.input.root (we only need x_data_obs, this x_data should be removed)
 #----------------------------------
 if not options.dryrun:
@@ -336,6 +340,7 @@ if not options.dryrun:
         if not obj:
             raise RuntimeError('Unable to read object {n}'.format(n=name))
         if name == "x_data": continue
+        if "x_Z_" in name: continue  # patch, before February 2019 the muscale and lepeff systs on Z appear in the background file by mistake
         newname = name
         if newname.endswith("Dn"): 
             newname = newname.replace("Dn","Down")        
