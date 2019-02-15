@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 for target in targets:
                     print "RUNNING 1D SUMMARIES OF SYSTEMATICS..."
                     cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx}'.format(fr=results[tmp_file], od=tmp_outdir, pois=POIsForSummary[target], cd=results['cardsdir'], tg=target, sfx=tmp_suffix)
-                    if re.match('asym|A\d',target): cmd += ' --absolute '
+                    if re.match('.*asym|A\d',target): cmd += ' --absolute '
                     print cmd
                     os.system(cmd)
 
