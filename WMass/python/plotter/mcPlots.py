@@ -604,7 +604,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
             if len(numkeys) == 0:
                 return (None,None,None,None)
             # then we can overwrite total with background
-            numkey = 'signal'
+            # numkey = 'signal' # I think this line should not have been here, it is not used anywhere
             total     = pmap[ratioDen]
             totalSyst = pmap[ratioDen]
         else:    
@@ -621,7 +621,9 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         # ratio = pmap[numkey].Clone("data_div"); 
         # build in the hard way
         xbins, ybins = pmap[numkey].GetXaxis().GetXbins(), pmap[numkey].GetYaxis().GetXbins()
-        ratio = ROOT.TH2D("data_div_{n}".format(n=numkey),"data_div",len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
+        #print "Defining TH2 for ratio: %s / %s" % (numkey, ratioDen)
+        ratio = ROOT.TH2D("ratio__{d}__{n}".format(d=ratioDen,n=numkey),"ratio_{d}_{n}".format(d=ratioDen,n=numkey),
+                          len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
         for ix in xrange(1,ratio.GetNbinsX()+1):
@@ -877,8 +879,8 @@ class PlotMaker:
                 if outputName == None: outputName = pspec.name
                 stack = ROOT.THStack(outputName+"_stack",outputName)
                 hists = [v for k,v in pmap.iteritems() if k != 'data']
-                total = hists[0].Clone(outputName+"_total"); total.Reset()
-                totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset()
+                total = hists[0].Clone(outputName+"_total"); total.Reset("ICESM") # ICES is default, but does not reset maximum and minimum (need M as well)
+                totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset("ICESM")
 
                 if plotmode == "norm": 
                     if 'data' in pmap:
@@ -953,9 +955,13 @@ class PlotMaker:
                     ROOT.gStyle.SetPadLeftMargin(600.*0.18/plotformat[0])
                 else:
                     ROOT.gStyle.SetPadLeftMargin(0.18)
+                    if "TH2" in total.ClassName():
+                        ROOT.gStyle.SetPadLeftMargin(0.16)                        
                     if plotformat[0] > 1000: 
                         ROOT.gStyle.SetPadLeftMargin(0.05)
                         ROOT.gStyle.SetPadRightMargin(0.02)
+
+                    
 
                 stack.Draw("GOFF")
                 ytitle = "Events" if not self._options.printBinning else "Events / %s" %(self._options.printBinning)
@@ -990,15 +996,16 @@ class PlotMaker:
                 else:       ROOT.gStyle.SetPaperSize(20.,sf*plotformat[1])
                 # create canvas
                 height = plotformat[1]+150 if doRatio else plotformat[1]
-                c1 = ROOT.TCanvas(outputName+"_canvas", outputName, plotformat[0], height)
+                width = plotformat[0]+150 if "TH2" in total.ClassName() else plotformat[0]
+                c1 = ROOT.TCanvas(outputName+"_canvas", outputName, width, height)
                 c1.SetTopMargin(c1.GetTopMargin()*options.topSpamSize);
                 topsize = 0.12*600./height if doRatio else 0.06*600./height
                 if self._options.doOfficialCMS: c1.SetTopMargin(topsize*1.2 if doWide else topsize)
                 c1.Draw()
                 p1, p2 = c1, None # high and low panes
                 # set borders, if necessary create subpads
+                c1.SetWindowSize(width + (width - c1.GetWw()), (height + (height - c1.GetWh())));
                 if doRatio:
-                    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1]+150 + (plotformat[1]+150 - c1.GetWh())));
                     p1 = ROOT.TPad("pad1","pad1",0,0.30,1,1);
                     p1.SetTopMargin(p1.GetTopMargin()*options.topSpamSize);
                     p1.SetBottomMargin(0.025);
@@ -1009,8 +1016,6 @@ class PlotMaker:
                     p2.SetFillStyle(0);
                     p2.Draw();
                     p1.cd();
-                else:
-                    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), plotformat[1] + (plotformat[1] - c1.GetWh()));
 
                 p1.SetLogy(islog)
                 p1.SetLogz(True if pspec.hasOption('Logz') else False)
@@ -1221,7 +1226,7 @@ class PlotMaker:
                                     plot.GetZaxis().SetTitle(pspec.getOption('ZTitle',ytitle)) # use same content of default ytitle defined above, Events or Events/XX
                                     plot.GetZaxis().SetTitleFont(42)
                                     plot.GetZaxis().SetTitleSize(0.055)
-                                    plot.GetZaxis().SetTitleOffset(0.90 if doWide else 1.2)
+                                    plot.GetZaxis().SetTitleOffset(0.90 if doWide else 1.2) 
                                     plot.GetZaxis().SetLabelFont(42)
                                     plot.GetZaxis().SetLabelSize(0.05)
                                     plot.GetZaxis().SetLabelOffset(0.007)
@@ -1250,11 +1255,14 @@ class PlotMaker:
                                         pmap["data"].Draw("P SAME")
                                         c1.Print("%s/%s_data_%s.%s" % (fdir, outputName, p, ext))
                                 if self._options.showRatio and ("TH2" in total.ClassName()):
+                                    # following function is called twice, because we are looping on printplots = pdf and png
+                                    # inside the function some histograms are created, which means they are being redefined
+                                    # this will issue a warning that a histogram with same name is being replaced, but should be harmless
                                     rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
                                                              ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
                                     for r in rdata:
                                         r.Draw(pspec.getOption("PlotMode","COLZ0"))
-                                        c1.Print("%s/%s_ratio.%s" % (fdir, outputName, ext))
+                                        c1.Print("%s/%s_%s.%s" % (fdir, outputName, r.GetName(), ext))
                                         r.Write(r.GetName())
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))
