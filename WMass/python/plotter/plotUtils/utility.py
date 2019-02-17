@@ -437,7 +437,7 @@ def drawSingleTH1(h1,
                   canvasName="default", outdir="./",
                   rebinFactorX=0,
                   draw_both0_noLog1_onlyLog2=0,                  
-                  leftMargin=0.12,
+                  leftMargin=0.15,
                   rightMargin=0.04,
                   labelRatioTmp="Rel.Unc.::0.5,1.5",
                   drawStatBox=False,
@@ -461,7 +461,7 @@ def drawSingleTH1(h1,
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
 
-    yAxisTitleOffset = 1.15 if leftMargin > 0.1 else 0.6
+    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -502,7 +502,7 @@ def drawSingleTH1(h1,
     if ymin == ymax == 0.0:
         ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
         ymin *= 0.9
-        ymax *= 2.0
+        ymax *= (1.1 if leftMargin > 0.1 else 2.0)
         if ymin < 0: ymin = 0
         #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
@@ -559,7 +559,7 @@ def drawSingleTH1(h1,
     #bintext.SetNDC()
     bintext.SetTextSize(0.025)  # 0.03
     bintext.SetTextFont(42)
-    bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+    if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
         #print "drawVertLines = " + drawVertLines
@@ -654,7 +654,11 @@ def drawSingleTH1(h1,
             line3.SetLineColor(ROOT.kBlue)
             line3.SetLineWidth(2)
             line3.Draw("Lsame")
-            leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
+            x1leg2 = 0.2 if leftMargin > 0.1 else 0.07
+            x2leg2 = 0.5 if leftMargin > 0.1 else 0.27
+            y1leg2 = 0.25 if leftMargin > 0.1 else 0.3
+            y2leg2 = 0.35 if leftMargin > 0.1 else 0.35
+            leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
             leg2.SetFillColor(0)
             leg2.SetFillStyle(0)
             leg2.SetBorderSize(0)

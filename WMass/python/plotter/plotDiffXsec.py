@@ -5,13 +5,13 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 0
-onlyData = 1
+skipData = 1
+onlyData = 0
 
-skipPlot = 0
+skipPlot = 1
 skipDiffNuis = 1
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
@@ -77,9 +77,12 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
                          }
 
 # for impacts
-targets = ["mu", 
+targets = [#"mu", 
            #"xsec", 
-           "xsecnorm"
+           #"xsecnorm",
+           #"etaptasym",
+           #"etaxsec",
+           "etaasym"
            ]
 
 # impacts_nuis = [".*pdf.*", 
@@ -94,12 +97,12 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,lepScale'
                 
-impacts_pois = ["Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
-                "Wplus.*_ipt_8_.*",
-                "Wplus.*_ipt_11_.*",
-                "Wplus.*_ieta_0_.*",
-                "Wplus.*_ieta_10_.*",
-                "Wplus.*_ieta_17_.*"
+impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
+                #"Wplus.*_ipt_8_.*",
+                #"Wplus.*_ipt_11_.*",
+                #"W.*_ieta_0_.*",
+                "W.*_ieta_.*",
+                #"W.*_ieta_17_.*"
                 ]
 
 
@@ -184,7 +187,7 @@ for fit in fits:
     ## IMPACTS
     command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
-    command += " --abs-value --nContours 51 --margin '0.18,0.15,0.05,0.25' --canvasSize '1500,1200' "
+    command += " --abs-value --nContours 51 --margin '0.16,0.15,0.05,0.25' --canvasSize '1500,1200' --splitOutByTarget "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     for poi in impacts_pois:
         poi_noWildCards = poi.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
@@ -196,6 +199,8 @@ for fit in fits:
                 varopt = " --nuis '{nuis_regexp}' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
             for target in targets:
                 tmpcommand = command + " {vopt} --target {t} ".format(vopt=varopt, t=target)            
+                if any(target == x for x in ["etaxsec", "etaasym"]):
+                    tmpcommand += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
                 if not skipImpacts:
                     print ""
                     print tmpcommand

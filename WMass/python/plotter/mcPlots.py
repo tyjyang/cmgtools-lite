@@ -723,7 +723,7 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
 
         (x1,y1,x2,y2) = (0.2, 0.78,0.9,0.93)
         leg = ROOT.TLegend(x1,y1,x2,y2)
-        leg.SetNColumns(3)
+        #leg.SetNColumns(3)
         if header: leg.SetHeader(header.replace("\#", "#"))
         leg.SetFillColor(0)
         leg.SetFillColorAlpha(0,0.6)  # should make the legend semitransparent (second number is 0 for fully transparent, 1 for full opaque)

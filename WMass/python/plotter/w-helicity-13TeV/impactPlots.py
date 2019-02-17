@@ -5,6 +5,9 @@ from subMatrix import niceName
 ROOT.gROOT.SetBatch(True)
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
+
 from postFitPlots import prepareLegend
 
 import utilities
@@ -19,7 +22,7 @@ def niceSystName(label):
     elif 'Fakes' in label: niceName = 'fakes unc.'
     elif 'OtherExp' in label: niceName = 'other experimental unc.'
     elif 'lumi' in label: niceName = 'luminosity'
-    elif 'QCDTheo' in label: niceName = '#mu_{F},#mu_{R}, #alpha_{S}'
+    elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}, #alpha_{S}'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total unc.'
     else: niceName = label
@@ -35,6 +38,19 @@ def latexLabel(label):
     lblNoBin += binLbl
     return lblNoBin
 
+def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
+    (x1,y1,x2,y2) = (xmin, .70, xmax, .87)
+    leg = ROOT.TLegend(x1,y1,x2,y2)
+    leg.SetNColumns(3)
+    leg.SetFillColor(0)
+    leg.SetFillColorAlpha(0,0.6)
+    leg.SetShadowColor(0)
+    leg.SetLineColor(0)
+    leg.SetBorderSize(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(textSize)
+    return leg
+
 if __name__ == "__main__":
 
     ROOT.gStyle.SetOptStat(0)
@@ -46,7 +62,7 @@ if __name__ == "__main__":
     parser.add_option(     '--nuis',       dest='nuis',       default='',   type='string', help='nuis for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option(     '--nuisgroups', dest='nuisgroups', default='',   type='string', help='nuis groups for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option(     '--suffix',     dest='suffix',     default='',   type='string', help='suffix for the correlation matrix')
-    parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm)')
+    parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm, or other things)')
     parser.add_option(     '--zrange',     dest='zrange',     default='', type='string', help='Pass range for z axis as "min,max". If not given, it is set automatically based on the extremes of the histogram')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height" ')
     parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
@@ -58,6 +74,8 @@ if __name__ == "__main__":
     parser.add_option('-a','--absolute',   dest='absolute',   default=False, action='store_true', help='absolute uncertainty (default is relative)')
     parser.add_option(     '--latex',      dest='latex',      default=False, action='store_true', help='target POI (can be mu,xsec,xsecnorm)')
     parser.add_option('-y','--ybinfile',   dest='ybinfile',   default='',  type='string', help='do 1D summary plot as a function of YW using this file with the yw binning')
+    parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='do 1D summary plot as a function of |eta| using this file with the |eta| binning')
+    parser.add_option(     '--splitOutByTarget', dest='splitOutByTarget' , default=False , action='store_true',   help='Create a subfolder appending target to output directory, where plots will be saved')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -95,6 +113,9 @@ if __name__ == "__main__":
     if options.outdir:
         # emanuele: why this?
         #options.outdir = options.outdir + "/" + options.target + "/"
+        # mciprian: for better bookkeeping, because it was easier to look at many plots
+        if options.splitOutByTarget:
+            options.outdir = options.outdir + "/" + options.target + "/"
         ROOT.gROOT.SetBatch()
         if not os.path.isdir(options.outdir):
             os.system('mkdir -p {od}'.format(od=options.outdir))
@@ -122,7 +143,14 @@ if __name__ == "__main__":
     elif options.target=='asym':       target = 'chargepois'
     elif options.target=='unpolasym':  target = 'chargemetapois'
     elif options.target=='A0' or options.target=='A4': target = 'polpois'
+    elif options.target=='etaptasym':  target = 'chargepois'
+    elif options.target=='etaxsec':  target = 'sumpois'
+    elif options.target=='etaasym':  target = 'chargemetapois'
     else:                              target = 'mu'
+
+    # patch for diff.xsec, because I usually pass pois as regular expressions matching the charge
+    if any(options.target == x for x in ['etaasym','etaptasym']):
+        pois_regexps = list(x.replace('plus','').replace('minus','') for x in pois_regexps)    
 
     #if options.ybinfile:
     #    pois_regexps = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
@@ -133,12 +161,27 @@ if __name__ == "__main__":
         print "ERROR: Cannot find the impact TH2 named ",th2name," in the input file. Maybe you didn't run --doImpacts?\nSkipping."
         sys.exit()
     
-    pois = []; pois_indices = []
+    # apparently, target chargemetapois for diff.xsec contains labels ending with chargemetaasym and chargemetatotalxsec, 
+    # so one should filter one of them according to options.target
+    # same for chargepois, that has both chargeasym and chargetotalxsec
+
+    # use dictionary for pois_indices, so to keep track of poi's name and allow for some sorting (for example to allow plus and minus in same plot)
+    pois = []; pois_indices = {}
     for ib in xrange(1,impMat.GetNbinsX()+1):
         for poi in pois_regexps:
             if re.match(poi, impMat.GetXaxis().GetBinLabel(ib)):
-                pois.append(impMat.GetXaxis().GetBinLabel(ib))
-                pois_indices.append(ib)
+                if options.target=='etaasym':
+                    if re.match(".*chargemetaasym", impMat.GetXaxis().GetBinLabel(ib)):
+                        pois.append(impMat.GetXaxis().GetBinLabel(ib))
+                        pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+                elif options.target=='etaptasym':
+                    if re.match(".*chargeasym", impMat.GetXaxis().GetBinLabel(ib)):
+                        pois.append(impMat.GetXaxis().GetBinLabel(ib))
+                        pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+                else:
+                    pois.append(impMat.GetXaxis().GetBinLabel(ib))
+                    pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+
 
     nuisances = []; nuisances_indices = []
     for ib in xrange(1,impMat.GetNbinsY()+1):
@@ -148,13 +191,17 @@ if __name__ == "__main__":
                 nuisances_indices.append(ib)
 
     mat = {}
-    for ipoi, poi in enumerate(pois):
-        for inuis, nuis in enumerate(nuisances):
-            mat[(poi,nuis)] = impMat.GetBinContent(pois_indices[ipoi], nuisances_indices[inuis])
 
-    ## sort the pois and nuisances alphabetically, except for pdfs, which are sorted by number
     pois = sorted(pois, key= lambda x: int(x.split('_')[-2]) if '_Ybin_' in x else 0)
     pois = sorted(pois, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+    # sort by charge if needed
+    pois = sorted(pois, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
+
+    for ipoi, poi in enumerate(pois):
+        for inuis, nuis in enumerate(nuisances):
+            mat[(poi,nuis)] = impMat.GetBinContent(pois_indices[poi], nuisances_indices[inuis])
+
+    ## sort the pois and nuisances alphabetically, except for pdfs, which are sorted by number
     if len(options.nuisgroups)==0:
         ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
         nuisances = sorted(nuisances, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
@@ -204,8 +251,12 @@ if __name__ == "__main__":
                       "unpolasym": "unpolarized charge asymmetry",
                       "A0":        "A0",
                       "A4":        "A4",
+                      "etaptasym":   "charge asymmetry",
+                      "etaasym":   "charge asymmetry",
+                      "etaxsec":   "cross section",
                       }
     th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
+    th2_sub.GetZaxis().SetTitleOffset(1.2)
 
     ## pretty nested loop. enumerate the tuples
     for i,x in enumerate(pois):
@@ -266,7 +317,7 @@ if __name__ == "__main__":
         txtfile.close()
         print "Saved the latex table in file ",txtfilename
 
-    if options.outdir and not options.latex and not options.ybinfile:
+    if options.outdir and not options.latex and not (options.ybinfile or options.etaptbinfile):
         for i in ['pdf', 'png']:
             suff = '' if not options.suffix else '_'+options.suffix
             c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname))
@@ -278,6 +329,8 @@ if __name__ == "__main__":
         ybinfile = open(ybinfile, 'r')
         ybins = eval(ybinfile.read())
         ybinfile.close()
+
+        flavour = "" # decided below
 
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
@@ -318,7 +371,8 @@ if __name__ == "__main__":
 
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
-            new_x = niceName(x).replace('el: ','').replace('mu: ','')
+            flavour = "e" if "el:" in niceName(x) else "#mu"
+            new_x = niceName(x).replace('el: ','').replace('#mu: ','')
             if options.absolute:
                 fitErrors[new_x] = abs(valuesAndErrors[x][1]-valuesAndErrors[x][0])
             else:
@@ -364,10 +418,136 @@ if __name__ == "__main__":
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
-                lat.DrawLatex(0.8, 0.92, '36 fb^{-1} (13 TeV)')
-                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}}'.format(pol=pol,chsign=sign))
+                lat.DrawLatex(0.8, 0.92, '35.9 fb^{-1} (13 TeV)')
+                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu'.format(pol=pol,chsign=sign, fl=flavour))
                 for i in ['pdf', 'png']:
                     suff = '' if not options.suffix else '_'+options.suffix
                     cs.SetLogy()
                     cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge,pol=pol))
+
+
+
+    if options.etaptbinfile:
+        
+        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
+        genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+
+        flavour = "" # decided below
+
+        summaries = {}
+        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
+        for charge in charges:
+            for ing,nuisgroup in enumerate(groups):
+                h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Neta,array('d',genBins.etaBins))
+                #print "Last bin right edge: " + str(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
+                summaries[(charge,nuisgroup)] = h
+                summaries[(charge,nuisgroup)].SetMarkerSize(2)
+                summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                summaries[(charge,nuisgroup)].SetLineWidth(2)
+                summaries[(charge,nuisgroup)].GetXaxis().SetRangeUser(0.,2.4)
+                summaries[(charge,nuisgroup)].GetXaxis().SetTitle('|#eta|')
+                if options.absolute:
+                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
+                    summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
+                else:
+                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
+                    summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
+                summaries[(charge,nuisgroup)].GetXaxis().SetTitleSize(0.06)
+                summaries[(charge,nuisgroup)].GetXaxis().SetLabelSize(0.04)
+                summaries[(charge,nuisgroup)].GetYaxis().SetTitleSize(0.06)
+                summaries[(charge,nuisgroup)].GetYaxis().SetLabelSize(0.04)
+                summaries[(charge,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
+        for j,nuisgroup in enumerate(groups):
+            for i in xrange(th2_sub.GetNbinsX()):
+                lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
+                # we expect something like "el: W+ i#eta, ip_T = 3, 5" we need to get 3 
+                etabin = int(((lbl.split('=')[-1]).split(',')[0]).rstrip().lstrip())
+                # print "lbl = %s   bineta = %s" % (lbl, str(etabin))
+                if 'W+' in lbl: charge='plus'
+                elif 'W-' in lbl: charge='minus'
+                else: charge='allcharges' 
+                summaries[(charge,nuisgroup)].SetBinContent(etabin+1,th2_sub.GetBinContent(i+1,j+1))
+
+        fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
+        for i,x in enumerate(pois):
+            #print "Debug: poi = " + x
+            flavour = "e" if "el:" in niceName(x) else "#mu"
+            bineta = (x.split("_ieta_")[1]).split("_")[0]
+            new_x = "W{ch} {bin}".format(ch="+" if "plus" in x else "-" if "minus" in x else "", bin=bineta)
+            # print "new_x = " + new_x
+            if options.absolute:
+                fitErrors[new_x] = abs(valuesAndErrors[x][1]-valuesAndErrors[x][0])
+            else:
+                fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
+
+        #for key in fitErrors:
+        #    print "fitErrors: key = " + key
+
+        cs = ROOT.TCanvas("cs","",1800,900)
+        cs.SetLeftMargin(0.1)
+        cs.SetRightMargin(0.05)
+        cs.SetBottomMargin(0.15)
+        cs.SetTopMargin(0.1)
+        cs.SetGridy()
+        for charge in charges:
+            leg = prepareLegendV2(textSize=0.04,xmin=0.12,xmax=0.94)
+            leg.SetNColumns(4)
+            lat = ROOT.TLatex()
+            lat.SetNDC(); 
+            lat.SetTextFont(42)
+            latBin = ROOT.TLatex()
+            latBin.SetNDC(); 
+            latBin.SetTextFont(42); 
+            latBin.SetTextSize(0.07)
+            quadrsum = summaries[(charge,groups[0])].Clone('quadrsum_{ch}'.format(ch=charge))
+            totalerr = quadrsum.Clone('totalerr_{ch}'.format(ch=charge))
+            for ing,ng in enumerate(groups):
+                drawopt = 'pl' if ing==0 else 'pl same'
+                summaries[(charge,ng)].Draw(drawopt)
+                if ing == 0: 
+                    summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
+                if   ng=='binByBinStat': 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle)
+                elif ng=='stat'        : 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle); 
+                    summaries[(charge,ng)].SetMarkerColor(ROOT.kBlack); 
+                    summaries[(charge,ng)].SetLineColor(ROOT.kBlack);
+                elif ng=='luminosity'  : 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                else: 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
+                leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
+                # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
+                for y in xrange(quadrsum.GetNbinsX()):
+                    quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,ng)].GetBinContent(y+1)))
+            quadrsum.SetMarkerStyle(ROOT.kFullCrossX); 
+            quadrsum.SetMarkerSize(3); 
+            quadrsum.SetMarkerColor(ROOT.kBlack); 
+            quadrsum.SetLineColor(ROOT.kBlack); 
+            quadrsum.SetLineStyle(ROOT.kDashed)
+            quadrsum.Draw('pl same')
+            # now fill the real total error from the fit (with correct correlations)
+            if charge=='allcharges': 
+                sign=''
+            else: 
+                sign='+' if charge is 'plus' else '-'
+            for y in xrange(totalerr.GetNbinsX()):
+                totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
+            totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); 
+            totalerr.SetMarkerSize(3); 
+            totalerr.SetMarkerColor(ROOT.kRed+1); 
+            totalerr.SetLineColor(ROOT.kRed+1);
+            totalerr.Draw('pl same')
+            leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
+            leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
+            leg.Draw('same')
+            lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
+            latBin.DrawLatex(0.8, 0.2, 'W^{{{chsign}}} #rightarrow {fl}#nu'.format(chsign=sign,fl=flavour))
+            for i in ['pdf', 'png']:
+                suff = '' if not options.suffix else '_'+options.suffix
+                cs.SetLogy()
+                cs.SaveAs(options.outdir+'/etaImpacts{rel}{suff}_{target}_{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge))
 

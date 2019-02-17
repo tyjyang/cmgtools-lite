@@ -35,20 +35,29 @@ def niceName(name):
         else: nn += 'unpolarized '
         idx = -2 if (name.endswith('mu') or any([x in name for x in ['masked','sumxsec','charge','a0','a4']])) else -1
         nn += name.split('_')[idx]
-        #if 'pmaskedexp' in name: nn += ' #sigma'
-        #if 'norm' in name: nn += '_{norm}'
-
         if 'eff_unc' in name:
             nn = '#epsilon_{unc}^{'+nn+'}'
         return nn
 
     elif '_ieta_' and '_ipt_' in name:
         nn  = '#mu: ' if '_mu_' in name else 'el: '
-        nn += 'W+ ' if 'plus' in name else 'W- '
+        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta,ipt = get_ieta_ipt_from_process_name(name)
         nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
-        if 'pmaskedexp' in name: nn += ' #sigma'
-        if 'norm' in name: nn += '_{norm}'
+        return nn
+
+    elif '_ieta_' in name:
+        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        ieta = int((name.split("_ieta_")[1]).split("_")[0])
+        nn += "i#eta = {neta}".format(neta=ieta)
+        return nn
+
+    elif '_ipt_' in name:
+        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        ipt = int((name.split("_ipt_")[1]).split("_")[0])
+        nn += "i#p_{{T}} = {npt}".format(npt=ipt)
         return nn
 
     elif "CMS_" in name:
