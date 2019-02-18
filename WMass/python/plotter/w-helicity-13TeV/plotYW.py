@@ -140,7 +140,7 @@ def plotValues(values,charge,channel,options):
             mg.GetXaxis().SetTitle('|Y_{W}|')
             if options.normxsec: 
                 mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
+                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.6)
             else: 
                 mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
                 mg.GetYaxis().SetRangeUser(-200,3500)
@@ -383,7 +383,7 @@ if __name__ == "__main__":
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
     parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component')
-    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.6'       , type='float', help='Max value for rapidity range')
+    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.8'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
 

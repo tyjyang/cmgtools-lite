@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_option(     '--yRange'     , dest='yRange', default=(0,-1), type='float', nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_option('-e', '--divide-error', dest="divideError", action="store_true", default=False, help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")
     parser.add_option('-E',  '--divide-relative-error', dest="divideRelativeError", action="store_true", default=False, help="Make ratio of relative uncertainties (the output histogram will have no error assigned to it)")
+    parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -230,7 +231,7 @@ if __name__ == "__main__":
     if not "::" in zAxisTitle:  
         zAxisTitle = zAxisTitle + "::" + str(options.ratioRange[0]) + "," + str(options.ratioRange[1])
     drawCorrelationPlot(hratio,xAxisTitle,yAxisTitle,zAxisTitle,
-                        options.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=55,passCanvas=canvas2D)
+                        options.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D)
     
     canvas = ROOT.TCanvas("canvas","",800,700)
     canvas.SetTickx(1)

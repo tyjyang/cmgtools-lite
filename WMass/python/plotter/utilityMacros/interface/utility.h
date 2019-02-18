@@ -3656,7 +3656,7 @@ void buildChain(TChain* chain,
     for (Int_t i = 1; i <= 60; ++i) subSampleNameVectorTmp.push_back(Form("WJetsToLNu_NLO_ext2v5_part%d",i));
   } else if (sample == Sample::wmunujets) {
     for (Int_t i = 1; i <= 5; ++i) subSampleNameVectorTmp.push_back(Form("WJetsToLNu_part%d",i));
-    for (Int_t i = 1; i <= 43; ++i) subSampleNameVectorTmp.push_back(Form("WJetsToLNu_ext_part%d",i));
+    for (Int_t i = 1; i <= 43; ++i) if (i!=28) subSampleNameVectorTmp.push_back(Form("WJetsToLNu_ext_part%d",i));
     for (Int_t i = 1; i <= 60; ++i) subSampleNameVectorTmp.push_back(Form("WJetsToLNu_ext2v5_part%d",i));   
   } else if (sample == Sample::wtaunujets) {
     subSampleNameVectorTmp.push_back("NoSkim_WJetsToLNu_NLO_part1");

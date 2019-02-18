@@ -40,7 +40,8 @@ void makeLoopTree(const bool isMuon = false,
   if (isMuon) {
 
     if (host_name.find("lxplus") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+    // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
       // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
     
     // the following does not work, requires to read tree.root.url

@@ -36,6 +36,7 @@ void fillHistograms(const string& treedir = "./",
 
   cout << endl;
   cout << "================================================" << endl;
+  cout << "Using integrated luminosity L = " << intLumi << endl;
   cout << endl;
 
   if (outputFile == NULL) {
@@ -513,6 +514,8 @@ void fillHistograms(const string& treedir = "./",
   Bool_t positiveLeptonHasPassedSelection = false;
 
   Double_t wgt = 1.0;
+  Double_t wgt_ptscaleUp = 1.0;
+  Double_t wgt_ptscaleDn = 1.0;
   Double_t lep1pt = 0.0;
   Double_t ptlow = 0.0;
   Double_t pthigh = 0.0;
@@ -522,22 +525,33 @@ void fillHistograms(const string& treedir = "./",
   Double_t ptLepFullUp = 0.0;
   Double_t ptLepFullDn = 0.0;
   Double_t lep1calPt = 0.0;
+
+  Bool_t nominalPt_passSelection = false;
+  Bool_t scaleUpPt_passSelection = false;
+  Bool_t scaleDnPt_passSelection = false;
   ////////////////////////////////////////////
   // to get correct weight depending on sample in chain
   string currentFile = "";
   Int_t ifile = 0;
   ////////////////////
 
+  Double_t sumWgt = 9.56169443709e+13;
+  if (treedir == "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/")
+    sumWgt = 9.47291822594e+13;
+  else if (treedir == "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/")
+    sumWgt = 9.47291822594e+13;
+  
   Double_t intLumiPb = 1000.0 * intLumi;
   Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
-  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 9.56169443709e+13;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / sumWgt;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
 
   //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 7.97011396982e+11;  // test with WJetsToLNu_ext2v5_part1 in pccmsrm
   
   // use 9.56169443709e+13 for ntuples in /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/
   // use 9.56169443709e+13 for ntuples in /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/
   // use 9.56169443709e+13 for ntuples in /u2/mciprian/TREES_13TeV/muon/signalSkim/
-  // use 9.47291822594e+13 with /afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/   // requires reading tree.root.url, might not work
+  // use 9.47291822594e+13 with /afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/   // requires reading tree.root.url, might not work, see line below
+  // use 9.47291822594e+13 with /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/
   // 3.54324749853e+13; // obsolete without ext2v5                      
 
   cout << "Starting loop" << endl;
@@ -581,14 +595,15 @@ void fillHistograms(const string& treedir = "./",
       // selection electrons
       if (**HLT_SingleMuon_1 < 1 and **HLT_SingleMuon_2 < 1) continue;
       if (*nlep != 1) continue;
-      if (lep1calPt < 26 or lep1calPt > ptCutReco) continue;
       if (lep_Id[0] < 1) continue;
       if (fabs(lep_pdgId[0]) != 13) continue;
       if (absLep1eta >= etaCutReco) continue;
       if (not isFloatEqual(fabs(*genw_decayId), 14.0, 0.001)) continue;
       // genw_charge is saved as float, while lep_charge is integer, protect against floating point precision in the comparison
       if (fabs(*genw_charge - lep_charge[0]) > 0.01) continue;   
-      if (mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) < 40) continue;
+      // do not cut here on pt, otherwise the muscale syst is biased, I have to cut on the consistent pt
+      //if (lep1calPt < 26 or lep1calPt > ptCutReco) continue;
+      //if (mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) < 40) continue;
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
@@ -598,6 +613,22 @@ void fillHistograms(const string& treedir = "./",
       ptLepFullUp = ptMuFullUp(lep_calPt[0],lep_eta[0]);
       ptLepFullDn = ptMuFullDn(lep_calPt[0],lep_eta[0]);
 
+      if (lep1calPt > 26 and lep1calPt < ptCutReco and mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) > 40)  
+	nominalPt_passSelection = true;
+      else
+	nominalPt_passSelection = false;
+
+      if (ptLepFullUp > 26 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
+	scaleUpPt_passSelection = true;
+      else
+	scaleUpPt_passSelection = false;
+
+      if (ptLepFullDn > 26 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
+	scaleDnPt_passSelection = true;
+      else
+	scaleDnPt_passSelection = false;
+
+
     } else {
 
       lep1calPt = ptElFull(lep_calPt[0],lep_eta[0]);   
@@ -606,14 +637,14 @@ void fillHistograms(const string& treedir = "./",
       if ((*lep_hltId)[0] < 1) continue;
       if (**HLT_SingleElectron != 1) continue;
       if (*nlep != 1) continue;
-      if (lep1calPt < 30 or lep1calPt > ptCutReco) continue;
       if (lep_Id[0] != 1 or (*lep_tightChargeFix)[0] != 2) continue;
       if (absLep1eta > 1.4442 and absLep1eta < 1.566) continue;
       if (absLep1eta > etaCutReco) continue;
       if (fabs(lep_pdgId[0]) != 11) continue;
       if (not isFloatEqual(*genw_decayId, 12.0, 0.001)) continue;
       if ((*lep_mcMatchId)[0] * lep_charge[0] == -24) continue;
-      if (mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) < 40) continue;
+      // if (lep1calPt < 30 or lep1calPt > ptCutReco) continue;
+      // if (mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) < 40) continue;
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
@@ -623,11 +654,31 @@ void fillHistograms(const string& treedir = "./",
       ptLepFullUp = ptElFullUp(lep_calPt[0],lep_eta[0]);
       ptLepFullDn = ptElFullDn(lep_calPt[0],lep_eta[0]);
 
+      if (lep1calPt > 30 and lep1calPt < ptCutReco and mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) > 40)  
+	nominalPt_passSelection = true;
+      else
+	nominalPt_passSelection = false;
+
+      if (ptLepFullUp > 30 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
+	scaleUpPt_passSelection = true;
+      else
+	scaleUpPt_passSelection = false;
+
+      if (ptLepFullDn > 30 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
+	scaleDnPt_passSelection = true;
+      else
+	scaleDnPt_passSelection = false;
+
+
     }
 
     // try to put common factor together
     wgt *= (wjets_NLO_wgt_partial * *genWeight * puw2016_nTrueInt_36fb(*nTrueInt));
-    
+
+    wgt           = wgt * nominalPt_passSelection;
+    wgt_ptscaleUp = wgt * scaleUpPt_passSelection;
+    wgt_ptscaleDn = wgt * scaleDnPt_passSelection;
+
     // Get charge index: 0 for positive, 1 for negative
     Int_t chargeIndex = 0; 
     if (lep_pdgId[0] > 0) {
@@ -665,8 +716,8 @@ void fillHistograms(const string& treedir = "./",
 
     // fill with reco quantities the bin corresponding to the gen level quantities (it is equivalent to cutting on gen level variables)
     h3_charge_eta_pt_globalBin[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
-    h3_charge_eta_pt_globalBin_lepScaleUp[chargeIndex]->Fill(lep_eta[0],ptLepFullUp, globalBinEtaPt, wgt);
-    h3_charge_eta_pt_globalBin_lepScaleDn[chargeIndex]->Fill(lep_eta[0],ptLepFullDn, globalBinEtaPt, wgt);
+    h3_charge_eta_pt_globalBin_lepScaleUp[chargeIndex]->Fill(lep_eta[0],ptLepFullUp, globalBinEtaPt, wgt_ptscaleUp);
+    h3_charge_eta_pt_globalBin_lepScaleDn[chargeIndex]->Fill(lep_eta[0],ptLepFullDn, globalBinEtaPt, wgt_ptscaleDn);
     h3_charge_eta_pt_globalBin_lepEffUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, lepEffWgtUp * wgt);
     h3_charge_eta_pt_globalBin_lepEffDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, lepEffWgtDn * wgt);
     // wpt syst

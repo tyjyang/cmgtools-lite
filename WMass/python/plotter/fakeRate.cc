@@ -34,6 +34,7 @@ TH2 * angular_7 = 0;
 // see for example: w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-normup.txt 
 // Index 7 is the shape variation when awayJetPt > 45 (one could add other systematics, adding other indices)
 // Index 8 and 9 accounts for FR obtained subtracting EWK scaled up and down by 1 sigma of their cross section
+// Index 10 and 11 to scale  Slope Up/Down with EWK Down/Up (more EWK means lower FR, so it makes sense to decrease the slope to create a band around nominal)
 // Keep array index larger than the number of index you will use, so you don't have to increase it everytime you add another index
 TH2 * FR_mu = 0;
 TH2 * FRi_mu[15] = {0};  
@@ -48,9 +49,9 @@ TH2 * FRi_el_qcdmc[5] = {0};
 
 // prompt rate
 TH2 * PR_mu = 0;
-TH2 * PRi_mu[7] = {0};
+TH2 * PRi_mu[15] = {0};
 TH2 * PR_el = 0;
-TH2 * PRi_el[7] = {0};
+TH2 * PRi_el[15] = {0};
 
 TH2 * FRcorrection = 0;
 TH2 * FRcorrection_i[5];
@@ -224,10 +225,10 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   if      (iFR==1) p0 += hist_fr->GetBinError(etabin, 1);
   else if (iFR==2) p0 -= hist_fr->GetBinError(etabin, 1);
   // offset and slope are anticorrelated, when changing slope, have to move the offset as well
-  else if (iFR==3) {
+  else if (iFR==3 || iFR==10) {
     p1 += hist_fr->GetBinError(etabin, 2);
     p0 -= hist_fr->GetBinError(etabin, 1);
-  } else if (iFR==4) {
+  } else if (iFR==4 || iFR==11) {
     p1 -= hist_fr->GetBinError(etabin, 2);
     p0 += hist_fr->GetBinError(etabin, 1);
   }

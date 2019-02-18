@@ -168,6 +168,10 @@ if __name__ == "__main__":
                             genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
     
 
+    hChAsymm1Deta = ROOT.TH1F("hChAsymm1Deta_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
+                              genBins.Neta, array('d',genBins.etaBins))
+
+
     nbins = (genBins.Neta - nEtaBinsBkg) * (genBins.Npt - nPtBinsBkg)
     binCount = 1        
     print "Now filling histograms with charge asymmetry"
@@ -187,23 +191,31 @@ if __name__ == "__main__":
             binCount += 1
 
             if options.hessian: 
-                #central = utilities.getDiffXsecAsymmetryFromHessian(channel,ieta-1,ipt-1,genBins.Neta,ngroup,options.toyfile)
-                central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,genBins.Neta,ngroup,
+                #central = utilities.getDiffXsecAsymmetryFromHessian(channel,ieta-1,ipt-1,options.toyfile)
+                central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
+                error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                                                                        nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
             else:                
-                central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(channel,ieta-1,ipt-1,genBins.Neta,ngroup,
+                central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(channel,ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
-                #central,up,down = utilities.getDiffXsecAsymmetryFromToys(channel,ieta-1,ipt-1,genBins.Neta,ngroup,options.toyfile)
+                #central,up,down = utilities.getDiffXsecAsymmetryFromToys(channel,ieta-1,ipt-1,options.toyfile)
                 error = up - central
-                hChAsymm.SetBinError(ieta,ipt,error)         
-                hChAsymmErr.SetBinContent(ieta,ipt,error)
+            hChAsymm.SetBinError(ieta,ipt,error)         
+            hChAsymmErr.SetBinContent(ieta,ipt,error)
             hChAsymm.SetBinContent(ieta,ipt,central)        
-            
 
+    for ieta in range(1,genBins.Neta+1):            
+        if etaBinIsBackground[ieta-1]: continue
+        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree)
+        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+        hChAsymm1Deta.SetBinContent(ieta,central)
+        hChAsymm1Deta.SetBinError(ieta,error)
 
     setTDRStyle()
 
     canvas = ROOT.TCanvas("canvas","",800,700)
+    canvas1D = ROOT.TCanvas("canvas1D","",800,800)
 
     xaxisTitle = 'gen %s |#eta|' % lepton
     yaxisTitle = 'gen %s p_{T} [GeV]' % lepton
@@ -228,38 +240,37 @@ if __name__ == "__main__":
                         hChAsymm.GetName(),
                         "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-    if not options.hessian:
+    zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,0.9*hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
+                                                       min(0.3,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
+    #zaxisTitle = "Asymmetry uncertainty::0,0.04" 
+    drawCorrelationPlot(hChAsymmErr,
+                        xaxisTitle, yaxisTitle, zaxisTitle,
+                        hChAsymmErr.GetName(),
+                        "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        zaxisTitle = "Asymmetry uncertainty::%.3f,%.3f" % (max(0,0.9*hChAsymmErr.GetBinContent(hChAsymmErr.GetMinimumBin())),
-                                                           min(0.3,hChAsymmErr.GetBinContent(hChAsymmErr.GetMaximumBin())))
-        #zaxisTitle = "Asymmetry uncertainty::0,0.04" 
-        drawCorrelationPlot(hChAsymmErr,
-                            xaxisTitle, yaxisTitle, zaxisTitle,
-                            hChAsymmErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
-
-        hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
-        hChAsymmRelErr.Divide(hChAsymm)
-        hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
-        #zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
-                                                                     # min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
-                                                                     #)
-        #zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
-        zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
-                                                                    min(0.4,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
-        drawCorrelationPlot(hChAsymmRelErr,
-                            xaxisTitle, yaxisTitle, zaxisTitle,
-                            hChAsymmRelErr.GetName(),
-                            "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+    hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
+    hChAsymmRelErr.Divide(hChAsymm)
+    hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
+    #zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+                                                                 # min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
+                                                                 #)
+    #zaxisTitle = "Asymmetry relative uncertainty::0.01,0.3" 
+    zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
+                                                                min(0.4,hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))) 
+    drawCorrelationPlot(hChAsymmRelErr,
+                        xaxisTitle, yaxisTitle, zaxisTitle,
+                        hChAsymmRelErr.GetName(),
+                        "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
-    else:
-        print "You used option --hessian, so I could not plot the error for charge asymmetry (until it is not in the output of combine)."
-        #print "You used option --hessian, so I will quit now."
-        #print "If you want to plot the differential cross section as well, you can directly use 'w-helicity-13TeV/plotDiffXsecFromFit.py'"
-        #quit()
-        # stop here with hessian for now
-        # for the hessian cross section you can use w-helicity-13TeV/plotDiffXsecFromFit.py
+    additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+    legendCoords = "0.2,0.4,0.75,0.85"
+    drawSingleTH1(hChAsymm1Deta,xaxisTitle,"charge asymmetry",
+                  "chargeAsym1D_eta_abs_{fl}".format(fl=channel),
+                  outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1, drawLineLowerPanel="",
+                  passCanvas=canvas1D, lumi=options.lumiInt,
+                  lowerPanelHeight=0.35, moreText=additionalText
+                  )
 
 
     for charge in charges:
@@ -290,6 +301,10 @@ if __name__ == "__main__":
                                      "normalized cross section uncertainty: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                      genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
+        hDiffXsec_1Deta = ROOT.TH1F("hDiffXsec_1Deta_{lep}_{ch}".format(lep=lepton,ch=charge),
+                                    "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                    genBins.Neta, array('d',genBins.etaBins))
+
         #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
         binCount = 1        
         print "Now filling histograms with differential cross section (charge = %s)" % charge
@@ -301,7 +316,7 @@ if __name__ == "__main__":
             if options.friend != "":
                 denExpression = "totxsec_" + charge
             else:
-                denExpression = utilities.getDenExpressionForNormDiffXsec(channel, charge, genBins.Neta,genBins.Npt, ngroup)
+                denExpression = utilities.getDenExpressionForNormDiffXsec(channel, charge, genBins.Neta,genBins.Npt)
 
         central = 0
         error   = 0
@@ -317,14 +332,13 @@ if __name__ == "__main__":
 
                 # signal strength
                 if options.hessian:                    
-                    central = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    central = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                          nHistBins=100, minHist=0.5, maxHist=1.5, tree=tree)                    
-                    error = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    error = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                        nHistBins=200, minHist=0.0, maxHist=1., tree=tree, getErr=True)                    
                 else:
-                    central,up,down = utilities.getSignalStrengthFromToysFast(channel,charge,
-                                                                              ieta-1,ipt-1,genBins.Neta,genBins.Npt,
-                                                                              ngroup, nHistBins=200, minHist=0.5, maxHist=1.5, tree=tree)
+                    central,up,down = utilities.getSignalStrengthFromToysFast(channel,charge,ieta-1,ipt-1, 
+                                                                              nHistBins=200, minHist=0.5, maxHist=1.5, tree=tree)
                     error = up - central
                 hMu.SetBinContent(ieta,ipt,central)        
                 hMu.SetBinError(ieta,ipt,error)         
@@ -332,14 +346,13 @@ if __name__ == "__main__":
                 
                 # normalized cross section
                 if options.hessian:                    
-                    central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=200., tree=tree)                    
-                    error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                            nHistBins=2000, minHist=0., maxHist=10., tree=tree, getErr=True)                    
                 else:
-                    central,up,down = utilities.getNormalizedDiffXsecFromToysFast(channel,charge,
-                                                                                  ieta-1,ipt-1,genBins.Neta,genBins.Npt,
-                                                                                  ngroup,denExpression, nHistBins=1000, minHist=0., maxHist=0.1, tree=tree)
+                    central,up,down = utilities.getNormalizedDiffXsecFromToysFast(channel,charge,ieta-1,ipt-1,
+                                                                                  denExpression, nHistBins=1000, minHist=0., maxHist=0.1, tree=tree)
                     error = up - central
                 hDiffXsecNorm.SetBinContent(ieta,ipt,central)        
                 hDiffXsecNorm.SetBinError(ieta,ipt,error)         
@@ -347,26 +360,31 @@ if __name__ == "__main__":
                 
                 # unnormalized cross section
                 if options.hessian:
-                    central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                    nHistBins=2000, minHist=0., maxHist=200., tree=tree)                    
-                    error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                  nHistBins=2000, minHist=0., maxHist=200., tree=tree, getErr=True)                    
                 else:                
-                    central,up,down = utilities.getDiffXsecFromToysFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                    central,up,down = utilities.getDiffXsecFromToysFast(channel,charge,ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=200., tree=tree)
                     error = up - central
                 hDiffXsec.SetBinContent(ieta,ipt,central)        
                 hDiffXsec.SetBinError(ieta,ipt,error)         
                 hDiffXsecErr.SetBinContent(ieta,ipt,error)
-
-
-
+                
+        for ieta in range(1,genBins.Neta+1):
+            if etaBinIsBackground[ieta-1]: continue
+            central = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree)
+            error   = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree, getErr=True)
+            hDiffXsec_1Deta.SetBinContent(ieta, central)
+            hDiffXsec_1Deta.SetBinError(ieta, error)
 
         if options.normWidth:
             hDiffXsec.Scale(1.,"width")
             hDiffXsecErr.Scale(1.,"width")
             hDiffXsecNorm.Scale(1.,"width")
             hDiffXsecNormErr.Scale(1.,"width")
+            hDiffXsec_1Deta.Scale(1.,"width")
 
         if options.lumiNorm > 0:
             scaleFactor = 1./options.lumiNorm
@@ -375,7 +393,8 @@ if __name__ == "__main__":
             # do not divide the normalized cross section, the scaling factor is already removed
             #hDiffXsecNorm.Scale(scaleFactor)
             #hDiffXsecNormErr.Scale(scaleFactor)
-            
+            hDiffXsec_1Deta.Scale(scaleFactor)
+
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
         hDiffXsecRelErr.SetTitle(hDiffXsecErr.GetTitle().replace('uncertainty','rel.unc.'))
@@ -466,6 +485,16 @@ if __name__ == "__main__":
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.45,0.8,0.65,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+        legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
+        drawSingleTH1(hDiffXsec_1Deta,xaxisTitle,"d#sigma/d|#eta| [pb]",
+                      "xsec_eta_abs_{ch}_{fl}".format(ch=charge,fl=channel),
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                      passCanvas=canvas1D, lumi=options.lumiInt,
+                      lowerPanelHeight=0.35, moreText=additionalText
+                      )
+
+
 
 ######
         # now drawing a TH1 unrolling TH2
@@ -479,7 +508,7 @@ if __name__ == "__main__":
 
         xaxisTitle = "template global bin"
         vertLinesArg = ""
-        additionalText = "W{chs} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
         h1D_pmaskedexp = {}
         h1D_pmaskedexp_norm = {}
@@ -559,18 +588,18 @@ if __name__ == "__main__":
                         binCount += 1
 
                         # normalized cross section
-                        central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                        central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                                  nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getGen=getExpFromGen)         
-                        error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                        error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                                nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getErr=True)                    
 
                         hDiffXsecNorm_exp.SetBinContent(ieta,ipt,central)        
                         hDiffXsecNorm_exp.SetBinError(ieta,ipt,error)         
 
                         # unnormalized cross section
-                        central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                        central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                        nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getGen=getExpFromGen)                    
-                        error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,genBins.Neta,genBins.Npt,ngroup,
+                        error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
                                                                      nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getErr=True)                    
                         hDiffXsec_exp.SetBinContent(ieta,ipt,central)        
                         hDiffXsec_exp.SetBinError(ieta,ipt,error)         

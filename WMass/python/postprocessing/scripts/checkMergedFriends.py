@@ -23,6 +23,9 @@ class CheckOneFriend:
         if not tf:
             print "ERROR! Unable to open file %s" % (self.file)
             return False
+        if tf.TestBit(ROOT.TFile.kRecovered):
+            print "WARNING! Attempt was made to recover file %s" % (self.file)
+            return False
         tree = tf.Get(self.tree)
         if not tree:
             print "ERROR! Base tree in file %s is missing" % (self.file)
@@ -40,6 +43,9 @@ class CheckOneFriend:
             ff = ROOT.TFile.Open(self.friendfile)
             if not ff:
                 print "ERROR! Unable to open file %s" % (self.friendfile)
+                return False
+            if ff.TestBit(ROOT.TFile.kRecovered):
+                print "WARNING! Attempt was made to recover file %s" % (self.friendfile)
                 return False
             ftree = ff.Get(self.ftree)
             if not ftree:
