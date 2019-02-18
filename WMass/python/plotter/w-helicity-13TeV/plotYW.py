@@ -259,9 +259,9 @@ def plotValues(values,charge,channel,options):
 def plotUnpolarizedValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
-        c2.GetPad(0).SetBottomMargin(0.15)
-        c2.GetPad(0).SetLeftMargin(0.16)
-        c2.GetPad(0).SetRightMargin(0.03)
+        c2.GetPad(0).SetBottomMargin(0.35)
+        c2.GetPad(0).SetLeftMargin(0.15)
+        c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
 
@@ -275,7 +275,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
         lat = ROOT.TLatex()
         lat.SetNDC(); lat.SetTextFont(42)
-        legx1, legx2, legy1, legy2 = 0.2, 0.65, 0.75, 0.85
+        legx1, legx2, legy1, legy2 = 0.2, 0.5, 0.7, 0.85
         ## the graphs exist now. now starting to draw them
         ## ===========================================================
         if hasattr(values,'graph') and hasattr(values,'graph_fit'):
@@ -286,6 +286,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetLabelSize(0)
             if normstr=='xsec':
                 if options.normxsec: 
                     mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
@@ -296,13 +297,11 @@ def plotUnpolarizedValues(values,charge,channel,options):
             else:
                 mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
                 mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
-            mg.GetXaxis().SetTitleSize(0.06)
-            mg.GetXaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.3)
+            mg.GetYaxis().SetTitleOffset(1.)
      
-            leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
+            leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values.graph_fit , 'W (fit)', 'pl')
@@ -313,30 +312,40 @@ def plotUnpolarizedValues(values,charge,channel,options):
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
             lat.DrawLatex(0.70, 0.20,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
      
-            for ext in ['png', 'pdf']:
-                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
         ## now make the relative error plot:
         ## ======================================
         if hasattr(values,'mg'):
+
+            pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+            pad2.SetTopMargin(0.65)
+            pad2.SetRightMargin(0.04)
+            pad2.SetLeftMargin(0.15)
+            pad2.SetFillColor(0)
+            pad2.SetGridy(0)
+            pad2.SetFillStyle(0)
+
+            pad2.Draw()
+            pad2.cd()
+
             line = ROOT.TF1("horiz_line","0" if charge=='asymmetry' else '1',0.0,3.0);
             line.SetLineColor(ROOT.kBlack);
             line.SetLineWidth(2);
-
             yaxrange = (0,0)
             if charge=='asymmetry':
                 yaxtitle = 'W charge asymmetry'
                 yaxrange = (0, 0.4)
             else:
+                yaxtitle = 'Rel. Unc.'
                 if normstr=='xsec':
-                    yaxtitle = '#frac{1}{#sigma} #frac{d#sigma}{d|Y_{W}|} / #frac{1}{#sigma^{exp}} #frac{d#sigma^{exp}}{d|Y_{W}|}' if options.normxsec else '#frac{d#sigma}{d|Y_{W}|} / #frac{d#sigma^{exp}}{d|Y_{W}|}'
                     yaxrange = (0.70, 1.30)
                 else:
-                    yaxtitle = '|A_{0}|' if normstr=='A0' else '|A_{4}|'
                     yaxrange = (-1.5, 3.5)
 
             values.mg.Draw('Pa')
             ## x axis fiddling
+            values.mg.GetXaxis().SetTitle('|Y_{W}|')
+            values.mg.GetXaxis().SetTitleOffset(1.)
             values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
             values.mg.GetXaxis().SetTitleSize(0.1)
             values.mg.GetXaxis().SetLabelSize(0.04)
@@ -346,21 +355,20 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
+            values.mg.GetYaxis().SetNdivisions(5)
+            values.mg.GetYaxis().CenterTitle()
 
-            leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
-            leg.SetFillStyle(0); leg.SetBorderSize(0)
-            leg.AddEntry(values.graph_fit_rel , 'W^{{{ch}}} (fit)'      .format(ch=ch) , 'pl')
-            leg.AddEntry(values.graph_rel     , 'W^{{{ch}}} (PDF unc.)' .format(ch=ch) , 'f')
+
+            # leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
+            # leg.SetFillStyle(0); leg.SetBorderSize(0)
+            # leg.AddEntry(values.graph_fit_rel , 'W^{{{ch}}} (fit)'      .format(ch=ch) , 'pl')
+            # leg.AddEntry(values.graph_rel     , 'W^{{{ch}}} (PDF unc.)' .format(ch=ch) , 'f')
      
-            leg.Draw('same')
+            # leg.Draw('same')
             line.Draw("Lsame");
-     
-            lat.DrawLatex(0.14, 0.94, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
-            lat.SetTextSize(0.04)
-            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
+
             for ext in ['png', 'pdf']:
-                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_relative_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
 
 NPDFs = 60
