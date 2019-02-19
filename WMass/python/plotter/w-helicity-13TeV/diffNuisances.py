@@ -218,7 +218,7 @@ if __name__ == "__main__":
         names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
         names = sorted(names, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         names = sorted(names, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-        names = sorted(names, key= lambda x: getNEffStat(x) if 'EffStat' in x else 0)
+        names = sorted(names, key= lambda x: utilities.getNEffStat(x) if 'EffStat' in x else 0)
         names = sorted(names, key= lambda x: int(x.split('FakesEtaUncorrelated')[-1]) if 'FakesEtaUncorrelated' in x else 0)
      
         highlighters = { 1:highlight, 2:morelight };
