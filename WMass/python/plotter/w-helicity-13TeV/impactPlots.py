@@ -13,6 +13,7 @@ from postFitPlots import prepareLegend
 import utilities
 utilities = utilities.util()
 
+
 def niceSystName(label):
     if 'lepScale' in label: niceName = 'lepton scale'
     elif 'OtherBkg' in label: niceName = 'other bkg'
@@ -208,7 +209,7 @@ if __name__ == "__main__":
         nuisances = sorted(nuisances, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
         nuisances = sorted(nuisances, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         nuisances = sorted(nuisances, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-        nuisances = sorted(nuisances, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)
+        nuisances = sorted(nuisances, key= lambda x: utilities.getNEffStat(x) if 'EffStat' in x else 0)
 
     #print "sorted pois = ", pois
     #print "\n\nsorted nuisances = ", nuisances

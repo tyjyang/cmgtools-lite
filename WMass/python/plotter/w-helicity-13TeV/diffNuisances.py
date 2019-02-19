@@ -15,12 +15,6 @@ ROOT.gROOT.SetBatch(True)
 import utilities
 utilities = utilities.util()
 
-def getNEffStat(s):
-    a = s.split('EffStat')[1]
-    a = a.replace('minus','').replace('plus','')
-    a = a.replace('mu','').replace('el','')
-    return int(a)
-
 
 if __name__ == "__main__":
 
@@ -84,7 +78,7 @@ if __name__ == "__main__":
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
         params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
     elif any(re.match('.*EffStat.*',x) for x in params):
-        params = sorted(params, key = lambda x: getNEffStat(x) , reverse=False)
+        params = sorted(params, key = lambda x: utilities.getNEffStat(x) , reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
         if any('_ieta_' in x for x in params):
             # differential xsection: get ieta, ipt index and use them as keys to sort
