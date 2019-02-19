@@ -303,6 +303,9 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
                     phistybin = parhist.GetYaxis().FindBin(ybincenter)
                     tmp_scale = parhist.GetBinContent(parhist.GetXaxis().FindBin(eta),parhist.GetYaxis().FindBin(ybincenter))
                     scaling = math.sqrt(2.)*tmp_scale
+                    ## scale electrons by sqrt(2) due to the input file being charge inclusive
+                    if flav == 'el':
+                        scaling *= math.sqrt(2)
                     ## scale up and down with what we got from the histo
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)
                     tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
