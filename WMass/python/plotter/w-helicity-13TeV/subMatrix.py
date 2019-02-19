@@ -21,7 +21,6 @@ from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 #ROOT.gStyle.SetPalette()
 
 
-
 def niceName(name):
 
     if '_Ybin' in name:
@@ -199,7 +198,7 @@ if __name__ == "__main__":
     params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
     params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-    params = sorted(params, key= lambda x: int(x.split('EffStat')[1]) if 'EffStat' in x else 0)            
+    params = sorted(params, key= lambda x: utilities.getNEffStat(x) if 'EffStat' in x else 0)            
     params = sorted(params, key= lambda x: int(x.split('FakesEtaUncorrelated')[1]) if 'FakesEtaUncorrelated' in x else 0)            
     print "sorted params = ", params
 

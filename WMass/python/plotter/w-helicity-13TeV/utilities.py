@@ -602,3 +602,10 @@ class util:
         #print "toyMC done"
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
         return ret
+
+    def getNEffStat(self, s):
+        a = s.split('EffStat')[1]
+        a = a.replace('minus','').replace('plus','')
+        a = a.replace('mu','').replace('el','')
+        return int(a)
+
