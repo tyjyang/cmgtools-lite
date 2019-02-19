@@ -69,24 +69,24 @@ class valueClass:
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
             self.graph.SetFillColor(self.color)
-            self.graph.SetFillStyle(3002)
+            self.graph.SetFillStyle(3020)
         if hasattr(self,'graph_fit'):
             self.graph_fit.SetLineWidth(2)
-            self.graph_fit.SetMarkerSize(0.7)
-            self.graph_fit.SetMarkerStyle(20)
-            self.graph_fit.SetMarkerColor(self.colorf)
-            self.graph_fit.SetLineColor(self.colorf)
+            self.graph_fit.SetMarkerSize(1.0)
+            self.graph_fit.SetMarkerStyle(ROOT.kFullCircle)
+            self.graph_fit.SetMarkerColor(self.color)
+            self.graph_fit.SetLineColor(self.color)
         if hasattr(self,'graph_rel'):
             self.graph_rel.SetLineWidth(5)
             self.graph_rel.SetLineColor(self.color)
             self.graph_rel.SetFillColor(self.color)
-            self.graph_rel.SetFillStyle(3002)
+            self.graph_rel.SetFillStyle(3020)
         if hasattr(self,'graph_fit_rel'):
             self.graph_fit_rel.SetLineWidth(2)
-            self.graph_fit_rel.SetLineColor(self.colorf)
-            self.graph_fit_rel.SetMarkerSize(0.7)
-            self.graph_fit_rel.SetMarkerStyle(20)
-            self.graph_fit_rel.SetMarkerColor(self.colorf)
+            self.graph_fit_rel.SetLineColor(self.color)
+            self.graph_fit_rel.SetMarkerSize(1.0)
+            self.graph_fit_rel.SetMarkerStyle(ROOT.kFullCircle)
+            self.graph_fit_rel.SetMarkerColor(self.color)
 
 def plotValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
@@ -286,6 +286,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             if normstr=='xsec':
                 if options.normxsec: 
@@ -304,13 +305,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values.graph_fit , 'W (fit)', 'pl')
-            leg.AddEntry(values.graph     , 'W (PDF unc.)', 'f')
+            leg.AddEntry(values.graph_fit , 'data', 'pl')
+            leg.AddEntry(values.graph     , 'MC@NLO, NNPDF3.0', 'f')
 
             leg.Draw('same')
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.70, 0.20,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
+            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
      
 
         ## now make the relative error plot:
@@ -324,6 +325,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
+            pad2.SetTicky(1)
 
             pad2.Draw()
             pad2.cd()
@@ -336,11 +338,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 yaxtitle = 'W charge asymmetry'
                 yaxrange = (0, 0.4)
             else:
-                yaxtitle = 'Rel. Unc.'
-                if normstr=='xsec':
-                    yaxrange = (0.70, 1.30)
-                else:
-                    yaxrange = (-1.5, 3.5)
+                yaxtitle = 'Data/theory'
+                yaxrange = (0.80, 1.20) if normstr=='xsec' else (-1.5, 3.5)
 
             values.mg.Draw('Pa')
             ## x axis fiddling
@@ -358,17 +357,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetNdivisions(5)
             values.mg.GetYaxis().CenterTitle()
 
-
-            # leg = ROOT.TLegend(legx1, legx2, legy1, legy2)
-            # leg.SetFillStyle(0); leg.SetBorderSize(0)
-            # leg.AddEntry(values.graph_fit_rel , 'W^{{{ch}}} (fit)'      .format(ch=ch) , 'pl')
-            # leg.AddEntry(values.graph_rel     , 'W^{{{ch}}} (PDF unc.)' .format(ch=ch) , 'f')
-     
-            # leg.Draw('same')
             line.Draw("Lsame");
 
-            for ext in ['png', 'pdf']:
-                c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+        for ext in ['png', 'pdf']:
+            c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
 
 NPDFs = 60
