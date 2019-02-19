@@ -248,11 +248,13 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
+        flav = 'mu'
         if charge == 'plus':
             parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root'
         else:
             parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root'
     else:
+        flav = 'el'
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
     parfile = ROOT.TFile(parfile_name, 'read')
@@ -260,7 +262,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
     tmp_infile = ROOT.TFile(infile, 'read')
 
-    outfile = ROOT.TFile(indir+'/ErfParEffStat_{ch}.root'.format(ch=charge), 'recreate')
+    outfile = ROOT.TFile(indir+'/ErfParEffStat_{flav}_{ch}.root'.format(ch=charge,flav=flav), 'recreate')
 
     ndone = 0
     for k in tmp_infile.GetListOfKeys():
@@ -269,6 +271,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
         if not re.match(regexp, tmp_name): continue
         ## don't reweight any histos that are already variations of something else
         if 'Up' in tmp_name or 'Down' in tmp_name: continue
+        if 'lepeff' in tmp_name: continue
 
         #if ndone: continue
         ndone += 1
@@ -286,7 +289,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
             for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
                 eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
 
-                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{eta}2DROLLED'.format(p=npar,eta=ieta)
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{eta}{flav}{ch}2DROLLED'.format(p=npar,eta=ieta,flav=flav,ch=charge)
             
                 tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
                 tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -527,7 +530,7 @@ if __name__ == "__main__":
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
 
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{ch}.root {indir}/FakesEtaUncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir )
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/FakesEtaUncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -857,7 +860,7 @@ if __name__ == "__main__":
             signals += ['W{charge}_long'.format(charge=charge)]
             multisig      = ' '.join(["--PO 'map=.*/{proc}$:r_{proc_nochan}[1,0,10]'".format(proc=proc,proc_nochan=proc.replace('_{channel}_'.format(channel=channel),'_')) for proc in signals])
 
-            cardfile_xsec = cardfile.replace('_card', '_card_withXsecMask')
+            cardfile_xsec = cardfile.replace('_card.', '_card_withXsecMask.')
             chname = options.bin+'_{ch}'.format(ch=charge)
             chname_xsecs = [chname+'_xsec_{acc}'.format(acc=mc) for mc in maskedChannels]
             maskChansCombCards = ' '.join(['{chName}={cardfile}'.format(chName=k,cardfile=val) for k,val in maskedChannelsCards.iteritems()])
