@@ -109,7 +109,7 @@ def plotValues(values,charge,channel,options):
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
 
-        ch = '+' if charge == 'plus' else '-'
+        ch = '#plus' if charge == 'plus' else '#minus'
         if charge == 'asymmetry': ch = ''
         date = datetime.date.today().isoformat()
         normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
@@ -146,12 +146,16 @@ def plotValues(values,charge,channel,options):
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('|Y_{W}|')
             mg.GetXaxis().SetLabelSize(0)
-            if options.normxsec: 
-                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.6)
-            else: 
-                mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
-                mg.GetYaxis().SetRangeUser(-200,3500)
+            if charge=='asymmetry':
+                mg.GetYaxis().SetTitle('Charge asymmetry')
+                mg.GetYaxis().SetRangeUser(0.0,0.35)
+            else:
+                if options.normxsec: 
+                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
+                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.6)
+                else: 
+                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                    mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(1.2)
@@ -163,7 +167,7 @@ def plotValues(values,charge,channel,options):
         if sum(hasattr(values[pol],'mg') for pol in ['left','right','long'])==3:
 
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
-            pad2.SetTopMargin(0.03 if charge=='asymmetry' else 0.65)
+            pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
             pad2.SetLeftMargin(0.15)
             pad2.SetFillColor(0)
@@ -177,11 +181,10 @@ def plotValues(values,charge,channel,options):
             line = ROOT.TF1("horiz_line","0" if charge=='asymmetry' else '1',0.0,3.0);
             line.SetLineColor(ROOT.kBlack);
             line.SetLineWidth(2);
-            #line.Draw()
 
             if charge=='asymmetry':
-                yaxtitle = 'W charge asymmetry'
-                yaxrange = (-0.4, 0.4)
+                yaxtitle = 'Data-theory'
+                yaxrange = (-0.1, 0.1)
             else:
                 yaxtitle = 'Data/theory'
                 yaxrange = (0.80, 1.20)
@@ -197,13 +200,14 @@ def plotValues(values,charge,channel,options):
                     values[hel].mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
                     values[hel].mg.GetXaxis().SetLabelSize(0.04)
                     ## y axis fiddling
-                    values[hel].mg.GetYaxis().SetTitleOffset(1.1)
-                    values[hel].mg.GetYaxis().SetTitleSize(0.05)
+                    values[hel].mg.GetYaxis().SetTitleOffset(1.2)
+                    values[hel].mg.GetYaxis().SetTitleSize(0.06)
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
                     values[hel].mg.GetYaxis().SetNdivisions(5)
                     values[hel].mg.GetYaxis().CenterTitle()
+            line.Draw("Lsame");
             c2.cd()
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
@@ -222,7 +226,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
 
-        ch = '+' if charge == 'plus' else '-'
+        ch = '#plus' if charge == 'plus' else '#minus'
         if charge == 'asymmetry': ch = ''
         date = datetime.date.today().isoformat()
         if 'values_a0' in values.name: normstr = 'A0'
@@ -245,16 +249,20 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetXaxis().SetTitle('|Y_{W}|')
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
-            if normstr=='xsec':
-                if options.normxsec: 
-                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
-                else: 
-                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
-                    mg.GetYaxis().SetRangeUser(1500,4500)
+            if charge=='asymmetry':
+                 mg.GetYaxis().SetTitle('Charge asymmetry')
+                 mg.GetYaxis().SetRangeUser(0.,0.35)
             else:
-                mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
-                mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
+                if normstr=='xsec':
+                    if options.normxsec: 
+                        mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
+                        mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
+                    else: 
+                        mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                        mg.GetYaxis().SetRangeUser(1500,4500)
+                else:
+                    mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
+                    mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
             mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(1.)
@@ -292,8 +300,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             line.SetLineWidth(2);
             yaxrange = (0,0)
             if charge=='asymmetry':
-                yaxtitle = 'W charge asymmetry'
-                yaxrange = (0, 0.4)
+                yaxtitle = 'Data-theory'
+                yaxrange = (-0.1, 0.1)
             else:
                 yaxtitle = 'Data/theory'
                 yaxrange = (0.80, 1.20) if normstr=='xsec' else (-1.5, 3.5)
@@ -307,7 +315,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
             values.mg.GetYaxis().SetTitleOffset(1.2)
-            values.mg.GetYaxis().SetTitleSize(0.05)
+            values.mg.GetYaxis().SetTitleSize(0.06)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -591,17 +599,27 @@ if __name__ == "__main__":
             for iy,y in enumerate(ybinwidths[cp]):
                 chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
                                                    xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
-                tmp_val.relv .append(chasy_val['asy'][0])
-                tmp_val.relhi.append(chasy_val['asy'][1])
+                tmp_val.val .append(chasy_val['asy'][0])
+                tmp_val.ehi.append(chasy_val['asy'][1])
+                tmp_val.elo.append(chasy_val['asy'][1])
+
+                # on the charge asymmetry, which is A~0, better to show the difference 
+                # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
+                tmp_val.relv. append(0.)
                 tmp_val.rello.append(chasy_val['asy'][1])
+                tmp_val.relhi.append(chasy_val['asy'][1])
 
                 if options.type == 'toys':
                     asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
                 else:
                     asy_fit = valuesAndErrors['W_{pol}_{ch}_Ybin_{iy}_chargeasym'.format(pol=pol,ch=channel,iy=iy)]
-                tmp_val.relv_fit .append(asy_fit[0])
-                tmp_val.rello_fit.append(abs(asy_fit[0]-asy_fit[1]))
-                tmp_val.relhi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+                tmp_val.val_fit .append(asy_fit[0])
+                tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
+                tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+
+                tmp_val.relv_fit .append(tmp_val.val_fit[-1] - tmp_val.val[-1])
+                tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
+                tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
 
                 tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
                 tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
@@ -624,15 +642,23 @@ if __name__ == "__main__":
             chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
                                                xerr['plus'], xerr['minus'])
             
-            tmp_val.relv .append(chasy_val['asy'][0])
-            tmp_val.relhi.append(chasy_val['asy'][1])
+            tmp_val.val .append(chasy_val['asy'][0])
+            tmp_val.ehi.append(chasy_val['asy'][1])
+            tmp_val.elo.append(chasy_val['asy'][1])
+
+            tmp_val.relv. append(0.)
             tmp_val.rello.append(chasy_val['asy'][1])
+            tmp_val.relhi.append(chasy_val['asy'][1])
 
             if options.type == 'hessian': # should make the right expression from toys, if needed... 
                 asy_fit = valuesAndErrors['W_{ch}_Ybin_{iy}_chargemetaasym'.format(ch=channel,iy=iy)]
-            tmp_val.relv_fit .append(asy_fit[0])
-            tmp_val.rello_fit.append(abs(asy_fit[0]-asy_fit[1]))
-            tmp_val.relhi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+            tmp_val.val_fit .append(asy_fit[0])
+            tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
+            tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+
+            tmp_val.relv_fit .append(tmp_val.val_fit[-1] - tmp_val.val[-1])
+            tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
+            tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
 
             tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
             tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
