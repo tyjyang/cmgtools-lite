@@ -234,6 +234,8 @@ if __name__ == "__main__":
      
             if options.unrolled:
                 systNames = options.systematics.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
+                ## protection for too long filenames
+                if len(systNames) > 50: systNames = systNames[:50]
                 plotUnrolledRatios(ratios,outname,'{syst}_{ch}'.format(syst=systNames,ch=charge))
 
 
