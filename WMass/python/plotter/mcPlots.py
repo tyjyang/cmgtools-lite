@@ -620,10 +620,17 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         # clone and divide should be enough, but cloning keeps the palette and the zaxis title of the cloned
         # ratio = pmap[numkey].Clone("data_div"); 
         # build in the hard way
-        xbins, ybins = pmap[numkey].GetXaxis().GetXbins(), pmap[numkey].GetYaxis().GetXbins()
+        #
+        # the following doesn't work if the TH2D was defined with nx,min,max,ny,min,max (don't know why, boh)
+        # create the bins looping of edges
+        #xbins, ybins = pmap[numkey].GetXaxis().GetXbins(), pmap[numkey].GetYaxis().GetXbins()        
+        xbins = [pmap[numkey].GetXaxis().GetBinLowEdge(i+1) for i in range(pmap[numkey].GetNbinsX()+1)] # nbins+1 because I also need the low edge of overflow bin
+        ybins = [pmap[numkey].GetYaxis().GetBinLowEdge(i+1) for i in range(pmap[numkey].GetNbinsY()+1)]
+        #print "xbins = " + ",".join(str(x) for x in xbins)
+        #print "ybins = " + ",".join(str(x) for x in ybins)
         #print "Defining TH2 for ratio: %s / %s" % (numkey, ratioDen)
         ratio = ROOT.TH2D("ratio__{d}__{n}".format(d=ratioDen,n=numkey),"ratio_{d}_{n}".format(d=ratioDen,n=numkey),
-                          len(xbins)-1,array('f',xbins),len(ybins)-1,array('f',ybins))
+                          len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
         for ix in xrange(1,ratio.GetNbinsX()+1):
@@ -636,7 +643,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         ratio.GetZaxis().SetTitle(ylabel)
         ratio.GetZaxis().SetTitleFont(42)
         ratio.GetZaxis().SetTitleSize(0.055)
-        ratio.GetZaxis().SetTitleOffset(1.2)
+        ratio.GetZaxis().SetTitleOffset(1.3)
         ratio.GetZaxis().SetLabelFont(42)
         ratio.GetZaxis().SetLabelSize(0.05)
         ratio.GetZaxis().SetLabelOffset(0.007)
@@ -680,7 +687,7 @@ def doStatTests(total,data,test,legendCorner):
 
 
 legend_ = None;
-def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None):
+def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None,nColumns=1):
         if (corner == None): return
         total = sum([x.Integral() for x in pmap.itervalues()])
         sigEntries = []; bgEntries = []
@@ -721,9 +728,13 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
             else:
                 print "Warning in doLegend(): len(overrideLegCoord.split(",")) != 4 --> option will be ignored"                
 
-        (x1,y1,x2,y2) = (0.2, 0.78,0.9,0.93)
+        #(x1,y1,x2,y2) = (0.2, 0.78,0.9,0.93)  # I just noticed that this line was added by Marc for monster plot (I was getting weird plots)
+        # I think this is hardcoding stuff too much (we don't always plot monster plots ;)  )
+        # and we already have a nice option to set coordinates (see option --setLegendCoordinates)
+        # to set how many columns, use option --n-column-legend
+
         leg = ROOT.TLegend(x1,y1,x2,y2)
-        #leg.SetNColumns(3)
+        leg.SetNColumns(nColumns)
         if header: leg.SetHeader(header.replace("\#", "#"))
         leg.SetFillColor(0)
         leg.SetFillColorAlpha(0,0.6)  # should make the legend semitransparent (second number is 0 for fully transparent, 1 for full opaque)
@@ -1076,7 +1087,7 @@ class PlotMaker:
                                   textSize=( (0.045 if doRatio else 0.022) if options.legendFontSize <= 0 else options.legendFontSize ),
                                   legWidth=options.legendWidth, legBorder=options.legendBorder, signalPlotScale=options.signalPlotScale,
                                   header=self._options.legendHeader if self._options.legendHeader else pspec.getOption("LegendHeader", ""),
-                                  doWide=doWide, totalError=totalError,overrideLegCoord=self._options.setLegendCoordinates)
+                                  doWide=doWide, totalError=totalError,overrideLegCoord=self._options.setLegendCoordinates, nColumns=self._options.nColumnLegend)
                 if self._options.doOfficialCMS:
                     CMS_lumi.lumi_13TeV = "%.1f fb^{-1}" % self._options.lumi
                     CMS_lumi.extraText  = self._options.cmsprel
@@ -1226,7 +1237,7 @@ class PlotMaker:
                                     plot.GetZaxis().SetTitle(pspec.getOption('ZTitle',ytitle)) # use same content of default ytitle defined above, Events or Events/XX
                                     plot.GetZaxis().SetTitleFont(42)
                                     plot.GetZaxis().SetTitleSize(0.055)
-                                    plot.GetZaxis().SetTitleOffset(0.90 if doWide else 1.2) 
+                                    plot.GetZaxis().SetTitleOffset(0.90 if doWide else 1.3) 
                                     plot.GetZaxis().SetLabelFont(42)
                                     plot.GetZaxis().SetLabelSize(0.05)
                                     plot.GetZaxis().SetLabelOffset(0.007)
@@ -1342,6 +1353,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
     parser.add_option("--contentAxisTitle", dest="contentAxisTitle", type="string", default=None, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
     parser.add_option("--setLegendCoordinates", dest="setLegendCoordinates", type="string", default=None, help="Pass a comma separated list of 4 numbers (x1,y1,x2,y2) used to build the legend. It overrides options to set the legend position in MCA, so this option is more suited to create a single plot")
+    parser.add_option("--n-column-legend", dest="nColumnLegend", type="int", default=1, help="Number of columns for legend (for monster plot, 3 is better)")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
 
 if __name__ == "__main__":
