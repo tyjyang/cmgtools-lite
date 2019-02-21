@@ -44,7 +44,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
     if isMu:
-        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_{ch}_mu.root'.format(ch=charge)
     else:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
@@ -80,7 +80,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
 
         # get width of bins in multiples of 0.1
         # for electrons the region around the gap is odd
-        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represeted with float in python
+        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represented with float in python
         # which entails that 0.2/0.1 might not yield 2.0, but 1.999
         binwidths = []
         for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):

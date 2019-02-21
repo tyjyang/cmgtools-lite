@@ -20,6 +20,7 @@ using namespace std;
 static vector<Double_t> wptbins = {0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0};
 static Int_t nPDFweight = 60;
 
+
 //=============================================================
 
 void fillHistograms(const string& treedir = "./", 
@@ -77,11 +78,11 @@ void fillHistograms(const string& treedir = "./",
   					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,47.5,50,52.5,55};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
-  //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45};
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,47.5,50,52.5,55};
 
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
@@ -607,9 +608,19 @@ void fillHistograms(const string& treedir = "./",
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
-      wgt = lep_SF1[0] * lep_SF2[0]; 
-      lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],1.);
-      lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],1.);
+      Double_t sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
+      Double_t sfRecoToSelectionMu = _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
+      wgt = sfTriggerMu * sfRecoToSelectionMu; 
+      // for muons, get fast weight for efficiency Up/Down
+      Double_t syst = 0.0;
+      if (absLep1eta<1)          syst = 0.002;
+      else if (absLep1eta<1.5)   syst = 0.004;
+      else                       syst = 0.014;
+      lepEffWgtUp = (wgt + syst)/wgt; // because in the following it will multiply the nominal wgt, which includes the current definition of wgt
+      lepEffWgtDn = (wgt - syst)/wgt;
+      //lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],sfTriggerMu,sfRecoToSelectionMu,1.);
+      //lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],sfTriggerMu,sfRecoToSelectionMu,1.);
+      
       ptLepFullUp = ptMuFullUp(lep_calPt[0],lep_eta[0]);
       ptLepFullDn = ptMuFullDn(lep_calPt[0],lep_eta[0]);
 
@@ -681,12 +692,15 @@ void fillHistograms(const string& treedir = "./",
 
     // Get charge index: 0 for positive, 1 for negative
     Int_t chargeIndex = 0; 
+    Int_t chargeSign = 0; 
     if (lep_pdgId[0] > 0) {
       negativeLeptonHasPassedSelection = true;
       chargeIndex = 1;
+      chargeSign = -1;
     } else {
       positiveLeptonHasPassedSelection = true;
       chargeIndex = 0;
+      chargeSign = 1;
     }
 
     //cout << "check 1" << endl;
@@ -765,11 +779,11 @@ void fillHistograms(const string& treedir = "./",
     for (Int_t ieff = 0; ieff < maxEffStat; ++ieff) {     
       etalow = etaminForEffStat + 0.1 * ieff;
       h3_charge_eta_pt_globalBin_ErfPar0EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1) * wgt);
+									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar1EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1) * wgt);
+									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar2EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1) * wgt);
+									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
 
     }
 
@@ -828,8 +842,8 @@ void loopNtuplesSkeleton(//const string& treedir = "/eos/cms/store/cmst3/group/w
   // cout << "TEST SUCCESSFUL" << endl;
   // return;
 
-  //TFile* outputFile = new TFile((outdir + outfileName).c_str(),"RECREATE");
-  TFile* outputFile = new TFile((outdir + outfileName).c_str(),"UPDATE");
+  TFile* outputFile = new TFile((outdir + outfileName).c_str(),"RECREATE");
+  //TFile* outputFile = new TFile((outdir + outfileName).c_str(),"UPDATE");
   if (!outputFile || outputFile->IsZombie()) {
     cout << "Error: file not opened. Exit" << endl;
     exit(EXIT_FAILURE);

@@ -36,6 +36,8 @@ mtMax=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) <= XX' "
 WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} "
 WselAllpt=" ${mtMin/XX/40} ${fiducial} "
 mtMinSmear=" -A eleKin pfmt_smear 'mt_2(getSmearedVar(met_pt,0.2,evt,isData),met_phi,${ptcorr},LepGood1_phi) >= XX' "
+chargePlus=" -A eleKin plus 'LepGood1_charge > 0'
+chargeMinus=" -A eleKin minus 'LepGood1_charge < 0'
 
 ##############################################################
 ##############################################################
@@ -64,8 +66,8 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runCondor="y"
-nameTag="_fakesTest_ptslopeAndEWKscaling" 
+runCondor="n"
+nameTag="_fakes_chPlus" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -112,7 +114,8 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="trkmt_trkmetEleCorr_dy,trkmetEleCorr_dy"
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
-selectplots="ptl1_narrow,etal1_binFR,ptl1__etal1_binFR"
+#selectplots="ptl1_narrow,etal1_binFR,ptl1__etal1_binFR"
+selectplots="ptl1large__etal1,ptl1_large,etal1_binFR"
 #selectplots="wminus_wpt,wminus_wy"
 #selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
@@ -137,9 +140,10 @@ maxentries=""  # all events if ""
 #scaleAllMCtoData=" --scaleBkgToData QCD --scaleBkgToData W --scaleBkgToData Z --scaleBkgToData Top --scaleBkgToData DiBosons " # does not seem to work as expected
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
+#ratioPlotDataOptions="  "
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-#ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
-ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp --ratioYLabel 'Var./Nomi.'"
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
+#ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp --ratioYLabel 'Var./Nomi.'"
 #ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
@@ -202,15 +206,15 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="n"
+runRegion["FRcheckRegion"]="y"
 regionName["FRcheckRegion"]="FR_check_region"
 #skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
 skimTreeDir["FRcheckRegion"]="TREE_4_XSEC_AFS"
 outputDir["FRcheckRegion"]="full2016data_${today}"
-regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30}"
+regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30} ${chargePlus} "
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes_pol1,TauTopVVFlips --scaleSigToData --sp data_fakes_pol1" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
+scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes,TauTopVVFlips --scaleSigToData --sp data_fakes" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
 #
 # --noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3
 #
@@ -247,19 +251,22 @@ scaleMCdata["WmassSignalRegion"]="--fitData"
 # WHELICITY SIGNAL REGION (avoid possibly all kinematic selections)
 #----------------------------
 regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
-runRegion["WhelicitySignalRegion"]="y"
+runRegion["WhelicitySignalRegion"]="n"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 #skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
 skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS" 
+#skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_MC" 
+#skimTreeDir["WhelicitySignalRegion"]="actualTrees" 
+#skimTreeDir["WhelicitySignalRegion"]="TREES_DYELE_19Feb2019" 
 #skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/45} ${FRnumSel} ${mtMin/XX/40} " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/55} ${FRnumSel} ${mtMin/XX/40} ${chargePlus} " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
 #scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
-scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
-#scaleMCdata["WhelicitySignalRegion"]=" -p W  "
+scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 # data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips
@@ -544,6 +551,20 @@ do
 
 	if [[ "${treedir}" == "signalSkim" ]]; then		
 	    treepath="/u2/mciprian/TREES_13TeV/electron/"
+	fi
+
+	# here add an hardcoded path
+	if [[ "${treedir}" == "TREES_1LEP_80X_V3_MC" ]]; then		
+	    #treepath="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/"
+	    treepath="/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/"
+	fi
+
+	if [[ "${treedir}" == "actualTrees" ]]; then		
+	    treepath="/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_1LEP_80X_V3_MC/"
+	fi
+
+	if [[ "${treedir}" == *"_19Feb2019"* ]]; then		
+	    treepath="/eos/cms/store/cmst3/group/wmass/mciprian/"
 	fi
 
 

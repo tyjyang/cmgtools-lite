@@ -195,7 +195,7 @@ if __name__ == "__main__":
                 central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
                 error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
-                                                                        nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+                                                                      nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
             else:                
                 central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(channel,ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
@@ -272,9 +272,11 @@ if __name__ == "__main__":
                   lowerPanelHeight=0.35, moreText=additionalText
                   )
 
+    icharge = 0
 
     for charge in charges:
 
+        icharge += 1
         print ""
         xaxisTitle = 'gen %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
 
@@ -510,6 +512,7 @@ if __name__ == "__main__":
         vertLinesArg = ""
         additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
+        h1D_chargeAsym = {}
         h1D_pmaskedexp = {}
         h1D_pmaskedexp_norm = {}
 
@@ -546,6 +549,23 @@ if __name__ == "__main__":
                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35,moreText=additionalText,
                           leftMargin=leftMargin, rightMargin=rightMargin)
 
+            # do also charge asymmetry (only once if running on both charges)
+            if icharge == 1:
+
+                xaxisTitle = xaxisTitle.replace("cross section", "charge asymmetry")
+                additionalTextBackup = additionalText
+                additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+
+                h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry",
+                              "unrolledChargeAsym_{var}_{fl}".format(var=unrollVar,fl=channel),
+                              outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="", 
+                              passCanvas=canvUnroll,lumi=options.lumiInt,
+                              drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                              leftMargin=leftMargin, rightMargin=rightMargin)
+
+                additionalText = additionalTextBackup
+
 
 # for data, add plot with ratio with expected
 # might be used for toys to compare with asimov
@@ -561,7 +581,12 @@ if __name__ == "__main__":
                     fexp = ROOT.TFile(options.exptoyfile, 'read')
                     treeexp = fexp.Get('fitresults')
 
-        
+                hChargeAsym_exp = None
+                if icharge == 1:
+                    hChargeAsym_exp = ROOT.TH2F("hChargeAsym_{lep}_exp".format(lep=lepton),
+                                                "charge asymmetry: {Wch}".format(Wch=Wchannel),
+                                                genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
+
                 hDiffXsec_exp = ROOT.TH2F("hDiffXsec_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
                                           "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                           genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -586,6 +611,19 @@ if __name__ == "__main__":
                         sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
                         sys.stdout.flush()
                         binCount += 1
+                        
+                        if icharge == 1:
+                            # charge asymmetry
+                            central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                                                                                   nHistBins=2000, minHist=0., maxHist=1., 
+                                                                                   tree=treeexp, getGen=getExpFromGen)         
+                            error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                                                                                 nHistBins=2000, minHist=0., maxHist=1., 
+                                                                                 tree=treeexp, getErr=True)                    
+                            
+                            hChargeAsym_exp.SetBinContent(ieta,ipt,central)        
+                            hChargeAsym_exp.SetBinError(ieta,ipt,error)         
+
 
                         # normalized cross section
                         central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
@@ -650,7 +688,22 @@ if __name__ == "__main__":
                                   leftMargin=leftMargin, rightMargin=rightMargin)
 
 
+                    # do also charge asymmetry (only once if running on both charges)
+                    if icharge == 1:
 
+                        xaxisTitle = xaxisTitle.replace("cross section", "charge asymmetry")
+                        additionalTextBackup = additionalText
+                        additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+
+                        h1D_chargeAsym_exp = getTH1fromTH2(hChargeAsym_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                        drawDataAndMC(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_exp,xaxisTitle,"charge asymmetry",
+                                      "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
+                                      outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                      drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                                      leftMargin=leftMargin, rightMargin=rightMargin)
+
+                        additionalText = additionalTextBackup
+                    
                 
                 if options.exptoyfile != "SAME": fexp.Close()
 

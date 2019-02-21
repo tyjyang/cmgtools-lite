@@ -14,7 +14,7 @@ using namespace std;
 
 void makeLoopTree(const bool isMuon = false, 
 		  const string& outfileName = "wmass_varhists.root",
-		  const string& usePreFSRvar = "true"  // if "false", use DressedLepton. Pass it as a string to build command below ("1" or "0" work as well)
+		  const string& usePreFSRvar = "false"  // if "false", use DressedLepton. Pass it as a string to build command below ("1" or "0" work as well)
 		  ) 
 
 {
@@ -41,19 +41,14 @@ void makeLoopTree(const bool isMuon = false,
 
     if (host_name.find("lxplus") != string::npos) 
       command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
-    // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT_V2/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
-      // command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
-    
-    // the following does not work, requires to read tree.root.url
-    //command = "loopNtuplesSkeleton(\"/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
 
     else if (host_name.find("pccmsrm") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/muon/signalSkim/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/u1/mciprian/trees/muon/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
 
   } else {
 
     if (host_name.find("lxplus") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WENU_FULLSEL_NOMT/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_WELE_19Feb2019/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
     else if (host_name.find("pccmsrm") != string::npos) 
       command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/electron/signalSkim/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
   }

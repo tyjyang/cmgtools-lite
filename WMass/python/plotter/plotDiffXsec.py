@@ -5,13 +5,13 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 1
-onlyData = 0
+skipData = 0
+onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipDiffNuis = 1
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
