@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[]):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -157,11 +157,22 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
 
     tmp_infile = ROOT.TFile(infile, 'read')
     
-    outfile = ROOT.TFile('{od}/FakesEtaUncorrelated_{ch}.root'.format(od=indir, ch=charge), 'recreate')
+    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', ch=charge), 'recreate')
 
     ndone = 0
+
+    ## need to loop once for the pT uncorrelated. i'm sure there's a better way but i'm lazy
+    if doPt:
+        for k in tmp_infile.GetListOfKeys():
+            tmp_name = k.GetName()
+            if re.match(doPt, tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
+            if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
+        if not var_up or not var_dn:
+            print 'DID NOT FIND THE RIGHT KEY!!!'
+
     for k in tmp_infile.GetListOfKeys():
         tmp_name = k.GetName()
+
         ## don't reweight any histos that don't match the regexp
         if not re.match(regexp, tmp_name): continue
         ## don't reweight any histos that are already variations of something else
@@ -175,6 +186,13 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        if doPt:
+            tmp_up = tmp_infile.Get(var_up)
+            tmp_up_2d = dressed2D(tmp_up,binning, var_up+'backrolled')
+            tmp_dn = tmp_infile.Get(var_dn)
+            tmp_dn_2d = dressed2D(tmp_dn,binning, var_dn+'backrolled')
+
 
         ## absolute eta borders:        
         etaBorders = etaBordersTmp if len(etaBordersTmp) else [0.5, 1.0, 1.5, 2.0]
@@ -198,7 +216,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_FakesEtaUncorrelated{ib}2DROLLED'.format(ib=ib+1)
+            systName = 'Fakes{v}Uncorrelated'.format(v='Eta' if not doPt else 'Pt')
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}2DROLLED'.format(sn=systName,ib=ib+1)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -206,13 +225,18 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             for ieta in range(borderBin,borderBins[ib+1]):
                 ## loop over all pT bins in that bin of eta (which is ieta)
                 for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
-                    tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
-                    scaling = scalings[ib]
-                    ## scale up and down with what we got from the histo
-                    tmp_bincontent_up = tmp_bincontent*(1.+scaling)
-                    tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
-                    tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
-                    tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+                    if not doPt:
+                        tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                        scaling = scalings[ib]
+                        ## scale up and down with what we got from the histo
+                        tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                        tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                        tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                        tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+                    else:
+                        ## for the pT binned ones set it to the up/down
+                        tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_up_2d.GetBinContent(ieta,ipt))
+                        tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_dn_2d.GetBinContent(ieta,ipt))
 
             ## re-roll the 2D to a 1D histo
             tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
@@ -532,8 +556,9 @@ if __name__ == "__main__":
             putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doPt = 'x_data_fakes_.*slope.*')
 
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/FakesEtaUncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -551,7 +576,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*ErfPar\dEffStat.*|.*FakesEtaUncorrelated.*|.*(ele|mu)scale.*',name):
+                if re.match('.*ErfPar\dEffStat.*|.*Fakes.*Uncorrelated.*|.*(ele|mu)scale.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -722,6 +747,8 @@ if __name__ == "__main__":
             if re.match("rate\s+",l):
                 if options.scaleFile: combinedCardNew.write('rate            %s \n' % ' '.join([kpatt % r for (p,r) in ProcsAndRatesUnity])+'\n')
                 else: combinedCardNew.write('rate            %s \n' % ' '.join([kpatt % '-1' for (p,r) in ProcsAndRates])+'\n')
+            ## don't write the original slope
+            elif 'FR' in l.split()[0] and 'slope' in l.split()[0]: continue
             else: combinedCardNew.write(l)
         if options.scaleFile:
             eff_long = 1./getScales([ybins['left'][0],ybins['left'][-1]], charge, 'long', options.scaleFile)[0] # just take the eff on the total Y acceptance (should be 0,6)
@@ -780,14 +807,18 @@ if __name__ == "__main__":
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
-        combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('FakesEtaUncorrelated.*',x),finalsystnames) +
-                                                       filter(lambda x: re.match('.*FR.*(lnN|slope|continuous)',x),finalsystnames))+'\n')
+        combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
+                                                       filter(lambda x: re.match('.*FR.*(lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
 
         # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
         ## first make a list of all the signal processes.
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
+        print '============================================================================='
+        print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
+        print tmp_sigprocs
+        print '============================================================================='
         if not options.freezePOIs:
             writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
             writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
