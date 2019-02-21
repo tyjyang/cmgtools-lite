@@ -130,6 +130,7 @@ def addSkimTreesOptions(parser):
     parser.add_option("-q", "--queue",   dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
     parser.add_option("-c", "--component", dest="component",   type="string", default=None, help="skim only this component");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
+    parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimTrees", help="Name assigned to jobs");
     
 
 if __name__ == "__main__":
@@ -187,8 +188,9 @@ Output     = {ld}/{p}_$(ProcId).out
 Error      = {ld}/{p}_$(ProcId).error
 getenv      = True
 request_memory = 4000
-+MaxRuntime = 43200\n
-'''.format(runner=runner,p=proc,ld=options.logdir))
++MaxRuntime = 43200
++JobBatchName = "{name}"\n
+'''.format(runner=runner,p=proc,ld=options.logdir, name=options.jobName))
             if os.environ['USER'] in ['mdunser', 'psilva']:
                 condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
             condor_f.write('\n')
