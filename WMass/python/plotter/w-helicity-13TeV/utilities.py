@@ -609,3 +609,11 @@ class util:
         a = a.replace('mu','').replace('el','')
         return int(a)
 
+    def getNFromString(self, s):
+        los = [ int(i) for i in re.findall(r'\d+', s) ]
+        if len(los) == 0: return 0
+        if len(los) == 1: return los[0]
+        if len(los)  > 1: return los[1] if 'EffStat' in s else los[0]
+        return 0
+        
+
