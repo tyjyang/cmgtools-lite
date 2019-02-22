@@ -609,3 +609,8 @@ class util:
         a = a.replace('mu','').replace('el','')
         return int(a)
 
+    def getNFromString(self, s):
+        los = [ int(i) for i in re.findall(r'\d+', s) ]
+        return los[0]
+        
+
