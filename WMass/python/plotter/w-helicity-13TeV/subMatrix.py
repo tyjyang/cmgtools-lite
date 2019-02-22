@@ -4,6 +4,9 @@ ROOT.gROOT.SetBatch(True)
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
+import utilities
+utilities = utilities.util()
+
 ## ===================================================================
 ## USAGE:
 ## needs as infile a toys.root with limit tree from toys
@@ -192,7 +195,8 @@ if __name__ == "__main__":
 
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
-    params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-1])) if '_Ybin_' in x else 0)
+    #params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-1])) if '_Ybin_' in x else 0)
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
     params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
