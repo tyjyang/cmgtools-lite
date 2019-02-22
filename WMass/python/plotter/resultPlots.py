@@ -38,7 +38,8 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        systs += ['CMS_We_FRe_continuous,CMS_We_FRe_slope','CMS_We_sig_lepeff']
+        systs += ['CMS_We_sig_lepeff']
+        systs += [','+','.join(['FakesPtUncorrelated%d'%i for i in xrange(1,11)])]
         systs += [','+','.join(['FakesEtaUncorrelated%d'%i for i in xrange(1,11)])]
         for nuis in systs:
             os.system('python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
