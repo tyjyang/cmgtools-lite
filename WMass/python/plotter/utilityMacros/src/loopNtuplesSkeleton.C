@@ -78,11 +78,11 @@ void fillHistograms(const string& treedir = "./",
   					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,47.5,50,52.5,55};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,47.5,50,52.5,55};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50};
 
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
@@ -101,10 +101,10 @@ void fillHistograms(const string& treedir = "./",
   vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
 					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
-  //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
+  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
+  //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
   vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
-  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
+  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
   
   vector<Double_t> etaBinEdgesTemplate;
   vector<Double_t> ptBinEdgesTemplate;
@@ -537,10 +537,18 @@ void fillHistograms(const string& treedir = "./",
   ////////////////////
 
   Double_t sumWgt = 9.56169443709e+13;
-  if (treedir == "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/")
+  // if (treedir == "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/")
+  //   sumWgt = 9.47291822594e+13;
+  // else if (treedir == "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/")
+  //   sumWgt = 9.47291822594e+13;
+  // else if (treedir == "/u1/mciprian/trees/muon/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/")
+  //   sumWgt = 9.47291822594e+13;
+
+  if (treedir.find("TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019") != string::npos || 
+      treedir.find("SKIMS_muons_latest") != string::npos) {
     sumWgt = 9.47291822594e+13;
-  else if (treedir == "/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/")
-    sumWgt = 9.47291822594e+13;
+    cout << "Warning: setting sumWgt = " << sumWgt << endl;
+  }
   
   Double_t intLumiPb = 1000.0 * intLumi;
   Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed

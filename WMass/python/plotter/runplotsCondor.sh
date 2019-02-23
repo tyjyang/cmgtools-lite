@@ -36,8 +36,8 @@ mtMax=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) <= XX' "
 WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} "
 WselAllpt=" ${mtMin/XX/40} ${fiducial} "
 mtMinSmear=" -A eleKin pfmt_smear 'mt_2(getSmearedVar(met_pt,0.2,evt,isData),met_phi,${ptcorr},LepGood1_phi) >= XX' "
-chargePlus=" -A eleKin plus 'LepGood1_charge > 0'
-chargeMinus=" -A eleKin minus 'LepGood1_charge < 0'
+chargePlus=" -A eleKin plus 'LepGood1_charge > 0'"
+chargeMinus=" -A eleKin minus 'LepGood1_charge < 0'"
 
 ##############################################################
 ##############################################################
@@ -66,8 +66,8 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runCondor="n"
-nameTag="_fakes_chPlus" 
+runCondor="y"
+nameTag="_fakes_chMinus_ptMax55_pol2" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -211,7 +211,7 @@ regionName["FRcheckRegion"]="FR_check_region"
 #skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
 skimTreeDir["FRcheckRegion"]="TREE_4_XSEC_AFS"
 outputDir["FRcheckRegion"]="full2016data_${today}"
-regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/45} ${mtMax/XX/30} ${chargePlus} "
+regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/55} ${mtMax/XX/30} ${chargeMinus} "
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
 scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes,TauTopVVFlips --scaleSigToData --sp data_fakes" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
@@ -445,7 +445,7 @@ fi
 # otherwise the parsing of the option parameters is not done correctly
 
 
-commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.25 --legendFontSize 0.05 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms "
+commonCommand="python ${plotterPath}/mcPlots.py -f -l ${luminosity} --s2v --tree treeProducerWMass --obj tree --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.25 --legendFontSize 0.05 ${plotterPath}/w-helicity-13TeV/wmass_e/${mcafile} ${plotterPath}/w-helicity-13TeV/wmass_e/${cutfile} ${plotterPath}/w-helicity-13TeV/wmass_e/${plotfile} ${dataOption} ${plottingMode} --noCms --n-column-legend 2 --setLegendCoordinates '0.2,0.78,0.9,0.92' "
 
 # if [[ "X${scaleAllMCtoData}" != "X" ]]; then
 #     commonCommand="${commonCommand} ${scaleAllMCtoData} "

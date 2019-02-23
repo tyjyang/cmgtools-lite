@@ -50,7 +50,7 @@ void makeLoopTree(const bool isMuon = false,
     if (host_name.find("lxplus") != string::npos) 
       command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_WELE_19Feb2019/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
     else if (host_name.find("pccmsrm") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/u2/mciprian/TREES_13TeV/electron/signalSkim/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/u1/mciprian/trees/electron/TREES_WELE_19Feb2019/\",\"./\",\"" + outfileName + "\",false,"+ usePreFSRvar + ")";
   }
 
   //string command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY/\",\"./\",\"" + outfileName + "\")";
