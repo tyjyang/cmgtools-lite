@@ -15,12 +15,6 @@ ROOT.gROOT.SetBatch(True)
 import utilities
 utilities = utilities.util()
 
-def getNEffStat(s):
-    a = s.split('EffStat')[1]
-    a = a.replace('minus','').replace('plus','')
-    a = a.replace('mu','').replace('el','')
-    return int(a)
-
 
 if __name__ == "__main__":
 
@@ -82,9 +76,11 @@ if __name__ == "__main__":
         params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
-        params = sorted(params, key = lambda x: int(x.split('FakesEtaUncorrelated')[-1]), reverse=False)
+        params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
+    elif any(re.match('FakesPtUncorrelated.*',x) for x in params):
+        params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
     elif any(re.match('.*EffStat.*',x) for x in params):
-        params = sorted(params, key = lambda x: getNEffStat(x) , reverse=False)
+        params = sorted(params, key = lambda x: utilities.getNFromString(x) , reverse=False)
     elif any('masked' in x or x.endswith('mu') for x in params):
         if any('_ieta_' in x for x in params):
             # differential xsection: get ieta, ipt index and use them as keys to sort
@@ -218,14 +214,15 @@ if __name__ == "__main__":
      
         names = table.keys()
         #names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
-        names = sorted(names, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
+        names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'pdf' in x else 0)
         ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
         names = sorted(names, key= lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x) )
         names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
         names = sorted(names, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         names = sorted(names, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-        names = sorted(names, key= lambda x: getNEffStat(x) if 'EffStat' in x else 0)
-        names = sorted(names, key= lambda x: int(x.split('FakesEtaUncorrelated')[-1]) if 'FakesEtaUncorrelated' in x else 0)
+        names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)
+        names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)
+        names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesPtUncorrelated'  in x else 0)
      
         highlighters = { 1:highlight, 2:morelight };
         for n in names:

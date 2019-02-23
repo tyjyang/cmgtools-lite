@@ -602,3 +602,18 @@ class util:
         #print "toyMC done"
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
         return ret
+
+    def getNEffStat(self, s):
+        a = s.split('EffStat')[1]
+        a = a.replace('minus','').replace('plus','')
+        a = a.replace('mu','').replace('el','')
+        return int(a)
+
+    def getNFromString(self, s):
+        los = [ int(i) for i in re.findall(r'\d+', s) ]
+        if len(los) == 0: return 0
+        if len(los) == 1: return los[0]
+        if len(los)  > 1: return los[1] if 'EffStat' in s else los[0]
+        return 0
+        
+
