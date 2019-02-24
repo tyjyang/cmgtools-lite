@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False, uncorrelateCharges = False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -161,13 +161,15 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
 
     ndone = 0
 
+    var_up = None
+    var_dn = None
     ## need to loop once for the pT uncorrelated. i'm sure there's a better way but i'm lazy
     if doPt:
         for k in tmp_infile.GetListOfKeys():
             tmp_name = k.GetName()
             if re.match(doPt, tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
             if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
-        if not var_up or not var_dn:
+        if var_up == None or var_dn == None:
             print 'DID NOT FIND THE RIGHT KEY!!!'
 
     for k in tmp_infile.GetListOfKeys():
@@ -213,11 +215,16 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 elif distFromCenter<2: scalings.append(0.02)
                 else:                  scalings.append(0.05)
 
+        postfixForFlavourAndCharge = "mu" if isMu else "el"
+        if uncorrelateCharges:
+            postfixForFlavourAndCharge += charge
+        
+
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
             systName = 'Fakes{v}Uncorrelated'.format(v='Eta' if not doPt else 'Pt')
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}2DROLLED'.format(sn=systName,ib=ib+1)
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flch}2DROLLED'.format(sn=systName,ib=ib+1,flch=postfixForFlavourAndCharge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
