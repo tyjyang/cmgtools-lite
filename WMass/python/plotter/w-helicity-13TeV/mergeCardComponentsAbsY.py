@@ -163,14 +163,17 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
 
     ndone = 0
 
+    var_up = None
+    var_dn = None
     ## need to loop once for the pT uncorrelated. i'm sure there's a better way but i'm lazy
     if doPt:
         for k in tmp_infile.GetListOfKeys():
             tmp_name = k.GetName()
             if re.match(doPt, tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
             if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
-        if not var_up or not var_dn:
+        if var_up == None or var_dn == None:
             print 'DID NOT FIND THE RIGHT KEY!!!'
+            quit()
 
     for k in tmp_infile.GetListOfKeys():
         tmp_name = k.GetName()

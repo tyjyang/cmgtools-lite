@@ -232,3 +232,9 @@ W_lepeff_Dn   : WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_m
 W_elescale_Up: WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kBlue, Label="W (scale Up)", NormSystematic=0.038, FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleUp_xsec.txt"
 
 W_elescale_Dn: WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kBlack, Label="W (scale Dn)", NormSystematic=0.038, FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleDn_xsec.txt"
+
+
+#======================
+
+#Ztest    : DYJetsToLL_M50_NLO_part1 : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04
+Ztest    : DYJetsToLL_M50_ext2* : 2008.4*3; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04

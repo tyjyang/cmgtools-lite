@@ -42,9 +42,9 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
     #genBins = templateBinning(gen_etaPtBinningVec[0],gen_etaPtBinningVec[1])        # this create a class to manage the binnings
 
 
-    basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'
+    basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'    
     if isMu:
-        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu.root'
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgmu_{ch}_mu.root'.format(ch=charge)
     else:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
@@ -53,7 +53,8 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
 
     tmp_infile = ROOT.TFile(infile, 'read')
 
-    outfile = ROOT.TFile(indir+'/ErfParEffStat_{ch}.root'.format(ch=charge), 'recreate')
+    flavour = "mu" if isMu else "el"
+    outfile = ROOT.TFile(indir+'/ErfParEffStat_{fl}_{ch}.root'.format(fl=flavour, ch=charge), 'recreate')
 
     ndone = 0
     for k in tmp_infile.GetListOfKeys():
@@ -80,23 +81,13 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
 
         # get width of bins in multiples of 0.1
         # for electrons the region around the gap is odd
-        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represeted with float in python
+        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represented with float in python
         # which entails that 0.2/0.1 might not yield 2.0, but 1.999
         binwidths = []
         for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
             binwidths.append(tmp_nominal_2d.GetXaxis().GetBinWidth(ieta)/0.1)  
 
         nEtaErfPar = 48 if isMu else 50
-
-        #nEtaErfPar = int(2* (genBins.etaBins[-1] + 0.001) * 10)
-        #parhistBinOffset = 0
-        #if nEtaErfPar == 48 and not isMu: 
-        #    parhistBinOffset = 1
-        # the offset is needed when for electrons the gen_eta bins arrive up to 2.4 (even though the reco arrives to 2.5)
-        # the reason is that the histogram h used for the reweigthing is defined from -2.5 to 2.5 for electrons, therefore in case the gen_bins stops at 2.4
-        # we prefer to skip thefirst and last bin of h
-        # this is because for the diffxsec we only reweight the strip whose eta correspond to the gen_eta bin, otherwise we would just need to consider the reco 
-        # binning, which can get up to 2.5 regardless the gen binning
 
         ## loop over the three parameters
         for npar in range(3):
@@ -133,7 +124,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
                 # one could device a fancy way to isolate the gap and assign a larger uncertainty around it but let's keep it simple
 
                 #print "ErfPar{p}EffStat{ieta}".format(p=npar,ieta=ietaErf)
-                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{ieta}2DROLLED'.format(p=npar,ieta=ietaErf)
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{ieta}{fl}{ch}2DROLLED'.format(p=npar,ieta=ietaErf,fl=flavour,ch=charge)
             
                 tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
                 tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -146,6 +137,9 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
                     phistybin = parhist.GetYaxis().FindBin(ybincenter)
                     tmp_scale = parhist.GetBinContent(ietaErf, phistybin)
                     scaling = math.sqrt(2.)*tmp_scale
+                    ## scale electrons by sqrt(2) due to the input file being charge inclusive
+                    if flavour == 'el':
+                        scaling *= math.sqrt(2)
                     # modify scaling if template bin has larger width than the ErfPar histogram
                     if binwidths[ietaTemplate-1] > 1.: scaling = scaling / binwidths[ietaTemplate-1]
                     ## scale up and down with what we got from the histo
@@ -306,7 +300,7 @@ if not options.dryrun: os.system("rm {tmp}".format(tmp=tmpZfile))
 print "-"*20
 print ""
 
-fileZeffStat = "{od}ErfParEffStat_{ch}.root".format(od=outdir, ch=options.charge)  
+fileZeffStat = "{od}ErfParEffStat_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
 # this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
 print "Now adding ErfParXEffStatYY systematics to x_Z process"
 print "Will create file --> {of}".format(of=fileZeffStat)
@@ -356,21 +350,28 @@ print "-"*20
 print ""
 
 fileFakesEtaUncorr = "{od}FakesEtaUncorrelated_{ch}.root".format(od=outdir, ch=options.charge) 
-# this name is used inside putUncorrelatedFakes (do not change it outside here)
-print "Now adding FakesEtaUncorrelated systematics to x_data_fakes process"
+fileFakesPtUncorr  = "{od}FakesPtUncorrelated_{ch}.root".format(od=outdir, ch=options.charge) 
+# these names are used inside putUncorrelatedFakes (do not change them outside here)
+print "Now adding FakesEtaUncorrelated and FakesPtUncorrelated systematics to x_data_fakes process"
 print "Will create file --> {of}".format(of=fileFakesEtaUncorr)
+print "Will create file --> {of}".format(of=fileFakesPtUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
-if not options.dryrun: putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes)
+if not options.dryrun: 
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, 
+                         etaBordersTmp=etaBordersForFakes, uncorrelateCharges=True)
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+                         doPt = 'x_data_fakes_.*slope.*', uncorrelateCharges=True)
 
 print "Now merging signal + Z + data + other backgrounds + FakesEtaUncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
 
-cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {zEffStat}".format(of=shapename, 
-                                                                                 sig=sigfile, 
-                                                                                 zf=Zfile, 
-                                                                                 bkg=dataAndBkgFileTmp, 
-                                                                                 fakesEta=fileFakesEtaUncorr,
-                                                                                 zEffStat=fileZeffStat)
+cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesPt} {zEffStat}".format(of=shapename, 
+                                                                                           sig=sigfile, 
+                                                                                           zf=Zfile, 
+                                                                                           bkg=dataAndBkgFileTmp, 
+                                                                                           fakesEta=fileFakesEtaUncorr,
+                                                                                           fakesPt=fileFakesPtUncorr,
+                                                                                           zEffStat=fileZeffStat)
 print "Final merging ..."
 print cmdFinalMerge
 if not options.dryrun: os.system(cmdFinalMerge)

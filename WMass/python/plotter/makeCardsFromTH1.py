@@ -140,7 +140,7 @@ parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=Fals
 parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges, skip running combinetf.py at the end')
 parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
-parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics (for now, only works for those passed with --syst-file)")
+parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
 (options, args) = parser.parse_args()
@@ -425,7 +425,24 @@ ff.Close()
 
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
-        syst = "FakesEtaUncorrelated{d}".format(d=i)
+        syst = "FakesEtaUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
+
+ffile = options.indir + "FakesPtUncorrelated_{ch}.root".format(ch=charge)
+nFakesPtUncorrelated = 0
+ff = ROOT.TFile.Open(ffile,"READ")
+if not ff or not ff.IsOpen():
+    raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+else:
+    # count number of histograms and divide by 2 (there are up and down variations)
+    nFakesPtUncorrelated = ff.GetNkeys()/2
+ff.Close()
+
+if nFakesPtUncorrelated:
+    for i in range(1,nFakesPtUncorrelated+1):
+        syst = "FakesPtUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
@@ -440,7 +457,7 @@ for syst in fakeSysts:
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
 # this is only for theory uncertainties that affect the cross section
-sortedsystkeys = []
+sortedTheoSystkeys = []
 
 procQCDunbin = []
 if options.unbinnedQCDscaleZ: procQCDunbin.append("Z")
@@ -453,7 +470,7 @@ if len(procQCDunbin):
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
-        if options.unbinnedQCDscaleW: sortedsystkeys.append(syst)
+        if options.unbinnedQCDscaleW: sortedTheoSystkeys.append(syst)
 
 # W and Z common systematics
 WandZ = [signalMatch, "Z"]
@@ -467,13 +484,13 @@ for syst in qcdAndPDF:
         nSigma = "0.67"
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
-    sortedsystkeys.append(syst)
+    sortedTheoSystkeys.append(syst)
 
 # W only
 if not isExcludedNuisance(excludeNuisances, "mW"): 
     allSystForGroups.append("mW")
     card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
-    sortedsystkeys.append("mW")
+    sortedTheoSystkeys.append("mW")
 
 qcdScale_wptBins = [] 
 for i in range(1,11):
@@ -484,7 +501,7 @@ for syst in qcdScale_wptBins:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
-    sortedsystkeys.append(syst)
+    sortedTheoSystkeys.append(syst)
     
 
 wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
@@ -503,6 +520,7 @@ nSystEffStat = 48 if flavour == "mu" else 50
 for ipar in range(3):
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "ErfPar%dEffStat%d" % (ipar,ietabin)
+        syst += "{fl}{ch}".format(fl=flavour,ch=charge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
@@ -534,8 +552,8 @@ card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x)
 card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
 card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
 card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
-card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|slope|continuous)',x),allSystForGroups) +
-                                            filter(lambda x: re.match('FakesEtaUncorrelated.*',x),allSystForGroups)) + "\n\n")
+card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
+                                            filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
 card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
 card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("\n")
@@ -573,6 +591,7 @@ for p in allprocesses:
 
 # now adding additional stuff for charge asymmetry, and pt-integrated cross section
 # actually, this would only work for the charge-combined card, but it is easier to have it here, so to use combineCards.py later
+
 for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
         newp = p.replace("plus","").replace("minus","")        
         tmpp = p.replace("plus","TMP").replace("minus","TMP")        
@@ -622,7 +641,7 @@ if options.xsecMaskedYields:
 if options.preFSRxsec:
     xsecfile = xsecfile.replace("_dressed_","_preFSR_")
 hists = getXsecs_etaPt(tmp_sigprocs,
-                       [i for i in sortedsystkeys], 
+                       [i for i in sortedTheoSystkeys], 
                        binning,
                        xsecfile,
                        usePreFSR = True if options.preFSRxsec else False
@@ -656,7 +675,7 @@ for maskChan in maskedChannels:
     tmp_xsec_dc.write('process  {s}\n'.format(s=' '.join([str(procNum[pname])  for pname in tmp_sigprocs_mcha])))
     tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
     tmp_xsec_dc.write('# --------------------------------------------------------------\n')
-    for sys in sortedsystkeys: # this is only theoretical systs
+    for sys in sortedTheoSystkeys: # this is only theoretical systs
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     tmp_xsec_dc.close()
 

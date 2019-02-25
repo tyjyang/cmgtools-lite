@@ -40,7 +40,7 @@ def latexLabel(label):
     return lblNoBin
 
 def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
-    (x1,y1,x2,y2) = (xmin, .70, xmax, .87)
+    (x1,y1,x2,y2) = (xmin, 0.66, xmax, 0.87)
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(3)
     leg.SetFillColor(0)
@@ -145,8 +145,9 @@ if __name__ == "__main__":
     elif options.target=='unpolasym':  target = 'chargemetapois'
     elif options.target=='A0' or options.target=='A4': target = 'polpois'
     elif options.target=='etaptasym':  target = 'chargepois'
-    elif options.target=='etaxsec':  target = 'sumpois'
-    elif options.target=='etaasym':  target = 'chargemetapois'
+    elif options.target=='etaxsec':    target = 'sumpois'
+    elif options.target=='etaxsecnorm':target = 'sumpoisnorm'
+    elif options.target=='etaasym':    target = 'chargemetapois'
     else:                              target = 'mu'
 
     # patch for diff.xsec, because I usually pass pois as regular expressions matching the charge
@@ -255,6 +256,7 @@ if __name__ == "__main__":
                       "etaptasym":   "charge asymmetry",
                       "etaasym":   "charge asymmetry",
                       "etaxsec":   "cross section",
+                      "etaxsecnorm": "normalized cross section",
                       }
     th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
     th2_sub.GetZaxis().SetTitleOffset(1.2)
@@ -384,15 +386,22 @@ if __name__ == "__main__":
         cs.SetRightMargin(0.05)
         cs.SetBottomMargin(0.15)
         cs.SetTopMargin(0.1)
+        cs.SetTicky(1)
         cs.SetGridy()
         for charge in charges:
             for ipol,pol in enumerate(polarizations):
-                leg = prepareLegend(xmin=0.5,legWidth=0.40,textSize=0.04)
+                #leg = prepareLegend(xmin=0.5,legWidth=0.40,textSize=0.04)
+                leg = prepareLegendV2(textSize=0.04,xmin=0.12,xmax=0.94)  # similar to function above, but should use the space is in a slightly better way
+                if charge=='allcharges': sign=''
+                else: sign='+' if charge is 'plus' else '-' 
+                # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
+                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol=pol,chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+                header = "#bf{{Uncertainties on {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
+                leg.SetHeader(header)            
+                leg.SetHeader("#bf{{Uncertainties on {p}}}".format(p=poiName_target[options.target]))            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
                 lat.SetNDC(); lat.SetTextFont(42)
-                latBin = ROOT.TLatex()
-                latBin.SetNDC(); latBin.SetTextFont(42); latBin.SetTextSize(0.07)
                 quadrsum = summaries[(charge,pol,groups[0])].Clone('quadrsum_{ch}_{pol}'.format(ch=charge,pol=pol))
                 totalerr = quadrsum.Clone('totalerr_{ch}_{pol}'.format(ch=charge,pol=pol))
                 for ing,ng in enumerate(groups):
@@ -409,8 +418,6 @@ if __name__ == "__main__":
                 quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack); quadrsum.SetLineStyle(ROOT.kDashed)
                 quadrsum.Draw('pl same')
                 # now fill the real total error from the fit (with correct correlations)
-                if charge=='allcharges': sign=''
-                else: sign='+' if charge is 'plus' else '-'
                 for y in xrange(totalerr.GetNbinsX()):
                     totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign=sign,pol=pol,bin=y)])
                 totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
@@ -419,8 +426,7 @@ if __name__ == "__main__":
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
-                lat.DrawLatex(0.8, 0.92, '35.9 fb^{-1} (13 TeV)')
-                latBin.DrawLatex(0.8, 0.2, 'W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu'.format(pol=pol,chsign=sign, fl=flavour))
+                lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
                 for i in ['pdf', 'png']:
                     suff = '' if not options.suffix else '_'+options.suffix
                     cs.SetLogy()
@@ -448,12 +454,12 @@ if __name__ == "__main__":
                 summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
                 summaries[(charge,nuisgroup)].SetLineWidth(2)
                 summaries[(charge,nuisgroup)].GetXaxis().SetRangeUser(0.,2.4)
-                summaries[(charge,nuisgroup)].GetXaxis().SetTitle('|#eta|')
+                summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
                 if options.absolute:
                     summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
                 else:
-                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
+                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(1.e-3,500.)
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
                 summaries[(charge,nuisgroup)].GetXaxis().SetTitleSize(0.06)
                 summaries[(charge,nuisgroup)].GetXaxis().SetLabelSize(0.04)
@@ -492,21 +498,26 @@ if __name__ == "__main__":
         cs.SetBottomMargin(0.15)
         cs.SetTopMargin(0.1)
         cs.SetGridy()
+        cs.SetTicky(1)
         for charge in charges:
             leg = prepareLegendV2(textSize=0.04,xmin=0.12,xmax=0.94)
+            if charge=='allcharges': 
+                sign=''
+            else: 
+                sign='+' if charge is 'plus' else '-'
+            # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
+            thischannel = "W^{{{chsign}}} #rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+            header = "#bf{{Uncertainties on {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
+            leg.SetHeader(header)            
             leg.SetNColumns(4)
             lat = ROOT.TLatex()
             lat.SetNDC(); 
             lat.SetTextFont(42)
-            latBin = ROOT.TLatex()
-            latBin.SetNDC(); 
-            latBin.SetTextFont(42); 
-            latBin.SetTextSize(0.07)
             quadrsum = summaries[(charge,groups[0])].Clone('quadrsum_{ch}'.format(ch=charge))
             totalerr = quadrsum.Clone('totalerr_{ch}'.format(ch=charge))
             for ing,ng in enumerate(groups):
                 drawopt = 'pl' if ing==0 else 'pl same'
-                summaries[(charge,ng)].Draw(drawopt)
+                summaries[(charge,ng)].Draw(drawopt)                
                 if ing == 0: 
                     summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
                 if   ng=='binByBinStat': 
@@ -530,10 +541,6 @@ if __name__ == "__main__":
             quadrsum.SetLineStyle(ROOT.kDashed)
             quadrsum.Draw('pl same')
             # now fill the real total error from the fit (with correct correlations)
-            if charge=='allcharges': 
-                sign=''
-            else: 
-                sign='+' if charge is 'plus' else '-'
             for y in xrange(totalerr.GetNbinsX()):
                 totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
             totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); 
@@ -546,7 +553,6 @@ if __name__ == "__main__":
             leg.Draw('same')
             lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
-            latBin.DrawLatex(0.8, 0.2, 'W^{{{chsign}}} #rightarrow {fl}#nu'.format(chsign=sign,fl=flavour))
             for i in ['pdf', 'png']:
                 suff = '' if not options.suffix else '_'+options.suffix
                 cs.SetLogy()

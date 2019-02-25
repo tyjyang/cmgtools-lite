@@ -69,6 +69,7 @@ if __name__ == "__main__":
     parser.add_option('-e', '--divide-error', dest="divideError", action="store_true", default=False, help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")
     parser.add_option('-E',  '--divide-relative-error', dest="divideRelativeError", action="store_true", default=False, help="Make ratio of relative uncertainties (the output histogram will have no error assigned to it)")
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
+    parser.add_option('-a', '--make-asymmetry', dest="makeAsymmetry", action="store_true", default=False, help="Make ratio of difference over the sum. For this to make sense, the binnign of the two inputs must be consistent")
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -112,6 +113,10 @@ if __name__ == "__main__":
         print "Exit"
         quit()
 
+    if options.makeAsymmetry:
+        if options.divideRelativeError or options.divideError:
+            print "Error: option -a incompatible with options -e and -E. Exit"
+            quit()
 
     if options.outhistname == "FILE":
         options.outhistname = options.outfilename.split('.')[0]
@@ -166,6 +171,14 @@ if __name__ == "__main__":
     hratio = hinput1.Clone(options.outhistname)
     hratio.SetTitle(options.histTitle)
 
+    hsum = None
+    if options.makeAsymmetry:
+        hsum = hinput1.Clone("diff")
+        hsum.Add(hinput2)
+        hratio.Add(hinput2, -1.)
+        #hratio.Divide(hsum) # do this below
+        
+
     nbins,minx,maxx = options.h1Dbinning.split(',')
     hratioDistr = ROOT.TH1D(options.outhistname+"_1D","Distribution of ratio values",int(nbins),float(minx),float(maxx))
     # profX = ROOT.TProfile("profX",1,-1)
@@ -183,13 +196,17 @@ if __name__ == "__main__":
                 if xval < xMin or xval > xMax: continue
             if yMin < yMax:
                 if yval < yMin or yval > yMax: continue
-            denval = hinput2.GetBinError(hist2xbin, hist2ybin) if options.divideError else hinput2.GetBinContent(hist2xbin, hist2ybin)
+            denval = 0
+            if options.makeAsymmetry:
+                denval = hsum.GetBinContent(hist2xbin, hist2ybin)
+            else:
+                denval = hinput2.GetBinError(hist2xbin, hist2ybin) if options.divideError else hinput2.GetBinContent(hist2xbin, hist2ybin)
             if options.divideRelativeError:
                 if hinput2.GetBinContent(hist2xbin, hist2ybin) != 0:
                     denval = hinput2.GetBinError(hist2xbin, hist2ybin) / hinput2.GetBinContent(hist2xbin, hist2ybin)
                 else:
                     denval = 0
-            if denval != 0:
+            if denval != 0:                
                 numval = hratio.GetBinError(ix,iy) if options.divideError else hratio.GetBinContent(ix,iy)
                 if options.divideRelativeError:
                     if hratio.GetBinContent(ix,iy) != 0:
@@ -199,9 +216,10 @@ if __name__ == "__main__":
                 ratio = numval / denval
                 hratioDistr.Fill(ratio)
                 hratio.SetBinContent(ix,iy,ratio)
-                if ratio < 0.95 or ratio > 1.05: nout += 1
+                if ratio < minx or ratio > maxx: nout += 1
                 #profX.Fill()
             else: 
+                print "Warning: found division by 0 in one bin: setting ratio to " + str(options.valBadRatio)
                 hratio.SetBinContent(ix,iy,options.valBadRatio)
 
     print "nout = " + str(nout)

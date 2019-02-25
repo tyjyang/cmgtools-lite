@@ -5,30 +5,37 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 1
+skipData = 0
 onlyData = 0
 
-skipPlot = 1
+skipPlot = 0
+skipTemplate = 0
 skipDiffNuis = 1
 skipCorr = 1
 skipImpacts = 0
 
+
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
+folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
 
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
-folder = "diffXsec_el_2019_02_04_genpt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
+#folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
-postfix = "fixlepscale_fakesCont_noDYsigBkgNorm_fitgap_dressed_bbb1_cxs1"
+postfix = "fakesPtEtaUncorr_noDYsigBkgNorm_dressed_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
 fits = ["Asimov", "Data"]
 
-ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,45' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
+ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,50' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
+
+optTemplate = " --draw-selected-etaPt 0.45,38.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+ptMaxTemplate = "50"
+ptMinTemplate = "30" if flavour == "el" else "26"
 
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
@@ -81,7 +88,8 @@ targets = [#"mu",
            #"xsec", 
            #"xsecnorm",
            #"etaptasym",
-           #"etaxsec",
+           "etaxsec",
+           "etaxsecnorm",
            "etaasym"
            ]
 
@@ -107,6 +115,23 @@ impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
 
 
 print ""
+
+for charge in ["plus","minus"]:
+    print ""
+    print "="*30
+    print "TEMPLATE ROLLING for charge " + charge
+    print ""
+
+    command = "python w-helicity-13TeV/templateRolling.py"
+    command += " cards/{fd} -o plots/diffXsecAnalysis/{lep}/{fd}/templateRolling/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour)
+    command += " --plot-binned-signal -a diffXsec -C {ch} --pt-range '{ptmin},{ptmax}' ".format(ch=charge, ptmin=ptMinTemplate, ptmax=ptMaxTemplate)
+    command += " {opt} ".format(opt=optTemplate)
+    if not skipTemplate:
+        print ""
+        print command
+        if not dryrun:
+            os.system(command)
+
 
 for fit in fits:
 
@@ -199,7 +224,7 @@ for fit in fits:
                 varopt = " --nuis '{nuis_regexp}' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
             for target in targets:
                 tmpcommand = command + " {vopt} --target {t} ".format(vopt=varopt, t=target)            
-                if any(target == x for x in ["etaxsec", "etaasym"]):
+                if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
                     tmpcommand += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
                 if not skipImpacts:
                     print ""

@@ -58,3 +58,5 @@ python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-signal.
 
 # muon signal friends (see comment above)
 python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/skimCuts_wmunu.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT -f w-helicity-13TeV/wmass_e/skimming/tests/varsSkim_80X_Wmu_sig_friends.txt --fo -q cmscaf1nd --log logs_friends_Wskim_24Nov2018
+
+

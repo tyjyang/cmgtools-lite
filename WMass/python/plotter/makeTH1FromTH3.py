@@ -187,6 +187,11 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
                 newname += "_" + lasttoken
             if isEffStat and "ErfPar" not in lasttoken: newname = newname.replace("Erf","ErfPar")  # patch for bad names inside input file (ErfXX instead of ErfParXX)
             if newname.endswith('Dn'): newname = newname[:-2] + "Down"
+            # for EffStat, add <flavour><charge> at the end, because we use independent systs for charge and flavour, so the names must be different
+            # note that at this point the histograms don't have Up/Down in their name
+            if isEffStat:
+                suffixToAdd = "{fl}{ch}".format(fl=flavour, ch=charge)
+                newname += suffixToAdd
         hist = ROOT.TH1D(newname,"", len(thd1binning)-1, array('d', thd1binning))
         # unroll a slice of TH3 at fixed z (this is a TH2) into a 1D histogram
         for ix in range(1,1+obj.GetNbinsX()):

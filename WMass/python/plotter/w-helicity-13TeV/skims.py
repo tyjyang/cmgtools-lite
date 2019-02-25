@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_option("--fo", "--friend-only",  dest="friendOnly", action="store_true", default=False,  help="Do not redo skim of the main trees, only of the friends")
     parser.add_option("--mo", "--main-only",  dest="mainOnly", action="store_true", default=False,  help="Do not make skim of the friend trees, only of the main")
     parser.add_option("--max-entries",     dest="maxEntries", default=1000000000, type="int", help="Max entries to process in each tree") 
+    #parser.add_option("-n", "--job-name", dest="jobName",   type="string", default=None, help="Name assigned to jobs (if not given, use the default of skimTrees.py and skimFTrees.py"); # already in skimTrees,  cannot be duplicated
     from CMGTools.WMass.plotter.skimTrees import addSkimTreesOptions
     addSkimTreesOptions(parser)
     (options, args) = parser.parse_args() 
@@ -96,6 +97,7 @@ if __name__ == "__main__":
     if options.pretend: BATCH_OPTS += ' --pretend '
     if options.queue: BATCH_OPTS += ' -q %s ' % options.queue
     if options.logdir: BATCH_OPTS += ' --log %s ' % options.logdir
+    if options.jobName != None: BATCH_OPTS += ' -n %s ' % options.jobName
 
     varsToKeep = []; DROPVARS = ''
     if options.varfile!=None:
