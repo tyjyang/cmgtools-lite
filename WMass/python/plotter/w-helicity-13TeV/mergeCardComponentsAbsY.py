@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False, uncorrelateCharges = False):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -155,9 +155,11 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etabins = recoBins.etaBins
 
+    flav = 'mu' if isMu else 'el'
+
     tmp_infile = ROOT.TFile(infile, 'read')
     
-    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', ch=charge), 'recreate')
+    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{flav}_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', flav=flav, ch=charge), 'recreate')
 
     ndone = 0
 
@@ -171,6 +173,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
         if var_up == None or var_dn == None:
             print 'DID NOT FIND THE RIGHT KEY!!!'
+            quit()
 
     for k in tmp_infile.GetListOfKeys():
         tmp_name = k.GetName()
@@ -215,17 +218,11 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 elif distFromCenter<2: scalings.append(0.02)
                 else:                  scalings.append(0.05)
 
-        postfixForFlavourAndCharge = ""
-        # postfixForFlavourAndCharge = "mu" if isMu else "el"
-        # if uncorrelateCharges:
-        #     postfixForFlavourAndCharge += charge
-        
-
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
             systName = 'Fakes{v}Uncorrelated'.format(v='Eta' if not doPt else 'Pt')
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flch}2DROLLED'.format(sn=systName,ib=ib+1,flch=postfixForFlavourAndCharge)
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flav}{ch}2DROLLED'.format(sn=systName,ib=ib+1,flav=flav,ch=charge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
