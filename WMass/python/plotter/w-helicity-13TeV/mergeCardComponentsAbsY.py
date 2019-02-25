@@ -215,9 +215,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 elif distFromCenter<2: scalings.append(0.02)
                 else:                  scalings.append(0.05)
 
-        postfixForFlavourAndCharge = "mu" if isMu else "el"
-        if uncorrelateCharges:
-            postfixForFlavourAndCharge += charge
+        postfixForFlavourAndCharge = ""
+        # postfixForFlavourAndCharge = "mu" if isMu else "el"
+        # if uncorrelateCharges:
+        #     postfixForFlavourAndCharge += charge
         
 
         ## loop over all eta bins of the 2d histogram
