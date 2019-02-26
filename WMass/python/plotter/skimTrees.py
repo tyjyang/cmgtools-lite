@@ -186,8 +186,8 @@ Log        = {ld}/{p}_$(ProcId).log
 Output     = {ld}/{p}_$(ProcId).out
 Error      = {ld}/{p}_$(ProcId).error
 getenv      = True
-request_memory = 4000
-+MaxRuntime = 43200\n
+request_memory = 6000
++MaxRuntime = 86400\n
 '''.format(runner=runner,p=proc,ld=options.logdir))
             if os.environ['USER'] in ['mdunser', 'psilva']:
                 condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
@@ -221,6 +221,8 @@ request_memory = 4000
             if options.doS2V: mycut  = scalarToVector(mycut)
             if options.pretend: continue
             tasks.append((tty,mysource,myoutpath,cut,mycut,options,selectors))
+
+    print 'running {n} tasks'.format(n=len(tasks))
     if options.jobs == 0: 
         map(_runIt, tasks)
     else:

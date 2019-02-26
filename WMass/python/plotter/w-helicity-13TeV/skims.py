@@ -110,6 +110,7 @@ if __name__ == "__main__":
     if not options.friendOnly:
         print "Now skimming the main trees, keeping the following vars:\n",varsToKeep
         print "This step may take time...\n"
+        print cmdSkim
         os.system(cmdSkim)
     if not options.mainOnly:
         print "Now skimming the event variables friend trees:\n"
