@@ -1,5 +1,6 @@
 import ROOT
 import os, sys
+import subprocess as sp
 
 # usage: python skimFTrees.py BIGTREE_DIR FTREE_DIR outdir
 # for event variables: python skimFTrees.py skims /data1/emanuele/monox/TREES_25ns_1LEPSKIM_76X/friends skims/friends
@@ -7,8 +8,20 @@ import os, sys
 
 def _runIt(args,options,excludeProcesses=[]):
     (treedir,ftreedir,outdir,treename,ffilename) = args
-    dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
-    dsets = [d for d in dsets if d in os.listdir(treedir)]
+    ## marc dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
+    ## marc dsets = [d for d in dsets if d in os.listdir(treedir)]
+    dsets = set()
+    ## use xrdfs eoscms.cern.ch ls <path> if possible
+    if '/eos/cms/store/' in sys.argv[2]:
+        xrd_ld = sp.Popen('xrdfs eoscms.cern.ch ls {d}/'.format(d=sys.argv[2]).split(), stdout=sp.PIPE)
+        for sd in xrd_ld.communicate()[0].split('\n'):
+            tmp_ds = sd.split('/')[-1].replace('.root','').replace(ffilename+'_','')
+            if tmp_ds:
+                dsets.add(tmp_ds)
+        dsets = list(dsets)
+    else:
+        dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
+        dsets = [d for d in dsets if d in os.listdir(treedir)]
     procsToExclude = []
     for p0 in excludeProcesses:
         for p in p0.split(","):
@@ -98,7 +111,6 @@ Executable = {runner}
 use_x509userproxy = $ENV(X509_USER_PROXY)
 Log        = {ld}/$(ProcId).log
 Output     = {ld}/$(ProcId).out
-Error      = {ld}/$(ProcId).error
 getenv      = True
 request_memory = 4000
 +MaxRuntime = 43200
@@ -108,10 +120,21 @@ request_memory = 4000
             condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
         condor_f.write('\n')
 
+#Error      = {ld}/$(ProcId).error
         # for friends...
         (treedir,ftreedir,outdir,treename,ffilename) = allargs
-        dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
-        dsets = [d for d in dsets if d in os.listdir(treedir)]
+        dsets = set()
+        ## use xrdfs eoscms.cern.ch ls <path> if possible
+        if '/eos/cms/store/' in sys.argv[2]:
+            xrd_ld = sp.Popen('xrdfs eoscms.cern.ch ls {d}/'.format(d=sys.argv[2]).split(), stdout=sp.PIPE)
+            for sd in xrd_ld.communicate()[0].split('\n'):
+                tmp_ds = sd.split('/')[-1].replace('.root','').replace(ffilename+'_','')
+                if tmp_ds:
+                    dsets.add(tmp_ds)
+            dsets = list(dsets)
+        else:
+            dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
+            dsets = [d for d in dsets if d in os.listdir(treedir)]
 
         for d in dsets:
 
@@ -119,6 +142,7 @@ request_memory = 4000
             componentPost = ' --component {c} '.format(c=d)
             condor_f.write('\narguments = {d} {cmssw} python {self} {cmdargs} {comp}\n'.format(d=os.getcwd(),
             cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0], cmdargs=strargs, comp=componentPost))
+            condor_f.write('Error = {ld}/{n}.error\n'.format(ld=options.logdir,n=d))
             condor_f.write('queue 1\n\n')
         condor_f.close()
         cmd = 'condor_submit {sf}'.format(sf=condor_fn)
