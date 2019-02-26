@@ -5,23 +5,24 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 0
+skipData = 1
 onlyData = 0
 
-skipPlot = 0
-skipTemplate = 0
+skipPlot = 1
+skipTemplate = 1
 skipDiffNuis = 1
-skipCorr = 1
-skipImpacts = 0
+skipPostfit = 1  # only for Data
+skipCorr = 0
+skipImpacts = 1
 
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
-folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
+#folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
 
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
-#folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
+folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
@@ -57,17 +58,17 @@ diffNuisances_pois = ["pdf.*|alphaS|mW",
 correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*_ieta_6_ipt_8_Wplus_.*"
                         }
 
-correlationNuisRegexp = {"allPDF"           : "pdf.*", 
-                         "somePDFandAlphaS" : "^pdf([1-9]|1[0-9]|20)$,alphaS", 
-                         "QCDscales"        : "muR.*|muF.*", 
-                         "muR"              : "^muR[1-9]+", 
-                         "muF"              : "^muF[1-9]+", 
-                         "muRmuF"           : "^muRmuF[1-9]+", 
-                         "FakesEtaUncorr"   : "FakesEta.*", 
-                         "CMSsyst"          : "CMS_.*",
-                         "ErfPar0EffStat"   : "ErfPar0EffStat.*",
-                         "ErfPar1EffStat"   : "ErfPar1EffStat.*",
-                         "ErfPar2EffStat"   : "ErfPar2EffStat.*"
+correlationNuisRegexp = {# "allPDF"           : "pdf.*", 
+                         # "somePDFandAlphaS" : "^pdf([1-9]|1[0-9]|20)$,alphaS", 
+                         # "QCDscales"        : "muR.*|muF.*", 
+                         # "muR"              : "^muR[1-9]+", 
+                         # "muF"              : "^muF[1-9]+", 
+                         # "muRmuF"           : "^muRmuF[1-9]+", 
+                         "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*", 
+                         # "CMSsyst"          : "CMS_.*",
+                         # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
+                         # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
+                         # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
                          }
 
 correlationMatrixTitle = {"allPDF"           : "all PDFs", 
@@ -76,7 +77,7 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
                           "muR"              : "#mu_{R} QCD scales", 
                           "muF"              : "#mu_{F} QCD scales", 
                           "muRmuF"           : "#mu_{R}#mu_{F} QCD scales", 
-                          "FakesEtaUncorr"   : "fakes #eta normalizations", 
+                          "FakesEtaPtUncorr" : "fakes #eta normalizations and p_{T} slopes", 
                           "CMSsyst"          : "some experimental systematics",
                           "ErfPar0EffStat"   : "signal efficiency (uncorr. par 0)",
                           "ErfPar1EffStat"   : "signal efficiency (uncorr. par 1)",
@@ -183,6 +184,24 @@ for fit in fits:
             print tmpcommand
             if not dryrun:
                 os.system(tmpcommand)
+
+    print ""
+    print "="*30
+    print "POSTFIT PLOTS"
+    print ""
+
+    ## POSTFIT PLOTS
+    command = "python w-helicity-13TeV/postFitPlots_xsec.py"
+    command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root cards/{fd}/ ".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --no2Dplot-signal-bin -n  ".format(fit=fit)
+    if fit == "Data":
+        if not skipPostfit:
+            print ""    
+            print command
+            if not dryrun:
+                os.system(command)
+
 
     print ""
     print "="*30

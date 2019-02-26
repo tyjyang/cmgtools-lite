@@ -212,9 +212,11 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
 
     return (ratio, unity, line)
 
-def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,canvasSize="2400,600"):
+def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,canvasSize="2400,600", 
+                     drawVertLines="", textForLines=[]):
+
     ROOT.gStyle.SetPadLeftMargin(0.13)
-    ROOT.gStyle.SetPadRightMargin(0.07)
+    ROOT.gStyle.SetPadRightMargin(0.02)
     ROOT.gStyle.SetPadBottomMargin(0.3);
     
     plotformat = (int(canvasSize.split(",")[0]), int(canvasSize.split(",")[1]))
@@ -222,7 +224,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
 
-    rmin = max(0.1, histo.GetMinimum()); rmax = min(10., histo.GetMaximum())
+    rmin = max(0.1, hratio.GetMinimum()); rmax = min(10., hratio.GetMaximum())
     ROOT.gStyle.SetErrorX(0.5);
     hratio.GetYaxis().SetRangeUser(rmin,rmax);
     hratio.GetXaxis().SetTitleFont(42)
@@ -249,8 +251,35 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     line.Draw("L")
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.92, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(0.85, 0.92, '36 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.15, 0.94, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
+
+    # draw vertical lines to facilitate reading of plot
+    vertline = ROOT.TLine(36,0,36,c1.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 10)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = hratio.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            vertline.DrawLine(etarange*i-offsetXaxisHist,rmin,etarange*i-offsetXaxisHist,rmax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = rmax - 0.1*(rmax - rmin)
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+
     for ext in ['pdf', 'png']:
         c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_diffXsec_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
 
@@ -344,6 +373,12 @@ if __name__ == "__main__":
     cnarrow = ROOT.TCanvas("cnarrow","",650,700)                      
 
     canvasRatio = ROOT.TCanvas("canvasRatio","",2400,600)
+
+    # to draw panels in the unrolled plots
+    ptBinRanges = []
+    for ipt in range(0,recoBins.Npt):
+        ptBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
+
                       
     for charge in ['plus','minus']:
         binshift = shifts[charge]
@@ -589,9 +624,9 @@ if __name__ == "__main__":
             XlabelUnroll = "unrolled template along #eta: #eta #in [%.1f, %.1f]" % (recoBins.etaBins[0], recoBins.etaBins[-1])
             YlabelUnroll = verticalAxisName + "::%.2f,%.2f" % (0, 2.*hdata_unrolled.GetBinContent(hdata_unrolled.GetMaximumBin()))
             ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
-            ptBinRanges = []
-            for ipt in range(0,recoBins.Npt):
-                ptBinRanges.append("p_{{T}} #in [{ptmin:3g},{ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
+            #ptBinRanges = []
+            #for ipt in range(0,recoBins.Npt):
+            #    ptBinRanges.append("p_{{T}} #in [{ptmin:3g},{ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
             drawTH1dataMCstack(hdata_unrolled,stack_unrolled, XlabelUnroll, YlabelUnroll, cnameUnroll, outname, leg, ratioYlabel,
                                1, passCanvas=cwide,hErrStack=h1_expfull_unrolled,lumi=35.9,wideCanvas=True, leftMargin=0.05,rightMargin=0.02, 
                                drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
@@ -604,7 +639,8 @@ if __name__ == "__main__":
             if options.no2DplotSignalBin and "ieta_" in key: continue
             print "Making unrolled ratio for ",key            
             outdir = outnamesub
-            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix, passCanvas=canvasRatio)
+            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix, passCanvas=canvasRatio, 
+                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
                 
     outfile.Close()
 
