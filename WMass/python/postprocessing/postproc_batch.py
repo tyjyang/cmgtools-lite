@@ -23,7 +23,7 @@ DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "
                    ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
                    ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
-                   ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
+                   ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
                    ##("CMGTools.WMass.postprocessing.examples.recoilTrainExtra","recoilTrainExtra"),
                    ]
 
