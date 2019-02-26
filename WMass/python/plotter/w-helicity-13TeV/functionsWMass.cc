@@ -664,17 +664,22 @@ int unroll2DTo1D_etaSlices(int pdgid, float pt, float eta){
   return (ptbin + nptbins * etabin);
 }
 
-
-TFile *_file_effCov_trg_staterr_mu = NULL;
-TH2F *_hist_relSystErr0_mu = NULL;
-TH2F *_hist_relSystErr1_mu = NULL;
-TH2F *_hist_relSystErr2_mu = NULL;
+// for muons, we have independent files for each charge
+TFile *_file_effCov_trg_staterr_mu_plus = NULL;
+TFile *_file_effCov_trg_staterr_mu_minus = NULL;
+TH2F *_hist_relSystErr0_mu_plus = NULL;
+TH2F *_hist_relSystErr1_mu_plus = NULL;
+TH2F *_hist_relSystErr2_mu_plus = NULL;
+TH2F *_hist_relSystErr0_mu_minus = NULL;
+TH2F *_hist_relSystErr1_mu_minus = NULL;
+TH2F *_hist_relSystErr2_mu_minus = NULL;
 TFile *_file_effCov_trg_staterr_el = NULL;
 TH2F *_hist_relSystErr0_el = NULL;
 TH2F *_hist_relSystErr1_el = NULL;
 TH2F *_hist_relSystErr2_el = NULL;
 
-float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin, float etamax) {
+float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin, float etamax, int charge=1) {
+  // for charge, pass a positive or negative integer
 
   if (inuisance<0 || inuisance>2) {
     std::cout << "ERROR. Nuisance index " << inuisance << " not foreseen for the Erf with 3 parameters. Returning 0 syst." << std::endl;
@@ -684,12 +689,14 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   float ret;
   if (eta < etamin || eta > etamax) ret = 1.0;
   else {
+    Double_t factor = 1.;
     if (_cmssw_base_ == "") {
       cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
       _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
     }
     TH2F *_hist_relSystErr;
     if(abs(pdgId)==11) {
+      factor = 2.;
       if(!_file_effCov_trg_staterr_el) {
         _file_effCov_trg_staterr_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root",_cmssw_base_.c_str()),"read");
         _hist_relSystErr0_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p0");
@@ -700,21 +707,31 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
       else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_el;
       else                   _hist_relSystErr = _hist_relSystErr2_el;
     } else {
-      if(!_file_effCov_trg_staterr_mu) {
-        _file_effCov_trg_staterr_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu.root",_cmssw_base_.c_str()),"read");
-        _hist_relSystErr0_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p0");
-        _hist_relSystErr1_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p1");
-        _hist_relSystErr2_mu = (TH2F*)_file_effCov_trg_staterr_mu->Get("p2");
+      factor = sqrt(2.);
+      if(!_file_effCov_trg_staterr_mu_plus) {
+        _file_effCov_trg_staterr_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p0");
+        _hist_relSystErr1_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p1");
+        _hist_relSystErr2_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p2");
       }
-      if      (inuisance==0) _hist_relSystErr = _hist_relSystErr0_mu;
-      else if (inuisance==1) _hist_relSystErr = _hist_relSystErr1_mu;
-      else                   _hist_relSystErr = _hist_relSystErr2_mu;
+      if(!_file_effCov_trg_staterr_mu_minus) {
+        _file_effCov_trg_staterr_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root",_cmssw_base_.c_str()),"read");
+        _hist_relSystErr0_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p0");
+        _hist_relSystErr1_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p1");
+        _hist_relSystErr2_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p2");
+      }
+
+      if      (inuisance==0) _hist_relSystErr = (charge > 0) ? _hist_relSystErr0_mu_plus : _hist_relSystErr0_mu_minus;
+      else if (inuisance==1) _hist_relSystErr = (charge > 0) ? _hist_relSystErr1_mu_plus : _hist_relSystErr1_mu_minus;
+      else                   _hist_relSystErr = (charge > 0) ? _hist_relSystErr2_mu_plus : _hist_relSystErr2_mu_minus;
 
     }
     
     int etabin = std::max(1, std::min(_hist_relSystErr->GetNbinsX(), _hist_relSystErr->GetXaxis()->FindFixBin(eta)));
     int ptbin  = std::max(1, std::min(_hist_relSystErr->GetNbinsY(), _hist_relSystErr->GetYaxis()->FindFixBin(pt)));
-    ret = 1.0 + sqrt(2.)*_hist_relSystErr->GetBinContent(etabin,ptbin); //blow up the uncertainty
+    ret = 1.0 + factor*_hist_relSystErr->GetBinContent(etabin,ptbin); //blow up the uncertainty
+    // factor = sqrt(2) for muons. 
+    // For electrons, need another factor sqrt(2) because the efficiency are made inclusively in charge, but treated as uncorrelated between W+ and W-
   }
   return ret;
 }

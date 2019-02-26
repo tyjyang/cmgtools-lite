@@ -161,6 +161,8 @@ if __name__ == "__main__":
 
     lepton = "electron" if channel == "el" else "muon"
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu")
+    ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu", ptmin=genBins.ptBins[0], ptmax=genBins.ptBins[-1])
+
 
     hChAsymm = ROOT.TH2F("hChAsymm_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                          genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -195,7 +197,7 @@ if __name__ == "__main__":
                 central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
                 error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
-                                                                        nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+                                                                      nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
             else:                
                 central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(channel,ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
@@ -224,10 +226,10 @@ if __name__ == "__main__":
         yaxisTitle = yaxisTitle + "::%s,%s" % (ptmin, ptmax)
     #zaxisTitle = "Asymmetry::%.3f,%.3f" % (hChAsymm.GetMinimum(),hChAsymm.GetMaximum())
     if options.fitData:
-        zaxisTitle = "Asymmetry::0.05,0.45"
+        zaxisTitle = "Asymmetry::0.05,0.35"
         if channel == "el": zaxisTitle = "Asymmetry::0.0,0.45"
         zaxisTitle = "Asymmetry::%.3f,%.3f" % (max(0,0.99*hChAsymm.GetBinContent(hChAsymm.GetMinimumBin())),
-                                               min(0.5,hChAsymm.GetBinContent(hChAsymm.GetMaximumBin())))
+                                               min(0.30,hChAsymm.GetBinContent(hChAsymm.GetMaximumBin())))
 
     else:
         zaxisTitle = "Asymmetry::0.05,0.35"
@@ -263,18 +265,25 @@ if __name__ == "__main__":
                         "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
-    additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+    #additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+    #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu", pttext=ptRangeText) # pass x1,y1,x2,y2
+    texCoord = "0.2,0.65"
+    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu", 
+                                                                               pttext=ptRangeText,
+                                                                               txc=texCoord)
     legendCoords = "0.2,0.4,0.75,0.85"
     drawSingleTH1(hChAsymm1Deta,xaxisTitle,"charge asymmetry",
-                  "chargeAsym1D_eta_abs_{fl}".format(fl=channel),
+                  "chargeAsym1D_eta_{fl}".format(fl=channel),
                   outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1, drawLineLowerPanel="",
                   passCanvas=canvas1D, lumi=options.lumiInt,
-                  lowerPanelHeight=0.35, moreText=additionalText
+                  lowerPanelHeight=0.35, moreTextLatex=additionalText
                   )
 
+    icharge = 0
 
     for charge in charges:
 
+        icharge += 1
         print ""
         xaxisTitle = 'gen %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
 
@@ -304,6 +313,11 @@ if __name__ == "__main__":
         hDiffXsec_1Deta = ROOT.TH1F("hDiffXsec_1Deta_{lep}_{ch}".format(lep=lepton,ch=charge),
                                     "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                     genBins.Neta, array('d',genBins.etaBins))
+
+        hDiffXsecNorm_1Deta = ROOT.TH1F("hDiffXsecNorm_1Deta_{lep}_{ch}".format(lep=lepton,ch=charge),
+                                        "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                        genBins.Neta, array('d',genBins.etaBins))
+
 
         #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
         binCount = 1        
@@ -379,12 +393,19 @@ if __name__ == "__main__":
             hDiffXsec_1Deta.SetBinContent(ieta, central)
             hDiffXsec_1Deta.SetBinError(ieta, error)
 
+            central = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree)
+            error   = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree, getErr=True)
+            hDiffXsecNorm_1Deta.SetBinContent(ieta, central)
+            hDiffXsecNorm_1Deta.SetBinError(ieta, error)
+
+
         if options.normWidth:
             hDiffXsec.Scale(1.,"width")
             hDiffXsecErr.Scale(1.,"width")
             hDiffXsecNorm.Scale(1.,"width")
             hDiffXsecNormErr.Scale(1.,"width")
             hDiffXsec_1Deta.Scale(1.,"width")
+            hDiffXsecNorm_1Deta.Scale(1.,"width")
 
         if options.lumiNorm > 0:
             scaleFactor = 1./options.lumiNorm
@@ -485,13 +506,23 @@ if __name__ == "__main__":
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
-        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.45,0.8,0.65,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+        # with only W -> munu, coordinates can be 0.45,0.8,0.65,0.9 with TPaveText
+        texCoord = "0.45,0.85" if charge == "plus" else "0.45,0.5"
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+                                                                                             pttext=ptRangeText,
+                                                                                             txc=texCoord) 
         legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
         drawSingleTH1(hDiffXsec_1Deta,xaxisTitle,"d#sigma/d|#eta| [pb]",
                       "xsec_eta_abs_{ch}_{fl}".format(ch=charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                       passCanvas=canvas1D, lumi=options.lumiInt,
-                      lowerPanelHeight=0.35, moreText=additionalText
+                      lowerPanelHeight=0.35, moreTextLatex=additionalText
+                      )
+        drawSingleTH1(hDiffXsecNorm_1Deta,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
+                      "xsec_eta_norm_{ch}_{fl}".format(ch=charge,fl=channel),
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                      passCanvas=canvas1D, lumi=options.lumiInt,
+                      lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
 
 
@@ -510,6 +541,7 @@ if __name__ == "__main__":
         vertLinesArg = ""
         additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
+        h1D_chargeAsym = {}
         h1D_pmaskedexp = {}
         h1D_pmaskedexp_norm = {}
 
@@ -542,9 +574,26 @@ if __name__ == "__main__":
             h1D_pmaskedexp_norm[unrollAlongEta] = getTH1fromTH2(hDiffXsecNorm, hDiffXsecNormErr, unrollAlongX=unrollAlongEta)        
             drawSingleTH1(h1D_pmaskedexp_norm[unrollAlongEta],xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
                           "unrolledXsec_{var}_norm_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
-                          outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                          outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt, drawLineLowerPanel="",
                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35,moreText=additionalText,
                           leftMargin=leftMargin, rightMargin=rightMargin)
+
+            # do also charge asymmetry (only once if running on both charges)
+            if icharge == 1:
+
+                xaxisTitle = xaxisTitle.replace("cross section", "charge asymmetry")
+                additionalTextBackup = additionalText
+                additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+
+                h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry",
+                              "unrolledChargeAsym_{var}_{fl}".format(var=unrollVar,fl=channel),
+                              outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="", 
+                              passCanvas=canvUnroll,lumi=options.lumiInt,
+                              drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                              leftMargin=leftMargin, rightMargin=rightMargin)
+
+                additionalText = additionalTextBackup
 
 
 # for data, add plot with ratio with expected
@@ -561,7 +610,16 @@ if __name__ == "__main__":
                     fexp = ROOT.TFile(options.exptoyfile, 'read')
                     treeexp = fexp.Get('fitresults')
 
-        
+                hChargeAsym_exp = None
+                if icharge == 1:
+                    hChargeAsym_exp = ROOT.TH2F("hChargeAsym_{lep}_exp".format(lep=lepton),
+                                                "charge asymmetry: {Wch}".format(Wch=Wchannel),
+                                                genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
+
+                    hChAsymm1Deta_exp = ROOT.TH1F("hChAsymm1Deta_{lep}_exp".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
+                                                  genBins.Neta, array('d',genBins.etaBins))
+
+
                 hDiffXsec_exp = ROOT.TH2F("hDiffXsec_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
                                           "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                           genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -575,6 +633,16 @@ if __name__ == "__main__":
                 #                             "normalized cross section uncertainty: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                 #                             genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
+
+                hDiffXsec_1Deta_exp = ROOT.TH1F("hDiffXsec_1Deta_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
+                                                "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                genBins.Neta, array('d',genBins.etaBins))
+
+                hDiffXsecNorm_1Deta_exp = ROOT.TH1F("hDiffXsecNorm_1Deta_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
+                                                    "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                    genBins.Neta, array('d',genBins.etaBins))
+
+
                 binCount = 0
                 print ""
                 print "Now reading Hessian to make ratio of data with expected"
@@ -586,6 +654,19 @@ if __name__ == "__main__":
                         sys.stdout.write('Bin {num}/{tot}   \r'.format(num=binCount,tot=nbins))
                         sys.stdout.flush()
                         binCount += 1
+                        
+                        if icharge == 1:
+                            # charge asymmetry
+                            central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                                                                                   nHistBins=2000, minHist=0., maxHist=1., 
+                                                                                   tree=treeexp, getGen=getExpFromGen)         
+                            error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                                                                                 nHistBins=2000, minHist=0., maxHist=1., 
+                                                                                 tree=treeexp, getErr=True)                    
+                            
+                            hChargeAsym_exp.SetBinContent(ieta,ipt,central)        
+                            hChargeAsym_exp.SetBinError(ieta,ipt,error)         
+
 
                         # normalized cross section
                         central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
@@ -604,13 +685,39 @@ if __name__ == "__main__":
                         hDiffXsec_exp.SetBinContent(ieta,ipt,central)        
                         hDiffXsec_exp.SetBinError(ieta,ipt,error)         
 
+                # now 1D stuff
+                for ieta in range(1,genBins.Neta+1):
+
+                    if etaBinIsBackground[ieta-1]: continue
+
+                    if icharge == 1:
+                        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp)
+                        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp, getErr=True)
+                        hChAsymm1Deta_exp.SetBinContent(ieta,central)
+                        hChAsymm1Deta_exp.SetBinError(ieta,error)
+        
+                    central = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp)
+                    error   = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp, getErr=True)
+                    hDiffXsec_1Deta_exp.SetBinContent(ieta, central)
+                    hDiffXsec_1Deta_exp.SetBinError(ieta, error)
+
+                    central = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp)
+                    error   = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp, getErr=True)
+                    hDiffXsecNorm_1Deta_exp.SetBinContent(ieta, central)
+                    hDiffXsecNorm_1Deta_exp.SetBinError(ieta, error)
+
+
                 if options.normWidth:
                     hDiffXsec_exp.Scale(1.,"width")
                     hDiffXsecNorm_exp.Scale(1.,"width")
+                    hDiffXsec_1Deta_exp.Scale(1.,"width")
+                    hDiffXsecNorm_1Deta_exp.Scale(1.,"width")
+                    
 
                 if options.lumiNorm > 0:
                     scaleFactor = 1./options.lumiNorm
                     hDiffXsec_exp.Scale(scaleFactor)
+                    hDiffXsec_1Deta_exp.Scale(scaleFactor)
 
                 # # now drawing a TH1 unrolling TH2
 
@@ -636,7 +743,7 @@ if __name__ == "__main__":
                     h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
                     drawDataAndMC(h1D_pmaskedexp[unrollAlongEta], h1D_pmaskedexp_exp,xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::0,220",
                                   "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                                  outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
                                   drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                                   leftMargin=leftMargin, rightMargin=rightMargin)
 
@@ -645,12 +752,69 @@ if __name__ == "__main__":
                     drawDataAndMC(h1D_pmaskedexp_norm[unrollAlongEta], h1D_pmaskedexp_norm_exp,
                                   xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
                                   "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                                  outname,labelRatioTmp="Data/pred.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
                                   drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                                   leftMargin=leftMargin, rightMargin=rightMargin)
 
 
+                    # do also charge asymmetry (only once if running on both charges)
+                    if icharge == 1:
+                        
+                        additionalTextBackup = additionalText
+                        additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
+                        h1D_chargeAsym_exp = getTH1fromTH2(hChargeAsym_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                        drawDataAndMC(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_exp,xaxisTitle.replace("cross section", "charge asymmetry"),
+                                      "charge asymmetry::0,1.0", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
+                                      outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                      drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
+                                      leftMargin=leftMargin, rightMargin=rightMargin)
+
+                        additionalText = additionalTextBackup
+
+                # now data/prediction for the 1D xsection and charge asymmetry
+                ###############
+                xaxisTitle = 'gen %s |#eta|' % lepton
+                additionalTextBackup = additionalText
+                #additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::0.45,0.8,0.75,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+                #                                                                                       pttext=ptRangeText) # pass x1,y1,x2,y2
+                texCoord = "0.45,0.85" if charge == "plus" else "0.45,0.5"
+                additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+                                                                                                     pttext=ptRangeText,
+                                                                                                     txc=texCoord) 
+                legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
+                drawDataAndMC(hDiffXsec_1Deta,hDiffXsec_1Deta_exp,xaxisTitle,"d#sigma/d|#eta| [pb]",
+                              "xsec_eta_abs_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
+                              outname,labelRatioTmp="obs./exp.::0.8,1.2",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              passCanvas=canvas1D, lumi=options.lumiInt,
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText
+                              )
+                drawDataAndMC(hDiffXsecNorm_1Deta,hDiffXsecNorm_1Deta_exp,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
+                              "xsec_eta_norm_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
+                              outname,labelRatioTmp="obs./exp.::0.8,1.2",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              passCanvas=canvas1D, lumi=options.lumiInt,
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText
+                              )
+                additionalText = additionalTextBackup
+
+                if icharge == 1:
+                                        
+                    additionalTextBackup = additionalText
+                    #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu",pttext=ptRangeText) # pass x1,y1,x2,y2
+                    texCoord = "0.2,0.65"
+                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu", 
+                                                                                               pttext=ptRangeText,
+                                                                                               txc=texCoord)
+                    legendCoords = "0.2,0.4,0.75,0.85"
+                    drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry::0,1.0",
+                                  "chargeAsym1D_eta_{fl}_dataAndExp".format(fl=channel),
+                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,
+                                  passCanvas=canvas1D,lumi=options.lumiInt,
+                                  lowerPanelHeight=0.35, moreTextLatex=additionalText
+                                  )
+
+                    additionalText = additionalTextBackup
+                
                 
                 if options.exptoyfile != "SAME": fexp.Close()
 

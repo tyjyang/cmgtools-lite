@@ -449,6 +449,14 @@ class util:
         ret = self.getExprFromHessianFast('diffXsec1D_{var}'.format(var="eta" if isIeta else "pt"),expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
 
+    def getNormalizedDiffXsec1DFromHessianFast(self, channel, charge, ietaORipt, isIeta=True, nHistBins=1000, minHist=0., maxHist=1., tree=None, getErr=False, getGen=False):
+        expr = "W{c}_{ch}_i{var}_{ivar}_W{c}_{ch}_sumxsecnorm".format(c=charge,ch=channel,var="eta" if isIeta else "pt", ivar=ietaORipt)
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ret = self.getExprFromHessianFast('diffXsec1D_{var}'.format(var="eta" if isIeta else "pt"),expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+
     def getDiffXsecAsymmetry1DFromHessianFast(self, channel, ietaORipt, isIeta=True, 
                                               nHistBins=1000, minHist=0., maxHist=1., tree=None, getErr=False, getGen=False):
         expr = "W_{ch}_i{var}_{ivar}_W_{ch}_chargemetaasym".format(ch=channel,var="eta" if isIeta else "pt", ivar=ietaORipt)

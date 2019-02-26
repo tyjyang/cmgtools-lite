@@ -449,8 +449,18 @@ def drawSingleTH1(h1,
                   lumi=None,
                   drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
                   textForLines=[],                       
-                  moreText=""
+                  moreText="",
+                  moreTextLatex=""
                   ):
+
+    # moreText is used to pass some text to write somewhere (TPaveText is used)
+    # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
+    # one can add more lines using the ";" key. FOr example, "stuff1;stuff2::x1,y1,x2,y2"
+    # the coordinates should be defined taking into account how many lines will be drawn
+    # if the coordinates are not passed (no "::"), then default ones are used, but this might not be satisfactory
+
+    # moreTextLatex is similar, but used TLatex, and the four coordinates are x1,y1,ypass,textsize
+    # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
 
     if (rebinFactorX): 
         if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
@@ -586,12 +596,26 @@ def drawSingleTH1(h1,
         if "::" in moreText:
             x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
         pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
-        pavetext.AddText(realtext)
+        for tx in realtext.split(";"):
+            pavetext.AddText(tx)
         pavetext.SetFillColor(0)
         pavetext.SetFillStyle(0)
         pavetext.SetBorderSize(0)
         pavetext.SetLineColor(0)
         pavetext.Draw("same")
+
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
+
 
   # TPaveText *pvtxt = NULL;
   # if (yAxisName == "a.u.") {
@@ -691,7 +715,7 @@ def drawDataAndMC(h1, h2,
                   canvasName="default", outdir="./",
                   #rebinFactorX=0,
                   draw_both0_noLog1_onlyLog2=0,                  
-                  leftMargin=0.12,
+                  leftMargin=0.15,
                   rightMargin=0.04,
                   labelRatioTmp="Data/pred.::0.5,1.5",
                   drawStatBox=False,
@@ -704,8 +728,18 @@ def drawDataAndMC(h1, h2,
                   lumi=None,
                   drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
                   textForLines=[],                       
-                  moreText=""
+                  moreText="",
+                  moreTextLatex=""
                   ):
+
+    # moreText is used to pass some text to write somewhere (TPaveText is used)
+    # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
+    # one can add more lines using the ";" key. FOr example, "stuff1;stuff2::x1,y1,x2,y2"
+    # the coordinates should be defined taking into account how many lines will be drawn
+    # if the coordinates are not passed (no "::"), then default ones are used, but this might not be satisfactory
+
+    # moreTextLatex is similar, but used TLatex, and the four coordinates are x1,y1,ypass,textsize
+    # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
 
     # h1 is data, h2 in MC
 
@@ -718,7 +752,7 @@ def drawDataAndMC(h1, h2,
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
 
-    yAxisTitleOffset = 1.15 if leftMargin > 0.1 else 0.6
+    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -759,7 +793,7 @@ def drawDataAndMC(h1, h2,
     if ymin == ymax == 0.0:
         ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
         ymin *= 0.9
-        ymax *= 2.0
+        ymax *= (1.1 if leftMargin > 0.1 else 2.0)
         if ymin < 0: ymin = 0
         #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
@@ -795,10 +829,10 @@ def drawDataAndMC(h1, h2,
     legcoords = [float(x) for x in legendCoords.split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
-    leg.SetFillColor(0)
-    leg.SetFillStyle(0)
-    leg.SetBorderSize(0)
-    leg.AddEntry(h1,"data","LPE")
+    #leg.SetFillColor(0)
+    #leg.SetFillStyle(0)
+    #leg.SetBorderSize(0)
+    leg.AddEntry(h1,"observed","LPE")
     leg.AddEntry(h2,"expected","LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
     leg.Draw("same")
@@ -818,7 +852,8 @@ def drawDataAndMC(h1, h2,
     #bintext.SetNDC()
     bintext.SetTextSize(0.025)  # 0.03
     bintext.SetTextFont(42)
-    bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+    if len(textForLines):
+        bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
         #print "drawVertLines = " + drawVertLines
@@ -845,12 +880,25 @@ def drawDataAndMC(h1, h2,
         if "::" in moreText:
             x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
         pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
-        pavetext.AddText(realtext)
+        for tx in realtext.split(";"):
+            pavetext.AddText(tx)
         pavetext.SetFillColor(0)
         pavetext.SetFillStyle(0)
         pavetext.SetBorderSize(0)
         pavetext.SetLineColor(0)
         pavetext.Draw("same")
+
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
 
   # TPaveText *pvtxt = NULL;
   # if (yAxisName == "a.u.") {
@@ -909,7 +957,12 @@ def drawDataAndMC(h1, h2,
         line.SetLineWidth(2)
         line.Draw("Lsame")
 
-        leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
+        x1leg2 = 0.2 if leftMargin > 0.1 else 0.07
+        x2leg2 = 0.5 if leftMargin > 0.1 else 0.27
+        y1leg2 = 0.25 if leftMargin > 0.1 else 0.3
+        y2leg2 = 0.35 if leftMargin > 0.1 else 0.35
+        leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
+        #leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
         leg2.SetFillColor(0)
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)

@@ -155,20 +155,25 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etabins = recoBins.etaBins
 
+    flav = 'mu' if isMu else 'el'
+
     tmp_infile = ROOT.TFile(infile, 'read')
     
-    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', ch=charge), 'recreate')
+    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{flav}_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', flav=flav, ch=charge), 'recreate')
 
     ndone = 0
 
+    var_up = None
+    var_dn = None
     ## need to loop once for the pT uncorrelated. i'm sure there's a better way but i'm lazy
     if doPt:
         for k in tmp_infile.GetListOfKeys():
             tmp_name = k.GetName()
             if re.match(doPt, tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
             if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
-        if not var_up or not var_dn:
+        if var_up == None or var_dn == None:
             print 'DID NOT FIND THE RIGHT KEY!!!'
+            quit()
 
     for k in tmp_infile.GetListOfKeys():
         tmp_name = k.GetName()
@@ -217,7 +222,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         for ib, borderBin in enumerate(borderBins[:-1]):
 
             systName = 'Fakes{v}Uncorrelated'.format(v='Eta' if not doPt else 'Pt')
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}2DROLLED'.format(sn=systName,ib=ib+1)
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flav}{ch}2DROLLED'.format(sn=systName,ib=ib+1,flav=flav,ch=charge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -558,7 +563,7 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doPt = 'x_data_fakes_.*slope.*')
 
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -820,9 +825,9 @@ if __name__ == "__main__":
         print tmp_sigprocs
         print '============================================================================='
         if not options.freezePOIs:
-            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
             writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
+            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
         combinedCard.close()
             

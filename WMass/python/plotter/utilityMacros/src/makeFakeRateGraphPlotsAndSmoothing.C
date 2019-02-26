@@ -843,6 +843,9 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
       // hFR2D->SetMinimum(0.0);
       // hFR2D->SetMaximum(1.0);
+      // save also unsmoothed FR for future reference
+      cout << endl;      
+      hFR2D->SaveAs((outDir_num_den + Form("fakeRate_pt_vs_eta_%s",processes[j].c_str()) + ".root").c_str());
       drawCorrelationPlot(hFR2D, 
 			  ptXaxisName,
 			  etaYaxisName,
@@ -1217,10 +1220,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_06_02_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_metSmear10/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_22_02_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_ChargePlus/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_metSmear10/", 
-					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_metSmear10",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_ChargePlus/", 
+					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_ChargePlus",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file

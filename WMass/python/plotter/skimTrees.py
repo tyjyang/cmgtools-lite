@@ -130,6 +130,7 @@ def addSkimTreesOptions(parser):
     parser.add_option("-q", "--queue",   dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
     parser.add_option("-c", "--component", dest="component",   type="string", default=None, help="skim only this component");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
+    parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimTrees", help="Name assigned to jobs");
     
 
 if __name__ == "__main__":

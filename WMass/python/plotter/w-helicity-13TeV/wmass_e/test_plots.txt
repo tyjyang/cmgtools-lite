@@ -70,3 +70,7 @@ awayJetPt_ptl1: LepGood_awayJet_pt\:ptElFull(LepGood1_calPt,LepGood1_eta) : 50,3
 
 pfmt_wmass: mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) : 40,40,120 ; XTitle="m_{T} [GeV]", Legend='TL', IncludeOverflows=False
 ptl1_wmass: ptElFull(LepGood1_calPt,LepGood1_eta): 40,30,50 ; XTitle="lepton p_{T} [GeV]", Legend='TL', IncludeOverflows=False
+
+
+ptl1_large: ptElFull(LepGood1_calPt,LepGood1_eta): 25,30,55 ; XTitle="electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+ptl1large__etal1: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: 50,-2.5,2.5,25,30,55; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
