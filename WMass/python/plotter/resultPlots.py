@@ -39,7 +39,7 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        #systs += ['CMS_We_FRmu_continuous,CMS_We_FRe_slope','CMS_We_sig_lepeff']
+        systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['CMS_Wmu_muscale']

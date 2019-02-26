@@ -563,7 +563,7 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doPt = 'x_data_fakes_.*slope.*')
 
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -825,9 +825,9 @@ if __name__ == "__main__":
         print tmp_sigprocs
         print '============================================================================='
         if not options.freezePOIs:
-            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
             writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
+            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
         combinedCard.close()
             
