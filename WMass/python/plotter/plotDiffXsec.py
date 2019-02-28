@@ -6,27 +6,27 @@ import ROOT, os, sys, re, array
 
 dryrun = 0
 skipData = 0
-onlyData = 1
+onlyData = 0
 
 skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
-skipPostfit = 0  # only for Data
+skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
-folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
+#folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
 
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
-#folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
+folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
-postfix = "fakesPtEtaUncorr_noDYsigBkgNorm_dressed_bbb1_cxs1"
+postfix = "newGroups_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -104,7 +104,7 @@ targets = [#"mu",
 #                 ]
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
-groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,lepScale'
+groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale'
                 
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 #"Wplus.*_ipt_8_.*",
