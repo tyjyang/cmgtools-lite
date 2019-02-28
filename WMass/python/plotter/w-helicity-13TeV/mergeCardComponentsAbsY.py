@@ -198,9 +198,9 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             tmp_dn = tmp_infile.Get(var_dn)
             tmp_dn_2d = dressed2D(tmp_dn,binning, var_dn+'backrolled')
 
-
+        deltaEtaUnc = 0.5 if isMu else 0.2
         ## absolute eta borders:        
-        etaBorders = etaBordersTmp if len(etaBordersTmp) else [0.5, 1.0, 1.5, 2.0]
+        etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(len(etabins)/4-1)]
         ## construct positive and negative eta borders symmetrically
         etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
         borderBins = [1]
@@ -209,14 +209,16 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
         borderBins += [len(etabins)]
 
-        if isMu: scalings = [0.05 for b in borderBins]
+        if isMu: scalings = [0.05 for b in borderBins[:-1]]
         else:
             scalings = []
-            for ib, borderBin in enumerate(borderBins):
-                distFromCenter = abs(ib-(len(borderBins)-1)/2+0.5)
-                if   distFromCenter<1: scalings.append(0.01)
-                elif distFromCenter<2: scalings.append(0.02)
-                else:                  scalings.append(0.05)
+            for ib, borderBin in enumerate(borderBins[:-1]):
+                if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)
+                elif abs(etabins[borderBin]) < 0.41: scalings.append(0.025)
+                elif abs(etabins[borderBin]) < 1.01: scalings.append(0.04)
+                elif abs(etabins[borderBin]) < 1.51: scalings.append(0.06)
+                elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
+                else:                         scalings.append(0.06)
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
@@ -351,20 +353,20 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def writeChargeGroup(cardfile,signals,channel):
+def writeChargeGroup(cardfile,signals,polarizations,channel):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
-    for pol in ['left','right','long']:
+    for pol in polarizations:
         cardfile.write('\n')
         for y in xrange(maxiY+1):
             cardfile.write('W_{pol}_{flavor}_Ybin_{y} chargeGroup = Wplus_{pol}_Wplus_{pol}_{flavor}_Ybin_{y} Wminus_{pol}_Wminus_{pol}_{flavor}_Ybin_{y}\n'.format(pol=pol,flavor='mu' if 'mu' in channel else 'el',y=y))
 
-def writePolGroup(cardfile,signals,channel,grouping='polGroup'):
+def writePolGroup(cardfile,signals,polarizations,channel,grouping='polGroup'):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
     flavor='mu' if 'mu' in channel else 'el'
     for charge in ['plus','minus']:
         cardfile.write('\n')
         for y in xrange(maxiY+1):
-            group = ' '.join(['W{charge}_{pol}_W{charge}_{pol}_{flavor}_Ybin_{y}'.format(charge=charge,pol=pol,flavor=flavor,y=y) for pol in ['left','right','long'] ])
+            group = ' '.join(['W{charge}_{pol}_W{charge}_{pol}_{flavor}_Ybin_{y}'.format(charge=charge,pol=pol,flavor=flavor,y=y) for pol in polarizations])
             cardfile.write('W{charge}_{flavor}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,flavor=flavor,y=y,grp=grouping,procs=group))
 
 def writeChargeMetaGroup(cardfile,signals,channel):
@@ -812,22 +814,28 @@ if __name__ == "__main__":
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
+        combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
-        combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),finalsystnames))+'\n')
 
         # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
         ## first make a list of all the signal processes.
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
+        polarizations = ['left','right']
+        if options.longLnN: 
+            tmp_sigprocs = filter(lambda x: 'long_W' not in x,tmp_sigprocs)
+        else:
+            polarizations.append('long')
         print '============================================================================='
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
         print '============================================================================='
-        if not options.freezePOIs:
-            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='polGroup')
-            writePolGroup(combinedCard,tmp_sigprocs,options.bin,grouping='sumGroup')
-            writeChargeGroup(combinedCard,tmp_sigprocs,options.bin)
+        if not options.freezePOIs and not options.longLnN: # right now cannot group signal and backgrounds
+            writePolGroup(combinedCard,tmp_sigprocs,polarizations,options.bin,grouping='polGroup')
+            writePolGroup(combinedCard,tmp_sigprocs,polarizations,options.bin,grouping='sumGroup')
+            writeChargeGroup(combinedCard,tmp_sigprocs,polarizations,options.bin)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
         combinedCard.close()
             
