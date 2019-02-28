@@ -26,6 +26,7 @@ def niceSystName(label):
     elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}, #alpha_{S}'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total unc.'
+    elif 'EffSyst' in label: niceName = 'efficiency syst. unc.'
     else: niceName = label
     return niceName
 
