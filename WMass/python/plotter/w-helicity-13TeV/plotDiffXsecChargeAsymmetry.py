@@ -586,7 +586,7 @@ if __name__ == "__main__":
                 additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
 
                 h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
-                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry",
+                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry::0.0,1.0",
                               "unrolledChargeAsym_{var}_{fl}".format(var=unrollVar,fl=channel),
                               outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="", 
                               passCanvas=canvUnroll,lumi=options.lumiInt,
@@ -806,7 +806,7 @@ if __name__ == "__main__":
                                                                                                pttext=ptRangeText,
                                                                                                txc=texCoord)
                     legendCoords = "0.2,0.4,0.75,0.85"
-                    drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry::0,1.0",
+                    drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry",
                                   "chargeAsym1D_eta_{fl}_dataAndExp".format(fl=channel),
                                   outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,
                                   passCanvas=canvas1D,lumi=options.lumiInt,
