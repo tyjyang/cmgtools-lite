@@ -80,7 +80,7 @@ def niceName(name):
 
     elif re.match(".*EffStat.*",name):
         num = re.findall(r'\d+', name) # get number (there will be two of them, need the second)
-        pfx = name.split(num[1])[1]    # split on second number and read what's on the right
+        pfx = name.split("EffStat"+str(num[1]))[1]    # split on second number and read what's on the right
         leptonCharge = ""
         if len(pfx):
             leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
