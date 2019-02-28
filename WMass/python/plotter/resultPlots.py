@@ -27,6 +27,7 @@ if __name__ == '__main__':
     if options.runtoys:
         toysHessian += ['toys']
 
+    charges = ['plus','minus']
     ## plot syst ratios
     ## ================================
     if options.make in ['all', 'syst']:
@@ -43,10 +44,13 @@ if __name__ == '__main__':
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['CMS_Wmu_muscale']
-        systs += [','+','.join(['FakesEtaUncorrelated%d'%i for i in xrange(1,11)])]
-        systs += [','+','.join(['FakesPtUncorrelated%d' %i for i in xrange(1,11)])]
+        nEtaUnc = 10 if muEl=='mu' else 26
+        systs += [','+','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','+','.join(['FakesPtUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         for nuis in systs:
-            os.system('python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl))
+            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            print "Running: ",cmd
+            os.system(cmd)
 
     ## plot correlation matrices
     ## ================================
