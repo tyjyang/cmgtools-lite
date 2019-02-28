@@ -5,24 +5,24 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 1
-onlyData = 0
+skipData = 0
+onlyData = 1
 
 skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
-skipPostfit = 1  # only for Data
-skipCorr = 0
+skipPostfit = 0  # only for Data
+skipCorr = 1
 skipImpacts = 1
 
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
-#folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
+folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
 
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
-folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
+#folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
@@ -34,7 +34,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,50' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
 
-optTemplate = " --draw-selected-etaPt 0.45,38.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --draw-selected-etaPt 2.05,35.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "50"
 ptMinTemplate = "30" if flavour == "el" else "26"
 

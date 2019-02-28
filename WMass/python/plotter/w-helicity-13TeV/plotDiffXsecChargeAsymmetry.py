@@ -445,8 +445,8 @@ if __name__ == "__main__":
             if charge == "plus": zmin,zmax = 30,130
             else:                zmin,zmax = 10,110
         else:
-            if charge == "plus": zmin,zmax = 30,120
-            else:                zmin,zmax = 25,95
+            if charge == "plus": zmin,zmax = 20,120
+            else:                zmin,zmax = 20,100
 
         zminHist = hDiffXsec.GetBinContent(hDiffXsec.GetMinimumBin())                                                   
         zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (0.99*(zminHist if zminHist > 1. else zmin),
@@ -520,7 +520,7 @@ if __name__ == "__main__":
                       )
         drawSingleTH1(hDiffXsecNorm_1Deta,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
                       "xsec_eta_norm_{ch}_{fl}".format(ch=charge,fl=channel),
-                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )

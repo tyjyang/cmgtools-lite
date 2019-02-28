@@ -224,7 +224,8 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
 
-    rmin = max(0.1, hratio.GetMinimum()); rmax = min(10., hratio.GetMaximum())
+    ydiff = hratio.GetBinContent(hratio.GetMaximumBin()) - hratio.GetBinContent(hratio.GetMinimumBin())
+    rmin = max(0.1, hratio.GetBinContent(hratio.GetMinimumBin())); rmax = min(10., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
     ROOT.gStyle.SetErrorX(0.5);
     hratio.GetYaxis().SetRangeUser(rmin,rmax);
     hratio.GetXaxis().SetTitleFont(42)
