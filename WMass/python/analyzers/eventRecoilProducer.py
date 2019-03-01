@@ -167,7 +167,7 @@ class EventRecoilProducer(Analyzer):
             vetoCands.append(l)
 
         #select pf candidates
-        pfTags,pfMom,pfWeights=[],[],[]
+        pfTags,pfMom,pfWeights,pfCov=[],[],[],[]
         pfcands = self.handles['cmgCand'].product()
         for pfcand in pfcands:
 
@@ -203,10 +203,52 @@ class EventRecoilProducer(Analyzer):
             pfMom.append( [pfcand.px(),pfcand.py(),pfcand.pz(),pfcand.pt(),pfcand.energy()] )
             pfWeights.append( [pfcand.puppiWeightNoLep()] )
             
+            # resolutions
+            dpt,dph = 0,0
+            cov_xx,cov_xy,cov_yy = 0,0,0
+            energy = pfcand.energy()
+            c = pfcand.px()/pfcand.pt();
+            s = pfcand.py()/pfcand.pt();
+            # tracks
+            if isCharged:
+                dpt = pfcand.pseudoTrack().ptError()
+                dph = pfcand.pseudoTrack().phiError()
+            # ECAL (photons)
+            # arXiv:1306.2016: s/E = sqrt(0.028**2/E + (0.12/E)**2 + 0.003**2)
+            # The achieved position resolution in EB (EE) is 3 (5) mrad in phi <- no pt given
+            # Technical proposal: sigma_phi < 50 mrad/sqrt(E)
+            elif pfcand.pdgId() == 22:
+                dph = 0.050/math.sqrt(energy)
+                if abs(pfcand.eta()) < 1.479:
+                    dpt = pfcand.pt() * math.sqrt(0.028**2/energy + (0.12/energy)**2 + 0.003**2)
+                else: # factor 2 for endcaps according to technical proposal
+                    dpt = pfcand.pt() * math.sqrt(0.056**2/energy + (0.24/energy)**2 + 0.006**2)
+            # HCAL (neutral hadrons)
+            # arXiv: 0911.4991: s/E = sqrt(0.847**2/E + 0.074**2)
+            elif abs(pfcand.pdgId()) > 10:
+                dpt = pfcand.pt() * math.sqrt(0.847**2/energy + 0.074**2)
+                dph = 0.050/math.sqrt(energy) * 0.0873/0.0174 # assume scaling with crystal/tile size
+                if abs(pfcand.eta()) > 1.74:
+                    dph *= 2
+            # HF: s/E = sqrt(1.98**2/E + 0.09**2)
+            elif abs(pfcand.pdgId()) < 10:
+                dpt = pfcand.pt() * math.sqrt(1.98**2/energy + 0.09**2)
+                dph = 0.050/math.sqrt(energy) * 0.0873/0.0174 * 2
+                if abs(pfcand.eta()) > 4.7:
+                    dph *= 2
+            
+            cov_xx += dpt*dpt*c*c + dph*dph*s*s;
+            cov_xy += (dpt*dpt-dph*dph)*c*s;
+            cov_yy += dph*dph*c*c + dpt*dpt*s*s;
+            
+            #print('resolution', pfcand.pdgId(), pfcand.charge(), pfcand.pt(), energy, dpt, dph)
+            pfCov.append( [cov_xx,cov_xy,cov_yy] )
+            
         #convert to numpy arrays for filtering and other operations
         pfTags=np.array(pfTags)
         pfMom=np.array(pfMom)
         pfWeights=np.array(pfWeights)
+        pfCov=np.array(pfCov)
 
         #produce the observables for each met flavour
         tkmet_phi=None
@@ -215,20 +257,24 @@ class EventRecoilProducer(Analyzer):
             m=self.metFlavours[im]
             
             selPF=[]
+            selCov = np.array([[ 999., 0., 999.],[ 999., 0., 999.]], dtype=np.float32) #dummy values
             if m=='gen':
                 selPF=genMom
             else:
                 mfilter=(pfTags[:,im]==True)
                 selPF=pfMom[mfilter] 
+                selCov=pfCov[mfilter]
                 wgtSum=1.0
                 if 'puppi' in m:
                     selPF_w=pfWeights[mfilter]  
                     if 'invpuppi' in m: selPF_w=abs(1.0-selPF_w)
                     selPF=selPF*selPF_w
+                    selCov=selCov*selPF_w
                     
                     #some will be scaled to 0 with puppi weights => filter them out
                     ptfilter=(selPF[:,3]>self.ptThr)
                     selPF=selPF[ptfilter]
+                    selCov=selCov[ptfilter]
                             
             #basic kinematics
             if len(selPF)>0:
@@ -239,6 +285,16 @@ class EventRecoilProducer(Analyzer):
                 leadpt=leadmom[3]
                 leadphi=np.arctan2(leadmom[1],leadmom[0])
                 scalar_sphericity=recpt/ht
+                # MET significance
+                cov_xx,cov_xy,cov_yy=np.sum(selCov,axis=0,dtype=np.float32)
+                # covariance matrix determinant
+                det = cov_xx*cov_yy - cov_xy*cov_xy
+                # invert matrix
+                ncov_xx = cov_yy / det;
+                ncov_xy = -cov_xy / det;
+                ncov_yy = cov_xx / det;
+                # product of met and inverse of covariance
+                sig = recx*recx*ncov_xx + 2*recx*recy*ncov_xy + recy*recy*ncov_yy;
             else:
                 recpt=0
                 recphi=0
