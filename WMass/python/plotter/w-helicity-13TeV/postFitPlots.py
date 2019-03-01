@@ -260,8 +260,8 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
     line.Draw("L")
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.92, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(0.85, 0.92, '36 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.15, 0.94, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
 
     # draw vertical lines to facilitate reading of plot
     vertline = ROOT.TLine(36,0,36,c1.GetUymax())

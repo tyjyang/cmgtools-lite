@@ -5,15 +5,15 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 1
+skipData = 0
 onlyData = 0
 
 skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
-skipCorr = 0
-skipImpacts = 1
+skipCorr = 1
+skipImpacts = 0
 
 
 seed = 123456789
@@ -26,7 +26,7 @@ folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
-postfix = "fakesPtEtaUncorr_noDYsigBkgNorm_dressed_bbb1_cxs1"
+postfix = "newGroups_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -34,7 +34,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,50' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
 
-optTemplate = " --draw-selected-etaPt 0.45,38.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --draw-selected-etaPt 2.05,35.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "50"
 ptMinTemplate = "30" if flavour == "el" else "26"
 
@@ -104,7 +104,7 @@ targets = [#"mu",
 #                 ]
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
-groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,lepScale'
+groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale'
                 
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 #"Wplus.*_ipt_8_.*",
