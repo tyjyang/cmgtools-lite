@@ -476,7 +476,7 @@ if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
         comp.files=['/eos/user/m/mdunser/w-helicity-13TeV/testfiles/ZJToMuMuJ_M-50_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia.root']
     elif test=='testwnew':
         comp=WJetsToLNu_LO
-        comp.files=['/eos/cms/store/mc/RunIISummer16MiniAODv2/WplusJToMuNuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v4/10000/04783B3A-B57D-E811-B421-FA163EF059FC.root']
+        comp.files=['/eos/cms/store/mc/RunIISummer16MiniAODv2/WminusJToMuNuJ_scalesUpTo8_NNPDF31_plus_CMSPDF_TuneCP5_13TeV_powheg2-minlo-pythia/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v2/20000/8047A36A-9A41-E811-952C-FA163EC20DC7.root']
     else:
         #comp=MuonEG_Run2016B_18Apr2017
         #comp=SingleElectron_Run2016C_03Feb2017
