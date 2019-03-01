@@ -16,7 +16,7 @@ class EventRecoilProducer(Analyzer):
 
         self.ptThr=0.5
         self.pvflag=ROOT.pat.PackedCandidate.PVTight
-        self.metFlavours=['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen']
+        self.metFlavours=['tkmet','npv_tkmet','closest_tkmet','puppimet','invpuppimet','gen_tkmet','gen_tkmet5']
 
         print 'EventRecoilProducer',
         print 'Will use pT>{0} GeV and pvFlags>={1}'.format(self.ptThr,self.pvflag),
@@ -114,7 +114,7 @@ class EventRecoilProducer(Analyzer):
 
         return toReturn
 
-    def processGen(self,event):
+    def processGen(self,event,etacut=2.4):
 
         """makes a charged-based gen recoil estimator"""
 
@@ -125,10 +125,10 @@ class EventRecoilProducer(Analyzer):
             for p in self.mchandles['packedGen'].product():
                 if p.charge() == 0: continue
                 if p.status() != 1: continue
-                if p.pt()<self.ptThr or abs(p.eta())>2.4 : continue
+                if p.pt()<self.ptThr or abs(p.eta())>etacut : continue
 
                 #veto up to two high pT central, leptons
-                if abs(p.pdgId()) in [11,13] and p.pt()>20 and abs(p.eta())<2.4:
+                if abs(p.pdgId()) in [11,13] and p.pt()>20 and abs(p.eta())<etacut:
                     nlep+=1
                     if nlep<=2 : continue
 
@@ -146,6 +146,7 @@ class EventRecoilProducer(Analyzer):
 
         #gen level
         genMom=self.processGen(event)
+        genMom5=self.processGen(event, 5.)
 
         #vertex analysis
         mindz=9999.
@@ -257,9 +258,11 @@ class EventRecoilProducer(Analyzer):
             m=self.metFlavours[im]
             
             selPF=[]
-            selCov = np.array([[ 999., 0., 999.],[ 999., 0., 999.]], dtype=np.float32) #dummy values
-            if m=='gen':
+            selCov = np.array([[ 0., 0., 0.],[ 0., 0., 0.]], dtype=np.float32) #dummy values
+            if m=='gen_tkmet':
                 selPF=genMom
+            elif m=='gen_tkmet5':
+                selPF=genMom5
             else:
                 mfilter=(pfTags[:,im]==True)
                 selPF=pfMom[mfilter] 
@@ -288,7 +291,7 @@ class EventRecoilProducer(Analyzer):
                 # MET significance
                 cov_xx,cov_xy,cov_yy=np.sum(selCov,axis=0,dtype=np.float32)
                 # covariance matrix determinant
-                det = cov_xx*cov_yy - cov_xy*cov_xy
+                det = cov_xx*cov_yy - cov_xy*cov_xy + 1e-5
                 # invert matrix
                 ncov_xx = cov_yy / det;
                 ncov_xy = -cov_xy / det;
@@ -314,6 +317,10 @@ class EventRecoilProducer(Analyzer):
             setattr(event,'h%s_scalar_ht'%m,float(ht))
             setattr(event,'h%s_scalar_sphericity'%m,float(scalar_sphericity))
             setattr(event,'h%s_dphi2tkmet'%m,float(dphi2tkmet))
+            setattr(event,'h%s_cov_xx'%m,float(cov_xx))
+            setattr(event,'h%s_cov_xy'%m,float(cov_xy))
+            setattr(event,'h%s_cov_yy'%m,float(cov_yy))
+            setattr(event,'h%s_sig'%m,float(sig))
 
             #thrust variables and event shapes (if no PF candidates -1 is assigned)
             try:
