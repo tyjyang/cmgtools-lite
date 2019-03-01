@@ -114,7 +114,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                if options.make != 'imp1D':
+                if False: #if options.make != 'imp1D':
                     for target in targets[:2]:
                         for poig in poisGroups:
                             print "RUNNING SINGLE NUISANCE IMPACTS..."
