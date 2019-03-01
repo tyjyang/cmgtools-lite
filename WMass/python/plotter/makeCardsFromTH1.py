@@ -555,7 +555,8 @@ card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\
 card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
                                             filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
 card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
-card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
+card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
+card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("\n")
 card.write("\n")
 

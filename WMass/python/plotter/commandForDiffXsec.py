@@ -3,7 +3,7 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-skipUnpack=0
+skipUnpack=1
 skipMergeRoot=0
 skipSingleCard=0
 skipMergeCard=0
@@ -16,7 +16,7 @@ th3file = "cards/" + folder + "wmunu_histo_ptMax50.root"
 
 optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.6,2.0 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous' " # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta
-optionsForCardMakerMerger = " --postfix fakesPtEtaUncorr_noDYsigBkgNorm_dressed  "  # --no-text2hdf5
+optionsForCardMakerMerger = " --postfix newGroups  "  # --no-text2hdf5
 
 # folder = "diffXsec_el_2018_12_16_onlyBkg_pt1GeV_eta0p2From1p3/"  # keep "/" at the end
 # th3file = "cards/" + folder + "wmass_varhists_ele_pt1GeV_eta0p2From1p3.root"

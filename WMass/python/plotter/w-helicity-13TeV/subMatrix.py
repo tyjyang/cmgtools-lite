@@ -70,6 +70,23 @@ def niceName(name):
         else:
             return name
       
+    elif re.match( "Fakes(Eta|Pt)Uncorrelated.*",name):
+        num = re.findall(r'\d+', name) # get number
+        pfx = name.split(num[0])[1]    # split on number and read what's on the right
+        leptonCharge = ""
+        if len(pfx):
+            leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
+        return "Fakes {var}-uncorr.{n} {lepCh}".format(var="#eta" if "FakesEta" in name else "p_{T}", n=num[0], lepCh=leptonCharge)
+
+    elif re.match(".*EffStat\d+.*",name):
+        num = re.findall(r'\d+', name) # get number (there will be two of them, need the second)
+        pfx = name.split("EffStat"+str(num[1]))[1]    # split on second number and read what's on the right
+        leptonCharge = ""
+        if len(pfx):
+            leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
+        return "Eff. uncorr. {n1}-{n2} {lepCh}".format(n1=num[0],n2=num[1],lepCh=leptonCharge)
+
+
     else:  
         return name
         
@@ -88,7 +105,7 @@ if __name__ == "__main__":
     parser.add_option('-t','--type'  , dest='type'  ,    default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
     parser.add_option(     '--suffix', dest='suffix',    default='', type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--parNameCanvas', dest='parNameCanvas',    default='', type='string', help='The canvas name is built using the parameters selected with --params. If they are many, better to pass a name, like QCDscales or PDF for example')
-    parser.add_option(     '--nContours', dest='nContours',    default=0, type=int, help='Number of contours in palette. Default is 20')
+    parser.add_option(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (keep it odd: no correlation is white with our palette)')
     parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
     parser.add_option(     '--vertical-labels-X', dest='verticalLabelsX',    default=False, action='store_true', help='Set labels on X axis vertically (sometimes they overlap if rotated)')
     parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ("small correlation matrix" is used as default). Use 0 to remove title')
@@ -195,15 +212,26 @@ if __name__ == "__main__":
 
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
+    
+    # why is this commented? Isn't it nice that different charge and polarizations are grouped together?
+    # see old example here: 
+    # http://mciprian.web.cern.ch/mciprian/wmass/13TeV/helicityAnalysis/electron/fromEmanuele/13-12-18/fitresults_poim1_exp1_bbb1/subMatrix/smallCorrelation_Wplusminus_leftrightYbin_2-5.png
     #params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-1])) if '_Ybin_' in x else 0)
+    # one might want to invert the order of charge and helicity for the sorting
+
     params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
     params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
     params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-    params = sorted(params, key= lambda x: utilities.getNEffStat(x) if 'EffStat' in x else 0)            
-    params = sorted(params, key= lambda x: int(x.split('FakesEtaUncorrelated')[1]) if 'FakesEtaUncorrelated' in x else 0)            
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)            
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)            
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtUncorrelated' in x else 0)            
+
+    # sort by charge if needed     
+    # I think it is useful that different charges are separated in the matrix, it is easier to read it 
+    params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
     print "sorted params = ", params
 
     c = ROOT.TCanvas("c","",1200,800)

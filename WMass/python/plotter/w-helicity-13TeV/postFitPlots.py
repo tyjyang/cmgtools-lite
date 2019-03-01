@@ -4,6 +4,9 @@ import ROOT, os, re
 from array import array
 from rollingFunctions import roll1Dto2D, unroll2Dto1D
 
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
+
 import utilities
 utilities = utilities.util()
 
@@ -59,7 +62,7 @@ def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
 def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2):
     extrabins = 0 if 'obs' in h1d.GetName() else nCharges*nMaskedCha
     nbins = int((h1d.GetNbinsX()-extrabins)/2)
-    h1d_shifted = ROOT.TH1D('shift','',nbins,1,nbins)
+    h1d_shifted = ROOT.TH1D('shift','',nbins,0,nbins) # from 0 to nbins, not from 1
     for b in xrange(nbins):
         h1d_shifted.SetBinContent(b+1,h1d.GetBinContent(b+shift+1))
         h1d_shifted.SetBinError(b+1,h1d.GetBinError(b+shift+1))
@@ -78,13 +81,17 @@ def prepareLegend(legWidth=0.50,textSize=0.035,xmin=0.75):
     leg.SetTextSize(textSize)
     return leg
 
-def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide=False):
+def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide=False, 
+            drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+            textForLines=[]  # text in each panel                       
+            ):
+
     ## Prepare split screen
     plotformat = (2400,600) if veryWide else (600,750)
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
     ROOT.gStyle.SetPadLeftMargin(0.07 if veryWide else 0.18)
-    ROOT.gStyle.SetPadRightMargin(0.07 if veryWide else 0.13)
+    ROOT.gStyle.SetPadRightMargin(0.02 if veryWide else 0.13)
     p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
     p1.SetBottomMargin(0.03);
     p1.Draw();
@@ -114,8 +121,30 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     else:
         x1 = 0.16; x2 = 0.65
     lat.DrawLatex(x1, 0.92, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(x2, 0.92, '36 fb^{-1} (13 TeV)')
+    lat.DrawLatex(x2, 0.92, '35.9 fb^{-1} (13 TeV)')
     
+
+    # set Y range a little above the current value
+    ymaxBackup = htot.GetMaximum()
+    vertline = ROOT.TLine(36,0,36,c1.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.04)
+    bintext.SetTextFont(42)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        for i in range(1,nptBins): # do not need line at canvas borders
+            vertline.DrawLine(etarange*i,0,etarange*i,ymaxBackup)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                bintext.DrawLatex(etarange*i + etarange/6., 0.7 *ymaxBackup, textForLines[i])
+
+
     p2.cd()
     maxrange = [0.95,1.05] if prepost == 'postfit' else [0.90,1.10]
     rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
@@ -126,7 +155,12 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
 
 def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=505,doWide=False,showStatTotLegend=False,textSize=0.035):
     ratio = data.Clone("data_div"); 
-    ratio.Divide(total)
+    #ratio.Divide(total)  # this combines the uncertainty on data with the one on total. 
+    # Since the uncertainty on total is already in the band centered around 1, it is better to divide the data by a clone of total with 0 uncertainty
+    total_noErr = total.Clone("total_noErr")
+    for i in range (0,2+total_noErr.GetNbinsX()):
+        total_noErr.SetBinError(i, 0)
+    ratio.Divide(total_noErr)
 
     unity = total.Clone("sim_div");
     
@@ -189,16 +223,17 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
 
     return (ratio, unity, line)
 
-def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix):
+def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="", textForLines=[]):
     ROOT.gStyle.SetPadLeftMargin(0.13)
-    ROOT.gStyle.SetPadRightMargin(0.07)
+    ROOT.gStyle.SetPadRightMargin(0.02)
     ROOT.gStyle.SetPadBottomMargin(0.3);
 
     plotformat = (2400,600)
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
 
-    rmin = max(0.1, histo.GetMinimum()); rmax = min(10., histo.GetMaximum())
+    ydiff = hratio.GetBinContent(hratio.GetMaximumBin()) - hratio.GetBinContent(hratio.GetMinimumBin())
+    rmin = max(0.1, hratio.GetBinContent(hratio.GetMinimumBin())); rmax = min(10., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
     ROOT.gStyle.SetErrorX(0.5);
     hratio.GetYaxis().SetRangeUser(rmin,rmax);
     hratio.GetXaxis().SetTitleFont(42)
@@ -225,8 +260,35 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix):
     line.Draw("L")
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.92, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(0.85, 0.92, '36 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.15, 0.94, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
+
+    # draw vertical lines to facilitate reading of plot
+    vertline = ROOT.TLine(36,0,36,c1.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(2)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 10)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = hratio.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            vertline.DrawLine(etarange*i-offsetXaxisHist,rmin,etarange*i-offsetXaxisHist,rmax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = rmax - 0.1*(rmax - rmin)
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+
     for ext in ['pdf', 'png']:
         c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
 
@@ -251,11 +313,13 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] fitresults.root cards_dir")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
+    parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=2, type='int', help='Number of masked channels in the fit for each charge')
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
-    groupJobs=5 # used in make_helicity_cards.py
-    nCharges = 2; nMaskedChanPerCharge = 2; # edm hardcoded, but to be guessed 
-    
     (options, args) = parser.parse_args()
+
+    groupJobs=5 # used in make_helicity_cards.py
+    nCharges = 2; nMaskedChanPerCharge = options.nMaskedChannel; 
+    
     if len(args) < 1:
         parser.print_usage()
         quit()
@@ -286,14 +350,18 @@ if __name__ == "__main__":
     print "Will save 2D templates in file --> " + full_outfileName
 
     ## get the pT and eta binning from the file in the directory
-    binninPtEtaFile = open(args[1]+'/binningPtEta.txt','r')
-    bins = binninPtEtaFile.readlines()[1].split()[1]
-    ## hack. easier
-    etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    nbinseta = len(etabins)-1
-    nbinspt  = len( ptbins)-1
-    binning = [nbinseta, etabins, nbinspt, ptbins]
+    etaPtBinningFile = args[1]+"/binningPtEta.txt"
+    # get eta-pt binning for reco
+    etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+
+    # to draw panels in the unrolled plots
+    ptBinRanges = []
+    for ipt in range(0,recoBins.Npt):
+        ptBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
+
 
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
@@ -457,7 +525,8 @@ if __name__ == "__main__":
             htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
             htot_unrolled.GetYaxis().SetTitle('Events')
             htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
-            plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True)
+            plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True, 
+                    drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
@@ -465,7 +534,8 @@ if __name__ == "__main__":
         for key,histo in ratios_unrolled.iteritems():
             print "Making unrolled ratio for ",key
             outdir = outnamesub if key.startswith('Y') else outname
-            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix)
+            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix, 
+                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
                 
     outfile.Close()
 

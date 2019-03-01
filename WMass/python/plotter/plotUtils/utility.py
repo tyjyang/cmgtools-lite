@@ -1266,14 +1266,6 @@ def drawTH1dataMCstack(h1, thestack,
     stackErr = stackCopy
     if hErrStack != None:
         stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
-    # else:
-    #     isFirst = True
-    #     for hist in thestack.GetHists():        
-    #         if isFirst:
-    #             stackErr = copy.deepcopy(hist.Clone("stackErr"))
-    #             isFirst = False
-    #         else:
-    #             stackErr.Add(hist.Clone())
 
     print "drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()) 
     print "drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()) 

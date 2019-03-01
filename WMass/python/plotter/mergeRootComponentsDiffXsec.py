@@ -349,8 +349,8 @@ if not options.dryrun:
 print "-"*20
 print ""
 
-fileFakesEtaUncorr = "{od}FakesEtaUncorrelated_{ch}.root".format(od=outdir, ch=options.charge) 
-fileFakesPtUncorr  = "{od}FakesPtUncorrelated_{ch}.root".format(od=outdir, ch=options.charge) 
+fileFakesEtaUncorr = "{od}FakesEtaUncorrelated_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge) 
+fileFakesPtUncorr  = "{od}FakesPtUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
 # these names are used inside putUncorrelatedFakes (do not change them outside here)
 print "Now adding FakesEtaUncorrelated and FakesPtUncorrelated systematics to x_data_fakes process"
 print "Will create file --> {of}".format(of=fileFakesEtaUncorr)
@@ -358,9 +358,9 @@ print "Will create file --> {of}".format(of=fileFakesPtUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
 if not options.dryrun: 
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, 
-                         etaBordersTmp=etaBordersForFakes, uncorrelateCharges=True)
+                         etaBordersTmp=etaBordersForFakes)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doPt = 'x_data_fakes_.*slope.*', uncorrelateCharges=True)
+                         doPt = 'x_data_fakes_.*slope.*')
 
 print "Now merging signal + Z + data + other backgrounds + FakesEtaUncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
