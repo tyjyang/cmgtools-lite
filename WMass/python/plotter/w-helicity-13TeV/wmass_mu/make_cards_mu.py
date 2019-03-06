@@ -27,11 +27,12 @@ etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
+## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_selectionToTrigger(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0],LepGood_charge[0])*LepGood_SF2[0]*prefireJetsWeight(LepGood_eta[0])\' '
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
-components=[' -b ', ' -s ']
-components=[' -b ']
+#components=[' -b ', ' -s ']
+components=[' -s ']
     
 
 if __name__ == '__main__':
