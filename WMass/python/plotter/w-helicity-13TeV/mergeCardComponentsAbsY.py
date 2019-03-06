@@ -200,11 +200,12 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
 
         deltaEtaUnc = 0.5 if isMu else 0.2
         ## absolute eta borders:        
-        etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(len(etabins)/4-1)]
+        etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
         ## construct positive and negative eta borders symmetrically
         etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
         borderBins = [1]
         ## now get the actual bin number of the border bins
+
         for i in etaBorders:
             borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
         borderBins += [len(etabins)]
