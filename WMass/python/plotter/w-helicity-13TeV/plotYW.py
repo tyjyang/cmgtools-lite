@@ -473,7 +473,7 @@ if __name__ == "__main__":
             angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
             angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
 
-        nOuterBinsToExclude = 2  ### EDM hardcoded: out of acceptance Y bins
+        nOuterBinsToExclude = 1  ### EDM hardcoded: out of acceptance Y bins
 
         allValues = {}
         for pol in polarizations:
