@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doPt = False):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta'):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -154,12 +154,24 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etabins = recoBins.etaBins
+    ptbins  = recoBins.ptBins
 
     flav = 'mu' if isMu else 'el'
 
     tmp_infile = ROOT.TFile(infile, 'read')
+
+    doPt     = doType == 'ptslope' ## keep that from before
+    doEta    = doType == 'eta'
+    doPtNorm = doType == 'ptnorm'
+
+    typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else ''
+    if not typeName:
+        print 'YOU GAVE A WRONG OPTION TO THE UNCORRELATED FAKES FUNCTION'
+        sys.exit()
+
+    print 'putting uncorrelated fakes for type', doType
     
-    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{flav}_{ch}.root'.format(od=indir, sn='Eta' if not doPt else 'Pt', flav=flav, ch=charge), 'recreate')
+    outfile = ROOT.TFile('{od}/Fakes{sn}Uncorrelated_{flav}_{ch}.root'.format(od=indir, sn=typeName, flav=flav, ch=charge), 'recreate')
 
     ndone = 0
 
@@ -169,8 +181,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     if doPt:
         for k in tmp_infile.GetListOfKeys():
             tmp_name = k.GetName()
-            if re.match(doPt, tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
-            if re.match(doPt, tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
+            if re.match('x_data_fakes_.*slope.*', tmp_name) and 'Up'   in tmp_name: var_up = tmp_name
+            if re.match('x_data_fakes_.*slope.*', tmp_name) and 'Down' in tmp_name: var_dn = tmp_name
         if var_up == None or var_dn == None:
             print 'DID NOT FIND THE RIGHT KEY!!!'
             quit()
@@ -198,42 +210,75 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             tmp_dn = tmp_infile.Get(var_dn)
             tmp_dn_2d = dressed2D(tmp_dn,binning, var_dn+'backrolled')
 
-        deltaEtaUnc = 0.5 if isMu else 0.2
-        ## absolute eta borders:        
-        etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
-        ## construct positive and negative eta borders symmetrically
-        etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
-        borderBins = [1]
-        ## now get the actual bin number of the border bins
+        ## get the border bins in eta for the uncorrelated nuisances in eta
+        if doPt or doEta:
+            deltaEtaUnc = 0.5 if isMu else 0.2
+            ## absolute eta borders:        
+            etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
+            ## construct positive and negative eta borders symmetrically
+            etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
+            borderBins = [1]
+            ## now get the actual bin number of the border bins
 
-        for i in etaBorders:
-            borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
-        borderBins += [len(etabins)]
+            for i in etaBorders:
+                borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
+            borderBins += [len(etabins)]
 
-        if isMu: scalings = [0.05 for b in borderBins[:-1]]
-        else:
-            scalings = []
-            for ib, borderBin in enumerate(borderBins[:-1]):
-                if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)
-                elif abs(etabins[borderBin]) < 0.41: scalings.append(0.025)
-                elif abs(etabins[borderBin]) < 1.01: scalings.append(0.04)
-                elif abs(etabins[borderBin]) < 1.51: scalings.append(0.06)
-                elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
-                else:                         scalings.append(0.06)
+            if isMu: 
+                scalings = [0.05 for b in borderBins[:-1]]
+            else:
+                scalings = []
+                for ib, borderBin in enumerate(borderBins[:-1]):
+                    if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)
+                    elif abs(etabins[borderBin]) < 0.41: scalings.append(0.025)
+                    elif abs(etabins[borderBin]) < 1.01: scalings.append(0.04)
+                    elif abs(etabins[borderBin]) < 1.51: scalings.append(0.06)
+                    elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
+                    else:                         scalings.append(0.06)
+
+
+        ## for ptnorm these are now pT borders, not eta borders
+        elif doPtNorm:
+            print 'this is ptbins', ptbins
+            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            borderBins = []
+            for i in ptBorders[:-1]:
+                borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
+            borderBins.append(len(ptbins))
+
+            scalings = [0.30, 0.25, 0.15] if isMu else [0.30, 0.20, 0.10]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
-            systName = 'Fakes{v}Uncorrelated'.format(v='Eta' if not doPt else 'Pt')
+            systName = 'Fakes{v}Uncorrelated'.format(v=typeName)
             outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flav}{ch}2DROLLED'.format(sn=systName,ib=ib+1,flav=flav,ch=charge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
             
-            for ieta in range(borderBin,borderBins[ib+1]):
-                ## loop over all pT bins in that bin of eta (which is ieta)
-                for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
-                    if not doPt:
+            if doPt or doEta:
+                for ieta in range(borderBin,borderBins[ib+1]):
+                    ## loop over all pT bins in that bin of eta (which is ieta)
+                    for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                        if doEta:
+                            tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                            scaling = scalings[ib]
+                            ## scale up and down with what we got from the histo
+                            tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                            tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                            tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                            tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+                        if doPt:
+                            ## for the pT binned ones set it to the up/down
+                            tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_up_2d.GetBinContent(ieta,ipt))
+                            tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_dn_2d.GetBinContent(ieta,ipt))
+
+            ## loop the other way around for the pT norm
+            if doPtNorm:
+                for ipt  in range(borderBin,borderBins[ib+1]):
+                    ## loop over all pT bins in that bin of eta (which is ieta)
+                    for ieta in range(1,tmp_scaledHisto_up.GetNbinsX()+1):
                         tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                         scaling = scalings[ib]
                         ## scale up and down with what we got from the histo
@@ -241,10 +286,6 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                         tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
                         tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
                         tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
-                    else:
-                        ## for the pT binned ones set it to the up/down
-                        tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_up_2d.GetBinContent(ieta,ipt))
-                        tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_dn_2d.GetBinContent(ieta,ipt))
 
             ## re-roll the 2D to a 1D histo
             tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
@@ -254,7 +295,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             tmp_scaledHisto_up_1d.Write()
             tmp_scaledHisto_dn_1d.Write()
     outfile.Close()
-    print 'done with the reweightings for the uncorrelated fake systematics'
+    ## print 'done with the reweightings for the uncorrelated fake systematics'
             
 
 def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
@@ -427,6 +468,11 @@ if __name__ == "__main__":
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
         cardfile = os.path.join(options.inputdir,options.bin+'_{ch}_card.txt'   .format(ch=charge))
+
+        ## marc putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
+        ## marc putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope')
+        ## marc putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm' )
+        ## marc sys.exit()
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
@@ -564,7 +610,8 @@ if __name__ == "__main__":
             putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doPt = 'x_data_fakes_.*slope.*')
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope')
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm' )
 
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
