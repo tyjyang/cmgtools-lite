@@ -427,7 +427,7 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="14,15", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
     parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
