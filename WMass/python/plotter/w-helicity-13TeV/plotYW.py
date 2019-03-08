@@ -12,7 +12,7 @@ ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit")
 import utilities
 utilities = utilities.util()
 
-REFMC = 'MC@NLO, NNPDF3.0'
+REFMC = 'MC@NLO'
 
 class valueClass:
     def __init__(self, name):
@@ -104,7 +104,7 @@ def plotValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
-        c2.GetPad(0).SetLeftMargin(0.15)
+        c2.GetPad(0).SetLeftMargin(0.17)
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
@@ -123,13 +123,13 @@ def plotValues(values,charge,channel,options):
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (data)', 'pl')
+            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
             leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['right'].graph_fit , 'W_{R} (data)', 'pl') 
+            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(2)
             if not options.nolong:
                 leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
-                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (data)', 'pl')
+                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
                 leg.SetNColumns(3)
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
@@ -151,14 +151,14 @@ def plotValues(values,charge,channel,options):
                 mg.GetYaxis().SetRangeUser(-0.1,0.4)
             else:
                 if options.normxsec: 
-                    mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                    mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
                     mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
                 else: 
                     mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
                     mg.GetYaxis().SetRangeUser(-200,3500)
-            mg.GetYaxis().SetTitleSize(0.06)
+            mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.2)
+            mg.GetYaxis().SetTitleOffset(2.0)
      
             leg.Draw('same')
      
@@ -169,7 +169,7 @@ def plotValues(values,charge,channel,options):
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
-            pad2.SetLeftMargin(0.15)
+            pad2.SetLeftMargin(0.17)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
@@ -200,12 +200,12 @@ def plotValues(values,charge,channel,options):
                     values[hel].mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
                     values[hel].mg.GetXaxis().SetLabelSize(0.04)
                     ## y axis fiddling
-                    values[hel].mg.GetYaxis().SetTitleOffset(1.2)
-                    values[hel].mg.GetYaxis().SetTitleSize(0.06)
+                    values[hel].mg.GetYaxis().SetTitleOffset(1.8)
+                    values[hel].mg.GetYaxis().SetTitleSize(0.04)
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                    values[hel].mg.GetYaxis().SetNdivisions(5)
+                    values[hel].mg.GetYaxis().SetNdivisions(510)
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
@@ -255,7 +255,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             else:
                 if normstr=='xsec':
                     if options.normxsec: 
-                        mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                        mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
                         mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.4)
                     else: 
                         mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
