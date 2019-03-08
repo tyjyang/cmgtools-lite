@@ -400,15 +400,10 @@ if __name__ == "__main__":
 
         sign = 1. if charge=='plus' else -1.
 
-        ##file_pdfs = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
-        base = "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/"
-        file_pdfs = base+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
         ## this gets the pdf central variation binned in the correct format
-        nominal = utilities.getRebinned(ybins,charge,file_pdfs, 0)
         xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],channel, 0)
         xsec_nominal_allCharges[charge] = xsec_nominal
 
-        shape_syst = {}
         value_syst = {}
         for pol in polarizations:
             histos = []
@@ -416,43 +411,31 @@ if __name__ == "__main__":
             for ip in xrange(1,NPDFs+1):
                 # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
                 ## this gets the pdf variations after correctly rebinning the YW
-                pdf = utilities.getRebinned(ybins,charge,file_pdfs,ip)
                 xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],channel,ip)
-                histos.append(pdf[pol])
                 values.append(xsec_pdf[pol])
-            shape_syst[pol] = histos
             value_syst[pol] = values
 
-
-        systematics = {}
         xsec_systematics = {}
         for pol in polarizations:
             #print "===> Running pol = ",pol
-            systs=[]
             xsec_systs=[]
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-                nom = nominal[pol][iy]
                 xsec_nom = xsec_nominal[pol][iy]
                 #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
                 totUp=0; xsec_totUp=0
-                for ip,pdf in enumerate(shape_syst[pol]):
+                for ip,pdf in enumerate(value_syst[pol]):
                     xsec_pdf = value_syst[pol][ip]
                     #print "\tip = {ip}  pdf = {pdf}".format(ip=ip,pdf=pdf[iy])
                     # debug
-                    relsyst = abs(nom-pdf[iy])/nom
                     xsec_relsyst = abs(xsec_nom-xsec_pdf[iy])/xsec_nom if xsec_nom else 0.0
-                    if relsyst>0.20:
+                    if xsec_relsyst>0.20:
                         print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,relsyst)
                     else:
-                        totUp += math.pow(relsyst*nom,2)
-                    xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
-                totUp = math.sqrt(totUp)
+                        xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
-                systs.append(totUp)
                 xsec_systs.append(xsec_totUp)
-            systematics[pol]=systs
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
