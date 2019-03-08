@@ -12,7 +12,7 @@ ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit")
 import utilities
 utilities = utilities.util()
 
-REFMC = 'MC@NLO, NNPDF3.0'
+REFMC = 'MC@NLO'
 
 class valueClass:
     def __init__(self, name):
@@ -104,7 +104,7 @@ def plotValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
-        c2.GetPad(0).SetLeftMargin(0.15)
+        c2.GetPad(0).SetLeftMargin(0.17)
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
@@ -123,13 +123,13 @@ def plotValues(values,charge,channel,options):
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (data)', 'pl')
+            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
             leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['right'].graph_fit , 'W_{R} (data)', 'pl') 
+            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(2)
             if not options.nolong:
                 leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
-                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (data)', 'pl')
+                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
                 leg.SetNColumns(3)
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
@@ -151,14 +151,14 @@ def plotValues(values,charge,channel,options):
                 mg.GetYaxis().SetRangeUser(-0.1,0.4)
             else:
                 if options.normxsec: 
-                    mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                    mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
                     mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
                 else: 
                     mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
                     mg.GetYaxis().SetRangeUser(-200,3500)
-            mg.GetYaxis().SetTitleSize(0.06)
+            mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.2)
+            mg.GetYaxis().SetTitleOffset(2.0)
      
             leg.Draw('same')
      
@@ -169,7 +169,7 @@ def plotValues(values,charge,channel,options):
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
-            pad2.SetLeftMargin(0.15)
+            pad2.SetLeftMargin(0.17)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
@@ -200,12 +200,12 @@ def plotValues(values,charge,channel,options):
                     values[hel].mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
                     values[hel].mg.GetXaxis().SetLabelSize(0.04)
                     ## y axis fiddling
-                    values[hel].mg.GetYaxis().SetTitleOffset(1.2)
-                    values[hel].mg.GetYaxis().SetTitleSize(0.06)
+                    values[hel].mg.GetYaxis().SetTitleOffset(1.8)
+                    values[hel].mg.GetYaxis().SetTitleSize(0.04)
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                    values[hel].mg.GetYaxis().SetNdivisions(5)
+                    values[hel].mg.GetYaxis().SetNdivisions(510)
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
@@ -255,7 +255,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             else:
                 if normstr=='xsec':
                     if options.normxsec: 
-                        mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                        mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
                         mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.4)
                     else: 
                         mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
@@ -329,7 +329,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
 
 NPDFs = 60
-LUMINOSITY = 35900
+LUMINOSITY = 36000
 
 if __name__ == "__main__":
 
@@ -348,7 +348,7 @@ if __name__ == "__main__":
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
     parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component')
-    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.8'       , type='float', help='Max value for rapidity range')
+    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.75'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
 
@@ -400,15 +400,10 @@ if __name__ == "__main__":
 
         sign = 1. if charge=='plus' else -1.
 
-        ##file_pdfs = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
-        base = "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/"
-        file_pdfs = base+'/src/CMGTools/WMass/data/pdfs_prefit/pdf_variations_prefit.root'
         ## this gets the pdf central variation binned in the correct format
-        nominal = utilities.getRebinned(ybins,charge,file_pdfs, 0)
         xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],channel, 0)
         xsec_nominal_allCharges[charge] = xsec_nominal
 
-        shape_syst = {}
         value_syst = {}
         for pol in polarizations:
             histos = []
@@ -416,43 +411,31 @@ if __name__ == "__main__":
             for ip in xrange(1,NPDFs+1):
                 # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
                 ## this gets the pdf variations after correctly rebinning the YW
-                pdf = utilities.getRebinned(ybins,charge,file_pdfs,ip)
                 xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],channel,ip)
-                histos.append(pdf[pol])
                 values.append(xsec_pdf[pol])
-            shape_syst[pol] = histos
             value_syst[pol] = values
 
-
-        systematics = {}
         xsec_systematics = {}
         for pol in polarizations:
             #print "===> Running pol = ",pol
-            systs=[]
             xsec_systs=[]
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-                nom = nominal[pol][iy]
                 xsec_nom = xsec_nominal[pol][iy]
                 #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
                 totUp=0; xsec_totUp=0
-                for ip,pdf in enumerate(shape_syst[pol]):
+                for ip,pdf in enumerate(value_syst[pol]):
                     xsec_pdf = value_syst[pol][ip]
                     #print "\tip = {ip}  pdf = {pdf}".format(ip=ip,pdf=pdf[iy])
                     # debug
-                    relsyst = abs(nom-pdf[iy])/nom
                     xsec_relsyst = abs(xsec_nom-xsec_pdf[iy])/xsec_nom if xsec_nom else 0.0
-                    if relsyst>0.20:
+                    if xsec_relsyst>0.20:
                         print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,relsyst)
                     else:
-                        totUp += math.pow(relsyst*nom,2)
-                    xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
-                totUp = math.sqrt(totUp)
+                        xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
-                systs.append(totUp)
                 xsec_systs.append(xsec_totUp)
-            systematics[pol]=systs
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
@@ -481,13 +464,16 @@ if __name__ == "__main__":
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
             normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
-            print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaIn)
-            print "total xsec beyond |Y|>{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaOut)
+            normsigmaInFit = sum([valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+
+            print "total expected (fit) xsec up to |Y|<{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaIn,fit=normsigmaInFit)
+            print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+                normsigma = normsigmaInFit if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit
                 parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 scale = 1.
@@ -506,7 +492,7 @@ if __name__ == "__main__":
                 if options.normxsec:
                     rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
                 else:
-                    rfit     = nominal[pol][iy]/xsec_fit[0]*scale
+                    rfit     = xsec_nominal[pol][iy]/xsec_fit[0]*scale
                 rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] 
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
@@ -518,8 +504,8 @@ if __name__ == "__main__":
                     tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
 
                 tmp_val.relv. append(rfit);
-                tmp_val.rello.append(systematics[pol][iy]/nominal[pol][iy])
-                tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
+                tmp_val.rello.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy])
+                tmp_val.relhi.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy]) # symmetric for the expected
                 
                 tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
@@ -529,6 +515,7 @@ if __name__ == "__main__":
                 print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
                                                                                                                                           sigma=tmp_val.val[-1],units=units,
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+
                 tmp_val.relv_fit .append(1.)
                 tmp_val.rello_fit.append(rfit_err)
                 tmp_val.relhi_fit.append(rfit_err)
