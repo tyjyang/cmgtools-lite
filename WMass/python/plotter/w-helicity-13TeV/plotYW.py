@@ -329,7 +329,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
 
 NPDFs = 60
-LUMINOSITY = 35900
+LUMINOSITY = 36000
 
 if __name__ == "__main__":
 
@@ -348,7 +348,7 @@ if __name__ == "__main__":
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
     parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component')
-    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.8'       , type='float', help='Max value for rapidity range')
+    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.75'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
 
@@ -481,13 +481,16 @@ if __name__ == "__main__":
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
             normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
-            print "total xsec up to |Y|<{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaIn)
-            print "total xsec beyond |Y|>{maxy} = {sigma:.3f} (pb)".format(maxy=MAXYFORNORM,sigma=normsigmaOut)
+            normsigmaInFit = sum([valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,ch=channel,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+
+            print "total expected (fit) xsec up to |Y|<{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaIn,fit=normsigmaInFit)
+            print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+                normsigma = normsigmaInFit if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit
                 parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
                 scale = 1.
@@ -506,7 +509,7 @@ if __name__ == "__main__":
                 if options.normxsec:
                     rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
                 else:
-                    rfit     = nominal[pol][iy]/xsec_fit[0]*scale
+                    rfit     = xsec_nominal[pol][iy]/xsec_fit[0]*scale
                 rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] 
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
@@ -518,8 +521,8 @@ if __name__ == "__main__":
                     tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
 
                 tmp_val.relv. append(rfit);
-                tmp_val.rello.append(systematics[pol][iy]/nominal[pol][iy])
-                tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
+                tmp_val.rello.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy])
+                tmp_val.relhi.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy]) # symmetric for the expected
                 
                 tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
@@ -529,6 +532,7 @@ if __name__ == "__main__":
                 print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
                                                                                                                                           sigma=tmp_val.val[-1],units=units,
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+
                 tmp_val.relv_fit .append(1.)
                 tmp_val.rello_fit.append(rfit_err)
                 tmp_val.relhi_fit.append(rfit_err)
