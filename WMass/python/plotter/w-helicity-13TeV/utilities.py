@@ -108,6 +108,81 @@ class util:
         histo_file.Close()
         return values
 
+    def getPDFbandFromXsec(self, histoPDF, charge, infile, channel, netabins, nptbins):
+
+        print "Inside getPDFbandFromXsec() ..."
+        histo_file = ROOT.TFile(infile, 'READ')            
+
+        for ieta in range(netabins):
+            for ipt in range(nptbins):
+
+                nomi = "x_W{ch}_{fl}_ieta_{ie}_ipt_{ip}_W{ch}_{fl}".format(ch=charge, fl=channel, ie=ieta, ip=ipt)
+                hnomi = histo_file.Get(nomi)
+                if not hnomi:
+                    print "Error in getPDFbandFromXsec(): I couldn't find histogram " + nomi
+                    quit()
+
+                hpdftmp = None            
+                pdfquadrsum = 0.0 
+                xsecnomi = hnomi.Integral()                
+
+                for ipdf in range(1, 61):
+                    pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
+                    hpdftmp = histo_file.Get(pdfvar)
+                    if not hpdftmp:
+                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + pdfvar
+                        quit()                    
+                    tmpval = hpdftmp.Integral() - xsecnomi                     
+                    pdfquadrsum += tmpval * tmpval
+
+                histoPDF.SetBinError(ieta+1, ipt+1, math.sqrt(pdfquadrsum))
+                histoPDF.SetBinContent(ieta+1, ipt+1, xsecnomi)
+                        
+        histo_file.Close()
+        return 0
+
+
+    def getPDFbandFromXsecEta(self, histoPDF, charge, infile, channel, netabins, nptbins):
+
+        print "Inside getPDFbandFromXsecEta() ..."
+        histo_file = ROOT.TFile(infile, 'READ')            
+
+        for ieta in range(netabins):
+            pdfquadrsum = 0.0
+            xsecnomi = 0.0
+            xsecpdf = [0.0 for i in range(60)]
+            for ipt in range(nptbins):
+
+                nomi = "x_W{ch}_{fl}_ieta_{ie}_ipt_{ip}_W{ch}_{fl}".format(ch=charge, fl=channel, ie=ieta, ip=ipt)
+                hnomi = histo_file.Get(nomi)
+                if not hnomi:
+                    print "Error in getPDFbandFromXsecEta(): I couldn't find histogram " + nomi
+                    quit()
+
+                hpdftmp = None            
+                xsecnomi += hnomi.Integral()                
+
+                for ipdf in range(1, 61):
+                    pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
+                    hpdftmp = histo_file.Get(pdfvar)
+                    if not hpdftmp:
+                        print "Error in getPDFbandFromXsecEta(): I couldn't find histogram " + pdfvar
+                        quit()
+                    
+                    xsecpdf[ipdf-1] += hpdftmp.Integral()
+
+            pdfquadrsum = 0.0
+            for ipdf in range(60):
+                tmpval = xsecpdf[ipdf] - xsecnomi 
+                pdfquadrsum += tmpval*tmpval
+            histoPDF.SetBinError(ieta+1, math.sqrt(pdfquadrsum))
+            histoPDF.SetBinContent(ieta+1, xsecnomi)                        
+
+        histo_file.Close()
+        return 0
+
+
+
     def getParametersFromWS(self, ws, regexp):
 
         ## get all the nuisance parameters from the workspace
