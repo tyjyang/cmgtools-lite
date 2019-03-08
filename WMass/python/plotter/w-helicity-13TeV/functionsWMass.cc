@@ -93,6 +93,16 @@ float wpt_slope_weight(float wpt, float offset, float slope){
     return weight;
 }
 
+float prefireJetsWeight(float eta){
+    float feta = fabs(eta);
+    if (feta < 2.0) return 0.9986;
+    if (feta < 2.2) return 0.9880;
+    if (feta < 2.3) return 0.9875;
+    if (feta < 2.4) return 0.9871;
+    if (feta < 2.5) return 0.9865;
+    return 1.;
+}
+
 
 TFile *_file_recoToMedium_leptonSF_el = NULL;
 TH2F *_histo_recoToMedium_leptonSF_el = NULL;

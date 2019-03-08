@@ -46,7 +46,8 @@ if __name__ == '__main__':
         systs += ['CMS_Wmu_muscale']
         nEtaUnc = 10 if muEl=='mu' else 26
         systs += [','+','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','+','.join(['FakesPtUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','+','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','+','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,4) for charge in charges])]
         for nuis in systs:
             cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
@@ -62,8 +63,10 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar']
-                if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                nuisancesAndPOIs = []#'CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right']
+                if 'floatingPOIs' in tmp_file:
+                    ##nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                    nuisancesAndPOIs += ['W.*_{pol}.*pmaskedexpnorm'.format(pol=pol) for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     basecmd = 'python w-helicity-13TeV/subMatrix.py '
                     os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix))
@@ -114,7 +117,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                if options.make != 'imp1D':
+                if False: #if options.make != 'imp1D':
                     for target in targets[:2]:
                         for poig in poisGroups:
                             print "RUNNING SINGLE NUISANCE IMPACTS..."

@@ -148,13 +148,13 @@ def plotValues(values,charge,channel,options):
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
                 mg.GetYaxis().SetTitle('Charge asymmetry')
-                mg.GetYaxis().SetRangeUser(0.0,0.35)
+                mg.GetYaxis().SetRangeUser(-0.1,0.4)
             else:
                 if options.normxsec: 
-                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.6)
+                    mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
                 else: 
-                    mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                    mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
                     mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
@@ -183,11 +183,11 @@ def plotValues(values,charge,channel,options):
             line.SetLineWidth(2);
 
             if charge=='asymmetry':
-                yaxtitle = 'Data-theory'
+                yaxtitle = 'A_{Theory}-A_{Data}'
                 yaxrange = (-0.1, 0.1)
             else:
-                yaxtitle = 'Data/theory'
-                yaxrange = (0.80, 1.20)
+                yaxtitle = '#sigma_{Theory}/#sigma_{Data}'
+                yaxrange = (0.70, 1.30)
      
 
             helToPlot = ['left','right']
@@ -211,7 +211,7 @@ def plotValues(values,charge,channel,options):
             c2.cd()
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#nu" if ch=='+' else "#bar{#nu}"))
+            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
         for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
@@ -251,14 +251,14 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
                  mg.GetYaxis().SetTitle('Charge asymmetry')
-                 mg.GetYaxis().SetRangeUser(0.,0.35)
+                 mg.GetYaxis().SetRangeUser(-0.1,0.4)
             else:
                 if normstr=='xsec':
                     if options.normxsec: 
-                        mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}|/#sigma_{tot}')
-                        mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.6)
+                        mg.GetYaxis().SetTitle('d#sigma / d|Y_{W}| / #sigma_{tot}')
+                        mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.4)
                     else: 
-                        mg.GetYaxis().SetTitle('d#sigma/d|Y_{W}| (pb)')
+                        mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
                         mg.GetYaxis().SetRangeUser(1500,4500)
                 else:
                     mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
@@ -276,7 +276,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.Draw('same')
             lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
             lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}#nu'.format(ch=ch,lep="#mu" if channel == "mu" else "e"))
+            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
      
 
         ## now make the relative error plot:
@@ -300,11 +300,11 @@ def plotUnpolarizedValues(values,charge,channel,options):
             line.SetLineWidth(2);
             yaxrange = (0,0)
             if charge=='asymmetry':
-                yaxtitle = 'Data-theory'
-                yaxrange = (-0.1, 0.1)
+                yaxtitle = 'A_{Theory}-A_{Data}'
+                yaxrange = (-0.2, 0.2)
             else:
-                yaxtitle = 'Data/theory'
-                yaxrange = (0.80, 1.20) if normstr=='xsec' else (-1.5, 3.5)
+                yaxtitle = '#sigma_{Theory}/#sigma_{Data}'
+                yaxrange = (0.70, 1.30) if normstr=='xsec' else (-1.5, 3.5)
 
             values.mg.Draw('Pa')
             ## x axis fiddling
@@ -473,7 +473,7 @@ if __name__ == "__main__":
             angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
             angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
 
-        nOuterBinsToExclude = 2  ### EDM hardcoded: out of acceptance Y bins
+        nOuterBinsToExclude = 1  ### EDM hardcoded: out of acceptance Y bins
 
         allValues = {}
         for pol in polarizations:
@@ -490,18 +490,6 @@ if __name__ == "__main__":
                 normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                 parname = 'W{charge}_{pol}_W{charge}_{pol}_{ch}_Ybin_{iy}'.format(charge=charge,pol=pol,ch=channel,iy=iy)
 
-                tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
-                tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
-                tmp_val.elo.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
-                if options.normxsec:
-                    tmp_val.val[-1] = tmp_val.val[-1]/normsigma
-                    tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
-                    tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
-
-                tmp_val.relv. append(1.);
-                tmp_val.rello.append(systematics[pol][iy]/nominal[pol][iy])
-                tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
-                
                 scale = 1.
                 if options.normxsec:
                     if   options.type == 'toys': 
@@ -515,6 +503,24 @@ if __name__ == "__main__":
                     xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
                     scale = LUMINOSITY
 
+                if options.normxsec:
+                    rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
+                else:
+                    rfit     = nominal[pol][iy]/xsec_fit[0]*scale
+                rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] 
+
+                tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
+                tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
+                tmp_val.elo.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
+                if options.normxsec:
+                    tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                    tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
+                    tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
+
+                tmp_val.relv. append(rfit);
+                tmp_val.rello.append(systematics[pol][iy]/nominal[pol][iy])
+                tmp_val.relhi.append(systematics[pol][iy]/nominal[pol][iy]) # symmetric for the expected
+                
                 tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
                 tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidths[cp][iy]/scale)
@@ -523,15 +529,9 @@ if __name__ == "__main__":
                 print "par = {parname}, expected sigma = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname,
                                                                                                                                           sigma=tmp_val.val[-1],units=units,
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
-
-                if options.normxsec:
-                    rfit = tuple([xs/xsec_nominal[pol][iy]*normsigma for xs in xsec_fit]) # rescale the fit xsec by the expected xsec in that bin
-                else:
-                    rfit = valuesAndErrors[parname+'_mu'] # r values: contain all the common norm uncertainties (lumi, eff...)
-
-                tmp_val.relv_fit .append(rfit[0])
-                tmp_val.rello_fit.append(abs(rfit[0]-rfit[1]))
-                tmp_val.relhi_fit.append(abs(rfit[0]-rfit[2]))
+                tmp_val.relv_fit .append(1.)
+                tmp_val.rello_fit.append(rfit_err)
+                tmp_val.relhi_fit.append(rfit_err)
 
                 tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
                 tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
@@ -557,16 +557,12 @@ if __name__ == "__main__":
                     else:
                         ybinwidth_scale = 1.
                         scale = 1.
+
                     tmp_val.val.append(abs(angcoeff_nominal[xs][iy]/ybinwidth_scale))
                     experr = angcoeff_systematics[xs][iy]/ybinwidth_scale
                     tmp_val.ehi.append(experr)
                     tmp_val.elo.append(experr) # symmetric for the expected
          
-                    tmp_val.relv. append(1.);
-                    experrrel = angcoeff_systematics[xs][iy]/angcoeff_nominal[xs][iy]
-                    tmp_val.rello.append(experrrel)
-                    tmp_val.relhi.append(experrrel) # symmetric for the expected
-                    
                     xsec_fit = valuesAndErrors[parname]
                     scale = LUMINOSITY if xs=='sumxsec' else 1.
          
@@ -574,10 +570,15 @@ if __name__ == "__main__":
                     tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
                     tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidth_scale/scale)
 
+                    tmp_val.relv. append(tmp_val.val[-1]/tmp_val.val_fit[-1])
+                    experrrel = angcoeff_systematics[xs][iy]/angcoeff_nominal[xs][iy]
+                    tmp_val.rello.append(experrrel)
+                    tmp_val.relhi.append(experrrel) # symmetric for the expected
+                    
                     units = '(pb)' if xs=='sumxsec' else ''
                     print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,
                                                                                                                                               val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
-                    tmp_val.relv_fit .append(tmp_val.val_fit[-1]/tmp_val.val[-1])
+                    tmp_val.relv_fit .append(1.)
                     tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
                     tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
          
@@ -603,12 +604,6 @@ if __name__ == "__main__":
                 tmp_val.ehi.append(chasy_val['asy'][1])
                 tmp_val.elo.append(chasy_val['asy'][1])
 
-                # on the charge asymmetry, which is A~0, better to show the difference 
-                # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
-                tmp_val.relv. append(0.)
-                tmp_val.rello.append(chasy_val['asy'][1])
-                tmp_val.relhi.append(chasy_val['asy'][1])
-
                 if options.type == 'toys':
                     asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
                 else:
@@ -617,7 +612,13 @@ if __name__ == "__main__":
                 tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
                 tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
 
-                tmp_val.relv_fit .append(tmp_val.val_fit[-1] - tmp_val.val[-1])
+                # on the charge asymmetry, which is A~0, better to show the difference 
+                # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
+                tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
+                tmp_val.rello.append(chasy_val['asy'][1])
+                tmp_val.relhi.append(chasy_val['asy'][1])
+
+                tmp_val.relv_fit .append(0.)
                 tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
                 tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
 
@@ -646,17 +647,17 @@ if __name__ == "__main__":
             tmp_val.ehi.append(chasy_val['asy'][1])
             tmp_val.elo.append(chasy_val['asy'][1])
 
-            tmp_val.relv. append(0.)
-            tmp_val.rello.append(chasy_val['asy'][1])
-            tmp_val.relhi.append(chasy_val['asy'][1])
-
             if options.type == 'hessian': # should make the right expression from toys, if needed... 
                 asy_fit = valuesAndErrors['W_{ch}_Ybin_{iy}_chargemetaasym'.format(ch=channel,iy=iy)]
             tmp_val.val_fit .append(asy_fit[0])
             tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
             tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
 
-            tmp_val.relv_fit .append(tmp_val.val_fit[-1] - tmp_val.val[-1])
+            tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
+            tmp_val.rello.append(chasy_val['asy'][1])
+            tmp_val.relhi.append(chasy_val['asy'][1])
+
+            tmp_val.relv_fit .append(0.)
             tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
             tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
 
