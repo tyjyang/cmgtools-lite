@@ -41,7 +41,7 @@ def latexLabel(label):
     return lblNoBin
 
 def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
-    (x1,y1,x2,y2) = (xmin, 0.66, xmax, 0.87)
+    (x1,y1,x2,y2) = (xmin, 0.62, xmax, 0.87)
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(3)
     leg.SetFillColor(0)
@@ -399,7 +399,6 @@ if __name__ == "__main__":
                 thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol=pol,chsign=sign if sign != "-" else (" "+sign),fl=flavour)
                 header = "#bf{{Uncertainties on {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 leg.SetHeader(header)            
-                leg.SetHeader("#bf{{Uncertainties on {p}}}".format(p=poiName_target[options.target]))            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
                 lat.SetNDC(); lat.SetTextFont(42)
