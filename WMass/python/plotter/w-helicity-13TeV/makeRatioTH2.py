@@ -46,6 +46,7 @@ import time
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
+from templateRolling import roll1Dto2D
 
 ROOT.gROOT.SetBatch(True)
         
@@ -70,6 +71,10 @@ if __name__ == "__main__":
     parser.add_option('-E',  '--divide-relative-error', dest="divideRelativeError", action="store_true", default=False, help="Make ratio of relative uncertainties (the output histogram will have no error assigned to it)")
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     parser.add_option('-a', '--make-asymmetry', dest="makeAsymmetry", action="store_true", default=False, help="Make ratio of difference over the sum. For this to make sense, the binnign of the two inputs must be consistent")
+    #parser.add_option('-p', '--make-pulls', dest="makePulls", action="store_true", default=False, help="Make pulls of input histograms, i.e. (h1-h2)/error, where error is taken as the quadrature sum of the errors of the input")
+    parser.add_option(       '--pull-error-ScaleFactor', dest='pullErrorScaleFactor', default='1.', type='float', help='Inflate the error by this factor when making the pulls (because it is assumed the inputs are uncorrelated, so the error might need a correction)')
+    parser.add_option(      '--roll1Dto2D', dest="roll1Dto2D", action="store_true", default=False, help="Input histograms are 1D distributions to be unrolled into 2D. Need binning from option --binning-file-to-roll")
+    parser.add_option(      '--binning-file-to-roll', dest="binFileToRoll", default="", help="File with binning to roll 1D into 2D (the reco binning is used)")
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 4:
@@ -117,6 +122,14 @@ if __name__ == "__main__":
         if options.divideRelativeError or options.divideError:
             print "Error: option -a incompatible with options -e and -E. Exit"
             quit()
+    # if options.makePulls:
+    #     if options.divideRelativeError or options.divideError:
+    #         print "Error: option -p incompatible with options -e and -E. Exit"
+    #         quit()
+    # if options.makeAsymmetry and options.makePulls:
+    #         print "Error: option -a incompatible with options -p. Exit"
+    #         quit()
+
 
     if options.outhistname == "FILE":
         options.outhistname = options.outfilename.split('.')[0]
@@ -163,6 +176,9 @@ if __name__ == "__main__":
         hinput1 = hFR1
         hinput2 = hFR2
 
+    #if options.roll1Dto2D:
+      # TO DO   
+
     xMin = options.xRange[0]
     xMax = options.xRange[1]
     yMin = options.yRange[0]
@@ -181,9 +197,7 @@ if __name__ == "__main__":
 
     nbins,minx,maxx = options.h1Dbinning.split(',')
     hratioDistr = ROOT.TH1D(options.outhistname+"_1D","Distribution of ratio values",int(nbins),float(minx),float(maxx))
-    # profX = ROOT.TProfile("profX",1,-1)
-    # profY = ROOT.TProfile("profY",1,-1)
-
+    #print "minx, maxx = %s, %s" % (str(minx),str(maxx))    
     nout = 0
 
     for ix in range(1,1+hratio.GetNbinsX()):
@@ -216,7 +230,7 @@ if __name__ == "__main__":
                 ratio = numval / denval
                 hratioDistr.Fill(ratio)
                 hratio.SetBinContent(ix,iy,ratio)
-                if ratio < minx or ratio > maxx: nout += 1
+                if ratio < float(minx) or ratio > float(maxx): nout += 1
                 #profX.Fill()
             else: 
                 print "Warning: found division by 0 in one bin: setting ratio to " + str(options.valBadRatio)
@@ -240,7 +254,7 @@ if __name__ == "__main__":
     # print "yAxisTitle = " + yAxisTitle
     # print "zAxisTitle = " + zAxisTitle
 
-    #adjustSettings_CMS_lumi()
+    adjustSettings_CMS_lumi()
 
     canvas2D = ROOT.TCanvas("canvas2D","",700,700)
     
@@ -252,68 +266,32 @@ if __name__ == "__main__":
                         options.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D)
     
     canvas = ROOT.TCanvas("canvas","",800,700)
-    canvas.SetTickx(1)
-    canvas.SetTicky(1)
-    canvas.cd()
-    canvas.SetLeftMargin(0.12)
-    canvas.SetRightMargin(0.04)
-    canvas.cd()
+    drawTH1(hratioDistr, 
+            hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio",
+            "number of events",
+            outname,
+            "ratioDistribution",
+            options.outhistname,
+            passCanvas=canvas
+            )
 
-    hratioDistr.SetLineColor(ROOT.kBlack)
-    hratioDistr.SetLineWidth(2)
-    hratioDistr.GetXaxis().SetTitle(hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio")
-    hratioDistr.GetXaxis().SetTitleOffset(1.2)
-    hratioDistr.GetXaxis().SetTitleSize(0.05)
-    hratioDistr.GetXaxis().SetLabelSize(0.04)
-    hratioDistr.GetYaxis().SetTitle("number of events")
-    hratioDistr.GetYaxis().SetTitleOffset(1.15)
-    hratioDistr.GetYaxis().SetTitleSize(0.05)
-    hratioDistr.GetYaxis().SetLabelSize(0.04)
-    hratioDistr.Draw("HIST")
-    canvas.RedrawAxis("sameaxis")
-    setTDRStyle()
-    # force drawing stat box
-    ROOT.gPad.Update()
-    ROOT.gStyle.SetOptStat(1110)
-    ROOT.gStyle.SetOptFit(1102)
-    #
-    for ext in ["png","pdf"]:
-        canvas.SaveAs(outname + "ratioDistribution_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
+    # making distribution of pulls
+    hpull = ROOT.TH1D("pulls","Distribution of pulls",100,-5,5)
+    for ix in range(1,1+hinput1.GetNbinsX()):
+        for iy in range(1,1+hinput1.GetNbinsY()):
+            err = math.sqrt(pow(hinput1.GetBinError(ix,iy),2) + pow(hinput2.GetBinError(ix,iy),2))
+            err *= options.pullErrorScaleFactor
+            pull = hinput1.GetBinContent(ix,iy) - hinput2.GetBinContent(ix,iy)
+            hpull.Fill(pull/err)
 
-    # profX.SetLineColor(ROOT.kBlack)
-    # profX.SetFillColor(ROOT.kWhite)
-    # profX.SetLineWidth(2)
-    # #profX.GetXaxis().SetTitle(hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio")
-    # profX.GetXaxis().SetTitleOffset(1.2)
-    # profX.GetXaxis().SetTitleSize(0.05)
-    # profX.GetXaxis().SetLabelSize(0.04)
-    # profX.GetYaxis().SetTitle("number of events")
-    # profX.GetYaxis().SetTitleOffset(1.15)
-    # profX.GetYaxis().SetTitleSize(0.05)
-    # profX.GetYaxis().SetLabelSize(0.04)
-    # profX.Draw("Hist")
-    # canvas.RedrawAxis("sameaxis")
-    # setTDRStyle()
-    # for ext in ["png","pdf"]:
-    #     canvas.SaveAs(outname + "profileX_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
-
-    # profY.SetLineColor(ROOT.kBlack)
-    # profY.SetFillColor(ROOT.kWhite)
-    # profY.SetLineWidth(2)
-    # #profY.GetXaxis().SetTitle(hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio")
-    # profY.GetXaxis().SetTitleOffset(1.2)
-    # profY.GetXaxis().SetTitleSize(0.05)
-    # profY.GetXaxis().SetLabelSize(0.04)
-    # profY.GetYaxis().SetTitle("number of events")
-    # profY.GetYaxis().SetTitleOffset(1.15)
-    # profY.GetYaxis().SetTitleSize(0.05)
-    # profY.GetYaxis().SetLabelSize(0.04)
-    # profY.Draw("Hist")
-    # canvas.RedrawAxis("sameaxis")
-    # setTDRStyle()
-    # for ext in ["png","pdf"]:
-    #     canvas.SaveAs(outname + "profileY_{hname}.{ext}".format(hname=options.outhistname,ext=ext))
-
+    drawTH1(hpull, 
+            "pulls",
+            "number of events",
+            outname,
+            "pullsDistribution",
+            "",
+            passCanvas=canvas
+            )
  
     ###########################
     # Now save things

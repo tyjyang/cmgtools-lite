@@ -129,6 +129,7 @@ parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', defau
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
+parser.add_option(       '--tauChargeLnN'   , dest='tauChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to tau for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
@@ -407,6 +408,11 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
     if not isExcludedNuisance(excludeNuisances, "CMS_Wbkg"): 
         allSystForGroups.append("CMS_Wbkg")
         card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
+
+if options.tauChargeLnN > 0.0:
+    syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")
+    allSystForGroups.append(syst)
+    card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
 
 ###########
 ####### Nuisances for fakes

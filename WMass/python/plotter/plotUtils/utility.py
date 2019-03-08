@@ -236,6 +236,65 @@ def adjustSettings_CMS_lumi():
 
 #########################################################################
 
+def drawTH1(htmp,
+            labelXtmp="xaxis",
+            labelYtmp="Events",
+            outdir= "./",
+            prefix = "distribution",
+            outhistname = "",
+            canvasSize="700,625",
+            passCanvas=None,
+            ):
+
+
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+
+    labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+
+    h = htmp.Clone("htmp")
+
+    cw,ch = canvasSize.split(',')
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(0.12)
+    canvas.SetRightMargin(0.04)
+    canvas.cd()
+
+    h.SetLineColor(ROOT.kBlack)
+    h.SetLineWidth(2)
+    h.GetXaxis().SetTitle(labelX)
+    h.GetXaxis().SetTitleOffset(1.2)
+    h.GetXaxis().SetTitleSize(0.05)
+    h.GetXaxis().SetLabelSize(0.04)
+    h.GetYaxis().SetTitle(labelY)
+    h.GetYaxis().SetTitleOffset(1.15)
+    h.GetYaxis().SetTitleSize(0.05)
+    h.GetYaxis().SetLabelSize(0.04)
+    if (setXAxisRangeFromUser): h.GetXaxis().SetRangeUser(xmin,xmax)
+    if (setYAxisRangeFromUser): h.GetYaxis().SetRangeUser(ymin,ymax)
+    # force drawing stat box
+    h.SetStats(1)
+    h.Draw("HIST")
+    canvas.RedrawAxis("sameaxis")
+    setTDRStyle()
+    # force drawing stat box
+    ROOT.gStyle.SetOptStat(111110)
+    ROOT.gStyle.SetOptFit(1102)
+    #
+    for ext in ["png","pdf"]:
+        canvas.SaveAs(outdir + "{pfx}{hname}.{ext}".format(pfx=prefix,hname=("_"+outhistname) if len(outhistname) else "",ext=ext))
+
+
+
+#########################################################################
+
+
+
+
 # function to draw 2D histograms, can also plot profile along X on top
 def drawCorrelationPlot(h2D_tmp,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
@@ -254,7 +313,8 @@ def drawCorrelationPlot(h2D_tmp,
                         passCanvas=None,
                         bottomMargin=0.1,
                         plotError=False,
-                        lumi=None):
+                        lumi=None,
+                        drawOption = "colz"):
 
 
     # if h2D.GetName() == "scaleFactor_origBinPt":
@@ -331,6 +391,9 @@ def drawCorrelationPlot(h2D_tmp,
             
 
         h2DPlot = h2DGraph.GetHistogram()
+
+    if plotLabel == "ForceTitle":
+        h2DPlot.SetTitle(h2D_tmp.GetTitle())
   
     h2DPlot.GetXaxis().SetTitle(labelX)
     h2DPlot.GetYaxis().SetTitle(labelY)
@@ -345,7 +408,8 @@ def drawCorrelationPlot(h2D_tmp,
     h2DPlot.GetZaxis().SetTitleOffset(1.2)
 
     h2DPlot.GetZaxis().SetTitle(labelZ) 
-    h2DPlot.Draw("colz")
+    h2DPlot.Draw(drawOption)
+
     if (setXAxisRangeFromUser): h2DPlot.GetXaxis().SetRangeUser(xmin,xmax)
     if (setYAxisRangeFromUser): h2DPlot.GetYaxis().SetRangeUser(ymin,ymax)
     if (setZAxisRangeFromUser): h2DPlot.GetZaxis().SetRangeUser(zmin,zmax)
@@ -729,7 +793,10 @@ def drawDataAndMC(h1, h2,
                   drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
                   textForLines=[],                       
                   moreText="",
-                  moreTextLatex=""
+                  moreTextLatex="",
+                  invertRatio = False,  # make expected over observed if True
+                  histMCpartialUnc = None,
+                  histMCpartialUncLegEntry = "",
                   ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -824,16 +891,29 @@ def drawDataAndMC(h1, h2,
     h2.SetFillColor(ROOT.kGreen)
     h2.SetLineWidth(2)
     h2.Draw("HIST SAME")
+    h3 = None
+    if histMCpartialUnc != None:
+        h3 = histMCpartialUnc.Clone("histMCpartialUnc")
+        h3.SetFillColor(ROOT.kRed+2)
+        h3.SetFillStyle(3244)  # 3144 , 3244, 3003
+        h3.Draw("E2 SAME")
+        for i in range(1,1+h3.GetNbinsX()):
+            print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
     h1.Draw("EP SAME")
+
 
     legcoords = [float(x) for x in legendCoords.split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    if histMCpartialUnc != None:
+        ly2 = ly2 + 0.5 * (ly2 - ly1) # add one more row
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
     #leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
     leg.AddEntry(h1,"observed","LPE")
     leg.AddEntry(h2,"expected","LF")
+    if histMCpartialUnc != None:
+        leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
     leg.Draw("same")
     canvas.RedrawAxis("sameaxis")
@@ -935,40 +1015,93 @@ def drawDataAndMC(h1, h2,
 
         #ratio = copy.deepcopy(h1.Clone("ratio"))
         #den_noerr = copy.deepcopy(h2.Clone("den_noerr"))
-        ratio = h1.Clone("ratio")
-        den_noerr = h2.Clone("den_noerr")
-        den = h2.Clone("den")
+        ratio = None
+        den_noerr = None
+        den = None
+        if invertRatio:
+            ratio = h2.Clone("ratio")
+            den_noerr = h1.Clone("den_noerr")
+            den = h1.Clone("den")
+        else:
+            ratio = h1.Clone("ratio")
+            den_noerr = h2.Clone("den_noerr")
+            den = h2.Clone("den")
+
         for iBin in range (1,den_noerr.GetNbinsX()+1):
             den_noerr.SetBinError(iBin,0.)
 
         ratio.Divide(den_noerr)
         den.Divide(den_noerr)
-        den.SetFillColor(ROOT.kGray+1)
-        den.SetFillStyle(1001)  # make it solid again
-        den.SetLineColor(ROOT.kRed)
+        if invertRatio:
+            if histMCpartialUnc == None:
+                ratio.SetFillColor(ROOT.kGray+1)
+                ratio.SetFillStyle(1001)  # make it solid again
+                ratio.SetLineColor(ROOT.kGray+3)
+            else:
+                ratio.SetFillColor(ROOT.kGreen-9)
+                ratio.SetFillStyle(1001)  # make it solid again
+                ratio.SetLineColor(ROOT.kGreen)                        
+        else:
+            if histMCpartialUnc == None:
+                den.SetFillColor(ROOT.kGray+1)
+                den.SetFillStyle(1001)  # make it solid again
+                den.SetLineColor(ROOT.kRed)        
+        if histMCpartialUnc != None:
+            h3ratio = h3.Clone("h3ratio")
+            h3ratio.Divide(den_noerr)
+            h3ratio.SetFillStyle(1001) # 3144 instead of 3244, to have more dense hatches
+            h3ratio.SetFillColor(ROOT.kRed-7)
+
         frame.Draw()        
-        ratio.SetMarkerSize(0.85)
-        ratio.SetMarkerStyle(20) 
-        den.Draw("E2same")
-        ratio.Draw("EPsame")
-    
+        if invertRatio:
+            den.SetMarkerSize(0.85)
+            den.SetMarkerStyle(20) 
+            #den.Draw("EPsame")    # draw after red line, not now
+            ratio.Draw("E2same")
+        else:    
+            ratio.SetMarkerSize(0.85)
+            ratio.SetMarkerStyle(20) 
+            den.Draw("E2same")
+            #ratio.Draw("EPsame") # draw after red line, not now
+
+        if histMCpartialUnc != None:
+            h3ratio.Draw("E2 same")
+        
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kRed)
         line.SetLineWidth(2)
         line.Draw("Lsame")
+        if invertRatio:
+            ratioline = ratio.Clone("ratioline")
+            ratioline.SetFillColor(0)
+            ratioline.SetFillStyle(0)
+            if histMCpartialUnc != None: ratioline.Draw("HIST same") # to draw the line inside the band for the expected
+            den.Draw("EPsame")
+        else: 
+            ratio.Draw("EPsame")
 
-        x1leg2 = 0.2 if leftMargin > 0.1 else 0.07
-        x2leg2 = 0.5 if leftMargin > 0.1 else 0.27
-        y1leg2 = 0.25 if leftMargin > 0.1 else 0.3
-        y2leg2 = 0.35 if leftMargin > 0.1 else 0.35
+        x1leg2 = 0.15 if leftMargin > 0.1 else 0.07
+        x2leg2 = 0.55 if leftMargin > 0.1 else 0.27
+        y1leg2 = 0.28 if leftMargin > 0.1 else 0.3
+        y2leg2 = 0.33 if leftMargin > 0.1 else 0.35
         leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
         #leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
         leg2.SetFillColor(0)
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)
-        leg2.AddEntry(den,"total expected uncertainty","LF")
+        if invertRatio:
+            leg2.AddEntry(ratio,"total expected uncertainty","LF")
+        else:
+            leg2.AddEntry(den,"total expected uncertainty","LF")
         leg2.Draw("same")
-        
+        if histMCpartialUnc != None:
+            leg2bis = ROOT.TLegend(x1leg2 + 0.45, y1leg2, x2leg2 + 0.45, y2leg2)
+            leg2bis.SetFillColor(0)
+            leg2bis.SetFillStyle(0)
+            leg2bis.SetBorderSize(0)
+            leg2bis.AddEntry(h3ratio,histMCpartialUncLegEntry,"LF")
+            leg2bis.Draw("same")
+
         pad2.RedrawAxis("sameaxis")
 
 
@@ -988,214 +1121,6 @@ def drawDataAndMC(h1, h2,
         
           
 #########################################################################
-
-def drawTH1dataMCstack_backup(h1, thestack, 
-                       labelXtmp="xaxis", labelYtmp="yaxis",
-                       canvasName="default", 
-                       outdir="./",
-                       legend=None,
-                       ratioPadYaxisNameTmp="data/MC::0.5,1.5", 
-                       draw_both0_noLog1_onlyLog2=0,
-                       #minFractionToBeInLegend=0.001,
-                       fillStyle=3001,
-                       leftMargin=0.16,
-                       rightMargin=0.05,
-                       nContours=50,
-                       palette=55,
-                       canvasSize="700,625",
-                       passCanvas=None,
-                       normalizeMCToData=False,
-                       hErrStack=None,   # might need to define an error on the stack in a special way
-                       lumi=None,
-                       yRangeScaleFactor=1.5, # if range of y axis is not explicitely passed, use (max-min) times this value
-                       wideCanvas=False
-                       ):
-
-    # if normalizing stack to same area as data, we need to modify the stack
-    # however, the stack might be used outside the function. In order to avoid any changes in the stack, it is copied here just for the plot
-
-    ROOT.TH1.SetDefaultSumw2()
-    adjustSettings_CMS_lumi()
-    
-    ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
-    ROOT.gStyle.SetNumberContours(nContours) # default is 20 
-
-    labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
-    labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
-    labelRatioY,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(ratioPadYaxisNameTmp)
-    
-    cw,ch = canvasSize.split(',')
-    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
-    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
-    canvas.SetTickx(1)
-    canvas.SetTicky(1)
-    canvas.SetLeftMargin(leftMargin)
-    canvas.SetRightMargin(rightMargin)
-    canvas.SetBottomMargin(0.3)
-    canvas.cd()
-
-    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
-    createPlotDirAndCopyPhp(outdir)
-
-    dataNorm = h1.Integral()
-    stackNorm = 0.0
-
-    #dummystack = thestack
-    dummystack = ROOT.THStack("dummy_{sn}".format(sn=thestack.GetName()),"")
-    for hist in thestack.GetHists():        
-        stackNorm += hist.Integral()
-    for hist in thestack.GetHists():        
-        hnew = copy.deepcopy(hist.Clone("dummy_{hn}".format(hn=hist.GetName())))
-        if normalizeMCToData:
-            hnew.Scale(dataNorm/stackNorm)
-        dummystack.Add(hnew)    
-        
-    stackCopy = dummystack.GetStack().Last() # used to make ratioplot without affecting the plot and setting maximum
-    # the error of the last should be the sum in quadrature of the errors of single components, as the Last is the sum of them
-    # however, better to recreate it
-    stackErr = stackCopy
-    if hErrStack != None:
-        stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
-    # else:
-    #     isFirst = True
-    #     for hist in thestack.GetHists():        
-    #         if isFirst:
-    #             stackErr = copy.deepcopy(hist.Clone("stackErr"))
-    #             isFirst = False
-    #         else:
-    #             stackErr.Add(hist.Clone())
-
-    print "drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()) 
-    print "drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()) 
-    print "drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()) 
-
-    h1.SetStats(0)
-    titleBackup = h1.GetTitle()
-    h1.SetTitle("")
-
-    pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
-    pad2.SetTopMargin(0.7)
-    pad2.SetRightMargin(rightMargin)
-    pad2.SetLeftMargin(leftMargin)
-    pad2.SetFillColor(0)
-    pad2.SetGridy(1)
-    pad2.SetFillStyle(0)
-    
-    frame = h1.Clone("frame")
-    frame.GetXaxis().SetLabelSize(0.04)
-    frame.SetStats(0)
-
-    h1.SetLineColor(ROOT.kBlack)
-    h1.SetMarkerColor(ROOT.kBlack)
-    h1.SetMarkerStyle(20)
-    h1.SetMarkerSize(1)
-
-    h1.GetXaxis().SetLabelSize(0)
-    h1.GetXaxis().SetTitle("")
-    h1.GetYaxis().SetTitle(labelY)
-    h1.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
-    h1.GetYaxis().SetTitleSize(0.05)
-    h1.GetYaxis().SetLabelSize(0.04)
-    if setYAxisRangeFromUser: 
-        h1.GetYaxis().SetRangeUser(ymin,ymax)
-    else:
-        h1.GetYaxis().SetRangeUser(0.0, max(h1.GetBinContent(h1.GetMaximumBin()),stackCopy.GetBinContent(stackCopy.GetMaximumBin())) * yRangeScaleFactor)
-    if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
-    h1.Draw("EP")
-    dummystack.Draw("HIST SAME")
-    h1.Draw("EP SAME")
-
-    # legend.SetFillColor(0)
-    # legend.SetFillStyle(0)
-    # legend.SetBorderSize(0)
-    legend.Draw("same")
-    canvas.RedrawAxis("sameaxis")
-
-    reduceSize = False
-    offset = 0
-    # check whether the Y axis will have exponential notatio
-    if h1.GetBinContent(h1.GetMaximumBin()) > 1000000:
-        reduceSize = True
-        offset = 0.1
-    if wideCanvas: offset = 0.1
-    if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
-    else:            CMS_lumi(canvas,"",True,False)
-    setTDRStyle()
-
-    pad2.Draw();
-    pad2.cd();
-
-    frame.Reset("ICES")
-    if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
-    #else:                          
-    #frame.GetYaxis().SetRangeUser(0.5,1.5)
-    frame.GetYaxis().SetNdivisions(5)
-    frame.GetYaxis().SetTitle(labelRatioY)
-    frame.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
-    frame.GetYaxis().SetTitleSize(0.05)
-    frame.GetYaxis().SetLabelSize(0.04)
-    frame.GetYaxis().CenterTitle()
-    frame.GetXaxis().SetTitle(labelX)
-    if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
-    frame.GetXaxis().SetTitleOffset(1.2)
-    frame.GetXaxis().SetTitleSize(0.05)
-
-    #ratio = copy.deepcopy(h1.Clone("ratio"))
-    #den_noerr = copy.deepcopy(stackErr.Clone("den_noerr"))
-    ratio = h1.Clone("ratio")
-    den_noerr = stackErr.Clone("den_noerr")
-    den = stackErr.Clone("den")
-    for iBin in range (1,den_noerr.GetNbinsX()+1):
-        den_noerr.SetBinError(iBin,0.)
-
-    ratio.Divide(den_noerr)
-    den.Divide(den_noerr)
-    den.SetFillColor(ROOT.kCyan)
-    den.SetFillStyle(1001)  # make it solid again
-    #den.SetLineColor(ROOT.kRed)
-    frame.Draw()        
-    ratio.SetMarkerSize(0.85)
-    ratio.SetMarkerStyle(20) 
-    den.Draw("E2same")
-    ratio.Draw("EPsame")
-
-    if not "unrolled_" in canvasName:
-        for i in range(1,1+ratio.GetNbinsX()):
-            print "Error data bin {bin}: {val}".format(bin=i,val=ratio.GetBinError(i))
-
-    line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-    line.SetLineColor(ROOT.kRed)
-    line.SetLineWidth(2)
-    line.Draw("Lsame")
-
-    leg2 = ROOT.TLegend(0.2,0.25,0.4,0.30)
-    leg2.SetFillColor(0)
-    leg2.SetFillStyle(0)
-    leg2.SetBorderSize(0)
-    leg2.AddEntry(den,"tot. unc. exp.","LF")
-    leg2.Draw("same")
-
-    pad2.RedrawAxis("sameaxis")
-
-
-    if draw_both0_noLog1_onlyLog2 != 2:
-        canvas.SaveAs(outdir + canvasName + ".png")
-        canvas.SaveAs(outdir + canvasName + ".pdf")
-
-    if draw_both0_noLog1_onlyLog2 != 1:        
-        if yAxisName == "a.u.": 
-            h1.GetYaxis().SetRangeUser(max(0.0001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
-        else:
-            h1.GetYaxis().SetRangeUser(max(0.001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
-            canvas.SetLogy()
-            canvas.SaveAs(outdir + canvasName + "_logY.png")
-            canvas.SaveAs(outdir + canvasName + "_logY.pdf")
-            canvas.SetLogy(0)
-            
-
-    h1.SetTitle(titleBackup)
-
-##########################################
 
 def drawTH1dataMCstack(h1, thestack, 
                        labelXtmp="xaxis", labelYtmp="yaxis",

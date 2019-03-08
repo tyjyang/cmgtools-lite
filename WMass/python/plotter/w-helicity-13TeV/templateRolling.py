@@ -105,6 +105,7 @@ if __name__ == "__main__":
     #parser.add_option(     '--no-group-name', dest="noGroupInName", default=False, action='store_true', help="If True, _group_<N> is not in the signal process name");
     parser.add_option(      '--palette', dest='palette', default=55, type=int, help='Pass number for palette (default is kRainbow, but check)')
     parser.add_option(      '--zmin', dest='zaxisMin', default=0, type=float, help='Minimum value for Z axis (default is 0)')
+    parser.add_option('-n', '--norm-width', dest='normWidth', default=False, action='store_true', help='Normalize histogram by bin width.')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -280,6 +281,8 @@ if __name__ == "__main__":
                                 name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
                                 title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
                                 h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
+                                if options.normWidth: 
+                                    h2_backrolled_1.Scale(1.,"width")
                                 h2_backrolled_1.Write(name2D)
                                 hSigInclusive[pol].Add(h2_backrolled_1)
                                 # print "pol {}: Ybin {} --> Integral {}"
@@ -289,6 +292,8 @@ if __name__ == "__main__":
 
                                 if not options.noplot and drawThisBin:
                                     zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
+                                    if options.normWidth: 
+                                        zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")
                                     drawCorrelationPlot(h2_backrolled_1, 
                                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                                         'W_{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin),
@@ -306,6 +311,8 @@ if __name__ == "__main__":
                     hSigInclusiveTot.Add(hSigInclusive[pol])
                     if not options.noplot:
                         zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive[pol].GetMaximum())
+                        if options.normWidth: 
+                            zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")
                         drawCorrelationPlot(hSigInclusive[pol], 
                                             xaxisTitle, yaxisTitle, zaxisTitle, 
                                             'W_{ch}_{pol}_{flav}_inclusive'.format(ch=charge,pol=pol,flav=channel),
@@ -334,6 +341,8 @@ if __name__ == "__main__":
                 # fully inclusive plots 
                 if not options.noplot:
                     zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusiveTot.GetMaximum())
+                    if options.normWidth: 
+                        zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")
                     drawCorrelationPlot(hSigInclusiveTot, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         'W_{ch}_{flav}_inclusive'.format(ch=charge,flav=channel),
@@ -411,11 +420,15 @@ if __name__ == "__main__":
                                                                                                                                   chs=chs)
 
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
+                            if options.normWidth: 
+                                h2_backrolled_1.Scale(1.,"width")
                             h2_backrolled_1.Write(name2D)
                             hSigInclusive.Add(h2_backrolled_1)
 
                             if not options.noplot and drawThisBin:
                                 zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
+                                if options.normWidth: 
+                                    zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")                            
                                 drawCorrelationPlot(h2_backrolled_1, 
                                                     xaxisTitle, yaxisTitle, zaxisTitle, 
                                                     h2_backrolled_1.GetName(),
@@ -431,6 +444,8 @@ if __name__ == "__main__":
                 hSigInclusive.Write()
                 if not options.noplot:
                     zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive.GetMaximum())
+                    if options.normWidth: 
+                        zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")
                     drawCorrelationPlot(hSigInclusive, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         hSigInclusive.GetName(),
@@ -474,11 +489,14 @@ if __name__ == "__main__":
                 h1_1 = infile.Get('x_{p}'.format(p=p))
                 if not h1_1: continue # muons don't have Flips components
                 h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
+                if options.normWidth: 
+                    h2_backrolled_1.Scale(1.,"width")
                 h2_backrolled_1.Write(str(p))
 
                 zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, h2_backrolled_1.GetMaximum())
-
                 if not options.noplot:
+                    if options.normWidth: 
+                        zaxisTitle = zaxisTitle.replace("Events", "Events / bin [GeV^{-1 }]")                        
                     drawCorrelationPlot(h2_backrolled_1, 
                                         xaxisTitle, yaxisTitle, zaxisTitle, 
                                         '{proc}_{ch}_{flav}'.format(proc=p,ch=charge,flav=channel),

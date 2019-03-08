@@ -9,20 +9,20 @@ skipData = 0
 onlyData = 0
 
 skipPlot = 1
-skipTemplate = 1
+skipTemplate = 0
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
 
 
 seed = 123456789
 #folder = "diffXsec_el_2018_12_31_pt2from26to30_pt1p5from30to45_recoPtFrom30_recoGenEta0p2from1p2to2p4/"
 #folder = "diffXsec_el_2018_12_27_pt2from26to30_pt1p5from30to45_eta0p2From1p2/"
-#folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
+folder = "diffXsec_el_2019_02_22_ptMax50_dressed/"
 
 #folder = "diffXsec_mu_2019_01_24_pt2from26to30_pt1p5from30to45_eta0p2From1p2_dressed/"
-folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
+#folder = "diffXsec_mu_2019_02_23_ptMax50_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
@@ -34,22 +34,23 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,50' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
 
-optTemplate = " --draw-selected-etaPt 2.05,35.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "50"
 ptMinTemplate = "30" if flavour == "el" else "26"
 
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS|mW", 
-                      "muR.*|muF.*", 
-                      "FakesEta.*", 
-                      "ErfPar0EffStat.*", 
-                      "ErfPar1EffStat.*", 
-                      "ErfPar2EffStat.*", 
+diffNuisances_pois = [#"pdf.*|alphaS|mW", 
+                      #"muR.*|muF.*", 
+                      #"Fakes(Eta|Pt).*", 
+                      #"ErfPar0EffStat.*", 
+                      #"ErfPar1EffStat.*", 
+                      #"ErfPar2EffStat.*", 
                       "CMS_.*", 
-                      "Wplus.*_ieta_.*_%s_mu"  % flavour,     
-                      "Wminus.*_ieta_.*_%s_mu" % flavour]
+                      #"Wplus.*_ieta_.*_%s_mu"  % flavour,     
+                      #"Wminus.*_ieta_.*_%s_mu" % flavour
+                      ]
 
 # this is appended to nuis below
 #correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*_ieta_6_ipt_6_Wplus_.*_mu"  
@@ -159,7 +160,7 @@ for fit in fits:
     command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " --lumi-norm 35900.0  -n --palette 57 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
     if fit == "Data":
-        command += " --fit-data --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
+        command += " --fit-data --invert-ratio --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
     if not skipPlot:
         print ""
         print command

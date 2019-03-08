@@ -53,8 +53,9 @@ if __name__ == "__main__":
     parser.add_option('-l','--lumi-norm', dest='lumiNorm', default='-1', type='float', help='If > 0, divide cross section by this factor (lumi in 1/Pb)')
     parser.add_option(     '--lumiInt', dest='lumiInt', default='35.9', type='float', help='Integrated luminosity')
     parser.add_option('-n','--norm-width', dest='normWidth' , default=False , action='store_true',   help='Normalize cross section histograms dividing by bin width')
-    parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian: will provide the central value of charge asymmetry but not the uncertainty')
+    parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian')
     parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
+    parser.add_option(     '--invert-ratio', dest='invertRatio' , default=False , action='store_true',   help='If True, make ratio as exp./obs. (only when plotting data)')
     # now doing both
     #parser.add_option(     '--unrollEta', dest='unrollEta' , default=False , action='store_true',   help='If True, make unroll along eta direction instead of pt')
     parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data). If SAME, use same file as data and take _gen variables to get the expected')
@@ -112,6 +113,10 @@ if __name__ == "__main__":
         print "Error: you should specify an input folder containing all the cards using option -i <name>. Exit"
         quit()
 
+    xsecChargefile = {}
+    for charge in charges:
+        xsecChargefile[charge] = options.inputdir + "W{lep}_{ch}_shapes_xsec.root".format(lep=channel, ch=charge)
+
     etaPtBinningVec = getDiffXsecBinning(binfile, "gen")
     genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
     netabins = genBins.Neta
@@ -162,7 +167,7 @@ if __name__ == "__main__":
     lepton = "electron" if channel == "el" else "muon"
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu")
     ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu", ptmin=genBins.ptBins[0], ptmax=genBins.ptBins[-1])
-
+    labelRatioDataExp = "exp./obs.::0.8,1.2" if options.invertRatio else "obs./exp.::0.8,1.2"
 
     hChAsymm = ROOT.TH2F("hChAsymm_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                          genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -319,6 +324,20 @@ if __name__ == "__main__":
                                         genBins.Neta, array('d',genBins.etaBins))
 
 
+        # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
+        hDiffXsecPDF = ROOT.TH2F("hDiffXsec_{lep}_{ch}_PDF".format(lep=lepton,ch=charge),
+                                 "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                 genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
+
+        # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
+        hDiffXsecPDF_1D = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDF_1D".format(lep=lepton,ch=charge),
+                                    "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                    genBins.Neta, array('d',genBins.etaBins))
+
+        #utilities.getPDFbandFromXsec(   hDiffXsecPDF,    charge, xsecChargefile[charge], channel, genBins.Neta, genBins.Npt)
+        utilities.getPDFbandFromXsecEta(hDiffXsecPDF_1D, charge, xsecChargefile[charge], channel, genBins.Neta, genBins.Npt)
+
+
         #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
         binCount = 1        
         print "Now filling histograms with differential cross section (charge = %s)" % charge
@@ -405,7 +424,9 @@ if __name__ == "__main__":
             hDiffXsecNorm.Scale(1.,"width")
             hDiffXsecNormErr.Scale(1.,"width")
             hDiffXsec_1Deta.Scale(1.,"width")
-            hDiffXsecNorm_1Deta.Scale(1.,"width")
+            hDiffXsecNorm_1Deta.Scale(1.,"width")            
+            hDiffXsecPDF.Scale(1.,"width")
+            hDiffXsecPDF_1D.Scale(1.,"width")
 
         if options.lumiNorm > 0:
             scaleFactor = 1./options.lumiNorm
@@ -414,7 +435,9 @@ if __name__ == "__main__":
             # do not divide the normalized cross section, the scaling factor is already removed
             #hDiffXsecNorm.Scale(scaleFactor)
             #hDiffXsecNormErr.Scale(scaleFactor)
-            hDiffXsec_1Deta.Scale(scaleFactor)
+            hDiffXsec_1Deta.Scale(scaleFactor)        
+            hDiffXsecPDF.Scale(scaleFactor)
+            hDiffXsecPDF_1D.Scale(scaleFactor)
 
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
@@ -743,18 +766,18 @@ if __name__ == "__main__":
                     h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
                     drawDataAndMC(h1D_pmaskedexp[unrollAlongEta], h1D_pmaskedexp_exp,xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::0,220",
                                   "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                  outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
                                   drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
-                                  leftMargin=leftMargin, rightMargin=rightMargin)
+                                  leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio)
 
 
                     h1D_pmaskedexp_norm_exp = getTH1fromTH2(hDiffXsecNorm_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
                     drawDataAndMC(h1D_pmaskedexp_norm[unrollAlongEta], h1D_pmaskedexp_norm_exp,
                                   xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
                                   "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
-                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
+                                  outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
                                   drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
-                                  leftMargin=leftMargin, rightMargin=rightMargin)
+                                  leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio)
 
 
                     # do also charge asymmetry (only once if running on both charges)
@@ -766,9 +789,9 @@ if __name__ == "__main__":
                         h1D_chargeAsym_exp = getTH1fromTH2(hChargeAsym_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
                         drawDataAndMC(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_exp,xaxisTitle.replace("cross section", "charge asymmetry"),
                                       "charge asymmetry::0,1.0", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
-                                      outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                      outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
                                       drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
-                                      leftMargin=leftMargin, rightMargin=rightMargin)
+                                      leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio)
 
                         additionalText = additionalTextBackup
 
@@ -782,18 +805,19 @@ if __name__ == "__main__":
                 additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
                                                                                                      pttext=ptRangeText,
                                                                                                      txc=texCoord) 
-                legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
+                legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5" # does not include space for PDF line (created automatically inside)
                 drawDataAndMC(hDiffXsec_1Deta,hDiffXsec_1Deta_exp,xaxisTitle,"d#sigma/d|#eta| [pb]",
                               "xsec_eta_abs_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
-                              outname,labelRatioTmp="obs./exp.::0.8,1.2",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                               passCanvas=canvas1D, lumi=options.lumiInt,
-                              lowerPanelHeight=0.35, moreTextLatex=additionalText
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText, 
+                              invertRatio=options.invertRatio, histMCpartialUnc=hDiffXsecPDF_1D, histMCpartialUncLegEntry="PDF unc."
                               )
                 drawDataAndMC(hDiffXsecNorm_1Deta,hDiffXsecNorm_1Deta_exp,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
                               "xsec_eta_norm_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
-                              outname,labelRatioTmp="obs./exp.::0.8,1.2",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                               passCanvas=canvas1D, lumi=options.lumiInt,
-                              lowerPanelHeight=0.35, moreTextLatex=additionalText
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio
                               )
                 additionalText = additionalTextBackup
 
@@ -808,9 +832,9 @@ if __name__ == "__main__":
                     legendCoords = "0.2,0.4,0.75,0.85"
                     drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry",
                                   "chargeAsym1D_eta_{fl}_dataAndExp".format(fl=channel),
-                                  outname,labelRatioTmp="obs./exp.::0.8,1.2",draw_both0_noLog1_onlyLog2=1,
+                                  outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,
                                   passCanvas=canvas1D,lumi=options.lumiInt,
-                                  lowerPanelHeight=0.35, moreTextLatex=additionalText
+                                  lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio
                                   )
 
                     additionalText = additionalTextBackup

@@ -46,6 +46,8 @@ TH2D* frSmoothParameter_wz = nullptr;
 TH2D* frSmoothParameter_data_subScaledUpEWKMC = nullptr;
 TH2D* frSmoothParameter_data_subScaledDownEWKMC = nullptr;
 
+TH2D* binnedFR_data = nullptr;
+
 // define some factors to rescale some MC before subtracting to data. These must be taken from outside this script
 map <string,Double_t> scaleFactor;
 
@@ -115,7 +117,7 @@ void fillFakeRateTH2(TH2* h2 = nullptr, const Int_t etaBin = 0, const TH1* hpass
   // TH1 might have been rebinned, but since the new binning is a subset of the original, we can just fill two or more consecutive bins of TH2 with same values
 
   TH1* ratio = (TH1*) hpass->Clone("ratio");
-  ratio->Divide(hntot);
+  ratio->Divide(hpass,hntot,1,1,"B");
 
   Double_t pt = 0.0;
 
@@ -123,6 +125,7 @@ void fillFakeRateTH2(TH2* h2 = nullptr, const Int_t etaBin = 0, const TH1* hpass
     
     pt = h2->GetXaxis()->GetBinCenter(ipt);
     h2->SetBinContent(ipt,etaBin,ratio->GetBinContent(ratio->GetXaxis()->FindFixBin(pt)));
+    h2->SetBinError(ipt,etaBin,ratio->GetBinError(ratio->GetXaxis()->FindFixBin(pt)));
 
   }
 
@@ -820,9 +823,24 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       // end of QCD only stuff
 
       TH2D* hFR2D = (TH2D*) hpass2D->Clone(Form("hFR2D_%s",processes[j].c_str()));
-      if (!hFR2D->Divide(hntot2D)) {	  
+      hFR2D->Reset("ICESM");
+      // use binomial error
+      if (!hFR2D->Divide(hpass2D,hntot2D,1,1,"B")) {	  
 	cout << "Error in doing hFR2D->Divide(hntot2D). Exiting" << endl;
 	exit(EXIT_FAILURE);
+      }
+      if (processes[j] == "data_sub") {
+	//binnedFR_data = new TH2D(*((TH2D*) hFR2D->Clone("binnedFR_data")));
+	vector<Double_t> binsX;
+	vector<Double_t> binsY;
+	for (Int_t i = 1; i <= (1+hFR2D->GetNbinsX()); ++i) binsX.push_back(hFR2D->GetXaxis()->GetBinLowEdge(i));
+	for (Int_t i = 1; i <= (1+hFR2D->GetNbinsY()); ++i) binsY.push_back(hFR2D->GetYaxis()->GetBinLowEdge(i));
+	// binnedFR_data = new TH2D("binnedFR_data","binnedFR_data",
+	// 			 hFR2D->GetNbinsX(), binsX.data(),
+	// 			 hFR2D->GetNbinsY(), binsY.data());
+	binnedFR_data->SetBins(hFR2D->GetNbinsX(), binsX.data(),hFR2D->GetNbinsY(), binsY.data());
+	cout << "binnedFR_data: nX, nY = " << binnedFR_data->GetNbinsX() << ", " << binnedFR_data->GetNbinsY() << endl;
+	copyHisto2D(binnedFR_data, hFR2D);
       }
 
       string etaYaxisName = hasSignedEta ? "electron #eta" : "electron |#eta|";
@@ -1220,17 +1238,17 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 }
 
 //================================================================
-void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_22_02_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_ChargePlus/el/comb/",
+void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass/13TeV/fake-rate/test/testFRv8/fr_05_03_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim/el/comb/",
 					//const string& outDir_tmp = "SAME", 
-					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_ChargePlus/", 
-					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_ChargePlus",
+					const string& outDir_tmp = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_TestNewV2/", 
+					const string& outfileTag = "fr_L1EGprefire_jetPt30_Zveto_newSkim_fitPol1_compareManyFits_xMaxFit48_TestNewV2",
 					const string& histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular",
 					const Bool_t isMuon = false, 
 					const Bool_t showMergedEWK = true, // even if it is false, this is added in the final output root file
 					const Bool_t saveToFile = false,  // whether to save is WMass/data/fakerate/ (if false, save in current folder)
-					//const TString& etaBinBoundariesList = "-2.5,-2.3,-2.1,-1.9,-1.7,-1.479,-1.2,-0.9,-0.6,-0.3,0.0,0.3,0.6,0.9,1.2,1.479,1.7,1.9,2.1,2.3,2.5",  // important to use dots also for 1.0
-					//const TString& etaBinBoundariesList = "0.0,1.0,1.479,1.8,2.1,2.5",
-					const TString& etaBinBoundariesList = "-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.566,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4442,1.566,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5",
+					//const TString& etaBinBoundariesList = "-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4, 1.4442,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5",
+					const TString& etaBinBoundariesList = "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.566,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4442,1.566,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4",
+					//const TString& etaBinBoundariesList = "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4",
 					const vector<Int_t> ptBinIndexQCD = {2},  // should be a number for each eta bin (if only one is given, use it for all)
 					const vector<Int_t> ptBinIndexEWK = {2},  // should be a number for each eta bin (if only one is given, use it for all)
 					const vector<Int_t> ptBinIndexData = {3},  // should be a number for each eta bin (if only one is given, use it for all)
@@ -1250,10 +1268,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   // Therefore, one can produce FR in whatever binning of eta (given by etaBinBoundariesList)
   // hasSignedEta is used to decide whether the input file has 0p0_2p5 or m2p5_2p5 in its name
 
-  if (isMuon) {
-    cout << "Warning: at the moment this macro has hardcoded parts for electrons. Usage with muons must be implemented! Exit." << endl;
-    exit(EXIT_FAILURE);
-  }
+  // if (isMuon) {
+  //   cout << "Warning: at the moment this macro has hardcoded parts for electrons. Usage with muons must be implemented! Exit." << endl;
+  //   exit(EXIT_FAILURE);
+  // }
 
 
   TObjArray* array = etaBinBoundariesList.Tokenize(",");
@@ -1312,6 +1330,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   frSmoothParameter_ewk = new TH2D("frSmoothParameter_ewk",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
   frSmoothParameter_top_vv = new TH2D("frSmoothParameter_top_vv",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
   frSmoothParameter_wz = new TH2D("frSmoothParameter_wz",hParamTitle.c_str(),NetaBins,etaBoundaries.data(),Nparam,parNumberBoundaries.data());
+
+  binnedFR_data = new TH2D(); // bins set afterwards
+  binnedFR_data->SetName("binnedFR_data");
+  binnedFR_data->SetTitle("binnedFR_data");
 
   string outDir = (outDir_tmp == "SAME") ? (inputFilePath + "FR_graphs/") : outDir_tmp;
 
@@ -1440,6 +1462,19 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
     }
     if (showTopVV) {
       fillFakeRateTH2smooth(fr_pt_eta_top_vv, frSmoothParameter_top_vv);
+    }
+  }
+
+  // fill uncertainty for smoothed discrete FR
+  Double_t pt = 0.0;
+  Double_t eta = 0.0;
+  for (Int_t ipt = 1; ipt <= fr_pt_eta_data->GetNbinsX(); ++ipt) {
+    for (Int_t ieta = 1; ieta <= fr_pt_eta_data->GetNbinsY(); ++ieta) {      
+      pt  = fr_pt_eta_data->GetXaxis()->GetBinCenter(ipt);
+      eta = fr_pt_eta_data->GetYaxis()->GetBinCenter(ieta);
+      Int_t iptbin = binnedFR_data->GetXaxis()->FindFixBin(pt);
+      Int_t ietabin = binnedFR_data->GetYaxis()->FindFixBin(eta);
+      fr_pt_eta_data->SetBinError(ipt,ieta, binnedFR_data->GetBinError(iptbin, ietabin));      
     }
   }
 
