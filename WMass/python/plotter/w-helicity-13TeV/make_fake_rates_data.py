@@ -11,9 +11,10 @@ parser.add_option("--charge", dest="charge", default="", type='string', help="Se
 parser.add_option("--lumi", dest="lumi", default=35.9 , type='float', help="Integrated luminosity");
 parser.add_option("--test", dest="test", default="", type='string', help="pass the name of a folder (mandatory) to store test FR plots. It is created in plots/fake-rate/test/");
 parser.add_option("--fqcd-ranges", dest="fqcd_ranges", default="0,40,50,120", type='string', help="Pass a list of 4 comma separated numbers that represents the ranges for the two mT regions to compute the fake rate");
-parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse");
+parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse, or pt_finer (for muons)");
 parser.add_option("--useSkim", dest="useSkim", default=False, action='store_true', help="Use skimmed sample for fake rates");
 parser.add_option("--usePickle", dest="usePickle", default=False, action='store_true', help="Read SumWeigth from pickle file (in case the hisotgram with this number is not present in the ntuples)");
+parser.add_option("--no-scaleFactors", dest="noScaleFactors", default=False, action='store_true', help="Don't use lepton scale factors (only PU weight)");
 parser.add_option("--useSignedEta", dest="useSignedEta", default=False, action='store_true', help="Make fake rate for eta bins distinguishing eta sign");
 parser.add_option("--makeTH3-eta-pt-passID", dest="makeTH3_eta_pt_passID", default=False, action='store_true', help="This option is special. It will make the following create only the TH3D histograms with |eta|, pt and passID. This will allow to compute the FR in any binning of pt and eta (using another macro). It overrides some other options");
 parser.add_option("--addOpts", dest="addOpts", default="", type='string', help="Options to pass some other options from outside to build the command");
@@ -89,7 +90,11 @@ if useFullData2016:
     MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
 
 if useMuon:
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)" ' 
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)*prefireJetsWeight(LepGood1_eta)" ' 
+
+if options.noScaleFactors:
+    print "# Warning: not using lepton scale factors: only PU weight"
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)" '
 
 J=4
 
@@ -104,7 +109,7 @@ if useMuon:
     BASECONFIG=plotterPath + "w-helicity-13TeV/wmass_mu"
     MCA=BASECONFIG+'/mca-80X_forFR.txt'
     CUTFILE=BASECONFIG+'/qcd1l_mu.txt'
-    XVAR="pt_finer"
+    XVAR=ptvar
     FITVAR=fitvar
     NUM = "fakeRateNumerator_mu"
 
