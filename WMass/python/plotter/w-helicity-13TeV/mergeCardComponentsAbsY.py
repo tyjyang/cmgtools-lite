@@ -139,16 +139,6 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
 
-    # this doesn't work for differential cross section because I have line 2 with the comment for gen binning
-    # in all my scripts I developed some specific functions to read the binning, either reco or gen: here we only need reco
-    # binninPtEtaFile = open(indir+'/binningPtEta.txt','r')
-    # bins = binninPtEtaFile.readlines()[1].split()[1]
-    # etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    # ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    # nbinseta = len(etabins)-1
-    # nbinspt  = len( ptbins)-1
-    # binning = [nbinseta, etabins, nbinspt, ptbins]
-
     # get eta-pt binning for both reco 
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
@@ -240,13 +230,13 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
             print 'this is ptbins', ptbins
-            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
             borderBins = []
             for i in ptBorders[:-1]:
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
             borderBins.append(len(ptbins))
 
-            scalings = [0.30, 0.25, 0.15] if isMu else [0.30, 0.20, 0.10]
+            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.30, 0.20, 0.10, 0.20, 0.30]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
