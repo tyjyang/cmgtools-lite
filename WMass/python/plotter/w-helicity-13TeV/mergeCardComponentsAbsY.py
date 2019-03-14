@@ -134,7 +134,7 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta'):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta', uncorrelateCharges=False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -226,6 +226,9 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                     elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
                     else:                         scalings.append(0.06)
 
+        postfixForFlavourAndCharge = "mu" if isMu else "el"
+        if uncorrelateCharges:
+            postfixForFlavourAndCharge += charge
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
@@ -242,7 +245,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         for ib, borderBin in enumerate(borderBins[:-1]):
 
             systName = 'Fakes{v}Uncorrelated'.format(v=typeName)
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flav}{ch}2DROLLED'.format(sn=systName,ib=ib+1,flav=flav,ch=charge)
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flavch}2DROLLED'.format(sn=systName,ib=ib+1,flavch=postfixForFlavourAndCharge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
