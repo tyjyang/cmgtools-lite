@@ -108,13 +108,13 @@ class util:
         histo_file.Close()
         return values
 
-    def getPDFbandFromXsec(self, histoPDF, charge, infile, channel, netabins, nptbins):
+    def getPDFbandFromXsec(self, histoPDF, charge, infile, channel, netabins, nptbins, firstPtBin=0):
 
         print "Inside getPDFbandFromXsec() ..."
         histo_file = ROOT.TFile(infile, 'READ')            
 
         for ieta in range(netabins):
-            for ipt in range(nptbins):
+            for ipt in range(firstPtBin,nptbins):
 
                 nomi = "x_W{ch}_{fl}_ieta_{ie}_ipt_{ip}_W{ch}_{fl}".format(ch=charge, fl=channel, ie=ieta, ip=ipt)
                 hnomi = histo_file.Get(nomi)
@@ -142,7 +142,7 @@ class util:
         return 0
 
 
-    def getPDFbandFromXsecEta(self, histoPDF, charge, infile, channel, netabins, nptbins):
+    def getPDFbandFromXsecEta(self, histoPDF, charge, infile, channel, netabins, nptbins, firstPtBin=0):
 
         print "Inside getPDFbandFromXsecEta() ..."
         histo_file = ROOT.TFile(infile, 'READ')            
@@ -151,7 +151,7 @@ class util:
             pdfquadrsum = 0.0
             xsecnomi = 0.0
             xsecpdf = [0.0 for i in range(60)]
-            for ipt in range(nptbins):
+            for ipt in range(firstPtBin,nptbins):
 
                 nomi = "x_W{ch}_{fl}_ieta_{ie}_ipt_{ip}_W{ch}_{fl}".format(ch=charge, fl=channel, ie=ieta, ip=ipt)
                 hnomi = histo_file.Get(nomi)
@@ -685,6 +685,24 @@ class util:
         #print "toyMC done"
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
         return ret
+
+    def getChargeAsyFromTH1pair(self,h1, h2, toyEvents=10000, name='asy'):
+        # assuming h1 and h2 have same binning
+        print "Inside getChargeAsyFromTH1pair()"
+        binsx = [h1.GetXaxis().GetBinLowEdge(i) for i in range(1,2+h1.GetNbinsX())]
+        histo = ROOT.TH1D(name,'',len(binsx)-1, array.array('d',binsx))
+        histotmp = ROOT.TH1D(name+'tmp','',200,-1.0,1.0)
+        for i in range(1,1+h1.GetNbinsX()):
+            histotmp.Reset("ICESM")
+            for j in xrange(toyEvents):
+                ixplus  = np.random.normal(h1.GetBinContent(i),h1.GetBinError(i))
+                ixminus = np.random.normal(h2.GetBinContent(i),h2.GetBinError(i))
+                histotmp.Fill((ixplus-ixminus)/(ixplus+ixminus))
+            histo.SetBinContent(i, histotmp.GetMean()  )
+            histo.SetBinError(  i, histotmp.GetStdDev())
+        #print "toyMC done"
+        return histo
+
 
     def getNEffStat(self, s):
         a = s.split('EffStat')[1]
