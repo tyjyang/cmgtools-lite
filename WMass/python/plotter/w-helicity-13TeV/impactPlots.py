@@ -19,14 +19,14 @@ def niceSystName(label):
     elif 'OtherBkg' in label: niceName = 'other bkg'
     elif 'pdfs' in label: niceName = 'PDF'
     elif 'binByBinStat' in label: niceName = 'MC statistics'
-    elif 'EffStat' in label: niceName = 'efficiency stat. unc.'
-    elif 'Fakes' in label: niceName = 'fakes unc.'
-    elif 'OtherExp' in label: niceName = 'other experimental unc.'
+    elif 'EffStat' in label: niceName = 'efficiency stat.'
+    elif 'Fakes' in label: niceName = 'fakes'
+    elif 'OtherExp' in label: niceName = 'other experimental'
     elif 'lumi' in label: niceName = 'luminosity'
     elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}, #alpha_{S}'
     elif 'stat' in label: niceName = 'statistical'
-    elif 'Total' in label: niceName = 'Total unc.'
-    elif 'EffSyst' in label: niceName = 'efficiency syst. unc.'
+    elif 'Total' in label: niceName = 'Total'
+    elif 'EffSyst' in label: niceName = 'efficiency syst.'
     else: niceName = label
     return niceName
 
@@ -489,6 +489,8 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
+        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, genBins.ptBins[0], genBins.ptBins[-1])
+
         #for key in fitErrors:
         #    print "fitErrors: key = " + key
 
@@ -507,7 +509,7 @@ if __name__ == "__main__":
                 sign='+' if charge is 'plus' else '-'
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
             thischannel = "W^{{{chsign}}} #rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-            header = "#bf{{Uncertainties on {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
+            header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
             leg.SetHeader(header)            
             leg.SetNColumns(4)
             lat = ROOT.TLatex()
