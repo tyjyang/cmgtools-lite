@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     parser.add_option(     '--variable',    dest='variable',    default='ptl1large__etal1', type='string', help='Variable to get histogram inside file')
     parser.add_option('-p','--processes',   dest='processes',   default='data,data_fakes,Wincl,Z,TauTopVVFlips', type='string', help='Comma separated list of processes (to build histogram\'s name to be taken from input file)')
+    parser.add_option(     '--rebin'     , dest='rebin', default=(-1,-1), type='int', nargs=2, help='Rebin bins along x and y axis by these factors. Keep one of the two ngative to rebin only the others')
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 2:
@@ -51,6 +52,9 @@ if __name__ == "__main__":
 
 
     procNames = options.processes.split(',')
+    if not all(x in procNames for x in ["data", "data_fakes"]):
+        print "Warning: This script requires processes named data and data_fakes. Exit"
+        quit()
     hratio = 0
 
     procsPlus = {}
@@ -86,14 +90,24 @@ if __name__ == "__main__":
 
     xsecUncProc = {"Wincl" : 0.038,
                    "Z" : 0.04,
-                   "TauTopVVFlips" : 0.038                   
+                   "TauTopVVFlips" : 0.038,                   
+                   "W" : 0.038,
+                   "TauTopVV" : 0.038
                    }  # relative uncertainty
 
+    (rebinx,rebiny) = options.rebin
     for p in procNames:
-        procsPlus[p].RebinY(3)
-        procsPlus[p].RebinX(5)
-        procsMinus[p].RebinY(3)
-        procsMinus[p].RebinX(5)
+        # for electrons
+        # procsPlus[p].RebinY(3)
+        # procsPlus[p].RebinX(5)
+        # procsMinus[p].RebinY(3)
+        # procsMinus[p].RebinX(5)
+        if rebiny > 0:
+            procsPlus[p].RebinY(rebiny)
+            procsMinus[p].RebinY(rebiny)
+        if rebinx > 0:
+            procsPlus[p].RebinX(rebinx)
+            procsMinus[p].RebinX(rebinx)
 
     # patch
     #procsPlus["data_fakes"].Scale(1./1.1377)
@@ -220,7 +234,7 @@ if __name__ == "__main__":
 
     dataSubEWKoverFakes_ratioPlusOverMinus = dataSubEWK_over_fakes_plus.Clone("dataSubEWKoverFakes_ratioPlusOverMinus")
     dataSubEWKoverFakes_ratioPlusOverMinus.Divide(dataSubEWK_over_fakes_minus)
-    zrange = "0.9,1.1"
+    #zrange = "0.7,1.3"
     dataSubEWKoverFakes_ratioPlusOverMinus.SetTitle("charge + / charge -")
     zAxisTitle = "ratio of (data-EWK)/fakes between charges::" + zrange
     drawCorrelationPlot(dataSubEWKoverFakes_ratioPlusOverMinus,

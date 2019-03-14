@@ -303,6 +303,8 @@ if __name__ == "__main__":
                                 systvar = name.split('_')[-1]
                                 if re.match(options.doSigSyst,systvar):
                                     h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
+                                    if options.normWidth:
+                                        h2_backrolled_1.Scale(1.,"width")
                                     hSigInclusivePol_syst[systvar].Add(h2_backrolled_1)
                                     #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusivePol_syst[systvar].Integral())
                                 
@@ -438,6 +440,8 @@ if __name__ == "__main__":
                             systvar = name.split('_')[-1]
                             if re.match(options.doSigSyst,systvar):
                                 h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
+                                if options.normWidth:
+                                    h2_backrolled_1.Scale(1.,"width")
                                 hSigInclusive_syst[systvar].Add(h2_backrolled_1)
                                 #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusive_syst[systvar].Integral())
                             
@@ -472,9 +476,9 @@ if __name__ == "__main__":
 
             # do backgrounds and, if requested, inclusive signal
             print ""
-            print "Backgrounds" + (" and inclusive signal" if options.hasInclusiveSignal else "")
-            procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes"]
-            titles=["charge flips","DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
+            print "Data + Backgrounds" + (" and inclusive signal" if options.hasInclusiveSignal else "")
+            procs=["data_obs", "Flips","Z","Top","DiBosons","TauDecaysW","data_fakes"]
+            titles=["data", "charge flips","DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
             if options.hasInclusiveSignal: 
                 procs.append("W{ch}_{flav}".format(ch=charge,flav=channel))
                 signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
@@ -511,6 +515,8 @@ if __name__ == "__main__":
                             name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
                             h1_1_fs = infile.Get('x_{p}'.format(p=name_fs))                            
                             h2_backrolled_1_fs = dressed2D(h1_1_fs,binning,name_fs,title_fs)
+                            if options.normWidth: 
+                                h2_backrolled_1_fs.Scale(1.,"width")
                             h2_backrolled_1_fs.Write(name_fs)
                             h2_backrolled_1_fs.Divide(h2_backrolled_1)
                             zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0), 

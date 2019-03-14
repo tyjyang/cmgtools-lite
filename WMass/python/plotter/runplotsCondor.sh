@@ -67,6 +67,7 @@ fi
 
 #useHLTpt27="y" # already in selection txt file
 runCondor="y"
+jobRunTime="86400"
 nameTag="_fakes_chMinus_ptMax55_pol2" 
 #nameTag="_varStudy"
 useLessMC="n"
@@ -404,7 +405,7 @@ Error      = ${condorFolder}/logs/\$(ProcId).error
 getenv      = True                       
 environment = "LS_SUBCWD=${PWD}"         
 request_memory = 4000                    
-+MaxRuntime = 86400
++MaxRuntime = ${jobRunTime}
 +JobBatchName = "runplotsCondor${nameTag}"
 EOF
 

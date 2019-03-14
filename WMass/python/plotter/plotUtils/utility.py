@@ -890,7 +890,10 @@ def drawDataAndMC(h1, h2,
     h2.SetLineColor(ROOT.kGreen)  #kRed+2
     h2.SetFillColor(ROOT.kGreen)
     h2.SetLineWidth(2)
-    h2.Draw("HIST SAME")
+    h2.Draw("E2 SAME")
+    h2line = h2.Clone("h2line")
+    h2line.SetFillColor(0)
+    h2line.Draw("HIST SAME")
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
@@ -1038,9 +1041,10 @@ def drawDataAndMC(h1, h2,
                 ratio.SetFillStyle(1001)  # make it solid again
                 ratio.SetLineColor(ROOT.kGray+3)
             else:
-                ratio.SetFillColor(ROOT.kGreen-9)
-                ratio.SetFillStyle(1001)  # make it solid again
-                ratio.SetLineColor(ROOT.kGreen)                        
+                ratio.SetFillColor(ROOT.kGreen+1)
+                ratio.SetFillStyle(3001)  # 1001 to make it solid again
+                ratio.SetLineColor(ROOT.kGreen+2)                        
+                ratio.SetLineWidth(1) # make it smaller when it is drawn on top of something
         else:
             if histMCpartialUnc == None:
                 den.SetFillColor(ROOT.kGray+1)
@@ -1049,7 +1053,7 @@ def drawDataAndMC(h1, h2,
         if histMCpartialUnc != None:
             h3ratio = h3.Clone("h3ratio")
             h3ratio.Divide(den_noerr)
-            h3ratio.SetFillStyle(1001) # 3144 instead of 3244, to have more dense hatches
+            h3ratio.SetFillStyle(3144) # 1001 for solid, 3144 instead of 3244, to have more dense hatches
             h3ratio.SetFillColor(ROOT.kRed-7)
 
         frame.Draw()        
@@ -1069,7 +1073,7 @@ def drawDataAndMC(h1, h2,
         
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kRed)
-        line.SetLineWidth(2)
+        line.SetLineWidth(1)
         line.Draw("Lsame")
         if invertRatio:
             ratioline = ratio.Clone("ratioline")
@@ -1242,6 +1246,8 @@ def drawTH1dataMCstack(h1, thestack,
     #bintext.SetNDC()
     bintext.SetTextSize(0.03)
     bintext.SetTextFont(42)
+    if len(textForLines) > 15:
+        bintext.SetTextAngle(10)
 
     if len(drawVertLines):
         #print "drawVertLines = " + drawVertLines
@@ -1251,8 +1257,9 @@ def drawTH1dataMCstack(h1, thestack,
             #vertline.DrawLine(etarange*i,0,etarange*i,canvas.GetUymax())
             vertline.DrawLine(etarange*i,0,etarange*i,ymaxBackup)
         if len(textForLines):
+            offsetText = etarange / (6. if len(textForLines) > 15 else 4.)
             for i in range(0,len(textForLines)): # we need nptBins texts
-                bintext.DrawLatex(etarange*i + etarange/4., 1.1*ymaxBackup/2., textForLines[i])
+                bintext.DrawLatex(etarange*i + offsetText, 1.1*ymaxBackup/2., textForLines[i])
 
     # legend.SetFillColor(0)
     # legend.SetFillStyle(0)

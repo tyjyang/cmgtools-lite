@@ -411,15 +411,17 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
 
 if options.tauChargeLnN > 0.0:
     syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")
-    allSystForGroups.append(syst)
-    card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
+    if not isExcludedNuisance(excludeNuisances, syst): 
+        allSystForGroups.append(syst)
+        card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
 
 ###########
 ####### Nuisances for fakes
+# first the uncorrelated part (there are currently 3 of them, for Eta, PtSlope and PtNorm)
 
 # independent eta normalizations variations for fakes, by 5%. 
 # Get the actual number counting the histograms in case it changes or is not present
-ffile = options.indir + "FakesEtaUncorrelated_{ch}.root".format(ch=charge)
+ffile = options.indir + "FakesEtaUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
 nFakesEtaUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
 if not ff or not ff.IsOpen():
@@ -428,7 +430,6 @@ else:
     # count number of histograms and divide by 2 (there are up and down variations)
     nFakesEtaUncorrelated = ff.GetNkeys()/2
 ff.Close()
-
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
         syst = "FakesEtaUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
@@ -436,31 +437,49 @@ if nFakesEtaUncorrelated:
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
-ffile = options.indir + "FakesPtUncorrelated_{ch}.root".format(ch=charge)
-nFakesPtUncorrelated = 0
+ffile = options.indir + "FakesPtSlopeUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+nFakesPtSlopeUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
 if not ff or not ff.IsOpen():
     raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
 else:
     # count number of histograms and divide by 2 (there are up and down variations)
-    nFakesPtUncorrelated = ff.GetNkeys()/2
+    nFakesPtSlopeUncorrelated = ff.GetNkeys()/2
 ff.Close()
-
-if nFakesPtUncorrelated:
-    for i in range(1,nFakesPtUncorrelated+1):
-        syst = "FakesPtUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+if nFakesPtSlopeUncorrelated:
+    for i in range(1,nFakesPtSlopeUncorrelated+1):
+        syst = "FakesPtSlopeUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
+ffile = options.indir + "FakesPtNormUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+nFakesPtNormUncorrelated = 0
+ff = ROOT.TFile.Open(ffile,"READ")
+if not ff or not ff.IsOpen():
+    raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+else:
+    # count number of histograms and divide by 2 (there are up and down variations)
+    nFakesPtNormUncorrelated = ff.GetNkeys()/2
+ff.Close()
+if nFakesPtNormUncorrelated:
+    for i in range(1,nFakesPtNormUncorrelated+1):
+        syst = "FakesPtNormUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
 # fakes
+# (although these are currently excluded with regular expressions, since we now have all the uncorrelated uncertainties)
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
 #fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
 for syst in fakeSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
+
+# end of part for fakes
+########################
 
 # this is only for theory uncertainties that affect the cross section
 sortedTheoSystkeys = []
@@ -560,7 +579,7 @@ card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele
 card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
 card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
                                             filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
-card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
+card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
 card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("\n")
@@ -641,7 +660,8 @@ print ""
 ## every signal process inside                                                                                               
 
 ## xsecfilename                                                                                           
-xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields.root"
+# this file has pt between 0 and 70, has 0.5 GeV granularity between 25 and 60 GeV, and 1 GeV elsewhere
+xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields_v2.root"
 # FIXME: following file has pt binning with width = 1GeV!
 if options.xsecMaskedYields:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"

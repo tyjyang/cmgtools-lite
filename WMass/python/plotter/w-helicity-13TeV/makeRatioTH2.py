@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_option('-E',  '--divide-relative-error', dest="divideRelativeError", action="store_true", default=False, help="Make ratio of relative uncertainties (the output histogram will have no error assigned to it)")
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     parser.add_option('-a', '--make-asymmetry', dest="makeAsymmetry", action="store_true", default=False, help="Make ratio of difference over the sum. For this to make sense, the binnign of the two inputs must be consistent")
-    #parser.add_option('-p', '--make-pulls', dest="makePulls", action="store_true", default=False, help="Make pulls of input histograms, i.e. (h1-h2)/error, where error is taken as the quadrature sum of the errors of the input")
+    parser.add_option('-p', '--make-pulls', dest="makePulls", action="store_true", default=False, help="Make pulls of input histograms, i.e. (h1-h2)/error, where error is taken as the quadrature sum of the errors of the input")
     parser.add_option(       '--pull-error-ScaleFactor', dest='pullErrorScaleFactor', default='1.', type='float', help='Inflate the error by this factor when making the pulls (because it is assumed the inputs are uncorrelated, so the error might need a correction)')
     parser.add_option(      '--roll1Dto2D', dest="roll1Dto2D", action="store_true", default=False, help="Input histograms are 1D distributions to be unrolled into 2D. Need binning from option --binning-file-to-roll")
     parser.add_option(      '--binning-file-to-roll', dest="binFileToRoll", default="", help="File with binning to roll 1D into 2D (the reco binning is used)")
@@ -122,13 +122,14 @@ if __name__ == "__main__":
         if options.divideRelativeError or options.divideError:
             print "Error: option -a incompatible with options -e and -E. Exit"
             quit()
-    # if options.makePulls:
-    #     if options.divideRelativeError or options.divideError:
-    #         print "Error: option -p incompatible with options -e and -E. Exit"
-    #         quit()
-    # if options.makeAsymmetry and options.makePulls:
-    #         print "Error: option -a incompatible with options -p. Exit"
-    #         quit()
+    if options.buildFakeRate: options.makePulls = False
+    if options.makePulls:
+        if options.divideRelativeError or options.divideError:
+            print "Error: option -p incompatible with options -e and -E. Exit"
+            quit()
+    if options.makeAsymmetry and options.makePulls:
+            print "Error: option -a incompatible with options -p. Exit"
+            quit()
 
 
     if options.outhistname == "FILE":
@@ -163,10 +164,13 @@ if __name__ == "__main__":
         # in this case the input TH2 have eta on x axis and offset/slope on the other one
         # this is needed only for muons, for electrons I save directly the smoothed FR (PR)
         neta = hist1.GetNbinsX()
-        etamin = hist1.GetXaxis().GetBinLowEdge(1)
-        etamax = hist1.GetXaxis().GetBinLowEdge(1+neta)
-        hFR1 = ROOT.TH2D(hist1.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
-        hFR2 = ROOT.TH2D(hist2.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
+        etabins = [hist1.GetXaxis().GetBinLowEdge(i) for i in range(1,2+neta)]
+        #etamin = hist1.GetXaxis().GetBinLowEdge(1)
+        #etamax = hist1.GetXaxis().GetBinLowEdge(1+neta)
+        #hFR1 = ROOT.TH2D(hist1.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
+        #hFR2 = ROOT.TH2D(hist2.GetName()+"_FRorPR","",195,26,65,neta,etamin,etamax)
+        hFR1 = ROOT.TH2D(hist1.GetName()+"_FRorPR","",195,26,65,neta,array('d',etabins))
+        hFR2 = ROOT.TH2D(hist2.GetName()+"_FRorPR","",195,26,65,neta,array('d',etabins))
         for ix in range (1,1+hFR1.GetNbinsX()):
             for iy in range (1,1+hFR1.GetNbinsY()):
                 fr1 = hist1.GetBinContent(iy,1) + hist1.GetBinContent(iy,2) * hFR1.GetXaxis().GetBinCenter(ix)
@@ -276,22 +280,23 @@ if __name__ == "__main__":
             )
 
     # making distribution of pulls
-    hpull = ROOT.TH1D("pulls","Distribution of pulls",100,-5,5)
-    for ix in range(1,1+hinput1.GetNbinsX()):
-        for iy in range(1,1+hinput1.GetNbinsY()):
-            err = math.sqrt(pow(hinput1.GetBinError(ix,iy),2) + pow(hinput2.GetBinError(ix,iy),2))
-            err *= options.pullErrorScaleFactor
-            pull = hinput1.GetBinContent(ix,iy) - hinput2.GetBinContent(ix,iy)
-            hpull.Fill(pull/err)
+    if options.makePulls:
+        hpull = ROOT.TH1D("pulls","Distribution of pulls",100,-5,5)
+        for ix in range(1,1+hinput1.GetNbinsX()):
+            for iy in range(1,1+hinput1.GetNbinsY()):
+                err = math.sqrt(pow(hinput1.GetBinError(ix,iy),2) + pow(hinput2.GetBinError(ix,iy),2))
+                err *= options.pullErrorScaleFactor
+                pull = hinput1.GetBinContent(ix,iy) - hinput2.GetBinContent(ix,iy)
+                hpull.Fill(pull/err)
 
-    drawTH1(hpull, 
-            "pulls",
-            "number of events",
-            outname,
-            "pullsDistribution",
-            "",
-            passCanvas=canvas
-            )
+        drawTH1(hpull, 
+                "pulls",
+                "number of events",
+                outname,
+                "pullsDistribution",
+                options.outhistname,
+                passCanvas=canvas
+                )
  
     ###########################
     # Now save things
