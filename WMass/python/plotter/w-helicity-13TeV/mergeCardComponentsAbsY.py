@@ -194,6 +194,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
 
+        postfixForFlavourAndCharge = "mu" if isMu else "el"
+        if uncorrelateCharges:
+            postfixForFlavourAndCharge += charge
+
         if doPt:
             tmp_up = tmp_infile.Get(var_up)
             tmp_up_2d = dressed2D(tmp_up,binning, var_up+'backrolled')
@@ -225,10 +229,6 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                     elif abs(etabins[borderBin]) < 1.51: scalings.append(0.06)
                     elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
                     else:                         scalings.append(0.06)
-
-        postfixForFlavourAndCharge = "mu" if isMu else "el"
-        if uncorrelateCharges:
-            postfixForFlavourAndCharge += charge
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
