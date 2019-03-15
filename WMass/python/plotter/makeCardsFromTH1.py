@@ -144,6 +144,7 @@ parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable sy
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
+parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 (options, args) = parser.parse_args()
 
 print ""
@@ -421,6 +422,9 @@ if options.tauChargeLnN > 0.0:
 
 # independent eta normalizations variations for fakes, by 5%. 
 # Get the actual number counting the histograms in case it changes or is not present
+postfixForFlavourAndCharge = "mu" if isMu else "el"
+if options.uncorrelateFakesByCharge:
+    postfixForFlavourAndCharge += charge
 ffile = options.indir + "FakesEtaUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
 nFakesEtaUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
@@ -432,7 +436,7 @@ else:
 ff.Close()
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
-        syst = "FakesEtaUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        syst = "FakesEtaUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
@@ -448,7 +452,7 @@ else:
 ff.Close()
 if nFakesPtSlopeUncorrelated:
     for i in range(1,nFakesPtSlopeUncorrelated+1):
-        syst = "FakesPtSlopeUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        syst = "FakesPtSlopeUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
@@ -464,7 +468,7 @@ else:
 ff.Close()
 if nFakesPtNormUncorrelated:
     for i in range(1,nFakesPtNormUncorrelated+1):
-        syst = "FakesPtNormUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        syst = "FakesPtNormUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
