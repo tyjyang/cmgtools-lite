@@ -85,6 +85,8 @@ def combCharges(options):
             combineCmd += " --POIMode none"
         else:
             combineCmd += " --doImpacts  "
+        if options.useSciPyMinimizer:
+            combineCmd += " --useSciPyMinimizer "
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
         if not os.path.exists(fitdir_data):
@@ -145,6 +147,7 @@ parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
+parser.add_option(       '--useSciPyMinimizer', dest='useSciPyMinimizer' , default=False, action='store_true', help='You can try this minimizer, which should be more robust than the default one')
 (options, args) = parser.parse_args()
 
 print ""
@@ -422,7 +425,7 @@ if options.tauChargeLnN > 0.0:
 
 # independent eta normalizations variations for fakes, by 5%. 
 # Get the actual number counting the histograms in case it changes or is not present
-postfixForFlavourAndCharge = "mu" if isMu else "el"
+postfixForFlavourAndCharge = flavour
 if options.uncorrelateFakesByCharge:
     postfixForFlavourAndCharge += charge
 ffile = options.indir + "FakesEtaUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)

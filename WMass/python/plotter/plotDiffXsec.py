@@ -13,7 +13,7 @@ skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 
 seed = 123456789
@@ -27,7 +27,8 @@ folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
 
 #postfix = "allSyst_eosSkim_noZandWoutNorm_bbb1_cxs1"
 #postfix = "eosSkim_noZandWoutNorm_ZshapeEffAndScaleSyst_bbb1_cxs1"
-postfix = "noFakesPtNorm_bbb1_cxs1"
+postfix = "uncorrNuisFakes"
+postfix += "_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -91,8 +92,8 @@ targets = [#"mu",
            #"xsec", 
            #"xsecnorm",
            #"etaptasym",
-           "etaxsec",
-           "etaxsecnorm",
+           #"etaxsec",
+           #"etaxsecnorm",
            "etaasym"
            ]
 
