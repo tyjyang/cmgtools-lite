@@ -129,6 +129,7 @@ parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', defau
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
+parser.add_option(       '--tauChargeLnN'   , dest='tauChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to tau for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
@@ -143,6 +144,7 @@ parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable sy
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
+parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 (options, args) = parser.parse_args()
 
 print ""
@@ -408,12 +410,22 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
         allSystForGroups.append("CMS_Wbkg")
         card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
 
+if options.tauChargeLnN > 0.0:
+    syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")
+    if not isExcludedNuisance(excludeNuisances, syst): 
+        allSystForGroups.append(syst)
+        card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
+
 ###########
 ####### Nuisances for fakes
+# first the uncorrelated part (there are currently 3 of them, for Eta, PtSlope and PtNorm)
 
 # independent eta normalizations variations for fakes, by 5%. 
 # Get the actual number counting the histograms in case it changes or is not present
-ffile = options.indir + "FakesEtaUncorrelated_{ch}.root".format(ch=charge)
+postfixForFlavourAndCharge = "mu" if isMu else "el"
+if options.uncorrelateFakesByCharge:
+    postfixForFlavourAndCharge += charge
+ffile = options.indir + "FakesEtaUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
 nFakesEtaUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
 if not ff or not ff.IsOpen():
@@ -422,39 +434,56 @@ else:
     # count number of histograms and divide by 2 (there are up and down variations)
     nFakesEtaUncorrelated = ff.GetNkeys()/2
 ff.Close()
-
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
-        syst = "FakesEtaUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+        syst = "FakesEtaUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
-ffile = options.indir + "FakesPtUncorrelated_{ch}.root".format(ch=charge)
-nFakesPtUncorrelated = 0
+ffile = options.indir + "FakesPtSlopeUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+nFakesPtSlopeUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
 if not ff or not ff.IsOpen():
     raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
 else:
     # count number of histograms and divide by 2 (there are up and down variations)
-    nFakesPtUncorrelated = ff.GetNkeys()/2
+    nFakesPtSlopeUncorrelated = ff.GetNkeys()/2
 ff.Close()
-
-if nFakesPtUncorrelated:
-    for i in range(1,nFakesPtUncorrelated+1):
-        syst = "FakesPtUncorrelated{d}{fl}{ch}".format(d=i, fl=flavour, ch=charge)
+if nFakesPtSlopeUncorrelated:
+    for i in range(1,nFakesPtSlopeUncorrelated+1):
+        syst = "FakesPtSlopeUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
+ffile = options.indir + "FakesPtNormUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+nFakesPtNormUncorrelated = 0
+ff = ROOT.TFile.Open(ffile,"READ")
+if not ff or not ff.IsOpen():
+    raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+else:
+    # count number of histograms and divide by 2 (there are up and down variations)
+    nFakesPtNormUncorrelated = ff.GetNkeys()/2
+ff.Close()
+if nFakesPtNormUncorrelated:
+    for i in range(1,nFakesPtNormUncorrelated+1):
+        syst = "FakesPtNormUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
 # fakes
+# (although these are currently excluded with regular expressions, since we now have all the uncorrelated uncertainties)
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
 #fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
 for syst in fakeSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
+
+# end of part for fakes
+########################
 
 # this is only for theory uncertainties that affect the cross section
 sortedTheoSystkeys = []
@@ -554,7 +583,7 @@ card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele
 card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
 card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
                                             filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
-card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
+card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
 card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
 card.write("\n")
@@ -635,7 +664,8 @@ print ""
 ## every signal process inside                                                                                               
 
 ## xsecfilename                                                                                           
-xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields.root"
+# this file has pt between 0 and 70, has 0.5 GeV granularity between 25 and 60 GeV, and 1 GeV elsewhere
+xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields_v2.root"
 # FIXME: following file has pt binning with width = 1GeV!
 if options.xsecMaskedYields:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"

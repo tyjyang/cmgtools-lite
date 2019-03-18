@@ -409,6 +409,19 @@ void copyHisto(TH1* hnew = nullptr, const TH1* hold = nullptr) {
 
 //======================================================
 
+void copyHisto2D(TH2* hnew = nullptr, const TH2* hold = nullptr) {
+
+  for (Int_t ix = 0; ix <= (1+hold->GetNbinsX()); ++ix) {
+    for (Int_t iy = 0; iy <= (1+hold->GetNbinsY()); ++iy) {
+      hnew->SetBinContent(ix, iy, hold->GetBinContent(ix,iy));
+      hnew->SetBinError(ix, iy, hold->GetBinError(ix,iy));
+    }
+  }
+
+}
+
+//======================================================
+
 
 void addOverflowInLastBin(TH1D *h) {
 
