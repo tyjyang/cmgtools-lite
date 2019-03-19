@@ -134,20 +134,10 @@ def combCharges(options):
             combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
         print combineCmd
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta'):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta', uncorrelateCharges=False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
-
-    # this doesn't work for differential cross section because I have line 2 with the comment for gen binning
-    # in all my scripts I developed some specific functions to read the binning, either reco or gen: here we only need reco
-    # binninPtEtaFile = open(indir+'/binningPtEta.txt','r')
-    # bins = binninPtEtaFile.readlines()[1].split()[1]
-    # etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    # ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    # nbinseta = len(etabins)-1
-    # nbinspt  = len( ptbins)-1
-    # binning = [nbinseta, etabins, nbinspt, ptbins]
 
     # get eta-pt binning for both reco 
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
@@ -204,6 +194,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
 
+        postfixForFlavourAndCharge = "mu" if isMu else "el"
+        if uncorrelateCharges:
+            postfixForFlavourAndCharge += charge
+
         if doPt:
             tmp_up = tmp_infile.Get(var_up)
             tmp_up_2d = dressed2D(tmp_up,binning, var_up+'backrolled')
@@ -236,23 +230,22 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                     elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
                     else:                         scalings.append(0.06)
 
-
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
             print 'this is ptbins', ptbins
-            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
             borderBins = []
             for i in ptBorders[:-1]:
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
             borderBins.append(len(ptbins))
 
-            scalings = [0.30, 0.25, 0.15] if isMu else [0.30, 0.20, 0.10]
+            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.30, 0.20, 0.10, 0.20, 0.30]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
 
             systName = 'Fakes{v}Uncorrelated'.format(v=typeName)
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flav}{ch}2DROLLED'.format(sn=systName,ib=ib+1,flav=flav,ch=charge)
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{sn}{ib}{flavch}2DROLLED'.format(sn=systName,ib=ib+1,flavch=postfixForFlavourAndCharge)
         
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -438,6 +431,7 @@ if __name__ == "__main__":
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
     parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=True, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
+    parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -609,9 +603,9 @@ if __name__ == "__main__":
             print 'now putting the erfpar systeamtics into the file'
             putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin)
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope')
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm' )
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)

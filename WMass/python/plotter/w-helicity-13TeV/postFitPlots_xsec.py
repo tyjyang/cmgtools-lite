@@ -3,7 +3,6 @@
 
 import ROOT, os, re
 from array import array
-from CMGTools.WMass.plotter.mcPlots import doShadedUncertainty
 from rollingFunctions import roll1Dto2D, unroll2Dto1D
 
 from make_diff_xsec_cards import getArrayParsingString
@@ -100,52 +99,6 @@ def prepareLegend(legWidth=0.50,textSize=0.035,nColumns=3):
     leg.SetTextSize(textSize)
     return leg
 
-def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide=False, passCanvas=None, canvasSize="2400,600"):
-    ## Prepare split screen
-    #plotformat = (2400,600) if veryWide else (600,750)
-    plotformat = (int(canvasSize.split(',')[0]), int(canvasSize.split(',')[1]))
-    c1 = passCanvas if passCanvas != None else ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
-    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
-    ROOT.gStyle.SetPadLeftMargin(0.07 if veryWide else 0.18)
-    ROOT.gStyle.SetPadRightMargin(0.07 if veryWide else 0.13)
-    p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
-    p1.SetBottomMargin(0.03);
-    p1.Draw();
-    p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
-    p2.SetTopMargin(0);
-    p2.SetBottomMargin(0.3);
-    p2.SetFillStyle(0);
-    p2.Draw();
-    p1.cd();
-    ## Draw absolute prediction in top frame
-    offset = 0.45 if veryWide else 0.62
-    htot.GetYaxis().SetTitleOffset(offset)
-    htot.Draw("HIST")
-    #htot.SetLabelOffset(9999.0);
-    #htot.SetTitleOffset(9999.0);
-    stack.Draw("HIST F SAME")
-    hdata.SetMarkerColor(ROOT.kBlack)
-    hdata.SetMarkerStyle(ROOT.kFullCircle)
-    hdata.Draw("E SAME")
-    htot.Draw("AXIS SAME")
-    totalError = doShadedUncertainty(htot)            
-    legend.Draw()
-    lat = ROOT.TLatex()
-    lat.SetNDC(); lat.SetTextFont(42)
-    if veryWide:
-        x1 = 0.09; x2 = 0.85
-    else:
-        x1 = 0.16; x2 = 0.65
-    lat.DrawLatex(x1, 0.92, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(x2, 0.92, '36 fb^{-1} (13 TeV)')
-    
-    p2.cd()
-    maxrange = [0.95,1.05] if prepost == 'postfit' else [0.90,1.10]
-    rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
-    c1.cd()
-    for ext in ['pdf', 'png']:
-        c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_diffXsec_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
-
 
 def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=505,doWide=False,showStatTotLegend=False,textSize=0.035):
     ratio = data.Clone("data_div"); 
@@ -225,7 +178,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
 
     ydiff = hratio.GetBinContent(hratio.GetMaximumBin()) - hratio.GetBinContent(hratio.GetMinimumBin())
-    rmin = max(0.1, hratio.GetBinContent(hratio.GetMinimumBin())); rmax = min(10., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
+    rmin = max(0.1, hratio.GetBinContent(hratio.GetMinimumBin())); rmax = min(5., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
     ROOT.gStyle.SetErrorX(0.5);
     hratio.GetYaxis().SetRangeUser(rmin,rmax);
     hratio.GetXaxis().SetTitleFont(42)
@@ -588,7 +541,6 @@ if __name__ == "__main__":
                 ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
                 drawTH1dataMCstack(hdata,stack,xaxisProj, verticalAxisName, cnameProj, outname, leg, ratioYlabel,
                                    1, passCanvas=cnarrow,hErrStack=hexpfull,lumi=35.9, )
-                #plotOne(charge,channel,stack,hexpfull,hdata,leg,outname,'projection%s'%projection,suffix,passCanvas=cnarrow,canvasSize="600,750")
             
             # now the unrolled, assign names to run monsterPull.py on them
             hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge, name='unrolled_{ch}_data'.format(ch=charge)).Clone('unrolled_{ch}_data'.format(ch=charge))
@@ -622,7 +574,7 @@ if __name__ == "__main__":
             #htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
 
             cnameUnroll = "unrolled_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl, sfx=suffix)
-            XlabelUnroll = "unrolled template along #eta: #eta #in [%.1f, %.1f]" % (recoBins.etaBins[0], recoBins.etaBins[-1])
+            XlabelUnroll = "unrolled template along #eta in %s channel:  #eta #in [%.1f, %.1f]" % (lep, recoBins.etaBins[0], recoBins.etaBins[-1])
             YlabelUnroll = verticalAxisName + "::%.2f,%.2f" % (0, 2.*hdata_unrolled.GetBinContent(hdata_unrolled.GetMaximumBin()))
             ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
             #ptBinRanges = []
@@ -631,7 +583,6 @@ if __name__ == "__main__":
             drawTH1dataMCstack(hdata_unrolled,stack_unrolled, XlabelUnroll, YlabelUnroll, cnameUnroll, outname, leg, ratioYlabel,
                                1, passCanvas=cwide,hErrStack=h1_expfull_unrolled,lumi=35.9,wideCanvas=True, leftMargin=0.05,rightMargin=0.02, 
                                drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
-            #plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True,passCanvas=cwide)
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio

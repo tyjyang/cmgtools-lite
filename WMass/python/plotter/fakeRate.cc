@@ -171,6 +171,13 @@ float getFakeRatenormWeight(float lpt, float leta, int lpdgId, int ivar = 0) {
 
 //===============================================================
 
+TFile * _file_EleFR_pt_eta_fitPol2 = nullptr;
+TH2D* _histo_EleFR_pt_eta_fitPol2_data_nomi = nullptr;
+TH2D* _histo_EleFR_pt_eta_fitPol2_data_ewkUp = nullptr; // used to define a conservative uncertainty
+TH2D* _histo_EleFR_pt_eta_fitPol2_data_ewkDn = nullptr; // used to define a conservative uncertainty
+
+//===============================================================
+
 float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { //, int expected_pdgId=11) {
 
   // formula for fake rate including effect of prompt rate
@@ -182,6 +189,25 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   // second term is negative by definition of p)
   // If p=1, then N(QCD in T) = f/(1-f) * N(NLT), which is the formula used in function fakeRateWeight_1l_i_smoothed()
 
+  // this is needed to extend lepton FR above 50 GeV, need to use pol2 fit (or binned FR, but pol2 is better)
+  if (!_file_EleFR_pt_eta_fitPol2) {
+    string cmssw_base_path = "";
+    char* _env_var_ptr = getenv("CMSSW_BASE");
+    if (_env_var_ptr == nullptr) {
+      cout << "Error: environment variable CMSSW_BASE not found. Exit" << endl;
+      exit(EXIT_FAILURE);
+    } else {
+      cmssw_base_path = string(_env_var_ptr);      
+    }    
+    _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1.root",cmssw_base_path.c_str()),"read");
+    _histo_EleFR_pt_eta_fitPol2_data_nomi = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data");  // histo with smoothed FR values and uncertainties (stat.only)
+    _histo_EleFR_pt_eta_fitPol2_data_ewkUp = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledUpEWKMC"); // no uncertainty stored
+    _histo_EleFR_pt_eta_fitPol2_data_ewkDn = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledDownEWKMC"); // no uncertainty stored
+    if (!_histo_EleFR_pt_eta_fitPol2_data_nomi|| ! _histo_EleFR_pt_eta_fitPol2_data_ewkUp || !_histo_EleFR_pt_eta_fitPol2_data_ewkDn) {
+      cout << "Warning: I couldn't get some histograms from file, with FR smoothed with pol2" << endl;
+      exit(EXIT_FAILURE);
+    }
+  }
 
   // double fpt = lpt; // what was the purpose of this line?
   double feta = std::fabs(leta); int fid = abs(lpdgId); 
@@ -252,13 +278,32 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // Marc added the crop at pt=50, but for electrons I think it is not needed
   // I will make so to have it only for muon channel
-  if (fid == 13 && lpt > 50.) lpt = 50.;
+  if (fid == 13 && lpt > 50.) lpt = 50.; // this helps because after 50 the FR is often not well modeled due to non linear behaviour.
+  // could just be the limit of the method, because the ewk contribution gets larger
+  // it works because the muon FR rises and then starts decreasing again or gets flat
+  // for electrons, the FR decreases with pt, so making it flat above 50 is not good is not good
+  // one could use the estimate from pol2 for points above 50 because it works extremely well, but then the pt slope variation must be defined in a different way 
+  // one could just plug a temptative uncertainty for points above 50, given that for fakes we keep large regions of eta-pt bins uncorrelated in the fit
 
   // p2=0 if the saved histogram has only 2 bins
   // in case on is fitting with a straight line and not a parabola, the histogram might still have 3 bins for the parameters, but the last one should be set as 0
   // this saves backward compatibility
   float fr = p0    + p1   *lpt + p2   *lpt*lpt; 
   float pr = p0_pr + p1_pr*lpt + p2_pr*lpt*lpt;
+
+  if (fid == 11 && lpt > 48) {
+    Int_t ptbin_tmp = std::max(1, std::min(_histo_EleFR_pt_eta_fitPol2_data_nomi->GetXaxis()->FindFixBin(lpt), _histo_EleFR_pt_eta_fitPol2_data_nomi->GetNbinsX()));
+    Int_t etabin_tmp = std::max(1, std::min(_histo_EleFR_pt_eta_fitPol2_data_nomi->GetYaxis()->FindFixBin(leta), _histo_EleFR_pt_eta_fitPol2_data_nomi->GetNbinsY()));
+    if (iFR==3 || iFR==10) {
+      // get larger value for FR (from EWK down + uncertainty of nominal (stat.uncertainties are basically the same for all the three histograms)
+      fr = _histo_EleFR_pt_eta_fitPol2_data_ewkDn->GetBinContent(ptbin_tmp, etabin_tmp) + _histo_EleFR_pt_eta_fitPol2_data_nomi->GetBinError(ptbin_tmp, etabin_tmp);
+    } else if (iFR==4 || iFR==11) {
+      // get lower value for FR (from EWK Up - uncertainty of nominal (stat.uncertainties are basically the same for all the three histograms)
+      fr = _histo_EleFR_pt_eta_fitPol2_data_ewkUp->GetBinContent(ptbin_tmp, etabin_tmp) - _histo_EleFR_pt_eta_fitPol2_data_nomi->GetBinError(ptbin_tmp, etabin_tmp);
+    } else {
+      fr = _histo_EleFR_pt_eta_fitPol2_data_nomi->GetBinContent(ptbin_tmp, etabin_tmp);    
+    }
+  }
 
   if (fid == 13 && pr > 0.98) pr = 0.98; // safety thing, not needed for electrons
   else if (pr > 1.0) pr = 1.0;  // just in case

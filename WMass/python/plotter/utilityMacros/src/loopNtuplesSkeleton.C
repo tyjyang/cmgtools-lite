@@ -78,11 +78,11 @@ void fillHistograms(const string& treedir = "./",
   					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
 
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
@@ -101,10 +101,10 @@ void fillHistograms(const string& treedir = "./",
   vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
 					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
-  //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
+  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
-  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50};
+  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   
   vector<Double_t> etaBinEdgesTemplate;
   vector<Double_t> ptBinEdgesTemplate;
@@ -617,8 +617,10 @@ void fillHistograms(const string& treedir = "./",
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
       Double_t sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
-      Double_t sfRecoToSelectionMu = _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
-      wgt = sfTriggerMu * sfRecoToSelectionMu; 
+      // in the ntuples the reco2Selection SF is eta-smoothed, the one from the function is not
+      Double_t sfRecoToSelectionMu = lep_SF2[0];  //_get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
+      Double_t sfPrefireMu = prefireJetsWeight(lep_eta[0]);
+      wgt = sfTriggerMu * sfRecoToSelectionMu * sfPrefireMu; 
       // for muons, get fast weight for efficiency Up/Down
       Double_t syst = 0.0;
       if (absLep1eta<1)          syst = 0.002;
@@ -626,8 +628,6 @@ void fillHistograms(const string& treedir = "./",
       else                       syst = 0.014;
       lepEffWgtUp = (wgt + syst)/wgt; // because in the following it will multiply the nominal wgt, which includes the current definition of wgt
       lepEffWgtDn = (wgt - syst)/wgt;
-      //lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],sfTriggerMu,sfRecoToSelectionMu,1.);
-      //lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],sfTriggerMu,sfRecoToSelectionMu,1.);
       
       ptLepFullUp = ptMuFullUp(lep_calPt[0],lep_eta[0]);
       ptLepFullDn = ptMuFullDn(lep_calPt[0],lep_eta[0]);

@@ -187,6 +187,7 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      "--etaBordersForFakesUncorr",    dest="etaBordersForFakesUncorr", type="string", default='0.5,1.0,1.5,2.0', help="Borders passed to function that creates the eta-uncorrelated normalization for fakes. Pass comma separated list (no 0 or outer edges, and only positive values");
 parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_false", default=True, help="If False, do not store the muR,muF,muRmuF variations for Z (if they were present)");
 #parser.add_option(      "--no-effstatsyst-Z", dest="useEffstatsystForZ", action="store_false", default=True, help="If False, do not create the Effstat variations for Z");
+parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -350,28 +351,33 @@ print "-"*20
 print ""
 
 fileFakesEtaUncorr = "{od}FakesEtaUncorrelated_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge) 
-fileFakesPtUncorr  = "{od}FakesPtUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
+fileFakesPtSlopeUncorr  = "{od}FakesPtSlopeUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
+fileFakesPtNormUncorr  = "{od}FakesPtNormUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
 # these names are used inside putUncorrelatedFakes (do not change them outside here)
-print "Now adding FakesEtaUncorrelated and FakesPtUncorrelated systematics to x_data_fakes process"
+print "Now adding FakesEtaUncorrelated and FakesPtSlopeUncorrelated and FakesPtNormUncorrelated systematics to x_data_fakes process"
 print "Will create file --> {of}".format(of=fileFakesEtaUncorr)
-print "Will create file --> {of}".format(of=fileFakesPtUncorr)
+print "Will create file --> {of}".format(of=fileFakesPtSlopeUncorr)
+print "Will create file --> {of}".format(of=fileFakesPtNormUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
 if not options.dryrun: 
-    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, 
-                         etaBordersTmp=etaBordersForFakes)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doPt = 'x_data_fakes_.*slope.*')
+                         doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge)
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+                         doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+                         doType='ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge)
 
-print "Now merging signal + Z + data + other backgrounds + FakesEtaUncorrelated + ZEffStat"
+print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
 
-cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesPt} {zEffStat}".format(of=shapename, 
-                                                                                           sig=sigfile, 
-                                                                                           zf=Zfile, 
-                                                                                           bkg=dataAndBkgFileTmp, 
-                                                                                           fakesEta=fileFakesEtaUncorr,
-                                                                                           fakesPt=fileFakesPtUncorr,
-                                                                                           zEffStat=fileZeffStat)
+cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesPtSlope} {fakesPtNorm} {zEffStat}".format(of=shapename, 
+                                                                                                              sig=sigfile, 
+                                                                                                              zf=Zfile, 
+                                                                                                              bkg=dataAndBkgFileTmp, 
+                                                                                                              fakesEta=fileFakesEtaUncorr,
+                                                                                                              fakesPtSlope=fileFakesPtSlopeUncorr,
+                                                                                                              fakesPtNorm=fileFakesPtNormUncorr,
+                                                                                                              zEffStat=fileZeffStat)
 print "Final merging ..."
 print cmdFinalMerge
 if not options.dryrun: os.system(cmdFinalMerge)
