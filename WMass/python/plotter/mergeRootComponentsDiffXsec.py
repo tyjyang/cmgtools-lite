@@ -187,6 +187,7 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      "--etaBordersForFakesUncorr",    dest="etaBordersForFakesUncorr", type="string", default='0.5,1.0,1.5,2.0', help="Borders passed to function that creates the eta-uncorrelated normalization for fakes. Pass comma separated list (no 0 or outer edges, and only positive values");
 parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_false", default=True, help="If False, do not store the muR,muF,muRmuF variations for Z (if they were present)");
 #parser.add_option(      "--no-effstatsyst-Z", dest="useEffstatsystForZ", action="store_false", default=True, help="If False, do not create the Effstat variations for Z");
+parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -359,12 +360,12 @@ print "Will create file --> {of}".format(of=fileFakesPtSlopeUncorr)
 print "Will create file --> {of}".format(of=fileFakesPtNormUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
 if not options.dryrun: 
-    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, 
-                         etaBordersTmp=etaBordersForFakes, doType='eta')
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doType='ptslope')
+                         doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doType='ptnorm')
+                         doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+                         doType='ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge)
 
 print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)

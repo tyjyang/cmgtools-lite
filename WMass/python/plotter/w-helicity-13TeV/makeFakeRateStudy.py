@@ -6,6 +6,11 @@ import time
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
+
+# python w-helicity-13TeV/makeFakeRateStudy.py plots/distribution/muonPlots_newSF/SKIMS_muons_latest/FRclosure_MarcFR_plus/test_plots.root plots/distribution/muonPlots_newSF/SKIMS_muons_latest/FRclosure_MarcFR_minus/test_plots.root -o plots/test_fakesChargeAsym/muon_MarcFR_coarseBin/ -n dataSubEWK_ratioPlusOverMinus -z "(data - EWK) template ratio" -t "charge + / charge -" --variable ptl1_large__etal1 -p "data,data_fakes,W,Z,TauTopVV" -r 0.7 1.3 --h1Dbinning "25,0.7,1.3" --palette -1 --yRange 26 54 --rebin 6 4
+
+
+
 if __name__ == "__main__":
             
     from optparse import OptionParser
@@ -51,8 +56,9 @@ if __name__ == "__main__":
         quit()
 
 
-    procNames = options.processes.split(',')
-    if not all(x in procNames for x in ["data", "data_fakes"]):
+    procNames = options.processes.split(',')    
+    fakesName = "data_fakes" if "data_fakes" in procNames else "data_fakes_test" if "data_fakes_test" in procNames else "MISSING_FAKES"
+    if not all(x in procNames for x in ["data", fakesName]):
         print "Warning: This script requires processes named data and data_fakes. Exit"
         quit()
     hratio = 0
@@ -110,15 +116,15 @@ if __name__ == "__main__":
             procsMinus[p].RebinX(rebinx)
 
     # patch
-    #procsPlus["data_fakes"].Scale(1./1.1377)
-    #procsMinus["data_fakes"].Scale(1./1.143)
+    #procsPlus[fakesName].Scale(1./1.1377)
+    #procsMinus[fakesName].Scale(1./1.143)
 
     # sum uncertainty for xsec (above) and 2.5% of luminosity (there would be a 1% of efficiency but it is negligible)
     # loop on one histogram, the binning is the same
     for ix in range(1,1+procsPlus["data"].GetNbinsX()):
         for iy in range(1,1+procsPlus["data"].GetNbinsY()):
             for p in procNames:
-                if any(x == p for x in ["data", "data_fakes"]): continue
+                if any(x == p for x in ["data", fakesName]): continue
                 # charge plus
                 newerr = procsPlus[p].GetBinError(ix, iy)
                 bincontent = procsPlus[p].GetBinContent(ix, iy)
@@ -133,7 +139,7 @@ if __name__ == "__main__":
     data_subEWK_plus  = procsPlus["data"].Clone("data_subEWK_plus")
     data_subEWK_minus = procsMinus["data"].Clone("data_subEWK_minus")
     for p in procNames:
-        if any(x == p for x in ["data", "data_fakes"]): continue
+        if any(x == p for x in ["data", fakesName]): continue
         data_subEWK_plus.Add(procsPlus[p], -1.)        
         data_subEWK_minus.Add(procsMinus[p], -1.)
 
@@ -162,7 +168,7 @@ if __name__ == "__main__":
             if denval != 0:                
                 numval = hratio.GetBinContent(ix,iy)
                 ratio = numval / denval
-                hratioDistr.Fill(ratio)
+                #hratioDistr.Fill(ratio)
                 #hratio.SetBinContent(ix,iy,ratio)
                 if ratio < float(minx) or ratio > float(maxx): nout += 1
             else: 
@@ -200,21 +206,12 @@ if __name__ == "__main__":
                         options.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D, 
                         drawOption="colz0 text60 E")
 
-    canvas = ROOT.TCanvas("canvas","",800,700)
-    drawTH1(hratioDistr, 
-            hratio.GetZaxis().GetTitle() if options.zAxisTitle else "ratio",
-            "number of events",
-            outname,
-            "ratioDistribution",
-            options.outhistname,
-            passCanvas=canvas
-            )
-    
+    canvas = ROOT.TCanvas("canvas","",800,700)    
 
     dataSubEWK_over_fakes_plus = data_subEWK_plus.Clone("dataSubEWK_over_fakes_plus")
-    dataSubEWK_over_fakes_plus.Divide(procsPlus["data_fakes"])
+    dataSubEWK_over_fakes_plus.Divide(procsPlus[fakesName])
     dataSubEWK_over_fakes_minus = data_subEWK_minus.Clone("dataSubEWK_over_fakes_minus")
-    dataSubEWK_over_fakes_minus.Divide(procsMinus["data_fakes"])
+    dataSubEWK_over_fakes_minus.Divide(procsMinus[fakesName])
     dataSubEWK_over_fakes_plus.SetTitle("Charge +")
     dataSubEWK_over_fakes_minus.SetTitle("Charge -")
 
@@ -243,11 +240,27 @@ if __name__ == "__main__":
                         drawOption="colz0 text60 E")
     
 
-    fakesRatio = procsPlus["data_fakes"].Clone("fakesRatio")
-    fakesRatio.Divide(procsMinus["data_fakes"])
+    for i in range(1,dataSubEWKoverFakes_ratioPlusOverMinus.GetNbinsX()+1):
+        for j in range(1,dataSubEWKoverFakes_ratioPlusOverMinus.GetNbinsY()+1):
+            hratioDistr.Fill(dataSubEWKoverFakes_ratioPlusOverMinus.GetBinContent(i,j))
+
+    drawTH1(hratioDistr, 
+            dataSubEWKoverFakes_ratioPlusOverMinus.GetZaxis().GetTitle(),
+            "number of events",
+            outname,
+            "summary",
+            "dataSubEWKoverFakes_ratioPlusOverMinus",
+            passCanvas=canvas
+            )
+
+
+    fakesRatio = procsPlus[fakesName].Clone("fakesRatio")
+    fakesRatio.Divide(procsMinus[fakesName])
     fakesRatio.SetTitle("charge + / charge -")
     zAxisTitle = "QCD prediction template ratio::" + str(options.ratioRange[0]) + "," + str(options.ratioRange[1])
     drawCorrelationPlot(fakesRatio,
                         xAxisTitle,yAxisTitle,zAxisTitle,
                         "fakes_PlusOverMinus","ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D,
                         drawOption="colz0 text60 E")
+
+

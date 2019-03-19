@@ -76,7 +76,11 @@ def niceName(name):
         leptonCharge = ""
         if len(pfx):
             leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
-        return "Fakes {var}-uncorr.{n} {lepCh}".format(var="#eta" if "FakesEta" in name else "p_{T}-norm" if "FakesPtNorm" in name else "p_{T}-slope" if "FakesPtSlope" in name,n=num[0], lepCh=leptonCharge)
+        tmpvar = ""
+        if "FakesEta" in name: tmpvar = "#eta"
+        elif "FakesPtNorm" in name: tmpvar = "p_{T}-norm"
+        elif "FakesPtSlope" in name: tmpvar = "p_{T}-slope"
+        return "Fakes {var}-uncorr.{n} {lepCh}".format(var=tmpvar, n=num[0], lepCh=leptonCharge)
 
     elif re.match(".*EffStat\d+.*",name):
         num = re.findall(r'\d+', name) # get number (there will be two of them, need the second)
