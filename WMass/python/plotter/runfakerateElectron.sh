@@ -15,6 +15,9 @@ lumi_2016BF="19.7"  # to be checked, but we will never use it probably
 #--------------------------
 # choose the dataset to use (2016 B to F or 2016 B to H)
 useSignedEta="y" # distinguish bins of positive and negative rapidity (if passing binning with just positive values below, it will just skip the negative, so you are actually using half statistics)
+useMuon="n"
+charge=""  # "p", "n", or "" for positive, negative or both leptons
+useLeptonScaleFactors="y" # to use weight for lepton scale factors (since they are obtained in a different phase space, one should do it with and without and compare)
 useFull2016dataset="y"
 useJson="n"
 useSkimmedTrees="y" 
@@ -22,6 +25,9 @@ usePickle="n" # add option --usePickle when running mcAnalysis.py, some old ntup
 #--------------------------
 mtRanges="0,25,25,120"  # can stay as it is, was used with the 2-mT-region method, unless I change the fake rate script, leave it as it is: it is a dummy option
 ptDefinition="pt_granular"  # pt_coarse, pt_granular (first is mainly for QCD MC)
+if [[ "${useMuon}" == "y" ]]; then
+    ptDefinition="pt_finer"
+fi
 #ptDefinition="pt_coarse"
 #-------------------------
 
@@ -38,7 +44,11 @@ fi
 istest="y"
 # following option testdir is used only if istest is 'y'
 today=`date +"%d_%m_%Y"`
-testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_ChargeMinus"
+testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_noDensity"
+if [[ "${useMuon}" == "y" ]]; then
+    testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_etaBinMarc"
+fi
+
 ######################
 ######################
 # additional options to be passed to w-helicity-13TeV/make_fake_rates_data.py
@@ -49,10 +59,16 @@ testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_s
 #addOption=" -A eleKin pfmet 'met_pt<20' -A eleKin awayJetPt 'LepGood_awayJet_pt > 45' "
 #addOption=" -A eleKin pfmet 'met_pt<20' "
 #addOption=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "
-addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin minus 'LepGood1_charge < 0' "
+#addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40'  "
+addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin zveto 'fabs(100 - mass_2(LepGood1_awayJet_pt,LepGood1_awayJet_eta,LepGood1_awayJet_phi,0,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.000511)) > 10' "
 #addOption=" -A eleKin pfmtLess40_smearMet10 'mt_2(getSmearedVar(met_pt,0.1,evt,isData),met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' -A eleKin zveto 'fabs(100 - mass_2(LepGood_awayJet_pt,LepGood_awayJet_eta,LepGood_awayJet_phi,0,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.000511)) > 10' "
 # for the Z veto, see plots here:
 # http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/TREES_1LEP_80X_V3_FRELSKIM_V8/FR_computation_region/full2016data_01_11_2018_FRvarNotNorm/
+
+# no Z veto for muons
+if [[ "${useMuon}" == "y" ]]; then
+    addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "    
+fi
 
 
 if [[ "${useJson}" == "y" ]]; then
@@ -73,9 +89,6 @@ host=`echo "$HOSTNAME"`
 
 srtreeoption=""
 
-if [[ "${istest}" == "y" ]]; then
-    testoption=" --test ${testdir}/ "
-fi
 
 cmdComputeFR="python ${plotterPath}/w-helicity-13TeV/make_fake_rates_data.py --qcdmc  ${testoption} --fqcd-ranges ${mtRanges} --pt ${ptDefinition} --lumi ${lumi}"
 if [[ "${useFull2016dataset}" == "y" ]]; then
@@ -85,6 +98,23 @@ fi
 if [[ "${useSkimmedTrees}" == "y" ]]; then
     cmdComputeFR="${cmdComputeFR} --useSkim "
 fi
+
+if [[ "${charge}" == "p" ]]; then
+    cmdComputeFR="${cmdComputeFR} --charge \"p\" "
+elif [[ "${charge}" == "n" ]]; then
+    cmdComputeFR="${cmdComputeFR} --charge \"n\" "
+fi
+    
+
+if [[ "${useMuon}" == "y" ]]; then
+    cmdComputeFR="${cmdComputeFR} --mu"
+fi
+
+if [[ "${useLeptonScaleFactors}" != "y" ]]; then
+    cmdComputeFR="${cmdComputeFR} --no-scaleFactors"
+    testdir="${testdir}_noLepSF"
+fi
+
 
 if [[ "${usePickle}" == "y" ]]; then
     cmdComputeFR="${cmdComputeFR} --usePickle "
@@ -97,6 +127,12 @@ fi
 if [[ "X${addOption}" != "X" ]]; then
     cmdComputeFR="${cmdComputeFR} --addOpts \"${addOption}\" "
 fi
+
+
+if [[ "${istest}" == "y" ]]; then
+    testoption=" --test ${testdir}/ "
+fi
+
 
 echo "Running: ${cmdComputeFR}"
 echo "${cmdComputeFR} > commands4fakeRate.sh" | bash

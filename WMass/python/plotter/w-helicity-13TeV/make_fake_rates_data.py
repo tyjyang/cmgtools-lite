@@ -11,9 +11,10 @@ parser.add_option("--charge", dest="charge", default="", type='string', help="Se
 parser.add_option("--lumi", dest="lumi", default=35.9 , type='float', help="Integrated luminosity");
 parser.add_option("--test", dest="test", default="", type='string', help="pass the name of a folder (mandatory) to store test FR plots. It is created in plots/fake-rate/test/");
 parser.add_option("--fqcd-ranges", dest="fqcd_ranges", default="0,40,50,120", type='string', help="Pass a list of 4 comma separated numbers that represents the ranges for the two mT regions to compute the fake rate");
-parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse");
+parser.add_option("--pt", dest="ptvar", default="pt_granular", type='string', help="Select pT definition: pt_granular (default) or pt_coarse, or pt_finer (for muons)");
 parser.add_option("--useSkim", dest="useSkim", default=False, action='store_true', help="Use skimmed sample for fake rates");
 parser.add_option("--usePickle", dest="usePickle", default=False, action='store_true', help="Read SumWeigth from pickle file (in case the hisotgram with this number is not present in the ntuples)");
+parser.add_option("--no-scaleFactors", dest="noScaleFactors", default=False, action='store_true', help="Don't use lepton scale factors (only PU weight)");
 parser.add_option("--useSignedEta", dest="useSignedEta", default=False, action='store_true', help="Make fake rate for eta bins distinguishing eta sign");
 parser.add_option("--makeTH3-eta-pt-passID", dest="makeTH3_eta_pt_passID", default=False, action='store_true', help="This option is special. It will make the following create only the TH3D histograms with |eta|, pt and passID. This will allow to compute the FR in any binning of pt and eta (using another macro). It overrides some other options");
 parser.add_option("--addOpts", dest="addOpts", default="", type='string', help="Options to pass some other options from outside to build the command");
@@ -32,14 +33,16 @@ useSignedEta = options.useSignedEta
 addOpts = options.addOpts
 luminosity = options.lumi
 
-print "useFullData2016 = " + str(useFullData2016)
+print "# useFullData2016 = " + str(useFullData2016)
 
 if useSignedEta:
-    fitvar = "etal1"
-    etaRange = [ '-2.5', '2.5']
+    fitvar = "etal1mu" if useMuon else "etal1"
+    etaRange = [ '-2.4', '2.4'] if useMuon else [ '-2.5', '2.5']
 else:
-    fitvar = "absetal1"
-    etaRange = [ '0.0', '2.5']
+    fitvar = "absetal1mu" if useMuon else "absetal1"  
+    etaRange = [ '0.0', '2.4'] if useMuon else [ '0.0', '2.5']  
+    
+
 
 if not useMuon and ptvar not in ["pt_coarse", "pt_granular"]:
     print "warning: unknown pt definition %s, use pt_coarse, pt_granular" % ptvar
@@ -54,9 +57,9 @@ plotterPath = plotterPath + "/src/CMGTools/WMass/python/plotter/"
 chargeSelection = ""
 if charge != "":
     if charge == "p":
-        chargeSelection = "-A onelep positive 'LepGood1_pdgId < 0'"
+        chargeSelection = "-A onelep positive 'LepGood1_charge > 0'"
     elif charge == "n":
-        chargeSelection = "-A onelep negative 'LepGood1_pdgId > 0'"
+        chargeSelection = "-A onelep negative 'LepGood1_charge < 0'"
     else:
         print "%s is not a valid input for charge setting: use p or n" % charge
         quit()
@@ -65,14 +68,16 @@ T="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/"
 if useSkim:
     #T="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_FRELSKIM_V5/"
     T="/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9/"
+if useMuon:
+    T="/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/"
 objName='tree' # name of TTree object in Root file, passed to option --obj in tree2yield.py
 # if 'pccmsrm29' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/u2/emanuele')
 # elif 'lxplus' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/afs/cern.ch/work/e/emanuele/TREES/')
 # elif 'cmsrm-an' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/t3/users/dimarcoe/')
-print "used trees from: ",T
+print "# used trees from: ",T
 
 #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp 'data_G,data_H' "
-ptcorr = "ptElFull(LepGood1_calPt,LepGood1_eta)"
+ptcorr = "ptMuFull(LepGood1_calPt,LepGood1_eta)" if useMuon else "ptElFull(LepGood1_calPt,LepGood1_eta)"
 ptForScaleFactors =  "LepGood_pt"  # or ptcorr
 #MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
 #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' # SF1 is trigger scale factor
@@ -84,6 +89,12 @@ if useFullData2016:
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)" ' 
     MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
 
+if useMuon:
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)*prefireJetsWeight(LepGood1_eta)" ' 
+
+if options.noScaleFactors:
+    print "# Warning: not using lepton scale factors: only PU weight"
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)" '
 
 J=4
 
@@ -96,10 +107,11 @@ NUM = "fakeRateNumerator_el"
 
 if useMuon:
     BASECONFIG=plotterPath + "w-helicity-13TeV/wmass_mu"
-    MCA=BASECONFIG+'/mca-qcd1l_mu.txt'
+    MCA=BASECONFIG+'/mca-80X_forFR.txt'
     CUTFILE=BASECONFIG+'/qcd1l_mu.txt'
-    XVAR="pt_finer"
-    FITVAR="fitvar"
+    XVAR=ptvar
+    FITVAR=fitvar
+    NUM = "fakeRateNumerator_mu"
 
 OPTIONS = MCA + " " + CUTFILE + " -f -P " + T + " --obj " + objName + " --s2v -j " + str(J) + " -l " + str(luminosity) + " " + str(addOpts)
  
@@ -122,6 +134,8 @@ if useMuon:
     PBASE = plotterPath + "plots/fake-rate/mu/"
 if testDir != "":
     PBASE = PBASE.replace('plots/fake-rate/','plots/fake-rate/test/'+str(testDir)+'/')
+    if useMuon:
+        PBASE = PBASE.replace("plots/fake-rate/test/","plots/fake-rate/test_mu/")
 
 if charge == "p":
     PBASE = PBASE + "pos/"

@@ -8,9 +8,13 @@ from array import array
 from testRolling import getbinning
 from rollingFunctions import *
 
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
+
 ROOT.gROOT.SetBatch()
 ##ROOT.gStyle.SetPalette(55)
 ROOT.gStyle.SetPalette(ROOT.kTemperatureMap)
+ROOT.gStyle.SetNumberContours(51)
 ROOT.gErrorIgnoreLevel = 100
 
 canv = ROOT.TCanvas()
@@ -96,7 +100,10 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='outdput directory to save the matrix')
     parser.add_option('-s','--syst', dest='systematics', default=None, type='string', help='systematics of which drawing the ratio (comma-separated list of)')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
+    parser.add_option(     '--skip-signal', dest="skipSignal", default=False, action='store_true', help="Skip signal processes");
     parser.add_option('-u','--unrolled', dest='unrolled', default=False, action='store_true', help='make the 1D ratios on the unrolled plot for all the listed systematics')
+    parser.add_option('-r','--syst-ratio-range', dest='systRatioRange', default='', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template\'s min and max values are used (they will be different for each template). With "templateSym", the range is set symmetrically using max(abs(minz),maxz).') 
+    parser.add_option('-p','--processes', dest='processes', default='', type='string', help='Comma-separated list of processes to consider (if empty, all processes are used). It overrides --skip-signal')
     (options, args) = parser.parse_args()
     channel = args[1]
 
@@ -118,29 +125,29 @@ if __name__ == "__main__":
         keylist = infile.GetListOfKeys()
         siglist = list( i.GetName() for i in keylist if 'Ybin_' in i.GetName() )
         fulllist = list(i.GetName() for i in keylist)
-        nY[charge+'_left']  = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'left'  in i)
-        nY[charge+'_right'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'right' in i)
-        nY[charge+'_long'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'long' in i)
-        nPDF = max( int(i.split('_')[-1].replace('pdf','').replace('Down','').replace('Up','')) for i in siglist if 'pdf' in i)
+        nPDF = 60
+        if len(siglist):
+            nY[charge+'_left']  = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'left'  in i)
+            nY[charge+'_right'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'right' in i)
+            nY[charge+'_long'] = max( int(i.split('_')[-2]) for i in siglist if 'pdf' in i and 'long' in i)
+            nPDF = max( int(i.split('_')[-1].replace('pdf','').replace('Down','').replace('Up','')) for i in siglist if 'pdf' in i)
 
         bkgs = ['data_fakes','Flips','DiBosons','Top','TauDecaysW','Z']
         #bkgs = []#['data_fakes'] # other than W_{L,R}
         wlr = ['W{ch}_{p}_W{ch}_{p}_{flav}_Ybin_0'.format(ch=charge,p=pol,flav=channel) for pol in ['left','right', 'long'] ]
-        procs=wlr+bkgs
+        procs= bkgs if options.skipSignal else wlr+bkgs
+        if len(options.processes):
+            procs = [x for x in options.processes.split(',')]
 
-        binninPtEtaFile = open(args[0]+'/binningPtEta.txt','r')
-        bins = binninPtEtaFile.readlines()[1].split()[1]
-        ## hack. easier
-        etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-        ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-        nbinseta = len(etabins)-1
-        nbinspt  = len( ptbins)-1
+        # get eta-pt binning for both reco 
+        etaPtBinningVec = getDiffXsecBinning(args[0]+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+        recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+        etabins = recoBins.etaBins
+        ptbins  = recoBins.ptBins
+        nbinseta = recoBins.Neta
+        nbinspt  = recoBins.Npt
         binning = [nbinseta, etabins, nbinspt, ptbins]
-        ## jobsdir = args[0]+'/jobs/'
-        ## jobfile_name = 'W{ch}_left_{flav}_Ybin_4.sh'.format(ch=charge,flav=channel)
-        ## tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-        ## tmp_line = tmp_jobfile.readlines()[-1].replace(', ',',').split()
-        ## binning = getbinning(tmp_line)
+
 
         ratios={}
         for proc in procs:
@@ -228,6 +235,15 @@ if __name__ == "__main__":
             if not options.no2Dplot:
                 canv = ROOT.TCanvas()
                 for k,r in ratios.iteritems():
+                    if len(options.systRatioRange):
+                        if options.systRatioRange == "template":
+                            r.GetZaxis().SetRangeUser(r.GetBinContent(r.GetMinimumBin()), r.GetBinContent(r.GetMaximumBin()))
+                        elif options.systRatioRange == "templateSym":
+                            maxz = max(abs(r.GetBinContent(r.GetMinimumBin())), r.GetBinContent(r.GetMaximumBin()))
+                            r.GetZaxis().SetRangeUser(-maxz, maxz)
+                        else:
+                            (minz,maxz) = options.systRatioRange.split(',')
+                            r.GetZaxis().SetRangeUser(float(minz),float(maxz))                            
                     r.Draw('colz')
                     for ext in ['pdf', 'png']:
                         canv.SaveAs('{odir}/{name}.{ext}'.format(odir=outname,name=k,ext=ext))

@@ -9,3 +9,4 @@ fakeRateNumerator_el: LepGood1_hltId > 0 && LepGood1_customId == 1 && LepGood1_t
 MuonIso: LepGood1_relIso04 < 0.12 :  2,-0.5,1.5;   Title="muon isolation", MarkerColor=4,  MarkerStyle=21, MarkerSize=1.3
 MuonTightIso: LepGood1_tightId > 0 && LepGood1_relIso04 < 0.12 :  2,-0.5,1.5;   Title="muon isolation", MarkerColor=4,  MarkerStyle=21, MarkerSize=1.3
 
+fakeRateNumerator_mu: LepGood1_relIso04 < 0.15:  2,-0.5,1.5;   Title="Muon isolation", MarkerColor=4,  MarkerStyle=21, MarkerSize=1.3
