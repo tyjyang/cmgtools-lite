@@ -235,7 +235,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
             print 'this is ptbins', ptbins
-            ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
+            #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
+            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
             borderBins = []
             for i in ptBorders[:-1]:
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
@@ -390,28 +391,32 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def writeChargeGroup(cardfile,signals,polarizations,channel):
+def writeChargeGroup(cardfile,signals,polarizations):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
     for pol in polarizations:
         cardfile.write('\n')
         for y in xrange(maxiY+1):
-            cardfile.write('W_{pol}_{flavor}_Ybin_{y} chargeGroup = Wplus_{pol}_Wplus_{pol}_{flavor}_Ybin_{y} Wminus_{pol}_Wminus_{pol}_{flavor}_Ybin_{y}\n'.format(pol=pol,flavor='mu' if 'mu' in channel else 'el',y=y))
+            cardfile.write('W_{pol}_Ybin_{y} chargeGroup = Wplus_{pol}_Ybin_{y} Wminus_{pol}_Ybin_{y}\n'.format(pol=pol,y=y))
 
-def writePolGroup(cardfile,signals,polarizations,channel,grouping='polGroup'):
+def writePolGroup(cardfile,signals,polarizations,grouping='polGroup'):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
-    flavor='mu' if 'mu' in channel else 'el'
     for charge in ['plus','minus']:
         cardfile.write('\n')
         for y in xrange(maxiY+1):
-            group = ' '.join(['W{charge}_{pol}_W{charge}_{pol}_{flavor}_Ybin_{y}'.format(charge=charge,pol=pol,flavor=flavor,y=y) for pol in polarizations])
-            cardfile.write('W{charge}_{flavor}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,flavor=flavor,y=y,grp=grouping,procs=group))
+            group = ' '.join(['W{charge}_{pol}_Ybin_{y}'.format(charge=charge,pol=pol,y=y) for pol in polarizations])
+            cardfile.write('W{charge}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,y=y,grp=grouping,procs=group))
 
-def writeChargeMetaGroup(cardfile,signals,channel):
+def writeChargeMetaGroup(cardfile,signals):
      maxiY = max([int(proc.split('_')[-1]) for proc in signals])
-     flavor='mu' if 'mu' in channel else 'el'
      cardfile.write('\n')
      for y in xrange(maxiY+1):
-          cardfile.write('W_{flavor}_Ybin_{y} chargeMetaGroup = Wplus_{flavor}_Ybin_{y} Wminus_{flavor}_Ybin_{y}\n'.format(flavor=flavor,y=y))
+          cardfile.write('W_Ybin_{y} chargeMetaGroup = Wplus_Ybin_{y} Wminus_Ybin_{y}\n'.format(y=y))
+
+def cleanProcessName(name):
+    tokens = name.split('_')
+    uniquet = reduce(lambda l, x: l+[x] if x not in l else l, tokens, [])
+    cleanName = '_'.join([t for t in uniquet if (t!='el' and t!='mu')])
+    return cleanName
 
 if __name__ == "__main__":
     
@@ -471,13 +476,12 @@ if __name__ == "__main__":
         ## marc sys.exit()
     
         ## prepare the relevant files. only the datacards and the correct charge
-        allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
+        allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir,followlinks=True) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
         files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
-        
+    
         existing_bins = {'left': [], 'right': [], 'long': []}
         empty_bins = {'left': [], 'right': [], 'long': []}
-    
     
         ybins = {}
         for pol in ['left','right','long']:
@@ -545,6 +549,7 @@ if __name__ == "__main__":
                                     newprocname = p+'_'+bin if re.match('Wplus|Wminus',p) else p  # WARNING: the if else only affects "bin", not "p+'_'+bin"
                                     if longBKG and re.match('(Wplus_long|Wminus_long)',p): newprocname = p
                                     newname = name.replace(p,newprocname)
+                                    newprocname = cleanProcessName(newprocname); newname = cleanProcessName(newname)
                                     if irf==0:
                                         if newname not in plots:
                                             ############### special case to fix jet pt syst on FR
@@ -687,7 +692,10 @@ if __name__ == "__main__":
                         klen = 7
                         kpatt = " %%%ds "  % klen
                         for i in xrange(len(pseudobins)):
-                            realprocesses.append(pseudoprocesses[i]+"_"+pseudobins[i] if ('Wminus' in pseudobins[i] or 'Wplus' in pseudobins[i]) else pseudoprocesses[i])
+                            if 'Wminus' in pseudobins[i] or 'Wplus' in pseudobins[i]:
+                                realprocesses.append(pseudobins[i].replace('_el_','_').replace('_mu_','_'))
+                            else:
+                                realprocesses.append(pseudoprocesses[i])
                         combinedCard.write('bin            %s \n' % ' '.join([kpatt % options.bin for p in pseudoprocesses]))
                         #combinedCard.write('process        %s \n' % ' '.join([kpatt % p for p in realprocesses]))
                         ## marc combinedCard.write('process        %s \n' % ' '.join([kpatt % str(i+1) for i in xrange(len(pseudobins))]))
@@ -716,7 +724,7 @@ if __name__ == "__main__":
                 elif nmatchprocess>2: combinedCard.write(l)
         
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
-        
+
         kpatt = " %7s "
         if options.longLnN:
             combinedCard.write('norm_long_'+options.bin+'       lnN    ' + ' '.join([kpatt % (options.longLnN if 'long' in x else '-') for x in realprocesses])+'\n')
@@ -877,10 +885,10 @@ if __name__ == "__main__":
         print tmp_sigprocs
         print '============================================================================='
         if not options.freezePOIs and not options.longLnN: # right now cannot group signal and backgrounds
-            writePolGroup(combinedCard,tmp_sigprocs,polarizations,options.bin,grouping='polGroup')
-            writePolGroup(combinedCard,tmp_sigprocs,polarizations,options.bin,grouping='sumGroup')
-            writeChargeGroup(combinedCard,tmp_sigprocs,polarizations,options.bin)
-            writeChargeMetaGroup(combinedCard,tmp_sigprocs,options.bin)
+            writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
+            writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
+            writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
+            writeChargeMetaGroup(combinedCard,tmp_sigprocs)
         combinedCard.close()
             
         ## here we make a second datacard that will be masked. which for every process
