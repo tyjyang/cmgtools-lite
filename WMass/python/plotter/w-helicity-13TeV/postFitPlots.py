@@ -49,7 +49,7 @@ def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
 
 def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
     # guess from a signal with charge defined name
-    h1d = infile.Get('expproc_Wplus_left_Wplus_left_{ch}_Ybin_0_postfit'.format(ch=channel))
+    h1d = infile.Get('expproc_Wplus_left_Ybin_0_postfit')
     # shift the 1D to remove the empty bins of the other charge
     nbins = int((h1d.GetNbinsX()-nCharges*nMaskedCha)/2)
     ret = {}
@@ -395,8 +395,8 @@ if __name__ == "__main__":
                     ymax = ybins[chpol][ybin+1]
          
                     chs = '+' if charge == 'plus' else '-' 
-                    h1_1 = infile.Get('expproc_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}_{sfx}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin,sfx=prepost))
-                    name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                    h1_1 = infile.Get('expproc_W{ch}_{pol}_Ybin_{ybin}_{sfx}'.format(ch=charge,pol=pol,ybin=ybin,sfx=prepost))
+                    name2D = 'W{ch}_{pol}_Ybin_{ybin}'.format(ch=charge,pol=pol,ybin=ybin)
                     title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
                     h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift)
                     h1_unrolled = singleChargeUnrolled(h1_1,binshift)
