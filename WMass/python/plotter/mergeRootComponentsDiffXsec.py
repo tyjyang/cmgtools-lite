@@ -351,19 +351,21 @@ print "-"*20
 print ""
 
 fileFakesEtaUncorr = "{od}FakesEtaUncorrelated_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge) 
+fileFakesEtaChargeUncorr = "{od}FakesEtaChargeUncorrelated_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge) 
 fileFakesPtSlopeUncorr  = "{od}FakesPtSlopeUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
 fileFakesPtNormUncorr  = "{od}FakesPtNormUncorrelated_{fl}_{ch}.root".format( od=outdir, fl=flavour, ch=options.charge) 
 # these names are used inside putUncorrelatedFakes (do not change them outside here)
-print "Now adding FakesEtaUncorrelated and FakesPtSlopeUncorrelated and FakesPtNormUncorrelated systematics to x_data_fakes process"
+print "Now adding Fakes*Uncorrelated systematics to x_data_fakes process"
 print "Will create file --> {of}".format(of=fileFakesEtaUncorr)
+print "Will create file --> {of}".format(of=fileFakesEtaChargeUncorr)
 print "Will create file --> {of}".format(of=fileFakesPtSlopeUncorr)
 print "Will create file --> {of}".format(of=fileFakesPtNormUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
 if not options.dryrun: 
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
                          doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge)
-    #putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-    #                     doType='eta', uncorrelateCharges=True)
+    putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+                        doType='etacharge', uncorrelateCharges=True) # this is always true
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
                          doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
@@ -372,14 +374,15 @@ if not options.dryrun:
 print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
 
-cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesPtSlope} {fakesPtNorm} {zEffStat}".format(of=shapename, 
-                                                                                                              sig=sigfile, 
-                                                                                                              zf=Zfile, 
-                                                                                                              bkg=dataAndBkgFileTmp, 
-                                                                                                              fakesEta=fileFakesEtaUncorr,
-                                                                                                              fakesPtSlope=fileFakesPtSlopeUncorr,
-                                                                                                              fakesPtNorm=fileFakesPtNormUncorr,
-                                                                                                              zEffStat=fileZeffStat)
+cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesEtaCharge} {fakesPtSlope} {fakesPtNorm} {zEffStat}".format(of=shapename, 
+                                                                                                                               sig=sigfile, 
+                                                                                                                               zf=Zfile, 
+                                                                                                                               bkg=dataAndBkgFileTmp, 
+                                                                                                                               fakesEta=fileFakesEtaUncorr,
+                                                                                                                               fakesEtaCharge=fileFakesEtaChargeUncorr,
+                                                                                                                               fakesPtSlope=fileFakesPtSlopeUncorr,
+                                                                                                                               fakesPtNorm=fileFakesPtNormUncorr,
+                                                                                                                               zEffStat=fileZeffStat)
 print "Final merging ..."
 print cmdFinalMerge
 if not options.dryrun: os.system(cmdFinalMerge)
