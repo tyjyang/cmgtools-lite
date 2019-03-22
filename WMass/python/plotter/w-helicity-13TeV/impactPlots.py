@@ -78,6 +78,7 @@ if __name__ == "__main__":
     parser.add_option('-y','--ybinfile',   dest='ybinfile',   default='',  type='string', help='do 1D summary plot as a function of YW using this file with the yw binning')
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='do 1D summary plot as a function of |eta| using this file with the |eta| binning')
     parser.add_option(     '--splitOutByTarget', dest='splitOutByTarget' , default=False , action='store_true',   help='Create a subfolder appending target to output directory, where plots will be saved')
+    parser.add_option(     '--pt-min-signal'  , dest='ptMinSignal',  default=-1, type=float, help='Only for 2D xsec: specify the minimum pt for the bins considered as signal. If not given, take the very first pt value from the gen pt binning')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -382,6 +383,10 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
+        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "reco")
+        recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, recoBins.ptBins[0], recoBins.ptBins[-1])
+
         cs = ROOT.TCanvas("cs","",1800,900)
         cs.SetLeftMargin(0.1)
         cs.SetRightMargin(0.05)
@@ -397,7 +402,7 @@ if __name__ == "__main__":
                 else: sign='+' if charge is 'plus' else '-' 
                 # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
                 thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol=pol,chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-                header = "#bf{{Uncertainties on {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
+                header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
                 leg.SetHeader(header)            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
@@ -489,7 +494,7 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
-        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, genBins.ptBins[0], genBins.ptBins[-1])
+        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, genBins.ptBins[0] if options.ptMinSignal < 0 else options.ptMinSignal, genBins.ptBins[-1])
 
         #for key in fitErrors:
         #    print "fitErrors: key = " + key

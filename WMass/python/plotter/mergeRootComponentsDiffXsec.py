@@ -362,6 +362,8 @@ etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split('
 if not options.dryrun: 
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
                          doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge)
+    #putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
+    #                     doType='eta', uncorrelateCharges=True)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
                          doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 

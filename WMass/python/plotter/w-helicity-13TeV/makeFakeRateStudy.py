@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_option(     '--variable',    dest='variable',    default='ptl1large__etal1', type='string', help='Variable to get histogram inside file')
     parser.add_option('-p','--processes',   dest='processes',   default='data,data_fakes,Wincl,Z,TauTopVVFlips', type='string', help='Comma separated list of processes (to build histogram\'s name to be taken from input file)')
     parser.add_option(     '--rebin'     , dest='rebin', default=(-1,-1), type='int', nargs=2, help='Rebin bins along x and y axis by these factors. Keep one of the two ngative to rebin only the others')
+    parser.add_option(      '--no-lumi-xsec',   dest='noLumiXsec',   default=False, action='store_true', help='Do not propagate luminosity and cross section uncertainty')
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 2:
@@ -57,7 +58,10 @@ if __name__ == "__main__":
 
 
     procNames = options.processes.split(',')    
-    fakesName = "data_fakes" if "data_fakes" in procNames else "data_fakes_test" if "data_fakes_test" in procNames else "MISSING_FAKES"
+    fakesName = "MISSING FAKES"
+    for name in procNames:
+        if "data_fakes" in name: fakesName = name
+    #fakesName = "data_fakes" if "data_fakes" in procNames else "data_fakes_test" if "data_fakes_test" in procNames else "MISSING_FAKES"
     if not all(x in procNames for x in ["data", fakesName]):
         print "Warning: This script requires processes named data and data_fakes. Exit"
         quit()
@@ -128,12 +132,14 @@ if __name__ == "__main__":
                 # charge plus
                 newerr = procsPlus[p].GetBinError(ix, iy)
                 bincontent = procsPlus[p].GetBinContent(ix, iy)
-                newerr = pow(newerr,2) + pow(xsecUncProc[p]*bincontent,2) + pow(0.025*bincontent,2)
+                newerr = pow(newerr,2) 
+                if not options.noLumiXsec: newerr +=  pow(xsecUncProc[p]*bincontent,2) + pow(0.025*bincontent,2)
                 procsPlus[p].SetBinError(ix, iy, math.sqrt(newerr))
                 # charge minus
                 newerr = procsMinus[p].GetBinError(ix, iy)
                 bincontent = procsMinus[p].GetBinContent(ix, iy)
-                newerr = pow(newerr,2) + pow(xsecUncProc[p]*bincontent,2) + pow(0.025*bincontent,2)
+                newerr = pow(newerr,2)
+                if not options.noLumiXsec: newerr += pow(xsecUncProc[p]*bincontent,2) + pow(0.025*bincontent,2)
                 procsMinus[p].SetBinError(ix, iy, math.sqrt(newerr))
         
     data_subEWK_plus  = procsPlus["data"].Clone("data_subEWK_plus")
