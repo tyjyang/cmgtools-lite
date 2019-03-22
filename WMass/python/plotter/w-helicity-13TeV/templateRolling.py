@@ -403,10 +403,10 @@ if __name__ == "__main__":
                             if "outliers" in name:
                                 drawThisBin = True
                                 name2D = 'W{ch}_{flav}_outliers'.format(ch=charge,flav=channel)
-                                title2D = 'W{chs}: |#eta| > {etamax}#; p_{{T}} #notin [{ptmin:3g},{ptmax:.3g})'.format(etamax=genBins.etaBins[-1],
-                                                                                                                        ptmin=genBins.ptBins[0],
-                                                                                                                        ptmax=genBins.ptBins[-1],
-                                                                                                                        chs=chs)
+                                title2D = 'W{chs}: |#eta| > {etamax}   p_{{T}} #notin [{ptmin:3g},{ptmax:.3g})'.format(etamax=genBins.etaBins[-1],
+                                                                                                                       ptmin=genBins.ptBins[0],
+                                                                                                                       ptmax=genBins.ptBins[-1],
+                                                                                                                       chs=chs)
                             else:
                                 etabinIndex,ptbinIndex = get_ieta_ipt_from_process_name(name)
                                 if options.draw_all_bins: drawThisBin = True
@@ -415,12 +415,11 @@ if __name__ == "__main__":
                                     else: drawThisBin = True
                                 else: drawThisBin = False
                                 name2D = 'W{ch}_{flav}_ieta_{ieta}_ipt_{ipt}'.format(ch=charge,flav=channel,ieta=etabinIndex,ipt=ptbinIndex)
-                                title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})#; p_{{T}} #in [{ptmin:.3g},{ptmax:.3g})'.format(etamin=genBins.etaBins[etabinIndex],
+                                title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})   p_{{T}} #in [{ptmin:.3g},{ptmax:.3g})'.format(etamin=genBins.etaBins[etabinIndex],
                                                                                                                                   etamax=genBins.etaBins[etabinIndex+1],
                                                                                                                                   ptmin=genBins.ptBins[ptbinIndex],
                                                                                                                                   ptmax=genBins.ptBins[ptbinIndex+1],
                                                                                                                                   chs=chs)
-
                             h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
                             if options.normWidth: 
                                 h2_backrolled_1.Scale(1.,"width")

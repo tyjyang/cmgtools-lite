@@ -62,6 +62,7 @@ if __name__ == "__main__":
     parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
     parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used.')
+    parser.add_option(     '--blind-data', dest='blindData' , default=False , action='store_true',   help='If True, data is substituded with hessian (it requires passing the file with option --expected-toyfile')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -79,22 +80,19 @@ if __name__ == "__main__":
             quit()
 
 
+    if options.blindData:
+        if len(options.exptoyfile) == 0:
+            print "WARNING: you used option --blind-data, but you didn't specify a hessian file with option --expected-toyfile. Exit"
+            quit()
+        if options.fitData:
+            print "WARNING: options --blind-data and --fit-data are not compatible. The former will effectively make plots with Asimov. Exit"
+            quit()            
 
-    if options.outdir:
-        outname = options.outdir
-        addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
-        if options.hessian: outname = outname + "/hessian"
-        else              : outname = outname + "/toys"
-        if len(options.suffix): outname = outname + "_" + options.suffix + "/"
-        else                  : outname = outname + "/"
-        createPlotDirAndCopyPhp(outname)
-    else:
-        print "Error: you should specify an output folder using option -o <name>. Exit"
-        quit()
 
     if not options.toyfile:
         print "Error: you should specify a file containing the toys using option -t <name>. Exit"
         quit()
+
 
 
     if options.inputdir:
@@ -111,6 +109,20 @@ if __name__ == "__main__":
             ngroup = 1 
     else:
         print "Error: you should specify an input folder containing all the cards using option -i <name>. Exit"
+        quit()
+
+
+    if options.outdir:
+        outname = options.outdir
+        addStringToEnd(outname,"/",notAddIfEndswithMatch=True)
+        if options.hessian:     outname = outname + "/hessian"
+        else              :     outname = outname + "/toys"
+        if len(options.suffix): outname = outname + "_" + options.suffix
+        if options.blindData:   outname = outname + "_blindData"
+        outname = outname + "/"
+        createPlotDirAndCopyPhp(outname)
+    else:
+        print "Error: you should specify an output folder using option -o <name>. Exit"
         quit()
 
     xsecChargefile = {}
@@ -187,7 +199,8 @@ if __name__ == "__main__":
 
     lepton = "electron" if channel == "el" else "muon"
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu")
-    ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu", ptmin=genBins.ptBins[0], ptmax=genBins.ptBins[-1])
+    ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu", 
+                                                                            ptmin=genBins.ptBins[firstPtSignalBin], ptmax=genBins.ptBins[-1])
     labelRatioDataExp = "exp./obs.::0.8,1.2" if options.invertRatio else "obs./exp.::0.8,1.2"
 
     hChAsymm = ROOT.TH2F("hChAsymm_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
@@ -204,7 +217,11 @@ if __name__ == "__main__":
     binCount = 1        
     print "Now filling histograms with charge asymmetry"
 
-    f = ROOT.TFile(options.toyfile, 'read')
+    mainfile = options.toyfile
+    if options.blindData:        
+        mainfile = options.exptoyfile
+
+    f = ROOT.TFile(mainfile, 'read')
     tree = f.Get('fitresults')
     if options.friend != "":
         tree.AddFriend('toyFriend',options.friend)
@@ -493,8 +510,8 @@ if __name__ == "__main__":
             if charge == "plus": zmin,zmax = 30,130
             else:                zmin,zmax = 10,110
         else:
-            if charge == "plus": zmin,zmax = 20,120
-            else:                zmin,zmax = 20,100
+            if charge == "plus": zmin,zmax = 10,120
+            else:                zmin,zmax = 10,100
 
         zminHist = hDiffXsec.GetBinContent(hDiffXsec.GetMinimumBin())                                                   
         zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} [pb/GeV]::%.3f,%.3f" % (0.99*(zminHist if zminHist > 1. else zmin),
@@ -528,8 +545,8 @@ if __name__ == "__main__":
                             hDiffXsecRelErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
-        if charge == "plus": zmin,zmax = 0.008,0.028
-        else:                zmin,zmax = 0.008,0.029
+        if charge == "plus": zmin,zmax = 0.002,0.032
+        else:                zmin,zmax = 0.002,0.032
         #zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (0.9*hDiffXsecNorm.GetMinimum(),hDiffXsecNorm.GetMaximum())
         zaxisTitle = "d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.3f,%.3f" % (zmin,zmax)
         drawCorrelationPlot(hDiffXsecNorm,
@@ -810,11 +827,14 @@ if __name__ == "__main__":
                         
                         additionalTextBackup = additionalText
                         additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
-
+                        
+                        labelRatioDataExp_asym = labelRatioDataExp
+                        labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
                         h1D_chargeAsym_exp = getTH1fromTH2(hChargeAsym_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
                         drawDataAndMC(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_exp,xaxisTitle.replace("cross section", "charge asymmetry"),
                                       "charge asymmetry::0,1.0", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
-                                      outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
+                                      outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,
+                                      lumi=options.lumiInt,
                                       drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                                       leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio)
 
@@ -864,7 +884,7 @@ if __name__ == "__main__":
                                   outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,
                                   passCanvas=canvas1D,lumi=options.lumiInt, legendCoords=legendCoords,
                                   lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio,
-                                  histMCpartialUnc=hChAsymmPDF_1D, histMCpartialUncLegEntry="PDF unc."
+                                  #histMCpartialUnc=hChAsymmPDF_1D, histMCpartialUncLegEntry="PDF unc."
                                   )
 
                     additionalText = additionalTextBackup

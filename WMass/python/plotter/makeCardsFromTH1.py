@@ -132,6 +132,7 @@ parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', defau
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
 parser.add_option(       '--tauChargeLnN'   , dest='tauChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to tau for each charge (e.g. 0.05 for 5%)')
+parser.add_option(       '--fakesChargeLnN' , dest='fakesChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to fakes for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
@@ -419,6 +420,13 @@ if options.tauChargeLnN > 0.0:
         allSystForGroups.append(syst)
         card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
 
+if options.fakesChargeLnN > 0.0:
+    syst = "CMS_W" + flavour + "_FR_norm" + ("Plus" if charge == "plus" else "Minus")
+    if not isExcludedNuisance(excludeNuisances, syst): 
+        allSystForGroups.append(syst)
+        card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.fakesChargeLnN) if p == "data_fakes"  else "-") for p in allprocesses]) + "\n")
+
+
 ###########
 ####### Nuisances for fakes
 # first the uncorrelated part (there are currently 3 of them, for Eta, PtSlope and PtNorm)
@@ -439,7 +447,7 @@ else:
 ff.Close()
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
-        syst = "FakesEtaUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
+        syst = "FakesEtaUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge) # flch=flavour+charge)  #flch=postfixForFlavourAndCharge)
         if isExcludedNuisance(excludeNuisances, syst): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        

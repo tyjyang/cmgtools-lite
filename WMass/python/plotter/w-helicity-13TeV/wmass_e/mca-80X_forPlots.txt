@@ -195,7 +195,7 @@ data_fakes_pol1fitPt30to48: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-he
 
 data_fakes_pol1: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol1fitPt30to48.txt", Label="Fakes (fit 30-48)", FillColor=ROOT.kGray, NormSystematic=0.20
 
-data_fakes_pol2: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol2.txt", Label="Fakes (pol2)", FillColor=ROOT.kBlue, NormSystematic=0.20
+data_fakes_pol2: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-pol2.txt", Label="Fakes", FillColor=ROOT.kBlue, NormSystematic=0.20
 
 data_fakes_nomiColor: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes", FillColor=ROOT.kBlack, NormSystematic=0.20
 
