@@ -383,14 +383,7 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
-        # get file with binning from path in args[0], assuming it is in /foo/bar/cards/<folder>/binningPtEta.txt
-        # might be better to explicitely pass an option (for 1D xsec it is already done because I don't take the rapidity file
-        foldernames = args[0].split("/")
-        ifolder = -1
-        for i,f in enumerate(foldernames):
-            if f == "cards": ifolder = i+1
-        etaptbinfile = "/".join(f for f in foldernames[:ifolder]) + "/binningPtEta.txt"
-        if args[0].startswith("/"): etaptbinfile = "/" + etaptbinfile 
+        etaptbinfile = options.ybinfile.replace("binningYW.txt","binningPtEta.txt")
         etaPtBinningVec = getDiffXsecBinning(etaptbinfile, "reco")
         recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
         ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, recoBins.ptBins[0], recoBins.ptBins[-1])
@@ -601,6 +594,6 @@ if __name__ == "__main__":
                 cs.SetLogy()
                 cs.SaveAs(options.outdir+'/etaImpacts{rel}{suff}_{target}_{ptbin}{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',
                                                                                                   suff=suff,target=options.target,i=i,
-                                                                                                  ptbin=(str(theptbin)+"_") if isSinglePtStrip else "",
+                                                                                                  ptbin=("ipt"+str(theptbin)+"_") if isSinglePtStrip else "",
                                                                                                   ch=charge))
 
