@@ -8,16 +8,16 @@ skipMergeRoot=0
 skipSingleCard=0
 skipMergeCard=0
 
-#folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/" # keep "/" at the end
-#th3file = "cards/" + folder + "wel_pt56_L1prefire.root"
+folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/" # keep "/" at the end
+th3file = "cards/" + folder + "wel_pt56_L1prefire.root"
 
-folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/" # keep "/" at the end
-th3file = "cards/" + folder + "wmu_pt56_L1prefire.root"
+#folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/" # keep "/" at the end
+#th3file = "cards/" + folder + "wmu_pt56_L1prefire.root"
 
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 # note that there is always a part of the uncertainty that is charge-uncorrelated
 
-optionsForRootMerger = " --etaBordersForFakesUncorr 0.5,1.0,1.6,2.0 " # use 0.5,1.0,1.5,2.0 for muons, where eta bins are 0.1 wide
+optionsForRootMerger = " --etaBordersForFakesUncorr " + ("0.5,1.0,1.4,1.6,2.0 " if "_el_" in folder else "0.5,1.0,1.5,2.0 ")
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --tauChargeLnN 0.03 --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous'  " # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta ### --uncorrelate-fakes-by-charge   # .*FakesPtNormUncorrelated.* --fakesChargeLnN 0.03
 optionsForCardMakerMerger = " --postfix corrNuisFakes_addEtaChargeUncorr0p02 --useSciPyMinimizer  "  # --no-text2hdf5
 

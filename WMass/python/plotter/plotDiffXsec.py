@@ -5,24 +5,24 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 dryrun = 0
-skipData = 0
-onlyData = 1
+skipData = 1
+onlyData = 0
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 
 seed = 123456789
-#folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
 
-folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
+folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
+#folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
 
 #postfix = "corrNuisFakes"
-postfix = "corrPtNormSlope_uncorrEta"
+postfix = "corrNuisFakes_addEtaChargeUncorr0p02"
 postfix += "_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
@@ -84,9 +84,9 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 
 # for impacts
 targets = [#"mu", 
-           #"xsec", 
-           #"xsecnorm",
-           #"etaptasym",
+           "xsec", 
+           "xsecnorm",
+           "etaptasym",
            "etaxsec",
            "etaxsecnorm",
            "etaasym"
@@ -103,12 +103,14 @@ targets = [#"mu",
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale'
-                
+
+# no longer used: for impacts in the form of graphs, use "W.*_ieta_.*" for pt-integrated stuff, and "W.*_ieta_.*_ipt_XX" for the rest, where XX is a given pt bin   x
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 #"Wplus.*_ipt_8_.*",
                 #"Wplus.*_ipt_11_.*",
                 #"W.*_ieta_0_.*",
-                "W.*_ieta_.*",
+                #"W.*_ieta_.*",
+                #"W.*_ieta_.*_ipt_2_.*",
                 #"W.*_ieta_17_.*"
                 ]
 
@@ -231,24 +233,28 @@ for fit in fits:
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} {pt} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix, pt=ptMinForImpacts)
     command += " --abs-value --nContours 51 --margin '0.16,0.15,0.05,0.25' --canvasSize '1500,1200' --splitOutByTarget "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
-    for poi in impacts_pois:
-        poi_noWildCards = poi.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
-        for nuis in impacts_nuis:
-            if nuis == "GROUP":
-                #varopt = " --nuisgroups '.*' --pois '{poi_regexp}' ".format(poi_regexp=poi)
-                varopt = " --nuisgroups '{ng}' --pois '{poi_regexp}' --parNameCanvas '_on_{p}' ".format(ng=groupnames,poi_regexp=poi,p=poi_noWildCards)
+    # with following line will make impacts with graphs, not matrix                        
+    command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
+    for nuis in impacts_nuis:
+        if nuis == "GROUP":
+            varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)
+        else:
+            varopt = " --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
+
+        for target in targets:
+            if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
+                poi_regexp = ["W.*_ieta_.*"]
             else:
-                varopt = " --nuis '{nuis_regexp}' --pois '{poi_regexp}' ".format(nuis_regexp=nuis, poi_regexp=poi)
-            for target in targets:
-                tmpcommand = command + " {vopt} --target {t} ".format(vopt=varopt, t=target)            
-                if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
-                    tmpcommand += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
+                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in [2, 7, 16] ]
+
+            for poi in poi_regexp:
+                tmpcommand = command + " {vopt} --target {t} --pois '{poi_regexp}' ".format(vopt=varopt, t=target, poi_regexp=poi)  
+                    
                 if not skipImpacts:
                     print ""
                     print tmpcommand
                     if not dryrun:
                         os.system(tmpcommand)
-
 
 print ""
 print "THE END"

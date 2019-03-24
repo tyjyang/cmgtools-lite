@@ -598,12 +598,13 @@ def drawSingleTH1(h1,
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
     h1.GetYaxis().SetRangeUser(ymin, ymax)
+    h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("HIST")
     h1err = h1.Clone("h1err")
     h1err.SetFillColor(ROOT.kRed+2)
-    #h1err.SetFillStyle(3001)
-    h1err.SetFillStyle(3002)
+    h1err.SetFillStyle(3001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
+    #h1err.SetFillStyle(3002)
     #h1err.SetFillStyle(3005)
     h1err.Draw("E2same")
     #h1.Draw("HIST same")
@@ -628,7 +629,7 @@ def drawSingleTH1(h1,
 
     vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
     vertline.SetLineColor(ROOT.kBlack)
-    vertline.SetLineStyle(2)
+    vertline.SetLineStyle(3)
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
     bintext.SetTextSize(0.025)  # 0.03
@@ -691,9 +692,18 @@ def drawSingleTH1(h1,
   #   pvtxt.Draw()
   # }
 
-    if lumi != None: CMS_lumi(canvas,lumi,True,False)
-    else:            CMS_lumi(canvas,"",True,False)
     setTDRStyle()
+    if leftMargin > 0.1:
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
+    else:
+        latCMS = ROOT.TLatex()
+        latCMS.SetNDC();
+        latCMS.SetTextFont(42)
+        latCMS.SetTextSize(0.045)
+        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
 
     if lowerPanelHeight:
         pad2.Draw()
@@ -729,7 +739,7 @@ def drawSingleTH1(h1,
     
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kRed)
-        line.SetLineWidth(2)
+        line.SetLineWidth(1)
         line.Draw("Lsame")
 
         if drawLineLowerPanel:
@@ -737,10 +747,10 @@ def drawSingleTH1(h1,
             line2 = ROOT.TF1("horiz_line_2",str(1+float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
             line3 = ROOT.TF1("horiz_line_3",str(1-float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
             line2.SetLineColor(ROOT.kBlue)
-            line2.SetLineWidth(2)
+            line2.SetLineWidth(1)
             line2.Draw("Lsame")
             line3.SetLineColor(ROOT.kBlue)
-            line3.SetLineWidth(2)
+            line3.SetLineWidth(1)
             line3.Draw("Lsame")
             x1leg2 = 0.2 if leftMargin > 0.1 else 0.07
             x2leg2 = 0.5 if leftMargin > 0.1 else 0.27
@@ -882,18 +892,18 @@ def drawDataAndMC(h1, h2,
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
     h1.GetYaxis().SetRangeUser(ymin, ymax)    
+    h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("EP")
     #h1err = h1.Clone("h1err")
     #h1err.SetFillColor(ROOT.kRed+2)
-    h2.SetFillStyle(3002)
-    h2.SetLineColor(ROOT.kGreen)  #kRed+2
+    h2.SetFillStyle(3001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
+    h2.SetLineColor(ROOT.kGreen+2)  #kRed+2
     h2.SetFillColor(ROOT.kGreen)
-    h2.SetLineWidth(2)
+    h2.SetLineWidth(1)
     h2.Draw("E2 SAME")
     h2line = h2.Clone("h2line")
     h2line.SetFillColor(0)
-    h2line.Draw("HIST SAME")
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
@@ -902,6 +912,7 @@ def drawDataAndMC(h1, h2,
         h3.Draw("E2 SAME")
         for i in range(1,1+h3.GetNbinsX()):
             print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
+    h2line.Draw("HIST SAME")
     h1.Draw("EP SAME")
 
 
@@ -930,7 +941,7 @@ def drawDataAndMC(h1, h2,
 
     vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
     vertline.SetLineColor(ROOT.kBlack)
-    vertline.SetLineStyle(2)
+    vertline.SetLineStyle(3) # 2 for denser hatches
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
     bintext.SetTextSize(0.025)  # 0.03
@@ -993,9 +1004,18 @@ def drawDataAndMC(h1, h2,
   #   pvtxt.Draw()
   # }
 
-    if lumi != None: CMS_lumi(canvas,lumi,True,False)
-    else:            CMS_lumi(canvas,"",True,False)
     setTDRStyle()
+    if leftMargin > 0.1:
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
+    else:
+        latCMS = ROOT.TLatex()
+        latCMS.SetNDC();
+        latCMS.SetTextFont(42)
+        latCMS.SetTextSize(0.045)
+        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
 
     if lowerPanelHeight:
         pad2.Draw()
@@ -1054,7 +1074,8 @@ def drawDataAndMC(h1, h2,
             h3ratio = h3.Clone("h3ratio")
             h3ratio.Divide(den_noerr)
             h3ratio.SetFillStyle(3144) # 1001 for solid, 3144 instead of 3244, to have more dense hatches
-            h3ratio.SetFillColor(ROOT.kRed-7)
+            #h3ratio.SetFillStyle(3001) # 
+            h3ratio.SetFillColor(ROOT.kRed-4)  # -7
 
         frame.Draw()        
         if invertRatio:
@@ -1227,6 +1248,7 @@ def drawTH1dataMCstack(h1, thestack,
     h1.GetYaxis().SetTitleOffset(0.5 if wideCanvas else 1.5)
     h1.GetYaxis().SetTitleSize(0.05)
     h1.GetYaxis().SetLabelSize(0.04)
+    h1.GetYaxis().SetTickSize(0.01)
     ymaxBackup = 0
     if setYAxisRangeFromUser: 
         ymaxBackup = ymax
@@ -1241,7 +1263,7 @@ def drawTH1dataMCstack(h1, thestack,
 
     vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
     vertline.SetLineColor(ROOT.kBlack)
-    vertline.SetLineStyle(2)
+    vertline.SetLineStyle(3) # 2 larger hatches
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
     bintext.SetTextSize(0.03)
@@ -1273,9 +1295,19 @@ def drawTH1dataMCstack(h1, thestack,
     if h1.GetBinContent(h1.GetMaximumBin()) > 1000000:
         reduceSize = True
         offset = 0.1
-    if wideCanvas: offset = 0.1
-    if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
-    else:            CMS_lumi(canvas,"",True,False)
+    if wideCanvas: 
+        offset = 0.1
+        latCMS = ROOT.TLatex()
+        latCMS.SetNDC();
+        latCMS.SetTextFont(42)
+        latCMS.SetTextSize(0.045)
+        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+    else:    
+        if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
+        else:            CMS_lumi(canvas,"",True,False)    
+
     setTDRStyle()
 
     pad2.Draw();
@@ -1321,7 +1353,7 @@ def drawTH1dataMCstack(h1, thestack,
 
     line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
     line.SetLineColor(ROOT.kRed)
-    line.SetLineWidth(2)
+    line.SetLineWidth(1)  # 1, not 2, which is too wide for canvas with large width
     line.Draw("Lsame")
 
     leg2 = ROOT.TLegend(0.2,0.25,0.4,0.30)

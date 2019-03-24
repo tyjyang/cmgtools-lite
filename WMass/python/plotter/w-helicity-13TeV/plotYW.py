@@ -69,7 +69,8 @@ class valueClass:
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
-        fillstyles = {'left': 3017, 'right': 3018, 'long': 3016, 'unpolarized': 3020}
+        #fillstyles = {'left': 3017, 'right': 3018, 'long': 3016, 'unpolarized': 3020}
+        fillstyles = {'left': 3002, 'right': 3144, 'long': 3016, 'unpolarized': 3020}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
             self.graph.SetFillColor(self.color)
@@ -344,6 +345,7 @@ if __name__ == "__main__":
     parser.add_option(      '--hessfile'    , dest='hessfile' , default=''            , type='string', help='file that contains the hessian errors in a dictionary')
     parser.add_option(      '--xsecfiles'    , dest='xsecfiles' , default=None          , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
     parser.add_option('-C', '--charge'      , dest='charge'   , default='plus,minus'  , type='string', help='process given charge. default is both')
+    parser.add_option('-c', '--channel'     , dest='channel'   , default='mu'  , type='string', help='Channel (mu|el)')
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
@@ -378,7 +380,8 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
-    channel = 'mu' if any(re.match('.*_mu_Ybin_.*', param) for param in valuesAndErrors.keys()) else 'el'
+    #channel = 'mu' if any(re.match('.*_mu_Ybin_.*', param) for param in valuesAndErrors.keys()) else 'el'
+    channel = options.channel
     print "From the list of parameters it seems that you are plotting results for channel ",channel
 
     ybinfile = open(ybinfile, 'r')
