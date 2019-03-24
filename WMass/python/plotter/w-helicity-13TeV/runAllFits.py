@@ -3,8 +3,8 @@ import os,sys
 
 cardsdir = sys.argv[1]
 channel = sys.argv[2]
-if channel not in ['mu','el']:
-    print "Channel must be either mu or el. Exiting."
+if channel not in ['mu','el','lep']:
+    print "Channel must be either mu or el or lep (el-mu combination). Exiting."
     sys.exit()
 
 pois = [('poim1',''),('poim0',' --POIMode none ')]
