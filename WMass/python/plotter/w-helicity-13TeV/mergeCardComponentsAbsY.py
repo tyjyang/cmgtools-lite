@@ -622,6 +622,7 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
