@@ -378,9 +378,6 @@ if __name__ == "__main__":
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
 
-    channel = 'mu' if any(re.match('.*_mu_Ybin_.*', param) for param in valuesAndErrors.keys()) else 'el'
-    print "From the list of parameters it seems that you are plotting results for channel ",channel
-
     ybinfile = open(ybinfile, 'r')
     ybins = eval(ybinfile.read())
     ybinfile.close()
@@ -396,12 +393,21 @@ if __name__ == "__main__":
     xsecfiles = options.xsecfiles.split(',')
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
     polarizations = ['left','right', 'long']
+
+    if 'lep' in xsecfiles[0]:
+        nChan = 2
+        channel = 'lep'
+    else:
+        nChan = 1
+        channel = 'mu' if mu in xsecfiles[0] else 'el'
+    print "From the xsec file names it seems that you are plotting results for channel ",channel
+
     for ic,charge in enumerate(charges):
 
         sign = 1. if charge=='plus' else -1.
 
         ## this gets the pdf central variation binned in the correct format
-        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0)
+        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan)
         xsec_nominal_allCharges[charge] = xsec_nominal
 
         value_syst = {}
@@ -411,7 +417,7 @@ if __name__ == "__main__":
             for ip in xrange(1,NPDFs+1):
                 # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
                 ## this gets the pdf variations after correctly rebinning the YW
-                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip)
+                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan)
                 values.append(xsec_pdf[pol])
             value_syst[pol] = values
 
@@ -464,8 +470,8 @@ if __name__ == "__main__":
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
             normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
             normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
-            normsigmaInFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
-            normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+            normsigmaInFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])/float(nChan)
+            normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])/float(nChan)
 
             print "total expected (fit) xsec up to |Y|<{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaIn,fit=normsigmaInFit)
             print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit)
@@ -481,12 +487,12 @@ if __name__ == "__main__":
                     if   options.type == 'toys': 
                         xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
                     elif options.type == 'hessian':
-                        xsec_fit = valuesAndErrors[parname+'_pmaskedexpnorm']
+                        xsec_fit = [x/float(nChan) for x in valuesAndErrors[parname+'_pmaskedexpnorm']]
                     else:
                         print "--normxsec not implemented yet for scans."
                         sys.exit()
                 else:
-                    xsec_fit = valuesAndErrors[parname+'_pmaskedexp']
+                    xsec_fit = [x/float(nChan) for x in valuesAndErrors[parname+'_pmaskedexp']]
                     scale = LUMINOSITY
 
                 if options.normxsec:
@@ -551,7 +557,7 @@ if __name__ == "__main__":
                     tmp_val.elo.append(experr) # symmetric for the expected
          
                     xsec_fit = valuesAndErrors[parname]
-                    scale = LUMINOSITY if xs=='sumxsec' else 1.
+                    scale = LUMINOSITY*float(nChan) if xs=='sumxsec' else 1.
          
                     tmp_val.val_fit.append(xsec_fit[0]/ybinwidth_scale/scale)
                     tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
