@@ -20,13 +20,12 @@ ROOT.gErrorIgnoreLevel = 100
 canv = ROOT.TCanvas()
 
 def plotUnrolledRatios(ratios2d,outdir,name):
-    ROOT.gStyle.SetPadLeftMargin(0.13)
-    ROOT.gStyle.SetPadRightMargin(0.07)
-    ROOT.gStyle.SetPadBottomMargin(0.3);
-
     plotformat = (2400,600)
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
     c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
+    c1.SetLeftMargin(0.13)
+    c1.SetRightMargin(0.07)
+    c1.SetBottomMargin(0.3)
 
     ratios,rnorm,rline = doUnrolledRatios(ratios2d)
 
@@ -233,7 +232,7 @@ if __name__ == "__main__":
 
         if len(ratios):
             if not options.no2Dplot:
-                canv = ROOT.TCanvas()
+                canv = ROOT.TCanvas("c2","c2",600,600)
                 for k,r in ratios.iteritems():
                     if len(options.systRatioRange):
                         if options.systRatioRange == "template":

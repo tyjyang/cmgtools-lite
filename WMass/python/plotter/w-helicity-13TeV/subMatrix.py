@@ -178,8 +178,6 @@ if __name__ == "__main__":
     elif options.type == 'hessian':
         hessfile = ROOT.TFile(args[0],'read')
         suffix = 'channelpmaskedexpnorm'
-        for e in hessfile.GetListOfKeys() :
-            if 'channelmu' in e.GetName(): suffix = 'channelmu'
         corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
         covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
         for ib in range(1+corrmatrix.GetNbinsX()+1):

@@ -81,7 +81,7 @@ class util:
         histo_file.Close()
         return histos
 
-    def getXSecFromShapes(self, ybins, charge, infile, channel, ip):
+    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1):
         values = {}
         if not infile:
             for pol in ['left','right','long']: 
@@ -100,9 +100,9 @@ class util:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
             xsecs = []
             for iv, val in enumerate(ybins[cp][:-1]):
-                name = 'x_W{ch}_{pol}_W{ch}_{pol}_{channel}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,channel=channel,iy=iv,ip=ip,suffix=pstr)
+                name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)
                 histo = histo_file.Get(name)
-                val = histo.Integral()/36000. # xsec file yields normalized to 36 fb-1
+                val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()

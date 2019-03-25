@@ -69,8 +69,9 @@ if __name__ == '__main__':
                     ##nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                     nuisancesAndPOIs += ['W.*_{pol}.*pmaskedexpnorm'.format(pol=pol) for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
-                    basecmd = 'python w-helicity-13TeV/subMatrix.py '
-                    os.system(basecmd+' {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix))
+                    cmd = 'python w-helicity-13TeV/subMatrix.py {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix)
+                    print cmd
+                    os.system(cmd)
 
     ## plot rapidity spectra
     ## ================================
