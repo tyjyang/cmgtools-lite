@@ -484,6 +484,24 @@ if nFakesPtNormUncorrelated:
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
+# the following is charge-uncorrelated by definition
+ffile = options.indir + "FakesEtaChargeUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+nFakesEtaCgargeUncorrelated = 0
+ff = ROOT.TFile.Open(ffile,"READ")
+if not ff or not ff.IsOpen():
+    raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+else:
+    # count number of histograms and divide by 2 (there are up and down variations)
+    nFakesEtaChargeUncorrelated = ff.GetNkeys()/2
+ff.Close()
+if nFakesEtaChargeUncorrelated:
+    for i in range(1,nFakesEtaChargeUncorrelated+1):
+        syst = "FakesEtaChargeUncorrelated{d}{flch}".format(d=i, flch=flavour+charge)  #flch=postfixForFlavourAndCharge)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
+
+
 # fakes
 # (although these are currently excluded with regular expressions, since we now have all the uncorrelated uncertainties)
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]

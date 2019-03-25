@@ -86,7 +86,7 @@ if __name__ == "__main__":
             # differential xsection: get ieta, ipt index and use them as keys to sort
             params = sorted(params, key = lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x), reverse=False )
         else:
-            params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('mu')) else -1, reverse=False)
+            params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('_mu')) else -1, reverse=False)
 
     nuis_p_i=0
     title = "#theta"

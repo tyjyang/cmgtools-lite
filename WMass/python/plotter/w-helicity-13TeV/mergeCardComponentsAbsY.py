@@ -154,8 +154,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doPt     = doType == 'ptslope' ## keep that from before
     doEta    = doType == 'eta'
     doPtNorm = doType == 'ptnorm'
+    doUncorrChargeEta = doType == 'etacharge'
+    if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
 
-    typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else ''
+    typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:
         print 'YOU GAVE A WRONG OPTION TO THE UNCORRELATED FAKES FUNCTION'
         sys.exit()
@@ -206,7 +208,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             tmp_dn_2d = dressed2D(tmp_dn,binning, var_dn+'backrolled')
 
         ## get the border bins in eta for the uncorrelated nuisances in eta
-        if doPt or doEta:
+        if doPt or doEta or doUncorrChargeEta:
             deltaEtaUnc = 0.5 if isMu else 0.2
             ## absolute eta borders:        
             etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
@@ -219,18 +221,23 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
             borderBins += [len(etabins)]
 
-            if isMu: 
-                scalings = [0.05 for b in borderBins[:-1]]
+            if doUncorrChargeEta:
+                scalings = [0.02 for b in borderBins[:-1]]  # 2%, common for both mu and ele
             else:
-                scalings = []
-                for ib, borderBin in enumerate(borderBins[:-1]):
-                    if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)
-                    elif abs(etabins[borderBin]) < 0.41: scalings.append(0.025)
-                    elif abs(etabins[borderBin]) < 1.01: scalings.append(0.04)
-                    elif abs(etabins[borderBin]) < 1.51: scalings.append(0.06)
-                    elif abs(etabins[borderBin]) < 1.71: scalings.append(0.06)
-                    elif abs(etabins[borderBin]) < 2.00: scalings.append(0.03)
-                    else:                         scalings.append(0.06)
+                if isMu: 
+                    factor = 0.03 # it used to be 0.05 for Eta, but now it is splitted in charge-correlated and charge-uncorrelated part
+                    scalings = [factor for b in borderBins[:-1]]
+                else:
+                    scalings = []
+                    for ib, borderBin in enumerate(borderBins[:-1]):
+                        # slightly reducing these numbers, as now we have a part that is uncorrelated between charges
+                        if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)  # 0.01
+                        elif abs(etabins[borderBin]) < 0.41: scalings.append(0.01)  # 0.025
+                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.02)  # 0.04
+                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.04)  # 0.06
+                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.04)  # 0.06
+                        elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)  # 0.03
+                        else:                                scalings.append(0.04)  # 0.06
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
@@ -238,7 +245,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
             ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
             if ptbins[-1] > ptBorders[-1]:
-                ptBorders.extend(50, 56)
+                ptBorders.extend([50, 56])
             borderBins = []
             for i in ptBorders[:-1]:
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
@@ -255,11 +262,11 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
             
-            if doPt or doEta:
+            if doPt or doEta or doUncorrChargeEta:
                 for ieta in range(borderBin,borderBins[ib+1]):
                     ## loop over all pT bins in that bin of eta (which is ieta)
                     for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
-                        if doEta:
+                        if doEta or doUncorrChargeEta:
                             tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                             scaling = scalings[ib]
                             ## scale up and down with what we got from the histo
@@ -615,6 +622,7 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
+            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)

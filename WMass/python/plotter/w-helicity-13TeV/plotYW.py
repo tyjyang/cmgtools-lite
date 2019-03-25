@@ -394,12 +394,12 @@ if __name__ == "__main__":
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
     polarizations = ['left','right', 'long']
 
-    if 'lep' in xsecfiles[0]:
+    if 'lep' in os.path.basename(xsecfiles[0]):
         nChan = 2
         channel = 'lep'
     else:
         nChan = 1
-        channel = 'mu' if mu in xsecfiles[0] else 'el'
+        channel = 'mu' if 'mu' in os.path.basename(xsecfiles[0]) else 'el'
     print "From the xsec file names it seems that you are plotting results for channel ",channel
 
     for ic,charge in enumerate(charges):

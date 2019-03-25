@@ -383,7 +383,8 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
-        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "reco")
+        etaptbinfile = options.ybinfile.replace("binningYW.txt","binningPtEta.txt")
+        etaPtBinningVec = getDiffXsecBinning(etaptbinfile, "reco")
         recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
         ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, recoBins.ptBins[0], recoBins.ptBins[-1])
 
@@ -476,7 +477,7 @@ if __name__ == "__main__":
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
                 # we expect something like "el: W+ i#eta, ip_T = 3, 5" we need to get 3 
                 etabin = int(((lbl.split('=')[-1]).split(',')[0]).rstrip().lstrip())
-                # print "lbl = %s   bineta = %s" % (lbl, str(etabin))
+                #print "lbl = %s   bineta = %s" % (lbl, str(etabin))
                 if 'W+' in lbl: charge='plus'
                 elif 'W-' in lbl: charge='minus'
                 else: charge='allcharges' 
@@ -494,8 +495,36 @@ if __name__ == "__main__":
             else:
                 fitErrors[new_x] = 100*abs((valuesAndErrors[x][1]-valuesAndErrors[x][0])/valuesAndErrors[x][0])
 
-        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, genBins.ptBins[0] if options.ptMinSignal < 0 else options.ptMinSignal, genBins.ptBins[-1])
-
+        ptmin = genBins.ptBins[0] if options.ptMinSignal < 0 else options.ptMinSignal
+        ptmax = genBins.ptBins[-1]
+        # this will be for strips at constant pt (if the proper options were passed)
+        isSinglePtStrip = False
+        if options.target not in ["etaxsec", "etaxsecnorm", "etaasym"]:
+            print "Going to draw a strip at constant pt"
+            isSinglePtStrip = True
+            ptbin_hasChanged = False
+            theptbin = 0
+            for i in xrange(th2_sub.GetNbinsX()):
+                lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
+                # we expect something like "el: W+ i#eta, ip_T = 3, 5" we need to get 5 
+                ptbin = int(((lbl.split('=')[-1]).split(',')[1]).rstrip().lstrip())
+                if i == 0: 
+                    theptbin = ptbin  # for the first item, assign the value
+                else: 
+                    if theptbin != ptbin:
+                        ptbin_hasChanged = True                        
+                        theptbin = ptbin
+                #print "lbl = %s   binpt = %s" % (lbl, str(ptbin))
+            if ptbin_hasChanged:
+                print "Warning: based on the options, you wanted to select a strip along eta at constant pt"
+                print "However, I see that you are selecting more pt bins, check the option for the regular expression to select POIs"
+                quit()
+            #print "theptbin = " + str(theptbin)
+            ptmin = genBins.ptBins[theptbin]
+            ptmax = genBins.ptBins[theptbin+1]
+            print "Plot for pt-bin %d: ptmin, ptmax = %.3g, %.3g " % (theptbin, ptmin, ptmax)
+        ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, ptmin, ptmax)
+        #print ptRangeText
         #for key in fitErrors:
         #    print "fitErrors: key = " + key
 
@@ -563,5 +592,8 @@ if __name__ == "__main__":
             for i in ['pdf', 'png']:
                 suff = '' if not options.suffix else '_'+options.suffix
                 cs.SetLogy()
-                cs.SaveAs(options.outdir+'/etaImpacts{rel}{suff}_{target}_{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge))
+                cs.SaveAs(options.outdir+'/etaImpacts{rel}{suff}_{target}_{ptbin}{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',
+                                                                                                  suff=suff,target=options.target,i=i,
+                                                                                                  ptbin=("ipt"+str(theptbin)+"_") if isSinglePtStrip else "",
+                                                                                                  ch=charge))
 
