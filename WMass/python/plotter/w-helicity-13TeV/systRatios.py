@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
         bkgs = ['data_fakes','Flips','DiBosons','Top','TauDecaysW','Z']
         #bkgs = []#['data_fakes'] # other than W_{L,R}
-        wlr = ['W{ch}_{p}_W{ch}_{p}_{flav}_Ybin_0'.format(ch=charge,p=pol,flav=channel) for pol in ['left','right', 'long'] ]
+        wlr = ['W{ch}_{p}_Ybin_0'.format(ch=charge,p=pol) for pol in ['left','right', 'long'] ]
         procs= bkgs if options.skipSignal else wlr+bkgs
         if len(options.processes):
             procs = [x for x in options.processes.split(',')]
@@ -157,9 +157,9 @@ if __name__ == "__main__":
             if 'W{ch}'.format(ch=charge) in proc:
                 pol = proc.split('_')[1]
                 cp = charge+'_'+pol
-                histo_central = infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_0'.format(ch=charge,pol=pol,flav=channel))
+                histo_central = infile.Get('x_W{ch}_{pol}_Ybin_0'.format(ch=charge,pol=pol))
                 for iy in xrange(1,nY[cp]+1):
-                    histo_central.Add(infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{i}'.format(ch=charge,pol=pol,flav=channel,i=iy)))
+                    histo_central.Add(infile.Get('x_W{ch}_{pol}_Ybin_{i}'.format(ch=charge,pol=pol,i=iy)))
             else:
                 histo_central = infile.Get('x_%s'%proc)
             # systematic templates
@@ -168,16 +168,16 @@ if __name__ == "__main__":
                     if not re.match('W{ch}|Z'.format(ch=charge),proc): continue # only W and Z have PDF variations
                     for ip in xrange(1,nPDF+1):
                         if 'W{ch}'.format(ch=charge) in proc:
-                            histo_pdfi = infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_0_pdf{ip}Up'.format(ch=charge,pol=pol,flav=channel,ip=ip))
+                            histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Up'.format(ch=charge,pol=pol,ip=ip))
                             for iy in xrange(1,nY[cp]+1):
-                                histo_pdfi_iy = infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,flav=channel,iy=iy,ip=ip))
+                                histo_pdfi_iy = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=iy,ip=ip))
                                 if histo_pdfi_iy: histo_pdfi.Add(histo_pdfi_iy)
                             title2D = 'W{ch} {pol} : pdf {ip}'.format(ip=ip,pol=pol,ch=chs)
-                            key = 'syst_W{ch}_{pol}_W{ch}_{pol}_{flav}_pdf{ip}'.format(ch=charge,pol=pol,flav=channel,ip=ip)
+                            key = 'syst_W{ch}_{pol}_pdf{ip}'.format(ch=charge,pol=pol,ip=ip)
                         else:
                             histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
-                            key = 'syst_{proc}_{ch}_{flav}_pdf{ip}'.format(proc=proc,ch=charge,flav=channel,ip=ip)
+                            key = 'syst_{proc}_{ch}_pdf{ip}'.format(proc=proc,ch=charge,ip=ip)
                         if not histo_central.GetEntries() == histo_pdfi.GetEntries() or histo_pdfi.Integral() == 0.:
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
                             print 'this just happened for {ch} and {pol} and pdf {syst}'.format(ch=charge, pol=pol, syst=ip)
@@ -196,21 +196,21 @@ if __name__ == "__main__":
                     if 'W{ch}'.format(ch=charge) in proc:
                         for pol in [proc.split('_')[1]]:#'right', 'left']:
                             cp = charge+'_'+pol
-                            hname = 'x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_0_{syst}'.format(ch=charge,pol=pol,flav=channel,syst=fullsyst)
+                            hname = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsyst)
                             histo_syst = infile.Get(hname) if hname in keylist else None
                             for iy in xrange(1,nY[cp]+1):
-                                hname_iy = 'x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,flav=channel,iy=iy,syst=fullsyst)
+                                hname_iy = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsyst)
                                 histo_syst_iy = infile.Get(hname_iy) if hname in keylist else None
                                 if histo_syst_iy: histo_syst.Add(histo_syst_iy)
                             title2D = 'W{ch} {pol} : variation={syst}'.format(pol=pol,ch=chs,syst=syst)
-                            key = 'syst_W{ch}_{pol}_W{ch}_{pol}_{flav}_{syst}'.format(ch=charge,pol=pol,flav=channel,syst=syst)
+                            key = 'syst_W{ch}_{pol}_{syst}'.format(ch=charge,pol=pol,syst=syst)
                     else:
                         hname = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsyst)
                         print "Lookiig for shape ",hname
                         if hname in fulllist:
                             histo_syst = infile.Get(hname)
                         title2D = '{proc} : variation={syst}'.format(proc=proc,syst=syst)
-                        key = 'syst_{proc}_{ch}_{flav}_{syst}'.format(proc=proc,ch=charge,flav=channel,syst=syst)
+                        key = 'syst_{proc}_{ch}_{syst}'.format(proc=proc,ch=charge,syst=syst)
                     if histo_syst:
                         mydude = copy.deepcopy(histo_syst)
                         myvar  = copy.deepcopy(histo_central)
