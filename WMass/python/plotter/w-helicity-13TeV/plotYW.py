@@ -70,7 +70,7 @@ class valueClass:
 
     def graphStyle(self):
         #fillstyles = {'left': 3017, 'right': 3018, 'long': 3016, 'unpolarized': 3020}
-        fillstyles = {'left': 3002, 'right': 3144, 'long': 3016, 'unpolarized': 3020}
+        fillstyles = {'left': 3244, 'right': 3001, 'long': 3016, 'unpolarized': 3002}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
             self.graph.SetFillColor(self.color)
