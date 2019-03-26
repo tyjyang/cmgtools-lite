@@ -176,7 +176,7 @@ if __name__ == "__main__":
                         else:
                             histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
-                            key = 'syst_{proc}_{ch}_{flav}_pdf{ip}'.format(proc=proc,ch=charge,flav=channel,ip=ip)
+                            key = 'syst_{proc}_{ch}_pdf{ip}'.format(proc=proc,ch=charge,ip=ip)
                         if not histo_central.GetEntries() == histo_pdfi.GetEntries() or histo_pdfi.Integral() == 0.:
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
                             print 'this just happened for {ch} and {pol} and pdf {syst}'.format(ch=charge, pol=pol, syst=ip)
@@ -209,7 +209,7 @@ if __name__ == "__main__":
                         if hname in fulllist:
                             histo_syst = infile.Get(hname)
                         title2D = '{proc} : variation={syst}'.format(proc=proc,syst=syst)
-                        key = 'syst_{proc}_{ch}_{flav}_{syst}'.format(proc=proc,ch=charge,flav=channel,syst=syst)
+                        key = 'syst_{proc}_{ch}_{syst}'.format(proc=proc,ch=charge,syst=syst)
                     if histo_syst:
                         mydude = copy.deepcopy(histo_syst)
                         myvar  = copy.deepcopy(histo_central)

@@ -9,7 +9,7 @@ parser.add_option("-q", "--queue",     dest="queue",  action="store_true",  defa
 parser.add_option('-r'  , '--runtime', default=24, type=int, help='New runtime for condor resubmission in hours. default: 24h (combined fits may be long)');
 (options, args) = parser.parse_args()
 
-cardsdir = args[0]
+cardsdir = os.path.abspath(args[0])
 channel = args[1]
 if channel not in ['mu','el','lep']:
     print "Channel must be either mu or el or lep (el-mu combination). Exiting."
