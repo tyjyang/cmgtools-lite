@@ -3,12 +3,12 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-doMuons=0
+doMuons=1
 skipUnpack=1
-skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1
-skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipMergeRoot=0
+skipSingleCard=0
+skipMergeCard=0
+skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
 # el
 folder_el = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/" # keep "/" at the end
@@ -30,7 +30,7 @@ optionsForRootMerger = " --etaBordersForFakesUncorr " + ("0.5,1.0,1.6,2.0 " if d
 
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --tauChargeLnN 0.03 --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous'  " # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta ### --uncorrelate-fakes-by-charge   # .*FakesPtNormUncorrelated.* --fakesChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix combinedLep --useSciPyMinimizer --no-text2hdf5 --no-combinetf "  # --no-text2hdf5
+optionsForCardMakerMerger = " --postfix combinedLep --useSciPyMinimizer " #--no-text2hdf5 --no-combinetf " 
 
 optionsForCardMakerMergerFlavour = " --postfix combinedLep --useSciPyMinimizer " # --no-text2hdf5 --no-combinetf "  
 

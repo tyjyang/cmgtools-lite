@@ -485,7 +485,10 @@ if __name__ == "__main__":
         if isMuElComb:
             hDiffXsec.Scale(0.5)
             hDiffXsecErr.Scale(0.5)
+            hDiffXsecNorm.Scale(0.5)
+            hDiffXsecNormErr.Scale(0.5)
             hDiffXsec_1Deta.Scale(0.5)
+            hDiffXsecNorm_1Deta.Scale(0.5)
 
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
@@ -798,6 +801,8 @@ if __name__ == "__main__":
                 if isMuElComb:
                     hDiffXsec_exp.Scale(0.5)
                     hDiffXsec_1Deta_exp.Scale(0.5)
+                    hDiffXsecNorm_exp.Scale(0.5)
+                    hDiffXsecNorm_1Deta_exp.Scale(0.5)
 
 
                 # # now drawing a TH1 unrolling TH2
