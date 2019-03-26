@@ -4,29 +4,37 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-dryrun = 0
-skipData = 1
-onlyData = 0
+doMuElComb = 1
+dryrun = 1
+skipData = 0
+onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
 
 
 seed = 123456789
 
 folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
 #folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
+if doMuElComb:
+    folder = "muElCombination"
 
-#postfix = "corrNuisFakes"
 postfix = "corrNuisFakes_addEtaChargeUncorr0p02"
+if doMuElComb:
+    postfix = "combinedLep"
 postfix += "_bbb1_cxs1"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
+if doMuElComb:
+    flavour = "lep"
+    lepton = "lepton"
+
 fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
@@ -45,15 +53,15 @@ diffNuisances_pois = ["pdf.*|alphaS|mW",
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
                       "CMS_.*", 
-                      #"Wplus.*_ieta_.*_%s_mu"  % flavour,     
-                      #"Wminus.*_ieta_.*_%s_mu" % flavour
+                      #"Wplus.*_ieta_.*_mu",     
+                      #"Wminus.*_ieta_.*_mu"
                       ]
 
 # this is appended to nuis below
-#correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*_ieta_6_ipt_6_Wplus_.*_mu"  
+#correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*Wplus.*_ieta_6_ipt_6_.*mu"  
 #                        }
 # need to specify which matrix, by default the one for mu is chosen and the bin label looks like Wplus_el_ieta_1_ipt_0_Wplus_el, without ending mu
-correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*_ieta_6_ipt_8_Wplus_.*"
+correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*Wplus_.*_ieta_6_ipt_8_.*"
                         }
 
 correlationNuisRegexp = {# "allPDF"           : "pdf.*", 
@@ -104,7 +112,7 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale'
 
-# no longer used: for impacts in the form of graphs, use "W.*_ieta_.*" for pt-integrated stuff, and "W.*_ieta_.*_ipt_XX" for the rest, where XX is a given pt bin   x
+# no longer used: for impacts in the form of graphs, use "W.*_ieta_.*" for pt-integrated stuff, and "W.*_ieta_.*_ipt_XX" for the rest, where XX is a given pt bin 
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 #"Wplus.*_ipt_8_.*",
                 #"Wplus.*_ipt_11_.*",

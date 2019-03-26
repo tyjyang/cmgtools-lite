@@ -29,7 +29,6 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
 parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*EffStat.*|.*pdf.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
-#parser.add_option(      "--fixmuRmuFNUp", dest="fixmuRmuFNUp",   action="store_true", default=False, help="Make a fix: muRmuXXFUp should become muRmuFXXUp");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -118,9 +117,12 @@ effstatOffset = 25 if flavour == "mu" else 26
 print "Going to unroll TH3 into TH1 ..."
 nKeys = tf.GetNkeys()
 
-pattBug = re.compile('(muRmu)(\d+)(FUp)')
 pattEffStat = re.compile('(EffStat)(\d+)')
 ietaTemplate = -1
+
+# in order to prepare for flavor combination, use lep instead of mu|el in name
+#signalRoot = "W{ch}_{fl}".format(ch=charge,fl=flavour)
+signalRoot = "W{ch}_lep".format(ch=charge)
 
 for ikey,e in enumerate(tf.GetListOfKeys()):
 
@@ -135,7 +137,6 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
     if not obj.InheritsFrom("TH3"): continue
     if charge not in name: continue
     if "_globalBin" not in name: continue
-    signalRoot = "W{ch}_{fl}".format(ch=charge,fl=flavour)
 
     lasttoken = name.split("_")[-1]
     toBeMirrored = False
@@ -144,13 +145,6 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
     etaEffStat = -1
     if lasttoken == "globalBin": isNominal = True
     elif re.match(symSystMatch,lasttoken): toBeMirrored = True
-
-    # if options.fixmuRmuFNUp and "muRmu" in lasttoken:
-    #     tkn = pattBug.findall(lasttoken)
-    #     if len(tkn):
-    #         wrong = "muRmu" + str(tkn[0][1]) + "FUp"
-    #         correct = "muRmuF" + str(tkn[0][1]) + "Up"
-    #         lasttoken = lasttoken.replace(wrong,correct)
 
     # if needed, select the gen eta bin that will be affected by effstat
     if not options.effStatAll and re.match('.*EffStat.*',lasttoken) :
@@ -175,9 +169,9 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
         if globalbin > 0:
             ieta,ipt = getXYBinsFromGlobalBin(globalbin-1,genBins.Neta,binFrom0=True)
             if isEffStat and ietaTemplate != ieta: continue  # if this is EffStat and the ieta bin does not correspond to the effstat continue
-            newname = "x_" + signalRoot + "_ieta_{ie}_ipt_{ip}_".format(ie=str(ieta),ip=str(ipt)) + signalRoot
+            newname = "x_" + signalRoot + "_ieta_{ie}_ipt_{ip}".format(ie=str(ieta),ip=str(ipt))
         else:
-            newname = "x_" + signalRoot + "_outliers_" + signalRoot
+            newname = "x_" + signalRoot + "_outliers"
         if not isNominal:            
             if "lepScale" in lasttoken: 
                 newname += "_" + lasttoken.replace("lepScale","CMS_Wmu_muscale" if flavour == "mu" else "CMS_We_elescale")

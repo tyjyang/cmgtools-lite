@@ -207,7 +207,6 @@ if options.charge not in ["plus", "minus"]:
 
 charge = options.charge
 flavour = options.flavour
-#binname = options.bin if len(options.bin) else "W%s" % flavour
 
 if not len(options.indirBkg):
     print "Warning: you must specify a folder with data and background root files with option --indir-bkg"
