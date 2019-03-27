@@ -27,7 +27,7 @@ utilities = utilities.util()
 def niceName(name):
 
     if '_Ybin' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         if 'plus' in name: nn += 'W+ '
         elif 'minus' in name: nn += 'W- '
         else: nn += 'W '
@@ -42,34 +42,36 @@ def niceName(name):
         return nn
 
     elif '_ieta_' and '_ipt_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta,ipt = get_ieta_ipt_from_process_name(name)
         nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
         return nn
 
     elif '_ieta_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta = int((name.split("_ieta_")[1]).split("_")[0])
         nn += "i#eta = {neta}".format(neta=ieta)
         return nn
 
     elif '_ipt_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: '
+        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
         nn += "i#p_{{T}} = {npt}".format(npt=ipt)
         return nn
 
     elif "CMS_" in name:
-        if "CMS_Wmu" in name:
-            return name.replace("CMS_Wmu_","")
-        elif "CMS_We" in name:
-            return name.replace("CMS_We_","")
-        else:
-            return name
-      
+        # keep Wmu or We now that we do combination, they are different sources
+        # if "CMS_Wmu" in name:
+        #     return name.replace("CMS_Wmu_","")
+        # elif "CMS_We" in name:
+        #     return name.replace("CMS_We_","")        
+        #else:
+        #    return name
+        return name.replace("CMS_","")
+
     elif re.match( "Fakes(Eta|EtaCharge|PtNorm|PtSlope)Uncorrelated.*",name):
         num = re.findall(r'\d+', name) # get number
         pfx = name.split(num[0])[1]    # split on number and read what's on the right
