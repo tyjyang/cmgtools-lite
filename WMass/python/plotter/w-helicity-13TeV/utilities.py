@@ -85,7 +85,7 @@ class util:
         values = {}
         if not infile:
             for pol in polarizations: 
-                cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
+                cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
                 xsecs = []
                 for iv in xrange(len(ybins[cp][:-1])):
                     if any(iv == x for x in excludeYbins): continue
@@ -98,7 +98,7 @@ class util:
         pstr = '' if not ip else '_pdf{ip}Up'.format(ip=ip)
     
         for pol in polarizations:
-            cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')  # ??? what's that?
+            cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             xsecs = []
             for iv, val in enumerate(ybins[cp][:-1]):                
                 if any(iv == x for x in excludeYbins): continue

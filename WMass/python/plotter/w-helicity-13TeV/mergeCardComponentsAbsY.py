@@ -967,9 +967,6 @@ if __name__ == "__main__":
             polarizations.append('long')
 
         if options.ybinsBkg:
-            # note, the following line can potentially match undesired bins (should require that there are no additional digits after {iy}
-            # however, one would typically exclude the bins at high Yw, so they would either have already two digits (and we don't have more than 99 Yw bins),
-            # or one digit larger than 1
             pruned_tmp_sigprocs = []
             for thisproc in tmp_sigprocs:
                 thisybin = get_iy_from_process_name(thisproc)
@@ -986,8 +983,7 @@ if __name__ == "__main__":
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
         print '============================================================================='
-        #if not options.freezePOIs and not options.longLnN and not options.longBkg: # right now cannot group signal and backgrounds                                  
-        # in case long is missing, the sum groups will only sum WR and WL, but this need a fix in DatacardParser.py
+        # in case long is missing, the sum groups will only sum WR and WL, while polGroup cannt be defined
         if not options.freezePOIs:
             if not options.longLnN and not options.longBkg:
                 writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
