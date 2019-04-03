@@ -81,16 +81,25 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i and not i.endswith('_el') and not i.endswith('_mu')]:
+                fitflavor = os.path.splitext(os.path.basename(options.config.split('_')[-1]))[0]
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 cmd  = 'python w-helicity-13TeV/plotYW.py '
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix, inf=results[tmp_file])
-                os.system(cmd)
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                print cmd
+                #os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
-                print cmd
-                os.system(cmd)
+                #os.system(cmd)
+                if sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
+                    print 'NOW plotting combined YW...'
+                    cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
+                    cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
+                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_el'],infel=results[tmp_file+'_mu'])
+                    normstr = [' ', ' --normxsec ']
+                    for norm in normstr:
+                        os.system(cmd+norm)
 
     ## plot postfit plots
     ## ================================
