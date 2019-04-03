@@ -15,6 +15,23 @@ utilities = utilities.util()
 
 REFMC = 'MC@NLO'
 
+def makeCanvas():
+    c2 = ROOT.TCanvas('foo','', 1500, 3000)
+    
+    c2.Range(0,0,1,1);
+    c2.SetFillColor(0);
+    c2.SetBorderMode(0);
+    c2.SetBorderSize(2);
+    c2.SetTickx(1);
+    c2.SetTicky(1);
+    c2.SetLeftMargin(0.05);
+    c2.SetRightMargin(0.05);
+    c2.SetTopMargin(0.05);
+    c2.SetBottomMargin(0.16);
+    c2.SetFrameFillStyle(0);
+    c2.SetFrameBorderMode(0);
+    return c2
+
 def makePads(subpadsYLow,subpadsYUp):
     pads = []
     for ip in xrange(len(subpadsYLow)):
@@ -100,10 +117,10 @@ def makeUncorrDiff(gr1,gr2):
     for p in xrange(gr1.GetN()):
         x = ROOT.Double(0); y1 = ROOT.Double(0); y2 = ROOT.Double(0);
         gr2.GetPoint(p,x,y2); gr1.GetPoint(p,x,y1)
-        diff = gr2-gr1; 
+        d = y2-y1; 
         # consider el and mu mostly uncorrelated (since dominated by the MC stat)
         erhi = math.hypot(gr1.GetErrorYhigh(p),gr2.GetErrorYhigh(p)); erlo=erhi
-        diff.SetPoint(p,x,r)
+        diff.SetPoint(p,x,d)
         diff.SetPointError(p,gr1.GetErrorXlow(p),gr1.GetErrorXhigh(p),erlo,erhi)
     return diff
 
@@ -146,215 +163,173 @@ def makeFullLegendUnpol(values):
     return leg
 
 def plotValues(values,charge,channel,options):
-        c2 = ROOT.TCanvas('foo','', 1500, 3000)
-        
-        c2.Range(0,0,1,1);
-        c2.SetFillColor(0);
-        c2.SetBorderMode(0);
-        c2.SetBorderSize(2);
-        c2.SetTickx(1);
-        c2.SetTicky(1);
-        c2.SetLeftMargin(0.05);
-        c2.SetRightMargin(0.05);
-        c2.SetTopMargin(0.05);
-        c2.SetBottomMargin(0.16);
-        c2.SetFrameFillStyle(0);
-        c2.SetFrameBorderMode(0);
+    
+    c2 = makeCanvas()
 
+    ROOT.gStyle.SetHatchesLineWidth(2)
+    subpadsYLow = [0.5, 0.38, 0.26, 0.16, 0.06]
+    subpadsYUp = [0.99, 0.5, 0.38, 0.26, 0.16]
+    pads = makePads(subpadsYLow,subpadsYUp)
 
-        ROOT.gStyle.SetHatchesLineWidth(2)
-        leftMargin = 0
-        rightMargin = 1.
-        subpadsYLow = [0.5, 0.38, 0.26, 0.16, 0.06]
-        subpadsYUp = [0.99, 0.5, 0.38, 0.26, 0.16]
-        pads = []
-        for ip in xrange(len(subpadsYLow)):
-            pad = ROOT.TPad("pad{ip}".format(ip=ip),"",leftMargin,subpadsYLow[ip],rightMargin,subpadsYUp[ip])
-            pad.SetFillColor(0);
-            pad.SetBorderMode(0);
-            pad.SetBorderSize(2);
-            pad.SetTickx(1);
-            pad.SetTicky(1);
-            pad.SetLeftMargin(0.2);
-            pad.SetRightMargin(0.05);
-            pad.SetFrameFillStyle(0);
-            pad.SetFrameBorderMode(0);
-            pad.SetFrameFillStyle(0);
-            pad.SetFrameBorderMode(0);
-            pads.append(pad)
+    flavors = ['mu','el','lep']; polarizations = ['left','right','long']
+    ch = '#plus' if charge == 'plus' else '#minus'
+    if charge == 'asymmetry': ch = ''
+    date = datetime.date.today().isoformat()
+    normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
 
-        flavors = ['mu','el','lep']; polarizations = ['left','right','long']
-        ch = '#plus' if charge == 'plus' else '#minus'
-        if charge == 'asymmetry': ch = ''
-        date = datetime.date.today().isoformat()
-        normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
+    applyChannelStyles(values)
 
-        applyChannelStyles(values)
-
-        lat = ROOT.TLatex()
-        lat.SetNDC(); lat.SetTextFont(42)
-        ## the four graphs exist now. now starting to draw them
-        ## ===========================================================
-        if sum(hasattr(values[(flav,pol)],'graph') and hasattr(values[(flav,pol)],'graph_fit') for pol in polarizations for flav in flavors)==9:
-            c2.cd()
-            pads[0].Draw(); pads[0].cd(); ROOT.gPad.SetBottomMargin(0);
-
-            values[('lep','left')].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
-                
-            mg = ROOT.TMultiGraph()
-            mg.Add(values[('lep','left')] .graph,'P2')
-            mg.Add(values[('lep','right')].graph,'P2')
-            if not options.nolong: mg.Add(values['lep','long'] .graph,'P2')
-            for flav in flavors:
-                mg.Add(values[(flav,'left')] .graph_fit)
-                mg.Add(values[(flav,'right')].graph_fit)
-                if not options.nolong: mg.Add(values[(flav,'long')] .graph_fit)
-     
-            mg.Draw('Pa')
-            mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('|Y_{W}|')
-            mg.GetXaxis().SetLabelSize(0)
-            if charge=='asymmetry':
-                mg.GetYaxis().SetTitle('Charge asymmetry')
-                mg.GetYaxis().SetRangeUser(-0.1,0.4)
-            else:
-                if options.normxsec: 
-                    mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
-                else: 
-                    mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
-                    mg.GetYaxis().SetRangeUser(-200,3500)
-            mg.GetYaxis().SetTitleSize(0.05)
-            mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.5)
-
-            legs = makeFullLegend(values)     
-            for leg in legs:
-                leg.Draw("same")
-
-        lines = {}
-        subpadLegends = {}
-        if sum(hasattr(values[(flav,pol)],'mg') for pol in polarizations for flav in flavors)==9:
-
-            ## now make the relative error plot for combination:
-            ## ======================================
-            isubpad=1
-            for ipol,pol in enumerate(['left','right']):
-                c2.cd()
-                pads[isubpad].Draw(); pads[isubpad].cd(); ROOT.gPad.SetBottomMargin(0); ROOT.gPad.SetTopMargin(0)
-
-                if charge=='asymmetry':
-                    yaxtitle = 'Theory-Data'
-                    yaxrange = (-0.1, 0.1)
-                else:
-                    yaxtitle = 'Theory/Data'
-                    yaxrange = (0.82, 1.18)
-     
-                values[('lep',pol)].graph_fit_rel.Draw("A2")
-                values[('lep',pol)].graph_fit_rel.Draw("pe")
-                values[('lep',pol)].graph_rel.Draw("2")
-                ## x axis fiddling
-                values[('lep',pol)].graph_fit_rel.GetXaxis().SetRangeUser(0., options.maxRapidity)
-                values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
-                ## y axis fiddling
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleOffset(0.4)
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleSize(0.18)
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetLabelSize(0.12)
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitle(yaxtitle)
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                values[('lep',pol)].graph_fit_rel.GetYaxis().CenterTitle()
-                values[('lep',pol)].graph_fit_rel.GetYaxis().SetDecimals()
-
-                lines["horiz_line_comb"+pol] = ROOT.TF1("horiz_line_comb"+pol,"0" if charge=='asymmetry' else '1',0.0,3.0);
-                lines["horiz_line_comb"+pol].SetLineColor(ROOT.kRed);
-                lines["horiz_line_comb"+pol].SetLineWidth(2);
-                lines["horiz_line_comb"+pol].SetLineStyle(ROOT.kDashed);
-                lines["horiz_line_comb"+pol].Draw("Lsame");
-                
-                subpadLegends["leg_lep_"+pol] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["leg_lep_"+pol].SetFillStyle(0); subpadLegends["leg_lep_"+pol].SetBorderSize(0)
-                subpadLegends["leg_lep_"+pol].SetNColumns(2)
-                subpadLegends["leg_lep_"+pol].AddEntry(values[('lep',pol)].graph_fit_rel,'Data','fpl')
-                labels_pol = {'left':'L','right':'R','long':'0'} 
-                subpadLegends["leg_lep_"+pol].AddEntry(values[('lep',pol)].graph_rel,'Theory (W_{{{pol}}})'.format(pol=labels_pol[pol]),'f')
-                subpadLegends["leg_lep_"+pol].Draw('same')
-
-                isubpad+=1
-
-            # now the compatibility plots
-            comps = {}
-            for ipol,pol in enumerate(['left','right']):
-                c2.cd()
-                print "SUB PAD ",isubpad," printing ",pol
-                pads[isubpad].Draw(); pads[isubpad].cd(); ROOT.gPad.SetTopMargin(0)
-                if isubpad<4: ROOT.gPad.SetBottomMargin(0)
-                else: ROOT.gPad.SetBottomMargin(-0.3)
-
-                if charge=='asymmetry':
-                    yaxtitle = 'A_{#mu}-A_{e}'
-                    yaxrange = (-0.1, 0.1)
-                    comps["comp_"+pol] = makeUncorrDiff(values[('el',pol)].graph_fit, values[('mu',pol)].graph_fit)
-                else:
-                    yaxtitle = '#sigma_{#mu}/#sigma_{e}'
-                    yaxrange = (0.65, 1.35)
-                    comps["comp_"+pol] = makeUncorrRatio(values[('el',pol)].graph_fit, values[('mu',pol)].graph_fit)
-                comps["comp_"+pol].SetName("comp_"+pol); comps["comp_"+pol].SetTitle("")
-                comps["comp_"+pol].SetMarkerColor(values[('mu',pol)].color)
-                comps["comp_"+pol].SetLineColor(values[('mu',pol)].color)
-                comps["comp_"+pol].SetFillColor(values[('mu',pol)].color)
-                comps["comp_"+pol].SetMarkerStyle(ROOT.kFullCircle)
-                comps["comp_"+pol].SetMarkerSize(2)
-
-                comps["comp_"+pol].Draw('Pa')
-                ## x axis fiddling
-                comps["comp_"+pol].GetXaxis().SetRangeUser(0., options.maxRapidity)
-                comps["comp_"+pol].GetXaxis().SetLabelSize(0.1)
-                ## y axis fiddling
-                comps["comp_"+pol].GetYaxis().SetTitleOffset(0.4)
-                comps["comp_"+pol].GetYaxis().SetTitleSize(0.18)
-                comps["comp_"+pol].GetYaxis().SetLabelSize(0.12)
-                comps["comp_"+pol].GetYaxis().SetTitle(yaxtitle)
-                comps["comp_"+pol].GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                comps["comp_"+pol].GetYaxis().CenterTitle()
-                comps["comp_"+pol].GetYaxis().SetDecimals()
-                lines["horiz_line_comp_"+pol] = ROOT.TF1("horiz_line_comp_"+pol,"0" if charge=='asymmetry' else '1',0.0,3.0);
-                lines["horiz_line_comp_"+pol].SetLineColor(ROOT.kRed);
-                lines["horiz_line_comp_"+pol].SetLineWidth(2);
-                lines["horiz_line_comp_"+pol].SetLineStyle(ROOT.kDashed);
-                lines["horiz_line_comp_"+pol].Draw("Lsame");
-
-                subpadLegends["comp_lep_"+pol] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["comp_lep_"+pol].SetFillStyle(0); subpadLegends["comp_lep_"+pol].SetBorderSize(0)
-                subpadLegends["comp_lep_"+pol].SetNColumns(2)
-                labels_pol = {'left':'L','right':'R','long':'0'} 
-                subpadLegends["comp_lep_"+pol].AddEntry(comps["comp_"+pol],'Data #sigma_{{#mu}}/#sigma_{{e}} (W_{{{pol}}})'.format(pol=labels_pol[pol]),'pl')
-                subpadLegends["comp_lep_"+pol].Draw('same')
-
-                isubpad+=1
-
+    lat = ROOT.TLatex()
+    lat.SetNDC(); lat.SetTextFont(42)
+    ## the four graphs exist now. now starting to draw them
+    ## ===========================================================
+    if sum(hasattr(values[(flav,pol)],'graph') and hasattr(values[(flav,pol)],'graph_fit') for pol in polarizations for flav in flavors)==9:
         c2.cd()
-        lat.DrawLatex(0.2, 0.95, '#bf{CMS} #it{Preliminary}')
-        lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
-        lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-        lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
-        for ext in ['png', 'pdf', 'C']:
-            c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
+        pads[0].Draw(); pads[0].cd(); ROOT.gPad.SetBottomMargin(0);
+
+        values[('lep','left')].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
+            
+        mg = ROOT.TMultiGraph()
+        mg.Add(values[('lep','left')] .graph,'P2')
+        mg.Add(values[('lep','right')].graph,'P2')
+        if not options.nolong: mg.Add(values['lep','long'] .graph,'P2')
+        for flav in flavors:
+            mg.Add(values[(flav,'left')] .graph_fit)
+            mg.Add(values[(flav,'right')].graph_fit)
+            if not options.nolong: mg.Add(values[(flav,'long')] .graph_fit)
+    
+        mg.Draw('Pa')
+        mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
+        mg.GetXaxis().SetTitle('|Y_{W}|')
+        mg.GetXaxis().SetLabelSize(0)
+        if charge=='asymmetry':
+            mg.GetYaxis().SetTitle('Charge asymmetry')
+            mg.GetYaxis().SetRangeUser(-0.1,0.4)
+        else:
+            if options.normxsec: 
+                mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
+                mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
+            else: 
+                mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
+                mg.GetYaxis().SetRangeUser(-200,3500)
+        mg.GetYaxis().SetTitleSize(0.05)
+        mg.GetYaxis().SetLabelSize(0.04)
+        mg.GetYaxis().SetTitleOffset(1.5)
+
+        legs = makeFullLegend(values)     
+        for leg in legs:
+            leg.Draw("same")
+
+    lines = {}
+    subpadLegends = {}
+    if sum(hasattr(values[(flav,pol)],'mg') for pol in polarizations for flav in flavors)==9:
+
+        ## now make the relative error plot for combination:
+        ## ======================================
+        isubpad=1
+        for ipol,pol in enumerate(['left','right']):
+            c2.cd()
+            pads[isubpad].Draw(); pads[isubpad].cd(); ROOT.gPad.SetBottomMargin(0); ROOT.gPad.SetTopMargin(0)
+
+            if charge=='asymmetry':
+                yaxtitle = 'Theory-Data'
+                yaxrange = (-0.2, 0.2)
+            else:
+                yaxtitle = 'Theory/Data'
+                yaxrange = (0.82, 1.18)
+    
+            values[('lep',pol)].graph_fit_rel.Draw("A2")
+            values[('lep',pol)].graph_fit_rel.Draw("pe")
+            values[('lep',pol)].graph_rel.Draw("2")
+            ## x axis fiddling
+            values[('lep',pol)].graph_fit_rel.GetXaxis().SetRangeUser(0., options.maxRapidity)
+            values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
+            ## y axis fiddling
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleOffset(0.4)
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleSize(0.18)
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetLabelSize(0.12)
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitle(yaxtitle)
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
+            values[('lep',pol)].graph_fit_rel.GetYaxis().CenterTitle()
+            values[('lep',pol)].graph_fit_rel.GetYaxis().SetDecimals()
+
+            lines["horiz_line_comb"+pol] = ROOT.TF1("horiz_line_comb"+pol,"0" if charge=='asymmetry' else '1',0.0,3.0);
+            lines["horiz_line_comb"+pol].SetLineColor(ROOT.kRed);
+            lines["horiz_line_comb"+pol].SetLineWidth(2);
+            lines["horiz_line_comb"+pol].SetLineStyle(ROOT.kDashed);
+            lines["horiz_line_comb"+pol].Draw("Lsame");
+            
+            subpadLegends["leg_lep_"+pol] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["leg_lep_"+pol].SetFillStyle(0); subpadLegends["leg_lep_"+pol].SetBorderSize(0)
+            subpadLegends["leg_lep_"+pol].SetNColumns(2)
+            subpadLegends["leg_lep_"+pol].AddEntry(values[('lep',pol)].graph_fit_rel,'Data','fpl')
+            labels_pol = {'left':'L','right':'R','long':'0'} 
+            subpadLegends["leg_lep_"+pol].AddEntry(values[('lep',pol)].graph_rel,'Theory (W_{{{pol}}})'.format(pol=labels_pol[pol]),'f')
+            subpadLegends["leg_lep_"+pol].Draw('same')
+
+            isubpad+=1
+
+        # now the compatibility plots
+        comps = {}
+        for ipol,pol in enumerate(['left','right']):
+            c2.cd()
+            pads[isubpad].Draw(); pads[isubpad].cd(); ROOT.gPad.SetTopMargin(0)
+            if isubpad<4: ROOT.gPad.SetBottomMargin(0)
+            else: ROOT.gPad.SetBottomMargin(-0.3)
+
+            if charge=='asymmetry':
+                yaxtitle = 'A_{#mu}-A_{e}'
+                yaxrange = (-0.3, 0.3)
+                comps["comp_"+pol] = makeUncorrDiff(values[('el',pol)].graph_fit, values[('mu',pol)].graph_fit)
+            else:
+                yaxtitle = '#sigma_{#mu}/#sigma_{e}'
+                yaxrange = (0.65, 1.35)
+                comps["comp_"+pol] = makeUncorrRatio(values[('el',pol)].graph_fit, values[('mu',pol)].graph_fit)
+            comps["comp_"+pol].SetName("comp_"+pol); comps["comp_"+pol].SetTitle("")
+            comps["comp_"+pol].SetMarkerColor(values[('mu',pol)].color)
+            comps["comp_"+pol].SetLineColor(values[('mu',pol)].color)
+            comps["comp_"+pol].SetFillColor(values[('mu',pol)].color)
+            comps["comp_"+pol].SetMarkerStyle(ROOT.kFullCircle)
+            comps["comp_"+pol].SetMarkerSize(2)
+
+            comps["comp_"+pol].Draw('Pa')
+            ## x axis fiddling
+            comps["comp_"+pol].GetXaxis().SetRangeUser(0., options.maxRapidity)
+            comps["comp_"+pol].GetXaxis().SetLabelSize(0.1)
+            ## y axis fiddling
+            comps["comp_"+pol].GetYaxis().SetTitleOffset(0.4)
+            comps["comp_"+pol].GetYaxis().SetTitleSize(0.18)
+            comps["comp_"+pol].GetYaxis().SetLabelSize(0.12)
+            comps["comp_"+pol].GetYaxis().SetTitle(yaxtitle)
+            comps["comp_"+pol].GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
+            comps["comp_"+pol].GetYaxis().CenterTitle()
+            comps["comp_"+pol].GetYaxis().SetDecimals()
+            lines["horiz_line_comp_"+pol] = ROOT.TF1("horiz_line_comp_"+pol,"0" if charge=='asymmetry' else '1',0.0,3.0);
+            lines["horiz_line_comp_"+pol].SetLineColor(ROOT.kRed);
+            lines["horiz_line_comp_"+pol].SetLineWidth(2);
+            lines["horiz_line_comp_"+pol].SetLineStyle(ROOT.kDashed);
+            lines["horiz_line_comp_"+pol].Draw("Lsame");
+
+            subpadLegends["comp_lep_"+pol] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["comp_lep_"+pol].SetFillStyle(0); subpadLegends["comp_lep_"+pol].SetBorderSize(0)
+            subpadLegends["comp_lep_"+pol].SetNColumns(2)
+            labels_pol = {'left':'L','right':'R','long':'0'} 
+            legtitle = "Data #mu - e" if charge=='asymmetry' else "Data #mu / e" 
+            subpadLegends["comp_lep_"+pol].AddEntry(comps["comp_"+pol],'{legtitle} (W_{{{pol}}})'.format(legtitle=legtitle,pol=labels_pol[pol]),'pl')
+            subpadLegends["comp_lep_"+pol].Draw('same')
+
+            isubpad+=1
+
+    c2.cd()
+    lat.DrawLatex(0.2, 0.95, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+    lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
+    for ext in ['png', 'pdf']:
+        c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
 
 
 def plotUnpolarizedValues(values,charge,channel,options):
 
-    c2 = ROOT.TCanvas('foo','', 1500, 3000)
-
-    c2.Range(0,0,1,1);
-    c2.SetFillColor(0);
-    c2.SetBorderMode(0);
-    c2.SetBorderSize(2);
-    c2.SetTickx(1);
-    c2.SetTicky(1);
-    c2.SetLeftMargin(0.05);
-    c2.SetRightMargin(0.05);
-    c2.SetTopMargin(0.05);
-    c2.SetBottomMargin(0.16);
-    c2.SetFrameFillStyle(0);
-    c2.SetFrameBorderMode(0);
+    c2 = makeCanvas()
 
     ROOT.gStyle.SetHatchesLineWidth(2)
 
@@ -366,7 +341,6 @@ def plotUnpolarizedValues(values,charge,channel,options):
     ch = '#plus' if charge == 'plus' else '#minus'
     if charge == 'asymmetry': ch = ''
     date = datetime.date.today().isoformat()
-    print "NAME = ",values['lep'].name
     if 'values_a0' in values['lep'].name: normstr = 'A0'
     elif 'values_a4' in values['lep'].name: normstr = 'A4'
     elif 'values_sumxsec' in values['lep'].name: normstr = 'xsec'
@@ -413,11 +387,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         mg.GetYaxis().SetTitleOffset(1.)
     
         leg = makeFullLegendUnpol(values)
-
         leg.Draw('same')
-        lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-        lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-        lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
     
     lines = {}
     subpadLegends = {}
@@ -432,10 +402,11 @@ def plotUnpolarizedValues(values,charge,channel,options):
         if charge=='asymmetry':
             yaxtitle = 'Theory-Data'
             yaxrange = (-0.2, 0.2)
+            yaxtitlesize = 0.18
         else:
             yaxtitle = 'Theory/Data'
             yaxrange = (0.70, 1.30) if normstr=='xsec' else (-1.5, 3.5)
-
+            yaxtitlesize = 0.18
         
         values['lep'].graph_fit_rel.Draw("A2")
         values['lep'].graph_fit_rel.Draw("pe")
@@ -446,7 +417,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         values['lep'].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
         ## y axis fiddling
         values['lep'].graph_fit_rel.GetYaxis().SetTitleOffset(0.4)
-        values['lep'].graph_fit_rel.GetYaxis().SetTitleSize(0.18)
+        values['lep'].graph_fit_rel.GetYaxis().SetTitleSize(yaxtitlesize)
         values['lep'].graph_fit_rel.GetYaxis().SetLabelSize(0.12)
         values['lep'].graph_fit_rel.GetYaxis().SetTitle(yaxtitle)
         values['lep'].graph_fit_rel.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -472,7 +443,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
         if charge=='asymmetry':
             yaxtitle = 'A_{#mu}-A_{e}'
-            yaxrange = (-0.1, 0.1)
+            yaxrange = (-0.3, 0.3)
             comp = makeUncorrDiff(values['el'].graph_fit, values['mu'].graph_fit)
         else:
             yaxtitle = '#sigma_{#mu}/#sigma_{e}'
@@ -505,9 +476,15 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
         subpadLegends["comp_lep"] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["comp_lep"].SetFillStyle(0); subpadLegends["comp_lep"].SetBorderSize(0)
         subpadLegends["comp_lep"].SetNColumns(2)
-        subpadLegends["comp_lep"].AddEntry(comp,'Data #sigma_{{#mu}}/#sigma_{{e}}','pl')
+        legtitle = "Data #mu - e" if charge=='asymmetry' else "Data #mu / e"
+        subpadLegends["comp_lep"].AddEntry(comp,legtitle,'pl')
         subpadLegends["comp_lep"].Draw('same')
 
+    c2.cd()
+    lat.DrawLatex(0.2, 0.95, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+    lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
     for ext in ['png', 'pdf']:
         c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
 
@@ -634,7 +611,6 @@ if __name__ == "__main__":
         normsigmaInFit = {}; normsigmaOutFit = {}
         for flav in flavors:
             nChan = 2 if flav=='lep' else 1
-            print "FLAV = ",flav
             for pol in polarizations:
                 cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
                 MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
@@ -649,7 +625,7 @@ if __name__ == "__main__":
                 tmp_val = valueClass('values_'+charge+'_'+pol+'_'+flav)
      
                 for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                    normsigma = normsigmaInFit if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit
+                    normsigma = normsigmaInFit[flav] if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit[flav]
                     parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
      
                     scale = 1.
@@ -749,80 +725,81 @@ if __name__ == "__main__":
                     tmp_val.makeGraphs()
                     allValuesUnpol[flav] = tmp_val
                 plotUnpolarizedValues(allValuesUnpol,charge,channel,options)
-    print "DEBUG DONE. EXIT."; exit(0)
 
-
-    if len(charges)>1:
+    if len(charges)>1 and not options.normxsec:
         print "Making charge asymmetry plots now..."
         asymmetryValues = {}
-        
-        for pol in polarizations:
-            cp = 'plus_'+pol
-            tmp_val = valueClass('asymmetry_'+pol)
-            for iy,y in enumerate(ybinwidths[cp]):
-                chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
-                                                   xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
+        for flav in flavors:
+            for pol in polarizations:
+                cp = 'plus_'+pol
+                tmp_val = valueClass('asymmetry_'+pol)
+                for iy,y in enumerate(ybinwidths[cp]):
+                    chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
+                                                       xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
+                    tmp_val.val .append(chasy_val['asy'][0])
+                    tmp_val.ehi.append(chasy_val['asy'][1])
+                    tmp_val.elo.append(chasy_val['asy'][1])
+     
+                    asy_fit = valuesAndErrors[flav]['W_{pol}_Ybin_{iy}_chargeasym'.format(pol=pol,iy=iy)]
+                    tmp_val.val_fit .append(asy_fit[0])
+                    tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
+                    tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
+     
+                    # on the charge asymmetry, which is A~0, better to show the difference 
+                    # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
+                    tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
+                    tmp_val.rello.append(chasy_val['asy'][1])
+                    tmp_val.relhi.append(chasy_val['asy'][1])
+     
+                    tmp_val.relv_fit .append(0.)
+                    tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
+                    tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
+     
+                    tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
+                    tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+                    tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+     
+                tmp_val.makeGraphs()
+                asymmetryValues[(flav,pol)] = tmp_val        
+        plotValues(asymmetryValues,'asymmetry',channel,options)
+                
+        asymmetryValuesUnpol = {}
+        for flav in flavors:
+            # now do the unpolarized ones
+            tmp_val = valueClass('asymmetry_unpolarized')
+            for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
+                xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
+                for charge in ['plus','minus']:
+                    for pol in polarizations:
+                        xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
+                        xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
+                    xerr[charge] = math.sqrt(xerr[charge])
+     
+                chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
+                                                   xerr['plus'], xerr['minus'])
+                
                 tmp_val.val .append(chasy_val['asy'][0])
                 tmp_val.ehi.append(chasy_val['asy'][1])
                 tmp_val.elo.append(chasy_val['asy'][1])
-
-                asy_fit = valuesAndErrors['W_{pol}_Ybin_{iy}_chargeasym'.format(pol=pol,iy=iy)]
+     
+                asy_fit = valuesAndErrors[flav]['W_Ybin_{iy}_chargemetaasym'.format(iy=iy)]
                 tmp_val.val_fit .append(asy_fit[0])
                 tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
                 tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
-
-                # on the charge asymmetry, which is A~0, better to show the difference 
-                # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
+     
                 tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
                 tmp_val.rello.append(chasy_val['asy'][1])
                 tmp_val.relhi.append(chasy_val['asy'][1])
-
+     
                 tmp_val.relv_fit .append(0.)
                 tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
                 tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
-
+     
                 tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
                 tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
                 tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-
+     
             tmp_val.makeGraphs()
-            asymmetryValues[pol] = tmp_val        
-        plotValues(asymmetryValues,'asymmetry',channel,options)
-            
-        # now do the unpolarized ones
-        tmp_val = valueClass('asymmetry_unpolarized')
-        for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
-            xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
-            for charge in ['plus','minus']:
-                for pol in polarizations:
-                    xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
-                    xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
-                xerr[charge] = math.sqrt(xerr[charge])
-
-            chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
-                                               xerr['plus'], xerr['minus'])
-            
-            tmp_val.val .append(chasy_val['asy'][0])
-            tmp_val.ehi.append(chasy_val['asy'][1])
-            tmp_val.elo.append(chasy_val['asy'][1])
-
-            asy_fit = valuesAndErrors['W_Ybin_{iy}_chargemetaasym'.format(iy=iy)]
-            tmp_val.val_fit .append(asy_fit[0])
-            tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
-            tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
-
-            tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
-            tmp_val.rello.append(chasy_val['asy'][1])
-            tmp_val.relhi.append(chasy_val['asy'][1])
-
-            tmp_val.relv_fit .append(0.)
-            tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
-            tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1])
-
-            tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
-            tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-            tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-
-        tmp_val.makeGraphs()
-        plotUnpolarizedValues(tmp_val,'asymmetry',channel,options)
-            
+            asymmetryValuesUnpol[flav] = tmp_val
+        plotUnpolarizedValues(asymmetryValuesUnpol,'asymmetry',channel,options)
+        
