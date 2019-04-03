@@ -271,7 +271,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         elif doPtNorm:
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
-            ptBorders = [26, 32, 38, 45.5] if isMu else [30, 35, 40, 45.5]
+            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
             if ptbins[-1] > ptBorders[-1]:
                 ptBorders.extend([50, 56])
             borderBins = []

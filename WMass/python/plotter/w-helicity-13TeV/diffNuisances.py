@@ -264,7 +264,7 @@ if __name__ == "__main__":
         if '_mu' in options.pois:
             ymin,yhalfd,ycen,yhalfu,ymax = (0.,0.5,1,1.5,2.)
         else:
-            ymin,yhalfd,ycen,yhalfu,ymax = (-1.,-0.5,0,0.5,1.)
+            ymin,yhalfd,ycen,yhalfu,ymax = (-5.,-3,0,3,5.)
 
         canvas_nuis.SetTickx(1)
         canvas_nuis.SetTicky(1)

@@ -30,8 +30,11 @@ class valueClass:
         if 'asymmetry' in name:
             self.charge = self.ch = ''
 
-        self.color  = ROOT.kBlue-7 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+2
-        self.colorf = ROOT.kBlue-4 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
+        # I tried the following two lines, but the next ones might be good as well
+        #self.color  = ROOT.kBlue-7 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+2
+        #self.colorf = ROOT.kBlue-4 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
+        self.color  = ROOT.kBlue+2 if self.isleft else ROOT.kRed+1 if self.isright else ROOT.kGray+1
+        self.colorf = ROOT.kAzure+1 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
         if self.isunpolarized: 
             self.color = ROOT.kSpring-6
             self.colorf = ROOT.kSpring-7
@@ -47,36 +50,41 @@ class valueClass:
         if len(self.val):
             self.graph = ROOT.TGraphAsymmErrors(len(self.val), self.rap, self.val, self.rlo, self.rhi, self.elo, self.ehi)
             self.graph.SetName('graph'+self.pol)
+            self.graph.SetTitle('')
         if len(self.relv): 
             self.graph_rel= ROOT.TGraphAsymmErrors(len(self.relv), self.rap, self.relv, self.rlo, self.rhi, self.rello, self.relhi)
             self.graph_rel.SetName('graph'+self.pol+'_rel')
+            self.graph_rel.SetTitle('')
         if len(self.val_fit):
             self.graph_fit = ROOT.TGraphAsymmErrors(len(self.val_fit), self.rap, self.val_fit, self.rlo, self.rhi, self.elo_fit, self.ehi_fit)
             self.graph_fit.SetName('graph'+self.pol+'_fit')
+            self.graph_fit.SetTitle('')
         zeros = array.array('f',[0 for i in xrange(len(self.rlo))])
         if len(self.relv_fit):
             self.graph_fit_rel = ROOT.TGraphAsymmErrors(len(self.relv_fit), self.rap, self.relv_fit, zeros, zeros, self.rello_fit, self.relhi_fit)
             self.graph_fit_rel.SetName('graph'+self.pol+'_fit_rel')
-        
+            self.graph_fit_rel.SetTitle('')
+
         self.graphStyle()
         if len(self.relv) and len(self.relv_fit): self.makeMultiGraphRel()
 
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
         self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
-        self.shiftPoints(self.graph_fit_rel)
+        #self.shiftPoints(self.graph_fit_rel)
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
-        #fillstyles = {'left': 3017, 'right': 3018, 'long': 3016, 'unpolarized': 3020}
-        fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        #fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
+        fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
-            self.graph.SetFillColor(self.color)
+            self.graph.SetFillColor(self.colorf)
             self.graph.SetFillStyle(fillstyles[self.pol])
         if hasattr(self,'graph_fit'):
-            self.graph_fit.SetLineWidth(2)
+            self.graph_fit.SetLineWidth(3)
             self.graph_fit.SetMarkerSize(1.0)
             self.graph_fit.SetMarkerStyle(ROOT.kFullCircle)
             self.graph_fit.SetMarkerColor(self.color)
@@ -84,14 +92,16 @@ class valueClass:
         if hasattr(self,'graph_rel'):
             self.graph_rel.SetLineWidth(5)
             self.graph_rel.SetLineColor(self.color)
-            self.graph_rel.SetFillColor(self.color)
-            self.graph_rel.SetFillStyle(fillstyles[self.pol])
+            self.graph_rel.SetFillColor(self.colorf)
+            self.graph_rel.SetFillStyle(fillstyles_rel[self.pol])
         if hasattr(self,'graph_fit_rel'):
             self.graph_fit_rel.SetLineWidth(2)
             self.graph_fit_rel.SetMarkerSize(1.0)
             self.graph_fit_rel.SetMarkerStyle(ROOT.kFullCircle)
             self.graph_fit_rel.SetLineColor(self.color)
             self.graph_fit_rel.SetMarkerColor(self.color)
+            self.graph_fit_rel.SetFillColor(ROOT.kGreen+3)
+            self.graph_fit_rel.SetFillStyle(3001)
 
     def shiftPoints(self, graph):
         shifts = {'left': -0.01, 'right': 0.01, 'long': 0.0, 'unpolarized': 0.0}
@@ -124,6 +134,8 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         ## ===========================================================
         if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in polarizations)==len(polarizations):
             leg = ROOT.TLegend(0.43, 0.78 if skipLong else 0.75, 0.93, 0.88)
+        #if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
+        #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
@@ -173,12 +185,10 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
             pad2.SetLeftMargin(0.17)
-            pad2.SetBottomMargin(0.14)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
             pad2.SetTicky(1)
-            pad2.SetTickx(1)
 
             pad2.Draw()
             pad2.cd()
@@ -210,14 +220,14 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                    values[hel].mg.GetYaxis().SetNdivisions(4)
+                    values[hel].mg.GetYaxis().SetNdivisions(510)
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
-            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
         for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
@@ -226,7 +236,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
-        c2.GetPad(0).SetLeftMargin(0.17)
+        c2.GetPad(0).SetLeftMargin(0.15)
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
@@ -251,7 +261,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Add(values.graph_fit)
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('')
+            mg.GetXaxis().SetTitle('|Y_{W}|')
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
@@ -268,9 +278,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 else:
                     mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
                     mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
-            mg.GetYaxis().SetTitleSize(0.04)
+            mg.GetYaxis().SetTitleSize(0.06)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(2.0)
+            mg.GetYaxis().SetTitleOffset(1.)
      
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
@@ -279,10 +289,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.AddEntry(values.graph     , REFMC, 'f')
 
             leg.Draw('same')
-            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
      
 
         ## now make the relative error plot:
@@ -292,12 +301,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
-            pad2.SetLeftMargin(0.17)
-            pad2.SetBottomMargin(0.14)
+            pad2.SetLeftMargin(0.15)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
-            pad2.SetTickx(1)
             pad2.SetTicky(1)
 
             pad2.Draw()
@@ -316,13 +323,14 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
             values.mg.Draw('Pa')
             ## x axis fiddling
-            values.mg.GetXaxis().SetTitle('')
+            values.mg.GetXaxis().SetTitle('|Y_{W}|')
+            values.mg.GetXaxis().SetTitleOffset(1.)
             values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
-            values.mg.GetXaxis().SetTitleSize(0.14)
+            values.mg.GetXaxis().SetTitleSize(0.1)
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
-            values.mg.GetYaxis().SetTitleOffset(1.8)
-            values.mg.GetYaxis().SetTitleSize(0.04)
+            values.mg.GetYaxis().SetTitleOffset(1.2)
+            values.mg.GetYaxis().SetTitleSize(0.06)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -351,7 +359,6 @@ if __name__ == "__main__":
     parser.add_option(      '--hessfile'    , dest='hessfile' , default=''            , type='string', help='file that contains the hessian errors in a dictionary')
     parser.add_option(      '--xsecfiles'    , dest='xsecfiles' , default=None          , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
     parser.add_option('-C', '--charge'      , dest='charge'   , default='plus,minus'  , type='string', help='process given charge. default is both')
-    #parser.add_option('-c', '--channel'     , dest='channel'   , default='mu'  , type='string', help='Channel (mu|el)')
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
