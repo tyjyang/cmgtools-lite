@@ -27,7 +27,7 @@ utilities = utilities.util()
 def niceName(name):
 
     if '_Ybin' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
         if 'plus' in name: nn += 'W+ '
         elif 'minus' in name: nn += 'W- '
         else: nn += 'W '
