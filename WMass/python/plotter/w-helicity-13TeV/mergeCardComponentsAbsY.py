@@ -225,7 +225,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 scalings = [0.02 for b in borderBins[:-1]]  # 2%, common for both mu and ele
             else:
                 if isMu: 
-                    factor = 0.03 # it used to be 0.05 for Eta, but now it is splitted in charge-correlated and charge-uncorrelated part
+                    factor = 0.046 # it used to be 0.05 for Eta, but now it is splitted in charge-correlated and charge-uncorrelated part
                     scalings = [factor for b in borderBins[:-1]]
                 else:
                     scalings = []
@@ -233,11 +233,11 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                         # slightly reducing these numbers, as now we have a part that is uncorrelated between charges
                         if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)  # 0.01
                         elif abs(etabins[borderBin]) < 0.41: scalings.append(0.01)  # 0.025
-                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.02)  # 0.04
-                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.04)  # 0.06
-                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.04)  # 0.06
+                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.03)  # 0.04
+                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.05)  # 0.06
+                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.05)  # 0.06
                         elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)  # 0.03
-                        else:                                scalings.append(0.04)  # 0.06
+                        else:                                scalings.append(0.05)  # 0.06
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
