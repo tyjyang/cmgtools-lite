@@ -13,6 +13,25 @@ from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
 
+def isExcludedNuisance(excludeNuisances=[], name=""):
+    if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances): 
+        print ">>>>> Excluding nuisance: ", name
+        return True
+    else:
+        return False
+
+def get_iy_from_process_name(name):
+    # name is something like  Wplus_right_Ybin_1
+    if not "Ybin" in name:
+        print "Error in get_iy_from_process_name(): 'Ybin' not found in %s. Exit" % name
+        quit()
+    tokens = name.split('_')
+    for i,tkn in enumerate(tokens):
+        #print "%d %s" % (i, tkn)                                                                                                                        
+        if tkn == "Ybin": iy = int(tokens[i + 1])
+    return iy
+
+
 def getXsecs(processes, systs, ybins, lumi, infile):
     histo_file = ROOT.TFile(infile, 'READ')
 
@@ -120,18 +139,27 @@ def combCharges(options):
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec_{mc}'.format(bin=options.bin,charge=ch,mc=mc) for ch in ['plus','minus'] for mc in maskedChannels]
             txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard,sp="--sparse" if options.sparse else "")
+            
+        if len(options.postfix):
+            txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
+
         ## here running the combine cards command first 
         print ccCmd
         os.system(ccCmd)
         ## here making the TF meta file
         print '--- will run text2hdf5 for the combined charges ---------------------'
         print txt2hdf5Cmd
-        os.system(txt2hdf5Cmd)
+        if not options.skip_text2hdf5:
+            os.system(txt2hdf5Cmd)
         ## print out the command to run in combine
+        metafilename=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5')
+        if len(options.postfix):
+            metafilename = metafilename.replace('.hdf5','_%s.hdf5' % options.postfix)
+
         if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=metafilename)
         else:
-            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=combinedCard.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=metafilename)
         print combineCmd
 
 
@@ -243,7 +271,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         elif doPtNorm:
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
-            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            ptBorders = [26, 32, 38, 45.5] if isMu else [30, 35, 40, 45.5]
             if ptbins[-1] > ptBorders[-1]:
                 ptBorders.extend([50, 56])
             borderBins = []
@@ -437,6 +465,8 @@ if __name__ == "__main__":
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
+    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
     parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
@@ -448,6 +478,9 @@ if __name__ == "__main__":
     parser.add_option('-s', '--sparse', dest='sparse' ,default=False, action='store_true',  help="Store normalization and systematics arrays as sparse tensors. It enables the homonymous option of text2hdf5.py")
     parser.add_option(      '--override-jetPt-syst', dest='overrideJetPtSyst' ,default=True, action='store_true',  help="If True, it rebuilds the Down variation for the jet pt syst on fake-rate using the mirrorShape() function defined here, which is different from the one in makeShapeCards.py")
     parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
+    parser.add_option(       '--exclude-nuisances', dest='excludeNuisances', default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
+    parser.add_option(       '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
+    parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -466,14 +499,37 @@ if __name__ == "__main__":
     for i,j in binningYW.items():
         nbins[i] = len(j)-1
 
+    print ""
     fixedYBins = []
     if options.ybinsOutAcc:
         fixedYBins = list(int(i) for i in options.ybinsOutAcc.split(','))
+    print '---------------------------------'
     print 'I WILL MAKE THESE BINS OUT OF ACCEPTANCE IN THE FIT:'
     print fixedYBins
     print '---------------------------------'
+
+    bkgYBins = []
+    if options.ybinsBkg:
+        bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))
+    print 'I WILL TREAT THESE BINS AS BACKGROUND IN THE FIT FOR ALL POLARIZATIONS:'
+    print bkgYBins
+    print '---------------------------------'
+
+
+    if options.longLnN:
+        print "Warning: you used option --long-lnN, so I guess you wanted to treat it as background." 
+        print "Actually you should still consider all the theory and experimental systematics, so this lnN should not be used. I suggest option --longBkg"
+        quit()
     
-    
+    if options.longBkg:
+        print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATON AS BACKGROUND'
+        print '---------------------------------'
+
+    excludeNuisances = []
+    if len(options.excludeNuisances):
+        excludeNuisances = options.excludeNuisances.split(",")
+
+
     for charge in charges:
     
         outfile  = os.path.join(options.inputdir,options.bin+'_{ch}_shapes.root'.format(ch=charge))
@@ -713,8 +769,18 @@ if __name__ == "__main__":
                         pos = 1; neg =  0;
                         for i,proc in enumerate(realprocesses):
                             if 'left' in proc or 'right' in proc or ('long' in proc and not options.longLnN):
-                                procnames.append(proc)
-                                procids.append( str(neg)); neg -= 1
+                                if "long" in proc and options.longBkg:
+                                    procnames.append(proc)
+                                    procids.append( str(pos)); 
+                                    pos += 1
+                                else:
+                                    thisYbin = get_iy_from_process_name(proc)
+                                    if thisYbin in bkgYBins:
+                                        procnames.append(proc)
+                                        procids.append( str(pos)); pos += 1
+                                    else:
+                                        procnames.append(proc)
+                                        procids.append( str(neg)); neg -= 1
                             else:
                                 procnames.append(proc)
                                 procids.append( str(pos)); pos += 1
@@ -731,7 +797,13 @@ if __name__ == "__main__":
                     nmatchprocess += 1
                 if nmatchprocess==2: 
                     nmatchprocess +=1
-                elif nmatchprocess>2: combinedCard.write(l)
+                elif nmatchprocess>2:                     
+                    pieces = [x.rstrip().lstrip() for x in l.split()]
+                    if len(pieces) > 1 and any(pieces[1] == x for x in ["shape", "lnN"]) and isExcludedNuisance(excludeNuisances, pieces[0]): 
+                        #print pieces[0]
+                        pass
+                    else:
+                        combinedCard.write(l)
         
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
 
@@ -863,6 +935,7 @@ if __name__ == "__main__":
         combinedCard = open(cardfile,'a+')
         ## add the theory / experimental systematics 
         for sys,procs in allsyst.iteritems():
+            if isExcludedNuisance(excludeNuisances, sys): continue
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
             combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
@@ -878,24 +951,46 @@ if __name__ == "__main__":
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
-                                                       filter(lambda x: re.match('.*FR.*(lnN|continuous)',x),finalsystnames))+'\n')
+                                                       filter(lambda x: re.match('.*FR.*(_norm|lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),finalsystnames))+'\n')
 
         # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
         ## first make a list of all the signal processes.
+        ## then, some processes and/or polarizations might be removed
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
         polarizations = ['left','right']
-        if options.longLnN: 
-            tmp_sigprocs = filter(lambda x: 'long_W' not in x,tmp_sigprocs)
+
+        if options.longBkg: 
+            tmp_sigprocs = filter(lambda x: 'long_' not in x,tmp_sigprocs)
         else:
             polarizations.append('long')
+
+        if options.ybinsBkg:
+            # note, the following line can potentially match undesired bins (should require that there are no additional digits after {iy}
+            # however, one would typically exclude the bins at high Yw, so they would either have already two digits (and we don't have more than 99 Yw bins),
+            # or one digit larger than 1
+            pruned_tmp_sigprocs = []
+            for thisproc in tmp_sigprocs:
+                thisybin = get_iy_from_process_name(thisproc)
+                if any(thisybin == x for x in bkgYBins): pass
+                else: pruned_tmp_sigprocs.append(thisproc)
+            tmp_sigprocs = pruned_tmp_sigprocs
+
+        # this options will now issue a warning suggesting to use option --longBkg, so I can comment the following two lines
+        #if options.longLnN: 
+        #    tmp_sigprocs = filter(lambda x: 'long_' not in x,tmp_sigprocs)
+        #else:
+        #    polarizations.append('long')
         print '============================================================================='
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
         print '============================================================================='
-        if not options.freezePOIs and not options.longLnN: # right now cannot group signal and backgrounds
-            writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
+        #if not options.freezePOIs and not options.longLnN and not options.longBkg: # right now cannot group signal and backgrounds                                  
+        # in case long is missing, the sum groups will only sum WR and WL, but this need a fix in DatacardParser.py
+        if not options.freezePOIs:
+            if not options.longLnN and not options.longBkg:
+                writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs)
@@ -945,6 +1040,10 @@ if __name__ == "__main__":
             tmp_xsec_dc.write('# --------------------------------------------------------------\n')
             for sys,procs in theosyst.iteritems():
                 if 'wpt' in sys or 'EffStat' in sys: continue
+                if isExcludedNuisance(excludeNuisances, sys): continue
+                # do not use the muR,muF,muRmuF for signal, we have the wpt-binned ones
+                if any(x in sys for x in ['muF', 'muR', 'muRmuF']):
+                    if not re.match(".*[1-9]+",sys): continue
                 # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
                 tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
             tmp_xsec_dc.close()
@@ -954,7 +1053,7 @@ if __name__ == "__main__":
         ## os.system('text2workspace.py --X-allow-no-signal -o {ws} {dc}'.format(ws=tmp_xsec_dc_name.replace('_card','_ws'), dc=tmp_xsec_dc_name))
 
         print "merged datacard in ",cardfile
-        
+
         ws = cardfile.replace('_card.txt', '_ws.root')
         minimizerOpts = ' --cminDefaultMinimizerType '+options.minimizer
         if options.minimizer.startswith('GSLMultiMin'): # default is Mod version by Josh
@@ -990,21 +1089,26 @@ if __name__ == "__main__":
         ## here running the combine cards command first
         print ccCmd
         os.system(ccCmd)
-        ## then running the t2w command afterwards
-        # print txt2wsCmd
-        # print '-- will NOT run text2workspace -----------------------'
-        # os.system(txt2wsCmd)
-        # print "NOT doing the noXsec workspace..."
-        # os.system(txt2wsCmd_noXsec)
-        ## here making the TF meta file
-        print '--- will run text2hdf5 ---------------------'
-        print "running ",txt2hdf5Cmd
-        os.system(txt2hdf5Cmd)
-        ## print out the command to run in combine
-        if options.freezePOIs:
-            combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
-        else:
-            combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
-        print combineCmd
-    # end of loop over charges
+
+        # following part is obsolete and doesn't work, because we define the groups with both charges, so text2hdf5.py will crash
+        # anyway, I don't think we will ever run the fit on a single charge again
+        # let's keep it but skip it for now
+        if False:
+            ## then running the t2w command afterwards
+            # print txt2wsCmd
+            # print '-- will NOT run text2workspace -----------------------'
+            # os.system(txt2wsCmd)
+            # print "NOT doing the noXsec workspace..."
+            # os.system(txt2wsCmd_noXsec)
+            ## here making the TF meta file
+            print '--- will run text2hdf5 ---------------------'
+            print "running ",txt2hdf5Cmd
+            os.system(txt2hdf5Cmd)
+            ## print out the command to run in combine
+            if options.freezePOIs:
+                combineCmd = 'combinetf.py --POIMode none -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            else:
+                combineCmd = 'combinetf.py -t -1 --binByBinStat --correlateXsecStat {metafile}'.format(metafile=cardfile_xsec.replace('.txt','_sparse.hdf5' if options.sparse else '.hdf5'))
+            print combineCmd
+        # end of loop over charges
 
