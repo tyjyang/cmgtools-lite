@@ -5,17 +5,19 @@ import ROOT, os, sys, re, array
 dryrun=0
 doMuons=1
 skipUnpack=1
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0
-skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1
+skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
+
+allPtBinsSignalElectron = 1
 
 # el
 folder_el = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_pt56_L1prefire.root"
+th3file_el = "cards/" + folder_el + "wel_pt56_L1prefire_fixEffStat.root"
 # mu
 folder_mu = "diffXsec_mu_2019_03_12_ptMax56_dressed/" # keep "/" at the end
-th3file_mu = "cards/" + folder_mu + "wmu_pt56_L1prefire.root"
+th3file_mu = "cards/" + folder_mu + "wmu_pt56_L1prefire_fixEffStat.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
@@ -26,7 +28,7 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --etaBordersForFakesUncorr " + ("0.5,1.0,1.6,2.0 " if doMuons else "0.5,1.0,1.4,1.6,2.0 ")
+optionsForRootMerger = " --etaBordersForFakesUncorr " + ("0.5,1.0,1.4,1.6,2.0 " if doMuons else "0.5,1.0,1.4,1.6,2.0 ")
 
 optionsForCardMaker = " --unbinned-QCDscale-Z  --sig-out-bkg  --tauChargeLnN 0.03 --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous'  " # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta ### --uncorrelate-fakes-by-charge   # .*FakesPtNormUncorrelated.* --fakesChargeLnN 0.03
 
@@ -42,7 +44,8 @@ if uncorrelateFakesNuisancesByCharge:
 
 flavour = "mu" if doMuons else "el"
 if flavour == "el":
-    optionsForCardMaker = optionsForCardMaker  # + " --pt-range-bkg 25.9 30.1  " #--eta-range-bkg 1.39 1.61 "
+    # when creating cards for mu-el combination, all signal bins must be treated in the same way as for muons, so as signal
+    optionsForCardMaker = optionsForCardMaker  + (" --pt-range-bkg 25.9 30.1  " if not allPtBinsSignalElectron else "") #--eta-range-bkg 1.39 1.61 "
 
 charges = ["plus", "minus"]
 

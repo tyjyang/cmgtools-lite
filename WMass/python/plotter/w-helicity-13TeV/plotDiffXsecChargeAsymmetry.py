@@ -20,7 +20,7 @@ def getTH1fromTH2(h2D,h2Derr=None,unrollAlongX=True):  # unrollAlongX=True --> s
     nX = h2D.GetNbinsX()
     nY = h2D.GetNbinsY()
     nbins = nX * nY
-    name = h2D.GetName() + "_unrollTo1D_" + "eta" if unrollAlongX else "pt" 
+    name = h2D.GetName() + "_unrollTo1D_" + ("eta" if unrollAlongX else "pt") 
     newh = ROOT.TH1D(name,h2D.GetTitle(),nbins,0.5,nbins+0.5)
     if 'TH2' not in h2D.ClassName(): raise RuntimeError, "Calling getTH1fromTH2 on something that is not TH2"
     for i in xrange(nX):
@@ -56,8 +56,6 @@ if __name__ == "__main__":
     parser.add_option(     '--hessian', dest='hessian' , default=False , action='store_true',   help='The file passed with -t is interpreted as hessian')
     parser.add_option(     '--fit-data', dest='fitData' , default=False , action='store_true',   help='If True, axis range in plots is customized for data')
     parser.add_option(     '--invert-ratio', dest='invertRatio' , default=False , action='store_true',   help='If True, make ratio as exp./obs. (only when plotting data)')
-    # now doing both
-    #parser.add_option(     '--unrollEta', dest='unrollEta' , default=False , action='store_true',   help='If True, make unroll along eta direction instead of pt')
     parser.add_option('-e','--expected-toyfile', dest='exptoyfile', default='', type='string', help='Root file to get expected and make ratio with data (only work with option --fit-data). If SAME, use same file as data and take _gen variables to get the expected')
     parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
     parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Bins with gen level pt in this range are treated as background in the datacard, so there is no POI for them. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range (therefore, one can also choose a slightly larger range to avoid floating precision issues).')
@@ -180,25 +178,9 @@ if __name__ == "__main__":
         hasEtaRangeBkg = False
 
 
-    # if hasPtRangeBkg and not options.ptRange:
-    #     for index in range(genBins.Npt):
-    #         if ptBinIsBackground[index]:
-    #             if firstBin: 
-
-    # # dumb test
-    # htmp1 = ROOT.TH1D("htmp1","",3,0,3)
-    # htmp2 = ROOT.TH1D("htmp2","",3,0,3)
-    # for i in range (1,4):
-    #     htmp1.SetBinContent(i, i*3)
-    #     htmp2.SetBinContent(i, i*2+1)
-    #     htmp1.SetBinError(i, i*0.1)
-    #     htmp2.SetBinError(i, i*0.1)
-    # print ">>> TEST OF getChargeAsyFromTH1pair()"
-    # htmpAsym = utilities.getChargeAsyFromTH1pair(htmp1,htmp2,name="tmpAsym")
-    # print "BIN   VAL   ERR"
-    # for i in range(1,4):
-    #     print "%d) %.3f +/- %.3f" % (i,htmpAsym.GetBinContent(i),htmpAsym.GetBinError(i))
-    # print ">>> END OF TEST"
+    # this file will store all histograms for later usage
+    outfilename = "plotDiffXsecChargeAsymmetry.root"
+    tfOut = ROOT.TFile.Open(outname+outfilename,'recreate')
 
     lepton = "electron" if channel == "el" else "muon" if channel == "mu" else "lepton"
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu" if channel == "mu" else "l")
@@ -215,6 +197,10 @@ if __name__ == "__main__":
     hChAsymm1Deta = ROOT.TH1F("hChAsymm1Deta_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                               genBins.Neta, array('d',genBins.etaBins))
 
+
+    hChAsymm.SetDirectory(tfOut)
+    hChAsymmErr.SetDirectory(tfOut)
+    hChAsymm1Deta.SetDirectory(tfOut)
 
     nbins = (genBins.Neta - nEtaBinsBkg) * (genBins.Npt - nPtBinsBkg)
     binCount = 1        
@@ -299,6 +285,8 @@ if __name__ == "__main__":
     hChAsymmRelErr = hChAsymmErr.Clone(hChAsymmErr.GetName().replace("AsymmErr","AsymmRelErr"))
     hChAsymmRelErr.Divide(hChAsymm)
     hChAsymmRelErr.SetTitle(hChAsymmErr.GetTitle().replace("uncertainty","rel. uncertainty"))
+    hChAsymmRelErr.SetDirectory(tfOut)
+
     #zaxisTitle = "Asymmetry relative uncertainty::%.4f,%.4f" % (max(0,0.99*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMinimumBin())),
                                                                  # min(0.12,1.01*hChAsymmRelErr.GetBinContent(hChAsymmRelErr.GetMaximumBin()))
                                                                  #)
@@ -369,13 +357,24 @@ if __name__ == "__main__":
 
         # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
         hDiffXsecPDF = ROOT.TH2F("hDiffXsec_{lep}_{ch}_PDF".format(lep=lepton,ch=charge),
-                                 "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                 "cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                  genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
         # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
         hDiffXsecPDF_1D = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDF_1D".format(lep=lepton,ch=charge),
-                                    "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                    "cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                     genBins.Neta, array('d',genBins.etaBins))
+
+        hMu.SetDirectory(tfOut)
+        hMuErr.SetDirectory(tfOut)
+        hDiffXsec.SetDirectory(tfOut)
+        hDiffXsecErr.SetDirectory(tfOut)
+        hDiffXsecNorm.SetDirectory(tfOut)
+        hDiffXsecNormErr.SetDirectory(tfOut)
+        hDiffXsec_1Deta.SetDirectory(tfOut)
+        hDiffXsecNorm_1Deta.SetDirectory(tfOut)
+        hDiffXsecPDF.SetDirectory(tfOut)
+        hDiffXsecPDF_1D.SetDirectory(tfOut)
 
         #utilities.getPDFbandFromXsec(   hDiffXsecPDF,    charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
         utilities.getPDFbandFromXsecEta(hDiffXsecPDF_1D, charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
@@ -493,10 +492,12 @@ if __name__ == "__main__":
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
         hDiffXsecRelErr.SetTitle(hDiffXsecErr.GetTitle().replace('uncertainty','rel.unc.'))
+        hDiffXsecRelErr.SetDirectory(tfOut)
 
         hDiffXsecNormRelErr = hDiffXsecNormErr.Clone(hDiffXsecNormErr.GetName().replace('XsecNormErr','XsecNormRelErr'))
         hDiffXsecNormRelErr.Divide(hDiffXsecNorm)
         hDiffXsecNormRelErr.SetTitle(hDiffXsecNormErr.GetTitle().replace('uncertainty','rel.unc.'))
+        hDiffXsecNormRelErr.SetDirectory(tfOut)
 
         hDiffXsecPDF_1D_byCharge[charge] = hDiffXsecPDF_1D.Clone("hDiffXsecPDF_1D_%s" % charge)
 
@@ -644,6 +645,7 @@ if __name__ == "__main__":
                     varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
 
             h1D_pmaskedexp[unrollAlongEta] = getTH1fromTH2(hDiffXsec, hDiffXsecErr, unrollAlongX=unrollAlongEta)        
+            h1D_pmaskedexp[unrollAlongEta].SetDirectory(tfOut)
             drawSingleTH1(h1D_pmaskedexp[unrollAlongEta],xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]",
                           "unrolledXsec_{var}_abs_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
                           outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
@@ -651,6 +653,7 @@ if __name__ == "__main__":
                           leftMargin=leftMargin, rightMargin=rightMargin)
 
             h1D_pmaskedexp_norm[unrollAlongEta] = getTH1fromTH2(hDiffXsecNorm, hDiffXsecNormErr, unrollAlongX=unrollAlongEta)        
+            h1D_pmaskedexp_norm[unrollAlongEta].SetDirectory(tfOut)
             drawSingleTH1(h1D_pmaskedexp_norm[unrollAlongEta],xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
                           "unrolledXsec_{var}_norm_{ch}_{fl}".format(var=unrollVar,ch=charge,fl=channel),
                           outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt, drawLineLowerPanel="",
@@ -665,6 +668,7 @@ if __name__ == "__main__":
                 additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
 
                 h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                h1D_chargeAsym[unrollAlongEta].SetDirectory(tfOut)
                 drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry::0.0,1.0",
                               "unrolledChargeAsym_{var}_{fl}".format(var=unrollVar,fl=channel),
                               outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="", 
@@ -698,6 +702,9 @@ if __name__ == "__main__":
                     hChAsymm1Deta_exp = ROOT.TH1F("hChAsymm1Deta_{lep}_exp".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                                                   genBins.Neta, array('d',genBins.etaBins))
 
+                    hChargeAsym_exp.SetDirectory(tfOut)
+                    hChAsymm1Deta_exp.SetDirectory(tfOut)
+
 
                 hDiffXsec_exp = ROOT.TH2F("hDiffXsec_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
                                           "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
@@ -721,6 +728,10 @@ if __name__ == "__main__":
                                                     "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                                     genBins.Neta, array('d',genBins.etaBins))
 
+                hDiffXsec_exp.SetDirectory(tfOut)
+                hDiffXsecNorm_exp.SetDirectory(tfOut)
+                hDiffXsec_1Deta_exp.SetDirectory(tfOut)
+                hDiffXsecNorm_1Deta_exp.SetDirectory(tfOut)
 
                 binCount = 0
                 print ""
@@ -827,6 +838,7 @@ if __name__ == "__main__":
                             varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
 
                     h1D_pmaskedexp_exp = getTH1fromTH2(hDiffXsec_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                    h1D_pmaskedexp_exp.SetDirectory(tfOut)
                     drawDataAndMC(h1D_pmaskedexp[unrollAlongEta], h1D_pmaskedexp_exp,xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::0,220",
                                   "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
                                   outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
@@ -835,6 +847,7 @@ if __name__ == "__main__":
 
 
                     h1D_pmaskedexp_norm_exp = getTH1fromTH2(hDiffXsecNorm_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                    h1D_pmaskedexp_norm_exp.SetDirectory(tfOut)
                     drawDataAndMC(h1D_pmaskedexp_norm[unrollAlongEta], h1D_pmaskedexp_norm_exp,
                                   xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
                                   "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
@@ -853,6 +866,7 @@ if __name__ == "__main__":
                         labelRatioDataExp_asym = labelRatioDataExp
                         labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
                         h1D_chargeAsym_exp = getTH1fromTH2(hChargeAsym_exp, h2Derr=None, unrollAlongX=unrollAlongEta)        
+                        h1D_chargeAsym_exp.SetDirectory(tfOut)
                         drawDataAndMC(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_exp,xaxisTitle.replace("cross section", "charge asymmetry"),
                                       "charge asymmetry::0,1.0", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
                                       outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,
@@ -898,8 +912,8 @@ if __name__ == "__main__":
                                                                                                pttext=ptRangeText,
                                                                                                txc=texCoord)
                     legendCoords = "0.2,0.4,0.75,0.85"
-                    # now building PDF band for charge asymmetry
-                    hChAsymmPDF_1D = utilities.getChargeAsyFromTH1pair(hDiffXsecPDF_1D_byCharge["plus"],hDiffXsecPDF_1D_byCharge["minus"],name="asymPDF")
+                    # now building PDF band for charge asymmetry (this is wrong, doesn't include correlations)
+                    #hChAsymmPDF_1D = utilities.getChargeAsyFromTH1pair(hDiffXsecPDF_1D_byCharge["plus"],hDiffXsecPDF_1D_byCharge["minus"],name="asymPDF")
                     labelRatioDataExp_asym = labelRatioDataExp
                     labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
                     drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry::0.06,0.25",
@@ -916,3 +930,10 @@ if __name__ == "__main__":
                 if options.exptoyfile != "SAME": fexp.Close()
 
         print ""
+
+
+    tfOut.Write()
+    tfOut.Close()
+    print ""
+    print "Created file %s" % (outname+outfilename)
+    print ""

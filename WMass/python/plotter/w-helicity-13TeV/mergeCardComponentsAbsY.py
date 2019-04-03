@@ -991,6 +991,7 @@ if __name__ == "__main__":
         if not options.freezePOIs:
             if not options.longLnN and not options.longBkg:
                 writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
+            # the following works even if Wlong is missing, although their usefulness in this case is questionable
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs)
