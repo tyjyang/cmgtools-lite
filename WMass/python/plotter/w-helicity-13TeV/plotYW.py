@@ -77,8 +77,9 @@ class valueClass:
 
     def graphStyle(self):
         fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        fillstyles_rel = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
         #fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
-        fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
+        #fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
             self.graph.SetFillColor(self.colorf)
@@ -159,7 +160,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
      
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetTitle('')
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
                 mg.GetYaxis().SetTitle('Charge asymmetry')
@@ -185,10 +186,12 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
             pad2.SetLeftMargin(0.17)
+            pad2.SetBottomMargin(0.14)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
             pad2.SetTicky(1)
+            pad2.SetTickx(1)
 
             pad2.Draw()
             pad2.cd()
@@ -220,14 +223,14 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                    values[hel].mg.GetYaxis().SetNdivisions(510)
+                    values[hel].mg.GetYaxis().SetNdivisions(4)
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
-            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
         for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
@@ -236,7 +239,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
-        c2.GetPad(0).SetLeftMargin(0.15)
+        c2.GetPad(0).SetLeftMargin(0.17)
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
@@ -261,7 +264,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Add(values.graph_fit)
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetTitle('')
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
@@ -278,9 +281,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 else:
                     mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
                     mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
-            mg.GetYaxis().SetTitleSize(0.06)
+            mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.)
+            mg.GetYaxis().SetTitleOffset(2.0)
      
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
@@ -289,10 +292,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.AddEntry(values.graph     , REFMC, 'f')
 
             leg.Draw('same')
-            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-     
+            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
 
         ## now make the relative error plot:
         ## ======================================
@@ -301,11 +304,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
-            pad2.SetLeftMargin(0.15)
+            pad2.SetLeftMargin(0.17)
+            pad2.SetBottomMargin(0.14)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
             pad2.SetTicky(1)
+            pad2.SetTickx(1)
 
             pad2.Draw()
             pad2.cd()
@@ -323,14 +328,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
             values.mg.Draw('Pa')
             ## x axis fiddling
-            values.mg.GetXaxis().SetTitle('|Y_{W}|')
-            values.mg.GetXaxis().SetTitleOffset(1.)
+            values.mg.GetXaxis().SetTitle('')
             values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
-            values.mg.GetXaxis().SetTitleSize(0.1)
+            values.mg.GetXaxis().SetTitleSize(0.14)
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
-            values.mg.GetYaxis().SetTitleOffset(1.2)
-            values.mg.GetYaxis().SetTitleSize(0.06)
+            values.mg.GetYaxis().SetTitleOffset(1.8)
+            values.mg.GetYaxis().SetTitleSize(0.04)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
