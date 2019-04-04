@@ -68,6 +68,7 @@ def getArrayBinNumberFromValue(binEdgesArray,val):
 def get_ieta_ipt_from_process_name(name):
     # name is something like  Wplus_el_ieta_1_ipt_14_Wplus_el_group_18
     # group might not be present depending on how signal bins are made
+    # also, we might have removed the second occurrence of Wplus_el_
     if not all([x in name for x in ["ieta","ipt"]]):
         print "Error in get_ieta_ipt_from_process_name(): 'ieta' or 'ipt' not found in %s. Exit" % name
         quit()

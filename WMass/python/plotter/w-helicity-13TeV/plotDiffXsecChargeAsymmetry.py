@@ -45,7 +45,7 @@ if __name__ == "__main__":
     #parser.add_option(     '--no-group-POI', dest='noGroupPOI', default=False , action='store_true', help='Specify that _group_<N>_ is not present in name of POI')
     parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='output directory to save things')
     parser.add_option('-t','--toyfile', dest='toyfile', default='.', type='string', help='Root file with toys.')
-    parser.add_option('-c','--channel', dest='channel', default='', type='string', help='name of the channel (mu or el)')
+    parser.add_option('-c','--channel', dest='channel', default='', type='string', help='name of the channel (mu or el). For combination, select lep')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='charges to run')
     parser.add_option('-s','--suffix', dest='suffix', default='', type='string', help='Suffix added to output dir (i.e, either to hessian or toys in the path)')
     parser.add_option('-f','--friend', dest='friend', default='', type='string', help='Root file with friend tree containing total xsec (it does not include the outliers). Tree name is assumed to be "toyFriend"')
@@ -69,9 +69,12 @@ if __name__ == "__main__":
     ROOT.TH1.StatOverflows(True)
     
     channel = options.channel
-    if channel not in ["el","mu"]:
-        print "Error: unknown channel %s (select 'el' or 'mu')" % channel
+    if channel not in ["el","mu","lep"]:
+        print "Error: unknown channel %s (select 'el' or 'mu' or 'lep')" % channel
         quit()
+
+    isMuElComb = False
+    if channel == "lep": isMuElComb = True
 
     charges = [x for x in options.charge.split(',')]
     for c in charges:
@@ -197,9 +200,9 @@ if __name__ == "__main__":
     #     print "%d) %.3f +/- %.3f" % (i,htmpAsym.GetBinContent(i),htmpAsym.GetBinError(i))
     # print ">>> END OF TEST"
 
-    lepton = "electron" if channel == "el" else "muon"
-    Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu")
-    ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu", 
+    lepton = "electron" if channel == "el" else "muon" if channel == "mu" else "lepton"
+    Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu" if channel == "mu" else "l")
+    ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                             ptmin=genBins.ptBins[firstPtSignalBin], ptmax=genBins.ptBins[-1])
     labelRatioDataExp = "exp./obs.::0.8,1.2" if options.invertRatio else "obs./exp.::0.8,1.2"
 
@@ -236,15 +239,15 @@ if __name__ == "__main__":
             binCount += 1
 
             if options.hessian: 
-                #central = utilities.getDiffXsecAsymmetryFromHessian(channel,ieta-1,ipt-1,options.toyfile)
-                central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                #central = utilities.getDiffXsecAsymmetryFromHessian(ieta-1,ipt-1,options.toyfile)
+                central = utilities.getDiffXsecAsymmetryFromHessianFast(ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
-                error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                error = utilities.getDiffXsecAsymmetryFromHessianFast(ieta-1,ipt-1,
                                                                       nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
             else:                
-                central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(channel,ieta-1,ipt-1,
+                central,up,down = utilities.getDiffXsecAsymmetryFromToysFast(ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
-                #central,up,down = utilities.getDiffXsecAsymmetryFromToys(channel,ieta-1,ipt-1,options.toyfile)
+                #central,up,down = utilities.getDiffXsecAsymmetryFromToys(ieta-1,ipt-1,options.toyfile)
                 error = up - central
             hChAsymm.SetBinError(ieta,ipt,error)         
             hChAsymmErr.SetBinContent(ieta,ipt,error)
@@ -252,8 +255,8 @@ if __name__ == "__main__":
 
     for ieta in range(1,genBins.Neta+1):            
         if etaBinIsBackground[ieta-1]: continue
-        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree)
-        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree)
+        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
         hChAsymm1Deta.SetBinContent(ieta,central)
         hChAsymm1Deta.SetBinError(ieta,error)
 
@@ -308,10 +311,10 @@ if __name__ == "__main__":
                         "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
 
 
-    #additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
-    #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu", pttext=ptRangeText) # pass x1,y1,x2,y2
+    #additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
+    #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", pttext=ptRangeText) # pass x1,y1,x2,y2
     texCoord = "0.2,0.65"
-    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu", 
+    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                pttext=ptRangeText,
                                                                                txc=texCoord)
     legendCoords = "0.2,0.4,0.75,0.85"
@@ -374,8 +377,8 @@ if __name__ == "__main__":
                                     "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                     genBins.Neta, array('d',genBins.etaBins))
 
-        #utilities.getPDFbandFromXsec(   hDiffXsecPDF,    charge, xsecChargefile[charge], channel, genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
-        utilities.getPDFbandFromXsecEta(hDiffXsecPDF_1D, charge, xsecChargefile[charge], channel, genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
+        #utilities.getPDFbandFromXsec(   hDiffXsecPDF,    charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
+        utilities.getPDFbandFromXsecEta(hDiffXsecPDF_1D, charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
 
 
         #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
@@ -389,7 +392,7 @@ if __name__ == "__main__":
             if options.friend != "":
                 denExpression = "totxsec_" + charge
             else:
-                denExpression = utilities.getDenExpressionForNormDiffXsec(channel, charge, genBins.Neta,genBins.Npt)
+                denExpression = utilities.getDenExpressionForNormDiffXsec(charge, genBins.Neta,genBins.Npt)
 
         central = 0
         error   = 0
@@ -405,12 +408,12 @@ if __name__ == "__main__":
 
                 # signal strength
                 if options.hessian:                    
-                    central = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    central = utilities.getSignalStrengthFromHessianFast(charge,ieta-1,ipt-1,
                                                                          nHistBins=100, minHist=0.5, maxHist=1.5, tree=tree)                    
-                    error = utilities.getSignalStrengthFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    error = utilities.getSignalStrengthFromHessianFast(charge,ieta-1,ipt-1,
                                                                        nHistBins=200, minHist=0.0, maxHist=1., tree=tree, getErr=True)                    
                 else:
-                    central,up,down = utilities.getSignalStrengthFromToysFast(channel,charge,ieta-1,ipt-1, 
+                    central,up,down = utilities.getSignalStrengthFromToysFast(charge,ieta-1,ipt-1, 
                                                                               nHistBins=200, minHist=0.5, maxHist=1.5, tree=tree)
                     error = up - central
                 hMu.SetBinContent(ieta,ipt,central)        
@@ -419,12 +422,12 @@ if __name__ == "__main__":
                 
                 # normalized cross section
                 if options.hessian:                    
-                    central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    central = utilities.getNormalizedDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                              nHistBins=2000, minHist=0., maxHist=200., tree=tree)                    
-                    error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    error = utilities.getNormalizedDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                            nHistBins=2000, minHist=0., maxHist=10., tree=tree, getErr=True)                    
                 else:
-                    central,up,down = utilities.getNormalizedDiffXsecFromToysFast(channel,charge,ieta-1,ipt-1,
+                    central,up,down = utilities.getNormalizedDiffXsecFromToysFast(charge,ieta-1,ipt-1,
                                                                                   denExpression, nHistBins=1000, minHist=0., maxHist=0.1, tree=tree)
                     error = up - central
                 hDiffXsecNorm.SetBinContent(ieta,ipt,central)        
@@ -433,12 +436,12 @@ if __name__ == "__main__":
                 
                 # unnormalized cross section
                 if options.hessian:
-                    central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    central = utilities.getDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                    nHistBins=2000, minHist=0., maxHist=200., tree=tree)                    
-                    error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                    error = utilities.getDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                  nHistBins=2000, minHist=0., maxHist=200., tree=tree, getErr=True)                    
                 else:                
-                    central,up,down = utilities.getDiffXsecFromToysFast(channel,charge,ieta-1,ipt-1,
+                    central,up,down = utilities.getDiffXsecFromToysFast(charge,ieta-1,ipt-1,
                                                                         nHistBins=2000, minHist=0., maxHist=200., tree=tree)
                     error = up - central
                 hDiffXsec.SetBinContent(ieta,ipt,central)        
@@ -447,13 +450,13 @@ if __name__ == "__main__":
                 
         for ieta in range(1,genBins.Neta+1):
             if etaBinIsBackground[ieta-1]: continue
-            central = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree)
-            error   = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree, getErr=True)
+            central = utilities.getDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree)
+            error   = utilities.getDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=tree, getErr=True)
             hDiffXsec_1Deta.SetBinContent(ieta, central)
             hDiffXsec_1Deta.SetBinError(ieta, error)
 
-            central = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree)
-            error   = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree, getErr=True)
+            central = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree)
+            error   = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=tree, getErr=True)
             hDiffXsecNorm_1Deta.SetBinContent(ieta, central)
             hDiffXsecNorm_1Deta.SetBinError(ieta, error)
 
@@ -478,6 +481,14 @@ if __name__ == "__main__":
             hDiffXsec_1Deta.Scale(scaleFactor)        
             hDiffXsecPDF.Scale(scaleFactor)
             hDiffXsecPDF_1D.Scale(scaleFactor)
+
+        if isMuElComb:
+            hDiffXsec.Scale(0.5)
+            hDiffXsecErr.Scale(0.5)
+            hDiffXsecNorm.Scale(0.5)
+            hDiffXsecNormErr.Scale(0.5)
+            hDiffXsec_1Deta.Scale(0.5)
+            hDiffXsecNorm_1Deta.Scale(0.5)
 
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
@@ -573,7 +584,8 @@ if __name__ == "__main__":
 
         # with only W -> munu, coordinates can be 0.45,0.8,0.65,0.9 with TPaveText
         texCoord = "0.45,0.85" if charge == "plus" else "0.45,0.5"
-        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
+                                                                                             lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                                                                                              pttext=ptRangeText,
                                                                                              txc=texCoord) 
         legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
@@ -604,7 +616,9 @@ if __name__ == "__main__":
 
         xaxisTitle = "template global bin"
         vertLinesArg = ""
-        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+        # pass x1,y1,x2,y2
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, 
+                                                                                     lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
 
         h1D_chargeAsym = {}
         h1D_pmaskedexp = {}
@@ -648,7 +662,7 @@ if __name__ == "__main__":
 
                 xaxisTitle = xaxisTitle.replace("cross section", "charge asymmetry")
                 additionalTextBackup = additionalText
-                additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+                additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
 
                 h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
                 drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry::0.0,1.0",
@@ -722,10 +736,10 @@ if __name__ == "__main__":
                         
                         if icharge == 2:
                             # charge asymmetry
-                            central = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                            central = utilities.getDiffXsecAsymmetryFromHessianFast(ieta-1,ipt-1,
                                                                                    nHistBins=2000, minHist=0., maxHist=1., 
                                                                                    tree=treeexp, getGen=getExpFromGen)         
-                            error = utilities.getDiffXsecAsymmetryFromHessianFast(channel,ieta-1,ipt-1,
+                            error = utilities.getDiffXsecAsymmetryFromHessianFast(ieta-1,ipt-1,
                                                                                  nHistBins=2000, minHist=0., maxHist=1., 
                                                                                  tree=treeexp, getErr=True)                    
                             
@@ -734,18 +748,18 @@ if __name__ == "__main__":
 
 
                         # normalized cross section
-                        central = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                        central = utilities.getNormalizedDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                                  nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getGen=getExpFromGen)         
-                        error = utilities.getNormalizedDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                        error = utilities.getNormalizedDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                                nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getErr=True)                    
 
                         hDiffXsecNorm_exp.SetBinContent(ieta,ipt,central)        
                         hDiffXsecNorm_exp.SetBinError(ieta,ipt,error)         
 
                         # unnormalized cross section
-                        central = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                        central = utilities.getDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                        nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getGen=getExpFromGen)                    
-                        error = utilities.getDiffXsecFromHessianFast(channel,charge,ieta-1,ipt-1,
+                        error = utilities.getDiffXsecFromHessianFast(charge,ieta-1,ipt-1,
                                                                      nHistBins=2000, minHist=0., maxHist=200., tree=treeexp, getErr=True)                    
                         hDiffXsec_exp.SetBinContent(ieta,ipt,central)        
                         hDiffXsec_exp.SetBinError(ieta,ipt,error)         
@@ -756,18 +770,18 @@ if __name__ == "__main__":
                     if etaBinIsBackground[ieta-1]: continue
 
                     if icharge == 2:
-                        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp)
-                        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(channel,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp, getErr=True)
+                        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp)
+                        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp, getErr=True)
                         hChAsymm1Deta_exp.SetBinContent(ieta,central)
                         hChAsymm1Deta_exp.SetBinError(ieta,error)
         
-                    central = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp)
-                    error   = utilities.getDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp, getErr=True)
+                    central = utilities.getDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp)
+                    error   = utilities.getDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp, getErr=True)
                     hDiffXsec_1Deta_exp.SetBinContent(ieta, central)
                     hDiffXsec_1Deta_exp.SetBinError(ieta, error)
 
-                    central = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp)
-                    error   = utilities.getNormalizedDiffXsec1DFromHessianFast(channel,charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp, getErr=True)
+                    central = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp)
+                    error   = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp, getErr=True)
                     hDiffXsecNorm_1Deta_exp.SetBinContent(ieta, central)
                     hDiffXsecNorm_1Deta_exp.SetBinError(ieta, error)
 
@@ -783,6 +797,13 @@ if __name__ == "__main__":
                     scaleFactor = 1./options.lumiNorm
                     hDiffXsec_exp.Scale(scaleFactor)
                     hDiffXsec_1Deta_exp.Scale(scaleFactor)
+
+                if isMuElComb:
+                    hDiffXsec_exp.Scale(0.5)
+                    hDiffXsec_1Deta_exp.Scale(0.5)
+                    hDiffXsecNorm_exp.Scale(0.5)
+                    hDiffXsecNorm_1Deta_exp.Scale(0.5)
+
 
                 # # now drawing a TH1 unrolling TH2
 
@@ -826,7 +847,8 @@ if __name__ == "__main__":
                     if icharge == 2:
                         
                         additionalTextBackup = additionalText
-                        additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu") # pass x1,y1,x2,y2
+                        # pass x1,y1,x2,y2
+                        additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
                         
                         labelRatioDataExp_asym = labelRatioDataExp
                         labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
@@ -844,10 +866,11 @@ if __name__ == "__main__":
                 ###############
                 xaxisTitle = 'gen %s |#eta|' % lepton
                 additionalTextBackup = additionalText
-                #additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::0.45,0.8,0.75,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+                #additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::0.45,0.8,0.75,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                 #                                                                                       pttext=ptRangeText) # pass x1,y1,x2,y2
                 texCoord = "0.45,0.85" if charge == "plus" else "0.45,0.5"
-                additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu",
+                additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
+                                                                                                     lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                                                                                                      pttext=ptRangeText,
                                                                                                      txc=texCoord) 
                 legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5" # does not include space for PDF line (created automatically inside)
@@ -871,7 +894,7 @@ if __name__ == "__main__":
                     additionalTextBackup = additionalText
                     #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu",pttext=ptRangeText) # pass x1,y1,x2,y2
                     texCoord = "0.2,0.68"
-                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu", 
+                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                                pttext=ptRangeText,
                                                                                                txc=texCoord)
                     legendCoords = "0.2,0.4,0.75,0.85"

@@ -30,8 +30,8 @@ class valueClass:
         if 'asymmetry' in name:
             self.charge = self.ch = ''
 
-        self.color  = ROOT.kBlue-9 if self.isleft else ROOT.kOrange-4 if self.isright else ROOT.kGray+1
-        self.colorf = ROOT.kBlue-3 if self.isleft else ROOT.kOrange-3 if self.isright else ROOT.kGray+3
+        self.color  = ROOT.kBlue+2 if self.isleft else ROOT.kRed+1 if self.isright else ROOT.kGray+1
+        self.colorf = ROOT.kAzure+1 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
         if self.isunpolarized: 
             self.color = ROOT.kSpring-6
             self.colorf = ROOT.kSpring-7
@@ -47,35 +47,40 @@ class valueClass:
         if len(self.val):
             self.graph = ROOT.TGraphAsymmErrors(len(self.val), self.rap, self.val, self.rlo, self.rhi, self.elo, self.ehi)
             self.graph.SetName('graph'+self.pol)
+            self.graph.SetTitle('')
         if len(self.relv): 
             self.graph_rel= ROOT.TGraphAsymmErrors(len(self.relv), self.rap, self.relv, self.rlo, self.rhi, self.rello, self.relhi)
             self.graph_rel.SetName('graph'+self.pol+'_rel')
+            self.graph_rel.SetTitle('')
         if len(self.val_fit):
             self.graph_fit = ROOT.TGraphAsymmErrors(len(self.val_fit), self.rap, self.val_fit, self.rlo, self.rhi, self.elo_fit, self.ehi_fit)
             self.graph_fit.SetName('graph'+self.pol+'_fit')
+            self.graph_fit.SetTitle('')
         zeros = array.array('f',[0 for i in xrange(len(self.rlo))])
         if len(self.relv_fit):
             self.graph_fit_rel = ROOT.TGraphAsymmErrors(len(self.relv_fit), self.rap, self.relv_fit, zeros, zeros, self.rello_fit, self.relhi_fit)
             self.graph_fit_rel.SetName('graph'+self.pol+'_fit_rel')
-        
+            self.graph_fit_rel.SetTitle('')
+
         self.graphStyle()
         if len(self.relv) and len(self.relv_fit): self.makeMultiGraphRel()
 
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
         self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
-        self.shiftPoints(self.graph_fit_rel)
+        #self.shiftPoints(self.graph_fit_rel)
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
-        fillstyles = {'left': 3017, 'right': 3018, 'long': 3016, 'unpolarized': 3020}
+        fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
+        fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
-            self.graph.SetFillColor(self.color)
+            self.graph.SetFillColor(self.colorf)
             self.graph.SetFillStyle(fillstyles[self.pol])
         if hasattr(self,'graph_fit'):
-            self.graph_fit.SetLineWidth(2)
+            self.graph_fit.SetLineWidth(3)
             self.graph_fit.SetMarkerSize(1.0)
             self.graph_fit.SetMarkerStyle(ROOT.kFullCircle)
             self.graph_fit.SetMarkerColor(self.color)
@@ -83,14 +88,16 @@ class valueClass:
         if hasattr(self,'graph_rel'):
             self.graph_rel.SetLineWidth(5)
             self.graph_rel.SetLineColor(self.color)
-            self.graph_rel.SetFillColor(self.color)
-            self.graph_rel.SetFillStyle(fillstyles[self.pol])
+            self.graph_rel.SetFillColor(self.colorf)
+            self.graph_rel.SetFillStyle(fillstyles_rel[self.pol])
         if hasattr(self,'graph_fit_rel'):
             self.graph_fit_rel.SetLineWidth(2)
             self.graph_fit_rel.SetMarkerSize(1.0)
             self.graph_fit_rel.SetMarkerStyle(ROOT.kFullCircle)
             self.graph_fit_rel.SetLineColor(self.color)
             self.graph_fit_rel.SetMarkerColor(self.color)
+            self.graph_fit_rel.SetFillColor(ROOT.kGreen+3)
+            self.graph_fit_rel.SetFillStyle(3001)
 
     def shiftPoints(self, graph):
         shifts = {'left': -0.01, 'right': 0.01, 'long': 0.0, 'unpolarized': 0.0}

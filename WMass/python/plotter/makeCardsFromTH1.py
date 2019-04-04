@@ -30,6 +30,94 @@ def isExcludedNuisance(excludeNuisances=[], name=""):
         return False
 
 
+def combFlavours(options):
+    suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
+    datacards=[]; channels=[]
+    indirLep = {'Wmu': options.indirMu,
+                'Wel': options.indirEl,
+                }
+    for charge in ['plus','minus']:
+        for bin in ['Wmu', 'Wel']:
+            datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_card.txt'.format(ch=charge))
+            channels.append('{bin}_{ch}'.format(bin=bin,ch=charge))
+            maskedChannels = ['InAcc']
+            if len(options.eta_range_outAcc) or options.sig_out_outAcc:
+                maskedChannels.append('OutAcc')
+            if not options.freezePOIs:
+                for mc in maskedChannels:
+                    datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+                    channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=bin,ch=charge,maskchan=mc))
+
+    print "="*20
+    print "Looking for these cards"
+    print "-"*20
+    for d in datacards:
+        print d
+    print "="*20
+
+    if sum([os.path.exists(card) for card in datacards])==len(datacards):
+        print "Cards for W+ and W- done. Combining them now..."
+        combinedCard = os.path.abspath(options.outdir)+"/"+'Wlep_'+suffix+'.txt'
+        ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        ## here running the combine cards command first 
+        print ccCmd
+        os.system(ccCmd)
+        ## here making the TF meta file
+        if options.freezePOIs:
+            # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
+            txt2hdf5Cmd = 'text2hdf5.py --sparse {cf}'.format(cf=combinedCard)
+        else:
+            maskchan = [' --maskedChan {bin}_{charge}_xsec_{maskchan}'.format(bin=bin,charge=ch,maskchan=mc) for bin in ['Wmu', 'Wel'] for ch in ['plus','minus'] for mc in maskedChannels]
+            txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        if not options.doSystematics:
+            txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")
+        if len(options.postfix):
+            txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
+        print ""
+        print "The following command makes the .hdf5 file used by combine"
+        print txt2hdf5Cmd
+        print '--- will run text2hdf5 for the combined charges ---------------------'
+        if not options.skip_text2hdf5: os.system(txt2hdf5Cmd)
+        ## print out the command to run in combine
+        metafilename = combinedCard.replace('.txt','_sparse.hdf5')
+        if len(options.postfix):
+            metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
+
+        bbboptions = " --binByBinStat --correlateXsecStat "
+        combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
+        if options.freezePOIs:
+            combineCmd += " --POIMode none"
+        else:
+            combineCmd += " --doImpacts  "
+        if options.useSciPyMinimizer:
+            combineCmd += " --useSciPyMinimizer "
+        fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
+        fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
+        if not os.path.exists(fitdir_data):
+            print "Creating folder", fitdir_data
+            os.system("mkdir -p " + fitdir_data)
+        if not os.path.exists(fitdir_Asimov):
+            print "Creating folder", fitdir_Asimov
+            os.system("mkdir -p " + fitdir_Asimov)
+        print ""
+        # add --saveHists --computeHistErrors 
+        print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
+        combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
+        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
+        print combineCmd_data
+        if not options.skip_combinetf:
+            os.system(combineCmd_data)
+        print ""
+        print combineCmd_Asimov            
+        if not options.skip_combinetf:
+            os.system(combineCmd_Asimov)
+            
+
+    else:
+        print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
+
+
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
     datacards=[]; channels=[]
@@ -149,16 +237,25 @@ parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 parser.add_option(       '--useSciPyMinimizer', dest='useSciPyMinimizer' , default=False, action='store_true', help='You can try this minimizer, which should be more robust than the default one')
+# to combine flavours (other options above are used as well
+parser.add_option(       '--comb-flavour'          , dest='combineFlavours' , default=False, action='store_true', help='Combine Wmu and Wel, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards. It requires cards for both W+ and W-')
+parser.add_option(       "--indir-el",     dest="indirEl", type="string", default="", help="Input folder with shape file for electrons (only with --comb-flavour)");
+parser.add_option(       "--indir-mu",     dest="indirMu", type="string", default="", help="Input folder with shape file for muons (only with --comb-flavour)");
 (options, args) = parser.parse_args()
 
 print ""
-if not options.indir:
-    print "Warning: you must specify an input folder containing the shape files with option -i <dir>"
-    quit()
-if options.flavour not in ["el", "mu"]:
+if options.combineFlavours:
+    if not options.indirEl or not options.indirMu:
+        print "Warning: for flavours' combination you must specify an input folder containing the shape files for [e|mu] with options [--indir-el|--indir-mu] <dir>"
+        quit()
+else:
+    if not options.indir:
+        print "Warning: you must specify an input folder containing the shape files with option -i <dir>"
+        quit()
+if options.flavour not in ["el", "mu"] and not options.combineFlavours:
     print "Warning: you must specify a lepton flavour with option -f el|mu"
     quit()
-if not options.combineCharges:
+if not options.combineCharges and not options.combineFlavours:
     if options.charge not in ["plus", "minus"]:
         print "Warning: you must specify a charge with option -c plus|minus"
         quit()
@@ -170,7 +267,11 @@ if options.sig_out_bkg and options.sig_out_outAcc:
 if not options.indir.endswith('/'): options.indir += "/"    
 # manage output folder
 outdir = options.outdir
-if outdir == "SAME": outdir = options.indir
+if outdir == "SAME": 
+    if options.combineFlavours:
+        print "Warning: when combining charges it is better to specify a new output folder, without key SAME (default)"
+        quit()
+    outdir = options.indir
 if not outdir.endswith('/'): outdir += "/"
 if outdir != "./":
     if not os.path.exists(outdir):
@@ -198,6 +299,23 @@ if options.combineCharges:
     print ""
     print "I combined the datacards for both charges."
     quit()
+
+if options.combineFlavours:
+    cmssw = os.environ['CMSSW_VERSION']
+    if cmssw != "":
+        if cmssw == "CMSSW_8_0_25":
+            print "ERROR: you must be in CMSSW_10_3_0_pre4 or newer to run this command and use combine with tensorflow. Exit"
+            quit()
+    else:
+        print "ERROR: need to set cmssw environment. Run cmsenv from CMSSW_10_3_0_pre4 or newer to run this command and use combine with tensorflow. Exit"
+        quit()
+
+    options.outdir = outdir # to pass to combFlavours()
+    combFlavours(options)
+    print ""
+    print "I combined the datacards for both flavours (and charges)."
+    quit()
+
 
 etaPtBinningFile = options.indir + options.binfile
 # get eta-pt binning for both reco and gen
@@ -281,12 +399,12 @@ for ieta in range(genBins.Neta):
     for ipt in range(genBins.Npt):
         if options.group:
             igroup = int(int(ieta + ipt * genBins.Neta)/options.group)
-            sigName = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}_W{ch}_{fl}_group_{gr}".format(ch=charge, fl=flavour, ieta=str(ieta), ipt=str(ipt), gr=str(igroup))
+            sigName = "W{ch}_lep_ieta_{ieta}_ipt_{ipt}_group_{gr}".format(ch=charge, ieta=str(ieta), ipt=str(ipt), gr=str(igroup))
         else:
-            sigName = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}_W{ch}_{fl}".format(ch=charge, fl=flavour, ieta=str(ieta), ipt=str(ipt))            
+            sigName = "W{ch}_lep_ieta_{ieta}_ipt_{ipt}".format(ch=charge, ieta=str(ieta), ipt=str(ipt))            
         signalprocesses.append(sigName)
 # add last bin with outliers (outlirs might be written in name once or twice, please check
-sigOutName = "W{ch}_{fl}_outliers_W{ch}_{fl}".format(ch=charge, fl=flavour)
+sigOutName = "W{ch}_lep_outliers".format(ch=charge)
 if options.group:
     sigOutName += "_group_{gr}".format(gr=str(igroup+1))
 signalprocesses.append(sigOutName)
@@ -661,17 +779,18 @@ card.write("\n")
 # xsec inclusive in pt
 for ch in ["plus", "minus"]:
     for ieta in range(genBins.Neta):
+        # can keep '_' after {ieta} in regular expression, because it is followed by ipt (but in case you want ipt remember that {ipt} is now the last word)
         procsThisIeta = filter( lambda x: re.match('.*_ieta_{ieta}_.*'.format(ieta=ieta),x), isInAccProc.keys() )        
         procsThisIeta = sorted(procsThisIeta, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
-        newp = "W{ch}_{fl}_ieta_{ieta}_W{ch}_{fl}".format(ch=ch, fl=flavour, ieta=str(ieta))
+        newp = "W{ch}_lep_ieta_{ieta}".format(ch=ch, ieta=str(ieta))
         tmpnames = [x.replace("plus","TMP").replace("minus","TMP") for x in procsThisIeta]
         card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
     card.write("\n")
 card.write("\n")
 
 for ieta in range(genBins.Neta):
-    newp = "W_{fl}_ieta_{ieta}_W_{fl}".format(fl=flavour, ieta=str(ieta))
-    chpair = "Wplus_{fl}_ieta_{ieta}_Wplus_{fl} Wminus_{fl}_ieta_{ieta}_Wminus_{fl}".format(ch=ch, fl=flavour, ieta=str(ieta))
+    newp = "W_lep_ieta_{ieta}".format(ieta=str(ieta))
+    chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
     card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
 
         

@@ -79,6 +79,7 @@ if __name__ == "__main__":
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='do 1D summary plot as a function of |eta| using this file with the |eta| binning')
     parser.add_option(     '--splitOutByTarget', dest='splitOutByTarget' , default=False , action='store_true',   help='Create a subfolder appending target to output directory, where plots will be saved')
     parser.add_option(     '--pt-min-signal'  , dest='ptMinSignal',  default=-1, type=float, help='Only for 2D xsec: specify the minimum pt for the bins considered as signal. If not given, take the very first pt value from the gen pt binning')
+    parser.add_option('-c', '--channel',     dest='channel',     default='',   type='string', help='Specify channel (el|mu) to make legend. It is no longer guessed from the name of POIs. If empty, generic "l" will be used in legends instead of (#mu|e)')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -112,6 +113,19 @@ if __name__ == "__main__":
     if len(options.nuis) and len(options.nuisgroups):
         print 'You can specify either single nuis (--nuis) or poi groups (--nuisgroups), not both!'
         sys.exit()
+
+    if len(options.channel) and options.channel not in ["el","mu"]:
+        print "Warning: if you specify a channel with -c, it must be 'el' or 'mu'"
+        quit()
+
+    # flavour is used in legend, so it is a TLatex string
+    # for generic lepton, the Latex \ell is not supported (once should use TMathText which allows to write in Latex style and has \ell, but
+    # apparently it is not supported for PDFs (one solution is that one should save in .eps and convert the file to pdf format later)
+    # see: https://root-forum.cern.ch/t/tlatex-vs-ell/7767/11
+    flavour = "l" 
+    if len(options.channel):
+        if options.channel == "el": flavour = "e"
+        else                      : flavour = "#mu"
 
     if options.outdir:
         # emanuele: why this?
@@ -335,8 +349,6 @@ if __name__ == "__main__":
         ybins = eval(ybinfile.read())
         ybinfile.close()
 
-        flavour = "" # decided below
-
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
@@ -376,8 +388,7 @@ if __name__ == "__main__":
 
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
-            flavour = "e" if "el:" in niceName(x) else "#mu"
-            new_x = niceName(x).replace('el: ','').replace('#mu: ','')
+            new_x = niceName(x).replace('el: ','').replace('#mu: ','').replace('l: ','')
             if options.absolute:
                 fitErrors[new_x] = abs(valuesAndErrors[x][1]-valuesAndErrors[x][0])
             else:
@@ -445,8 +456,6 @@ if __name__ == "__main__":
         etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 
-        flavour = "" # decided below
-
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
@@ -486,7 +495,6 @@ if __name__ == "__main__":
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
             #print "Debug: poi = " + x
-            flavour = "e" if "el:" in niceName(x) else "#mu"
             bineta = (x.split("_ieta_")[1]).split("_")[0]
             new_x = "W{ch} {bin}".format(ch="+" if "plus" in x else "-" if "minus" in x else "", bin=bineta)
             # print "new_x = " + new_x

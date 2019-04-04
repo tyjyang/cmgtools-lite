@@ -351,8 +351,10 @@ if __name__ == "__main__":
             suffix = prepost+options.suffix
             # doing signal
             canv = ROOT.TCanvas()
-            chfl = '{ch}_{fl}'.format(ch=charge,fl=channel)
-            keyplot = 'W'+chfl+'_'+prepost
+            #chfl = '{ch}_{fl}'.format(ch=charge,fl=channel)
+            chfl = '{ch}_lep'.format(ch=charge)
+            #keyplot = 'W'+chfl+'_'+prepost
+            keyplot = prepost
 
             print "-"*30
             print "doing " + prepost
@@ -444,7 +446,7 @@ if __name__ == "__main__":
      
      
             # do backgrounds now
-            procs=["W{chfl}_outliers_W{chfl}".format(chfl=chfl), "Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
+            procs=["W{chfl}_outliers".format(chfl=chfl), "Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
             titleOut = 'W{chs}: |#eta| > {etamax}; p_{{T}} #notin [{ptmin:3g},{ptmax:.3g})'.format(etamax=genBins.etaBins[-1],
                                                                                                     ptmin=genBins.ptBins[0],
                                                                                                     ptmax=genBins.ptBins[-1],
