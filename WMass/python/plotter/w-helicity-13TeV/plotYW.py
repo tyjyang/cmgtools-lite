@@ -31,10 +31,10 @@ class valueClass:
             self.charge = self.ch = ''
 
         # I tried the following two lines, but the next ones might be good as well
-        self.color  = ROOT.kBlue-7 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+2
-        self.colorf = ROOT.kBlue-4 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
-        #self.color  = ROOT.kBlue+2 if self.isleft else ROOT.kRed+1 if self.isright else ROOT.kGray+1
-        #self.colorf = ROOT.kAzure+1 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
+        #self.color  = ROOT.kBlue-7 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+2
+        #self.colorf = ROOT.kBlue-4 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
+        self.color  = ROOT.kBlue+2 if self.isleft else ROOT.kRed+1 if self.isright else ROOT.kGray+1
+        self.colorf = ROOT.kAzure+1 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
         if self.isunpolarized: 
             self.color = ROOT.kSpring-6
             self.colorf = ROOT.kSpring-7
@@ -71,15 +71,15 @@ class valueClass:
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
         self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
-        #self.shiftPoints(self.graph_fit_rel)
+        self.shiftPoints(self.graph_fit_rel)
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
-        fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
-        fillstyles_rel = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
-        #fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
-        #fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
+        #fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        #fillstyles_rel = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
+        fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
             self.graph.SetFillColor(self.colorf)
@@ -404,6 +404,9 @@ if __name__ == "__main__":
     ybins = eval(ybinfile.read())
     ybinfile.close()
 
+    #print ybins
+    
+
     #print ybins    
     bkgYBins = []
     if options.ybinsBkg:
@@ -531,7 +534,9 @@ if __name__ == "__main__":
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
                 if any(iy == x for x in bkgYBins): continue
-                normsigma = normsigmaInFit if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit
+                # normsigma is used to normalize the expected: then, the sum should be the one on the expected
+                # which is also less sensitive to fluctuations, since in data some bins can be 0
+                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                 parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
 
                 scale = 1.
