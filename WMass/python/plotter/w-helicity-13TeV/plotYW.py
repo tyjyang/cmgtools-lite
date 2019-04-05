@@ -71,7 +71,7 @@ class valueClass:
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
         self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
-        self.shiftPoints(self.graph_fit_rel)
+        #self.shiftPoints(self.graph_fit_rel)
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
