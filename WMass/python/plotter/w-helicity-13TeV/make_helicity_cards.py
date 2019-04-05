@@ -308,6 +308,7 @@ if options.addPdfSyst:
     # write the additional systematic samples in the MCA file
     writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
     writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
+    writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtau') # on WTau
     # write the complete systematics file (this was needed when trying to run all systs in one job)
     # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
 if options.addQCDSyst:
