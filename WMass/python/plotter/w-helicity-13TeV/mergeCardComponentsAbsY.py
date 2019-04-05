@@ -271,7 +271,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         elif doPtNorm:
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
-            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            ptBorders = [26, 32, 38, 46] if isMu else [30, 35, 40, 45]
             if ptbins[-1] > ptBorders[-1]:
                 ptBorders.extend([50, 56])
             borderBins = []
@@ -466,10 +466,10 @@ if __name__ == "__main__":
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="", help='Define which Y bins are to be considered as background. With format 14,15 ')
-    parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background')
+    parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background. Different from --long-lnN, which would also assing an additional LnN uncertainty')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
-    parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components')
+    parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=None, help='add a common lnN constraint to all longitudinal components. I t activates --longBkg')
     parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
     parser.add_option(     '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
@@ -514,13 +514,9 @@ if __name__ == "__main__":
     print 'I WILL TREAT THESE BINS AS BACKGROUND IN THE FIT FOR ALL POLARIZATIONS:'
     print bkgYBins
     print '---------------------------------'
-
-
-    if options.longLnN:
-        print "Warning: you used option --long-lnN, so I guess you wanted to treat it as background." 
-        print "Actually you should still consider all the theory and experimental systematics, so this lnN should not be used. I suggest option --longBkg"
-        quit()
     
+    if options.longLnN: options.longBkg = True
+
     if options.longBkg:
         print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATON AS BACKGROUND'
         print '---------------------------------'
@@ -974,7 +970,7 @@ if __name__ == "__main__":
                 else: pruned_tmp_sigprocs.append(thisproc)
             tmp_sigprocs = pruned_tmp_sigprocs
 
-        # this options will now issue a warning suggesting to use option --longBkg, so I can comment the following two lines
+        # filters already made above (options.longLnN automatically activates options.longBkg)
         #if options.longLnN: 
         #    tmp_sigprocs = filter(lambda x: 'long_' not in x,tmp_sigprocs)
         #else:
