@@ -25,8 +25,9 @@ incl_sig_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/m
 incl_sig_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigInclCharge_binned_eta_pt.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
 
 # lepton efficiency systematics for Z
-incl_dy_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt",   AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1)", SkipMe=True, PostFix='_lepeff_Up'
-incl_dy_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt",   AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1)", SkipMe=True, PostFix='_lepeff_Dn'
+# need to use correct scale factors for trigger and the rest. Pass prefiring as if it was SF3, otherwise the variation gets wrong (prefiring would be applied as another multiplicative factor after scalign the SF weights, while one wants to include it in the SF weight, and then vary it by a global uncertainty)
+incl_dy_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt",   AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
+incl_dy_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt",   AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
 
 # muon scale systematics for Z
 incl_dy_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'

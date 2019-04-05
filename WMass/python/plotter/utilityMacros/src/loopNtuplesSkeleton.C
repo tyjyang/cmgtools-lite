@@ -787,11 +787,11 @@ void fillHistograms(const string& treedir = "./",
     for (Int_t ieff = 0; ieff < maxEffStat; ++ieff) {     
       etalow = etaminForEffStat + 0.1 * ieff;
       h3_charge_eta_pt_globalBin_ErfPar0EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
+									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar1EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
+									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar2EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep_pt[0],etalow,etalow+0.1,chargeSign) * wgt);
+									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
 
     }
 
