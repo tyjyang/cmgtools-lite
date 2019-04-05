@@ -418,10 +418,14 @@ procIsSignalBkg = {}
 for p in allprocesses:
     procIsSignalBkg[p] = False
     if signalMatch in p: 
-        if "outliers" in p and options.sig_out_bkg:            
-            procNum[p] = ibkg
-            ibkg += 1
-            procIsSignalBkg[p] = True
+        if "outliers" in p: 
+            if options.sig_out_bkg:            
+                procNum[p] = ibkg
+                ibkg += 1
+                procIsSignalBkg[p] = True
+            else:
+                procNum[p] = isig
+                isig -= 1            
         else:
             ieta,ipt = get_ieta_ipt_from_process_name(p)
             if ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
@@ -747,22 +751,23 @@ isInAccProc = {}
 for p in allprocesses:
     if 'Wminus' in p or 'Wplus' in p:
         # if outliers is a background, remove from xsec card
-        if options.sig_out_bkg and "outliers" in p:
-            pass
+        if "outliers" in p:
+            if options.sig_out_bkg :
+                pass 
+            else:
+                tmp_sigprocs.append(p)
+                if options.sig_out_outAcc: 
+                    isInAccProc[p] = False
+                else:
+                    isInAccProc[p] = True
         else:
-            ieta,ipt = get_ieta_ipt_from_process_name(p)    
+            ieta,ipt = get_ieta_ipt_from_process_name(p)
             if ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
                 pass
             else:
                 tmp_sigprocs.append(p)
-                if hasEtaRangeOutAcc or options.sig_out_outAcc:
-                    if "outliers" in p:
-                        isInAccProc[p] = False if options.sig_out_outAcc else True
-                    else:                    
-                        if etaBinIsOutAcc[ieta]:
-                            isInAccProc[p] = False
-                        else:
-                            isInAccProc[p] = True
+                if hasEtaRangeOutAcc and etaBinIsOutAcc[ieta]:
+                    isInAccProc[p] = False
                 else:
                     isInAccProc[p] = True
 
@@ -770,10 +775,11 @@ for p in allprocesses:
 # actually, this would only work for the charge-combined card, but it is easier to have it here, so to use combineCards.py later
 
 for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
-        newp = p.replace("plus","").replace("minus","")        
-        tmpp = p.replace("plus","TMP").replace("minus","TMP")        
-        tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
-        card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
+    # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
+    newp = p.replace("plus","").replace("minus","")        
+    tmpp = p.replace("plus","TMP").replace("minus","TMP")        
+    tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
+    card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
 card.write("\n")
 
 # xsec inclusive in pt
@@ -833,7 +839,7 @@ tmp_xsec_hists.Close()
 print "Created root file with cross sections: %s" % tmp_xsec_histfile_name
 
 maskedChannels = ['InAcc']
-if hasEtaRangeOutAcc: maskedChannels.append('OutAcc')
+if options.sig_out_outAcc or hasEtaRangeOutAcc: maskedChannels.append('OutAcc')
 maskedChannelsCards = {}
 for maskChan in maskedChannels:
     if maskChan=='InAcc': tmp_sigprocs_mcha = [p for p in tmp_sigprocs if isInAccProc[p]]

@@ -5,16 +5,16 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 doMuElComb = 0
-dryrun = 1
-skipData = 1
+dryrun = 0
+skipData = 0
 onlyData = 0
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
-skipDiffNuis = 0
+skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 allPtBinsSignalElectron = 1
 
@@ -48,10 +48,10 @@ ptMinTemplate = "30" if flavour == "el" else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS|mW", 
-                      "muR.*|muF.*", 
-                      "Fakes(Eta|Pt).*[0-9]+mu.*", 
-                      "Fakes(Eta|Pt).*[0-9]+el.*", 
+diffNuisances_pois = [#"pdf.*|alphaS|mW", 
+                      #"muR.*|muF.*", 
+                      #"Fakes(Eta|Pt).*[0-9]+mu.*", 
+                      #"Fakes(Eta|Pt).*[0-9]+el.*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
@@ -99,7 +99,7 @@ targets = [#"mu",
            #"xsec", 
            #"xsecnorm",
            #"etaptasym",
-           #"etaxsec",
+           "etaxsec",
            "etaxsecnorm",
            "etaasym"
            ]

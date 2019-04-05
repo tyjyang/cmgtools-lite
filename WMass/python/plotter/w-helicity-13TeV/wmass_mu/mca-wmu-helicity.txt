@@ -17,7 +17,7 @@ incl_data             : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/m
 #incl_sig_lepeff_Up  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1.)", SkipMe=True, PostFix='_lepeff_Up'
 #incl_sig_lepeff_Dn  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1.)", SkipMe=True, PostFix='_lepeff_Dn'
 
-# need to use correct scale factors for trigger and the rest. Pass prefiring as if it was SF3, otherwise the variation gets wrong (prefiring would be applied as another multiplicative factor after scalign the SF weights, while one wants to include it in the SF weight, and then vary it by a global uncertainty)
+# need to use correct scale factors for trigger and the rest. Pass prefiring as if it was SF3, otherwise the variation gets wrong (prefiring would be applied as another multiplicative factor after scaling the SF weights, while one wants to include it in the SF weight, and then vary it by a global uncertainty)
 # here we use these new functions lepSFRmuUp and lepSFRmuDn defined in functionsWMass.cc
 
 incl_sig_lepeff_Up  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
