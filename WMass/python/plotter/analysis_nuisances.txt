@@ -28,12 +28,13 @@ efficiency systematics:
 
 ErfParEffStat       templates       bins of eta = 0.1: signal, Z, and tau
 
+
 theory uncertainties:
 ============================
 
 alphaS          shape       multiply by 0.67!!! - on Z, signal, tau
 qcdscales       shape       signal and tau equal and decorrelated in pT, Z uncorrelated and unnumbered
 pdfs            shape       for signal, Z, and tau - fully correlated
-mW              shape       signal and tau
+mW              shape       signal and tau. check if all is ok
 
 
