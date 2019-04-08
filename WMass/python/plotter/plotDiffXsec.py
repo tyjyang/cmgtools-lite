@@ -9,12 +9,12 @@ dryrun = 0
 skipData = 0
 onlyData = 0
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
 
 allPtBinsSignalElectron = 1
 
