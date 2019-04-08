@@ -364,8 +364,8 @@ float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, in
   }
   double ret = sf1*sf2*sf3*sf4 + nSigma*syst;  
   if (ret <= 0.0) {
-    cout << "Error: returning bad SF: " << ret << "    Please check! Returning 1" << endl;
-    cout << ">>> pdgId, pt, eta, sf1, sf2, sf3, nsigma --> " << pdgId << ", " << pt << ", " << eta << ", " << sf1 << ", " << sf2 << ", " << sf3 << ",  " << nSigma << endl;
+    // cout << "Error: returning bad SF: " << ret << "    Please check! Returning 1" << endl;
+    // cout << ">>> pdgId, pt, eta, sf1, sf2, sf3, nsigma --> " << pdgId << ", " << pt << ", " << eta << ", " << sf1 << ", " << sf2 << ", " << sf3 << ",  " << nSigma << endl;
     return 1;
   } else {
     return ret;  
