@@ -4,27 +4,29 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
+doMuElComb = 0
 dryrun = 0
-skipData = 1
+skipData = 0
 onlyData = 0
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
-skipDiffNuis = 0
+skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
+allPtBinsSignalElectron = 1
 
 seed = 123456789
 
-folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
-#folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
+#folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
+folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
 if doMuElComb:
     folder = "muElCombination"
 
-postfix = "corrNuisFakes_addEtaChargeUncorr0p02"
+#postfix = "corrNuisFakes_addEtaChargeUncorr0p02"
+postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep"
 postfix += "_bbb1_cxs1"
@@ -37,8 +39,8 @@ if doMuElComb:
 
 fits = ["Asimov", "Data"]
 
-ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if flavour == "el"  else ""  # " --eta-range-bkg 1.39 1.61 "
-ptMinForImpacts = " --pt-min-signal 30" if flavour == "el"  else ""
+ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (flavour == "el" and not allPtBinsSignalElectron) else ""  # " --eta-range-bkg 1.39 1.61 "
+ptMinForImpacts = " --pt-min-signal 30" if (flavour == "el" and not allPtBinsSignalElectron) else ""
 optTemplate = " --norm-width --draw-selected-etaPt 0.55,39.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if flavour == "el" else "26"
@@ -46,10 +48,10 @@ ptMinTemplate = "30" if flavour == "el" else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS|mW", 
-                      "muR.*|muF.*", 
-                      "Fakes(Eta|Pt).*[0-9]+mu.*", 
-                      "Fakes(Eta|Pt).*[0-9]+el.*", 
+diffNuisances_pois = [#"pdf.*|alphaS|mW", 
+                      #"muR.*|muF.*", 
+                      #"Fakes(Eta|Pt).*[0-9]+mu.*", 
+                      #"Fakes(Eta|Pt).*[0-9]+el.*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
@@ -94,9 +96,9 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 
 # for impacts
 targets = [#"mu", 
-           "xsec", 
-           "xsecnorm",
-           "etaptasym",
+           #"xsec", 
+           #"xsecnorm",
+           #"etaptasym",
            "etaxsec",
            "etaxsecnorm",
            "etaasym"
@@ -245,6 +247,8 @@ for fit in fits:
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     # with following line will make impacts with graphs, not matrix                        
     command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
+    if flavour != "lep":
+        command += " -c {fl}".format(fl=flavour)
     for nuis in impacts_nuis:
         if nuis == "GROUP":
             varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)

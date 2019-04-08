@@ -89,6 +89,7 @@ def makeFixedYWBinning():
 
 
 NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
+nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
 pdfsysts=[] # array containing the PDFs signal variations
 qcdsysts=[] # array containing the QCD scale signal variations
 inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
@@ -108,6 +109,15 @@ def getMcaIncl(mcafile,incl_mca='incl_sig'):
                     incl_file = o.split('=')[1]
             break
     return incl_file
+
+def writeNominalSingleMCA(mcafile,odir,incl_mca='incl_dy'):
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    proc = incl_mca.split('_')[1]
+    postfix = "_{proc}_nominal".format(proc=proc)
+    mcafile_nominal = open("{odir}/mca{pfx}.txt".format(odir=odir,pfx=postfix), "w")
+    mcafile_nominal.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="1." \n')
+    nominals.append(proc)
+    print "written nominal mca relative to ",incl_mca
 
 def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='incl_sig',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
@@ -313,9 +323,13 @@ if options.addPdfSyst:
     # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
 if options.addQCDSyst:
     scales = ['muR','muF',"muRmuF", "alphaS"]
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
+    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau')
+
+if len(pdfsysts+qcdsysts)>1:
+    for proc in ['dy','wtau']:
+        if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
 
 # not needed if we fit eta/pt. Will be needed if we fit another variable correlated with eta/pt
 # writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
@@ -434,12 +448,12 @@ if options.bkgdataCards:
                         print(lin)
 
 if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
-    dysyst = ['']+[x for x in pdfsysts+inclqcdsysts if 'dy' in x]
+    dysyst = ['_dy_nominal']+[x for x in pdfsysts+inclqcdsysts if 'dy' in x]
     for ivar,var in enumerate(dysyst):
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -471,12 +485,12 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
 
 # repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
 if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
-    wtausyst = ['']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
+    wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
     for ivar,var in enumerate(wtausyst):
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))

@@ -30,6 +30,9 @@ class valueClass:
         if 'asymmetry' in name:
             self.charge = self.ch = ''
 
+        # I tried the following two lines, but the next ones might be good as well
+        #self.color  = ROOT.kBlue-7 if self.isleft else ROOT.kOrange+7 if self.isright else ROOT.kGray+2
+        #self.colorf = ROOT.kBlue-4 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
         self.color  = ROOT.kBlue+2 if self.isleft else ROOT.kRed+1 if self.isright else ROOT.kGray+1
         self.colorf = ROOT.kAzure+1 if self.isleft else ROOT.kOrange+1 if self.isright else ROOT.kGray+3
         if self.isunpolarized: 
@@ -73,6 +76,8 @@ class valueClass:
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
+        #fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
+        #fillstyles_rel = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
         fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
         fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
         if hasattr(self,'graph'):
@@ -107,7 +112,7 @@ class valueClass:
             graph.SetPoint(p,x+shifts[self.pol],y)
             graph.SetPointEXhigh(p,0); graph.SetPointEXlow(p,0)
 
-def plotValues(values,charge,channel,options):
+def plotValues(values,charge,channel,options, polarizations=['left','right','long']):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
@@ -115,6 +120,9 @@ def plotValues(values,charge,channel,options):
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
+
+        skipLong = False
+        if options.nolong or options.longBkg: skipLong = True
 
         ch = '#plus' if charge == 'plus' else '#minus'
         if charge == 'asymmetry': ch = ''
@@ -125,8 +133,10 @@ def plotValues(values,charge,channel,options):
         lat.SetNDC(); lat.SetTextFont(42)
         ## the four graphs exist now. now starting to draw them
         ## ===========================================================
-        if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
-            leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
+        if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in polarizations)==len(polarizations):
+            leg = ROOT.TLegend(0.43, 0.78 if skipLong else 0.75, 0.93, 0.88)
+        #if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
+        #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
@@ -134,24 +144,23 @@ def plotValues(values,charge,channel,options):
             leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
             leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(2)
-            if not options.nolong:
+            if not skipLong:
                 leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
                 leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
-                leg.SetNColumns(3)
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
                 
             mg = ROOT.TMultiGraph()
             mg.Add(values['left'] .graph,'P2')
             mg.Add(values['right'].graph,'P2')
-            if not options.nolong: mg.Add(values['long'] .graph,'P2')
+            if not skipLong: mg.Add(values['long'] .graph,'P2')
             mg.Add(values['left'] .graph_fit)
             mg.Add(values['right'].graph_fit)
-            if not options.nolong: mg.Add(values['long'] .graph_fit)
+            if not skipLong: mg.Add(values['long'] .graph_fit)
      
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetTitle('')
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
                 mg.GetYaxis().SetTitle('Charge asymmetry')
@@ -171,16 +180,18 @@ def plotValues(values,charge,channel,options):
      
         ## now make the relative error plot:
         ## ======================================
-        if sum(hasattr(values[pol],'mg') for pol in ['left','right','long'])==3:
+        if sum(hasattr(values[pol],'mg') for pol in polarizations)==len(polarizations):
 
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
             pad2.SetLeftMargin(0.17)
+            pad2.SetBottomMargin(0.14)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
             pad2.SetTicky(1)
+            pad2.SetTickx(1)
 
             pad2.Draw()
             pad2.cd()
@@ -198,7 +209,7 @@ def plotValues(values,charge,channel,options):
      
 
             helToPlot = ['left','right']
-            if not options.nolong: helToPlot.append('long')
+            if not skipLong:  helToPlot.append('long')
             for  ih,hel in enumerate(helToPlot):
      
                 values[hel].mg.Draw('Pa' if ih==0 else 'P')
@@ -212,14 +223,14 @@ def plotValues(values,charge,channel,options):
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
-                    values[hel].mg.GetYaxis().SetNdivisions(510)
+                    values[hel].mg.GetYaxis().SetNdivisions(4)
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
-            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.90, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
         for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
@@ -228,7 +239,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         c2 = ROOT.TCanvas('foo','', 800, 800)
         c2.GetPad(0).SetTopMargin(0.09)
         c2.GetPad(0).SetBottomMargin(0.35)
-        c2.GetPad(0).SetLeftMargin(0.15)
+        c2.GetPad(0).SetLeftMargin(0.17)
         c2.GetPad(0).SetRightMargin(0.04)
         c2.GetPad(0).SetTickx(1)
         c2.GetPad(0).SetTicky(1)
@@ -253,7 +264,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.Add(values.graph_fit)
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-            mg.GetXaxis().SetTitle('|Y_{W}|')
+            mg.GetXaxis().SetTitle('')
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
@@ -270,9 +281,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 else:
                     mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
                     mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
-            mg.GetYaxis().SetTitleSize(0.06)
+            mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
-            mg.GetYaxis().SetTitleOffset(1.)
+            mg.GetYaxis().SetTitleOffset(2.0)
      
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
@@ -281,10 +292,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.AddEntry(values.graph     , REFMC, 'f')
 
             leg.Draw('same')
-            lat.DrawLatex(0.16, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.62, 0.92, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.50,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
-     
+            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
 
         ## now make the relative error plot:
         ## ======================================
@@ -293,11 +304,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
             pad2.SetTopMargin(0.65)
             pad2.SetRightMargin(0.04)
-            pad2.SetLeftMargin(0.15)
+            pad2.SetLeftMargin(0.17)
+            pad2.SetBottomMargin(0.14)
             pad2.SetFillColor(0)
             pad2.SetGridy(0)
             pad2.SetFillStyle(0)
             pad2.SetTicky(1)
+            pad2.SetTickx(1)
 
             pad2.Draw()
             pad2.cd()
@@ -315,14 +328,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
             values.mg.Draw('Pa')
             ## x axis fiddling
-            values.mg.GetXaxis().SetTitle('|Y_{W}|')
-            values.mg.GetXaxis().SetTitleOffset(1.)
+            values.mg.GetXaxis().SetTitle('')
             values.mg.GetXaxis().SetRangeUser(0., options.maxRapidity)
-            values.mg.GetXaxis().SetTitleSize(0.1)
+            values.mg.GetXaxis().SetTitleSize(0.14)
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
-            values.mg.GetYaxis().SetTitleOffset(1.2)
-            values.mg.GetYaxis().SetTitleSize(0.06)
+            values.mg.GetYaxis().SetTitleOffset(1.8)
+            values.mg.GetYaxis().SetTitleSize(0.04)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -354,7 +366,10 @@ if __name__ == "__main__":
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
-    parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component')
+    parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component (but it assumes the POIs exist)')
+    parser.add_option(      '--longBkg'     , dest='longBkg'  , default=False         , action='store_true',   help='if True, longitudinal component was treated as background, so the POIs are missing. Manage inputs accordingly')
+    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins were put in OutAcc channel in the fit. With format 14,15 ')
     parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.75'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
@@ -389,6 +404,26 @@ if __name__ == "__main__":
     ybins = eval(ybinfile.read())
     ybinfile.close()
 
+    #print ybins
+    
+
+    #print ybins    
+    bkgYBins = []
+    if options.ybinsBkg:
+        bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
+    if options.longBkg:
+        options.nolong = True
+
+    outAccYBins = []
+    if options.ybinsOutAcc:
+        outAccYBins = list(int(i) for i in options.ybinsOutAcc.split(','))
+
+    if len(outAccYBins) and len(bkgYBins):
+        print "Warning: I see there are rapidity bins treated as outAcc and/or background."
+        print "Although this is not impossible, I suspect you are messing up with options --ybinsBkg and --ybinsOutAcc"
+        print "Please check!"
+        quit()
+
     ## calculate the bin widths for the rapidity bins
     ybinwidths = {}
     for k,v in ybins.items():
@@ -399,7 +434,9 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
-    polarizations = ['left','right', 'long']
+    polarizations = ['left','right']
+    if not options.longBkg:
+        polarizations.append('long')
 
     if 'lep' in os.path.basename(xsecfiles[0]):
         nChan = 2
@@ -414,7 +451,7 @@ if __name__ == "__main__":
         sign = 1. if charge=='plus' else -1.
 
         ## this gets the pdf central variation binned in the correct format
-        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan)
+        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations, excludeYbins=bkgYBins )
         xsec_nominal_allCharges[charge] = xsec_nominal
 
         value_syst = {}
@@ -424,7 +461,7 @@ if __name__ == "__main__":
             for ip in xrange(1,NPDFs+1):
                 # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
                 ## this gets the pdf variations after correctly rebinning the YW
-                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan)
+                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan, polarizations=polarizations, excludeYbins=bkgYBins )
                 values.append(xsec_pdf[pol])
             value_syst[pol] = values
 
@@ -433,6 +470,7 @@ if __name__ == "__main__":
             #print "===> Running pol = ",pol
             xsec_systs=[]
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
+                if any(iy == x for x in bkgYBins): continue
                 xsec_nom = xsec_nominal[pol][iy]
                 #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
                 totUp=0; xsec_totUp=0
@@ -455,38 +493,50 @@ if __name__ == "__main__":
         angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
         angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}
         for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
+            if any(iy == x for x in bkgYBins): continue
             xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
             angcoeff_nominal['sumxsec'].append(xsec_unpolarized_nominal_iy)
-
-            coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
-                                             xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
-
-            angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
-            angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
-
             xsec_unpolarized_iy = sum([xsec_systematics[pol][iy] for pol in polarizations])
             angcoeff_systematics['sumxsec'].append(xsec_unpolarized_iy)
-            angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
-            angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
+            # skip this part if long component was not fitted
+            if not options.longBkg:
+                coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
+                                                 xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
+                angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
+                angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
+                angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
+                angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
 
-        nOuterBinsToExclude = 1  ### EDM hardcoded: out of acceptance Y bins
+        nOuterBinsToExclude = 0  ### out of acceptance Y bins, or that were treated as background (not to be considered for the total xsec)
+        if len(bkgYBins):
+            nOuterBinsToExclude = len(bkgYBins)
+        if len(outAccYBins):
+            nOuterBinsToExclude = len(outAccYBins)
+        print "number of outer bins to exclude: " + str(nOuterBinsToExclude)
 
         allValues = {}
         for pol in polarizations:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
+            print "MAXYFORNORM = " + str(MAXYFORNORM)
             normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
-            normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
             normsigmaInFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])/float(nChan)
-            normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])/float(nChan)
-
             print "total expected (fit) xsec up to |Y|<{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaIn,fit=normsigmaInFit)
-            print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit)
+            # if outer bins were not fitted but simply treated as background, then the cross section here was not sabed in the xsec file
+            # in principle it could be obtained from the histograms used to make the xsec files in mergeCardComponentsAbsY.py, but it is not really needed
+            # since we don't even plot those bins, so whatever normalization they have is irrelevant
+            if len(outAccYBins):
+                normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+                normsigmaOutFit = sum([valuesAndErrors['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])/float(nChan)
+                print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit)
 
             tmp_val = valueClass('values_'+charge+'_'+pol)
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                normsigma = normsigmaInFit if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit
+                if any(iy == x for x in bkgYBins): continue
+                # normsigma is used to normalize the expected: then, the sum should be the one on the expected
+                # which is also less sensitive to fluctuations, since in data some bins can be 0
+                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                 parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
 
                 scale = 1.
@@ -541,16 +591,20 @@ if __name__ == "__main__":
 
             allValues[pol] = tmp_val
 
-        plotValues(allValues,charge,channel,options)
+        plotValues(allValues,charge,channel,options, polarizations=polarizations)
 
         if not options.normxsec: # this is only implemented for absolute xsecs
             # now do the unpolarized ones
             cp = 'plus_left' # this works if the binning for all the pol is the same
-            xsec_params = ['sumxsec','a0','a4']
+            xsec_params = ['sumxsec']   # this can be done also even if W0 is not fitted, but it would only sum WL nd WR, but check in the card if you had groups
+            if not options.longBkg:
+                xsec_params.extend(['a0','a4'])
             for xs in xsec_params:
                 tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
                 for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
+                    if any(iy == x for x in bkgYBins): continue
                     parname = 'W{charge}_Ybin_{iy}_{xs}'.format(charge=charge,iy=iy,xs=xs)
+                    #print parname
                     if xs=='sumxsec':
                         ybinwidth_scale = ybinwidths[cp][iy]
                         scale = LUMINOSITY
@@ -589,7 +643,7 @@ if __name__ == "__main__":
                 tmp_val.makeGraphs()
                 plotUnpolarizedValues(tmp_val,charge,channel,options)
 
-
+                
     if len(charges)>1:
         print "Making charge asymmetry plots now..."
         asymmetryValues = {}
@@ -598,6 +652,7 @@ if __name__ == "__main__":
             cp = 'plus_'+pol
             tmp_val = valueClass('asymmetry_'+pol)
             for iy,y in enumerate(ybinwidths[cp]):
+                if any(iy == x for x in bkgYBins): continue
                 chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
                                                    xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
                 tmp_val.val .append(chasy_val['asy'][0])
@@ -628,11 +683,12 @@ if __name__ == "__main__":
 
             tmp_val.makeGraphs()
             asymmetryValues[pol] = tmp_val        
-        plotValues(asymmetryValues,'asymmetry',channel,options)
+        plotValues(asymmetryValues,'asymmetry',channel,options, polarizations=polarizations)
             
         # now do the unpolarized ones
         tmp_val = valueClass('asymmetry_unpolarized')
         for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
+            if any(iy == x for x in bkgYBins): continue
             xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
             for charge in ['plus','minus']:
                 for pol in polarizations:

@@ -81,13 +81,14 @@ class util:
         histo_file.Close()
         return histos
 
-    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1):
+    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1, polarizations = ['left','right','long'], excludeYbins = []):
         values = {}
         if not infile:
-            for pol in ['left','right','long']: 
-                cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
+            for pol in polarizations: 
+                cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
                 xsecs = []
                 for iv in xrange(len(ybins[cp][:-1])):
+                    if any(iv == x for x in excludeYbins): continue
                     xsecs.append(0.)
                 values[pol] = xsecs
             return values
@@ -96,11 +97,13 @@ class util:
     
         pstr = '' if not ip else '_pdf{ip}Up'.format(ip=ip)
     
-        for pol in ['left','right','long']:
-            cp = '{ch}_{pol}'.format(ch=charge,pol=pol if not pol == 'long' else 'right')
+        for pol in polarizations:
+            cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             xsecs = []
-            for iv, val in enumerate(ybins[cp][:-1]):
-                name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)
+            for iv, val in enumerate(ybins[cp][:-1]):                
+                if any(iv == x for x in excludeYbins): continue
+                name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
+                #print name
                 histo = histo_file.Get(name)
                 val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
@@ -654,10 +657,14 @@ class util:
         if index<len(SAFE_COLOR_LIST): return SAFE_COLOR_LIST[index]
         else: return index
 
-    def getCoeffs(self,xL,xR,x0,err_xL,err_xR,err_x0, toyEvents=10000):
+    def getCoeffs(self,xL,xR,x0,err_xL,err_xR,err_x0, toyEvents=10000):        
         histos = { 'a0': ROOT.TH1D('a0','',100,-0.4,0.6),
                    'a4': ROOT.TH1D('a4','',100,-0.4,3.0)
                    }
+        # given that we use mean and RMS, for security reason use Under/Overflow values to compute them
+        # so we don't have to tune the range (even though the one about is already very sensible for a0 and a4)
+        histos['a0'].SetStatOverflows(1)
+        histos['a4'].SetStatOverflows(1)
         #print "getCoeffs: ",toyEvents," toyMC running..."
         for i in xrange(toyEvents):
             ixL = np.random.normal(xL,err_xL)
@@ -665,6 +672,7 @@ class util:
             ix0 = np.random.normal(x0,err_x0)
             sumPol = ixL+ixR+ix0
             histos['a0'].Fill(2*ix0/sumPol)
+            #histos['a0'].Fill(2*(1-ixL-ixR)/sumPol)
             histos['a4'].Fill(2*(ixL-ixR)/sumPol)
         #print "toyMC done"
         ret = {}

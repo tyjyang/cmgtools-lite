@@ -25,6 +25,7 @@ etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 
 ## variable binning in pt
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
+#ptbinning = '['+','.join(str(26+1.5*i) for i in range(0,14))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 ## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '

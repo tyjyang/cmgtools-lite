@@ -362,7 +362,15 @@ float _lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3, in
     else if (abseta<1.5)   syst = 0.004;
     else                   syst = 0.014;
   }
-  return sf1*sf2*sf3*sf4 + nSigma*syst;
+  double ret = sf1*sf2*sf3*sf4 + nSigma*syst;  
+  if (ret <= 0.0) {
+    // cout << "Error: returning bad SF: " << ret << "    Please check! Returning 1" << endl;
+    // cout << ">>> pdgId, pt, eta, sf1, sf2, sf3, nsigma --> " << pdgId << ", " << pt << ", " << eta << ", " << sf1 << ", " << sf2 << ", " << sf3 << ",  " << nSigma << endl;
+    return 1;
+  } else {
+    return ret;  
+  }
+
 }
 
 float lepSF(int pdgId, float pt, float eta, float sf1, float sf2, float sf3) {
@@ -745,5 +753,28 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   }
   return ret;
 }
+
+float lepSFRmuUp(int pdgId, float pt, float eta, int charge, float sf2) {
+
+  // in this function SF1 is obtained inside here, while SF3 (reco SF, which would generally be 1) is treated as prefiring SF
+  // at this level we can have electrons, because the cuts are applied afterwards, and this would return bad numbers
+  if (fabs(pdgId) != 13) return 0;
+  double trigSF = _get_muonSF_selectionToTrigger(pdgId,pt,eta,charge);
+  double prefireSF = prefireJetsWeight(eta);
+  return _lepSF(pdgId,pt,eta,trigSF,sf2,prefireSF, 1)/_lepSF(pdgId,pt,eta,trigSF,sf2,prefireSF,0);
+
+}
+
+float lepSFRmuDn(int pdgId, float pt, float eta, int charge, float sf2) {
+
+  // in this function SF1 is obtained inside here, while SF3 (reco SF, which would generally be 1) is treated as prefiring SF
+  // at this level we can have electrons, because the cuts are applied afterwards, and this would return bad numbers
+  if (fabs(pdgId) != 13) return 0;
+  double trigSF = _get_muonSF_selectionToTrigger(pdgId,pt,eta,charge);
+  double prefireSF = prefireJetsWeight(eta);
+  return _lepSF(pdgId,pt,eta,trigSF,sf2,prefireSF, -1)/_lepSF(pdgId,pt,eta,trigSF,sf2,prefireSF,0);
+
+}
+
 
 #endif

@@ -102,7 +102,6 @@ if __name__ == "__main__":
     parser.add_option(     '--skipBkg', dest='skipBackground', default=False, action='store_true', help='Skip histograms for background processes')
     parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template). This option is for signal templates only') 
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
-    #parser.add_option(     '--no-group-name', dest="noGroupInName", default=False, action='store_true', help="If True, _group_<N> is not in the signal process name");
     parser.add_option(      '--palette', dest='palette', default=55, type=int, help='Pass number for palette (default is kRainbow, but check)')
     parser.add_option(      '--zmin', dest='zaxisMin', default=0, type=float, help='Minimum value for Z axis (default is 0)')
     parser.add_option('-n', '--norm-width', dest='normWidth', default=False, action='store_true', help='Normalize histogram by bin width.')
@@ -175,10 +174,7 @@ if __name__ == "__main__":
     for x in allsysts:
         if not re.match(options.doSigSyst,x): continue
         allsystsUpDn.append(x+"Up")
-        allsystsUpDn.append(x+"Down")
-
-    
-    
+        allsystsUpDn.append(x+"Down")    
 
     xaxisTitle = '%s #eta' % lepton
     if options.ptRange == "template":
@@ -256,7 +252,7 @@ if __name__ == "__main__":
                     for k in infile.GetListOfKeys():
                         name=k.GetName()
                         obj=k.ReadObj()
-                        signalMatch = "{ch}_{pol}_{flav}_Ybin_".format(ch=charge,pol=pol,flav=channel)                        
+                        signalMatch = "{ch}_{pol}_Ybin_".format(ch=charge,pol=pol)                        
                         # name.split('_')[-2] == "Ybin" : this excludes systematics
                         if obj.InheritsFrom("TH1") and signalMatch in name:
 
@@ -276,9 +272,9 @@ if __name__ == "__main__":
                                 # ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
                                 # ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]               
                                 ybin = name.split('_')[-1]                            
-                                ymin = str(bins_charge_pol[int(ybin)]) # "X" # dummy for the moment
+                                ymin = str(bins_charge_pol[int(ybin)]) 
                                 ymax = str(bins_charge_pol[int(ybin)+1])
-                                name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                                name2D = 'W{ch}_{pol}_Ybin_{ybin}'.format(ch=charge,pol=pol,ybin=ybin)
                                 title2D = 'W{chs} {pol} : |Yw| #in [{ymin},{ymax})'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,chs=chs)
                                 h2_backrolled_1 = dressed2D(obj,binning,name2D,title2D)
                                 if options.normWidth: 
@@ -302,11 +298,12 @@ if __name__ == "__main__":
                             elif not options.skipSyst:
                                 systvar = name.split('_')[-1]
                                 if re.match(options.doSigSyst,systvar):
+                                    #print "systvar: " + systvar
                                     h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
                                     if options.normWidth:
                                         h2_backrolled_1.Scale(1.,"width")
                                     hSigInclusivePol_syst[systvar].Add(h2_backrolled_1)
-                                    #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusivePol_syst[systvar].Integral())
+                                    print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusivePol_syst[systvar].Integral())
                                 
 
                     hSigInclusive[pol].Write()
@@ -322,8 +319,8 @@ if __name__ == "__main__":
 
                         if not options.skipSyst:
                             for systvar in allsystsUpDn:
-                                #print "systvar = %s: integral = %.1f" % (systvar, hSigInclusivePol_syst[systvar].Integral())
-                                #print "Inclusive template: integral = %.1f" % hSigInclusive.Integral()
+                                print "systvar = %s: integral = %.1f" % (systvar, hSigInclusivePol_syst[systvar].Integral())
+                                print "Inclusive template: integral = %.1f" % hSigInclusive[pol].Integral()
                                 hSigInclusive_syst[systvar].Add(hSigInclusivePol_syst[systvar])
                                 hSigInclusivePol_syst[systvar].Divide(hSigInclusive[pol])
                                 if options.syst_ratio_range == "template":
