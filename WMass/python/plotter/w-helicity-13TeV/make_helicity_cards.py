@@ -241,6 +241,7 @@ Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}
 queue 1\n
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
@@ -382,7 +383,7 @@ if options.signalCards:
                     ## marc excl_long_signal  = '' if not options.longBkg else ',W{ch}_long.*'.format(ch=charge)
                     ## marc xpsel=' --xp "W{antich}.*,W{ch}_{antihel}.*,Flips,Z,Top,DiBosons,TauDecaysW{longbkg},data.*" --asimov '.format(antich=antich,ch=charge,antihel=antihel,longbkg = excl_long_signal)
                     excl_antihel = ','.join('W'+charge+'_'+ah+'.*' for ah in antihel)
-                    xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_antihel)
+                    xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_antihel)
                     if not os.path.exists(outdir): os.mkdir(outdir)
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
@@ -424,7 +425,7 @@ if options.bkgdataCards:
     for charge in ['plus','minus']:
         xpsel=' --xp "W.*" ' if not options.longBkg else ' --xp "W{ch}_left,W{ch}_right,W{ach}.*" '.format(ch=charge, ach='minus' if charge=='plus' else 'plus')
         if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-            xpsel+=' --xp "Z.*,TauDecaysW" '
+            xpsel+=' --xp "Z.*,TauDecaysW.*" '
         chargecut = POSCUT if charge=='plus' else NEGCUT
         dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
@@ -600,6 +601,7 @@ Output     = {jd}/$(ProcId).out
 Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
+requirements = (OpSysAndVer =?= "SLCern6")
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
