@@ -241,6 +241,7 @@ Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}
 queue 1\n
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
@@ -600,6 +601,7 @@ Output     = {jd}/$(ProcId).out
 Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
+requirements = (OpSysAndVer =?= "SLCern6")
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )

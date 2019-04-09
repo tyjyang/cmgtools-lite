@@ -296,9 +296,12 @@ if __name__ == "__main__":
         line.DrawLine(0., ycen, len(params), ycen)
         line.DrawLine(0., ymax, len(params), ymax)
         line.DrawLine(0., ymin, len(params), ymin)
-        line.SetLineStyle(2)
+        line.SetLineStyle(2); line.SetLineColor(ROOT.kRed)
         line.DrawLine(0., yhalfu, len(params), yhalfu)
         line.DrawLine(0., yhalfd, len(params), yhalfd)
+        line.SetLineStyle(3)
+        line.DrawLine(0., 1., len(params), 1.)
+        line.DrawLine(0.,-1., len(params),-1.)
         hist_fit_s.Draw("PE1 same") ## draw again over the lines
 
         canvas_nuis.SetGridx()

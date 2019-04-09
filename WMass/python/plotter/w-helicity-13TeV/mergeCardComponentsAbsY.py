@@ -250,7 +250,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins += [len(etabins)]
 
             if doUncorrChargeEta:
-                scalings = [0.02 for b in borderBins[:-1]]  # 2%, common for both mu and ele
+                chargeAsymSyst = 0.02 if isMu else 0.01
+                scalings = [chargeAsymSyst for b in borderBins[:-1]]
             else:
                 if isMu: 
                     factor = 0.046 # it used to be 0.05 for Eta, but now it is splitted in charge-correlated and charge-uncorrelated part
@@ -539,7 +540,7 @@ if __name__ == "__main__":
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir,followlinks=True) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
         files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*',f) and f.endswith('.card.txt')]
-        files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
+        files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_','TauDecaysW_']) else -1) ## ugly but works
     
         existing_bins = {'left': [], 'right': [], 'long': []}
         empty_bins = {'left': [], 'right': [], 'long': []}
@@ -575,6 +576,8 @@ if __name__ == "__main__":
                     rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
                     if 'Z_' in f:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
+                    if 'TauDecaysW_' in f:
+                        rootfiles_syst += filter(lambda x: re.match('\S+TauDecaysW_{channel}_{charge}_wtau_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     rootfiles_syst.sort()
                     if re.match('process\s+',l): 
                         if len(l.split()) > 1 and all(n.isdigit() for n in l.split()[1:]) : continue
@@ -669,7 +672,7 @@ if __name__ == "__main__":
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
 
             print 'now putting the erfpar systeamtics into the file'
-            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
+            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
@@ -715,6 +718,7 @@ if __name__ == "__main__":
             binname = ''
             if re.match('Wplus|Wminus',basename): binname=basename
             elif re.match('Z.*{charge}'.format(charge=charge),basename): binname='Z'
+            elif re.match('TauDecaysW.*{charge}'.format(charge=charge),basename): binname='TauDecaysW'
             else: binname='other'
             if not binn in empty_bins:
                 combineCmd += " %s=%s " % (binname,f)
@@ -932,8 +936,9 @@ if __name__ == "__main__":
         ## add the theory / experimental systematics 
         for sys,procs in allsyst.iteritems():
             if isExcludedNuisance(excludeNuisances, sys): continue
+            systscale = '1.0' if sys!='alphaS' else '0.67' # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) => variations correspond to 0.67sigma
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
+            combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
 
         cardlines = [line.rstrip('\n') for line in open(cardfile,'r')]
