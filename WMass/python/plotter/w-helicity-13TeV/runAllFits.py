@@ -43,7 +43,8 @@ for ipm,POImode in pois:
     for iexp,exp in expected:
         saveHist = ' --saveHists --computeHistErrors '
         for ibbb,bbb in BBBs:
-            cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {card} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, card=card)
+            pfx = '--postfix {ipm}_{iexp}_{ibbb}.root'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
+            cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card)
             if options.queue:
                 job_file_name = jobdir+'jobfit_{ipm}_{iexp}_{ibbb}.sh'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
                 log_file_name = job_file_name.replace('.sh','.log')
