@@ -242,6 +242,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
 +MaxRuntime = {rt}
+requirements = (OpSysAndVer =?= "SLCern6"
 queue 1\n
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
