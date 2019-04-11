@@ -38,4 +38,4 @@ for s in suff:
     os.system(ccCmd)
     ## here making the TF meta file
     print txt2hdf5Cmd+'\n\n'
-    #os.system(txt2hdf5Cmd)
+    os.system(txt2hdf5Cmd)

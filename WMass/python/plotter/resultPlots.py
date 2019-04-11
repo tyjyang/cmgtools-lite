@@ -64,10 +64,9 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = []#'CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right']
+                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW']
                 if 'floatingPOIs' in tmp_file:
-                    ##nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
-                    nuisancesAndPOIs += ['W.*_{pol}.*pmaskedexpnorm'.format(pol=pol) for pol in ['left','right','long'] ]
+                    nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     cmd = 'python w-helicity-13TeV/subMatrix.py {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix)
                     print cmd
@@ -88,10 +87,10 @@ if __name__ == '__main__':
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
                 cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                 print cmd
-                #os.system(cmd)
+                os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
-                #os.system(cmd)
+                os.system(cmd)
                 if sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
