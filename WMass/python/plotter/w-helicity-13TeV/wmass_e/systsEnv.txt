@@ -30,7 +30,9 @@ CMS_We_elescale      :  W.*|Z: .* : elescale         : templates
 # 1+2) Measurement of the fake rate: normalization and shapes
 # ==================================================================
 # first is the normalization uncertainty
-CMS_We_FRe_lnN        : data_fakes  : .* : 1.30
+# this is replaced by the uncorrelated shape uncertainties in bins of eta/pt put later on
+# there is also the 1% lnN uncorrelated by charge added later on
+# CMS_We_FRe_lnN        : data_fakes  : .* : 1.30
 
 # shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
 CMS_We_FRe_slope         : data_fakes  : .* : FRe_slope       : templatesShapeOnly
