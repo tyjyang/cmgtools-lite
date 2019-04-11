@@ -1,7 +1,7 @@
 basedir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV'
 #cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2018_11_09_postPreAppr_noErfParFiles'
-cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_03_06_jetPrefire'
-fitsdir = basedir+'/fits/tf/2019-03-22'
+cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_04_08'
+fitsdir = basedir+'/fits/tf/2019-04-11'
 toysdir = basedir+'/toys/tf/21-11-18'
 
 ### FLOATING POIS ###
