@@ -64,10 +64,9 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = []#'CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right']
+                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW']
                 if 'floatingPOIs' in tmp_file:
-                    ##nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
-                    nuisancesAndPOIs += ['W.*_{pol}.*pmaskedexpnorm'.format(pol=pol) for pol in ['left','right','long'] ]
+                    nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     cmd = 'python w-helicity-13TeV/subMatrix.py {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix)
                     print cmd

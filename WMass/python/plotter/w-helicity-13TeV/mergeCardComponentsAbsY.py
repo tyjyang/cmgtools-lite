@@ -184,6 +184,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doPtNorm = doType == 'ptnorm'
     doUncorrChargeEta = doType == 'etacharge'
     if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
+    if flav=='el': doUncorrChargeEta = False # overwrite everything for ele
 
     typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:
@@ -260,13 +261,13 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                     scalings = []
                     for ib, borderBin in enumerate(borderBins[:-1]):
                         # slightly reducing these numbers, as now we have a part that is uncorrelated between charges
-                        if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)  # 0.01
-                        elif abs(etabins[borderBin]) < 0.41: scalings.append(0.01)  # 0.025
-                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.03)  # 0.04
-                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.05)  # 0.06
-                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.05)  # 0.06
-                        elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)  # 0.03
-                        else:                                scalings.append(0.05)  # 0.06
+                        if   abs(etabins[borderBin]) < 0.21: scalings.append(0.005)
+                        elif abs(etabins[borderBin]) < 0.41: scalings.append(0.005)
+                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.03)
+                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.05)
+                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.05)
+                        elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)
+                        else:                                scalings.append(0.05)
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
@@ -280,7 +281,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
             borderBins.append(len(ptbins))
 
-            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.20, 0.20, 0.10, 0.10, 0.20]
+            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
@@ -677,8 +678,8 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
-
+            if 'mu' in options.bin:
+                putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             os.system(final_haddcmd)
         
