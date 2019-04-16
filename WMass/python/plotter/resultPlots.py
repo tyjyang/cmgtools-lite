@@ -88,10 +88,10 @@ if __name__ == '__main__':
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
                 cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                 print cmd
-                #os.system(cmd)
+                os.system(cmd)
                 print "===> plotting normalized xsecs..."
                 cmd += ' --normxsec '
-                #os.system(cmd)
+                os.system(cmd)
                 if sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
