@@ -83,7 +83,8 @@ def prepareLegend(legWidth=0.50,textSize=0.035,xmin=0.75):
 
 def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide=False, 
             drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
-            textForLines=[]  # text in each panel                       
+            textForLines=[],  # text in each panel                       
+            outtext=''
             ):
 
     ## Prepare split screen
@@ -149,8 +150,14 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     maxrange = [0.95,1.05] if prepost == 'postfit' else [0.90,1.10]
     rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
     c1.cd()
+    outf_basename = '{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix)
     for ext in ['pdf', 'png']:
-        c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
+        c1.SaveAs(outf_basename+ext)
+    if outtext:
+        ofo = open(outf_basename+'txt', 'w')
+        ofo.write(outtext)
+        ofo.close()
+        
 
 
 def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=505,doWide=False,showStatTotLegend=False,textSize=0.035):
@@ -513,6 +520,7 @@ if __name__ == "__main__":
             htot_unrolled.SetDirectory(None)
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
             leg_unrolled = prepareLegend(legWidth=0.10)
+            output_txt = ''
             for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                 keycolor = key.replace('_prefit','').replace('_postfit','')
                 if key=='obs' or prepost not in key: continue
@@ -521,12 +529,14 @@ if __name__ == "__main__":
                 stack_unrolled.Add(proc_unrolled)
                 htot_unrolled.Add(proc_unrolled)
                 leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor],'F')
+                output_txt += '{pname:25s} {nevents:15.2f} +- {nerr:6.2f} \n'.format(pname=key, nevents=histo.Integral(), nerr=0.)
+            output_txt += '------------------------\ndata: \t\t {nevents:.0f} \n'.format(nevents=hdata_unrolled.Integral())
             leg_unrolled.AddEntry(hdata_unrolled,'data','PE')
             htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
             htot_unrolled.GetYaxis().SetTitle('Events')
             htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
             plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True, 
-                    drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
+                    drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges, outtext=output_txt)
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
