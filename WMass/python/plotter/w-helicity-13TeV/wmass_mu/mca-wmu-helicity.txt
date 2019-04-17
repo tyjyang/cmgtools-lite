@@ -28,9 +28,6 @@ incl_sig_lepeff_Dn  : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca
 Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Up", NormSystematic=0.04, SkipMe=True
 Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Dn", NormSystematic=0.04, SkipMe=True
 
-Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3), Label="Z lep eff Up", NormSystematic=0.04, SkipMe=True
-Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,LepGood1_SF3), Label="Z lep eff Dn", NormSystematic=0.04, SkipMe=True
-
 
 ## muon scale systematics 
 Wplus_long_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : prefsrw_decayId == 14 && prefsrw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepUp.txt", Label="W+ long lep scale Up", SkipMe=True 
