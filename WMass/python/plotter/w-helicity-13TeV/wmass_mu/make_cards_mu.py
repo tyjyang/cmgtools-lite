@@ -33,8 +33,7 @@ WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_selectionToTrigge
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
 #components=[' -b ', ' -s ']
-components=[' -s ']
-#components=[' -b ']
+components=[' -b ']#, ' -s ']
     
 
 if __name__ == '__main__':
@@ -56,5 +55,5 @@ if __name__ == '__main__':
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if options.longBkg: cmd += ' --long-bkg '
         if not options.genw: cmd += ' --wvar prefsrw '
-        cmd += ' -g 5 '
+        cmd += ' -g 1 '
         os.system(cmd)
