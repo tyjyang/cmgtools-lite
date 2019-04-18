@@ -53,15 +53,17 @@ void GenEventClass::Loop(int maxentries)
 
       if(dressedLeptonCollection.size()){
 
+        TLorentzVector dressedLepton = dressedLeptonCollection[0];
+
         TLorentzVector preFSRLepton = getPreFSRLepton();
         h_prefsrlpt->Fill(preFSRLepton.Pt());
         h_prefsrleta->Fill(preFSRLepton.Eta());
-        
-        TLorentzVector dressedLepton = dressedLeptonCollection[0];
+
         h_lpt->Fill(dressedLepton.Pt());
         h_leta->Fill(dressedLepton.Eta());
         h_lptDressOverPreFSR->Fill(dressedLepton.Pt()/preFSRLepton.Pt());
-        
+
+                
         TLorentzVector recw = dressedLepton + neutrino;
         h_wpt->Fill(recw.Pt());
         h_wy->Fill(recw.Rapidity());
@@ -74,9 +76,11 @@ void GenEventClass::Loop(int maxentries)
 
         std::vector<TLorentzVector> photons = getFSRPhotons(dressedLepton,TMath::Pi());
         h_nfsr->Fill(photons.size());
+
         if(photons.size()>0) {
           TLorentzVector fsr_close = getClosestPhoton(photons,dressedLepton);
           TLorentzVector fsr_hard = getHardestPhoton(photons);
+
           h_fsrpt_close->Fill(fsr_close.Pt());
           h_fsrdr_close->Fill(fsr_close.DeltaR(dressedLepton));
           h_fsrpt_hard->Fill(fsr_hard.Pt());
@@ -97,9 +101,12 @@ void GenEventClass::Loop(int maxentries)
 
 TLorentzVector GenEventClass::getPreFSRLepton() {
   TLorentzVector lepton;
+  // pre-FSR: it is the last lepton in the history with W as parent
   for (int igp=0; igp<GenParticle_; ++igp) {
     if (abs(GenParticle_pdgId[igp]) != 13) continue;
-    if (!isPromptFinalStateLepton(igp)) continue;
+    int motherId = GenParticle_pdgId[GenParticle_parent[igp]];
+    if (GenParticle_pdgId[igp]==motherId) continue;
+    if (abs(motherId)!=24) continue;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
     break;
   }
@@ -206,14 +213,14 @@ TLorentzVector GenEventClass::getHardestPhoton(std::vector<TLorentzVector> photo
 
 bool GenEventClass::isPromptFinalStatePhoton(int index) {
   int motherId = GenParticle_pdgId[GenParticle_parent[index]];
-  // with photos the photon can be attached to the lepton or the W/Z
-  return (abs(motherId)==13 || abs(motherId)==24);
+  int grandmaId = GenParticle_pdgId[GenParticle_parent[GenParticle_parent[index]]];
+  // with photos the photon can be attached to the lepton or the W/Z (it does 1->3 vertices with QED corrections)
+  if (GenParticle_status[index]!=1) return false;
+  return ((abs(motherId)==13 and abs(grandmaId)==24) || abs(motherId)==24);
 }
 
-vbool GenEventClass::isPromptFinalStateLepton(int index) {
-  int motherId = GenParticle_pdgId[GenParticle_parent[index]];
-  // with photos the photon can be attached to the lepton or the W/Z
-  return (abs(motherId)==24);
+bool GenEventClass::isPromptFinalStateLepton(int index) {
+  return GenParticle_status[index]==1;
 }
 
 void GenEventClass::bookHistograms() {
@@ -237,9 +244,9 @@ void GenEventClass::bookHistograms() {
 
   h_nfsr = new TH1F("nfsr","n FSR photons",10,0,10);                     histograms.push_back(h_nfsr);
   h_fsrpt_close = new TH1F("fsrpt_close","FSR pt",5000,0,10);            histograms.push_back(h_fsrpt_close);
-  h_fsrdr_close = new TH1F("fsrdr_close","FSR pt",5000,0,TMath::Pi());   histograms.push_back(h_fsrdr_close);
+  h_fsrdr_close = new TH1F("fsrdr_close","FSR pt",5000,0,0.1);   histograms.push_back(h_fsrdr_close);
   h_fsrpt_hard = new TH1F("fsrpt_hard","FSR pt",5000,0,10);              histograms.push_back(h_fsrpt_hard);
-  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR pt",5000,0,TMath::Pi());     histograms.push_back(h_fsrdr_hard);
+  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR pt",5000,0,0.1);     histograms.push_back(h_fsrdr_hard);
 
   h_fsrptfrac_hard = new TH1F("fsrptfrac_hard","fraction FSR pt / preFSR lepton pt",5000,0,0.1);      histograms.push_back(h_fsrptfrac_hard);
 
