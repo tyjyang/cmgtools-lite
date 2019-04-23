@@ -45,6 +45,7 @@ void GenEventClass::Loop(int maxentries)
       if (ientry < 0) break;
       if (maxentries > 0 && jentry >= maxentries) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
+      if (nb<0) continue;
 
       if(jentry%10000==0) std::cout << "Processing event " << jentry << std::endl;
       
@@ -104,7 +105,9 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
   // pre-FSR: it is the last lepton in the history with W as parent
   for (int igp=0; igp<GenParticle_; ++igp) {
     if (abs(GenParticle_pdgId[igp]) != 13) continue;
-    int motherId = GenParticle_pdgId[GenParticle_parent[igp]];
+    int motherIndex = GenParticle_parent[igp];
+    if (motherIndex<0) continue;
+    int motherId = GenParticle_pdgId[motherIndex];
     if (GenParticle_pdgId[igp]==motherId) continue;
     if (abs(motherId)!=24) continue;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
@@ -212,11 +215,15 @@ TLorentzVector GenEventClass::getHardestPhoton(std::vector<TLorentzVector> photo
 }
 
 bool GenEventClass::isPromptFinalStatePhoton(int index) {
-  int motherId = GenParticle_pdgId[GenParticle_parent[index]];
-  int grandmaId = GenParticle_pdgId[GenParticle_parent[GenParticle_parent[index]]];
-  // with photos the photon can be attached to the lepton or the W/Z (it does 1->3 vertices with QED corrections)
   if (GenParticle_status[index]!=1) return false;
-  return ((abs(motherId)==13 and abs(grandmaId)==24) || abs(motherId)==24);
+  int motherIndex = GenParticle_parent[index];
+  if (motherIndex<0) return false;
+  int motherId = GenParticle_pdgId[motherIndex];
+  if (abs(motherId)==24) return true;   // photos case with 3 particles vertex
+  int grandmaIndex = GenParticle_parent[motherIndex];
+  if (grandmaIndex<0) return false;
+  int grandmaId = GenParticle_pdgId[grandmaIndex];
+  return (abs(motherId)==13 && abs(grandmaId)==24);
 }
 
 bool GenEventClass::isPromptFinalStateLepton(int index) {
