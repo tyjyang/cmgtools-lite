@@ -180,6 +180,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
             else: ## alphaS and qcd scales are treated equally here. but they are different from the w-pT slope
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
+                inclqcdsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
