@@ -445,6 +445,17 @@ def writePolGroup(cardfile,signals,polarizations,grouping='polGroup'):
             group = ' '.join(['W{charge}_{pol}_Ybin_{y}'.format(charge=charge,pol=pol,y=y) for pol in polarizations])
             cardfile.write('W{charge}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,y=y,grp=grouping,procs=group))
 
+def writeRegGroup(cardfile,signals,polarizations,grouping='regGroup'):
+    print 'WRITING REGULARIZATION GROUPS!!!'
+    maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+    for pol in polarizations:
+        for charge in ['plus','minus']:
+            cardfile.write('\n')
+            slist = ''
+            for i in xrange(maxiY+1):
+                slist += ' W{charge}_{pol}_Ybin_{i} '.format(charge=charge,pol=pol,i=i)
+            cardfile.write('reg_W{charge}_{pol} {grp} = {procs}\n'. format(charge=charge,pol=pol,grp=grouping,procs=slist))
+
 def writeChargeMetaGroup(cardfile,signals):
      maxiY = max([int(proc.split('_')[-1]) for proc in signals])
      cardfile.write('\n')
@@ -991,6 +1002,7 @@ if __name__ == "__main__":
                 writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             # the following works even if Wlong is missing, although their usefulness in this case is questionable
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
+            writeRegGroup(combinedCard,tmp_sigprocs,polarizations,grouping='regGroup')
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs)
         combinedCard.close()
