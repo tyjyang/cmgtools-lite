@@ -46,7 +46,7 @@ public :
    Double_t        xPDF_2;
    Double_t        scalePDF;
    Float_t         weight;
-   vector<double>  lheweight;
+   //vector<double>  lheweight;
    Int_t           GenParticle_;
    Int_t           GenParticle_parent[kMaxGenParticle];   //[GenParticle_]
    Int_t           GenParticle_pdgId[kMaxGenParticle];   //[GenParticle_]
@@ -66,7 +66,7 @@ public :
    TBranch        *b_GenEvtInfo_xPDF_2;   //!
    TBranch        *b_GenEvtInfo_scalePDF;   //!
    TBranch        *b_GenEvtInfo_weight;   //!
-   TBranch        *b_GenEvtInfo_lheweight;   //!
+   //TBranch        *b_GenEvtInfo_lheweight;   //!
    TBranch        *b_GenParticle_;   //!
    TBranch        *b_GenParticle_parent;   //!
    TBranch        *b_GenParticle_pdgId;   //!
@@ -168,7 +168,7 @@ void GenEventClass::Init(TTree *tree)
    fChain->SetBranchAddress("xPDF_2", &xPDF_2, &b_GenEvtInfo_xPDF_2);
    fChain->SetBranchAddress("scalePDF", &scalePDF, &b_GenEvtInfo_scalePDF);
    fChain->SetBranchAddress("weight", &weight, &b_GenEvtInfo_weight);
-   fChain->SetBranchAddress("lheweight", &lheweight, &b_GenEvtInfo_lheweight);
+   //fChain->SetBranchAddress("lheweight", &lheweight, &b_GenEvtInfo_lheweight);
    fChain->SetBranchAddress("GenParticle", &GenParticle_, &b_GenParticle_);
    fChain->SetBranchAddress("GenParticle.parent", GenParticle_parent, &b_GenParticle_parent);
    fChain->SetBranchAddress("GenParticle.pdgId", GenParticle_pdgId, &b_GenParticle_pdgId);
