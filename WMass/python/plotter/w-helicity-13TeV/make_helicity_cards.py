@@ -94,6 +94,7 @@ pdfsysts=[] # array containing the PDFs signal variations
 qcdsysts=[] # array containing the QCD scale signal variations
 inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
 etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
+fsrsysts=[] # array containing (only) the PHOTOS/PYTHIA fsr reweighitng
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -203,6 +204,16 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_
             weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
             mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
             etaeffsysts.append(postfix)
+    print "written ",syst," systematics relative to ",incl_mca
+
+def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_sig',append=False):
+    open("%s/systEnv-dummy.txt" % odir, 'a').close()
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    postfix = "_{proc}_{syst}".format(proc=incl_mca.split('_')[1],syst=syst)
+    mcafile_syst = open("%s/mca%s.txt" % (odir,postfix), "w")
+    weightFcn = 'fsrPhotosWeight(GenLepPreFSR_pdgId[0]\,GenLepPreFSR_eta[0]\,GenLepPreFSR_pt[0]\,GenLepDressed_fsrDR[0])'
+    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
+    fsrsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
@@ -328,6 +339,7 @@ if options.addQCDSyst:
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau')
+writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
 
 if len(pdfsysts+qcdsysts)>1:
     for proc in ['dy','wtau']:
@@ -362,7 +374,7 @@ if options.signalCards:
     #ybinfile.writelines(' '.join(str(i) for i in WYBinsEdges))
     ybinfile.close()
     print "MAKING SIGNAL PART: WYBinsEdges = ",WYBinsEdges
-    wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts if 'sig' in x]
+    wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if 'sig' in x]
     for ivar,var in enumerate(wsyst):
         for helicity in signal_helicities:
             ## marc antihel = 'right' if helicity == 'left' else 'left'
