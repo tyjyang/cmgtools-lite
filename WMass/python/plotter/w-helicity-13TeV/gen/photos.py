@@ -25,8 +25,8 @@ if __name__ == "__main__":
 
     ## skip strangely bad files
     skipfiles = ['wp_munu_pythia8/GEN/GEN_1520000','wp_munu_pythia8/GEN/GEN_5380000','wp_munu_pythia8/GEN/GEN_5620000','wp_munu_pythia8/GEN/GEN_640000','wp_munu_pythia8/GEN/GEN_840000',
-                 'wm_munu_pythia8/GEN/GEN_1060000','wm_munu_pythia8/GEN/GEN_3460000','wm_munu_pythia8/GEN/GEN_4660000',
-                 'wp_munu_photos/GEN/GEN_3380000','wp_munu_photos/GEN/GEN_4100000','wp_munu_photos/GEN/GEN_4600000',
+                 'wm_munu_pythia8/GEN/GEN_1060000','wm_munu_pythia8/GEN/GEN_3460000','wm_munu_pythia8/GEN/GEN_4660000','wm_munu_pythia8/GEN/GEN_5420000',
+                 'wp_munu_photos/GEN/GEN_3380000','wp_munu_photos/GEN/GEN_4100000','wp_munu_photos/GEN/GEN_4600000','wp_munu_photos/GEN/GEN_6980000',
                  'wm_munu_photos/GEN/GEN_4960000']
 
     # check the goodness of files

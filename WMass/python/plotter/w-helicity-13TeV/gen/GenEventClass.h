@@ -12,6 +12,7 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TH1F.h>
+#include <TH3F.h>
 #include <TString.h>
 #include <TLorentzVector.h>
 
@@ -29,6 +30,8 @@ public :
    TH1F *h_lpt, *h_leta, *h_prefsrlpt, *h_prefsrleta, *h_lptDressOverPreFSR;
    TH1F *h_wpt, *h_wy, *h_wmass, *h_genwpt, *h_genwy, *h_genwmass;
    TH1F *h_nfsr, *h_fsrdr_close, *h_fsrpt_close, *h_fsrdr_hard, *h_fsrpt_hard, *h_fsrptfrac_hard;
+
+   TH3F *h3d_fsrdr_hard;
 
    TFile *outFile_;
    std::vector<TH1F*> histograms;

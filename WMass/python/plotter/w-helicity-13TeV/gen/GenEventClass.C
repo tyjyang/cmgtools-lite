@@ -87,12 +87,14 @@ void GenEventClass::Loop(int maxentries)
           h_fsrpt_hard->Fill(fsr_hard.Pt());
           h_fsrdr_hard->Fill(fsr_hard.DeltaR(dressedLepton));
           h_fsrptfrac_hard->Fill(fsr_hard.Pt()/preFSRLepton.Pt());
+          h3d_fsrdr_hard->Fill(fabs(preFSRLepton.Eta()),preFSRLepton.Pt(),fsr_hard.DeltaR(dressedLepton));
         } else {
           h_fsrpt_close->Fill(-1);
           h_fsrdr_close->Fill(-1);
           h_fsrpt_hard->Fill(-1);
           h_fsrdr_hard->Fill(-1);
           h_fsrptfrac_hard->Fill(-1);
+          h3d_fsrdr_hard->Fill(preFSRLepton.Eta(),preFSRLepton.Pt(),-1);
         }
       }
    }
@@ -253,10 +255,17 @@ void GenEventClass::bookHistograms() {
   h_fsrpt_close = new TH1F("fsrpt_close","FSR pt",5000,0,10);            histograms.push_back(h_fsrpt_close);
   h_fsrdr_close = new TH1F("fsrdr_close","FSR pt",5000,0,0.1);   histograms.push_back(h_fsrdr_close);
   h_fsrpt_hard = new TH1F("fsrpt_hard","FSR pt",5000,0,10);              histograms.push_back(h_fsrpt_hard);
-  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR pt",5000,0,0.1);     histograms.push_back(h_fsrdr_hard);
+  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR deltaR",5000,0,0.1);     histograms.push_back(h_fsrdr_hard);
 
   h_fsrptfrac_hard = new TH1F("fsrptfrac_hard","fraction FSR pt / preFSR lepton pt",5000,0,0.1);      histograms.push_back(h_fsrptfrac_hard);
 
+  float ptBins[8] = {0,10,20,30,40,50,100,6500};
+  float etaBins[5] = {0,1,1.5,2.5,5};
+  const int nDrBins = 100; float drmin=0.0; float drmax=0.1; float drBinSize=(drmax-drmin)/float(nDrBins);
+  float drBins[nDrBins+2];
+  drBins[0]=-1; // this to keep the underflow - no radiation case 
+  for(int b=0; b<nDrBins+1; ++b) drBins[b+1]=b*drBinSize;
+  h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
 
 }
 
@@ -265,6 +274,7 @@ void GenEventClass::writeHistograms() {
   for (int ih=0; ih<(int)histograms.size(); ++ih) {
     histograms[ih]->Write();
   }
+  h3d_fsrdr_hard->Write();
 }
 
 void GenEventClass::setOutfile(TString outfilepath){
