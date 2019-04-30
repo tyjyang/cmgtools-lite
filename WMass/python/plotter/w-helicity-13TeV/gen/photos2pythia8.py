@@ -1,3 +1,8 @@
+## USAGE (for making the reweight histo in DeltaR(hard gamma,lep):
+# python photos2pythia8.py wp_munu_photos.root wp_munu_pythia8.root wp_munu_ratio.root --name wp_mu --make rwgt
+## USAGE (for making integrated plots of more variables):
+# ython photos2pythia8.py wp_munu_photos.root wp_munu_pythia8.root wp_munu_ratio.root --name wp_mu --make plots
+
 import ROOT,os,re
 import array
 ROOT.gROOT.SetBatch(True)
