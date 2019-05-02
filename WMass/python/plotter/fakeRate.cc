@@ -189,7 +189,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   // second term is negative by definition of p)
   // If p=1, then N(QCD in T) = f/(1-f) * N(NLT), which is the formula used in function fakeRateWeight_1l_i_smoothed()
 
-  // this is needed to extend lepton FR above 50 GeV, need to use pol2 fit (or binned FR, but pol2 is better)
+  // this is needed to extend electron FR above 50 GeV, need to use pol2 fit (or binned FR, but pol2 is better)
+  // the if is hardcoded, to use jet-pt>40
   if (!_file_EleFR_pt_eta_fitPol2) {
     string cmssw_base_path = "";
     char* _env_var_ptr = getenv("CMSSW_BASE");
@@ -199,7 +200,10 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
     } else {
       cmssw_base_path = string(_env_var_ptr);      
     }    
-    _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1.root",cmssw_base_path.c_str()),"read");
+    if (iFR == 7)     
+      _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1_jetPt40.root",cmssw_base_path.c_str()),"read");
+    else
+      _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1.root",cmssw_base_path.c_str()),"read");
     _histo_EleFR_pt_eta_fitPol2_data_nomi = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data");  // histo with smoothed FR values and uncertainties (stat.only)
     _histo_EleFR_pt_eta_fitPol2_data_ewkUp = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledUpEWKMC"); // no uncertainty stored
     _histo_EleFR_pt_eta_fitPol2_data_ewkDn = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledDownEWKMC"); // no uncertainty stored
@@ -281,7 +285,7 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   if (fid == 13 && lpt > 50.) lpt = 50.; // this helps because after 50 the FR is often not well modeled due to non linear behaviour.
   // could just be the limit of the method, because the ewk contribution gets larger
   // it works because the muon FR rises and then starts decreasing again or gets flat
-  // for electrons, the FR decreases with pt, so making it flat above 50 is not good is not good
+  // for electrons, the FR decreases with pt, so making it flat above 50 is not good
   // one could use the estimate from pol2 for points above 50 because it works extremely well, but then the pt slope variation must be defined in a different way 
   // one could just plug a temptative uncertainty for points above 50, given that for fakes we keep large regions of eta-pt bins uncorrelated in the fit
 
@@ -305,8 +309,9 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
     }
   }
 
-  if (fid == 13 && pr > 0.98) pr = 0.98; // safety thing, not needed for electrons
-  else if (pr > 1.0) pr = 1.0;  // just in case
+  //if (fid == 13 && pr > 0.98) pr = 0.98; // safety thing, not needed for electrons
+  //else if (pr > 1.0) pr = 1.0;  // just in case
+  if (pr > 1.0) pr = 1.0;  // just in case
 
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
