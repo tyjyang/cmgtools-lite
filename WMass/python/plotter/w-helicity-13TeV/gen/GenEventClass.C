@@ -51,6 +51,7 @@ void GenEventClass::Loop(int maxentries)
       
       std::vector<TLorentzVector> dressedLeptonCollection = getDressedLeptons(TMath::Pi());
       TLorentzVector neutrino = getNeutrino();
+      if (neutrino.Pt()<1e+6) continue;
 
       if(dressedLeptonCollection.size()){
 
@@ -106,7 +107,7 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
   TLorentzVector lepton;
   // pre-FSR: it is the last lepton in the history with W as parent
   for (int igp=0; igp<GenParticle_; ++igp) {
-    if (abs(GenParticle_pdgId[igp]) != 13) continue;
+    if (abs(GenParticle_pdgId[igp]) != fFlavor) continue;
     int motherIndex = GenParticle_parent[igp];
     if (motherIndex<0) continue;
     int motherId = GenParticle_pdgId[motherIndex];
@@ -123,7 +124,7 @@ std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
   std::vector<TLorentzVector> leptons;
 
   for (int igp=0; igp<GenParticle_; ++igp) {
-    if (abs(GenParticle_pdgId[igp]) != 13) continue;
+    if (abs(GenParticle_pdgId[igp]) != fFlavor) continue;
     if (!isPromptFinalStateLepton(igp)) continue;
     TLorentzVector lepton;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
@@ -168,10 +169,16 @@ TLorentzVector GenEventClass::getNeutrino() {
     std::vector<TLorentzVector> nus;
 
     for (int igp=0; igp<GenParticle_; ++igp) {
-      if (abs(GenParticle_pdgId[igp]) != 14) continue;
+      if (abs(GenParticle_pdgId[igp]) != fFlavor+1) continue;
       TLorentzVector nu;
       nu.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
       nus.push_back(nu);
+    }
+
+    if (nus.size()==0) {
+      // std::cout << "WARNING NO NEUTRINO FOUND FOR THIS EVENT. SKIPPING IT..." << std::endl;
+      TLorentzVector zero(0,0,0,0);
+      return zero;
     }
 
     sort(nus.begin(), nus.end(),
@@ -225,7 +232,7 @@ bool GenEventClass::isPromptFinalStatePhoton(int index) {
   int grandmaIndex = GenParticle_parent[motherIndex];
   if (grandmaIndex<0) return false;
   int grandmaId = GenParticle_pdgId[grandmaIndex];
-  return (abs(motherId)==13 && abs(grandmaId)==24);
+  return (abs(motherId)==fFlavor && abs(grandmaId)==24);
 }
 
 bool GenEventClass::isPromptFinalStateLepton(int index) {
@@ -279,4 +286,8 @@ void GenEventClass::writeHistograms() {
 
 void GenEventClass::setOutfile(TString outfilepath){
   fOutfile = outfilepath;
+}
+
+void GenEventClass::setFlavor(int flavor) {
+  fFlavor = flavor;
 }

@@ -2,12 +2,13 @@ import ROOT,os,re
 ROOT.gROOT.SetBatch(True)
 
 ## USAGE:
-## python photos.py --indir /eos/cms/store/user/arapyan/mc/wp_munu_pythia8/GEN wp_pythia8.root
-## python photos.py --indir /eos/cms/store/user/arapyan/mc/wp_munu_photos/GEN wp_photos.root
+## python photos.py -c mu --indir /eos/cms/store/user/arapyan/mc/wp_munu_pythia8/GEN wp_pythia8.root
+## python photos.py -c mu --indir /eos/cms/store/user/arapyan/mc/wp_munu_photos/GEN wp_photos.root
 
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] outputfilename ")
+    parser.add_option("-c", "--channel"   ,  dest="channel", type='string', default='mu',  help="run tnp ntuples for muons/electrons. default mu")
     parser.add_option("-i", "--indir"     ,  dest="indir"  , type='string', default=''  ,  help="directory with the trees")
     parser.add_option("-m", "--maxentries",  type='int'    , default=-1  ,  help="run only these many entries.")
     (options, args) = parser.parse_args()
@@ -24,10 +25,13 @@ if __name__ == "__main__":
         xrdindir = 'root://eosuser.cern.ch/'+xrdindir
 
     ## skip strangely bad files
-    skipfiles = ['wp_munu_pythia8/GEN/GEN_1520000','wp_munu_pythia8/GEN/GEN_5380000','wp_munu_pythia8/GEN/GEN_5620000','wp_munu_pythia8/GEN/GEN_640000','wp_munu_pythia8/GEN/GEN_840000',
-                 'wm_munu_pythia8/GEN/GEN_1060000','wm_munu_pythia8/GEN/GEN_3460000','wm_munu_pythia8/GEN/GEN_4660000','wm_munu_pythia8/GEN/GEN_5420000',
-                 'wp_munu_photos/GEN/GEN_3380000','wp_munu_photos/GEN/GEN_4100000','wp_munu_photos/GEN/GEN_4600000','wp_munu_photos/GEN/GEN_6980000',
-                 'wm_munu_photos/GEN/GEN_4960000']
+    if 'mu' in options.channel:
+        skipfiles = ['wp_munu_pythia8/GEN/GEN_1520000','wp_munu_pythia8/GEN/GEN_5380000','wp_munu_pythia8/GEN/GEN_5620000','wp_munu_pythia8/GEN/GEN_640000','wp_munu_pythia8/GEN/GEN_840000',
+                     'wm_munu_pythia8/GEN/GEN_1060000','wm_munu_pythia8/GEN/GEN_3460000','wm_munu_pythia8/GEN/GEN_4660000','wm_munu_pythia8/GEN/GEN_5420000',
+                     'wp_munu_photos/GEN/GEN_3380000','wp_munu_photos/GEN/GEN_4100000','wp_munu_photos/GEN/GEN_4600000','wp_munu_photos/GEN/GEN_6980000',
+                     'wm_munu_photos/GEN/GEN_4960000']
+    else: 
+        skipfiles = []
 
     # check the goodness of files
     treefiles = []
@@ -53,4 +57,9 @@ if __name__ == "__main__":
     ROOT.gROOT.ProcessLine(".L GenEventClass.C+")
     worker = ROOT.GenEventClass(chain);
     worker.setOutfile(args[0])
+    if 'mu' in options.channel:
+        worker.setFlavor(13)
+    else: 
+        worker.setFlavor(11)
+
     worker.Loop(options.maxentries)

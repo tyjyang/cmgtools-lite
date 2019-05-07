@@ -91,6 +91,7 @@ public :
    virtual void     bookHistograms();
    virtual void     writeHistograms();
    virtual void     setOutfile(TString);
+   virtual void     setFlavor(int);
    TLorentzVector   getPreFSRLepton();
    std::vector<TLorentzVector> getDressedLeptons(float deltaR=0.1);
    std::vector<TLorentzVector> getFSRPhotons(TLorentzVector fourmom, float deltaR=0.1);
@@ -102,7 +103,7 @@ public :
    bool             isPromptFinalStateLepton(int index);
    
    TString fOutfile;
-   
+   int fFlavor;
 };
 
 #endif
@@ -120,6 +121,7 @@ GenEventClass::GenEventClass(TTree *tree) : fChain(0)
       f->GetObject("Events",tree);
    }
    Init(tree);
+   fFlavor = 13;
 }
 
 GenEventClass::~GenEventClass()
