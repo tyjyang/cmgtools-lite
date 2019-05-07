@@ -103,7 +103,6 @@ float prefireJetsWeight(float eta){
     return 1.;
 }
 
-TF1 * photos2pythia = new TF1("photos2pythia", "[0]*TMath::Erf((x-[1])/[2])+[3]*(x>[4])*x", 0.0, 0.1);
 TFile *_file_fsrWeights = NULL;
 TH3F * fsrWeights_plus = NULL;
 TH3F * fsrWeights_minus = NULL;
@@ -111,20 +110,18 @@ TH3F * fsrWeights_minus = NULL;
 float fsrPhotosWeight(int pdgId, float prefsreta, float prefsrpt, float deltar) {
   if (!fsrWeights_plus || !fsrWeights_minus) {
     _file_fsrWeights = new TFile("w-helicity-13TeV/fsrReweighting/photos_rwgt_mu.root","read");
-    fsrWeights_plus = (TH3F*)(_file_fsrWeights->Get("wp_mu"));
-    fsrWeights_minus = (TH3F*)(_file_fsrWeights->Get("wm_mu"));
+    fsrWeights_plus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
+    fsrWeights_minus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_mu"));
   }
   TH3F *fsrWeights = ( pdgId>0 ? fsrWeights_plus : fsrWeights_minus );
 
   int etabin = std::max(1, std::min(fsrWeights->GetNbinsX(), fsrWeights->GetXaxis()->FindFixBin(fabs(prefsreta))));
   int ptbin  = std::max(1, std::min(fsrWeights->GetNbinsY(), fsrWeights->GetYaxis()->FindFixBin(prefsrpt)));
+  int drbin  = std::max(1, std::min(fsrWeights->GetNbinsZ(), fsrWeights->GetZaxis()->FindFixBin(deltar))); 
 
-  if      (deltar<0.0) return fsrWeights->GetBinContent(etabin,ptbin,1);
-  else if (deltar>0.1) return fsrWeights->GetBinContent(etabin,ptbin,fsrWeights->GetNbinsZ()+1);
-  for (int ipar=0; ipar<5; ++ipar) {
-    photos2pythia->SetParameter(ipar,fsrWeights->GetBinContent(etabin,ptbin,ipar+2));
-  }
-  return photos2pythia->Eval(deltar);
+  // Z bins of the TH3D (abseta,pt,deltaR):
+  // drbins = [-1,0] + [0.0001*i for i in xrange(1001)] + [10]
+  return fsrWeights->GetBinContent(etabin,ptbin,drbin);
 }
 
 TFile *_file_recoToMedium_leptonSF_el = NULL;

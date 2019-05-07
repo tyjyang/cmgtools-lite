@@ -1,3 +1,8 @@
+## USAGE (for making the reweight TH3 (eta,pt,deltaR) -> weight. The normalization is such that the sum(wgts) integrated in deltaR for 1 eta,pt bin == 1
+# PLUS:  python photos2pythia8.py wp_munu_photos.root wp_munu_pythia8.root wp_munu_ratio.root --name wp_mu --make th3
+# MINUS: python photos2pythia8.py wm_munu_photos.root wm_munu_pythia8.root wm_munu_ratio.root --name wm_mu --make th3
+# add the two charges in one file: hadd photos_rwgt_mu.root photos_rwgt_wp_mu.root photos_rwgt_wm_mu.root 
+
 ## USAGE (for making the reweight histo in DeltaR(hard gamma,lep):
 # python photos2pythia8.py wp_munu_photos.root wp_munu_pythia8.root wp_munu_ratio.root --name wp_mu --make rwgt
 ## USAGE (for making integrated plots of more variables):
@@ -218,8 +223,9 @@ def plotRatios(histos,axislabels,name):
         th3pars.Write()
         photos_rwgt.Close()
 
-        
-def getBinnedVar(varname,args):
+
+def getEtaPtBins(varname,args):
+
     infiles = args[0:2]
     th3s = []
     for filein in infiles:
@@ -232,15 +238,17 @@ def getBinnedVar(varname,args):
         h.Sumw2()
         th3s.append(h)
 
-    print "list of TH3F: ",th3s
-
     del BINSX[:]; del BINSY[:] # just to be sure
     for i in xrange(th3s[0].GetNbinsX()+1):
         BINSX.append(th3s[0].GetXaxis().GetXbins().At(i))
     for i in xrange(th3s[0].GetNbinsY()+1):
         BINSY.append(th3s[0].GetYaxis().GetXbins().At(i))
 
-    print "binsy here = ",BINSY
+    return th3s
+        
+def getBinnedVar(varname,args):
+
+    th3s = getEtaPtBins(varname,args)
     
     photos,pythia = th3s
     histos1d = {}
@@ -278,13 +286,69 @@ def getBinnedVar(varname,args):
     print "list of histogram arrays",histos1d
     return histos1d
 
+def makeReweightingTH3(varname,args,name):
 
+    file_pars = 'photos_rwgt_{suf}.root'.format(suf=name)
+    if not os.path.isfile(file_pars):
+        print "File with parameters ",file_pars," doesn't exist"
+        exit(1)
+    fcn = ROOT.TF1("photos2pythia", "[0]*TMath::Erf((x-[1])/[2])+[3]*(x>[4])*x", 0.0, 0.1)
+    tf_out = ROOT.TFile('qed_weights_{suf}.root'.format(suf=name),'recreate')
+    tf_in = ROOT.TFile(file_pars,"read")
+
+    getEtaPtBins(varname,args)
+
+    drbins = [-1,0] + [0.0001*i for i in xrange(1001)] + [10]
+    #print "xy bins = ",BINSX,BINSY
+    #print "dr bins = ",drbins
+    #print "Fine DeltaR bins = ",drbins
+
+    th3_pars = tf_in.Get(name)
+    th3_weights = ROOT.TH3F('qed_weights_{name}'.format(name=name),'',
+                            len(BINSX)-1,   array.array('f',BINSX),
+                            len(BINSY)-1,   array.array('f',BINSY),
+                            len(drbins)-1,  array.array('f',drbins))
+    th2_norm = ROOT.TH2F('qed_norm_{name}'.format(name=name),'',
+                         len(BINSX)-1,   array.array('f',BINSX),
+                         len(BINSY)-1,   array.array('f',BINSY))
+
+    ## fill the TH3 with the same eta/pt binning of the unsmoothed, but granularly in deltaR
+    for ix,xb in enumerate(BINSX[:-1]):
+        for iy,yb in enumerate(BINSY[:-1]):
+            norm = 0
+            for idr,dr in enumerate(drbins):
+                if   dr<0.0: val = th3_pars.GetBinContent(ix+1,iy+1,1)
+                elif dr>0.1: val = th3_pars.GetBinContent(ix+1,iy+1,th3_pars.GetNbinsZ()+1)
+                else: 
+                    for ipar in xrange(5):
+                        fcn.SetParameter(ipar,th3_pars.GetBinContent(ix+1,iy+1,ipar+2))
+                        #print "ipar = ",ipar, " val = ",th3_pars.GetBinContent(ix+1,iy+1,ipar+2)
+                    val = max(0,fcn.Eval(dr))
+                    #print "==> dr = ",dr," val = ",val
+                #print "\tfilling {xb},{yb},{dr} with {val}".format(xb=xb,yb=yb,dr=dr,val=val)
+                th3_weights.SetBinContent(ix+1,iy+1,idr+1,val)
+                norm += val
+            #print "({xb},{yb}) has wgts integral = {norm}".format(xb=xb,yb=yb,norm=norm)
+            th2_norm.SetBinContent(ix+1,iy+1,norm)
+    ## normalize such that the Sum(wgt) in each eta/pt bin is 1
+    for ix,xb in enumerate(BINSX[:-1]):
+        for iy,yb in enumerate(BINSY[:-1]):
+            check_norm = 0
+            for idr,dr in enumerate(drbins):
+                val_norm = th3_weights.GetBinContent(ix+1,iy+1,idr+1)/th2_norm.GetBinContent(ix+1,iy+1)
+                th3_weights.SetBinContent(ix+1,iy+1,idr+1,val_norm)
+                check_norm += val_norm
+            #print "sum of weights = ",check_norm
+                
+    tf_out.cd()
+    th3_weights.Write()
+    tf_out.Close()
 
 if __name__ == "__main__":
 
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] photos.root pythia8.root photosOverPythia8.root ")
-    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (plots, rwgt)')
+    parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (plots, params, th3)')
     parser.add_option("-n", "--name",     dest="name", type="string", default="wp_mu", help="Channel naming (should be wp_mu', 'wm_mu', 'wp_el', 'wm_el'");
     (options, args) = parser.parse_args()
     if len(args)<3:
@@ -307,6 +371,10 @@ if __name__ == "__main__":
         histos = makeRatios(args)
         plotRatios(histos,axis_labels,options.name)
 
-    if options.make in ['all','rwgt']:
+    if options.make in ['all','params']:
         binnedVarRatios = getBinnedVar("h3d_fsrdr_hard",args)
         plotRatios(binnedVarRatios,axis_labels,options.name)
+
+    if options.make in ['all','th3']:
+        file_pars = 'photos_rwgt_{suf}'.format(suf=options.name)
+        makeReweightingTH3("h3d_fsrdr_hard",args,options.name)
