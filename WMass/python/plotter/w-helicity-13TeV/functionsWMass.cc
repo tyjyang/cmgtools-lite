@@ -490,6 +490,100 @@ float residualScaleMu(float pt, float eta, int isData, const char *fileCorr="../
 
 }
 
+float ptScaleUncorr(float pt, float eta, int pdgid, int iPtVar, bool isUp = true) {
+
+  // iPtVar defines the number fo the nuisance. For example, for muons we have 2 of them: 
+  // one is flat over all eta and has a 0.3% pt variation, while the other has a non-zero pt variation only for |eta|>2.1 (we assign 0.95%)
+
+  float abseta = fabs(eta);
+  float ptsyst = 0.0;
+
+  if (fabs(pdgid) == 11) {
+
+    // electrons, numbers to be discussed further
+    if      (iPtVar == 0)  ptsyst = 0.003; //0.3%
+    else if (iPtVar == 1) {
+        if (abseta >= 1.0) ptsyst = 0.004; // 0.5%
+    } else if (iPtVar == 2) {
+        if (abseta >= 1.5) ptsyst = 0.0063; // 0.8%
+    } else if (iPtVar == 3) {
+        if (abseta >= 2.1) ptsyst = 0.008; // 1.0%
+    }    
+
+  } else if (fabs(pdgid) == 13) {
+
+    //muons
+    if      (iPtVar == 0)  ptsyst = 0.003; //0.3%
+    else if (iPtVar == 1) {
+      if (abseta >= 2.1) ptsyst = 0.01; // 0.1%
+    }
+
+  } else {
+    // this should not happen using pdgid
+    // cout << "Warning in ptScaleUncorr(): pdg ID not consistent with mu or ele. Returning 0" << endl;
+    return 0;    
+  }
+
+  if (not isUp) ptsyst *= -1.0; // switch sign, will decrease pt
+  return pt * (1 + ptsyst);
+  
+}
+
+//-------------------
+// muons
+
+float ptMuScaleUncorr0Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 13, 0, true);
+}
+
+float ptMuScaleUncorr0Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 13, 0, false);
+}
+
+float ptMuScaleUncorr1Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 13, 1, true);
+}
+
+float ptMuScaleUncorr1Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 13, 1, false);
+}
+
+//-------------------
+// electrons
+float ptEleScaleUncorr0Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 0, true);
+}
+
+float ptEleScaleUncorr0Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 0, false);
+}
+
+float ptEleScaleUncorr1Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 1, true);
+}
+
+float ptEleScaleUncorr1Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 1, false);
+}
+
+float ptEleScaleUncorr2Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 2, true);
+}
+
+float ptEleScaleUncorr2Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 2, false);
+}
+
+float ptEleScaleUncorr3Up(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 3, true);
+}
+
+float ptEleScaleUncorr3Dn(float pt, float eta) {
+  return ptScaleUncorr(pt, eta, 11, 3, false);
+}
+
+//===============================================
+
 
 float ptMuFull(float pt, float eta, int nSigma=0) {
 
@@ -501,8 +595,9 @@ float ptMuFull(float pt, float eta, int nSigma=0) {
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   float syst = 1-residualScaleMu(pt,eta,1,Form("%s/src/CMGTools/WMass/data/muonscale/scale_correction_nonclosure_mu.root",_cmssw_base_.c_str()));
+  //float syst = 0.004; // test
   return (1. + nSigma*syst) * pt;
-
+  
 }
 
 float ptMuFullUp(float pt, float eta) {
@@ -513,8 +608,7 @@ float ptMuFullDn(float pt, float eta) {
   return ptMuFull(pt,eta,-1);
 }
 
-
-//===============================================
+//==================================================
 
 float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, bool smearOnlyMC=false) {
 
