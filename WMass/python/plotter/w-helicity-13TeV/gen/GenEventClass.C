@@ -48,10 +48,10 @@ void GenEventClass::Loop(int maxentries)
       if (nb<0) continue;
 
       if(jentry%10000==0) std::cout << "Processing event " << jentry << std::endl;
-      
+
       std::vector<TLorentzVector> dressedLeptonCollection = getDressedLeptons(TMath::Pi());
       TLorentzVector neutrino = getNeutrino();
-      if (neutrino.Pt()<1e+6) continue;
+      if (neutrino.Pt()<1e-6) continue;
 
       if(dressedLeptonCollection.size()){
 
@@ -65,7 +65,6 @@ void GenEventClass::Loop(int maxentries)
         h_leta->Fill(dressedLepton.Eta());
         h_lptDressOverPreFSR->Fill(dressedLepton.Pt()/preFSRLepton.Pt());
 
-                
         TLorentzVector recw = dressedLepton + neutrino;
         h_wpt->Fill(recw.Pt());
         h_wy->Fill(recw.Rapidity());
@@ -97,6 +96,8 @@ void GenEventClass::Loop(int maxentries)
           h_fsrptfrac_hard->Fill(-1);
           h3d_fsrdr_hard->Fill(preFSRLepton.Eta(),preFSRLepton.Pt(),-1);
         }
+      } else {
+        std::cout << jentry << "  no dressed lep!" << std::endl;
       }
    }
    writeHistograms();
@@ -114,7 +115,7 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
     if (GenParticle_pdgId[igp]==motherId) continue;
     if (abs(motherId)!=24) continue;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
-    break;
+    //break;
   }
   return lepton;
 }
@@ -122,7 +123,6 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
 std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
 
   std::vector<TLorentzVector> leptons;
-
   for (int igp=0; igp<GenParticle_; ++igp) {
     if (abs(GenParticle_pdgId[igp]) != fFlavor) continue;
     if (!isPromptFinalStateLepton(igp)) continue;
@@ -236,6 +236,14 @@ bool GenEventClass::isPromptFinalStatePhoton(int index) {
 }
 
 bool GenEventClass::isPromptFinalStateLepton(int index) {
+  // look for a W ancestor in the history
+  int motherIndex = index-1;
+  while (motherIndex>=0) {
+    int motherId = GenParticle_pdgId[motherIndex];
+    if (abs(motherId)==24) break;
+    motherIndex -= 1;
+  }
+  if (motherIndex<=0) return false;
   return GenParticle_status[index]==1;
 }
 
@@ -268,11 +276,23 @@ void GenEventClass::bookHistograms() {
 
   float ptBins[8] = {0,10,20,30,40,50,100,6500};
   float etaBins[5] = {0,1,1.5,2.5,5};
-  const int nDrBins = 100; float drmin=0.0; float drmax=0.1; float drBinSize=(drmax-drmin)/float(nDrBins);
-  float drBins[nDrBins+2];
-  drBins[0]=-1; // this to keep the underflow - no radiation case 
-  for(int b=0; b<nDrBins+1; ++b) drBins[b+1]=b*drBinSize;
-  h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
+  if (fFlavor==13) {
+    const int nDrBins = 100; float drmin=0.0; float drmax=0.1; float drBinSize=(drmax-drmin)/float(nDrBins);
+    float drBins[nDrBins+2];
+    drBins[0]=-1; // this to keep the underflow - no radiation case 
+    for(int b=0; b<nDrBins+1; ++b) drBins[b+1]=b*drBinSize;
+    h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
+  } else {
+    const int nDrBins = 102;
+    float drBins[nDrBins+2];
+    drBins[0]=-1; // this to keep the underflow - no radiation case 
+    float drBinSize1 = 2e-5;
+    for(int b=0; b<51; ++b) drBins[b+1]=b*drBinSize1;
+    float drBinSize2 = 1.8e-4;
+    for(int b=0; b<51; ++b) drBins[b+52]=drBins[51]+(b+1)*drBinSize2;
+    drBins[103] = 0.1;
+    h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
+  }
 
 }
 

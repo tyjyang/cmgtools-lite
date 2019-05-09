@@ -37,7 +37,7 @@ public :
    std::vector<TH1F*> histograms;
    
 // Fixed size dimensions of array or collections stored in the TTree if any.
-   static constexpr Int_t kMaxGenParticle = 484;
+   static constexpr Int_t kMaxGenParticle = 1000;
 
    // Declaration of leaf types
  //baconhep::TGenEventInfo *GenEvtInfo;
