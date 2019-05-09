@@ -12,6 +12,7 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TH1F.h>
+#include <TH3F.h>
 #include <TString.h>
 #include <TLorentzVector.h>
 
@@ -30,11 +31,13 @@ public :
    TH1F *h_wpt, *h_wy, *h_wmass, *h_genwpt, *h_genwy, *h_genwmass;
    TH1F *h_nfsr, *h_fsrdr_close, *h_fsrpt_close, *h_fsrdr_hard, *h_fsrpt_hard, *h_fsrptfrac_hard;
 
+   TH3F *h3d_fsrdr_hard;
+
    TFile *outFile_;
    std::vector<TH1F*> histograms;
    
 // Fixed size dimensions of array or collections stored in the TTree if any.
-   static constexpr Int_t kMaxGenParticle = 484;
+   static constexpr Int_t kMaxGenParticle = 1000;
 
    // Declaration of leaf types
  //baconhep::TGenEventInfo *GenEvtInfo;
@@ -88,6 +91,7 @@ public :
    virtual void     bookHistograms();
    virtual void     writeHistograms();
    virtual void     setOutfile(TString);
+   virtual void     setFlavor(int);
    TLorentzVector   getPreFSRLepton();
    std::vector<TLorentzVector> getDressedLeptons(float deltaR=0.1);
    std::vector<TLorentzVector> getFSRPhotons(TLorentzVector fourmom, float deltaR=0.1);
@@ -99,7 +103,7 @@ public :
    bool             isPromptFinalStateLepton(int index);
    
    TString fOutfile;
-   
+   int fFlavor;
 };
 
 #endif
@@ -117,6 +121,7 @@ GenEventClass::GenEventClass(TTree *tree) : fChain(0)
       f->GetObject("Events",tree);
    }
    Init(tree);
+   fFlavor = 13;
 }
 
 GenEventClass::~GenEventClass()

@@ -48,9 +48,10 @@ void GenEventClass::Loop(int maxentries)
       if (nb<0) continue;
 
       if(jentry%10000==0) std::cout << "Processing event " << jentry << std::endl;
-      
+
       std::vector<TLorentzVector> dressedLeptonCollection = getDressedLeptons(TMath::Pi());
       TLorentzVector neutrino = getNeutrino();
+      if (neutrino.Pt()<1e-6) continue;
 
       if(dressedLeptonCollection.size()){
 
@@ -64,7 +65,6 @@ void GenEventClass::Loop(int maxentries)
         h_leta->Fill(dressedLepton.Eta());
         h_lptDressOverPreFSR->Fill(dressedLepton.Pt()/preFSRLepton.Pt());
 
-                
         TLorentzVector recw = dressedLepton + neutrino;
         h_wpt->Fill(recw.Pt());
         h_wy->Fill(recw.Rapidity());
@@ -87,13 +87,17 @@ void GenEventClass::Loop(int maxentries)
           h_fsrpt_hard->Fill(fsr_hard.Pt());
           h_fsrdr_hard->Fill(fsr_hard.DeltaR(dressedLepton));
           h_fsrptfrac_hard->Fill(fsr_hard.Pt()/preFSRLepton.Pt());
+          h3d_fsrdr_hard->Fill(fabs(preFSRLepton.Eta()),preFSRLepton.Pt(),fsr_hard.DeltaR(dressedLepton));
         } else {
           h_fsrpt_close->Fill(-1);
           h_fsrdr_close->Fill(-1);
           h_fsrpt_hard->Fill(-1);
           h_fsrdr_hard->Fill(-1);
           h_fsrptfrac_hard->Fill(-1);
+          h3d_fsrdr_hard->Fill(preFSRLepton.Eta(),preFSRLepton.Pt(),-1);
         }
+      } else {
+        std::cout << jentry << "  no dressed lep!" << std::endl;
       }
    }
    writeHistograms();
@@ -104,14 +108,14 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
   TLorentzVector lepton;
   // pre-FSR: it is the last lepton in the history with W as parent
   for (int igp=0; igp<GenParticle_; ++igp) {
-    if (abs(GenParticle_pdgId[igp]) != 13) continue;
+    if (abs(GenParticle_pdgId[igp]) != fFlavor) continue;
     int motherIndex = GenParticle_parent[igp];
     if (motherIndex<0) continue;
     int motherId = GenParticle_pdgId[motherIndex];
     if (GenParticle_pdgId[igp]==motherId) continue;
     if (abs(motherId)!=24) continue;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
-    break;
+    //break;
   }
   return lepton;
 }
@@ -119,9 +123,8 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
 std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
 
   std::vector<TLorentzVector> leptons;
-
   for (int igp=0; igp<GenParticle_; ++igp) {
-    if (abs(GenParticle_pdgId[igp]) != 13) continue;
+    if (abs(GenParticle_pdgId[igp]) != fFlavor) continue;
     if (!isPromptFinalStateLepton(igp)) continue;
     TLorentzVector lepton;
     lepton.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
@@ -166,10 +169,16 @@ TLorentzVector GenEventClass::getNeutrino() {
     std::vector<TLorentzVector> nus;
 
     for (int igp=0; igp<GenParticle_; ++igp) {
-      if (abs(GenParticle_pdgId[igp]) != 14) continue;
+      if (abs(GenParticle_pdgId[igp]) != fFlavor+1) continue;
       TLorentzVector nu;
       nu.SetPtEtaPhiM(GenParticle_pt[igp], GenParticle_eta[igp], GenParticle_phi[igp], std::max(GenParticle_mass[igp],float(0.)));
       nus.push_back(nu);
+    }
+
+    if (nus.size()==0) {
+      // std::cout << "WARNING NO NEUTRINO FOUND FOR THIS EVENT. SKIPPING IT..." << std::endl;
+      TLorentzVector zero(0,0,0,0);
+      return zero;
     }
 
     sort(nus.begin(), nus.end(),
@@ -223,10 +232,18 @@ bool GenEventClass::isPromptFinalStatePhoton(int index) {
   int grandmaIndex = GenParticle_parent[motherIndex];
   if (grandmaIndex<0) return false;
   int grandmaId = GenParticle_pdgId[grandmaIndex];
-  return (abs(motherId)==13 && abs(grandmaId)==24);
+  return (abs(motherId)==fFlavor && abs(grandmaId)==24);
 }
 
 bool GenEventClass::isPromptFinalStateLepton(int index) {
+  // look for a W ancestor in the history
+  int motherIndex = index-1;
+  while (motherIndex>=0) {
+    int motherId = GenParticle_pdgId[motherIndex];
+    if (abs(motherId)==24) break;
+    motherIndex -= 1;
+  }
+  if (motherIndex<=0) return false;
   return GenParticle_status[index]==1;
 }
 
@@ -253,10 +270,29 @@ void GenEventClass::bookHistograms() {
   h_fsrpt_close = new TH1F("fsrpt_close","FSR pt",5000,0,10);            histograms.push_back(h_fsrpt_close);
   h_fsrdr_close = new TH1F("fsrdr_close","FSR pt",5000,0,0.1);   histograms.push_back(h_fsrdr_close);
   h_fsrpt_hard = new TH1F("fsrpt_hard","FSR pt",5000,0,10);              histograms.push_back(h_fsrpt_hard);
-  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR pt",5000,0,0.1);     histograms.push_back(h_fsrdr_hard);
+  h_fsrdr_hard = new TH1F("fsrdr_hard","FSR deltaR",5000,0,0.1);     histograms.push_back(h_fsrdr_hard);
 
   h_fsrptfrac_hard = new TH1F("fsrptfrac_hard","fraction FSR pt / preFSR lepton pt",5000,0,0.1);      histograms.push_back(h_fsrptfrac_hard);
 
+  float ptBins[8] = {0,10,20,30,40,50,100,6500};
+  float etaBins[5] = {0,1,1.5,2.5,5};
+  if (fFlavor==13) {
+    const int nDrBins = 100; float drmin=0.0; float drmax=0.1; float drBinSize=(drmax-drmin)/float(nDrBins);
+    float drBins[nDrBins+2];
+    drBins[0]=-1; // this to keep the underflow - no radiation case 
+    for(int b=0; b<nDrBins+1; ++b) drBins[b+1]=b*drBinSize;
+    h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
+  } else {
+    const int nDrBins = 102;
+    float drBins[nDrBins+2];
+    drBins[0]=-1; // this to keep the underflow - no radiation case 
+    float drBinSize1 = 2e-5;
+    for(int b=0; b<51; ++b) drBins[b+1]=b*drBinSize1;
+    float drBinSize2 = 1.8e-4;
+    for(int b=0; b<51; ++b) drBins[b+52]=drBins[51]+(b+1)*drBinSize2;
+    drBins[103] = 0.1;
+    h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
+  }
 
 }
 
@@ -265,8 +301,13 @@ void GenEventClass::writeHistograms() {
   for (int ih=0; ih<(int)histograms.size(); ++ih) {
     histograms[ih]->Write();
   }
+  h3d_fsrdr_hard->Write();
 }
 
 void GenEventClass::setOutfile(TString outfilepath){
   fOutfile = outfilepath;
+}
+
+void GenEventClass::setFlavor(int flavor) {
+  fFlavor = flavor;
 }

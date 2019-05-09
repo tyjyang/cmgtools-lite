@@ -551,7 +551,7 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir,followlinks=True) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*',f) and f.endswith('.card.txt')]
+        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*|.*_fsr.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_','TauDecaysW_']) else -1) ## ugly but works
     
         existing_bins = {'left': [], 'right': [], 'long': []}
@@ -585,7 +585,7 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
+                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+|fsr)\.input\.root'.format(base=basename),x), allfiles)
                     if 'Z_' in f:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     if 'TauDecaysW_' in f:
@@ -657,13 +657,13 @@ if __name__ == "__main__":
                                                 #print 'replacing old %s with %s' % (name,newname)
                                                 plots[newname].Write()
                                     else:
-                                        if any(sysname in newname for sysname in ['pdf']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        if any(sysname in newname for sysname in ['pdf','fsr']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             pfx = '_'.join(newname.split("_")[:-2])
                                             if 'pdf' in newname:
                                                 patt = re.compile('(pdf)(\d+)')
                                                 tokens = patt.findall(newname)
                                                 sysname = tokens[0][0]; isys = int(tokens[0][1])
-                                            newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
+                                                newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
@@ -705,7 +705,7 @@ if __name__ == "__main__":
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
-                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',name):
+                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*|.*fsr.*',name):
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
@@ -960,6 +960,7 @@ if __name__ == "__main__":
         combinedCard.write('\nluminosity group = CMS_lumi_13TeV\n')
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
+        combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),finalsystnames))+'\n')
