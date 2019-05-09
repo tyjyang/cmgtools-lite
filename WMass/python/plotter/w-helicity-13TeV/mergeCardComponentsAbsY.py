@@ -13,6 +13,7 @@ from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
 
+
 def isExcludedNuisance(excludeNuisances=[], name=""):
     if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances): 
         print ">>>>> Excluding nuisance: ", name
@@ -271,8 +272,17 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         elif doPtNorm:
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
-            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]
+            ptBorders = [26, 32, 38, 45] if isMu else [30, 35, 40, 45]                
+            # now a tuning for 2D xsec binning, for which I have some pt bins after 45
             if ptbins[-1] > ptBorders[-1]:
+                if ptBorders[-1] not in ptbins:  # in case I use different binning here
+                    minPtDiff = 999
+                    iptMin
+                    for ipt,ptval in enumerate(ptbins):
+                        if ptval > 45 and abs(ptval - 45) < minPtDiff:
+                            minPtDiff = abs(ptval - 45)
+                            iptMin = ipt
+                    ptBorders[-1] = ptbins[iptMin] # could be 45.5 or 46
                 ptBorders.extend([50, 56])
             borderBins = []
             for i in ptBorders[:-1]:
@@ -427,6 +437,106 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
                 tmp_scaledHisto_dn_1d.Write()
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
+
+def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHelicityAnalysis=True):
+
+    if not isMu:
+        print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
+        quit()
+
+    # this is mainly for tests, otherwise one should change the definition of weights when filling histograms
+    # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
+
+    indir = outdir if outdir != None else options.inputdir
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
+
+    etaPtBinningVecGen = None
+    genBins = None
+    if not isHelicityAnalysis:
+        etaPtBinningVecGen = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
+        genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])        # this create a class to manage the binnings
+
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    flavour = "mu" if isMu else "el"
+    outfile = ROOT.TFile(indir+'/TestEffSyst_{fl}_{ch}{sfx}.root'.format(fl=flavour, ch=charge, sfx=suffix), 'recreate')
+
+    ndone = 0
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting testeffsyst nuisances for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        effsystvals = {}
+        if isMu:
+            effsystvals[0.0] = 0.002
+            effsystvals[1.0] = math.sqrt( math.pow(0.004,2) - math.pow(0.002,2))
+            effsystvals[1.5] = math.sqrt( math.pow(0.014,2) - math.pow(0.004,2) - math.pow(0.002,2))
+        else:
+            pass
+            # # FIX ME: here the prefiring syst is not added yet!
+            effsystvals[1.0] = 0.006
+            effsystvals[1.479] = 0.008
+            effsystvals[2.0] = 0.013
+            effsystvals[2.5] = 0.016
+
+            
+        for ik,key in enumerate(effsystvals):
+
+            # for 2D xsec we assume that eta bins outside the corresponding gen bins are almost empty, so we will skip their reweigthing based on the gen eta
+            if not isHelicityAnalysis:
+                if re.match("x_W.*_ieta_.*",tmp_name):
+                    ietagen,iptgen = get_ieta_ipt_from_process_name(tmp_name)
+                    #print "found process %s --> ietagen = %d" % (tmp_name, ietagen)
+                    if ietagen >= 0:
+                        geneta = genBins.etaBins[ietagen]
+                        #print "geneta = %.3f" % geneta
+                        if geneta < key:   
+                            #print "skip reweighting of %s for TestEffSyst%d" % (tmp_name,ik) 
+                            continue                
+
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{fl}TestEffSyst{ik}2DROLLED'.format(fl=flavour,ik=ik)
+
+            tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+            tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+
+            for ieta in range(1,tmp_scaledHisto_up.GetNbinsX()+1):
+                for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                    etaval = tmp_scaledHisto_up.GetXaxis().GetBinCenter(ieta)
+                    scaling = 0.0
+                    if abs(etaval) >= key: scaling += effsystvals[key]
+                
+                    tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                    tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                    tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                    tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                    tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+
+            ## re-roll the 2D to a 1D histo
+            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''),cropNegativeBins=False)
+            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''),cropNegativeBins=False)
+
+            outfile.cd()
+            tmp_scaledHisto_up_1d.Write()
+            tmp_scaledHisto_dn_1d.Write()
+
+    outfile.Close()
+    print 'done with the many reweightings for the testeffsyst'
+
 
 def writeChargeGroup(cardfile,signals,polarizations):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
@@ -676,7 +786,13 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            if 'mu' in options.bin:
+                print 'now putting the testeffsyst systeamtics into the file'
+                putTestEffSystHistosDiffXsec(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin, isHelicityAnalysis=True)
+                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {indir}/TestEffSyst_{flav}_{ch}*.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            else:
+                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+
             os.system(final_haddcmd)
         
         print "Now trying to get info on theory uncertainties..."
@@ -694,7 +810,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*ErfPar\dEffStat.*|.*Fakes.*Uncorrelated.*|.*(ele|mu)scale.*',name):
+                if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*Fakes.*Uncorrelated.*|.*(ele|mu)scale.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -945,7 +1061,7 @@ if __name__ == "__main__":
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
-        combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),finalsystnames))+'\n')
+        combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*TestEffSyst.*|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(_norm|lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
