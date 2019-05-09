@@ -24,13 +24,13 @@ CMS_Wmu_lepVeto      : Z                            : .* : 1.02
 #CMS_DY               : Z                            : .* : 1.038
 CMS_VV               : DiBosons                     : .* : 1.16
 CMS_Top              : Top                          : .* : 1.06 
-CMS_Tau              : TauDecaysW                   : .* : 1.30
+CMS_Tau              : TauDecaysW                   : .* : 1.04
 
 # ==================================================================
 # Fake rate uncertainties
 # ==================================================================
 # first is the normalization uncertainty
-CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
+#CMS_Wmu_FR_norm        : data_fakes  : .* : 1.30
 
 # shape uncertainties (slope of FR with pt up/down, and continuous variation in eta, and awayjet 45)
 CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShapeOnly
@@ -40,7 +40,11 @@ CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShap
 # ==================================================================
 # lepton scale
 # ==================================================================
-CMS_Wmu_muscale     : W.*|Z                          : .* : muscale   : templates
+#CMS_Wmu_muscale     : W.*|Z                          : .* : muscale   : templates
+# mu scale uncorrelated: 1 variation 0.3% in all eta range, 1 variation 1.0% only for |eta| > 2.1
+CMS_Wmu_muscale0     : W.*|Z                          : .* : muscale0   : templates
+CMS_Wmu_muscale1     : W.*|Z                          : .* : muscale1   : templates
+
 
 # recoil uncertainty
 #CMS_recoil          : W.*                          : .* : recoil    : templates
