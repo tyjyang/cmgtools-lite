@@ -22,9 +22,9 @@ if doMuons:
 
 else:
 
-    inputFolder = "fr_12_03_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30_Zveto_newSkim_noDensity"
+    inputFolder = "fr_15_04_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt40_Zveto_newSkim"
     inputFullPath = "www/wmass/13TeV/fake-rate/test/testFRv8/" + inputFolder + "/el/comb/"
-    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/fr_fitPol2/"
+    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/FR_fitPol2_jetPt40/"
     outfileTag = outputFolder.split('/')[-2]
     histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular"
     isMuon = "false"

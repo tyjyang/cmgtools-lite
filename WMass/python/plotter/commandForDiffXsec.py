@@ -6,18 +6,20 @@ dryrun=0
 doMuons=1
 skipUnpack=0
 skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0
+skipSingleCard=1
+skipMergeCard=1
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
 allPtBinsSignalElectron = 1
 
 # el
-folder_el = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/" # keep "/" at the end
+folder_el = "diffXsec_el_2019_04_13_newSystAndWtau/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_pt56_L1prefire_fixEffStat.root"
 # mu
-folder_mu = "diffXsec_mu_2019_03_12_ptMax56_dressed/" # keep "/" at the end
-th3file_mu = "cards/" + folder_mu + "wmu_pt56_L1prefire_fixEffStat.root"
+#folder_mu = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/" # keep "/" at the end
+#th3file_mu = "cards/" + folder_mu + "wmu_pt56_L1prefire_fixEffStat.root"
+folder_mu = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/" # keep "/" at the end
+th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
@@ -28,13 +30,17 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --etaBordersForFakesUncorr " + ("0.5,1.0,1.4,1.6,2.0 " if doMuons else "0.5,1.0,1.4,1.6,2.0 ")
+optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.4,1.6,2.0 ")
 
-optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --tauChargeLnN 0.03 --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous'  " # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta ### --uncorrelate-fakes-by-charge   # .*FakesPtNormUncorrelated.* --fakesChargeLnN 0.03
+optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' --WZ-testEffSyst-shape '0.0,1.0,1.5' "
+#--WZ-testEffSyst-LnN 0.012" 
+# --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
+### --uncorrelate-fakes-by-charge   
+# --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix combinedLep --sig-out-bkg --useSciPyMinimizer " #--no-text2hdf5 --no-combinetf " 
+optionsForCardMakerMerger = " --postfix testEffSyst_uncorrEta_fixLepScale_uncorrPtScale --sig-out-bkg --useSciPyMinimizer " #--no-text2hdf5 --no-combinetf " 
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep --useSciPyMinimizer " # --no-text2hdf5 --no-combinetf "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep --sig-out-bkg --useSciPyMinimizer " # --no-text2hdf5 --no-combinetf "  
 
 #================================
 
@@ -77,7 +83,7 @@ if not skipMergeCard:
 
 
 combineCardsFlavour = "python makeCardsFromTH1.py --indir-mu cards/{fdmu} --indir-el cards/{fdel} --comb-flavour".format(fdmu=folder_mu, fdel=folder_el) 
-combineCardsFlavour += " --comb-flavour {opt} -o cards/muElCombination/ ".format(opt=optionsForCardMakerMergerFlavour)
+combineCardsFlavour += " {opt} -o cards/muElCombination/ ".format(opt=optionsForCardMakerMergerFlavour)
 if not skipMergeCardFlavour:
     print combineCardsFlavour
     if not dryrun: os.system(combineCardsFlavour)

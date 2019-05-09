@@ -169,7 +169,12 @@ if __name__ == "__main__":
         qcdsyst.append("muF%d" % i)
         qcdsyst.append("muRmuF%d" % i)
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["mW", "elescale" if channel == "el" else "muscale", "lepeff"] # might add others
+    allsysts = qcdsyst + pdfsyst + ["mW", "lepeff"] # might add others
+    if channel == "el":
+        allsysts.extend(["elescale%d" % i for i in range(4)])
+    else:
+        allsysts.extend(["muscale%d" % i for i in range(2)])
+        allsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
     allsystsUpDn = []
     for x in allsysts:
         if not re.match(options.doSigSyst,x): continue
@@ -382,7 +387,7 @@ if __name__ == "__main__":
                     # example of name in shapes.root: x_Wplus_el_ieta_3_ipt_0_Wplus_el_group_0
                     # example of name in shapes.root: x_Wplus_mu_outliers_Wplus_mu_outliers_group_37
                     # group might actually not appear in name
-                    signalMatch = "{ch}_{flav}_".format(ch=charge,flav=channel)                      
+                    signalMatch = "{ch}_lep_".format(ch=charge)                      
 
                     if obj.InheritsFrom("TH1") and signalMatch in name:
 
@@ -484,6 +489,12 @@ if __name__ == "__main__":
             fakesysts = ["CMS_We_FRe_slope"] if channel == "el" else ["CMS_Wmu_FRmu_slope"]
             # for i in range(1,11):
             #     fakesysts.append("FakesEtaUncorrelated%d" % i)
+            zsysts = []
+            if channel == "el":
+                zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+            else:
+                zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
 
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
@@ -524,6 +535,30 @@ if __name__ == "__main__":
                                                 xaxisTitle, yaxisTitle, zaxisTitle, 
                                                 'syst_{proc}_{ch}_{flav}'.format(proc=name_fs,ch=charge,flav=channel),
                                                 "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
+                # draw fakes systematics
+                if "Z" in p:
+                    # 4 systs for now (2 Up and 2 Down)
+                    for fs in zsysts:
+                        for idir in ["Up", "Down"]:
+                            title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
+                            name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
+                            h1_1_fs = infile.Get('x_{p}'.format(p=name_fs))                            
+                            h2_backrolled_1_fs = dressed2D(h1_1_fs,binning,name_fs,title_fs)
+                            if options.normWidth: 
+                                h2_backrolled_1_fs.Scale(1.,"width")
+                            h2_backrolled_1_fs.Write(name_fs)
+                            h2_backrolled_1_fs.Divide(h2_backrolled_1)
+                            zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0), 
+                                                                             getMaximumTH(h2_backrolled_1_fs))
+                            if "FakesEtaUncorrelated" in fs:
+                                zaxisTitle = "variation / nominal::0.9,1.1"
+
+                            drawCorrelationPlot(h2_backrolled_1_fs, 
+                                                xaxisTitle, yaxisTitle, zaxisTitle, 
+                                                'syst_{proc}_{ch}_{flav}'.format(proc=name_fs,ch=charge,flav=channel),
+                                                "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
+
 
 
             

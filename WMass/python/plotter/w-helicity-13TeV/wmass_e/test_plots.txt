@@ -76,3 +76,12 @@ ptl1_wmass: ptElFull(LepGood1_calPt,LepGood1_eta): 40,30,50 ; XTitle="lepton p_{
 
 ptl1_large: ptElFull(LepGood1_calPt,LepGood1_eta): 26,30,56 ; XTitle="electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
 ptl1large__etal1: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: 50,-2.5,2.5,26,30,56; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
+pfmt_ptl1large: mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood_phi)\:ptElFull(LepGood1_calPt,LepGood1_eta) : 26,30,56,60,0,120 ; XTitle='electron p_{T} [GeV]', YTitle='PF m_{T} [GeV]', Legend='TR'
+
+pfmt_etal1: mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood_phi)\:LepGood1_eta : 50,-2.5,2.5,60,0,120 ; XTitle='electron #eta', YTitle='PF m_{T} [GeV]', Legend='TR'
+
+
+ptl1_26to56: ptElFull(LepGood1_calPt,LepGood1_eta): 30,26,56 ; XTitle="electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+ptl1_26to56_elescaleUp: ptElFull(LepGood1_calPt,LepGood1_eta,1): 30,26,56 ; XTitle="electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+ptl1_26to56__etal1: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: 50,-2.5,2.5,30,26,56; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
+ptl1_26to56_elescaleUp__etal1: ptElFull(LepGood1_calPt,LepGood1_eta,1)\:LepGood1_eta: 50,-2.5,2.5,30,26,56; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'

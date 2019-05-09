@@ -11,6 +11,7 @@ import numpy as np
 # from make_helicity_cards import submitBatch
 
 NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
+nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data) 
 pdfsysts=[] # array containing the PDFs signal variations
 qcdsysts=[] # array containing the QCD scale signal variations
 etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta 
@@ -79,6 +80,19 @@ def get_ieta_ipt_from_process_name(name):
         if tkn == "ipt":  ipt  = int(tokens[i + 1])
     return ieta,ipt
 
+def get_ieta_from_process_name(name):
+    if "_ieta_" in name:
+        ieta = int((name.split("_ieta_")[1]).split("_")[0])
+    else:
+        print "Error in get_ieta_from_process_name(): '_ieta_' key not found in %s. Exit" % name
+        quit()
+
+def get_ipt_from_process_name(name):
+    if "_ipt_" in name:
+        ipt = int((name.split("_ipt_")[1]).split("_")[0])
+    else:
+        print "Error in get_ipt_from_process_name(): '_ipt_' key not found in %s. Exit" % name
+        quit()
 
 
 class templateBinning:
@@ -179,6 +193,15 @@ def getMcaIncl(mcafile,incl_mca='incl_sig'):
             break
     return incl_file
 
+def writeNominalSingleMCA(mcafile,odir,incl_mca='incl_dy'):
+    incl_file=getMcaIncl(mcafile,incl_mca)
+    proc = incl_mca.split('_')[1]
+    postfix = "_{proc}_nominal".format(proc=proc)
+    mcafile_nominal = open("{odir}/mca{pfx}.txt".format(odir=odir,pfx=postfix), "w")
+    mcafile_nominal.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="1." \n')
+    nominals.append(proc)
+    print "written nominal mca relative to ",incl_mca
+
 def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='incl_sig',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
@@ -225,7 +248,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
             # for signal only, split scales in wpt
-            if incl_mca == 'incl_sig':
+            if incl_mca == 'incl_sig' or incl_mca == 'incl_wtau':
                 if 'muR' in scale or 'muF' in scale:
                     for ipt in range(1,11): ## start from 1 to 10
                         ## have to redo the postfix for these
@@ -488,16 +511,26 @@ if __name__ == "__main__":
     if options.addPdfSyst:
         # write the additional systematic samples in the MCA file
         if options.signalCards:  writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
-        if options.bkgdataCards: writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
+        if options.bkgdataCards: 
+            writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
+            writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtau') # on WTau
         # write the complete systematics file (this was needed when trying to run all systs in one job)
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
-        #writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])
-        if options.signalCards:  writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # no more wpt inclusive, now we have the QCD scales in bins of wpt
-        if options.bkgdataCards: writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
-
+        #writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope","mW"])
+        if options.signalCards:  
+            writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # no more wpt inclusive, now we have the QCD scales in bins of wpt
+        if options.bkgdataCards: 
+            writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy')        
+            writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"],incl_mca='incl_wtau')
     if options.signalCards: writeEfficiencyStatErrorSystsToMCA_diffXsec(MCA,outdir+"/mca",options.channel,genEtaBins=[float(x) for x in etabinning])
+
+    # if len(pdfsysts+qcdsysts)>1:
+    #     for proc in ['dy','wtau']:
+    #         if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
+
+
 
     ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
     BASECONFIG=os.path.dirname(MCA)
@@ -540,7 +573,7 @@ if __name__ == "__main__":
     POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
     NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
     fullJobList = []
-
+    
     if options.signalCards:
 
         print "MAKING SIGNAL PART: "
@@ -615,7 +648,7 @@ if __name__ == "__main__":
                     else:
                         scaleXP = "" if ivar == 0 else ",.*_muscale_.*,.*_lepeff_.*"  # note comma in the beginning
                         flips = ""
-                    xpsel=' --xp "W{antich}.*{flips},Z.*,Top,DiBosons,TauDecaysW,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
+                    xpsel=' --xp "W{antich}.*{flips},Z.*,Top,DiBosons,TauDecaysW.*,data.*{xpScale}" --asimov '.format(antich=antich,xpScale=scaleXP,flips=flips)      
                     recoChargeCut = POSCUT if charge=='plus' else NEGCUT
 
                     if ibin == loopBins:
@@ -723,15 +756,22 @@ if __name__ == "__main__":
                                     print(lin)
 
 
+    out_subdir = ""
+    if options.bkgdataCards and options.useLSF:
+        out_subdir = "/part0"
+        if not os.path.exists(outdir+out_subdir):
+            os.mkdir(outdir+out_subdir)
+        
+
     if options.bkgdataCards:
         print "MAKING BKG and DATA PART:\n"
         for charge in ['plus','minus']:
             xpsel=' --xp "W.*" ' 
             if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-                xpsel+=' --xp "Z.*" '
+                xpsel+=' --xp "Z.*,TauDecaysW.*" '
             chargecut = POSCUT if charge=='plus' else NEGCUT
             dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
-            BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
+            BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir+out_subdir + xpsel + chargecut
             if options.queue:
                 mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
                 if options.useLSF:
@@ -750,12 +790,14 @@ if __name__ == "__main__":
                             print(lin)
 
     if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
+        #dysyst = ['_dy_nominal']+[x for x in pdfsysts+qcdsysts if 'dy' in x]
         dysyst = ['']+[x for x in pdfsysts+qcdsysts if 'dy' in x]
         for ivar,var in enumerate(dysyst):
             for charge in ['plus','minus']:
                 antich = 'plus' if charge == 'minus' else 'minus'
                 if ivar==0: 
                     IARGS = ARGS
+                    #IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 else: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -765,7 +807,45 @@ if __name__ == "__main__":
                 xpsel=' --xp "[^Z]*" --asimov '
                 syst = '' if ivar==0 else var
                 dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir+out_subdir + xpsel + chcut
+                if options.queue:
+                    mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    if options.useLSF:
+                        submitBatch(dcname,outdir,mkShCardsCmd,options)
+                    else:
+                        fullJobList.append(mkShCardsCmd)
+                else:
+                    cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                    if options.dryRun: print cmd
+                    else:
+                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                        out, err = p.communicate() 
+                        result = out.split('\n')
+                        for lin in result:
+                            if not lin.startswith('#'):
+                                print(lin)
+
+
+    # repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
+    if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
+        #dysyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
+        dysyst = ['']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
+        for ivar,var in enumerate(dysyst):
+            for charge in ['plus','minus']:
+                antich = 'plus' if charge == 'minus' else 'minus'
+                if ivar==0: 
+                    IARGS = ARGS
+                    #IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                else: 
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                    print "Running the WTAU with systematic: ",var
+                print "Making card for WTAU process with charge ", charge
+                chcut = POSCUT if charge=='plus' else NEGCUT
+                xpsel=' --xp "[^TauDecaysW]*" --asimov '
+                syst = '' if ivar==0 else var
+                dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + out_subdir + xpsel + chcut
                 if options.queue:
                     mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     if options.useLSF:
@@ -848,6 +928,8 @@ if __name__ == "__main__":
         dummy_exec.write('bash $*\n')
         dummy_exec.close()
 
+        # requirements in condor file needed for SLC6 machines, not for SLC7
+
         condor_file_name = jobdir+'/condor_submit_dummy.condor'
         condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
@@ -860,6 +942,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
            rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
