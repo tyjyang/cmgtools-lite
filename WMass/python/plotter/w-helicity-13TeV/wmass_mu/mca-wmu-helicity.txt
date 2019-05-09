@@ -31,7 +31,6 @@ Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight=
 # TauDecaysW_lepeff_Up   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Up", NormSystematic=0.04, SkipMe=True
 # TauDecaysW_lepeff_Dn   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Dn", NormSystematic=0.04, SkipMe=True
 
-
 ## muon scale systematics 
 # Wplus_long_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : prefsrw_decayId == 14 && prefsrw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_0_plus_lepUp.txt", Label="W+ long lep scale Up", SkipMe=True 
 # Wplus_left_muscale_Up   : WJetsToLNu_* : 3.*20508.9   : prefsrw_decayId == 14 && prefsrw_charge>0  ; FillColor=ROOT.kRed+2  , FakeRate="w-helicity-13TeV/wmass_mu/variations/reweighting_L_plus_lepUp.txt", Label="W+ left lep scale Up", SkipMe=True 

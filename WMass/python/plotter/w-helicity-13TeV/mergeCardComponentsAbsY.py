@@ -185,6 +185,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doPtNorm = doType == 'ptnorm'
     doUncorrChargeEta = doType == 'etacharge'
     if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
+    if flav=='el': doUncorrChargeEta = False # overwrite everything for ele
 
     typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:
@@ -251,7 +252,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins += [len(etabins)]
 
             if doUncorrChargeEta:
-                scalings = [0.02 for b in borderBins[:-1]]  # 2%, common for both mu and ele
+                chargeAsymSyst = 0.02 if isMu else 0.01
+                scalings = [chargeAsymSyst for b in borderBins[:-1]]
             else:
                 if isMu: 
                     factor = 0.046 # it used to be 0.05 for Eta, but now it is splitted in charge-correlated and charge-uncorrelated part
@@ -260,13 +262,13 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                     scalings = []
                     for ib, borderBin in enumerate(borderBins[:-1]):
                         # slightly reducing these numbers, as now we have a part that is uncorrelated between charges
-                        if   abs(etabins[borderBin]) < 0.21: scalings.append(0.01)  # 0.01
-                        elif abs(etabins[borderBin]) < 0.41: scalings.append(0.01)  # 0.025
-                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.03)  # 0.04
-                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.05)  # 0.06
-                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.05)  # 0.06
-                        elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)  # 0.03
-                        else:                                scalings.append(0.05)  # 0.06
+                        if   abs(etabins[borderBin]) < 0.21: scalings.append(0.005)
+                        elif abs(etabins[borderBin]) < 0.41: scalings.append(0.005)
+                        elif abs(etabins[borderBin]) < 1.01: scalings.append(0.03)
+                        elif abs(etabins[borderBin]) < 1.51: scalings.append(0.05)
+                        elif abs(etabins[borderBin]) < 1.71: scalings.append(0.05)
+                        elif abs(etabins[borderBin]) < 2.00: scalings.append(0.02)
+                        else:                                scalings.append(0.05)
 
         ## for ptnorm these are now pT borders, not eta borders
         elif doPtNorm:
@@ -289,7 +291,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
             borderBins.append(len(ptbins))
 
-            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.20, 0.20, 0.10, 0.10, 0.20]
+            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
@@ -553,6 +555,17 @@ def writePolGroup(cardfile,signals,polarizations,grouping='polGroup'):
             group = ' '.join(['W{charge}_{pol}_Ybin_{y}'.format(charge=charge,pol=pol,y=y) for pol in polarizations])
             cardfile.write('W{charge}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,y=y,grp=grouping,procs=group))
 
+def writeRegGroup(cardfile,signals,polarizations,grouping='regGroup'):
+    print 'WRITING REGULARIZATION GROUPS!!!'
+    maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+    for pol in polarizations:
+        for charge in ['plus','minus']:
+            cardfile.write('\n')
+            slist = ''
+            for i in xrange(maxiY+1):
+                slist += ' W{charge}_{pol}_Ybin_{i} '.format(charge=charge,pol=pol,i=i)
+            cardfile.write('reg_W{charge}_{pol} {grp} = {procs}\n'. format(charge=charge,pol=pol,grp=grouping,procs=slist))
+
 def writeChargeMetaGroup(cardfile,signals):
      maxiY = max([int(proc.split('_')[-1]) for proc in signals])
      cardfile.write('\n')
@@ -648,8 +661,8 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir,followlinks=True) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*',f) and f.endswith('.card.txt')]
-        files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_']) else -1) ## ugly but works
+        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*|.*_fsr.*',f) and f.endswith('.card.txt')]
+        files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_','TauDecaysW_']) else -1) ## ugly but works
     
         existing_bins = {'left': [], 'right': [], 'long': []}
         empty_bins = {'left': [], 'right': [], 'long': []}
@@ -682,9 +695,11 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+)\.input\.root'.format(base=basename),x), allfiles)
+                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+|fsr)\.input\.root'.format(base=basename),x), allfiles)
                     if 'Z_' in f:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
+                    if 'TauDecaysW_' in f:
+                        rootfiles_syst += filter(lambda x: re.match('\S+TauDecaysW_{channel}_{charge}_wtau_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     rootfiles_syst.sort()
                     if re.match('process\s+',l): 
                         if len(l.split()) > 1 and all(n.isdigit() for n in l.split()[1:]) : continue
@@ -752,13 +767,13 @@ if __name__ == "__main__":
                                                 #print 'replacing old %s with %s' % (name,newname)
                                                 plots[newname].Write()
                                     else:
-                                        if any(sysname in newname for sysname in ['pdf']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+                                        if any(sysname in newname for sysname in ['pdf','fsr']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
                                             pfx = '_'.join(newname.split("_")[:-2])
                                             if 'pdf' in newname:
                                                 patt = re.compile('(pdf)(\d+)')
                                                 tokens = patt.findall(newname)
                                                 sysname = tokens[0][0]; isys = int(tokens[0][1])
-                                            newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
+                                                newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
@@ -779,14 +794,14 @@ if __name__ == "__main__":
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
 
             print 'now putting the erfpar systeamtics into the file'
-            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin)
+            putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
-            putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
             if 'mu' in options.bin:
+                putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
                 print 'now putting the testeffsyst systeamtics into the file'
                 putTestEffSystHistosDiffXsec(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin, isHelicityAnalysis=True)
                 final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {indir}/TestEffSyst_{flav}_{ch}*.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
@@ -806,7 +821,7 @@ if __name__ == "__main__":
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
-                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',name):
+                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*|.*fsr.*',name):
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
@@ -831,6 +846,7 @@ if __name__ == "__main__":
             binname = ''
             if re.match('Wplus|Wminus',basename): binname=basename
             elif re.match('Z.*{charge}'.format(charge=charge),basename): binname='Z'
+            elif re.match('TauDecaysW.*{charge}'.format(charge=charge),basename): binname='TauDecaysW'
             else: binname='other'
             if not binn in empty_bins:
                 combineCmd += " %s=%s " % (binname,f)
@@ -1048,8 +1064,9 @@ if __name__ == "__main__":
         ## add the theory / experimental systematics 
         for sys,procs in allsyst.iteritems():
             if isExcludedNuisance(excludeNuisances, sys): continue
+            systscale = '1.0' if sys!='alphaS' else '0.67' # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) => variations correspond to 0.67sigma
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
+            combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
 
         cardlines = [line.rstrip('\n') for line in open(cardfile,'r')]
@@ -1059,6 +1076,7 @@ if __name__ == "__main__":
         combinedCard.write('\nluminosity group = CMS_lumi_13TeV\n')
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
+        combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*TestEffSyst.*|CMS.*sig_lepeff',x),finalsystnames))+'\n')
@@ -1101,6 +1119,7 @@ if __name__ == "__main__":
                 writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             # the following works even if Wlong is missing, although their usefulness in this case is questionable
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
+            writeRegGroup(combinedCard,tmp_sigprocs,polarizations,grouping='regGroup')
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs)
         combinedCard.close()

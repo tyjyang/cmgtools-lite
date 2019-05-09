@@ -83,7 +83,7 @@ class GenQEDJetProducer(Module):
     def __init__(self,deltaR,beamEn=7000.):
         self.beamEn=beamEn
         self.deltaR = deltaR
-        self.vars = ("pt","eta","phi","mass","pdgId")
+        self.vars = ("pt","eta","phi","mass","pdgId","fsrDR","fsrPt")
         self.genwvars = ("charge","pt","mass","y","costcs","phics","decayId")
         ## if "genQEDJetHelper_cc.so" not in ROOT.gSystem.GetLibraries():
         ##     print "Load C++ Worker"
@@ -109,8 +109,6 @@ class GenQEDJetProducer(Module):
         self.initReaders(inputTree) # initReaders must be called in beginFile
         self.out = wrappedOutputTree
         self.out.branch("weightGen", "F")
-        self.out.branch("gammaMaxDR", "F")
-        self.out.branch("gammaRelPtOutside", "F")
         self.out.branch("partonId1", "I")
         self.out.branch("partonId2", "I")
         self.out.branch("nGenLepDressed", "I")
@@ -259,7 +257,24 @@ class GenQEDJetProducer(Module):
         lepton.SetPtEtaPhiM(finallep.pt, finallep.eta, finallep.phi, finallep.mass)
 
         return lepton, finallep.pdgId
-            
+
+    def getFSRPhotons(self, lepton, leptonPdgId, cone=10):
+
+        photons = []
+        for p in self.genParts:
+            if abs(p.pdgId) != 22 : continue
+            if int(p.motherIndex) < 0 : continue
+            if self.genParts[int(p.motherIndex)].pdgId != leptonPdgId: continue 
+            if not p.isPromptFinalState : continue
+            photon = ROOT.TLorentzVector()
+            photon.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
+            if photon.DeltaR(lepton) < cone: 
+                photons.append(photon)
+
+        photons.sort(key = lambda x: x.Pt(), reverse=True )
+
+        return photons
+
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         #nothing to do if this is data
@@ -307,6 +322,14 @@ class GenQEDJetProducer(Module):
             retL["phi"]   = [dressedLeptonCollection[i][0].Phi() for i in leptonsToTake ]
             retL["mass"]  = [dressedLeptonCollection[i][0].M() if dressedLeptonCollection[i][0].M() >= 0. else 0. for i in leptonsToTake]
             retL["pdgId"] = [dressedLeptonCollection[i][1] for i in leptonsToTake ]
+
+            retL["fsrDR"] = []
+            retL["fsrPt"] = []
+            for  i in leptonsToTake:
+                photonsFSR = self.getFSRPhotons(dressedLeptonCollection[i][0],dressedLeptonCollection[i][1])
+                retL["fsrDR"].append(photonsFSR[0].DeltaR(dressedLeptonCollection[i][0]) if len(photonsFSR)>0 else -1)
+                retL["fsrPt"].append(photonsFSR[0].Pt() if len(photonsFSR)>0 else -1)
+
             self.out.fillBranch("nGenLepDressed", leptonsToTake[-1])
             for V in self.vars:
                 self.out.fillBranch("GenLepDressed_"+V, retL[V])
@@ -319,6 +342,8 @@ class GenQEDJetProducer(Module):
             retN["phi"]   = [neutrino.Phi() ]
             retN["mass"]  = [neutrino.M() if neutrino.M() >= 0. else 0.  ] ## weird protection... also already checked. but better safe than sorry
             retN["pdgId"] = [neutrinoPdgId  ]
+            retN["fsrDR"] = [-1 ]
+            retN["fsrPt"] = [-1 ]
             self.out.fillBranch("nGenPromptNu", 1)
             for V in self.vars:
                 self.out.fillBranch("GenPromptNu_"+V, retN[V])
@@ -346,6 +371,10 @@ class GenQEDJetProducer(Module):
                 retP["phi"]   = [preFSRLepton.Phi() ]
                 retP["mass"]  = [preFSRLepton.M()   if preFSRLepton.M() >= 0. else 0.]
                 retP["pdgId"] = [preFSRLeptonPdgId  ]
+                photonsFSR = self.getFSRPhotons(preFSRLepton,preFSRLeptonPdgId)
+                retP["fsrDR"] = [photonsFSR[0].DeltaR(preFSRLepton) if len(photonsFSR)>0 else -1 ]
+                retP["fsrPt"] = [photonsFSR[0].Pt() if len(photonsFSR)>0 else -1 ]
+
                 self.out.fillBranch("nGenLepPreFSR", 1)
                 for V in self.vars:
                     self.out.fillBranch("GenLepPreFSR_"+V, retP[V])
