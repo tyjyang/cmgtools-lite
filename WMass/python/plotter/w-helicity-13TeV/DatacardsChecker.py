@@ -190,7 +190,7 @@ if __name__ == '__main__':
     parser.add_option('-v', '--verbose', dest='verbose', default=0, type=int, help='Degree of verbosity (0=default prints only the resubmit commands)');
     parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
     parser.add_option('-r', '--runtime', default=12, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
-    parser.add_option('-g', '--grouping', default=10, type=int,  help='Group resubmit commands into groups of size N');
+    parser.add_option('-g', '--grouping', default=5, type=int,  help='Group resubmit commands into groups of size N');
     parser.add_option(      '--splitdir', dest='splitdir', default=False, action='store_true', help='Use this option if .log, .err, .out files of condor are put in separate folders (needed for diff.xsec, might become useful for helciity as well)');
     (options, args) = parser.parse_args()
 
