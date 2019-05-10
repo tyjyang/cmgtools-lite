@@ -438,7 +438,7 @@ if options.bkgdataCards:
     for charge in ['plus','minus']:
         xpsel=' --xp "W.*" ' if not options.longBkg else ' --xp "W{ch}_left,W{ch}_right,W{ach}.*" '.format(ch=charge, ach='minus' if charge=='plus' else 'plus')
         if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-            xpsel+=' --xp "Z.*,TauDecaysW.*" '
+            xpsel+=' --xp "Z.*,TauDecaysW.*" '   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
         chargecut = POSCUT if charge=='plus' else NEGCUT
         dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
         BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut

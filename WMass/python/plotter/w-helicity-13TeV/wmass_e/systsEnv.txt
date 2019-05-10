@@ -23,7 +23,11 @@ CMS_Tau              : TauDecaysW                   : .* : 1.04
 # ==================================================================
 # lepton scale
 # ==================================================================
-CMS_We_elescale      :  W.*|Z: .* : elescale         : templates
+#CMS_We_elescale      :  W.*|Z: .* : elescale         : templates
+CMS_We_elescale0      :  W.*|Z: .* : elescale0         : templates
+CMS_We_elescale1      :  W.*|Z: .* : elescale1         : templates
+CMS_We_elescale2      :  W.*|Z: .* : elescale2         : templates
+CMS_We_elescale3      :  W.*|Z: .* : elescale3         : templates
 
 # ==================================================================
 # Fake rate uncertainties

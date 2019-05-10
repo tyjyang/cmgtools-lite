@@ -113,6 +113,7 @@ Log        = {ld}/$(ProcId).log
 Output     = {ld}/$(ProcId).out
 getenv      = True
 request_memory = 4000
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = 43200
 +JobBatchName = "{name}"\n
 '''.format(runner=runner,ld=options.logdir,name=options.jobName))

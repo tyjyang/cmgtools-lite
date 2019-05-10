@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_option(     '--yRange'     , dest='yRange', default=(0,-1), type='float', nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     parser.add_option(     '--variable',    dest='variable',    default='ptl1large__etal1', type='string', help='Variable to get histogram inside file')
-    parser.add_option('-p','--processes',   dest='processes',   default='data,data_fakes,Wincl,Z,TauTopVVFlips', type='string', help='Comma separated list of processes (to build histogram\'s name to be taken from input file)')
+    parser.add_option('-p','--processes',   dest='processes',   default='data,data_fakes,W,Z,TauTopVVFlips', type='string', help='Comma separated list of processes (to build histogram\'s name to be taken from input file)')
     parser.add_option(     '--rebin'     , dest='rebin', default=(-1,-1), type='int', nargs=2, help='Rebin bins along x and y axis by these factors. Keep one of the two ngative to rebin only the others')
     parser.add_option(      '--no-lumi-xsec',   dest='noLumiXsec',   default=False, action='store_true', help='Do not propagate luminosity and cross section uncertainty')
     (options, args) = parser.parse_args()
@@ -69,6 +69,8 @@ if __name__ == "__main__":
 
     procsPlus = {}
     procsMinus = {}
+    procsPlus_noLumiXsec = {}
+    procsMinus_noLumiXsec = {}
 
     # read histograms
     ######################
@@ -107,11 +109,6 @@ if __name__ == "__main__":
 
     (rebinx,rebiny) = options.rebin
     for p in procNames:
-        # for electrons
-        # procsPlus[p].RebinY(3)
-        # procsPlus[p].RebinX(5)
-        # procsMinus[p].RebinY(3)
-        # procsMinus[p].RebinX(5)
         if rebiny > 0:
             procsPlus[p].RebinY(rebiny)
             procsMinus[p].RebinY(rebiny)
@@ -119,9 +116,9 @@ if __name__ == "__main__":
             procsPlus[p].RebinX(rebinx)
             procsMinus[p].RebinX(rebinx)
 
-    # patch
-    #procsPlus[fakesName].Scale(1./1.1377)
-    #procsMinus[fakesName].Scale(1./1.143)
+    for p in procNames:
+        procsPlus_noLumiXsec[p]  = procsPlus[p].Clone(procsPlus[p].GetName()+"_noLumiXsec")
+        procsMinus_noLumiXsec[p] = procsMinus[p].Clone(procsMinus[p].GetName()+"_noLumiXsec")
 
     # sum uncertainty for xsec (above) and 2.5% of luminosity (there would be a 1% of efficiency but it is negligible)
     # loop on one histogram, the binning is the same
@@ -144,16 +141,23 @@ if __name__ == "__main__":
         
     data_subEWK_plus  = procsPlus["data"].Clone("data_subEWK_plus")
     data_subEWK_minus = procsMinus["data"].Clone("data_subEWK_minus")
+    data_subEWK_plus_noLumiXsec  = procsPlus_noLumiXsec["data"].Clone("data_subEWK_plus_noLumiXsec")
+    data_subEWK_minus_noLumiXsec = procsMinus_noLumiXsec["data"].Clone("data_subEWK_minus_noLumiXsec")
+
     for p in procNames:
         if any(x == p for x in ["data", fakesName]): continue
         data_subEWK_plus.Add(procsPlus[p], -1.)        
         data_subEWK_minus.Add(procsMinus[p], -1.)
+        data_subEWK_plus_noLumiXsec.Add(procsPlus_noLumiXsec[p], -1.)        
+        data_subEWK_minus_noLumiXsec.Add(procsMinus_noLumiXsec[p], -1.)
 
     xMin = options.xRange[0]
     xMax = options.xRange[1]
     yMin = options.yRange[0]
     yMax = options.yRange[1]
 
+    # this ratio will only propagate statistical uncertainty on inputs
+    #hratio = data_subEWK_plus_noLumiXsec.Clone("data_subEWK_PlusOverMinus")
     hratio = data_subEWK_plus.Clone("data_subEWK_PlusOverMinus")
 
     nbins,minx,maxx = options.h1Dbinning.split(',')
@@ -182,6 +186,7 @@ if __name__ == "__main__":
                 #hratio.SetBinContent(ix,iy,options.valBadRatio)
 
     hratio.Divide(data_subEWK_minus)
+    #hratio.Divide(data_subEWK_minus_noLumiXsec)
 
     print "nout = " + str(nout)
 
@@ -221,22 +226,28 @@ if __name__ == "__main__":
     dataSubEWK_over_fakes_plus.SetTitle("Charge +")
     dataSubEWK_over_fakes_minus.SetTitle("Charge -")
 
+    dataSubEWK_over_fakes_plus_noLumiXsec = data_subEWK_plus_noLumiXsec.Clone("dataSubEWK_over_fakes_plus_noLumiXsec")
+    dataSubEWK_over_fakes_plus_noLumiXsec.Divide(procsPlus_noLumiXsec[fakesName])
+    dataSubEWK_over_fakes_minus_noLumiXsec = data_subEWK_minus_noLumiXsec.Clone("dataSubEWK_over_fakes_minus_noLumiXsec")
+    dataSubEWK_over_fakes_minus_noLumiXsec.Divide(procsMinus_noLumiXsec[fakesName])
+
+
     zrange = "0.7,1.3"
 
-    zAxisTitle = "(data - EWK) / QCD prediction::" + zrange
+    zAxisTitle = "(data - EWK) / fakes::" + zrange
     drawCorrelationPlot(dataSubEWK_over_fakes_plus,
                         xAxisTitle,yAxisTitle,zAxisTitle,
                         "dataSubEWK_over_fakes_plus","ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D,
                         drawOption="colz0 text60 E")
 
-    zAxisTitle = "(data - EWK) / QCD prediction::" + zrange
+    zAxisTitle = "(data - EWK) / fakes::" + zrange
     drawCorrelationPlot(dataSubEWK_over_fakes_minus,
                         xAxisTitle,yAxisTitle,zAxisTitle,
                         "dataSubEWK_over_fakes_minus","ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D,
                         drawOption="colz0 text60 E")
 
-    dataSubEWKoverFakes_ratioPlusOverMinus = dataSubEWK_over_fakes_plus.Clone("dataSubEWKoverFakes_ratioPlusOverMinus")
-    dataSubEWKoverFakes_ratioPlusOverMinus.Divide(dataSubEWK_over_fakes_minus)
+    dataSubEWKoverFakes_ratioPlusOverMinus = dataSubEWK_over_fakes_plus_noLumiXsec.Clone("dataSubEWKoverFakes_ratioPlusOverMinus_noLumiXsec")
+    dataSubEWKoverFakes_ratioPlusOverMinus.Divide(dataSubEWK_over_fakes_minus_noLumiXsec)
     #zrange = "0.7,1.3"
     dataSubEWKoverFakes_ratioPlusOverMinus.SetTitle("charge + / charge -")
     zAxisTitle = "ratio of (data-EWK)/fakes between charges::" + zrange
@@ -248,6 +259,13 @@ if __name__ == "__main__":
 
     for i in range(1,dataSubEWKoverFakes_ratioPlusOverMinus.GetNbinsX()+1):
         for j in range(1,dataSubEWKoverFakes_ratioPlusOverMinus.GetNbinsY()+1):
+            if xMin < xMax:
+                xval = dataSubEWKoverFakes_ratioPlusOverMinus.GetXaxis().GetBinCenter(i)
+                if xval < xMin or xval > xMax: continue
+            if yMin < yMax:
+                yval = dataSubEWKoverFakes_ratioPlusOverMinus.GetYaxis().GetBinCenter(j)
+                if yval < yMin or yval > yMax: continue            
+
             hratioDistr.Fill(dataSubEWKoverFakes_ratioPlusOverMinus.GetBinContent(i,j))
 
     drawTH1(hratioDistr, 
@@ -263,7 +281,7 @@ if __name__ == "__main__":
     fakesRatio = procsPlus[fakesName].Clone("fakesRatio")
     fakesRatio.Divide(procsMinus[fakesName])
     fakesRatio.SetTitle("charge + / charge -")
-    zAxisTitle = "QCD prediction template ratio::" + str(options.ratioRange[0]) + "," + str(options.ratioRange[1])
+    zAxisTitle = "fakes template ratio::" + str(options.ratioRange[0]) + "," + str(options.ratioRange[1])
     drawCorrelationPlot(fakesRatio,
                         xAxisTitle,yAxisTitle,zAxisTitle,
                         "fakes_PlusOverMinus","ForceTitle",outname,0,0,False,False,False,1,palette=options.palette,passCanvas=canvas2D,

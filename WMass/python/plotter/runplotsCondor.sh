@@ -68,7 +68,7 @@ fi
 #useHLTpt27="y" # already in selection txt file
 runCondor="y"
 jobRunTime="86400"
-nameTag="_fakes_chMinus_ptMax55_pol2" 
+nameTag="_check_elescale_plus" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -87,6 +87,7 @@ condorDirName="plots_${today}${nameTag}"  # name of directory to create inside j
 ##################################
 # MCA files
 ##################################
+mcafile=""
 if [[ "${useLessMC}" == "y" ]]; then
     mcafile="mca-80X_forPlots_lessMC.txt"
 else
@@ -116,7 +117,8 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="etal1_binFR"
 #selectplots="unrolled"
 #selectplots="ptl1_narrow,etal1_binFR,ptl1__etal1_binFR"
-selectplots="ptl1large__etal1,ptl1_large,etal1_binFR"
+#selectplots="ptl1large__etal1,ptl1_large,etal1_binFR"
+selectplots="ptl1_26to56,ptl1_26to56__etal1"
 #selectplots="wminus_wpt,wminus_wy"
 #selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
@@ -141,10 +143,11 @@ maxentries=""  # all events if ""
 #scaleAllMCtoData=" --scaleBkgToData QCD --scaleBkgToData W --scaleBkgToData Z --scaleBkgToData Top --scaleBkgToData DiBosons " # does not seem to work as expected
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange "
 #ratioPlotDataOptions="  "
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange " #--ratioDen background --ratioNums data,data_noJson --ratioYLabel 'data/MC' --sp data_noJson --noStackSig --showIndivSigs"
-#ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp --ratioYLabel 'Var./Nomi.'"
+#ratioPlotDataOptions="--showRatio --maxRatioRange 0.75 1.25 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_jetPt40 --ratioYLabel 'jetpt40/nomi' --plotmode nostack " #--sp data_noJson --noStackSig --showIndivSigs"
+ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen W --ratioNums W_elescale_Up --ratioYLabel 'Var./Nomi.'"
 #ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
@@ -207,15 +210,15 @@ scaleMCdata["FRcompNumRegion"]=""
 # FR validation REGION
 #----------------------------
 regionKey["FRcheckRegion"]="FRcheckRegion"
-runRegion["FRcheckRegion"]="y"
+runRegion["FRcheckRegion"]="n"
 regionName["FRcheckRegion"]="FR_check_region"
 #skimTreeDir["FRcheckRegion"]="TREES_electrons_1l_V6_TINY"
 skimTreeDir["FRcheckRegion"]="TREE_4_XSEC_AFS"
 outputDir["FRcheckRegion"]="full2016data_${today}"
-regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/55} ${mtMax/XX/30} ${chargeMinus} "
+regionCuts["FRcheckRegion"]=" -X nJet30 ${FRnumSel} ${fiducial} ${ptMax/XX/56} ${chargeMinus} " #${mtMax/XX/20} " #${mtMax/XX/40}  "
 #processManager["FRcheckRegion"]=" --xp W,WFlips,TauDecaysW "
 qcdFromFR["FRcheckRegion"]="y"
-scaleMCdata["FRcheckRegion"]=" -p data,Wincl,Z,data_fakes,TauTopVVFlips --scaleSigToData --sp data_fakes" #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
+scaleMCdata["FRcheckRegion"]=" -p data,W,Z,data_fakes,TauTopVVFlips " #--fitData " # --scaleSigToData --sp data_fakes  " # --fitData
 #
 # --noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3
 #
@@ -252,7 +255,7 @@ scaleMCdata["WmassSignalRegion"]="--fitData"
 # WHELICITY SIGNAL REGION (avoid possibly all kinematic selections)
 #----------------------------
 regionKey["WhelicitySignalRegion"]="WhelicitySignalRegion"
-runRegion["WhelicitySignalRegion"]="n"
+runRegion["WhelicitySignalRegion"]="y"
 regionName["WhelicitySignalRegion"]="whelicity_signal_region"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_1LEP_80X_V3_WSKIM_NEW" 
 #skimTreeDir["WhelicitySignalRegion"]="TREES_electrons_1l_V6_TINY" 
@@ -262,12 +265,12 @@ skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_DYELE_19Feb2019" 
 #skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/55} ${FRnumSel} ${mtMin/XX/40} ${chargePlus} " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/56} ${FRnumSel} ${mtMin/XX/40} ${chargePlus}  " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
 #scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
 #scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
-scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes  "
+scaleMCdata["WhelicitySignalRegion"]=" -p W,W_elescale_Up  "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 # data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips
@@ -405,6 +408,7 @@ Error      = ${condorFolder}/logs/\$(ProcId).error
 getenv      = True                       
 environment = "LS_SUBCWD=${PWD}"         
 request_memory = 4000                    
+requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = ${jobRunTime}
 +JobBatchName = "runplotsCondor${nameTag}"
 EOF
@@ -426,7 +430,7 @@ if [[ "${useDataGH}" == "y" ]]; then
     #dataOption=" --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,${ptForScaleFactors},LepGood1_eta)' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
-    MCweigthOption=" -W 'lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
+    MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)' "
     #MCweigthOption=" -W '1' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]*LepGood_SF3[0]' "
     #MCweigthOption=" -W 'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*_get_electronSF_anyWP_v2(LepGood1_pt,LepGood1_eta)' "

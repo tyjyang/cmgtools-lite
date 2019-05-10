@@ -198,6 +198,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     hratio.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
     hratio.GetYaxis().SetTitleOffset(0.40)
     hratio.SetLineColor(ROOT.kBlack)
+    hratio.SetStats(0)
     hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
     line = ROOT.TLine(hratio.GetXaxis().GetXmin(),1,hratio.GetXaxis().GetXmax(),1)
     line.SetLineWidth(2);
@@ -295,7 +296,8 @@ if __name__ == "__main__":
     savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
     
     infile = ROOT.TFile(args[0], 'read')
-    channel = 'mu' if any(['_mu_postfit' in k.GetName() for k in infile.GetListOfKeys()]) else 'el'
+    #channel = 'mu' if any(['_mu_postfit' in k.GetName() for k in infile.GetListOfKeys()]) else 'el'
+    channel = 'mu' if "diffXsec_mu_" in args[1] else 'el'
     print "From the list of histograms it seems that you are plotting results for channel ",channel
 
     full_outfileName = '{odir}/plots_{sfx}.root'.format(odir=outname,sfx=options.suffix)
@@ -304,8 +306,8 @@ if __name__ == "__main__":
 
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
 
-    colors = {'Wplus_{fl}'.format(fl=channel) : ROOT.kRed+2,
-              'Wminus_{fl}'.format(fl=channel): ROOT.kRed+1,
+    colors = {'Wplus_lep'  : ROOT.kRed+2,
+              'Wminus_lep' : ROOT.kRed+1,
               'outliers'   : ROOT.kOrange+2,
               'Top'        : ROOT.kGreen+2,  
               'DiBosons'   : ROOT.kViolet+2, 
@@ -322,6 +324,9 @@ if __name__ == "__main__":
     yaxisname2D = "{l} p_{{T}} [GeV]".format(l=lep)
 
     verticalAxisName = "Events / bin [GeV^{-1 }]" if options.normWidth else "Events"
+    verticalAxisNameProjX = "Events / bin" if options.normWidth else "Events"  # X is eta
+    verticalAxisNameProjY = "Events / bin [GeV^{-1 }]" if options.normWidth else "Events"  # Y is pt
+
 
     cwide = ROOT.TCanvas("cwide","",2400,600)                      
     cnarrow = ROOT.TCanvas("cnarrow","",650,700)                      
@@ -355,6 +360,7 @@ if __name__ == "__main__":
             chfl = '{ch}_lep'.format(ch=charge)
             #keyplot = 'W'+chfl+'_'+prepost
             keyplot = prepost
+            sigkeyplot = 'W' + chfl + '_' + keyplot
 
             print "-"*30
             print "doing " + prepost
@@ -398,19 +404,19 @@ if __name__ == "__main__":
                 h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift,nCharges=2,nMaskedCha=nMaskedChanPerCharge)
                 h1_unrolled = singleChargeUnrolled(h1_1,binshift, nMaskedCha=nMaskedChanPerCharge,name="unroll_"+name2D)
                 if options.normWidth:
-                    normalizeTH2byBinWidth(h2_backrolled_1)
+                    #normalizeTH2byBinWidth(h2_backrolled_1)
                     normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
                 single_sig_unrolled[genkeyplot] = h1_unrolled.Clone('W{chfl}_{gk}_unrolled'.format(chfl=chfl, gk=genkeyplot))
                 single_sig_unrolled[genkeyplot].SetDirectory(None)
                 if genEtaPtBin == 0:
-                    total_sig[keyplot] = h2_backrolled_1.Clone('{kp}'.format(kp=keyplot))
-                    total_sig_unrolled[keyplot] = h1_unrolled.Clone('{kp}_unrolled'.format(kp=keyplot))
-                    total_sig[keyplot].SetDirectory(None)
-                    total_sig_unrolled[keyplot].SetDirectory(None)
+                    total_sig[sigkeyplot] = h2_backrolled_1.Clone('{kp}'.format(kp=sigkeyplot))
+                    total_sig_unrolled[sigkeyplot] = h1_unrolled.Clone('{kp}_unrolled'.format(kp=sigkeyplot))
+                    total_sig[sigkeyplot].SetDirectory(None)
+                    total_sig_unrolled[sigkeyplot].SetDirectory(None)
                 else:
                     if genEtaPtBin < nGenbins:
-                        total_sig[keyplot].Add(h2_backrolled_1)
-                        total_sig_unrolled[keyplot].Add(h1_unrolled)
+                        total_sig[sigkeyplot].Add(h2_backrolled_1)
+                        total_sig_unrolled[sigkeyplot].Add(h1_unrolled)
                 if prepost=='prefit':
                     genbinpostfitkey = '{gkpost}'.format(gkpost=genkeyplot.replace('prefit','postfit')) 
                     if single_sig_unrolled[genbinpostfitkey]!=None:
@@ -433,15 +439,15 @@ if __name__ == "__main__":
                     keyratio = 'W'+chfl+'_ratio'
                     ratios_unrolled[keyratio] = total_sig_unrolled[postfitkey].Clone("W{chfl}_unrolled_ratio".format(chfl=chfl))
                     ratios_unrolled[keyratio].SetDirectory(None)
-                    ratios_unrolled[keyratio].Divide(total_sig_unrolled[keyplot])
+                    ratios_unrolled[keyratio].Divide(total_sig_unrolled[sigkeyplot])
                 else:
                     print "Error: something went wrong! Missing key " + postfitkey
                     quit()
 
             if not options.no2Dplot:
-                total_sig[keyplot].Write(total_sig[keyplot].GetName())
+                total_sig[sigkeyplot].Write(total_sig[sigkeyplot].GetName())
                 cname = "W{chfl}_TOTALSIG_diffXsec_{sfx}".format(chfl=chfl,sfx=suffix)
-                drawCorrelationPlot(total_sig[keyplot],xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
+                drawCorrelationPlot(total_sig[sigkeyplot],xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
                                     outname, 0,0, False, False, False, 1, palette=57, passCanvas=canvas2D)
      
      
@@ -469,7 +475,7 @@ if __name__ == "__main__":
                 h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=nMaskedChanPerCharge,name="unroll_"+pname)
                 h2_backrolled_1 = dressed2D(h1_1,binning,pname,titles[i],binshift,nMaskedCha=nMaskedChanPerCharge)
                 if options.normWidth:
-                    normalizeTH2byBinWidth(h2_backrolled_1)
+                    #normalizeTH2byBinWidth(h2_backrolled_1)
                     normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
                 bkg_and_data[keyplot] = h2_backrolled_1;  
                 bkg_and_data_unrolled[keyplot] = h1_unrolled
@@ -509,14 +515,19 @@ if __name__ == "__main__":
             expfullName2D = 'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost)
             h2_expfull_backrolled = dressed2D(h1_expfull,binning,expfullName2D,expfullName2D,binshift, nMaskedCha=nMaskedChanPerCharge)
             h1_expfull_unrolled = singleChargeUnrolled(h1_expfull, binshift, nMaskedCha=nMaskedChanPerCharge, name="unroll_"+expfullName2D)
+            # can normalize the unrolled, not the 2D
             if options.normWidth:
-                normalizeTH2byBinWidth(h2_expfull_backrolled)
+                #normalizeTH2byBinWidth(h2_expfull_backrolled)
                 normalizeTH1unrolledSingleChargebyBinWidth(h1_expfull_unrolled,h2_expfull_backrolled,True)
      
             for projection in ['X','Y']:
                 nbinsProj = all_procs[chfl + "_" + 'obs'].GetNbinsY() if projection=='X' else all_procs[chfl + "_" + 'obs'].GetNbinsX()
                 hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e")
                 hdata = all_procs[chfl + "_" + 'obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else all_procs[chfl + "_" + 'obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj,"e")
+                if options.normWidth:
+                    hdata.Scale(1., "width")
+                    hexpfull.Scale(1., "width")
+
                 htot = hdata.Clone('tot_{ch}'.format(ch=charge)); 
                 htot.Reset("ICES"); 
                 htot.Sumw2()
@@ -526,27 +537,32 @@ if __name__ == "__main__":
             
                 for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                     keycolor = key.replace('_prefit','').replace('_postfit','').replace(chfl + "_", "" )
+                    #print "key - keycolor:   %s   %s " % (key, keycolor)
                     if "outliers" in keycolor:
                         keycolor = "outliers"
                     if 'obs' in key or prepost not in key: continue
                     print "%s:  %s   %s " % (projection, key, histo.GetName())
                     proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",0,-1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",0,-1,"e")
+                    if options.normWidth:
+                        proj1d.Scale(1., "width")
                     proj1d.SetFillColor(colors[keycolor])
                     stack.Add(proj1d)
                     htot.Add(proj1d) 
-                    leg.AddEntry(proj1d,procsAndTitles["{k}".format(k=keycolor if "outliers" not in keycolor else "W{chfl}_outliers_W{chfl}".format(chfl=chfl))],'F')
+                    leg.AddEntry(proj1d,procsAndTitles["{k}".format(k=keycolor if "outliers" not in keycolor else "W{chfl}_outliers".format(chfl=chfl))],'F')
          
                 leg.AddEntry(hdata,'data','PE')
                              
                 xaxisProj = xaxisname2D if projection == "X" else yaxisname2D
-                cnameProj = "projection{pj}_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl, sfx=suffix)
+                cnameProj = "projection{pj}_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl.replace("_lep","_"+channel), sfx=suffix)
                 ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
-                drawTH1dataMCstack(hdata,stack,xaxisProj, verticalAxisName, cnameProj, outname, leg, ratioYlabel,
+                verticalAxisNameProj = verticalAxisNameProjX if projection == "X" else verticalAxisNameProjY
+                drawTH1dataMCstack(hdata,stack,xaxisProj, verticalAxisNameProj, cnameProj, outname, leg, ratioYlabel,
                                    1, passCanvas=cnarrow,hErrStack=hexpfull,lumi=35.9, )
             
             # now the unrolled, assign names to run monsterPull.py on them
             hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge, name='unrolled_{ch}_data'.format(ch=charge)).Clone('unrolled_{ch}_data'.format(ch=charge))
-            normalizeTH1unrolledSingleChargebyBinWidth(hdata_unrolled,h2_expfull_backrolled,True)            
+            if options.normWidth:
+                normalizeTH1unrolledSingleChargebyBinWidth(hdata_unrolled,h2_expfull_backrolled,True)            
             hdata_unrolled.SetDirectory(None)
             htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); 
             htot_unrolled.Reset("ICES"); 
@@ -565,7 +581,7 @@ if __name__ == "__main__":
                 stack_unrolled.Add(proc_unrolled)
                 htot_unrolled.Add(proc_unrolled)
                 #print ">>>  htot_unrolled.Integral() " + str(htot_unrolled.Integral())
-                leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor if "outliers" not in keycolor else "W{chfl}_outliers_W{chfl}".format(chfl=chfl)],'F')
+                leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor if "outliers" not in keycolor else "W{chfl}_outliers".format(chfl=chfl)],'F')
             print "Integral data  = " + str(hdata_unrolled.Integral())
             print "Integral stack = " + str(stack_unrolled.GetStack().Last().Integral())
             print "Integral htot  = " + str(htot_unrolled.Integral())
@@ -575,7 +591,7 @@ if __name__ == "__main__":
             #htot_unrolled.GetYaxis().SetTitle(verticalAxisName)
             #htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
 
-            cnameUnroll = "unrolled_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl, sfx=suffix)
+            cnameUnroll = "unrolled_{chfl}_diffXsec_{sfx}".format(pj=projection, chfl=chfl.replace("_lep","_"+channel), sfx=suffix)
             XlabelUnroll = "unrolled template along #eta in %s channel:  #eta #in [%.1f, %.1f]" % (lep, recoBins.etaBins[0], recoBins.etaBins[-1])
             YlabelUnroll = verticalAxisName + "::%.2f,%.2f" % (0, 2.*hdata_unrolled.GetBinContent(hdata_unrolled.GetMaximumBin()))
             ratioYlabel = "data/pred::" + ("0.9,1.1" if prepost == "prefit" else "0.99,1.01")
@@ -584,16 +600,19 @@ if __name__ == "__main__":
             #    ptBinRanges.append("p_{{T}} #in [{ptmin:3g},{ptmax:.3g}]".format(ptmin=recoBins.ptBins[ipt], ptmax=recoBins.ptBins[ipt+1]))
             drawTH1dataMCstack(hdata_unrolled,stack_unrolled, XlabelUnroll, YlabelUnroll, cnameUnroll, outname, leg, ratioYlabel,
                                1, passCanvas=cwide,hErrStack=h1_expfull_unrolled,lumi=35.9,wideCanvas=True, leftMargin=0.05,rightMargin=0.02, 
-                               drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
+                               drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,etaptbinning=binning)
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
         print "NOW PLOTTING THE RATIOS..."
         for key,histo in ratios_unrolled.iteritems():
-            if options.no2DplotSignalBin and "ieta_" in key: continue
-            print "Making unrolled ratio for ",key            
+            matchToRemove = charge + "_lep_"
+            newkey = key
+            if matchToRemove in key: newkey = key.replace(matchToRemove,'')
+            if options.no2DplotSignalBin and "ieta_" in newkey: continue
+            print "Making unrolled ratio for ",newkey            
             outdir = outnamesub
-            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix, passCanvas=canvasRatio, 
+            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+newkey,options.suffix, passCanvas=canvasRatio, 
                              drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
                 
     outfile.Close()
