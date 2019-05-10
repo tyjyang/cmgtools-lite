@@ -446,7 +446,7 @@ def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, s
         print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
         quit()
 
-    # this is mainly for tests, otherwise one should change the definition of weights when filling histograms
+    # this is mainly for tests, one should actually change the definition of weights when filling histograms
     # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
 
     indir = outdir if outdir != None else options.inputdir
@@ -1077,7 +1077,7 @@ if __name__ == "__main__":
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
-        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),finalsystnames))+'\n')
+        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale.*',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*TestEffSyst.*|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
