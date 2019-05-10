@@ -12,6 +12,7 @@ parser.add_option('-f', '--output-format',  dest='output_format',  default='all'
 parser.add_option('-s', '--silent'  ,       dest='silent',         default=False, action='store_true', help='Silent mode: just print summary, not all entries')
 parser.add_option('-i', '--inherith',       dest='inherit',        default='', type='string', help='Filter output based on whether the object class inheriths from this (e.g. -i TH1 will match all root histogram objects)')  
 parser.add_option('-r', '--regexp',         dest='regexp',         default='', type='string', help='Filter output passing a regular expression to be matched in the object name')
+parser.add_option(      '--print-min-negative', dest='printMinNegative', default=False, action='store_true', help='If true, print also minimum bin content when negative (only for histograms)')
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -21,6 +22,7 @@ if len(sys.argv) < 1:
 tf = ROOT.TFile.Open(args[0],"READ")
 nRead = 0
 nNullIntegral = 0
+nNegativeBin = 0
 
 if not options.silent:
     print "-"*50
@@ -40,10 +42,14 @@ for k in tf.GetListOfKeys() :
     nRead += 1
     integral = obj.Integral() if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")) else -1
     if integral == 0.0: nNullIntegral += 1
+    minBinContent = obj.GetBinContent(obj.GetMinimumBin()) if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")) else 1
+    if minBinContent < 0: nNegativeBin += 1
     if not options.silent:
         if options.output_format == "all":
             #print "%s   %s   %s" % (obj.ClassName(), name, str(integral) if integral >= 0 else "")
-            print "{: <10} {: <20}    {y} ".format(obj.ClassName(), name, y=str(integral) if integral >= 0 else "")
+            print "{: <10} {: <20}    {y}    {m} ".format(obj.ClassName(), name, 
+                                                          y=str(integral) if integral >= 0 else "",
+                                                          m=str(minBinContent) if (options.printMinNegative and minBinContent < 0) else "")
         elif options.output_format == "name":
             print "%s" % name
 
@@ -54,6 +60,8 @@ print "----------------------------------------"
 print "There were %d keys in the file" % tf.GetNkeys()
 print "There were %d keys passing filters" % nRead
 print "There were %d histograms with integral = 0" % nNullIntegral
+print "There were %d histograms with one or more negative bins" % nNegativeBin
+
     
 
 

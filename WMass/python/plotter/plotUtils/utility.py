@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 from shutil import copyfile
-import re, sys, os, os.path, subprocess, json, ROOT, copy
+import re, sys, os, os.path, subprocess, json, ROOT, copy, math
 import numpy as np
 from array import array
 
 from CMS_lumi import *
+
+_canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
+    
 
 #########################################################################
 
@@ -736,7 +739,18 @@ def drawSingleTH1(h1,
         ratio.SetMarkerSize(0)
         ratio.SetMarkerStyle(0) # important to remove dots at y = 1
         ratio.Draw("E2same")
-    
+
+        # print values
+        # if "unrolledXsec_eta_abs_" in canvasName or "xsec_eta_abs_" in canvasName:
+        #     print "eta-bin   Rel.Unc (%)"
+        #     for i in range (1,ratio.GetNbinsX()+1):
+        #         if "unrolledXsec_eta_abs_" in canvasName:
+        #             if i%etarange == 1:
+        #                 print textForLines[int((i-1)/etarange)]
+        #             print "%s  %s" % (str(int(i%etarange)),str(100*ratio.GetBinError(i)))
+        #         else:
+        #             print "%s  %s" % (str(i),str(100*ratio.GetBinError(i)))
+   
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kRed)
         line.SetLineWidth(1)
@@ -924,8 +938,8 @@ def drawDataAndMC(h1, h2,
     #leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
-    leg.AddEntry(h1,"observed","LPE")
-    leg.AddEntry(h2,"expected","LF")
+    leg.AddEntry(h1,"data","LPE")
+    leg.AddEntry(h2,"aMC@NLO","LF")
     if histMCpartialUnc != None:
         leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
@@ -1168,7 +1182,8 @@ def drawTH1dataMCstack(h1, thestack,
                        yRangeScaleFactor=1.5, # if range of y axis is not explicitely passed, use (max-min) times this value
                        wideCanvas=False,
                        drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
-                       textForLines=[],                       
+                       textForLines=[], 
+                       etaptbinning=[]
                        ):
 
     # if normalizing stack to same area as data, we need to modify the stack
@@ -1383,3 +1398,55 @@ def drawTH1dataMCstack(h1, thestack,
 
     h1.SetTitle(titleBackup)
   
+    if "unrolled" in canvasName:
+
+        _canvas_pull.SetTickx(1)
+        _canvas_pull.SetTicky(1)
+        _canvas_pull.SetGridx(1)
+        _canvas_pull.SetGridy(1)
+        _canvas_pull.SetTopMargin(0.1)
+        _canvas_pull.SetBottomMargin(0.12)
+        _canvas_pull.SetLeftMargin(0.12)
+        _canvas_pull.SetRightMargin(0.04)
+        # make pulls
+        pulltitle = "unrolled W^{{{ch}}} {pf}".format(ch="+" if "plus" in canvasName else "-", pf="postfit" if "postfit" in canvasName else "prefit")
+        hpull = ROOT.TH1D("hpull_"+canvasName,pulltitle,51,-5,5)    
+        hpull.SetStats(1)
+        _canvas_pull.cd()
+        for i in range (1,ratio.GetNbinsX()+1):
+            errTotDen = ratio.GetBinError(i)*ratio.GetBinError(i) + den.GetBinError(i)*den.GetBinError(i)            
+            if errTotDen > 0.0:
+                hpull.Fill((ratio.GetBinContent(i)-1)/math.sqrt(errTotDen))
+        hpull.Draw("HIST")
+        hpull.GetXaxis().SetTitle("pull")
+        hpull.GetYaxis().SetTitle("Events")
+        hpull.SetLineColor(ROOT.kBlack)
+        hpull.SetLineWidth(2)
+        ROOT.gStyle.SetOptTitle(1)                
+        ROOT.gStyle.SetOptStat(111110)
+        ROOT.gStyle.SetOptFit(1102)
+        _canvas_pull.RedrawAxis("sameaxis")
+        _canvas_pull.SaveAs(outdir + "pull_" + canvasName + ".png")    
+        _canvas_pull.SaveAs(outdir + "pull_" + canvasName + ".pdf")
+
+        if len(etaptbinning):
+            _canvas_pull.SetGridx(0)
+            _canvas_pull.SetGridy(0)            
+            _canvas_pull.SetRightMargin(0.16)            
+            h2pull = ROOT.TH2D("h2pull_"+canvasName, pulltitle.replace("unrolled","rolled") ,
+                               etaptbinning[0], array('d', etaptbinning[1]), etaptbinning[2], array('d', etaptbinning[3]))
+            for i in range (1,ratio.GetNbinsX()+1):
+                etabin = (i-1)%etaptbinning[0] + 1
+                ptbin = (i-1)/etaptbinning[0] + 1
+                errTotDen = ratio.GetBinError(i)*ratio.GetBinError(i) + den.GetBinError(i)*den.GetBinError(i)            
+                if errTotDen > 0.0:
+                    h2pull.SetBinContent(etabin,ptbin, (ratio.GetBinContent(i)-1)/math.sqrt(errTotDen))
+            h2pull.GetXaxis().SetTitle("%s #eta" % "muon" if "muon" in labelX else "electron")
+            h2pull.GetYaxis().SetTitle("%s p_{T}" % "muon" if "muon" in labelX else "electron")
+            h2pull.GetZaxis().SetTitle("pull")
+            h2pull.SetStats(0)
+            h2pull.GetZaxis().SetRangeUser(-3,3)
+            h2pull.Draw("COLZ")
+            _canvas_pull.RedrawAxis("sameaxis")
+            _canvas_pull.SaveAs(outdir + "pull2D_" + canvasName + ".png")
+            _canvas_pull.SaveAs(outdir + "pull2D_" + canvasName + ".pdf")

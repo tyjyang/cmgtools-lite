@@ -7,29 +7,32 @@ import ROOT, os, sys, re, array
 doMuElComb = 0
 dryrun = 0
 skipData = 0
-onlyData = 0
+onlyData = 1
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
 
-allPtBinsSignalElectron = 1
+allPtBinsSignalElectron = 0
 
 seed = 123456789
 
-#folder = "diffXsec_el_2019_03_14_ptMax56_dressed_FRpol2Above48GeV/"
-folder = "diffXsec_mu_2019_03_12_ptMax56_dressed/"
+#folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
+#folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
+folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
+#folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
 if doMuElComb:
     folder = "muElCombination"
 
-#postfix = "corrNuisFakes_addEtaChargeUncorr0p02"
-postfix = "combinedLep"
+postfix = "testEffSyst_uncorrEta_fixLepScale_uncorrPtScale"
+#postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep"
 postfix += "_bbb1_cxs1"
+#postfix += "_bbb0"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -41,7 +44,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (flavour == "el" and not allPtBinsSignalElectron) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (flavour == "el" and not allPtBinsSignalElectron) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 0.55,39.5 --syst-ratio-range 'template' --palette 57 "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.25,39.5 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*scale1.*|.*lepeff.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if flavour == "el" else "26"
 
@@ -55,7 +58,7 @@ diffNuisances_pois = [#"pdf.*|alphaS|mW",
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      "CMS_.*", 
+                      "CMS_.*|.*TestEffSyst.*|mW", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]
@@ -97,11 +100,11 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 # for impacts
 targets = [#"mu", 
            #"xsec", 
-           #"xsecnorm",
+           "xsecnorm",
            #"etaptasym",
-           "etaxsec",
-           "etaxsecnorm",
-           "etaasym"
+           #"etaxsec",
+           #"etaxsecnorm",
+           #"etaasym"
            ]
 
 # impacts_nuis = [".*pdf.*", 
@@ -136,7 +139,7 @@ for charge in ["plus","minus"]:
     print ""
 
     command = "python w-helicity-13TeV/templateRolling.py"
-    command += " cards/{fd} -o plots/diffXsecAnalysis/{lep}/{fd}/templateRolling/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour)
+    command += " cards/{fd} -o plots/diffXsecAnalysis/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
     command += " --plot-binned-signal -a diffXsec -C {ch} --pt-range '{ptmin},{ptmax}' ".format(ch=charge, ptmin=ptMinTemplate, ptmax=ptMaxTemplate)
     command += " {opt} ".format(opt=optTemplate)
     if not skipTemplate:
@@ -206,7 +209,7 @@ for fit in fits:
     command = "python w-helicity-13TeV/postFitPlots_xsec.py"
     command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root cards/{fd}/ ".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
-    command += " --no2Dplot-signal-bin -n  ".format(fit=fit)
+    command += " --no2Dplot-signal-bin -n  ".format(fit=fit)  # -n
     if fit == "Data":
         if not skipPostfit:
             print ""    

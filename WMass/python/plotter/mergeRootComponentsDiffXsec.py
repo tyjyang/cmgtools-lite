@@ -9,6 +9,8 @@ from w_helicity_13TeV.make_diff_xsec_cards import getXYBinsFromGlobalBin
 from w_helicity_13TeV.make_diff_xsec_cards import getArrayParsingString
 from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
+from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_from_process_name
 
 from w_helicity_13TeV.rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 
@@ -16,20 +18,16 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import mirrorShape
 from w_helicity_13TeV.mergeCardComponentsAbsY import putUncorrelatedFakes
 #from w_helicity_13TeV.mergeCardComponentsAbsY import putEffStatHistos   # use function below that can manage case with wider template bins along eta
 
-def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
+def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
 
-    # for differential cross section I don't use the same option for inputs, so I pass it from outside
+    if not isMu:
+        print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
+        quit()
+
+    # this is mainly for tests, otherwise one should change the definition of weights when filling histograms
+    # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
+
     indir = outdir if outdir != None else options.inputdir
-
-    # this doesn't work for differential cross section because I have line 2 with the comment for gen binning
-    # in all my scripts I developed some specific functions to read the binning, either reco or gen: here we only need reco
-    # binninPtEtaFile = open(indir+'/binningPtEta.txt','r')
-    # bins = binninPtEtaFile.readlines()[1].split()[1]
-    # etabins = list( float(i) for i in bins.replace(' ','').split('*')[0].replace('[','').replace(']','').split(',') )
-    # ptbins  = list( float(i) for i in bins.replace(' ','').split('*')[1].replace('[','').replace(']','').split(',') )
-    # nbinseta = len(etabins)-1
-    # nbinspt  = len( ptbins)-1
-    # binning = [nbinseta, etabins, nbinspt, ptbins]
 
     # get eta-pt binning for reco 
     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
@@ -37,10 +35,95 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etabins = recoBins.etaBins
 
-    # not needed
-    #gen_etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
-    #genBins = templateBinning(gen_etaPtBinningVec[0],gen_etaPtBinningVec[1])        # this create a class to manage the binnings
+    etaPtBinningVecGen = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
+    genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])        # this create a class to manage the binnings
 
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    flavour = "mu" if isMu else "el"
+    outfile = ROOT.TFile(indir+'/TestEffSyst_{fl}_{ch}{sfx}.root'.format(fl=flavour, ch=charge, sfx=suffix), 'recreate')
+
+    ndone = 0
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting testeffsyst nuisances for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        effsystvals = {}
+        if isMu:
+            effsystvals[0.0] = 0.002
+            effsystvals[1.0] = math.sqrt( math.pow(0.004,2) - math.pow(0.002,2))
+            effsystvals[1.5] = math.sqrt( math.pow(0.014,2) - math.pow(0.004,2) - math.pow(0.002,2))
+        else:
+            pass
+            # # FIX ME: here the prefiring syst is not added!
+            effsystvals[1.0] = 0.006
+            effsystvals[1.479] = 0.008
+            effsystvals[2.0] = 0.013
+            effsystvals[2.5] = 0.016
+
+            
+        for ik,key in enumerate(effsystvals):
+
+            # for 2D xsec we assume that eta bins outside the corresponding gen bins are almost empty, so we will skip their reweigthing based on the gen eta
+            if re.match("x_W.*_ieta_.*",tmp_name):
+                ietagen,iptgen = get_ieta_ipt_from_process_name(tmp_name)
+                #print "found process %s --> ietagen = %d" % (tmp_name, ietagen)
+                if ietagen >= 0:
+                    geneta = genBins.etaBins[ietagen]
+                    #print "geneta = %.3f" % geneta
+                    if geneta < key:   
+                        #print "skip reweighting of %s for TestEffSyst%d" % (tmp_name,ik) 
+                        continue                
+
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{fl}TestEffSyst{ik}2DROLLED'.format(fl=flavour,ik=ik)
+
+            tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+            tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+
+            for ieta in range(1,tmp_scaledHisto_up.GetNbinsX()+1):
+                for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                    etaval = tmp_scaledHisto_up.GetXaxis().GetBinCenter(ieta)
+                    scaling = 0.0
+                    if abs(etaval) >= key: scaling += effsystvals[key]
+                
+                    tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                    tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                    tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                    tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                    tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+
+            ## re-roll the 2D to a 1D histo
+            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''),cropNegativeBins=False)
+            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''),cropNegativeBins=False)
+
+            outfile.cd()
+            tmp_scaledHisto_up_1d.Write()
+            tmp_scaledHisto_dn_1d.Write()
+
+    outfile.Close()
+    print 'done with the many reweightings for the testeffsyst'
+
+
+def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
+
+    # for differential cross section I don't use the same option for inputs, so I pass it from outside
+    indir = outdir if outdir != None else options.inputdir
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
 
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'    
     if isMu:
@@ -54,7 +137,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
     tmp_infile = ROOT.TFile(infile, 'read')
 
     flavour = "mu" if isMu else "el"
-    outfile = ROOT.TFile(indir+'/ErfParEffStat_{fl}_{ch}.root'.format(fl=flavour, ch=charge), 'recreate')
+    outfile = ROOT.TFile(indir+'/ErfParEffStat_{fl}_{ch}{sfx}.root'.format(fl=flavour, ch=charge, sfx=suffix), 'recreate')
 
     ndone = 0
     for k in tmp_infile.GetListOfKeys():
@@ -150,8 +233,8 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True):
                     tmp_scaledHisto_dn.SetBinContent(ietaTemplate, ipt, tmp_bincontent_dn)
 
                 ## re-roll the 2D to a 1D histo
-                tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
-                tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+                tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''),cropNegativeBins=False)
+                tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''),cropNegativeBins=False)
 
                 outfile.cd()
                 tmp_scaledHisto_up_1d.Write()
@@ -188,6 +271,7 @@ parser.add_option(      "--etaBordersForFakesUncorr",    dest="etaBordersForFake
 parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_false", default=True, help="If False, do not store the muR,muF,muRmuF variations for Z (if they were present)");
 #parser.add_option(      "--no-effstatsyst-Z", dest="useEffstatsystForZ", action="store_false", default=True, help="If False, do not create the Effstat variations for Z");
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
+parser.add_option(       "--test-eff-syst", dest="testEffSyst",   action="store_true", default=False, help="Add some more nuisances to test efficiency systematics on signal and Z (possily other components as well)");
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -307,6 +391,91 @@ print "Will create file --> {of}".format(of=fileZeffStat)
 if not options.dryrun: putEffStatHistosDiffXsec(Zfile, 'x_Z', charge, outdir, isMu=True if flavour=="mu" else False)
 print ""
 
+print ""
+print "-"*20
+print ""
+
+## prepare the relevant files. First merge Tau with correct charge
+tauMatch = "^TauDecaysW_{fl}_{ch}.*".format(fl=flavour,ch=charge)
+taufiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.indirBkg) for f in fn if (f.endswith('.input.root') and re.match(tauMatch,f))]
+
+#for f in zfiles:
+#    print f
+
+# merge Z files (will have to remove x_data_obs later)
+tmpTaufile="{od}TauDecaysW_{fl}_{ch}_mergeTMP.root".format(od=outdir, fl=flavour, ch=charge)
+cmdMerge = "hadd -f -k -O {tmp} {zfs}".format(tmp=tmpTaufile, zfs=" ".join([f for f in taufiles]))
+#print cmdMerge
+Taufile="{od}TauDecaysW_{fl}_{ch}_merge.root".format(od=outdir, fl=flavour, ch=charge)
+
+print "Merging Tau"
+if not options.dryrun: os.system(cmdMerge)
+
+print "Remove x_data_obs from Tau, and replace 'x_TauDecaysW_wtau_' with 'x_TauDecaysW_'"
+print "Also changing Dn to Down"
+#if not options.useQCDsystForZ:
+#    print "Will reject the QCD scales variations on Z (muR, muF, muRmuF)"
+nTaucopied = 0
+# open new TAU file to remove data from input file
+#----------------------------------
+newname = ""
+taupdf = []
+taunominal = None
+nMirroredPDF = 0
+if not options.dryrun:
+    tf = ROOT.TFile.Open(tmpTaufile,"READ")
+    if not tf or not tf.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=tmpTaufile))
+
+    # open output file
+    of = ROOT.TFile(Taufile,'recreate')
+    if not of or not of.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=Taufile))
+
+    for ikey,e in enumerate(tf.GetListOfKeys()):
+        name = e.GetName()
+        obj  = e.ReadObj()
+        if not obj:
+            raise RuntimeError('Unable to read object {n}'.format(n=name))
+        if "data_obs" in name: continue
+        #if not options.useQCDsystForZ:
+        #    if any(x in name for x in ["muR", "muF", "muRmuF"]): continue
+        if "x_TauDecaysW_wtau_" in name: newname = name.replace("x_TauDecaysW_wtau_","x_TauDecaysW_")
+        else: newname = name
+        if name == "x_TauDecaysW": taunominal = obj.Clone(name)
+        if "_pdf" in name:
+            taupdf.append(obj.Clone(newname))
+            continue
+        if newname.endswith("Dn"): newname = newname.replace("Dn","Down")
+        newobj = obj.Clone(newname)
+        newobj.Write(newname)
+        nTaucopied += 1
+
+    for h in taupdf:
+        nMirroredPDF += 1
+        (alternate,mirror) = mirrorShape(taunominal,h,h.GetName(),use2xNomiIfAltIsZero=True)
+        for alt in [alternate,mirror]:
+            alt.Write()
+
+    of.Close()
+    tf.Close()
+#----------------------------------
+
+print "Copied {n} histograms in {zf} (x_data_obs removed)".format(n=str(nTaucopied),zf=Taufile)
+print "Created {n} mirrored histograms for PDFs in {zf} ".format(n=str(nMirroredPDF),zf=Taufile)
+print "Removing temporary file {tmp}".format(tmp=tmpTaufile)
+if not options.dryrun: os.system("rm {tmp}".format(tmp=tmpTaufile))    
+print "-"*20
+print ""
+
+fileTaueffStat = "{od}ErfParEffStat_{fl}_{ch}_Tau.root".format(od=outdir, fl=flavour, ch=options.charge)  
+# this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
+print "Now adding ErfParXEffStatYY systematics to x_TauDecaysW process"
+print "Will create file --> {of}".format(of=fileTaueffStat)
+if not options.dryrun: putEffStatHistosDiffXsec(Taufile, 'x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False, suffix="_Tau")
+print ""
+
+
 dataAndBkgFile = "{obkg}bkg_and_data_{fl}_{ch}.input.root".format(obkg=options.indirBkg, fl=flavour, ch=charge)
 dataAndBkgFileTmp = dataAndBkgFile.replace(".input.root","TMP.input.root")
 print "Creating temporary file {bkg} to remove 'x_data' histogram".format(bkg=dataAndBkgFileTmp)
@@ -373,15 +542,20 @@ if not options.dryrun:
 print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
 
-cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {bkg} {fakesEta} {fakesEtaCharge} {fakesPtSlope} {fakesPtNorm} {zEffStat}".format(of=shapename, 
-                                                                                                                               sig=sigfile, 
-                                                                                                                               zf=Zfile, 
-                                                                                                                               bkg=dataAndBkgFileTmp, 
-                                                                                                                               fakesEta=fileFakesEtaUncorr,
-                                                                                                                               fakesEtaCharge=fileFakesEtaChargeUncorr,
-                                                                                                                               fakesPtSlope=fileFakesPtSlopeUncorr,
-                                                                                                                               fakesPtNorm=fileFakesPtNormUncorr,
-                                                                                                                               zEffStat=fileZeffStat)
+cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {tauf} {bkg} ".format(of=shapename,  
+                                                                   sig=sigfile, 
+                                                                   zf=Zfile, 
+                                                                   tauf=Taufile, 
+                                                                   bkg=dataAndBkgFileTmp)
+
+cmdFinalMerge += " {fakesEta} {fakesEtaCharge} {fakesPtSlope} {fakesPtNorm} {zEffStat} {tauEffStat} ".format(fakesEta=fileFakesEtaUncorr,
+                                                                                                             fakesEtaCharge=fileFakesEtaChargeUncorr,
+                                                                                                             fakesPtSlope=fileFakesPtSlopeUncorr,
+                                                                                                             fakesPtNorm=fileFakesPtNormUncorr,
+                                                                                                             zEffStat=fileZeffStat,
+                                                                                                             tauEffStat=fileTaueffStat)
+
+
 print "Final merging ..."
 print cmdFinalMerge
 if not options.dryrun: os.system(cmdFinalMerge)
@@ -395,4 +569,29 @@ print "-"*20
 print ""
 print ""
 print "Wrote root file in %s" % shapename
+print ""
+
+if options.testEffSyst:
+    # test
+    fileTestEffSyst = "{od}TestEffSyst_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putTestEffSystHistosDiffXsec (do not change it outside here)
+    print "Now adding TestEffSystYY systematics to x_Z and x_W.* process"
+    print "Will create file --> {of}".format(of=fileTestEffSyst)
+    shapenameNoTestEffSyst = shapename.replace("_shapes","_shapes_noTestEffSyst")
+    print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoTestEffSyst)
+    if not options.dryrun: 
+        os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoTestEffSyst))
+        putTestEffSystHistosDiffXsec(shapename, 'x_Z|x_W.*', charge, outdir, isMu=True if flavour=="mu" else False)
+    cmdMergeWithTestEffSyst = "hadd -f -k -O {of} {shapeNoTestEffSyst} {onlyTestEffSyst}".format(of=shapename,
+                                                                                                 shapeNoTestEffSyst=shapenameNoTestEffSyst,
+                                                                                                 onlyTestEffSyst=fileTestEffSyst)
+    print "Now finally merging TestEffSystYY systematics into {of} ...".format(of=shapename)
+    print cmdMergeWithTestEffSyst
+    if not options.dryrun: os.system(cmdMergeWithTestEffSyst)
+    print ""
+    print "Wrote again root file in %s" % shapename
+    print ""
+
+print ""
+print "-"*20
 print ""

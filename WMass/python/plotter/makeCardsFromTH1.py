@@ -83,12 +83,14 @@ def combFlavours(options):
         if len(options.postfix):
             metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
 
-        bbboptions = " --binByBinStat --correlateXsecStat "
+        bbboptions = " --binByBinStat  "
+        if not options.noCorrelateXsecStat: bbboptions += "--correlateXsecStat "
         combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
         else:
-            combineCmd += " --doImpacts  "
+            if options.doSystematics:
+                combineCmd += " --doImpacts  "
         if options.useSciPyMinimizer:
             combineCmd += " --useSciPyMinimizer "
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
@@ -103,8 +105,8 @@ def combFlavours(options):
         # add --saveHists --computeHistErrors 
         print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
-        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
+        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
         if not options.skip_combinetf:
             os.system(combineCmd_data)
@@ -167,12 +169,14 @@ def combCharges(options):
         if len(options.postfix):
             metafilename = metafilename.replace('_sparse.hdf5','_sparse_%s.hdf5' % options.postfix)
 
-        bbboptions = " --binByBinStat --correlateXsecStat "
+        bbboptions = " --binByBinStat "
+        if not options.noCorrelateXsecStat: bbboptions += "--correlateXsecStat "
         combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
         else:
-            combineCmd += " --doImpacts  "
+            if options.doSystematics:
+                combineCmd += " --doImpacts  "
         if options.useSciPyMinimizer:
             combineCmd += " --useSciPyMinimizer "
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
@@ -187,8 +191,8 @@ def combCharges(options):
         # add --saveHists --computeHistErrors 
         print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs1")
-        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs1")
+        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
         if not options.skip_combinetf:
             os.system(combineCmd_data)
@@ -231,6 +235,7 @@ parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, 
 parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
 parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges, skip running combinetf.py at the end')
 parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
+parser.add_option(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
@@ -241,6 +246,9 @@ parser.add_option(       '--useSciPyMinimizer', dest='useSciPyMinimizer' , defau
 parser.add_option(       '--comb-flavour'          , dest='combineFlavours' , default=False, action='store_true', help='Combine Wmu and Wel, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards. It requires cards for both W+ and W-')
 parser.add_option(       "--indir-el",     dest="indirEl", type="string", default="", help="Input folder with shape file for electrons (only with --comb-flavour)");
 parser.add_option(       "--indir-mu",     dest="indirMu", type="string", default="", help="Input folder with shape file for muons (only with --comb-flavour)");
+parser.add_option(       '--WZ-testEffSyst-LnN'   , dest='wzTestEffSystLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all W and Z processes, to test efficiency systematics (should also remove sig_lepeff nuisance)')
+parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where eff.syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,1.0,1.5')
+
 (options, args) = parser.parse_args()
 
 print ""
@@ -654,6 +662,8 @@ if len(procQCDunbin):
 
 # W and Z common systematics
 WandZ = [signalMatch, "Z"]
+WandZandTau = [signalMatch, "Z", "TauDecaysW"]
+WandTau = [signalMatch, "TauDecaysW"]
 qcdAndPDF = ["pdf%d" % i for i in range(1,61)]
 qcdAndPDF.append("alphaS")
 for syst in qcdAndPDF:
@@ -663,13 +673,13 @@ for syst in qcdAndPDF:
         # the alphaS variations should be scaled so that one sigma corresponds to +-0.0015 (weights correspond to +-0.001)
         nSigma = "0.67"
     allSystForGroups.append(syst)
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
+    card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZandTau) else "-") for p in allprocesses]) +"\n")
     sortedTheoSystkeys.append(syst)
 
 # W only
 if not isExcludedNuisance(excludeNuisances, "mW"): 
     allSystForGroups.append("mW")
-    card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
+    card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
     sortedTheoSystkeys.append("mW")
 
 qcdScale_wptBins = [] 
@@ -680,15 +690,45 @@ for i in range(1,11):
 for syst in qcdScale_wptBins:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
-    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if signalMatch in p else "-") for p in allprocesses]) +"\n")
+    card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
     sortedTheoSystkeys.append(syst)
     
-
-wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
+#wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
+wExpSysts = ["CMS_We_sig_lepeff"] if flavour == "el" else ["CMS_Wmu_sig_lepeff"]
+nLepScaleuncorr = 4 if flavour == "el" else 2
+for nl in range(nLepScaleuncorr):
+    wExpSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
 for syst in wExpSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
+
+if options.wzTestEffSystLnN:
+    syst = "CMS_W%s_sig_testEffSyst" % ("e" if flavour == "el" else "mu")
+    WZtesteffsyst = "{0:.3f}".format(1.0 + options.wzTestEffSystLnN)
+    if not isExcludedNuisance(excludeNuisances, syst): 
+        allSystForGroups.append(syst)
+        card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (WZtesteffsyst if any(x in p for x in WandZ) else "-") for p in allprocesses]) + "\n")
+
+if options.wzTestEffSystShape:
+    edges = [float(x) for x in options.wzTestEffSystShape.split(",")]
+    for isyst in range(len(edges)):
+        syst = "%sTestEffSyst%d" % ("el" if flavour == "el" else "mu", isyst)
+        # for signal, need to filter out processes which do not have this nuisance, based on ieta
+        procsForTestEffSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
+        tmp_procsForTestEffSystShape = []
+        for proc in procsForTestEffSystShape:
+            if re.match(".*W.*_ieta_.*", proc):
+                igeneta,igenpt = get_ieta_ipt_from_process_name(proc)
+                geneta = genBins.etaBins[igeneta]
+                if geneta >= edges[isyst]: tmp_procsForTestEffSystShape.append(proc)
+            else:
+                tmp_procsForTestEffSystShape.append(proc)
+        procsForTestEffSystShape = tmp_procsForTestEffSystShape
+        if not isExcludedNuisance(excludeNuisances, syst): 
+            allSystForGroups.append(syst)
+            card.write(('%-16s shape' % syst) + ' '.join([kpatt % ("1.0" if (p in procsForTestEffSystShape) else "-") for p in allprocesses]) + "\n")
+
 
 #effstatOffset = 25 if genBins.Neta == 24 else 26  ## FIXME: doesn't work if the binning is not 0.1 wide in eta
 #effstatOffset = 25 if genBins.etaBins[-1] < 2.45 else 26  ## FIXME: it assumes the range extends up to 2.4 or 2.5
@@ -720,24 +760,25 @@ for ipar in range(3):
 
         EffStat_systs.append(syst)
         allSystForGroups.append(syst)
-        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
+        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate, "TauDecaysW"]
         if not options.noEffStatZ: matchesForEffStat.append("Z")
         #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
 card.write("\n")
-if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV"): card.write("luminosity group = CMS_lumi_13TeV\n\n")
-#if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
-card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
-card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
-card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
-card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
-card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
-                                            filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
-card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
-card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
-card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff',x),allSystForGroups)) + " \n\n")
-card.write("\n")
+if options.doSystematics:
+    if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV"): card.write("luminosity group = CMS_lumi_13TeV\n\n")
+    #if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
+    card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
+    card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
+    card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
+    card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
+    card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
+                                                filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
+    card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
+    card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
+    card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*',x),allSystForGroups)) + " \n\n")
+    card.write("\n")
 card.write("\n")
 
 ## before closing the card, we will add other stuff

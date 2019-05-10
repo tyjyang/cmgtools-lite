@@ -67,23 +67,35 @@ void fillHistograms(const string& treedir = "./",
   // BINNING: will have to implement parsing from file
 
   // muon
-  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.1,-1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+  // 					    1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
+  vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
   // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0, 2.2, 2.4};
-  vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.1,-1.0,-0.9,
-  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
-  //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9, 2.0, 2.2, 2.4};
+  //vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.1,-1.0,-0.9,
+  //					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  //					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.1, -1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.0,
+  // 					    -0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1.0,
+  // 					    1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
-  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
+  //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
+  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4}; // ,2.1,2.2,2.3,2.4};
+  //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
-
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
+  
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,
@@ -99,10 +111,17 @@ void fillHistograms(const string& treedir = "./",
   // vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
   // vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
-					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
-					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
+  					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
+  // vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.4,1.4442,1.5,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+  // vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
+  // 					    1.4442,1.5,1.566,1.7,1.9,2.1,2.4};
   vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
   vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
   vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   
@@ -136,6 +155,7 @@ void fillHistograms(const string& treedir = "./",
 
   Double_t etaCutReco = etaBinEdgesTemplate.back(); 
   Double_t ptCutReco = ptBinEdgesTemplate.back(); 
+  Double_t ptMinReco = ptBinEdgesTemplate[0];
 
   //=============================
 
@@ -275,16 +295,25 @@ void fillHistograms(const string& treedir = "./",
   vector<string> charges = {"plus","minus"}; // 0 for positive, 1 for negative
   vector<string> chargeSigns = {"+","-"}; // 0 for positive, 1 for negative
 
+  vector<TH2F*> h2_charge_eta_pt_SF1;
+  vector<TH2F*> h2_charge_eta_pt_SF2;
+  vector<TH2F*> h2_charge_eta_pt_SF3;
+
   vector<TH1F*> h1_charge_eta;
   vector<TH1F*> h1_charge_pt;
   vector<TH2F*> h2_charge_eta_pt_inclusive;
 
   vector<TH3F*> h3_charge_eta_pt_globalBin;
 
-  vector<TH3F*> h3_charge_eta_pt_globalBin_lepScaleUp;
-  vector<TH3F*> h3_charge_eta_pt_globalBin_lepScaleDn;
+  // vector<TH3F*> h3_charge_eta_pt_globalBin_lepScaleUp;
+  // vector<TH3F*> h3_charge_eta_pt_globalBin_lepScaleDn;
   vector<TH3F*> h3_charge_eta_pt_globalBin_lepEffUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_lepEffDn;
+
+  Int_t nPtScaleRegions = isMuon ? 2 : 4; 
+  // muons or electrons
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_lepUncorrScaleUp(charges.size());  // N objects, 1 for each scale uncorrelated part (2 for muons, 4 for electrons)
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_lepUncorrScaleDn(charges.size());
 
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_pdf(charges.size());  // will have 60 replicas of pairs of TH3 (the pair is for charge + and -)
   vector<TH3F*> h3_charge_eta_pt_globalBin_alphaSUp;
@@ -327,7 +356,7 @@ void fillHistograms(const string& treedir = "./",
   Int_t maxEffStat = isMuon ? 48 : 50;
   Double_t  etaminForEffStat = isMuon ? -2.4 : -2.5;
   cout << "maxEffStat | etaminForEffStat = " << maxEffStat << " | " << etaminForEffStat << endl;
-
+  
   for (UInt_t ch = 0; ch < charges.size(); ++ch) {  
     // for (Int_t bin = 0; bin  < nBinsTemplate; ++bin) {
     //   Int_t ieta = 0;
@@ -345,21 +374,35 @@ void fillHistograms(const string& treedir = "./",
 						  40,25,65)	  
 					 );
 
+    h2_charge_eta_pt_SF1.push_back(new TH2F(Form("h2_%s_eta_pt_SF1",charges[ch].c_str()),"",
+					    50,-2.5,2.5,
+					    150,25,55)	  
+				   );
+    h2_charge_eta_pt_SF2.push_back(new TH2F(Form("h2_%s_eta_pt_SF2",charges[ch].c_str()),"",
+					    50,-2.5,2.5,
+					    150,25,55)	  
+				   );
+    h2_charge_eta_pt_SF3.push_back(new TH2F(Form("h2_%s_eta_pt_SF3",charges[ch].c_str()),"",
+					    50,-2.5,2.5,
+					    150,25,55)	  
+				   );
+    
+
     h3_charge_eta_pt_globalBin.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin",charges[ch].c_str()),"",
 						  netaBins,etaBinEdgesTemplate.data(),
 						  nptBins,ptBinEdgesTemplate.data(),
 						  nGenBinsTemplate,globalBin_binning.data())
 					 );
-    h3_charge_eta_pt_globalBin_lepScaleUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepScaleUp",charges[ch].c_str()),"",
-							     netaBins,etaBinEdgesTemplate.data(),
-							     nptBins,ptBinEdgesTemplate.data(),
-							     nGenBinsTemplate,globalBin_binning.data())
-					 );
-    h3_charge_eta_pt_globalBin_lepScaleDn.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepScaleDn",charges[ch].c_str()),"",
-							     netaBins,etaBinEdgesTemplate.data(),
-							     nptBins,ptBinEdgesTemplate.data(),
-							     nGenBinsTemplate,globalBin_binning.data())
-					 );
+    // h3_charge_eta_pt_globalBin_lepScaleUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepScaleUp",charges[ch].c_str()),"",
+    // 							     netaBins,etaBinEdgesTemplate.data(),
+    // 							     nptBins,ptBinEdgesTemplate.data(),
+    // 							     nGenBinsTemplate,globalBin_binning.data())
+    // 					 );
+    // h3_charge_eta_pt_globalBin_lepScaleDn.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepScaleDn",charges[ch].c_str()),"",
+    // 							     netaBins,etaBinEdgesTemplate.data(),
+    // 							     nptBins,ptBinEdgesTemplate.data(),
+    // 							     nGenBinsTemplate,globalBin_binning.data())
+    // 					 );
     h3_charge_eta_pt_globalBin_lepEffUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepEffUp",charges[ch].c_str()),"",
 							   netaBins,etaBinEdgesTemplate.data(),
 							   nptBins,ptBinEdgesTemplate.data(),
@@ -370,6 +413,20 @@ void fillHistograms(const string& treedir = "./",
 							   nptBins,ptBinEdgesTemplate.data(),
 							   nGenBinsTemplate,globalBin_binning.data())
 					 );
+    for (Int_t iptscale = 0; iptscale < nPtScaleRegions; iptscale++) {
+      h3_charge_eta_pt_globalBin_lepUncorrScaleUp[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepUncorrScale%dUp",charges[ch].c_str(),iptscale),"",
+									 netaBins,etaBinEdgesTemplate.data(),
+									 nptBins,ptBinEdgesTemplate.data(),
+									 nGenBinsTemplate,globalBin_binning.data())
+								);
+      h3_charge_eta_pt_globalBin_lepUncorrScaleDn[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_lepUncorrScale%dDn",charges[ch].c_str(),iptscale),"",
+									 netaBins,etaBinEdgesTemplate.data(),
+									 nptBins,ptBinEdgesTemplate.data(),
+									 nGenBinsTemplate,globalBin_binning.data())
+								);
+
+    }
+
     h3_charge_eta_pt_globalBin_alphaSUp.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_alphaSUp",charges[ch].c_str()),"",
 							   netaBins,etaBinEdgesTemplate.data(),
 							   nptBins,ptBinEdgesTemplate.data(),
@@ -515,26 +572,44 @@ void fillHistograms(const string& treedir = "./",
   Bool_t positiveLeptonHasPassedSelection = false;
 
   Double_t wgt = 1.0;
-  Double_t wgt_ptscaleUp = 1.0;
-  Double_t wgt_ptscaleDn = 1.0;
+  Double_t wgt_noPt = 1.0; // will store wgt before applying selections dependent on pt, so to use that for the ptscale systematics
+  // Double_t wgt_ptscaleUp = 1.0;
+  // Double_t wgt_ptscaleDn = 1.0;
   Double_t lep1pt = 0.0;
   Double_t ptlow = 0.0;
   Double_t pthigh = 0.0;
   Double_t etalow = 0.0;
   Double_t lepEffWgtUp = 0.0;
   Double_t lepEffWgtDn = 0.0;
-  Double_t ptLepFullUp = 0.0;
-  Double_t ptLepFullDn = 0.0;
+  // Double_t ptLepFullUp = 0.0;
+  // Double_t ptLepFullDn = 0.0;
   Double_t lep1calPt = 0.0;
 
   Bool_t nominalPt_passSelection = false;
   Bool_t scaleUpPt_passSelection = false;
   Bool_t scaleDnPt_passSelection = false;
+
+  vector<Bool_t> scaleUncorrUpPt_passSelection;
+  vector<Bool_t> scaleUncorrDnPt_passSelection;
+  vector<Double_t> ptUncorrUp;
+  vector<Double_t> ptUncorrDn;
+
+  for (Int_t ipt = 0; ipt < nPtScaleRegions; ipt++) {
+    scaleUncorrUpPt_passSelection.push_back(false);
+    scaleUncorrDnPt_passSelection.push_back(false);
+    ptUncorrUp.push_back(0.0);
+    ptUncorrDn.push_back(0.0);
+  }
+
   ////////////////////////////////////////////
   // to get correct weight depending on sample in chain
   string currentFile = "";
   Int_t ifile = 0;
   ////////////////////
+
+  Double_t sfTriggerMu = 0.0;
+  Double_t sfRecoToSelectionMu = 0.0;
+  Double_t sfPrefireMu = 0.0;
 
   Double_t sumWgt = 9.56169443709e+13;
   // if (treedir == "/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/")
@@ -616,10 +691,10 @@ void fillHistograms(const string& treedir = "./",
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
-      Double_t sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
+      sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
       // in the ntuples the reco2Selection SF is eta-smoothed, the one from the function is not
-      Double_t sfRecoToSelectionMu = lep_SF2[0];  //_get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
-      Double_t sfPrefireMu = prefireJetsWeight(lep_eta[0]);
+      sfRecoToSelectionMu = lep_SF2[0];  // _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
+      sfPrefireMu = prefireJetsWeight(lep_eta[0]);
       wgt = sfTriggerMu * sfRecoToSelectionMu * sfPrefireMu; 
       // for muons, get fast weight for efficiency Up/Down
       Double_t syst = 0.0;
@@ -629,24 +704,19 @@ void fillHistograms(const string& treedir = "./",
       lepEffWgtUp = (wgt + syst)/wgt; // because in the following it will multiply the nominal wgt, which includes the current definition of wgt
       lepEffWgtDn = (wgt - syst)/wgt;
       
-      ptLepFullUp = ptMuFullUp(lep_calPt[0],lep_eta[0]);
-      ptLepFullDn = ptMuFullDn(lep_calPt[0],lep_eta[0]);
+      // ptLepFullUp = ptMuFullUp(lep_calPt[0],lep_eta[0]);
+      // ptLepFullDn = ptMuFullDn(lep_calPt[0],lep_eta[0]);
+      //cout << "pt, up, down: " << lep_calPt[0] << ", " << ptLepFullUp << ", " << ptLepFullDn << endl;
 
-      if (lep1calPt > 26 and lep1calPt < ptCutReco and mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) > 40)  
-	nominalPt_passSelection = true;
-      else
-	nominalPt_passSelection = false;
+      // if (ptLepFullUp > 26 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
+      // 	scaleUpPt_passSelection = true;
+      // else
+      // 	scaleUpPt_passSelection = false;
 
-      if (ptLepFullUp > 26 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
-	scaleUpPt_passSelection = true;
-      else
-	scaleUpPt_passSelection = false;
-
-      if (ptLepFullDn > 26 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
-	scaleDnPt_passSelection = true;
-      else
-	scaleDnPt_passSelection = false;
-
+      // if (ptLepFullDn > 26 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
+      // 	scaleDnPt_passSelection = true;
+      // else
+      // 	scaleDnPt_passSelection = false;
 
     } else {
 
@@ -670,33 +740,52 @@ void fillHistograms(const string& treedir = "./",
       wgt = lepSF(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]); 
       lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
       lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
-      ptLepFullUp = ptElFullUp(lep_calPt[0],lep_eta[0]);
-      ptLepFullDn = ptElFullDn(lep_calPt[0],lep_eta[0]);
+      // ptLepFullUp = ptElFullUp(lep_calPt[0],lep_eta[0]);
+      // ptLepFullDn = ptElFullDn(lep_calPt[0],lep_eta[0]);
 
-      if (lep1calPt > 30 and lep1calPt < ptCutReco and mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) > 40)  
-	nominalPt_passSelection = true;
-      else
-	nominalPt_passSelection = false;
+      // if (ptLepFullUp > 30 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
+      // 	scaleUpPt_passSelection = true;
+      // else
+      // 	scaleUpPt_passSelection = false;
 
-      if (ptLepFullUp > 30 and ptLepFullUp < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullUp,lep_phi[0]) > 40)  
-	scaleUpPt_passSelection = true;
-      else
-	scaleUpPt_passSelection = false;
-
-      if (ptLepFullDn > 30 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
-	scaleDnPt_passSelection = true;
-      else
-	scaleDnPt_passSelection = false;
+      // if (ptLepFullDn > 30 and ptLepFullDn < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptLepFullDn,lep_phi[0]) > 40)  
+      // 	scaleDnPt_passSelection = true;
+      // else
+      // 	scaleDnPt_passSelection = false;
 
 
     }
 
+    if (lep1calPt > ptMinReco and lep1calPt < ptCutReco and mt_2(*pfmet,*pfmet_phi,lep1calPt,lep_phi[0]) > 40)  
+      nominalPt_passSelection = true;
+    else
+      nominalPt_passSelection = false;
+
+    for (Int_t ipt = 0; ipt < nPtScaleRegions; ipt++) {
+
+      ptUncorrUp[ipt] = ptScaleUncorr(lep_calPt[0],lep_eta[0], lep_pdgId[0], ipt, true);
+      ptUncorrDn[ipt] = ptScaleUncorr(lep_calPt[0],lep_eta[0], lep_pdgId[0], ipt, false);
+
+      if (ptUncorrUp[ipt] > ptMinReco and ptUncorrUp[ipt] < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptUncorrUp[ipt],lep_phi[0]) > 40)
+	scaleUncorrUpPt_passSelection[ipt] = true;
+      else
+	scaleUncorrUpPt_passSelection[ipt] = false;
+
+      if (ptUncorrDn[ipt] > ptMinReco and ptUncorrDn[ipt] < ptCutReco and mt_2(*pfmet,*pfmet_phi,ptUncorrDn[ipt],lep_phi[0]) > 40)
+	scaleUncorrDnPt_passSelection[ipt] = true;
+      else
+	scaleUncorrDnPt_passSelection[ipt] = false;
+	  
+    }
+
+
     // try to put common factor together
     wgt *= (wjets_NLO_wgt_partial * *genWeight * puw2016_nTrueInt_36fb(*nTrueInt));
 
-    wgt           = wgt * nominalPt_passSelection;
-    wgt_ptscaleUp = wgt * scaleUpPt_passSelection;
-    wgt_ptscaleDn = wgt * scaleDnPt_passSelection;
+    wgt_noPt = wgt;
+    // wgt_ptscaleUp = wgt_noPt * scaleUpPt_passSelection;
+    // wgt_ptscaleDn = wgt_noPt * scaleDnPt_passSelection;
+    wgt           = wgt_noPt * nominalPt_passSelection;
 
     // Get charge index: 0 for positive, 1 for negative
     Int_t chargeIndex = 0; 
@@ -718,6 +807,14 @@ void fillHistograms(const string& treedir = "./",
     h1_charge_eta[chargeIndex]->Fill(lep_eta[0], wgt);
     h2_charge_eta_pt_inclusive[chargeIndex]->Fill(lep_eta[0],lep1calPt, wgt);
 
+    if (nominalPt_passSelection) {
+      Int_t binx = h2_charge_eta_pt_SF1[chargeIndex]->GetXaxis()->FindFixBin(lep_eta[0]);
+      Int_t biny = h2_charge_eta_pt_SF1[chargeIndex]->GetYaxis()->FindFixBin(lep1calPt);
+      h2_charge_eta_pt_SF1[chargeIndex]->SetBinContent(binx, biny, isMuon ? sfTriggerMu : lep_SF1[0]);
+      h2_charge_eta_pt_SF2[chargeIndex]->SetBinContent(binx, biny, isMuon ? sfRecoToSelectionMu : lep_SF2[0]);
+      h2_charge_eta_pt_SF3[chargeIndex]->SetBinContent(binx, biny, lep_SF3[0]);
+    }
+
     // the following is not what we would expect, TH2 is internally built as a TH1 including all the underflow and overflow bins
     // suppose you have a TH2 with 3x2 bins, this is a 2D grip made as 
     //  0  0  0  0  0
@@ -738,8 +835,12 @@ void fillHistograms(const string& treedir = "./",
 
     // fill with reco quantities the bin corresponding to the gen level quantities (it is equivalent to cutting on gen level variables)
     h3_charge_eta_pt_globalBin[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, wgt);
-    h3_charge_eta_pt_globalBin_lepScaleUp[chargeIndex]->Fill(lep_eta[0],ptLepFullUp, globalBinEtaPt, wgt_ptscaleUp);
-    h3_charge_eta_pt_globalBin_lepScaleDn[chargeIndex]->Fill(lep_eta[0],ptLepFullDn, globalBinEtaPt, wgt_ptscaleDn);
+    // h3_charge_eta_pt_globalBin_lepScaleUp[chargeIndex]->Fill(lep_eta[0],ptLepFullUp, globalBinEtaPt, wgt_ptscaleUp);
+    // h3_charge_eta_pt_globalBin_lepScaleDn[chargeIndex]->Fill(lep_eta[0],ptLepFullDn, globalBinEtaPt, wgt_ptscaleDn);
+    for (Int_t ipt = 0; ipt < nPtScaleRegions; ipt++) {
+      h3_charge_eta_pt_globalBin_lepUncorrScaleUp[chargeIndex][ipt]->Fill(lep_eta[0],ptUncorrUp[ipt], globalBinEtaPt, wgt_noPt * scaleUncorrUpPt_passSelection[ipt]);
+      h3_charge_eta_pt_globalBin_lepUncorrScaleDn[chargeIndex][ipt]->Fill(lep_eta[0],ptUncorrDn[ipt], globalBinEtaPt, wgt_noPt * scaleUncorrDnPt_passSelection[ipt]);
+    }
     h3_charge_eta_pt_globalBin_lepEffUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, lepEffWgtUp * wgt);
     h3_charge_eta_pt_globalBin_lepEffDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, lepEffWgtDn * wgt);
     // wpt syst
@@ -865,6 +966,7 @@ void loopNtuplesSkeleton(//const string& treedir = "/eos/cms/store/cmst3/group/w
     fillHistograms(treedir, outdir, Sample::wmunujets, outputFile, usePreFSRvar);
   } else {
     fillHistograms(treedir, outdir, Sample::wenujets, outputFile, usePreFSRvar);
+    //fillHistograms(treedir, outdir, Sample::wenujets, outputFile, usePreFSRvar, "WJetsToLNu_NLO_ext2v5_part1");
   }
 
   // fillHistograms(treedir, outdir, Sample::data_singleEG, outputFile);

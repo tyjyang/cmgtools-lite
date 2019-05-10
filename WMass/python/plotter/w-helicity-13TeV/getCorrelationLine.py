@@ -2,6 +2,8 @@ import ROOT, os, datetime, re, operator, math
 from array import array
 ROOT.gROOT.SetBatch(True)
 
+# python w-helicity-13TeV/getCorrelationLine.py cards/diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/fit/hessian/fitresults_123456789_Asimov_combinedLep_bbb1_cxs1.root -o plots/diffXsecAnalysis/muon/diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/getCorrelationLine/ -p CMS_Wmu_sig_lepeff -m sumpoisnorm -n 50
+
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from subMatrix import niceName
 from operator import itemgetter
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     parser.add_option('-o','--outdir', dest='outdir',    default='', type='string', help='outdput directory to save the matrix')
     parser.add_option('-p','--param', dest='param',    default='', type='string', help='parameter for which you want to show the correlation matrix. Must be a single object')
     parser.add_option('-t','--type'  , dest='type'  ,    default='hessian', type='string', help='which type of input file: toys or hessian (default)')
-    parser.add_option('-m','--matrix', dest='matrix',    default='', type='string', help='matrix to be used (name is correlation_matrix_<matrix>)')
+    parser.add_option('-m','--matrix', dest='matrix',    default='', type='string', help='matrix to be used (name is correlation_matrix_channel<matrix>)')
     parser.add_option(     '--suffix', dest='suffix',    default='', type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--vertical-labels-X', dest='verticalLabelsX',    default=False, action='store_true', help='Set labels on X axis vertically (sometimes they overlap if rotated)')
     parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix. Use 0 to remove title. By default, string passed to option -p is used')
@@ -77,8 +79,8 @@ if __name__ == "__main__":
     elif options.type == 'hessian':
         hessfile = ROOT.TFile(args[0],'read')
         suffix = options.matrix
-        corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
-        covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
+        corrmatrix = hessfile.Get('correlation_matrix_channel'+suffix)
+        covmatrix  = hessfile.Get('covariance_matrix_channel'+suffix)
         for ib in range(1+corrmatrix.GetNbinsX()+1):
             if re.match(param, corrmatrix.GetXaxis().GetBinLabel(ib)):
                 ## store mean and rms into the dictionaries from before

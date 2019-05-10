@@ -175,6 +175,9 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
         if not isNominal:            
             if "lepScale" in lasttoken: 
                 newname += "_" + lasttoken.replace("lepScale","CMS_Wmu_muscale" if flavour == "mu" else "CMS_We_elescale")
+            elif "lepUncorrScale" in lasttoken:
+                # distinct from previous one because there is an integer number after lepUncorrScale
+                newname += "_" + lasttoken.replace("lepUncorrScale","CMS_Wmu_muscale" if flavour == "mu" else "CMS_We_elescale")
             elif "lepEff" in lasttoken:
                 newname += "_" + lasttoken.replace("lepEff","CMS_Wmu_sig_lepeff" if flavour == "mu" else "CMS_We_sig_lepeff")
             else:

@@ -566,7 +566,10 @@ if __name__ == "__main__":
                     summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
                 if   ng=='binByBinStat': 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle)
-                elif ng=='stat'        : 
+                elif ng=='stat':
+                    #print "bin  stat.uncertainty"
+                    #for ibin in range(1,summaries[(charge,ng)].GetNbinsX()+1):
+                    #    print "%s   %s" % (str(ibin-1),str(summaries[(charge,ng)].GetBinContent(ibin)))
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle); 
                     summaries[(charge,ng)].SetMarkerColor(ROOT.kBlack); 
                     summaries[(charge,ng)].SetLineColor(ROOT.kBlack);
