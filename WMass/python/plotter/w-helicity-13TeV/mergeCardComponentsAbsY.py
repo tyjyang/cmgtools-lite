@@ -440,10 +440,10 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHelicityAnalysis=True):
+def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHelicityAnalysis=True):
 
     if not isMu:
-        print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
+        print "Electrons not implemented in putTestEffSyst(). Exit"
         quit()
 
     # this is mainly for tests, one should actually change the definition of weights when filling histograms
@@ -604,6 +604,7 @@ if __name__ == "__main__":
     parser.add_option(       '--exclude-nuisances', dest='excludeNuisances', default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
     parser.add_option(       '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
     parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
+    parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default=False, action='store_true', help='Add efficiency systematics in bins of eta calling putTestEffSyst(). Eta bins are not exclusive, but overalps (e.g. one all over the template, one only for |eta|>XX and so on). If True, the nuisance CMS_Wxx_sig_lepeff is disabled')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -647,7 +648,9 @@ if __name__ == "__main__":
     excludeNuisances = []
     if len(options.excludeNuisances):
         excludeNuisances = options.excludeNuisances.split(",")
-
+    if options.wzTestEffSystShape:
+        if "CMS.*sig_lepeff" not in excludeNuisances:
+            excludeNuisances.append("CMS.*sig_lepeff")
 
     for charge in charges:
     
@@ -802,11 +805,13 @@ if __name__ == "__main__":
 
             if 'mu' in options.bin:
                 putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
+
+            if options.wzTestEffSystShape:
                 print 'now putting the testeffsyst systeamtics into the file'
-                putTestEffSystHistosDiffXsec(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin, isHelicityAnalysis=True)
+                putTestEffSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin, isHelicityAnalysis=True)                
                 final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {indir}/TestEffSyst_{flav}_{ch}*.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             else:
-                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
 
             os.system(final_haddcmd)
         
