@@ -80,7 +80,7 @@ request_memory = 4000
 requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), 
-           rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+           rt=int(options.grouping*1.5*3600), here=os.environ['PWD'] ) )
         else:
             condor_file.write('''Universe = vanilla
 Executable = {de}
@@ -186,13 +186,13 @@ requirements = (OpSysAndVer =?= "SLCern6")
 if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage='%prog dir')
-    parser.add_option('-c', '--check-cards', dest='checkCards', default=False, action='store_true', help='Check if there are all the datacards and ROOT files');
+    parser.add_option('-c', '--check-cards', dest='checkCards', default=False, action='store_true', help='Directory with cards and root files');
     parser.add_option('-z', '--check-zombies', dest='checkZombies', default=False, action='store_true', help='Check if all the ROOT files are sane');
     parser.add_option('-q', '--queue', dest='queue', type='string', default='1nd', help='choose the queue to submit batch jobs (default is 8nh)');
     parser.add_option('-v', '--verbose', dest='verbose', default=0, type=int, help='Degree of verbosity (0=default prints only the resubmit commands)');
     parser.add_option('-l', '--useLSF', default=False, action='store_true', help='Force use of LSF instead of condor. Default: condor');
     parser.add_option('-r', '--runtime', default=12, type=int,  help='New runtime for condor resubmission in hours. default None: will take the original one.');
-    parser.add_option('-g', '--grouping', default=5, type=int,  help='Group resubmit commands into groups of size N');
+    parser.add_option('-g', '--grouping', default=5, type=int,  help='Group resubmit commands into groups of size N (default %default)');
     parser.add_option(      '--splitdir', dest='splitdir', default=False, action='store_true', help='Use this option if .log, .err, .out files of condor are put in separate folders (needed for diff.xsec, might become useful for helciity as well)');
     (options, args) = parser.parse_args()
 
