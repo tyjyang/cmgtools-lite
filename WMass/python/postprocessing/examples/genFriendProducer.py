@@ -1,5 +1,5 @@
 import ROOT
-import os, array
+import os, array, copy
 import numpy as np
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
@@ -113,10 +113,12 @@ class GenQEDJetProducer(Module):
         self.out.branch("partonId2", "I")
         self.out.branch("nGenLepDressed", "I")
         self.out.branch("nGenPreFSR", "I")
+        self.out.branch("nGenLepBare", "I")
         self.out.branch("nGenPromptNu", "I")
         for V in self.vars:
             self.out.branch("GenLepDressed_"+V, "F", lenVar="nGenLepDressed")
             self.out.branch("GenLepPreFSR_"+V, "F", lenVar="nGenLepPreFSR")
+            self.out.branch("GenLepBare_"+V, "F", lenVar="nGenLepBare")
             self.out.branch("GenPromptNu_"+V, "F", lenVar="nGenPromptNu")
         for V in self.genwvars:
             self.out.branch("genw_"+V, "F")
@@ -190,8 +192,7 @@ class GenQEDJetProducer(Module):
 
         return nuvec, nu.pdgId
 
-    def getDressedLeptons(self, strictlyPrompt=True, cone=0.1):
-
+    def getBareLeptons(self, strictlyPrompt=True):
         leptons = []
         for p in self.genParts:
             if not abs(p.pdgId) in [11,13,15] : continue
@@ -204,11 +205,15 @@ class GenQEDJetProducer(Module):
 
         #leptons = sorted(leptons, key = lambda x: x[0].Pt() )
         leptons.sort(key = lambda x: x[0].Pt(), reverse=True )
+        return leptons
 
-        if len(leptons) ==0: 
-            return leptons
+    def getDressedLeptons(self, bareLeptons, strictlyPrompt=True, cone=0.1):
+
+        if len(bareLeptons) ==0: 
+            return bareLeptons
             ##print 'ERROR: DID NOT FIND A LEPTON FOR DRESSING !!!!!'
 
+        leptons = copy.deepcopy(bareLeptons)
         for p in self.genParts:
             if not abs(p.pdgId)==22: continue
             if strictlyPrompt and not p.isPromptFinalState: continue
@@ -299,8 +304,10 @@ class GenQEDJetProducer(Module):
             self.initReaders(event._tree)
 
         ## check if the proper Ws can be made
-        dressedLeptonCollection             = self.getDressedLeptons(strictlyPrompt=makeWs)
+        bareLeptonCollection                = self.getBareLeptons(strictlyPrompt=makeWs)
+        dressedLeptonCollection             = self.getDressedLeptons(bareLeptonCollection,strictlyPrompt=makeWs)
         dressedLepton, dressedLeptonPdgId   = dressedLeptonCollection[0] if len(dressedLeptonCollection) else (0,0)
+        bareLepton,    bareLeptonPdgId      = bareLeptonCollection[0]    if len(bareLeptonCollection)    else (0,0)
         (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()     if makeWs else (0,0)
         (neutrino     , neutrinoPdgId     ) = self.getNeutrino()         if makeWs else (0,0)
 
@@ -333,6 +340,26 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("nGenLepDressed", leptonsToTake[-1])
             for V in self.vars:
                 self.out.fillBranch("GenLepDressed_"+V, retL[V])
+
+        #always produce the bare lepton collection
+        if len(bareLeptonCollection)>0:
+            retB={}
+            leptonsToTake = range(0,1 if makeWs else len(bareLeptonCollection))
+            retB["pt"]    = [bareLeptonCollection[i][0].Pt() for i in leptonsToTake ]
+            retB["eta"]   = [bareLeptonCollection[i][0].Eta() for i in leptonsToTake ]
+            retB["phi"]   = [bareLeptonCollection[i][0].Phi() for i in leptonsToTake ]
+            retB["mass"]  = [bareLeptonCollection[i][0].M() if dressedLeptonCollection[i][0].M() >= 0. else 0. for i in leptonsToTake]
+            retB["pdgId"] = [bareLeptonCollection[i][1] for i in leptonsToTake ]
+            retB["fsrDR"] = []
+            retB["fsrPt"] = []
+            for  i in leptonsToTake:
+                photonsFSR = self.getFSRPhotons(bareLeptonCollection[i][0],bareLeptonCollection[i][1])
+                retB["fsrDR"].append(photonsFSR[0].DeltaR(bareLeptonCollection[i][0]) if len(photonsFSR)>0 else -1)
+                retB["fsrPt"].append(photonsFSR[0].Pt() if len(photonsFSR)>0 else -1)
+
+            self.out.fillBranch("nGenLepBare", leptonsToTake[-1])
+            for V in self.vars:
+                self.out.fillBranch("GenLepBare_"+V, retB[V])
 
         #W-specific
         if neutrino:
