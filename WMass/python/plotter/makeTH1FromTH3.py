@@ -28,7 +28,7 @@ parser.add_option("-f", "--flavour",   dest="flavour", type="string", default=''
 parser.add_option("-c", "--charge",    dest="charge", type="string", default='', help="Charge: either 'plus' or 'minus'");
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
-parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*EffStat.*|.*pdf.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
+parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*ErfPar.*EffStat.*|.*pdf.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -182,13 +182,18 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
                 newname += "_" + lasttoken.replace("lepEff","CMS_Wmu_sig_lepeff" if flavour == "mu" else "CMS_We_sig_lepeff")
             else:
                 newname += "_" + lasttoken
-            if isEffStat and "ErfPar" not in lasttoken: newname = newname.replace("Erf","ErfPar")  # patch for bad names inside input file (ErfXX instead of ErfParXX)
+            #if isEffStat and "ErfPar" not in lasttoken: newname = newname.replace("Erf","ErfPar")  # patch for bad names inside input file (ErfXX instead of ErfParXX) # no longer needed
             if newname.endswith('Dn'): newname = newname[:-2] + "Down"
             # for EffStat, add <flavour><charge> at the end, because we use independent systs for charge and flavour, so the names must be different
             # note that at this point the histograms don't have Up/Down in their name
             if isEffStat:
                 suffixToAdd = "{fl}{ch}".format(fl=flavour, ch=charge)
-                newname += suffixToAdd
+                if "BinUncEffStat" in newname:
+                    # add suffix before Up/Down
+                    if newname.endswith("Up"): newname = newname[:-2] + suffixToAdd + "Up"
+                    elif newname.endswith("Down"): newname = newname[:-4] + suffixToAdd + "Down"
+                else:
+                    newname += suffixToAdd
         hist = ROOT.TH1D(newname,"", len(thd1binning)-1, array('d', thd1binning))
         # unroll a slice of TH3 at fixed z (this is a TH2) into a 1D histogram
         for ix in range(1,1+obj.GetNbinsX()):

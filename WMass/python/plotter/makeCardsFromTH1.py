@@ -248,7 +248,8 @@ parser.add_option(       "--indir-el",     dest="indirEl", type="string", defaul
 parser.add_option(       "--indir-mu",     dest="indirMu", type="string", default="", help="Input folder with shape file for muons (only with --comb-flavour)");
 parser.add_option(       '--WZ-testEffSyst-LnN'   , dest='wzTestEffSystLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all W and Z processes, to test efficiency systematics (should also remove sig_lepeff nuisance)')
 parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where eff.syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,1.0,1.5')
-
+parser.add_option(       '--WZ-ptScaleSyst-shape'   , dest='wzPtScaleSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where pt-scale syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,2.1 for muons, 0,1.0,1.5,2.1 for electrons')
+parser.add_option(       '--useBinUncEffStat', dest='useBinUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
 (options, args) = parser.parse_args()
 
 print ""
@@ -336,6 +337,10 @@ genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
 #genBins.printBinAll()
 
 binning = [genBins.Neta, genBins.etaBins, genBins.Npt, genBins.ptBins]
+
+if options.useBinUncEffStat:
+    if options.excludeNuisances == "": options.excludeNuisances = ".*ErfPar.*EffStat.*"
+    else                             : options.excludeNuisances += ",.*ErfPar.*EffStat.*"
 
 allSystForGroups = [] # filled with all systs not excluded by excludeNuisances
 excludeNuisances = []
@@ -695,13 +700,32 @@ for syst in qcdScale_wptBins:
     
 #wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 wExpSysts = ["CMS_We_sig_lepeff"] if flavour == "el" else ["CMS_Wmu_sig_lepeff"]
-nLepScaleuncorr = 4 if flavour == "el" else 2
-for nl in range(nLepScaleuncorr):
-    wExpSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
 for syst in wExpSysts:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
+
+# hardcoded: see MCA or other files
+wExpPtScaleSysts = []
+if options.wzPtScaleSystShape:
+    edgesForPtScale = [float(x) for x in options.wzPtScaleSystShape.split(",")]
+    for nl in range(len(edgesForPtScale)):
+        wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
+    for isyst,syst in enumerate(wExpPtScaleSysts):    
+        procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
+        tmp_procsForPtScaleSystShape = []
+        for proc in procsForPtScaleSystShape:
+            if re.match(".*W.*_ieta_.*", proc):
+                igeneta,igenpt = get_ieta_ipt_from_process_name(proc)
+                geneta = genBins.etaBins[igeneta]
+                if geneta >= edgesForPtScale[isyst]: tmp_procsForPtScaleSystShape.append(proc)
+            else:
+                tmp_procsForPtScaleSystShape.append(proc)
+        procsForPtScaleSystShape = tmp_procsForPtScaleSystShape
+
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        allSystForGroups.append(syst)
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
 
 if options.wzTestEffSystLnN:
     syst = "CMS_W%s_sig_testEffSyst" % ("e" if flavour == "el" else "mu")
@@ -765,6 +789,33 @@ for ipar in range(3):
         #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
+if options.useBinUncEffStat:
+    for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
+        syst = "BinUncEffStat%d" % (ietabin)
+        syst += "{fl}{ch}".format(fl=flavour,ch=charge)
+        if isExcludedNuisance(excludeNuisances, syst): continue
+        etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
+        # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
+        if etaEffStat < 0:
+            etaEffStat = abs(etaEffStat) - 1
+        # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
+        # a template bin might have more than 1 efficiency variation if binning is coarser
+        etaBinCenter = etaEffStat * 0.1 + 0.05  
+        ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)  
+        # if genBins extends below the reco, the returned value is negative, so no match for signal
+        # for outliers, must also check the reco binning
+
+        # if the reco binning along eta is narrower than the EffStat histogram used for the reweighting, skip this etaEffStat              
+        # this happens for example for bin 1 and 50 in the electron channel if the reco binning (and therefore also the gen) stops at |eta|=2.4    
+        if etaBinCenter < recoBins.etaBins[0] or etaBinCenter > recoBins.etaBins[-1]:
+            continue
+
+        EffStat_systs.append(syst)
+        allSystForGroups.append(syst)
+        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
+        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
+
+
 card.write("\n")
 if options.doSystematics:
     if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV"): card.write("luminosity group = CMS_lumi_13TeV\n\n")
@@ -772,7 +823,8 @@ if options.doSystematics:
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
     card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
-    card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
+    #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
+    card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
                                                 filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
     card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")

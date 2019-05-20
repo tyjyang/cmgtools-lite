@@ -4,22 +4,22 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=0
-skipMergeRoot=0
+skipUnpack=1
+skipMergeRoot=1
 skipSingleCard=1
-skipMergeCard=1
+skipMergeCard=0
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
 allPtBinsSignalElectron = 1
 
 # el
-folder_el = "diffXsec_el_2019_04_13_newSystAndWtau/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_pt56_L1prefire_fixEffStat.root"
+folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale.root"
 # mu
-#folder_mu = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/" # keep "/" at the end
-#th3file_mu = "cards/" + folder_mu + "wmu_pt56_L1prefire_fixEffStat.root"
-folder_mu = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/" # keep "/" at the end
-th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
+folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
+th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
+#folder_mu = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/" # keep "/" at the end
+#th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
@@ -30,15 +30,18 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.4,1.6,2.0 ")
+optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
 
-optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' --WZ-testEffSyst-shape '0.0,1.0,1.5' "
+binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
+optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
+optionsForCardMaker += binnedSystOpt + " --useBinUncEffStat "
+
 #--WZ-testEffSyst-LnN 0.012" 
 # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix testEffSyst_uncorrEta_fixLepScale_uncorrPtScale --sig-out-bkg --useSciPyMinimizer " #--no-text2hdf5 --no-combinetf " 
+optionsForCardMakerMerger = " --postfix testEffSystUncorrEta_uncorrPtScale_BinUncEffStat --sig-out-bkg --useSciPyMinimizer " #--no-text2hdf5 --no-combinetf " 
 
 optionsForCardMakerMergerFlavour = " --postfix combinedLep --sig-out-bkg --useSciPyMinimizer " # --no-text2hdf5 --no-combinetf "  
 

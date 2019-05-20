@@ -7,27 +7,29 @@ import ROOT, os, sys, re, array
 doMuElComb = 0
 dryrun = 0
 skipData = 0
-onlyData = 1
+onlyData = 0
 
 skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 0
+skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 1
+skipImpacts = 0
 
 allPtBinsSignalElectron = 0
 
 seed = 123456789
 
 #folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
+#folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
 folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
+#folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 if doMuElComb:
     folder = "muElCombination"
 
-postfix = "testEffSyst_uncorrEta_fixLepScale_uncorrPtScale"
+postfix = "testEffSystUncorrEta_uncorrPtScale"
 #postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep"
@@ -44,7 +46,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (flavour == "el" and not allPtBinsSignalElectron) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (flavour == "el" and not allPtBinsSignalElectron) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 2.25,39.5 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*scale1.*|.*lepeff.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 0.55,39.5 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffStat.*|.*scale0.*|.*scale1.*|.*lepeff.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if flavour == "el" else "26"
 
@@ -78,7 +80,7 @@ correlationNuisRegexp = {# "allPDF"           : "pdf.*",
                          # "muRmuF"           : "^muRmuF[1-9]+", 
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+mu.*",
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+el.*", 
-                         "CMSsyst"          : "CMS_.*",
+                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|mW",
                          # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
                          # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
                          # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
@@ -99,8 +101,8 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 
 # for impacts
 targets = [#"mu", 
-           #"xsec", 
-           "xsecnorm",
+           "xsec", 
+           #"xsecnorm",
            #"etaptasym",
            #"etaxsec",
            #"etaxsecnorm",
@@ -128,7 +130,6 @@ impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
                 #"W.*_ieta_.*_ipt_2_.*",
                 #"W.*_ieta_17_.*"
                 ]
-
 
 print ""
 
@@ -209,7 +210,7 @@ for fit in fits:
     command = "python w-helicity-13TeV/postFitPlots_xsec.py"
     command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root cards/{fd}/ ".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " -o plots/diffXsecAnalysis/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
-    command += " --no2Dplot-signal-bin -n  ".format(fit=fit)  # -n
+    command += " --no2Dplot-signal-bin -n ".format(fit=fit)  # -n
     if fit == "Data":
         if not skipPostfit:
             print ""    
@@ -262,7 +263,7 @@ for fit in fits:
             if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
                 poi_regexp = ["W.*_ieta_.*"]
             else:
-                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in [2, 7, 16] ]
+                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in [3]]  #[2, 7, 16] ]
 
             for poi in poi_regexp:
                 tmpcommand = command + " {vopt} --target {t} --pois '{poi_regexp}' ".format(vopt=varopt, t=target, poi_regexp=poi)  

@@ -492,9 +492,12 @@ if __name__ == "__main__":
             zsysts = []
             if channel == "el":
                 zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                zsysts.extend(["elTestEffSyst%d" % i for i in range(4)])
+                zsysts.append("CMS_We_sig_lepeff")
             else:
                 zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
                 zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
+                zsysts.append("CMS_Wmu_sig_lepeff")
 
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
@@ -540,6 +543,7 @@ if __name__ == "__main__":
                 if "Z" in p:
                     # 4 systs for now (2 Up and 2 Down)
                     for fs in zsysts:
+                        print "Z process: syst = %s" % fs
                         for idir in ["Up", "Down"]:
                             title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
                             name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
@@ -549,11 +553,15 @@ if __name__ == "__main__":
                                 h2_backrolled_1_fs.Scale(1.,"width")
                             h2_backrolled_1_fs.Write(name_fs)
                             h2_backrolled_1_fs.Divide(h2_backrolled_1)
-                            zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0), 
-                                                                             getMaximumTH(h2_backrolled_1_fs))
-                            if "FakesEtaUncorrelated" in fs:
-                                zaxisTitle = "variation / nominal::0.9,1.1"
-
+                            zmin = getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0)
+                            zmax = getMaximumTH(h2_backrolled_1_fs)
+                            if abs(zmin - zmax) < 0.0001: 
+                                zmin -= 0.0001
+                                zmax += 0.0001
+                            #print "min,max =%.5f   %.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0),getMaximumTH(h2_backrolled_1_fs)) 
+                            print "min,max =%.5f   %.5f" % (zmin,zmax)
+                            zaxisTitle = "variation / nominal::%.5f,%.5f" % (zmin,zmax)                                                                           
+                            #print "min,max =%.5f   %.5f" % (getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0),getMaximumTH(h2_backrolled_1_fs)) 
                             drawCorrelationPlot(h2_backrolled_1_fs, 
                                                 xaxisTitle, yaxisTitle, zaxisTitle, 
                                                 'syst_{proc}_{ch}_{flav}'.format(proc=name_fs,ch=charge,flav=channel),

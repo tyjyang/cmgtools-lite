@@ -1435,12 +1435,15 @@ def drawTH1dataMCstack(h1, thestack,
             _canvas_pull.SetRightMargin(0.16)            
             h2pull = ROOT.TH2D("h2pull_"+canvasName, pulltitle.replace("unrolled","rolled") ,
                                etaptbinning[0], array('d', etaptbinning[1]), etaptbinning[2], array('d', etaptbinning[3]))
+            hpull.Reset("ICESM")  # will use again for pulls in EE only
             for i in range (1,ratio.GetNbinsX()+1):
                 etabin = (i-1)%etaptbinning[0] + 1
                 ptbin = (i-1)/etaptbinning[0] + 1
                 errTotDen = ratio.GetBinError(i)*ratio.GetBinError(i) + den.GetBinError(i)*den.GetBinError(i)            
                 if errTotDen > 0.0:
-                    h2pull.SetBinContent(etabin,ptbin, (ratio.GetBinContent(i)-1)/math.sqrt(errTotDen))
+                    pullVal = (ratio.GetBinContent(i)-1)/math.sqrt(errTotDen)
+                    h2pull.SetBinContent(etabin,ptbin, pullVal)
+                    if abs(etaptbinning[1][etabin]) >= 1.499: hpull.Fill(pullVal)
             h2pull.GetXaxis().SetTitle("%s #eta" % "muon" if "muon" in labelX else "electron")
             h2pull.GetYaxis().SetTitle("%s p_{T}" % "muon" if "muon" in labelX else "electron")
             h2pull.GetZaxis().SetTitle("pull")
@@ -1450,3 +1453,20 @@ def drawTH1dataMCstack(h1, thestack,
             _canvas_pull.RedrawAxis("sameaxis")
             _canvas_pull.SaveAs(outdir + "pull2D_" + canvasName + ".png")
             _canvas_pull.SaveAs(outdir + "pull2D_" + canvasName + ".pdf")
+
+            # add pulls for EE only
+            _canvas_pull.SetTickx(1)
+            _canvas_pull.SetTicky(1)
+            _canvas_pull.SetGridx(1)
+            _canvas_pull.SetGridy(1)
+            _canvas_pull.SetTopMargin(0.1)
+            _canvas_pull.SetBottomMargin(0.12)
+            _canvas_pull.SetLeftMargin(0.12)
+            _canvas_pull.SetRightMargin(0.04)
+            hpull.Draw("HIST")
+            hpull.GetXaxis().SetTitle("pull (only |#eta| >= 1.5)")
+            hpull.GetYaxis().SetTitle("Events")
+            _canvas_pull.RedrawAxis("sameaxis")
+            _canvas_pull.SaveAs(outdir + "pull_onlyEE_" + canvasName + ".png")    
+            _canvas_pull.SaveAs(outdir + "pull_onlyEE_" + canvasName + ".pdf")
+            

@@ -20,12 +20,13 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import putUncorrelatedFakes
 
 def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
 
-    if not isMu:
-        print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
-        quit()
+    # if not isMu:
+    #     print "Electrons not implemented in putTestEffSystHistosDiffXsec(). Exit"
+    #     quit()
 
     # this is mainly for tests, otherwise one should change the definition of weights when filling histograms
     # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
+    # this is not completely true for electrons, though
 
     indir = outdir if outdir != None else options.inputdir
 
@@ -63,27 +64,41 @@ def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, s
             effsystvals[0.0] = 0.002
             effsystvals[1.0] = math.sqrt( math.pow(0.004,2) - math.pow(0.002,2))
             effsystvals[1.5] = math.sqrt( math.pow(0.014,2) - math.pow(0.004,2) - math.pow(0.002,2))
-        else:
-            pass
+        else:            
+            # this might get the wrong cmssw path if you typed cmsenv from a different release
+            # L1EG_file = "{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root".format(cmssw=os.environ["CMSSW_BASE"])
+            # let's use relative path
+            L1EG_file = "../postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root"
+            L1EG_hist = "l1EG_eff"
+            tf = ROOT.TFile(L1EG_file,'read')
+            hL1 = tf.Get(L1EG_hist)
+            if not hL1:
+                print "Error in putTestEffSystHistosDiffXsec(): could not get histogram {h} in file {f}. Abort".format(h=L1EG_hist,f=L1EG_file)
+                quit()
             # # FIX ME: here the prefiring syst is not added!
-            effsystvals[1.0] = 0.006
-            effsystvals[1.479] = 0.008
-            effsystvals[2.0] = 0.013
-            effsystvals[2.5] = 0.016
+            #
+            # numbers are deviced in such a way to obtain the commented value when summing in quadrature all terms before that
+            effsystvals[0.0] =   0.006
+            effsystvals[1.0] =   0.0053  # 0.008
+            effsystvals[1.479] = 0.01    # 0.013
+            effsystvals[2.0] =   0.0093  # 0.016
+            # then we will sum L1 prefiring term            
 
-            
         for ik,key in enumerate(effsystvals):
 
             # for 2D xsec we assume that eta bins outside the corresponding gen bins are almost empty, so we will skip their reweigthing based on the gen eta
             if re.match("x_W.*_ieta_.*",tmp_name):
                 ietagen,iptgen = get_ieta_ipt_from_process_name(tmp_name)
                 #print "found process %s --> ietagen = %d" % (tmp_name, ietagen)
-                if ietagen >= 0:
-                    geneta = genBins.etaBins[ietagen]
-                    #print "geneta = %.3f" % geneta
-                    if geneta < key:   
-                        #print "skip reweighting of %s for TestEffSyst%d" % (tmp_name,ik) 
-                        continue                
+                # by uncommenting the following lines we skip histograms for bins which would not be affected
+                # we might still want to have the histograms but just excluding the nuisance for some processes in the datacard
+                # in this way we can at least define the template ratio when summing all histograms into an inclusive template in templateRolling.py
+                # if ietagen >= 0:
+                #     geneta = genBins.etaBins[ietagen]
+                #     #print "geneta = %.3f" % geneta
+                #     if geneta < key:   
+                #         #print "skip reweighting of %s for TestEffSyst%d" % (tmp_name,ik) 
+                #         continue                
 
             outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{fl}TestEffSyst{ik}2DROLLED'.format(fl=flavour,ik=ik)
 
@@ -94,8 +109,17 @@ def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, s
                 for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
                     etaval = tmp_scaledHisto_up.GetXaxis().GetBinCenter(ieta)
                     scaling = 0.0
-                    if abs(etaval) >= key: scaling += effsystvals[key]
-                
+                    if abs(etaval) >= key:
+                        if isMu: 
+                            scaling += effsystvals[key]                        
+                        else:
+                            ptL1  = tmp_scaledHisto_up.GetYaxis().GetBinLowEdge(ipt)
+                            etaL1 =  tmp_scaledHisto_up.GetXaxis().GetBinUpEdge(ieta) if (etaval < 0) else tmp_scaledHisto_up.GetXaxis().GetBinLowEdge(ieta)
+                            if (abs(etaL1) >= 1.479 and ptL1 >= 35.0):                                
+                                ptval = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
+                                L1RelativeUncertainty = hL1.GetBinError(hL1.GetXaxis().FindFixBin(etaval),hL1.GetYaxis().FindFixBin(ptval))
+                                scaling += math.sqrt(effsystvals[key]*effsystvals[key] + L1RelativeUncertainty*L1RelativeUncertainty)
+
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)
                     tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
@@ -531,13 +555,13 @@ print "Will create file --> {of}".format(of=fileFakesPtNormUncorr)
 etaBordersForFakes = [float(x) for x in options.etaBordersForFakesUncorr.split(',')]
 if not options.dryrun: 
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge)
+                         doType='eta', uncorrelateCharges=options.uncorrelateFakesByCharge, isHelicity=False)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                        doType='etacharge', uncorrelateCharges=True) # this is always true
+                        doType='etacharge', uncorrelateCharges=True, isHelicity=False) # this is always true
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
+                         doType='ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge, isHelicity=False)
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
-                         doType='ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge)
+                         doType='ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge, isHelicity=False)
 
 print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
