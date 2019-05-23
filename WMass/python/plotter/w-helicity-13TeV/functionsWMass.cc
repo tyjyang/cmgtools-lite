@@ -701,7 +701,7 @@ TFile *_file_trigger_leptonSF_mu_plus = NULL;
 TH2F *_histo_trigger_leptonSF_mu_plus = NULL;
 TFile *_file_trigger_leptonSF_mu_minus = NULL;
 TH2F *_histo_trigger_leptonSF_mu_minus = NULL;
-float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge) {
+float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, float sumErrorTimesThis = 0.0) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
@@ -723,7 +723,7 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge)
     int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
     int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
 
-    float out = histTrigger->GetBinContent(etabin,ptbin);
+    float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * histTrigger->GetBinError(etabin,ptbin);
 
     return out;
   }
@@ -782,16 +782,37 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge)
 //}
 
 int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
-  float ptmin = abs(pdgid)==13 ? 26. : 30.;
-  int etabin = (int) ((eta+2.5)*10. );
-  int ptbin  = (int) (pt-ptmin );
-  return (ptbin*50 + etabin);
+  float ptmin = 0;
+  float etaMax = 0;
+  int nEtaBins = 0;
+  if (abs(pdgid)==13) {
+    ptmin = 26;
+    etaMax = 2.4;
+    nEtaBins = 48;
+  } else {
+    ptmin = 30;
+    etaMax = 2.5;
+    nEtaBins = 50;    
+  }
+  int etabin = (int) ((eta+etaMax)*10. );
+  int ptbin  = (int) (pt-ptmin);
+  return (ptbin*nEtaBins + etabin);
 }
 
 int unroll2DTo1D_etaSlices(int pdgid, float pt, float eta){
-  float ptmin = abs(pdgid)==13 ? 26. : 30.;
-  int nptbins = abs(pdgid)==13 ? 19 : 15;
-  int etabin = (int) ((eta+2.5)*10. );
+  float ptmin = 0;
+  float etaMax = 0;
+  int nptbins = 0;
+  if (abs(pdgid)==13) {
+    ptmin = 26;
+    etaMax = 2.4;
+    nptbins = 19;
+  } else {
+    ptmin = 30;
+    etaMax = 2.5;
+    nptbins = 15;    
+  }
+  int etabin = (int) ((eta+etaMax)*10. );
   int ptbin  = (int) (pt-ptmin );
   return (ptbin + nptbins * etabin);
 }

@@ -40,8 +40,8 @@ incl_dy_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/
 incl_dy_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt",   AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
 
 # muon scale systematics for Z
-incl_dy_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
-incl_dy_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
+#incl_dy_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
+#incl_dy_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
 
 incl_dy_muscale0_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale0Up_xsec.txt" , SkipMe=True, PostFix='_muscale0_Up'
 incl_dy_muscale0_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale0Dn_xsec.txt" , SkipMe=True, PostFix='_muscale0_Dn'
@@ -50,12 +50,12 @@ incl_dy_muscale1_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/m
 incl_dy_muscale1_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale1Dn_xsec.txt" , SkipMe=True, PostFix='_muscale1_Dn'
 
 # lepton efficiency systematics for tau
-incl_wtau_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt",   AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
-incl_wtau_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt",   AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
+#incl_wtau_lepeff_Up      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt",   AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
+#incl_wtau_lepeff_Dn      : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt",   AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
 
 # muon scale systematics for tau
-incl_wtau_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
-incl_wtau_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
+#incl_wtau_muscale_Up   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleUp_xsec.txt" , SkipMe=True, PostFix='_muscale_Up'
+#incl_wtau_muscale_Dn   : + ; IncludeMca="w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt", FakeRate="w-helicity-13TeV/wmass_mu/variations/doSyst_lepScaleDn_xsec.txt" , SkipMe=True, PostFix='_muscale_Dn'
 
 
 # Fake syst
