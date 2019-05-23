@@ -129,8 +129,8 @@ class lepCalibratedEnergyProducer(Module):
         self._rochester  = ROOT.RoccoR()
         self._rochester.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016.txt')
     
-        ## not needed at the moment nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
-        ## not needed at the moment self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
+        nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
+        self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
 
         print 'initializing the egamma calibrator'
         ROOT.gSystem.Load(os.environ['CMSSW_BASE']+"/src/EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class_cc.so")
@@ -170,17 +170,46 @@ class lepCalibratedEnergyProducer(Module):
         calPt_step1 = []
         calPt = []
         for l in leps:
+            l_ch, l_pt, l_eta, l_phi = l.charge, l.pt, l.eta, l.phi
             if abs(l.pdgId)==13: # implemented only for electrons
                 if event.isData:
-                    scale = self._rochester.kScaleDT(l.charge, l.pt, l.eta, l.phi)
+                    scale = self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi)
                     calPt_step1.append(scale)
                     calPt.append(l.pt * scale)
+
+                    ## not now systs = []
+                    ## not now for ivar in range(1,5): ## 4 error sets of the rochester corrections.
+                    ## not now     if ivar == 1:
+                    ## not now         vstat = []
+                    ## not now         for istat in range(1,100):
+                    ## not now             vstat.append(self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, ivar, istat) )
+                    ## not now         vstat = np.array(vstat)
+                    ## not now         systs.append(np.sqrt(np.mean(vstat**2))) ## takes the rms of the vstat thing. how dumb
+                    ## not now     else:
+                    ## not now         systs.append( self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, ivar, 0) )
+
                 else:
-                    ## ATTENTION. THE NTRK IS RANDOMLY CHOSEN FROM A HISTOGRAM DISTRIBUTED LIKE THE SIGNAL MC
-                    ## tmp_nlayers = int(self._nLayersHist.GetRandom())
-                    scale = self._rochester.kSpreadMC(l.charge, l.pt, l.eta, l.phi, l.mcPt, 0, 0)
+                    l_gpt = l.mcPt
+                    if l_gpt:
+                        scale = self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, 0, 0)
+                    else:
+                        ## ATTENTION. THE NTRK IS RANDOMLY CHOSEN FROM A HISTOGRAM DISTRIBUTED LIKE THE SIGNAL MC
+                        tmp_nlayers = int(self._nLayersHist.GetRandom())
+                        scale = self._rochester.kSmearMC(l_ch, l_pt, l_eta, l_phi, tmp_nlayers, ROOT.gRandom.Rndm())
                     calPt_step1.append(scale)
                     calPt.append(l.pt * scale )
+
+                    ## not now systs = []
+                    ## not now for ivar in range(1,5): ## 4 error sets of the rochester corrections.
+                    ## not now     if ivar == 1:
+                    ## not now         vstat = []
+                    ## not now         for istat in range(1,100):
+                    ## not now             vstat.append(self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, ivar, istat) )
+                    ## not now         vstat = np.array(vstat)
+                    ## not now         systs.append(np.sqrt(np.mean(vstat**2))) ## takes the rms of the vstat thing. how dumb
+                    ## not now     else:
+                    ## not now         systs.append( self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, ivar, 0) )
+
             else:
                 if event.isData:
                     scale = self._worker.ScaleCorrection(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt)
