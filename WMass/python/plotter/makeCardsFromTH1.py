@@ -812,7 +812,7 @@ if options.useBinUncEffStat:
 
         EffStat_systs.append(syst)
         allSystForGroups.append(syst)
-        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate]
+        matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate, "Z", "TauDecaysW"]
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
 

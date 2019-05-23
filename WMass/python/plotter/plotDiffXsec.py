@@ -6,7 +6,7 @@ import ROOT, os, sys, re, array
 
 doMuElComb = 0
 dryrun = 0
-skipData = 0
+skipData = 1
 onlyData = 0
 
 skipPlot = 1
@@ -30,6 +30,7 @@ if doMuElComb:
     folder = "muElCombination"
 
 postfix = "testEffSystUncorrEta_uncorrPtScale"
+postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
 #postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep"
@@ -102,11 +103,11 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 # for impacts
 targets = [#"mu", 
            "xsec", 
-           #"xsecnorm",
-           #"etaptasym",
-           #"etaxsec",
-           #"etaxsecnorm",
-           #"etaasym"
+           "xsecnorm",
+           "etaptasym",
+           "etaxsec",
+           "etaxsecnorm",
+           "etaasym"
            ]
 
 # impacts_nuis = [".*pdf.*", 
@@ -263,7 +264,7 @@ for fit in fits:
             if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
                 poi_regexp = ["W.*_ieta_.*"]
             else:
-                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in [3]]  #[2, 7, 16] ]
+                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in  [2, 3, 7, 16] ]
 
             for poi in poi_regexp:
                 tmpcommand = command + " {vopt} --target {t} --pois '{poi_regexp}' ".format(vopt=varopt, t=target, poi_regexp=poi)  

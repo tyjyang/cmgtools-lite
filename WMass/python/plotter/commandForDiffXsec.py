@@ -5,8 +5,8 @@ import ROOT, os, sys, re, array
 dryrun=0
 doMuons=1
 skipUnpack=1
-skipMergeRoot=1
-skipSingleCard=1
+skipMergeRoot=0
+skipSingleCard=0
 skipMergeCard=0
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
@@ -30,7 +30,7 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
+optionsForRootMerger = " --useBinUncEffStat --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
 
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
 optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
