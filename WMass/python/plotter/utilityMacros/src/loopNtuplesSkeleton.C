@@ -67,34 +67,31 @@ void fillHistograms(const string& treedir = "./",
   // BINNING: will have to implement parsing from file
 
   // muon
-  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.1,-1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  // 					    1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
-  vector<Double_t> etaBinEdgesTemplateMu = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
-  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
+  // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
   // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
   // 					    1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9, 2.0, 2.2, 2.4};
   //vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.1,-1.0,-0.9,
   //					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
   //					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
-  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.1, -1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
-  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  // 					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
+  vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.1, -1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
   // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.0,
   // 					    -0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1.0,
   // 					    1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56};
+  //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
-  //vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   
   // electron
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
@@ -110,20 +107,22 @@ void fillHistograms(const string& treedir = "./",
   // vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
   // vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.3,2.5};
   // vector<Double_t> genPtBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
-  vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
-  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
-  					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
+  // vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.2,-2.0,-1.8,-1.6,-1.566,-1.4442,-1.4,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,
+  // 					    1.4442,1.566,1.6,1.8,2.0,2.2,2.4};
   // vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.5,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,
   // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
   // 					    1.1,1.2,1.3,1.4,1.4442,1.5,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4};
-  // vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
-  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
-  // 					    1.4442,1.5,1.566,1.7,1.9,2.1,2.4};
+  vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
+  					    1.4442,1.5,1.566,1.7,1.9,2.1,2.4};
   vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateEl = {30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
-  //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
-  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
+  //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
+  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
   vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   
   vector<Double_t> etaBinEdgesTemplate;
   vector<Double_t> ptBinEdgesTemplate;
@@ -343,6 +342,9 @@ void fillHistograms(const string& treedir = "./",
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar1EffStat(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar2EffStat(charges.size());
 
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatUp(charges.size());
+  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatDn(charges.size());
+
   // better to do it as done below
   //Int_t maxEffStat = 2 * ((Int_t) (10 * (genEtaBinEdgesTemplate.back() + 0.0001)));
   //Double_t  etaminForEffStat = -1. * genEtaBinEdgesTemplate.back();
@@ -540,7 +542,7 @@ void fillHistograms(const string& treedir = "./",
 								       netaBins,etaBinEdgesTemplate.data(),
 								       nptBins,ptBinEdgesTemplate.data(),
 								       nGenBinsTemplate,globalBin_binning.data())
-							    );
+							      );
       h3_charge_eta_pt_globalBin_ErfPar1EffStat[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_ErfPar1EffStat%d",charges[ch].c_str(),ieff+1),"",
 								       netaBins,etaBinEdgesTemplate.data(),
 								       nptBins,ptBinEdgesTemplate.data(),
@@ -550,7 +552,18 @@ void fillHistograms(const string& treedir = "./",
 								       netaBins,etaBinEdgesTemplate.data(),
 								       nptBins,ptBinEdgesTemplate.data(),
 								       nGenBinsTemplate,globalBin_binning.data())
-							   );
+							      );
+      h3_charge_eta_pt_globalBin_BinUncEffStatUp[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dUp",charges[ch].c_str(),ieff+1),"",
+									netaBins,etaBinEdgesTemplate.data(),
+									nptBins,ptBinEdgesTemplate.data(),
+									nGenBinsTemplate,globalBin_binning.data())
+							       );
+      h3_charge_eta_pt_globalBin_BinUncEffStatDn[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dDn",charges[ch].c_str(),ieff+1),"",
+									netaBins,etaBinEdgesTemplate.data(),
+									nptBins,ptBinEdgesTemplate.data(),
+									nGenBinsTemplate,globalBin_binning.data())
+							       );
+
     }
 
 
@@ -573,12 +586,15 @@ void fillHistograms(const string& treedir = "./",
 
   Double_t wgt = 1.0;
   Double_t wgt_noPt = 1.0; // will store wgt before applying selections dependent on pt, so to use that for the ptscale systematics
+  Double_t wgtMuTrigSFup = 1.0;
+  Double_t wgtMuTrigSFdn = 1.0;
   // Double_t wgt_ptscaleUp = 1.0;
   // Double_t wgt_ptscaleDn = 1.0;
   Double_t lep1pt = 0.0;
   Double_t ptlow = 0.0;
   Double_t pthigh = 0.0;
   Double_t etalow = 0.0;
+  Double_t etahigh = 0.0;
   Double_t lepEffWgtUp = 0.0;
   Double_t lepEffWgtDn = 0.0;
   // Double_t ptLepFullUp = 0.0;
@@ -692,6 +708,8 @@ void fillHistograms(const string& treedir = "./",
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
       sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
+      wgtMuTrigSFup = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], 1.0);
+      wgtMuTrigSFdn = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], -1.0);
       // in the ntuples the reco2Selection SF is eta-smoothed, the one from the function is not
       sfRecoToSelectionMu = lep_SF2[0];  // _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
       sfPrefireMu = prefireJetsWeight(lep_eta[0]);
@@ -887,13 +905,20 @@ void fillHistograms(const string& treedir = "./",
 
     for (Int_t ieff = 0; ieff < maxEffStat; ++ieff) {     
       etalow = etaminForEffStat + 0.1 * ieff;
+      etahigh = etalow + 0.1;
       h3_charge_eta_pt_globalBin_ErfPar0EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
+      									 effSystEtaBins(0,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etahigh,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar1EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
+      									 effSystEtaBins(1,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etahigh,chargeSign) * wgt);
       h3_charge_eta_pt_globalBin_ErfPar2EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etalow+0.1,chargeSign) * wgt);
-
+      									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etahigh,chargeSign) * wgt);
+      // test for muons only      
+      if (lep_eta[0] > etalow && lep_eta[0] < etahigh) {
+	h3_charge_eta_pt_globalBin_BinUncEffStatUp[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
+									    wgt * wgtMuTrigSFup / sfTriggerMu);
+	h3_charge_eta_pt_globalBin_BinUncEffStatDn[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
+									    wgt * wgtMuTrigSFdn / sfTriggerMu);
+      }
     }
 
   }
