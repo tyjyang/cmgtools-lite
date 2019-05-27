@@ -126,8 +126,6 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
   int ptbin  = std::max(1, std::min(fsrWeights->GetNbinsY(), fsrWeights->GetYaxis()->FindFixBin(dresspt)));
   int zbin  = std::max(1, std::min(fsrWeights->GetNbinsZ(), fsrWeights->GetZaxis()->FindFixBin(barept/dresspt)));
 
-  // Z bins of the TH3D (abseta,pt,deltaR):
-  // drbins = [-1,0] + [0.0001*i for i in xrange(1001)] + [10]
   return fsrWeights->GetBinContent(etabin,ptbin,zbin);
 }
 
