@@ -164,7 +164,7 @@ def combCharges(options):
         print combineCmd
 
 
-def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta', uncorrelateCharges=False):
+def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBordersTmp=[], doType = 'eta', uncorrelateCharges=False, isHelicity = True):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir 
@@ -185,7 +185,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doPtNorm = doType == 'ptnorm'
     doUncorrChargeEta = doType == 'etacharge'
     if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
-    if flav=='el': doUncorrChargeEta = False # overwrite everything for ele
+    if flav=='el' and isHelicity: doUncorrChargeEta = False # overwrite everything for ele
 
     typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:
@@ -286,12 +286,13 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
                             iptMin = ipt
                     ptBorders[-1] = ptbins[iptMin] # could be 45.5 or 46
                 ptBorders.extend([50, 56])
+            print 'this is ptBorders', ptBorders
             borderBins = []
             for i in ptBorders[:-1]:
                 borderBins.append(next( x[0] for x in enumerate(ptbins) if x[1] > i))
             borderBins.append(len(ptbins))
 
-            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20]
+            scalings = [0.30, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
@@ -442,9 +443,9 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
 
 def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHelicityAnalysis=True):
 
-    if not isMu:
-        print "Electrons not implemented in putTestEffSyst(). Exit"
-        quit()
+    # if not isMu:
+    #     print "Electrons not implemented in putTestEffSyst(). Exit"
+    #     quit()
 
     # this is mainly for tests, one should actually change the definition of weights when filling histograms
     # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
@@ -488,13 +489,25 @@ def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHe
             effsystvals[0.0] = 0.002
             effsystvals[1.0] = math.sqrt( math.pow(0.004,2) - math.pow(0.002,2))
             effsystvals[1.5] = math.sqrt( math.pow(0.014,2) - math.pow(0.004,2) - math.pow(0.002,2))
-        else:
-            pass
-            # # FIX ME: here the prefiring syst is not added yet!
-            effsystvals[1.0] = 0.006
-            effsystvals[1.479] = 0.008
-            effsystvals[2.0] = 0.013
-            effsystvals[2.5] = 0.016
+        else:            
+            # this might get the wrong cmssw path if you typed cmsenv from a different release
+            # L1EG_file = "{cmssw}/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root".format(cmssw=os.environ["CMSSW_BASE"])
+            # let's use relative path
+            L1EG_file = "../postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root"
+            L1EG_hist = "l1EG_eff"
+            tf = ROOT.TFile(L1EG_file,'read')
+            hL1 = tf.Get(L1EG_hist)
+            if not hL1:
+                print "Error in putTestEffSystHistosDiffXsec(): could not get histogram {h} in file {f}. Abort".format(h=L1EG_hist,f=L1EG_file)
+                quit()
+            # # FIX ME: here the prefiring syst is not added!
+            #
+            # numbers are deviced in such a way to obtain the commented value when summing in quadrature all terms before that
+            effsystvals[0.0] =   0.006
+            effsystvals[1.0] =   0.0053  # 0.008
+            effsystvals[1.479] = 0.01    # 0.013
+            effsystvals[2.0] =   0.0093  # 0.016
+            # then we will sum L1 prefiring term            
 
             
         for ik,key in enumerate(effsystvals):
@@ -520,7 +533,16 @@ def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHe
                 for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
                     etaval = tmp_scaledHisto_up.GetXaxis().GetBinCenter(ieta)
                     scaling = 0.0
-                    if abs(etaval) >= key: scaling += effsystvals[key]
+                    if abs(etaval) >= key:
+                        if isMu: 
+                            scaling += effsystvals[key]                        
+                        else:
+                            ptL1  = tmp_scaledHisto_up.GetYaxis().GetBinLowEdge(ipt)
+                            etaL1 =  tmp_scaledHisto_up.GetXaxis().GetBinUpEdge(ieta) if (etaval < 0) else tmp_scaledHisto_up.GetXaxis().GetBinLowEdge(ieta)
+                            if (abs(etaL1) >= 1.479 and ptL1 >= 35.0):                                
+                                ptval = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
+                                L1RelativeUncertainty = hL1.GetBinError(hL1.GetXaxis().FindFixBin(etaval),hL1.GetYaxis().FindFixBin(ptval))
+                                scaling += math.sqrt(effsystvals[key]*effsystvals[key] + L1RelativeUncertainty*L1RelativeUncertainty)
                 
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)
