@@ -36,10 +36,13 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs = []
-        systs += ['pdf', 'alphaS', 'mW']
-        systs += ['muR'   +str(i) for i in range(1,11)]
-        systs += ['muF'   +str(i) for i in range(1,11)]
-        systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += ['pdf', 'alphaS', 'mW', 'fsr']
+        # systs += ['muR'   +str(i) for i in range(1,11)]
+        # systs += ['muF'   +str(i) for i in range(1,11)]
+        # systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += [','.join(['muR'   +str(i) for i in range(1,11)])]
+        systs += [','.join(['muF'   +str(i) for i in range(1,11)])]
+        systs += [','.join(['muRmuF'+str(i) for i in range(1,11)])]
         systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
@@ -50,7 +53,7 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --projections --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
 

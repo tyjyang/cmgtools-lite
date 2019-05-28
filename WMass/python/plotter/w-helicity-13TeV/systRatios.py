@@ -35,22 +35,22 @@ def plotUnrolledRatios(ratios2d,outdir,name):
     lat.DrawLatex(0.85, 0.92, '36 fb^{-1} (13 TeV)')
     for ext in ['pdf', 'png']:
         c1.SaveAs('{odir}/{name}_unrolled.{ext}'.format(odir=outdir,name=name,ext=ext))
-
-def doUnrolledRatios(ratios2d):
     
+def doUnrolledRatios(ratios2d):
     ratios = [unroll2Dto1D(r2,cropNegativeBins=False) for k,r2 in ratios2d.iteritems() if "TH2" in r2.ClassName()]
+    (ratios1d, unity, line) = refine1DRatios(ratios)
+    return (ratios1d, unity, line)
 
-    unity = ratios[0].Clone("unity")
+def refine1DRatios(ratios1d,xtitle="unrolled lepton (#eta,p_{T}) bin"):
+    unity = ratios1d[0].Clone("unity")
     rmax = 0
-
     for b in xrange(1,unity.GetNbinsX()+1):
         unity.SetBinContent(b, 0); unity.SetBinError(b, 0)
-        for ratio in ratios:
+        for ratio in ratios1d:
             r = abs(ratio.GetBinContent(b))
             unity.SetBinError(b,max([r,abs(unity.GetBinError(b))]))
         rmax = max([rmax, unity.GetBinError(b)])
         rmin = -rmax
-
     unity.SetFillStyle(1001);
     unity.SetFillColor(ROOT.kCyan);
     unity.SetMarkerStyle(1);
@@ -62,23 +62,30 @@ def doUnrolledRatios(ratios2d):
     unity.GetXaxis().SetTitleSize(0.14)
     unity.GetXaxis().SetTitleOffset(0.9)
     unity.GetXaxis().SetLabelFont(42)
-    unity.GetXaxis().SetLabelSize(0.1)
     unity.GetXaxis().SetLabelOffset(0.007)
-    unity.GetYaxis().SetNdivisions(505)
     unity.GetYaxis().SetTitleFont(42)
     unity.GetYaxis().SetTitleSize(0.14)
     unity.GetYaxis().SetLabelFont(42)
     unity.GetYaxis().SetLabelSize(0.11)
-    unity.GetYaxis().SetLabelOffset(0.01)
     unity.GetYaxis().SetDecimals(True) 
     unity.GetYaxis().SetTitle('Syst./Nom.')
-    unity.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
-    unity.GetYaxis().SetTitleOffset(0.40)
-    line = ROOT.TLine(unity.GetXaxis().GetXmin(),1,unity.GetXaxis().GetXmax(),1)
+    if "unrolled" in xtitle:
+        unity.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
+        unity.GetYaxis().SetNdivisions(505)
+        unity.GetXaxis().SetLabelSize(0.1)
+        unity.GetYaxis().SetLabelOffset(0.01)
+        unity.GetYaxis().SetTitleOffset(0.40)
+    else:
+        unity.GetXaxis().SetTitle(xtitle)
+        unity.GetXaxis().SetLabelSize(0.07)
+        unity.GetYaxis().SetLabelOffset(0.03)
+        unity.GetYaxis().SetTitleOffset(0.7)
+
+    line = ROOT.TLine(unity.GetXaxis().GetXmin(),0,unity.GetXaxis().GetXmax(),0)
     line.SetLineWidth(2);
     line.SetLineColor(58);
     line.Draw("L")
-    for ir,ratio in enumerate(ratios):
+    for ir,ratio in enumerate(ratios1d):
         ratio.SetLineColor(ROOT.kRed + 2*ir)
         ratio.Draw("HIST SAME" if ratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
     leg1 = ROOT.TLegend(0.45, 0.8, 0.7, 0.9)
@@ -90,7 +97,33 @@ def doUnrolledRatios(ratios2d):
     leg1.AddEntry(unity, "envelope unc.", "F")
     leg1.Draw()
 
-    return (ratios, unity, line)
+    return (ratios1d, unity, line)
+
+def plotProjectionRatios(ratios2d,outdir,name,proj="Y"):
+    plotformat = (1200,600)
+    cp = ROOT.TCanvas("cp", "cp", plotformat[0], plotformat[1]); cp.Draw()
+    cp.SetWindowSize(plotformat[0] + (plotformat[0] - cp.GetWw()), (plotformat[1] + (plotformat[1] - cp.GetWh())));
+    cp.SetLeftMargin(0.2)
+    cp.SetRightMargin(0.07)
+    cp.SetBottomMargin(0.3)
+
+    projections = []
+    for k,r2 in ratios2d.iteritems():
+        if "TH2" not in r2.ClassName(): continue
+        nbinsProj = r2.GetNbinsY() if proj=='X' else r2.GetNbinsX()
+        if proj=='X':
+            proj1D = r2.ProjectionX("{proj}_proj_{name}".format(proj=proj,name=k),1,nbinsProj,"e")
+        else:
+            proj1D = r2.ProjectionY("{proj}_proj_{name}".format(proj=proj,name=k),1,nbinsProj,"e")
+        projections.append(proj1D)
+    xtitle = '#eta' if proj=='X' else 'p_{T} (GeV)'
+    ratios,rnorm,rline = refine1DRatios(projections,xtitle)
+    lat = ROOT.TLatex()
+    lat.SetNDC(); lat.SetTextFont(42)
+    lat.DrawLatex(0.20, 0.92, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.70, 0.92, '36 fb^{-1} (13 TeV)')
+    for ext in ['pdf', 'png']:
+        cp.SaveAs('{odir}/{name}_projection{proj}.{ext}'.format(odir=outdir,name=name,proj=proj,ext=ext))
 
 
 if __name__ == "__main__":
@@ -101,6 +134,7 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--skip-signal', dest="skipSignal", default=False, action='store_true', help="Skip signal processes");
     parser.add_option('-u','--unrolled', dest='unrolled', default=False, action='store_true', help='make the 1D ratios on the unrolled plot for all the listed systematics')
+    parser.add_option(     '--projections', dest='projections', default=False, action='store_true', help='make the 1D ratios on the X and Y projections')
     parser.add_option('-r','--syst-ratio-range', dest='systRatioRange', default='', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template\'s min and max values are used (they will be different for each template). With "templateSym", the range is set symmetrically using max(abs(minz),maxz).') 
     parser.add_option('-p','--processes', dest='processes', default='', type='string', help='Comma-separated list of processes to consider (if empty, all processes are used). It overrides --skip-signal')
     (options, args) = parser.parse_args()
@@ -246,12 +280,17 @@ if __name__ == "__main__":
                     r.Draw('colz')
                     for ext in ['pdf', 'png']:
                         canv.SaveAs('{odir}/{name}.{ext}'.format(odir=outname,name=k,ext=ext))
+
+            systNames = options.systematics.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
+            ## protection for too long filenames
+            if len(systNames) > 50: systNames = systNames[:50]
      
             if options.unrolled:
-                systNames = options.systematics.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
-                ## protection for too long filenames
-                if len(systNames) > 50: systNames = systNames[:50]
                 plotUnrolledRatios(ratios,outname,'{syst}_{ch}'.format(syst=systNames,ch=charge))
+            
+            if options.projections:
+                for proj in ['X','Y']: plotProjectionRatios(ratios,outname,'{syst}_{ch}'.format(syst=systNames,ch=charge),proj)
+                
 
 
     if len(errors):

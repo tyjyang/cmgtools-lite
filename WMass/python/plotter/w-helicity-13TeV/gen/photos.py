@@ -31,7 +31,9 @@ if __name__ == "__main__":
                      'wp_munu_photos/GEN/GEN_3380000','wp_munu_photos/GEN/GEN_4100000','wp_munu_photos/GEN/GEN_4600000','wp_munu_photos/GEN/GEN_6980000',
                      'wm_munu_photos/GEN/GEN_4960000']
     else: 
-        skipfiles = []
+        skipfiles = ['wp_enu_photos/GEN/GEN_1560000','wp_enu_photos/GEN/GEN_2120000','wp_enu_photos/GEN/GEN_500000',
+                     'wm_enu_pythia8/GEN/GEN_320000',
+                     'wm_enu_photos/GEN/GEN_3120000','wm_enu_photos/GEN/GEN_3320000','wm_enu_photos/GEN/GEN_6840000']
 
     # check the goodness of files
     treefiles = []
@@ -47,6 +49,8 @@ if __name__ == "__main__":
             treefiles.append(treefile)
         else:
             print 'file ',treefile,' is BAD.'
+
+#    treefiles = ['/eos/cms/store/user/arapyan/mc/wm_enu_pythia8/GEN/GEN_6020000.root']
 
     chain = ROOT.TChain('Events')
     for fname in treefiles:
