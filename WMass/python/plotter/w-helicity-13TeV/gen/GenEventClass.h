@@ -27,11 +27,11 @@ public :
    Int_t           fCurrent; //!current Tree number in a TChain
 
    // output histograms
-   TH1F *h_lpt, *h_leta, *h_prefsrlpt, *h_prefsrleta, *h_lptDressOverPreFSR;
+   TH1F *h_lpt, *h_leta, *h_barelpt, *h_bareleta, *h_prefsrlpt, *h_prefsrleta, *h_lptBareOverDressed, *h_lptDressOverPreFSR;
    TH1F *h_wpt, *h_wy, *h_wmass, *h_genwpt, *h_genwy, *h_genwmass;
    TH1F *h_nfsr, *h_fsrdr_close, *h_fsrpt_close, *h_fsrdr_hard, *h_fsrpt_hard, *h_fsrptfrac_hard;
 
-   TH3F *h3d_fsrdr_hard;
+   TH3F *h3d_fsrdr_hard, *h3d_lptBareOverDressed;
 
    TFile *outFile_;
    std::vector<TH1F*> histograms;
@@ -94,6 +94,7 @@ public :
    virtual void     setFlavor(int);
    TLorentzVector   getPreFSRLepton();
    std::vector<TLorentzVector> getDressedLeptons(float deltaR=0.1);
+   std::vector<TLorentzVector> getBareLeptons();
    std::vector<TLorentzVector> getFSRPhotons(TLorentzVector fourmom, float deltaR=0.1);
    TLorentzVector   getGenW();
    TLorentzVector   getNeutrino();
