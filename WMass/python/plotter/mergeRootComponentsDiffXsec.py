@@ -248,7 +248,10 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                     if flavour == 'el':
                         scaling *= math.sqrt(2)
                     # modify scaling if template bin has larger width than the ErfPar histogram
-                    if binwidths[ietaTemplate-1] > 1.: scaling = scaling / binwidths[ietaTemplate-1]
+                    # assuming the two uncertainties have the same order of magnitude, we should scale down by sqrt(binWidth/0.1)
+                    # however, we could just be conservative and not scale anything
+                    #if binwidths[ietaTemplate-1] > 1.: scaling = scaling / binwidths[ietaTemplate-1]
+                    #if binwidths[ietaTemplate-1] > 1.: scaling = scaling / math.sqrt( binwidths[ietaTemplate-1] )
                     ## scale up and down with what we got from the histo
 
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)

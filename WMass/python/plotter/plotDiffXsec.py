@@ -6,14 +6,14 @@ import ROOT, os, sys, re, array
 
 doMuElComb = 0
 dryrun = 0
-skipData = 1
+skipData = 0
 onlyData = 0
 
-skipPlot = 1
-skipTemplate = 1
-skipDiffNuis = 1
-skipPostfit = 1  # only for Data
-skipCorr = 1
+skipPlot = 0
+skipTemplate = 0
+skipDiffNuis = 0
+skipPostfit = 0  # only for Data
+skipCorr = 0
 skipImpacts = 0
 
 allPtBinsSignalElectron = 0
@@ -23,18 +23,21 @@ seed = 123456789
 #folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
 #folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
-folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
+#folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
-#folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
+folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 if doMuElComb:
     folder = "muElCombination"
 
-postfix = "testEffSystUncorrEta_uncorrPtScale"
-postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
+#postfix = "testEffSystUncorrEta_uncorrPtScale"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_noCorrelateXsecStat"
+postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
 #postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep"
 postfix += "_bbb1_cxs1"
+#postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
 
 flavour = "el" if "_el_" in folder else "mu"
