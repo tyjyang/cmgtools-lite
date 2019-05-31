@@ -111,7 +111,11 @@ if __name__ == "__main__":
         row = []
         flag = False
 
-        mean_p = valuesPrefit[name+'_gen'][0]
+        ## this try catch catches the cases for which no gen (prefit) value exists. needed for the .* one
+        try: 
+            mean_p = valuesPrefit[name+'_gen'][0]
+        except:
+            continue
         val_f,err_f = (valuesAndErrors[name][0],abs(valuesAndErrors[name][0]-valuesAndErrors[name][1]))
         row += [ "%+.4f +/- %.4f" % (val_f, err_f) ]        
         if options.outdir: 
@@ -223,6 +227,9 @@ if __name__ == "__main__":
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesPtUncorrelated'  in x else 0)
+
+        if options.pois in ['.','.*']:
+            names = sorted(names, key = lambda x: abs(float(table[x][0].split(',')[0])), reverse=True)
      
         highlighters = { 1:highlight, 2:morelight };
         for n in names:
