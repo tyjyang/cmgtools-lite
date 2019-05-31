@@ -702,8 +702,8 @@ if __name__ == "__main__":
     parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
     parser.add_option('-b','--bin', dest='bin', default='ch1', type='string', help='name of the bin')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
-    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
+    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
     parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background. Different from --long-lnN, which would also assing an additional LnN uncertainty')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
@@ -922,7 +922,7 @@ if __name__ == "__main__":
             if 'mu' in options.bin:
                 putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
 
-            #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin)
+            putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin)
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin)
 
             if options.wzTestEffSystShape:
@@ -930,7 +930,7 @@ if __name__ == "__main__":
                 putTestEffSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*)', charge, isMu= 'mu' in options.bin, isHelicityAnalysis=True)                
                 final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {indir}/TestEffSyst_{flav}_{ch}*.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             else:
-                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/Fakes*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
+                final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
 
             os.system(final_haddcmd)
 
@@ -950,7 +950,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*Fakes.*Uncorrelated.*|.*(ele|mu)scale.*|.*fsr.*',name):
+                if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z).*Uncorrelated.*|.*(ele|mu)scale.*|.*fsr.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -1214,7 +1214,7 @@ if __name__ == "__main__":
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(_norm|lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')
-        combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),finalsystnames))+'\n')
+        combinedCard.write('\nOtherExp group = '+' '.join(filter(lambda x: re.match('CMS.*lepVeto|Z.*Uncorrelated.*|CMS.*bkg_lepeff',x),finalsystnames))+'\n')
 
         # now make the custom groups for charge asymmetry, angular coefficients, inclusive xsecs, etc.
         ## first make a list of all the signal processes.
