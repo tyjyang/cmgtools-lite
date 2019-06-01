@@ -392,7 +392,7 @@ def putUncorrelatedBkgNorm(infile,regexp,charge,procName, outdir=None, isMu=True
         postfixForFlavourAndCharge += charge
 
         ## get the border bins in eta for the uncorrelated nuisances in eta
-        deltaEtaUnc = 0.5
+        deltaEtaUnc = 0.5001
         ## absolute eta borders:        
         etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
         ## construct positive and negative eta borders symmetrically
@@ -892,6 +892,9 @@ if __name__ == "__main__":
                                                 tokens = patt.findall(newname)
                                                 sysname = tokens[0][0]; isys = int(tokens[0][1])
                                                 newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
+                                            else:
+                                                tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1]
+                                                newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
                                             (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
@@ -950,7 +953,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z).*Uncorrelated.*|.*(ele|mu)scale.*|.*fsr.*',name):
+                if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -1208,7 +1211,7 @@ if __name__ == "__main__":
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
-        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale(0|1).*',x),finalsystnames))+'\n')
+        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale\d.*',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*TestEffSyst.*|CMS.*sig_lepeff',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
