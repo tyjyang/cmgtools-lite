@@ -43,7 +43,8 @@ if __name__ == '__main__':
         systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
-        systs += ['CMS_Wmu_muscale']
+        systs += ['CMS_Wmu_muscale0']
+        systs += ['CMS_Wmu_muscale1']
         nEtaUnc = 10 if muEl=='mu' else 26
         systs += [','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
@@ -66,7 +67,8 @@ if __name__ == '__main__':
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW']
                 if 'floatingPOIs' in tmp_file:
-                    nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                    #nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
+                    nuisancesAndPOIs += ['W{charge}_right.*pmaskedexpnorm,W{charge}_left.*pmaskedexpnorm'.format(charge=charge) for charge in ['plus','minus'] ]
                 for nuis in nuisancesAndPOIs:
                     cmd = 'python w-helicity-13TeV/subMatrix.py {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix)
                     print cmd
@@ -95,7 +97,7 @@ if __name__ == '__main__':
                 else: # single charge
                     cmd  = 'python w-helicity-13TeV/plotYW.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                    cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                     for norm in normstr:
                         print cmd+norm
                         os.system(cmd+norm)
@@ -165,7 +167,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
