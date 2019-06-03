@@ -368,9 +368,9 @@ if __name__ == "__main__":
     parser.add_option('-n', '--normxsec'    , dest='normxsec' , default=False         , action='store_true',   help='if given, plot the differential xsecs normalized to the total xsec')
     parser.add_option(      '--nolong'      , dest='nolong'   , default=False         , action='store_true',   help='if given, do not plot longitudinal component (but it assumes the POIs exist)')
     parser.add_option(      '--longBkg'     , dest='longBkg'  , default=False         , action='store_true',   help='if True, longitudinal component was treated as background, so the POIs are missing. Manage inputs accordingly')
-    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="", help='Define which Y bins are to be considered as background. With format 14,15 ')
-    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="11", help='Define which Y bins were put in OutAcc channel in the fit. With format 14,15 ')
-    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.75'       , type='float', help='Max value for rapidity range')
+    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins were put in OutAcc channel in the fit. With format 14,15 ')
+    parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.5'       , type='float', help='Max value for rapidity range')
     (options, args) = parser.parse_args()
 
 
