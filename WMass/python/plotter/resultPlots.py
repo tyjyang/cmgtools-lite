@@ -36,10 +36,13 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs = []
-        systs += ['pdf', 'alphaS', 'mW']
+        systs += ['pdf', 'alphaS', 'mW', 'fsr']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
+        #systs += [','.join(['muR'   +str(i) for i in range(1,11)])]
+        #systs += [','.join(['muF'   +str(i) for i in range(1,11)])]
+        #systs += [','.join(['muRmuF'+str(i) for i in range(1,11)])]
         systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
@@ -50,8 +53,9 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --projections --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
 
@@ -75,7 +79,7 @@ if __name__ == '__main__':
                     os.system(cmd)
 
     ## plot rapidity spectra
-    ## ================================
+    ## ==============================================================
     if options.make in ['all', 'rap']:
         print 'plotting rapidity spectra'
         tmp_outdir = options.outdir+'/rapiditySpectra/'
@@ -90,19 +94,38 @@ if __name__ == '__main__':
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf} --nolong'.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
+                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
                     for norm in normstr:
                         print cmd+norm
                         os.system(cmd+norm)
                 else: # single charge
                     cmd  = 'python w-helicity-13TeV/plotYW.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                    cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                     for norm in normstr:
                         print cmd+norm
                         os.system(cmd+norm)
-                    
 
+    ## plot rapidity spectra for many toys, do not do this by default
+    ## ==============================================================
+    if options.make in ['manyToys']:
+        print 'plotting rapidity spectra'
+        tmp_outdir = options.outdir+'/rapiditySpectraManyToys/'
+        os.system('mkdir -p {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        for t in ['hessian']:
+            for tmp_file in os.listdir(results['dirWithToyFits']):
+                if not '.root' in tmp_file or not 'fitresults' in tmp_file or not 'toy' in tmp_file: continue
+                fitflavor = 'mu'
+                tmp_suffix = '_'.join(tmp_file.split('_')[2:]).replace('.root','')
+                normstr = [' ', ' --normxsec ']
+                cmd  = 'python w-helicity-13TeV/plotYW.py '
+                cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf} --nolong '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results['dirWithToyFits']+'/'+tmp_file)
+                for norm in normstr:
+                    print cmd+norm
+                    os.system(cmd+norm)
+                    
     ## plot postfit plots
     ## ================================
     if options.make in ['all', 'post']:
@@ -167,7 +190,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)

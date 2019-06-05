@@ -49,12 +49,14 @@ void GenEventClass::Loop(int maxentries)
 
       if(jentry%10000==0) std::cout << "Processing event " << jentry << std::endl;
 
+      std::vector<TLorentzVector> bareLeptonCollection = getBareLeptons();
       std::vector<TLorentzVector> dressedLeptonCollection = getDressedLeptons(TMath::Pi());
       TLorentzVector neutrino = getNeutrino();
       if (neutrino.Pt()<1e-6) continue;
 
-      if(dressedLeptonCollection.size()){
+      if(bareLeptonCollection.size()){
 
+        TLorentzVector bareLepton    = bareLeptonCollection[0];
         TLorentzVector dressedLepton = dressedLeptonCollection[0];
 
         TLorentzVector preFSRLepton = getPreFSRLepton();
@@ -64,6 +66,12 @@ void GenEventClass::Loop(int maxentries)
         h_lpt->Fill(dressedLepton.Pt());
         h_leta->Fill(dressedLepton.Eta());
         h_lptDressOverPreFSR->Fill(dressedLepton.Pt()/preFSRLepton.Pt());
+
+        h_barelpt->Fill(bareLepton.Pt());
+        h_bareleta->Fill(bareLepton.Eta());
+        h_lptBareOverDressed->Fill(bareLepton.Pt()/dressedLepton.Pt());
+
+        h3d_lptBareOverDressed->Fill(fabs(preFSRLepton.Eta()),preFSRLepton.Pt(),bareLepton.Pt()/dressedLepton.Pt());
 
         TLorentzVector recw = dressedLepton + neutrino;
         h_wpt->Fill(recw.Pt());
@@ -120,7 +128,7 @@ TLorentzVector GenEventClass::getPreFSRLepton() {
   return lepton;
 }
 
-std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
+std::vector<TLorentzVector> GenEventClass::getBareLeptons() {
 
   std::vector<TLorentzVector> leptons;
   for (int igp=0; igp<GenParticle_; ++igp) {
@@ -135,6 +143,12 @@ std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
        [](const TLorentzVector& a, const TLorentzVector& b)
        {return a.Pt()>b.Pt();});
   
+  return leptons;
+}
+
+std::vector<TLorentzVector> GenEventClass::getDressedLeptons(float cone) {
+
+  std::vector<TLorentzVector> leptons = getBareLeptons();
   if(leptons.size()==0) return leptons;
 
   for (int igp=0; igp<GenParticle_; ++igp) {
@@ -256,6 +270,8 @@ void GenEventClass::bookHistograms() {
   h_leta = new TH1F("leta","lepton eta",1000,-5.,5.);           histograms.push_back(h_leta);
   h_prefsrlpt  = new TH1F("prefsrlpt","pre-FSR lepton pt",1000,0,250);      histograms.push_back(h_prefsrlpt);
   h_prefsrleta = new TH1F("prefsrleta","pre-FSR lepton eta",1000,-5.,5.);   histograms.push_back(h_prefsrleta);
+  h_barelpt  = new TH1F("barelpt","bare lepton pt",1000,0,250);      histograms.push_back(h_barelpt);
+  h_bareleta = new TH1F("bareleta","bare lepton eta",1000,-5.,5.);   histograms.push_back(h_bareleta);
 
   h_lptDressOverPreFSR  = new TH1F("lptDressOverPreFSR","dressed lepton pt over preFSR",1000,0.5,1.5);   histograms.push_back(h_lptDressOverPreFSR);
 
@@ -294,6 +310,20 @@ void GenEventClass::bookHistograms() {
     h3d_fsrdr_hard = new TH3F("h3d_fsrdr_hard","deltaR FSRhard-lep vs preFSR lep pt/eta",4,etaBins,7,ptBins,nDrBins+1,drBins);
   }
 
+  const int nRatioBins = 41;
+  float ratioBinEdges[nRatioBins+1];
+  ratioBinEdges[0] = 0;
+  ratioBinEdges[1] = 0.9;
+  int lastEdge=1;
+  for(int b=0;b<10;++b)  ratioBinEdges[lastEdge+b] = ratioBinEdges[lastEdge] + b*1e-2;     lastEdge += 9;
+  for(int b=0;b<=21;++b) ratioBinEdges[lastEdge+b] = ratioBinEdges[lastEdge] + b*5e-4;     lastEdge += 21;
+  for(int b=0;b<=10;++b)  ratioBinEdges[lastEdge+b] = ratioBinEdges[lastEdge] + b*1e-2;
+  for(int b=0;b<nRatioBins+1;++b) std::cout << "b["<<b<<"] = " << ratioBinEdges[b] << "\t";
+  std::cout << std::endl;
+
+  h_lptBareOverDressed= new TH1F("h_lptBareOverDressed","bare over dressed pt",nRatioBins,ratioBinEdges);   histograms.push_back(h_lptBareOverDressed);
+  h3d_lptBareOverDressed  = new TH3F("h3d_lptBareOverDressed","bare lepton pt over dressed",4,etaBins,7,ptBins,nRatioBins,ratioBinEdges);
+
 }
 
 void GenEventClass::writeHistograms() {
@@ -302,6 +332,7 @@ void GenEventClass::writeHistograms() {
     histograms[ih]->Write();
   }
   h3d_fsrdr_hard->Write();
+  h3d_lptBareOverDressed->Write();
 }
 
 void GenEventClass::setOutfile(TString outfilepath){

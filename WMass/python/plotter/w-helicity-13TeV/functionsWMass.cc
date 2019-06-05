@@ -104,24 +104,29 @@ float prefireJetsWeight(float eta){
 }
 
 TFile *_file_fsrWeights = NULL;
-TH3F * fsrWeights_plus = NULL;
-TH3F * fsrWeights_minus = NULL;
+TH3F * fsrWeights_elplus  = NULL;
+TH3F * fsrWeights_elminus = NULL;
+TH3F * fsrWeights_muplus  = NULL;
+TH3F * fsrWeights_muminus = NULL;
 
-float fsrPhotosWeight(int pdgId, float prefsreta, float prefsrpt, float deltar) {
-  if (!fsrWeights_plus || !fsrWeights_minus) {
-    _file_fsrWeights = new TFile("w-helicity-13TeV/fsrReweighting/photos_rwgt_mu.root","read");
-    fsrWeights_plus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
-    fsrWeights_minus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_mu"));
+float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
+  if (!fsrWeights_elplus || !fsrWeights_elminus || !fsrWeights_muplus || !fsrWeights_muminus) {
+    _file_fsrWeights = new TFile("w-helicity-13TeV/fsrReweighting/photos_rwgt.root","read");
+    fsrWeights_elplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_e"));
+    fsrWeights_elminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_e"));
+    fsrWeights_muplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
+    fsrWeights_muminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_mu"));
   }
-  TH3F *fsrWeights = ( pdgId>0 ? fsrWeights_plus : fsrWeights_minus );
+  TH3F *fsrWeights = 0;
+  if      (abs(pdgId)==11) fsrWeights = ( pdgId>0 ? fsrWeights_elplus : fsrWeights_elminus );
+  else if (abs(pdgId)==13) fsrWeights = ( pdgId>0 ? fsrWeights_muplus : fsrWeights_muminus );
+  else return 1;
 
-  int etabin = std::max(1, std::min(fsrWeights->GetNbinsX(), fsrWeights->GetXaxis()->FindFixBin(fabs(prefsreta))));
-  int ptbin  = std::max(1, std::min(fsrWeights->GetNbinsY(), fsrWeights->GetYaxis()->FindFixBin(prefsrpt)));
-  int drbin  = std::max(1, std::min(fsrWeights->GetNbinsZ(), fsrWeights->GetZaxis()->FindFixBin(deltar))); 
+  int etabin = std::max(1, std::min(fsrWeights->GetNbinsX(), fsrWeights->GetXaxis()->FindFixBin(fabs(dresseta))));
+  int ptbin  = std::max(1, std::min(fsrWeights->GetNbinsY(), fsrWeights->GetYaxis()->FindFixBin(dresspt)));
+  int zbin  = std::max(1, std::min(fsrWeights->GetNbinsZ(), fsrWeights->GetZaxis()->FindFixBin(barept/dresspt)));
 
-  // Z bins of the TH3D (abseta,pt,deltaR):
-  // drbins = [-1,0] + [0.0001*i for i in xrange(1001)] + [10]
-  return fsrWeights->GetBinContent(etabin,ptbin,drbin);
+  return fsrWeights->GetBinContent(etabin,ptbin,zbin);
 }
 
 TFile *_file_recoToMedium_leptonSF_el = NULL;
