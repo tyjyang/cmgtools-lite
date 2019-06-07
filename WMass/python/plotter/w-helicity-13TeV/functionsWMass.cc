@@ -129,6 +129,20 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
   return fsrWeights->GetBinContent(etabin,ptbin,zbin);
 }
 
+TFile *_file_dyptWeights = NULL;
+TH1F *amcnlody = NULL; 
+
+float dyptWeight(float pt2l) {
+  if (!amcnlody) {
+    _file_dyptWeights = new TFile("w-helicity-13TeV/dyReweighting/zpt_weights.root");
+    amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
+  }
+  int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
+  // plots are MC/data
+  return 1./amcnlody->GetBinContent(ptbin);
+}
+
+
 TFile *_file_recoToMedium_leptonSF_el = NULL;
 TH2F *_histo_recoToMedium_leptonSF_el = NULL;
 TFile *_file_recoToLoose_leptonSF_el = NULL;
