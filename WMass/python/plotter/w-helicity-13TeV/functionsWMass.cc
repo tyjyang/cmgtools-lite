@@ -138,7 +138,8 @@ float dyptWeight(float pt2l) {
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
-  return amcnlody->GetBinContent(ptbin);
+  // plots are MC/data
+  return 1./amcnlody->GetBinContent(ptbin);
 }
 
 
