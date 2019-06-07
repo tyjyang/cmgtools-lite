@@ -7,7 +7,8 @@ from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] cardsDir flavor ")
 parser.add_option("-q", "--queue",     dest="queue",  action="store_true",  default=False, help="Run jobs on condor instead of locally");
 parser.add_option('-r'  , '--runtime', default=24, type=int, help='New runtime for condor resubmission in hours. default: 24h (combined fits may be long)');
-parser.add_option('--regularize', action='store_true', default=False, help='regularize with the standard options for poim1');
+parser.add_option(        '--regularize', action='store_true', default=False, help='regularize with the standard options for poim1');
+parser.add_option(        '--useSciPy'  , action='store_true', default=False, help='use the slower SciPy minimizer (should be not necessary any more)');
 (options, args) = parser.parse_args()
 
 cardsdir = os.path.abspath(args[0])
@@ -41,12 +42,14 @@ srcfiles = []
 for ipm,POImode in pois:
     card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if ipm=='poim1' else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
     doImpacts = ' --doImpacts ' if ipm=='poim1' else ''
-    regularize = ' --doRegularization --regularizationUseExpected ' if ipm=='poim1' and options.regularize else ''
+    regularize = ' --doRegularization --regularizationUseExpected --regularizationTau 1 ' if ipm=='poim1' and options.regularize else ''
     for iexp,exp in expected:
         saveHist = ' --saveHists --computeHistErrors '
         for ibbb,bbb in BBBs:
             pfx = '--postfix {ipm}_{iexp}_{ibbb}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-            cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg}--fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize)
+            cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize)
+            if options.useSciPy: 
+                cmd += ' --useSciPyMinimizer '
             if options.queue:
                 job_file_name = jobdir+'jobfit_{ipm}_{iexp}_{ibbb}.sh'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
                 log_file_name = job_file_name.replace('.sh','.log')
