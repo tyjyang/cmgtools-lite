@@ -79,7 +79,7 @@ next_job_start_delay = 1
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), 
-           rt=int(options.grouping*2.0*3600), here=os.environ['PWD'] ) )
+           rt=int(options.grouping*6.0*3600), here=os.environ['PWD'] ) )
 ##requirements = (OpSysAndVer =?= "SLCern6")
         else:
             condor_file.write('''Universe = vanilla
