@@ -212,7 +212,7 @@ def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_sig',append=False)
     incl_file=getMcaIncl(mcafile,incl_mca)
     postfix = "_{proc}_{syst}".format(proc=incl_mca.split('_')[1],syst=syst)
     mcafile_syst = open("%s/mca%s.txt" % (odir,postfix), "w")
-    weightFcn = 'fsrPhotosWeight(GenLepPreFSR_pdgId[0]\,GenLepPreFSR_eta[0]\,GenLepPreFSR_pt[0]\,GenLepDressed_fsrDR[0])'
+    weightFcn = 'fsrPhotosWeight(GenLepDressed_pdgId[0]\,GenLepDressed_eta[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
     fsrsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
@@ -254,7 +254,6 @@ Error      = {pid}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}
 queue 1\n
 '''.format(scriptName=srcFile, pid=srcFile.replace('.sh',''), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
@@ -280,6 +279,7 @@ parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=
 parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
 parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
 parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
+parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
 (options, args) = parser.parse_args()
 
 if not options.wvar in ['genw', 'prefsrw']:
@@ -404,7 +404,9 @@ if options.signalCards:
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
                     dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
-                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
+                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+                    fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
+                    BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
                     if options.queue:
                         mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         ## here accumulate signal jobs if running with long. make long+right+left one job
@@ -470,7 +472,7 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                IARGS = ARGS
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -480,7 +482,9 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
             xpsel=' --xp "[^Z]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]))'
+            fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
+            BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
                 mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                 if options.useLSF:
@@ -507,7 +511,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                IARGS = ARGS
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -517,7 +521,9 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             xpsel=' --xp "[^TauDecaysW]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+            fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
+            BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
                 mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                 if options.useLSF:
@@ -617,7 +623,6 @@ Output     = {jd}/$(ProcId).out
 Error      = {jd}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-requirements = (OpSysAndVer =?= "SLCern6")
 request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
