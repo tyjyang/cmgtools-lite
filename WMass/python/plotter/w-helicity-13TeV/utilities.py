@@ -722,4 +722,8 @@ class util:
         if len(los)  > 1: return los[1] if 'EffStat' in s else los[0]
         return 0
         
+    def getChannelFromFitresults(self, fitresults):
+        t_fitres = fitresults.Get('fitresults')
+        channel = 'el' if 'ErfPar0EffStat1elminus' in t_fitres.GetListOfBranches() else 'mu'
+        return channel
 
