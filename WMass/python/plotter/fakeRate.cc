@@ -5,6 +5,7 @@
 #include <TH2D.h>
 #include <TFile.h>
 #include <TMath.h>
+#include <TRandom3.h>
 #include <TF1.h>
 #include <cmath>
 #include <iostream>
@@ -479,6 +480,8 @@ TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(1-x*x)", -1., 1.
 TF1 * helicityFraction_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
 TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2"              , -1., 1.);
 
+TRandom3 * helRand = new TRandom3(42);
+
 float helicityWeight(float yw, float ptw, float costheta, int pol)
 {
 
@@ -489,6 +492,12 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
     std::cout << " setting event weight to 0" << std::endl;
     return 0;
   }
+
+  float tmp_rand = helRand->Rndm();
+
+  if      (tmp_rand <  0.2                   && pol != 0) return 0.;
+  else if (tmp_rand >= 0.2 && tmp_rand < 0.6 && pol != 1) return 0.;
+  else if (tmp_rand >= 0.6                   && pol != 2) return 0.;
 
   TH2 *hist_f0 = helicityFractions_0;
   TH2 *hist_fL = helicityFractions_L;
@@ -509,15 +518,15 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
   float fRTerm = helicityFraction_R->Eval(costheta);
 
   float weight = 0.;
-  float max_weight = 4.;
+  float max_weight = 99999.;
 
    //std::cout << "normalization of the weights: " << f0*f0Term+fL*fLTerm+fR*fRTerm << std::endl;
    //weight = fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm);
    // if (weight >= max_weight) std::cout << " weight for fR larger than 4!!!!" << weight << std::endl;
 
-  if      (pol == 0) return std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
-  else if (pol == 1) return std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
-  else if (pol == 2) return std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  if      (pol == 0) return 5.0*std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  else if (pol == 1) return 2.5*std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  else if (pol == 2) return 2.5*std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
         
   std::cout << "something went wrong in the helicity reweighting" << std::endl;
   return -99999.;

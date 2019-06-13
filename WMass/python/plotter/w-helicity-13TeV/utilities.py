@@ -681,14 +681,14 @@ class util:
         return ret
             
     def getChargeAsy(self,xplus,xminus,err_xplus,err_xminus,toyEvents=10000):
-        histo = ROOT.TH1D('asy','',100,-0.05,0.5)
-        #print "getChargeAsy: ",toyEvents," toyMC running..."
+        histo = ROOT.TH1F('hasy','',100,-0.05,0.5)
         for i in xrange(toyEvents):
             ixplus  = np.random.normal(xplus,err_xplus)
             ixminus = np.random.normal(xminus,err_xminus)
             histo.Fill((ixplus-ixminus)/(ixplus+ixminus))
         #print "toyMC done"
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
+        del histo
         return ret
 
     def getChargeAsyFromTH1pair(self,h1, h2, toyEvents=10000, name='asy'):

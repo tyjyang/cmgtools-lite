@@ -80,6 +80,8 @@ if __name__ == "__main__":
     parser.add_option(     '--splitOutByTarget', dest='splitOutByTarget' , default=False , action='store_true',   help='Create a subfolder appending target to output directory, where plots will be saved')
     parser.add_option(     '--pt-min-signal'  , dest='ptMinSignal',  default=-1, type=float, help='Only for 2D xsec: specify the minimum pt for the bins considered as signal. If not given, take the very first pt value from the gen pt binning')
     parser.add_option('-c', '--channel',     dest='channel',     default='',   type='string', help='Specify channel (el|mu) to make legend. It is no longer guessed from the name of POIs. If empty, generic "l" will be used in legends instead of (#mu|e)')
+    parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--longBkg'     , dest='longBkg'  , default=False         , action='store_true',   help='if True, longitudinal component was treated as background, so the POIs are missing. Manage inputs accordingly')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -349,6 +351,10 @@ if __name__ == "__main__":
         ybins = eval(ybinfile.read())
         ybinfile.close()
 
+        bkgYBins = []
+        if options.ybinsBkg:
+            bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
+
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
@@ -436,6 +442,8 @@ if __name__ == "__main__":
                 quadrsum.Draw('pl same')
                 # now fill the real total error from the fit (with correct correlations)
                 for y in xrange(totalerr.GetNbinsX()):
+                    if y in bkgYBins: continue
+                    if pol=='long' and options.longBkg: continue
                     totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign=sign,pol=pol,bin=y)])
                 totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
                 totalerr.Draw('pl same')

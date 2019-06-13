@@ -77,10 +77,10 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), 
-           rt=int(options.grouping*1.5*3600), here=os.environ['PWD'] ) )
+           rt=int(options.grouping*6.0*3600), here=os.environ['PWD'] ) )
+##requirements = (OpSysAndVer =?= "SLCern6")
         else:
             condor_file.write('''Universe = vanilla
 Executable = {de}
@@ -92,9 +92,9 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
-'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.grouping*2.0*3600), here=os.environ['PWD'] ) )
+##requirements = (OpSysAndVer =?= "SLCern6")
 
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
