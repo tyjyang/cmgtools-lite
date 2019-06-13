@@ -779,7 +779,7 @@ if options.testEffSyst:
     print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoTestEffSyst)
     if not options.dryrun: 
         os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoTestEffSyst))
-        putTestEffSystHistosDiffXsec(shapename, 'x_Z|x_W.*', charge, outdir, isMu=True if flavour=="mu" else False)
+        putTestEffSystHistosDiffXsec(shapename, 'x_Z|x_W.*|x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False)
     cmdMergeWithTestEffSyst = "hadd -f -k -O {of} {shapeNoTestEffSyst} {onlyTestEffSyst}".format(of=shapename,
                                                                                                  shapeNoTestEffSyst=shapenameNoTestEffSyst,
                                                                                                  onlyTestEffSyst=fileTestEffSyst)

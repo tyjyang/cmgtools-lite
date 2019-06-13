@@ -475,7 +475,7 @@ float fetchFR_i(float l1pt, float l1eta, int l1pdgId, int iFR)
 }
 
    
-TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
+TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(1-x*x)", -1., 1.);
 TF1 * helicityFraction_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
 TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2"              , -1., 1.);
 

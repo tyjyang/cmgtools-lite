@@ -4,7 +4,7 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 dryrun = 0
 skipData = 0
 onlyData = 0
@@ -21,21 +21,25 @@ allPtBinsSignalElectron = 0
 seed = 123456789
 
 #folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
-#folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
+folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
 #folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
-folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
+#folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 if doMuElComb:
     folder = "muElCombination"
+    skipTemplate = 1
 
 #postfix = "testEffSystUncorrEta_uncorrPtScale"
 #postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
 #postfix = "testEffSystUncorrEta_uncorrPtScale_noCorrelateXsecStat"
-postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
+#postfix = "finalTest_EffStatNotScaled_EffSystAndScaleOnTau"
+#postfix = "finalTest_EffStatNotScaled"
+postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
 #postfix = "combinedLep"
 if doMuElComb:
-    postfix = "combinedLep"
+    postfix = "combinedLep_7June2019_noScipyMinimizer"
 postfix += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
@@ -104,7 +108,7 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
                          }
 
 # for impacts
-targets = [#"mu", 
+targets = ["mu", 
            "xsec", 
            "xsecnorm",
            "etaptasym",

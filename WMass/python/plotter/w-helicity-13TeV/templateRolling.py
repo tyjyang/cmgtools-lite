@@ -490,15 +490,19 @@ if __name__ == "__main__":
             # for i in range(1,11):
             #     fakesysts.append("FakesEtaUncorrelated%d" % i)
             zsysts = []
+            tausysts = []
             if channel == "el":
                 zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
-                zsysts.extend(["elTestEffSyst%d" % i for i in range(4)])
+                zsysts.extend(["elTestEffSyst%d" % i for i in range(4)])                
                 zsysts.append("CMS_We_sig_lepeff")
+                #tausysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                #tausysts.extend(["elTestEffSyst%d" % i for i in range(4)])
             else:
                 zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
                 zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
                 zsysts.append("CMS_Wmu_sig_lepeff")
-
+                #tausysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                #tausysts.extend(["muTestEffSyst%d" % i for i in range(3)])
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
                 if not h1_1: continue # muons don't have Flips components
@@ -540,10 +544,14 @@ if __name__ == "__main__":
                                                 "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
 
                 # draw fakes systematics
-                if "Z" in p:
+                if "Z" in p or "TauDecaysW" in p:
                     # 4 systs for now (2 Up and 2 Down)
-                    for fs in zsysts:
-                        print "Z process: syst = %s" % fs
+                    if "Z" in p: procsysts = zsysts                    
+                    else: procsysts = tausysts
+
+                    for fs in procsysts:
+                        if "Z" in p: print "Z process: syst = %s" % fs
+                        else: print "TauDecaysW process: syst = %s" % fs
                         for idir in ["Up", "Down"]:
                             title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
                             name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
