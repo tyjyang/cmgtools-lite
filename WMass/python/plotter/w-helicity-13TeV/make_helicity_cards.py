@@ -472,7 +472,7 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -511,7 +511,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
