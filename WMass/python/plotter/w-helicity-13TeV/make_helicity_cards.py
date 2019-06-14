@@ -404,7 +404,7 @@ if options.signalCards:
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
                     dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
-                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
                     fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
                     BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
                     if options.queue:
@@ -482,7 +482,7 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
             xpsel=' --xp "[^Z]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]))'
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
             fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
             BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
@@ -521,7 +521,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             xpsel=' --xp "[^TauDecaysW]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
             fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
             BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
