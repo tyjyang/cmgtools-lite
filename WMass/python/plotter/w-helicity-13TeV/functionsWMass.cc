@@ -132,14 +132,17 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
 TFile *_file_dyptWeights = NULL;
 TH1F *amcnlody = NULL; 
 
-float dyptWeight(float pt2l) {
+float dyptWeight(float pt2l, int isZ) {
   if (!amcnlody) {
     _file_dyptWeights = new TFile("w-helicity-13TeV/dyReweighting/zpt_weights.root");
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
+  // for the Z, change the pT *and* normalization to the measured one in data
+  // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec)
+  float scaleToMCaNLO = isZ ? 1. : 0.958;
   // plots are MC/data
-  return 1./amcnlody->GetBinContent(ptbin);
+  return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
 
 

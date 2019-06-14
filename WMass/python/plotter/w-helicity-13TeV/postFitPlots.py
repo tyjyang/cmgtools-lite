@@ -349,7 +349,7 @@ if __name__ == "__main__":
     savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
     
     infile = ROOT.TFile(args[0], 'read')
-    channel = 'el' if any(['el_Ybin' in k.GetName() for k in infile.GetListOfKeys()]) else 'mu'
+    channel = utilities.getChannelFromFitresults(infile)
     print "From the list of histograms it seems that you are plotting results for channel ",channel
 
     full_outfileName = '{odir}/plots_{sfx}.root'.format(odir=outname,sfx=options.suffix)
@@ -490,8 +490,8 @@ if __name__ == "__main__":
      
             for projection in ['X','Y']:
                 nbinsProj = all_procs['obs'].GetNbinsY() if projection=='X' else all_procs['obs'].GetNbinsX()
-                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e")
-                hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj,"e")
+                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),0,-1,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),0,-1,"e")
+                hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),0,-1,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),0,-1,"e")
                 htot = hdata.Clone('tot_{ch}'.format(ch=charge)); htot.Reset(); htot.Sumw2()
                 stack = ROOT.THStack("stack_{sfx}_{ch}".format(sfx=prepost,ch=charge),"")
                 

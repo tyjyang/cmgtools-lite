@@ -13,6 +13,12 @@ from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
 
+def correctScale(sys, p):
+    isCorrectScale = False
+    if 'long'  in sys and 'long'  in p: isCorrectScale = True
+    if 'left'  in sys and 'left'  in p: isCorrectScale = True
+    if 'right' in sys and 'right' in p: isCorrectScale = True
+    return isCorrectScale
 
 def isExcludedNuisance(excludeNuisances=[], name=""):
     if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances): 
@@ -65,6 +71,11 @@ def getXsecs(processes, systs, ybins, lumi, infile):
 
         for sys in systs:
 
+            original_sys = sys
+            if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
+                if not pol in sys: continue
+                sys = sys.replace('long','').replace('right','').replace('left','')
+
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
 
@@ -80,9 +91,9 @@ def getXsecs(processes, systs, ybins, lumi, infile):
             if 'pdf' in sys:
                 ndn = 2.*ncen-nup ## or ncen/nup?
 
-            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
+            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+original_sys+'Up','x_'+process+'_'+original_sys+'Up', 1, 0., 1.)
             tmp_hist_up.SetBinContent(1, nup/lumi)
-            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+sys+'Down','x_'+process+'_'+sys+'Dn', 1, 0., 1.)
+            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+original_sys+'Down','x_'+process+'_'+original_sys+'Dn', 1, 0., 1.)
             tmp_hist_dn.SetBinContent(1, ndn/lumi)
             hists.append(copy.deepcopy(tmp_hist_up))
             hists.append(copy.deepcopy(tmp_hist_dn))
@@ -733,6 +744,8 @@ def cleanProcessName(name):
     cleanName = '_'.join([t for t in uniquet if (t!='el' and t!='mu')])
     return cleanName
 
+W_MCANLO_over_DATA_fromZ = 0.958
+
 if __name__ == "__main__":
     
 
@@ -760,6 +773,7 @@ if __name__ == "__main__":
     parser.add_option(       '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
     parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
     parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default=False, action='store_true', help='Add efficiency systematics in bins of eta calling putTestEffSyst(). Eta bins are not exclusive, but overalps (e.g. one all over the template, one only for |eta|>XX and so on). If True, the nuisance CMS_Wxx_sig_lepeff is disabled')
+    parser.add_option(       '--rescaleWBackToMCaNLO'   , dest='rescaleWBackToMCaNLO', default=False, action='store_true', help='Rescale the W process back to pure MC@NLO. NOT TO BE USED IF THE RESCALING WAS DONE AT THE WPT REWEIGHTING LEVEL ! ')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -800,6 +814,10 @@ if __name__ == "__main__":
         print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATON AS BACKGROUND'
         print '---------------------------------'
 
+    if options.rescaleWBackToMCaNLO:
+        print 'I WILL RESCALE THE W AND WTAU OF A FACTOR ',W_MCANLO_over_DATA_fromZ,'. THIS ASSUMES YOU HAVE NOT RESCALED IT IN THE REWEIGHTING IN THE DC MAKING PROCESS !'
+        print '---------------------------------'
+
     excludeNuisances = []
     if len(options.excludeNuisances):
         excludeNuisances = options.excludeNuisances.split(",")
@@ -819,7 +837,7 @@ if __name__ == "__main__":
     
         ## prepare the relevant files. only the datacards and the correct charge
         allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(options.inputdir,followlinks=True) for f in fn if (f.endswith('.card.txt') or f.endswith('.input.root'))]
-        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*|.*_fsr.*',f) and f.endswith('.card.txt')]
+        files = [f for f in allfiles if charge in f and not re.match('.*_pdf.*|.*muR.*|.*muF.*|.*alphaS.*|.*wptSlope.*|.*mW.*|.*ErfPar\dEffStat.*|.*_fsr.*',f) and f.endswith('.card.txt')]
         files = sorted(files, key = lambda x: int(x.rstrip('.card.txt').split('_')[-1]) if not any(bkg in x for bkg in ['bkg','Z_','TauDecaysW_']) else -1) ## ugly but works
     
         existing_bins = {'left': [], 'right': [], 'long': []}
@@ -853,7 +871,7 @@ if __name__ == "__main__":
                         if len(l.split()) < 2: continue ## skip the second bin line if empty
                         bin = l.split()[1]
                         binn = int(bin.split('_')[-1]) if 'Ybin_' in bin else -1
-                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|muR\S+|muF\S+|alphaS\S+|mW\S+|fsr)\.input\.root'.format(base=basename),x), allfiles)
+                    rootfiles_syst = filter(lambda x: re.match('\S+{base}_sig_(pdf\d+|(long|left|right)muR\S+|(long|left|right)muF\S+|alphaS\S+|mW\S+|fsr)\.input\.root'.format(base=basename),x), allfiles)
                     if 'Z_' in f:
                         rootfiles_syst += filter(lambda x: re.match('\S+Z_{channel}_{charge}_dy_(pdf\d+|muR\S+|muF\S+|alphaS\S+)\.input\.root'.format(channel=channel,charge=charge),x), allfiles)
                     if 'TauDecaysW_' in f:
@@ -894,6 +912,8 @@ if __name__ == "__main__":
                                     if longBKG and re.match('(Wplus_long|Wminus_long)',p): newprocname = p
                                     newname = name.replace(p,newprocname)
                                     newprocname = cleanProcessName(newprocname); newname = cleanProcessName(newname)
+                                    if re.match('x_(Wplus|Wminus|TauDecaysW)_.*',newname) and options.rescaleWBackToMCaNLO:
+                                        obj.Scale(W_MCANLO_over_DATA_fromZ)
                                     if irf==0:
                                         if newname not in plots:
                                             ############### special case to fix jet pt syst on FR
@@ -940,7 +960,7 @@ if __name__ == "__main__":
                                                 if alt.GetName() not in plots:
                                                     plots[alt.GetName()] = alt.Clone()
                                                     plots[alt.GetName()].Write()
-                                        elif re.match('.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',newname): # these changes by default shape and normalization
+                                        elif re.match('.*muR.*|.*muF.*|.*alphaS.*|.*mW.*',newname): # these changes by default shape and normalization
                                             tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1].replace('Dn','Down')
                                             newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
                                             if newname not in plots:
@@ -991,7 +1011,7 @@ if __name__ == "__main__":
                 if name.endswith("Down"): name = re.sub('Down$','',name)
                 syst = name.split('_')[-1]
                 binWsyst = '_'.join(name.split('_')[1:-1])
-                if re.match('.*_pdf.*|.*_muR.*|.*_muF.*|.*alphaS.*|.*mW.*',name):
+                if re.match('.*_pdf.*|.*_mu(R|F).*|.*_(long|left|right)muR.*|.*_(long|left|right)muF.*|.*alphaS.*|.*mW.*',name):
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
@@ -1346,10 +1366,11 @@ if __name__ == "__main__":
                 if 'wpt' in sys or 'EffStat' in sys: continue
                 if isExcludedNuisance(excludeNuisances, sys): continue
                 # do not use the muR,muF,muRmuF for signal, we have the wpt-binned ones
-                if any(x in sys for x in ['muF', 'muR', 'muRmuF']):
+                ## marc if any(x in sys for x in ['muF', 'muR', 'muRmuF']):
+                if any(x in sys for x in ['leftmuF', 'leftmuR', 'leftmuRmuF', 'rightmuF', 'rightmuR', 'rightmuRmuF','longmuF', 'longmuR', 'longmuRmuF', 'muR', 'muF', 'muRmuF']):
                     if not re.match(".*[1-9]+",sys): continue
                 # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-                tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+                tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha and correctScale(sys,p) else '  -  ' for p in tmp_sigprocs_mcha]))) )
             tmp_xsec_dc.close()
             ## end of all the xsec construction of datacard and making the file
 

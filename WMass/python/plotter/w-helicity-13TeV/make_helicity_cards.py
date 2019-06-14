@@ -136,7 +136,7 @@ def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='in
         pdfsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
-def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False,signal=True):
+def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False,signal=True,overrideDecorrelation=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
@@ -164,13 +164,14 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
             elif 'muR' in scale or 'muF' in scale:
                 if signal:
                     for ipt in range(1,11): ## start from 1 to 10
-                        ## have to redo the postfix for these
-                        postfix = "_{proc}_{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt)
-                        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                        ptcut = wptBinsScales(ipt)
-                        wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
-                        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                        qcdsysts.append(postfix)
+                        for pol in ['left', 'right', 'long'] if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
+                            ## have to redo the postfix for these
+                            postfix = "_{proc}_{p}{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,p=pol)
+                            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                            ptcut = wptBinsScales(ipt)
+                            wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                            mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                            qcdsysts.append(postfix)
                 else:
                     ## for the Z only do the unnumbered ones
                     postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
@@ -266,6 +267,7 @@ parser.add_option("-q", "--queue",    dest="queue",     type="string", default=N
 parser.add_option("-l", "--lumi",    dest="integratedLuminosity",     type="float", default=35.9, help="Integrated luminosity");
 parser.add_option("--dry-run", dest="dryRun",    action="store_true", default=False, help="Do not run the job, only print the command");
 parser.add_option("--long-bkg", dest="longBkg",    action="store_true", default=False, help="Treat the longitudinal polarization as one background template.");
+parser.add_option("--decorrelateSignalScales", action="store_true", default=False, help="Treat qcd scales uncorrelated for left/right/long");
 parser.add_option("-s", "--signal-cards",  dest="signalCards",  action="store_true", default=False, help="Make the signal part of the datacards");
 parser.add_option("-b", "--bkgdata-cards", dest="bkgdataCards", action="store_true", default=False, help="Make the background and data part of the datacards");
 parser.add_option("-W", "--weight", dest="weightExpr", default="-W 1", help="Event weight expression (default 1)");
@@ -338,7 +340,7 @@ if options.addQCDSyst:
     scales = ['muR','muF',"muRmuF", "alphaS"]
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
     writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau')
+    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau',overrideDecorrelation=True)
 writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
 
 if len(pdfsysts+qcdsysts)>1:
@@ -379,6 +381,7 @@ if options.signalCards:
         for helicity in signal_helicities:
             ## marc antihel = 'right' if helicity == 'left' else 'left'
             antihel = ['right', 'long'] if helicity == 'left' else ['left','long'] if helicity == 'right' else ['right','left']
+            if any(i in var for i in antihel) and options.decorrelateSignalScales: continue ## this might work. but who knows...
             for charge in ['plus', 'minus']:
                 antich = 'plus' if charge == 'minus' else 'minus'
                 YWbinning = WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=helicity)]
@@ -401,7 +404,7 @@ if options.signalCards:
                     if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
                     syst = '' if ivar==0 else var
                     dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
-                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
                     fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
                     BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
                     if options.queue:
@@ -469,7 +472,7 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -479,7 +482,7 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
             xpsel=' --xp "[^Z]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]))'
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
             fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
             BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
@@ -508,7 +511,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS
+                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir))
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -518,7 +521,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
             xpsel=' --xp "[^TauDecaysW]*" --asimov '
             syst = '' if ivar==0 else var
             dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))'
+            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
             fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
             BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
             if options.queue:
