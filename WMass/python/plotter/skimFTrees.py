@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_option("-q", "--queue",   dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
     parser.add_option("--pretend",     dest="pretend", default=False, action="store_true",  help="Pretend to skim, don't actually do it") 
-    parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimTrees", help="Name assigned to jobs");
+    parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimFTrees", help="Name assigned to jobs");
     (options, args) = parser.parse_args()
     if len(args)<3:
         print "Usage: program <BIGTREE_DIR> <FTREE_DIR> <outdir>"
@@ -113,12 +113,13 @@ Log        = {ld}/$(ProcId).log
 Output     = {ld}/$(ProcId).out
 getenv      = True
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = 43200
 +JobBatchName = "{name}"\n
 '''.format(runner=runner,ld=options.logdir,name=options.jobName))
         if os.environ['USER'] in ['mdunser', 'psilva']:
             condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
+        elif os.environ['USER'] in ['mciprian']:
+            condor_f.write('+AccountingGroup = "group_u_CMS.CAF.ALCA"\n')
         condor_f.write('\n')
 
 #Error      = {ld}/$(ProcId).error

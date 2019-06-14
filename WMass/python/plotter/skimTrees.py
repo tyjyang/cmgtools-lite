@@ -188,10 +188,13 @@ Output     = {ld}/{p}_$(ProcId).out
 Error      = {ld}/{p}_$(ProcId).error
 getenv      = True
 request_memory = 6000
-+MaxRuntime = 86400\n
-'''.format(runner=runner,p=proc,ld=options.logdir))
++MaxRuntime = 86400
++JobBatchName = "{name}"\n
+'''.format(runner=runner,p=proc,ld=options.logdir,name=options.jobName))
             if os.environ['USER'] in ['mdunser', 'psilva']:
                 condor_f.write('+AccountingGroup = "group_u_CMST3.all"\n')
+            elif os.environ['USER'] in ['mciprian']:
+                condor_f.write('+AccountingGroup = "group_u_CMS.CAF.ALCA"\n')
             condor_f.write('\n')
 
             for tty in mca._allData[proc]:

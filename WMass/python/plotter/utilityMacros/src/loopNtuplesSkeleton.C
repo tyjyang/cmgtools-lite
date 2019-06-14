@@ -252,8 +252,14 @@ void fillHistograms(const string& treedir = "./",
   // value instead of array because they have only 1 entry per event
   // this suppresses the following error
   // Error in <TTreeReaderValueBase::CreateProxy()>: The branch nGenLepPreFSR contains data of type unsigned int. It cannot be accessed by a TTreeReaderValue<int>
+  TTreeReaderValue<Float_t> GenLep_pdgId( reader, usePreFSRvar ? "GenLepPreFSR_pdgId"  : "GenLepDressed_pdgId"); 
   TTreeReaderValue<Float_t> GenLep_pt( reader, usePreFSRvar ? "GenLepPreFSR_pt"  : "GenLepDressed_pt"); 
   TTreeReaderValue<Float_t> GenLep_eta(reader, usePreFSRvar ? "GenLepPreFSR_eta" : "GenLepDressed_eta");
+  TTreeReaderValue<Float_t> GenLep_phi(reader, usePreFSRvar ? "GenLepPreFSR_phi" : "GenLepDressed_phi");
+
+  TTreeReaderValue<Float_t> GenPromptNu_pt(reader, "GenPromptNu_pt");
+  TTreeReaderValue<Float_t> GenPromptNu_phi(reader, "GenPromptNu_phi");
+  TTreeReaderValue<Float_t> GenLepBare_pt( reader, "GenLepBare_pt"); 
 
   TTreeReaderValue<Float_t> genw_charge( reader, usePreFSRvar ? "prefsrw_charge"  : "genw_charge");
   TTreeReaderValue<Float_t> genw_decayId(reader, usePreFSRvar ? "prefsrw_decayId" : "genw_decayId");
