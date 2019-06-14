@@ -30,6 +30,16 @@ GenLepPreFSR_pt
 GenLepPreFSR_eta
 GenLepPreFSR_phi
 GenLepPreFSR_pdgId
+nGenLepBare
+GenLepBare_pt
+GenLepBare_eta
+GenLepBare_phi
+GenLepBare_pdgId
+nGenPromptNu
+GenPromptNu_pdgId
+GenPromptNu_pt
+GenPromptNu_eta
+GenPromptNu_phi
 hessWgt1
 hessWgt2
 hessWgt3
