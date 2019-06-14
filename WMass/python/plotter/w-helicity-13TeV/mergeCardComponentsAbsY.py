@@ -71,6 +71,7 @@ def getXsecs(processes, systs, ybins, lumi, infile):
 
         for sys in systs:
 
+            original_sys = sys
             if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
                 if not pol in sys: continue
                 sys = sys.replace('long','').replace('right','').replace('left','')
@@ -90,9 +91,9 @@ def getXsecs(processes, systs, ybins, lumi, infile):
             if 'pdf' in sys:
                 ndn = 2.*ncen-nup ## or ncen/nup?
 
-            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
+            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+original_sys+'Up','x_'+process+'_'+original_sys+'Up', 1, 0., 1.)
             tmp_hist_up.SetBinContent(1, nup/lumi)
-            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+sys+'Down','x_'+process+'_'+sys+'Dn', 1, 0., 1.)
+            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+original_sys+'Down','x_'+process+'_'+original_sys+'Dn', 1, 0., 1.)
             tmp_hist_dn.SetBinContent(1, ndn/lumi)
             hists.append(copy.deepcopy(tmp_hist_up))
             hists.append(copy.deepcopy(tmp_hist_dn))
