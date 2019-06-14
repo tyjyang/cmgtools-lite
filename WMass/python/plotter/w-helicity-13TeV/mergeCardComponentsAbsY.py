@@ -744,6 +744,8 @@ def cleanProcessName(name):
     cleanName = '_'.join([t for t in uniquet if (t!='el' and t!='mu')])
     return cleanName
 
+W_MCANLO_over_DATA_fromZ = 0.958
+
 if __name__ == "__main__":
     
 
@@ -771,6 +773,7 @@ if __name__ == "__main__":
     parser.add_option(       '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
     parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
     parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default=False, action='store_true', help='Add efficiency systematics in bins of eta calling putTestEffSyst(). Eta bins are not exclusive, but overalps (e.g. one all over the template, one only for |eta|>XX and so on). If True, the nuisance CMS_Wxx_sig_lepeff is disabled')
+    parser.add_option(       '--rescaleWBackToMCaNLO'   , dest='rescaleWBackToMCaNLO', default=False, action='store_true', help='Rescale the W process back to pure MC@NLO. NOT TO BE USED IF THE RESCALING WAS DONE AT THE WPT REWEIGHTING LEVEL ! ')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -809,6 +812,10 @@ if __name__ == "__main__":
 
     if options.longBkg:
         print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATON AS BACKGROUND'
+        print '---------------------------------'
+
+    if options.rescaleWBackToMCaNLO:
+        print 'I WILL RESCALE THE W AND WTAU OF A FACTOR ',W_MCANLO_over_DATA_fromZ,'. THIS ASSUMES YOU HAVE NOT RESCALED IT IN THE REWEIGHTING IN THE DC MAKING PROCESS !'
         print '---------------------------------'
 
     excludeNuisances = []
@@ -905,6 +912,8 @@ if __name__ == "__main__":
                                     if longBKG and re.match('(Wplus_long|Wminus_long)',p): newprocname = p
                                     newname = name.replace(p,newprocname)
                                     newprocname = cleanProcessName(newprocname); newname = cleanProcessName(newname)
+                                    if re.match('x_(Wplus|Wminus|TauDecaysW)_.*',newname) and options.rescaleWBackToMCaNLO:
+                                        obj.Scale(W_MCANLO_over_DATA_fromZ)
                                     if irf==0:
                                         if newname not in plots:
                                             ############### special case to fix jet pt syst on FR
