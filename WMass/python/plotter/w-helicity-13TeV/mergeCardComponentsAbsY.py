@@ -14,6 +14,7 @@ from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
 
 def correctScale(sys, p):
+    if not re.match('.*mu(R|L).*',sys): return True
     isCorrectScale = False
     if 'long'  in sys and 'long'  in p: isCorrectScale = True
     if 'left'  in sys and 'left'  in p: isCorrectScale = True
