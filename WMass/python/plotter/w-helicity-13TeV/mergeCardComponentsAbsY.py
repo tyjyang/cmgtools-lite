@@ -14,6 +14,7 @@ from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
 
 def correctScale(sys, p):
+    if not re.match('.*mu(R|F).*',sys): return True
     isCorrectScale = False
     if 'long'  in sys and 'long'  in p: isCorrectScale = True
     if 'left'  in sys and 'left'  in p: isCorrectScale = True
@@ -113,14 +114,17 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAl
     for b in xrange(1,nominal.GetNbinsX()+1):
         y0 = nominal.GetBinContent(b)
         yA = alternate.GetBinContent(b)
-        yM = y0
-        if yA != 0:
-            yM = y0*y0/yA
-        elif yA == 0:
-            if use2xNomiIfAltIsZero: 
-                yM = 2. * y0
-            else: 
-                yM = 0
+        # geometric mean
+        # yM = y0
+        # if yA != 0:
+        #     yM = y0*y0/yA
+        # elif yA == 0:
+        #     if use2xNomiIfAltIsZero: 
+        #         yM = 2. * y0
+        #     else: 
+        #         yM = 0
+        # arithmetic mean
+        yM = max(0,2*y0-yA)
         mirror.SetBinContent(b, yM)
     if alternateShapeOnly:
         # keep same normalization
@@ -802,7 +806,7 @@ if __name__ == "__main__":
     print '---------------------------------'
 
     bkgYBins = []
-    if options.ybinsBkg:
+    if options.ybinsBkg != '':
         bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))
     print 'I WILL TREAT THESE BINS AS BACKGROUND IN THE FIT FOR ALL POLARIZATIONS:'
     print bkgYBins
@@ -975,7 +979,7 @@ if __name__ == "__main__":
             os.system(haddcmd)
             os.system('rm {indir}/tmp_*.root'.format(indir=options.inputdir))
 
-            print 'now putting the erfpar systeamtics into the file'
+            print 'now putting the erfpar systematics into the file'
             putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
@@ -1292,7 +1296,7 @@ if __name__ == "__main__":
         else:
             polarizations.append('long')
 
-        if options.ybinsBkg:
+        if options.ybinsBkg != '':
             pruned_tmp_sigprocs = []
             for thisproc in tmp_sigprocs:
                 thisybin = get_iy_from_process_name(thisproc)
