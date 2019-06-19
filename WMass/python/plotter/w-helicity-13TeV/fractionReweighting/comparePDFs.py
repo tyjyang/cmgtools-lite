@@ -1,4 +1,4 @@
-import ROOT, itertools, copy, os
+import ROOT, itertools, copy, os, sys
 from array import array
 
 ROOT.gROOT.SetBatch()
@@ -6,20 +6,26 @@ ROOT.gStyle.SetOptStat(0)
 
 ROOT.TColor.CreateGradientColorTable(3,
                                   array ("d", [0.00, 0.50, 1.00]),
-                                  ##array ("d", [1.00, 1.00, 0.00]),
-                                  ##array ("d", [0.70, 1.00, 0.34]),
-                                  ##array ("d", [0.00, 1.00, 0.82]),
                                   array ("d", [0.00, 1.00, 1.00]),
                                   array ("d", [0.34, 1.00, 0.65]),
                                   array ("d", [0.82, 1.00, 0.00]),
                                   255,  0.95)
 
 
+args = sys.argv
 
-basedir ='/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/cosThetaFits/2019-06-18-pdfFractions-multiCore/'
+basedir = str(args[1]) #'/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/cosThetaFits/2019-06-18-pdfFractions-to5-multiCore/' #multiCore/'
 os.system('cp ~/public/index.php '+basedir)
 
-f_nom = ROOT.TFile(basedir+'/fractions_roofit_histos_chi2_2019-06-18_muEl_plusMinus_preFSR_nominal.root', 'read')
+files = {}
+
+for i in os.listdir(basedir):
+    if not '.root' in i: continue
+    pdfvar = i.split('_')[-1].replace('.root','')
+    files[pdfvar] = basedir+'/'+i
+    
+
+f_nom = ROOT.TFile(files['nominal'], 'read')
 nominals = {}
 
 for ipdf in range(1,17):
@@ -35,7 +41,7 @@ print 'this is nominals', nominals
 
 for ipdf in range(1,61):
     print 'at ipdf', ipdf
-    tmp_filename = basedir+'/fractions_roofit_histos_chi2_2019-06-18_muEl_plusMinus_preFSR_pdf{p}.root'.format(p=ipdf)
+    tmp_filename = files['pdf'+str(ipdf)]
 
     ##if not os.path.isfile(tmp_filename):
     ##    print 'file not found... check it!'
