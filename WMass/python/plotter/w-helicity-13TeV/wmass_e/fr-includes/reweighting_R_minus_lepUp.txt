@@ -3,4 +3,4 @@ change: ptElFull: ptElFullUp
 load-histo: helicityFractions_0 : w-helicity-13TeV/fractionReweighting/fractions.root : fraction0_minus
 load-histo: helicityFractions_L : w-helicity-13TeV/fractionReweighting/fractions.root : fractionL_minus
 load-histo: helicityFractions_R : w-helicity-13TeV/fractionReweighting/fractions.root : fractionR_minus
-weight: helicityWeight(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,2)
+weight: helicityWeight(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,2)
