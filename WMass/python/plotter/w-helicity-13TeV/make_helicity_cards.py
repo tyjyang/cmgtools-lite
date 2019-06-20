@@ -613,7 +613,7 @@ if len(fullJobList):
     dummy_exec.write('bash $*\n')
     dummy_exec.close()
 
-    condor_file_name = jobdir+'/condor_submit.condor'
+    condor_file_name = jobdir+'/condor_submit_'+('background' if options.bkgdataCards else 'signal')+'.condor'
     condor_file = open(condor_file_name,'w')
     condor_file.write('''Universe = vanilla
 Executable = {de}
