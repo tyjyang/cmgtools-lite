@@ -472,7 +472,9 @@ if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
         for charge in ['plus','minus']:
             antich = 'plus' if charge == 'minus' else 'minus'
             if ivar==0: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
+                # the following would be faster with DY-only, but it misses the lines for the Z_lepeff systs
+                # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
+                IARGS = ARGS
             else: 
                 IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
