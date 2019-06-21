@@ -146,6 +146,7 @@ if __name__ == "__main__":
         etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
         genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 
+    print genBins.printBinAll()
 
     #following array is used to call function dressed2D()
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
@@ -417,6 +418,7 @@ if __name__ == "__main__":
                                     else: drawThisBin = True
                                 else: drawThisBin = False
                                 name2D = 'W{ch}_{flav}_ieta_{ieta}_ipt_{ipt}'.format(ch=charge,flav=channel,ieta=etabinIndex,ipt=ptbinIndex)
+                                #print "ptbinIndex = %d, name = %s   name2D = %s" %(ptbinIndex,name, name2D)
                                 title2D = 'W{chs}: |#eta| #in [{etamin},{etamax})   p_{{T}} #in [{ptmin:.3g},{ptmax:.3g})'.format(etamin=genBins.etaBins[etabinIndex],
                                                                                                                                   etamax=genBins.etaBins[etabinIndex+1],
                                                                                                                                   ptmin=genBins.ptBins[ptbinIndex],

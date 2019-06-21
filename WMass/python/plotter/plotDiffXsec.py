@@ -4,28 +4,29 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
+doMuElComb = 0
 dryrun = 0
 skipData = 0
 onlyData = 0
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 0
-skipDiffNuis = 0
-skipPostfit = 0  # only for Data
-skipCorr = 0
-skipImpacts = 0
+skipDiffNuis = 1
+skipPostfit = 1  # only for Data
+skipCorr = 1
+skipImpacts = 1
 
 allPtBinsSignalElectron = 0
 
 seed = 123456789
 
 #folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
-folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
+#folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
 #folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
+folder = "diffXsec_mu_2019_06_17_zptReweight/"
 if doMuElComb:
     folder = "muElCombination"
     skipTemplate = 1
@@ -36,7 +37,8 @@ if doMuElComb:
 #postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
 #postfix = "finalTest_EffStatNotScaled_EffSystAndScaleOnTau"
 #postfix = "finalTest_EffStatNotScaled"
-postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
+#postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
+postfix = "zptReweight"
 #postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep_7June2019_noScipyMinimizer"
@@ -148,7 +150,7 @@ for charge in ["plus","minus"]:
     print ""
 
     command = "python w-helicity-13TeV/templateRolling.py"
-    command += " cards/{fd} -o plots/diffXsecAnalysis/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
+    command += " cards/{fd} -o plots/diffXsecAnalysis_new/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
     command += " --plot-binned-signal -a diffXsec -C {ch} --pt-range '{ptmin},{ptmax}' ".format(ch=charge, ptmin=ptMinTemplate, ptmax=ptMaxTemplate)
     command += " {opt} ".format(opt=optTemplate)
     if not skipTemplate:
@@ -179,7 +181,7 @@ for fit in fits:
     ## DIFFERENTIAL CROSS SECTION AND CHARGE ASYMMETRY
     command = "python w-helicity-13TeV/plotDiffXsecChargeAsymmetry.py"
     command += " -i cards/{fd} -c {fl}".format(fd=folder, fl=flavour)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
     command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " --lumi-norm 35900.0  -n --palette 57 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
     if fit == "Data":
@@ -199,7 +201,7 @@ for fit in fits:
     ## POSTFIT NUISANCES
     command = "python w-helicity-13TeV/diffNuisances.py"
     command += " --infile cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/diffNuisances/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/diffNuisances/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
     command += " -a --format html --type hessian  --suffix  {fit} ".format(fit=fit)
     for poi in diffNuisances_pois:
         tmpcommand = command + " --pois '{poi}' ".format(poi=poi)
@@ -217,7 +219,7 @@ for fit in fits:
     ## POSTFIT PLOTS
     command = "python w-helicity-13TeV/postFitPlots_xsec.py"
     command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root cards/{fd}/ ".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
     command += " --no2Dplot-signal-bin -n ".format(fit=fit)  # -n
     if fit == "Data":
         if not skipPostfit:
@@ -234,7 +236,7 @@ for fit in fits:
 
     ## ADD CORRELATION
     command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
     command += " --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
     for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
@@ -254,7 +256,7 @@ for fit in fits:
 
     ## IMPACTS
     command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} {pt} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix, pt=ptMinForImpacts)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} {pt} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix, pt=ptMinForImpacts)
     command += " --abs-value --nContours 51 --margin '0.16,0.15,0.05,0.25' --canvasSize '1500,1200' --splitOutByTarget "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     # with following line will make impacts with graphs, not matrix                        

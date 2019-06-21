@@ -443,6 +443,7 @@ if __name__ == "__main__":
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="Choose between genw (for dressed lepton) and prefsrw (preFSR lepton)");  
     parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used"); 
     parser.add_option("--maxJobs-condor", dest="maxJobsCondorFile", type="int", default='3000', help="Maximum number of jobs per condor file");
+    parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=["W","TauDecaysW","Z"], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 6:
@@ -598,7 +599,9 @@ if __name__ == "__main__":
                         if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
 
                         dcname = "W_{channel}{syst}_{ch}".format(channel=options.channel,syst=var,ch=charge)
-                        BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --asimov --od "+outdir + recoChargeCut
+                        zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                        fullWeight = (options.weightExpr+'*'+zptWeight) if 'W' in options.procsToPtReweight else options.weightExpr
+                        BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --asimov --od "+outdir + recoChargeCut
                         if options.queue:
                             mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                             if options.useLSF:
@@ -736,8 +739,9 @@ if __name__ == "__main__":
 
                     # end of -> if ibin == loopBins:
                     ####################
-
-                    BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
+                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                    fullWeight = (options.weightExpr+'*'+zptWeight) if 'W' in options.procsToPtReweight else options.weightExpr
+                    BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
                     if options.queue:
                         mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         if options.useLSF:
@@ -807,7 +811,9 @@ if __name__ == "__main__":
                 xpsel=' --xp "[^Z]*" --asimov '
                 syst = '' if ivar==0 else var
                 dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir+out_subdir + xpsel + chcut
+                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
+                fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir+out_subdir + xpsel + chcut
                 if options.queue:
                     mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     if options.useLSF:
@@ -834,8 +840,14 @@ if __name__ == "__main__":
             for charge in ['plus','minus']:
                 antich = 'plus' if charge == 'minus' else 'minus'
                 if ivar==0: 
-                    IARGS = ARGS
-                    #IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    #IARGS = ARGS
+                    # FIXME: open mca and find actual file filtering
+                    if options.channel == "el": 
+                        copyMCAcommand = "cp {cmssw}/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_e/mca-includes/mca-80X-wenu-wtau_NoSkimName.txt {outdir}/mca/mca_wtau_nominal.txt".format(cmssw=os.environ['CMSSW_BASE'],outdir=outdir)
+                    else:
+                        copyMCAcommand = "cp {cmssw}/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt {outdir}/mca/mca_wtau_nominal.txt".format(cmssw=os.environ['CMSSW_BASE'],outdir=outdir)
+                    os.system(copyMCAcommand)
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir,syst=var))
                 else: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -845,7 +857,9 @@ if __name__ == "__main__":
                 xpsel=' --xp "[^TauDecaysW]*" --asimov '
                 syst = '' if ivar==0 else var
                 dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + out_subdir + xpsel + chcut
+                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + out_subdir + xpsel + chcut
                 if options.queue:
                     mkShCardsCmd = "python {dir}/makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     if options.useLSF:

@@ -3,12 +3,12 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-doMuons=0
-skipUnpack=1
-skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1
-skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
+doMuons=1
+skipUnpack=0
+skipMergeRoot=0
+skipSingleCard=0
+skipMergeCard=0
+skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
 allPtBinsSignalElectron = 1
 
@@ -16,10 +16,12 @@ allPtBinsSignalElectron = 1
 folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale.root"
 # mu
-folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
-th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
+#folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
+#th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
 #folder_mu = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
+folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
+th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
@@ -41,7 +43,7 @@ optionsForCardMaker += binnedSystOpt    #     + " --useBinUncEffStat "
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix finalTest_EffStatNotScaled_noScipyMinimizer  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
+optionsForCardMakerMerger = " --postfix zptReweight  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
 # --no-correlate-xsec-stat
 
 optionsForCardMakerMergerFlavour = " --postfix combinedLep_7June2019_noScipyMinimizer --sig-out-bkg " # --no-text2hdf5 --no-combinetf --useSciPyMinimizer "  

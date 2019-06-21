@@ -28,7 +28,7 @@ parser.add_option("-f", "--flavour",   dest="flavour", type="string", default=''
 parser.add_option("-c", "--charge",    dest="charge", type="string", default='', help="Charge: either 'plus' or 'minus'");
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
-parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*ErfPar.*EffStat.*|.*pdf.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
+parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*ErfPar.*EffStat.*|.*pdf.*|.*fsr.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:

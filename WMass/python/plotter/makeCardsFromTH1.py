@@ -665,7 +665,7 @@ if len(procQCDunbin):
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
         if options.unbinnedQCDscaleW: sortedTheoSystkeys.append(syst)
 
-# W and Z common systematics
+# W and Z common systematics (maybe also tau)
 WandZ = [signalMatch, "Z"]
 WandZandTau = [signalMatch, "Z", "TauDecaysW"]
 WandTau = [signalMatch, "TauDecaysW"]
@@ -686,6 +686,13 @@ if not isExcludedNuisance(excludeNuisances, "mW"):
     allSystForGroups.append("mW")
     card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
     sortedTheoSystkeys.append("mW")
+
+# signal W only for now (might add it to Z and Tau later)
+if not isExcludedNuisance(excludeNuisances, "fsr"):
+    allSystForGroups.append("fsr")
+    card.write(('%-16s shape' % "fsr") + " ".join([kpatt % ("1.0" if any(x in p for x in [signalMatch]) else "-") for p in allprocesses]) +"\n")
+    # sortedTheoSystkeys.append("fsr")  # do not append to this list: for fsr we don't have a specific generator cross section, as fsr doesn't change it
+
 
 qcdScale_wptBins = [] 
 for i in range(1,11):
@@ -822,6 +829,7 @@ if options.doSystematics:
     #if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
+    card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr',x),allSystForGroups)) + "\n\n")
     card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")
