@@ -72,6 +72,7 @@ if __name__ == "__main__":
         # generally there will be alphaS along with pdfs
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
     elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
+        params = sorted(params)
         params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
         params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
         params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
