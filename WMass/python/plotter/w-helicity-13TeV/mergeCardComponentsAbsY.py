@@ -956,10 +956,11 @@ if __name__ == "__main__":
                                                 tokens = patt.findall(newname)
                                                 sysname = tokens[0][0]; isys = int(tokens[0][1])
                                                 newname = "{pfx}_{sysname}{isys}".format(pfx=pfx,sysname=sysname,isys=isys)
+                                                (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
                                             else:
                                                 tokens = newname.split("_"); pfx = '_'.join(tokens[:-2]); syst = tokens[-1]
                                                 newname = "{pfx}_{syst}".format(pfx=pfx,syst=syst)
-                                            (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,options.pdfShapeOnly)
+                                                (alternate,mirror) = mirrorShape(nominals[pfx],obj,newname,alternateShapeOnly=True)
                                             for alt in [alternate,mirror]:
                                                 if alt.GetName() not in plots:
                                                     plots[alt.GetName()] = alt.Clone()
