@@ -72,9 +72,10 @@ if __name__ == "__main__":
         # generally there will be alphaS along with pdfs
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
     elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
-        params = sorted(params, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
-        params = sorted(params, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
-        params = sorted(params, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+        params = sorted(params)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
         params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
     elif any(re.match('FakesPtUncorrelated.*',x) for x in params):
@@ -90,6 +91,8 @@ if __name__ == "__main__":
 
     nuis_p_i=0
     title = "#theta"
+
+    print "sorted params =",params
 
     #hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
     hist_fit_s    = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
@@ -221,9 +224,9 @@ if __name__ == "__main__":
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'pdf' in x else 0)
         ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
         names = sorted(names, key= lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x) )
-        names = sorted(names, key= lambda x: int(x.replace('muRmuF','')) if ('muRmuF' in x and x != "muRmuF")  else 0)
-        names = sorted(names, key= lambda x: int(x.replace('muR','')) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
-        names = sorted(names, key= lambda x: int(x.replace('muF','')) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+        names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'FakesPtUncorrelated'  in x else 0)

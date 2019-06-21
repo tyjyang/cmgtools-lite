@@ -480,9 +480,9 @@ TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(1-x*x)", -1., 1.
 TF1 * helicityFraction_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
 TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2"              , -1., 1.);
 
-TRandom3 * helRand = new TRandom3(42);
+//TRandom3 * helRand = new TRandom3(42);
 
-float helicityWeight(float yw, float ptw, float costheta, int pol)
+float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol)
 {
 
   float ayw = std::abs(yw);
@@ -493,11 +493,16 @@ float helicityWeight(float yw, float ptw, float costheta, int pol)
     return 0;
   }
 
-  float tmp_rand = helRand->Rndm();
+  int digit = evt % 10;
+  if      (digit <  2              && pol != 0) return 0.;
+  else if (digit >= 2 && digit < 6 && pol != 1) return 0.;
+  else if (digit >= 6              && pol != 2) return 0.;
 
-  if      (tmp_rand <  0.2                   && pol != 0) return 0.;
-  else if (tmp_rand >= 0.2 && tmp_rand < 0.6 && pol != 1) return 0.;
-  else if (tmp_rand >= 0.6                   && pol != 2) return 0.;
+  // float tmp_rand = helRand->Rndm();
+  // if      (tmp_rand <  0.2                   && pol != 0) return 0.;
+  // else if (tmp_rand >= 0.2 && tmp_rand < 0.6 && pol != 1) return 0.;
+  // else if (tmp_rand >= 0.6                   && pol != 2) return 0.;
+
 
   TH2 *hist_f0 = helicityFractions_0;
   TH2 *hist_fL = helicityFractions_L;
