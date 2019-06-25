@@ -595,7 +595,7 @@ def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHe
     #     print "Electrons not implemented in putTestEffSyst(). Exit"
     #     quit()
 
-    # this is mainly for tests, one should actually change the definition of weights when filling histograms
+    # this is primarily for tests, one should actually change the definition of weights when filling histograms
     # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
 
     indir = outdir if outdir != None else options.inputdir
