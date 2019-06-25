@@ -667,7 +667,9 @@ if __name__ == "__main__":
      
                 for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
                     if any(iy == x for x in bkgYBins): continue
-                    normsigma = normsigmaInFit[flav] if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOutFit[flav]
+                    # normsigma is used to normalize the expected: then, the sum should be the one on the expected
+                    # which is also less sensitive to fluctuations, since in data some bins can be 0
+                    normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                     parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
      
                     scale = 1.
@@ -718,7 +720,7 @@ if __name__ == "__main__":
 
         plotValues(allValues,charge,channel,options)
 
-        if not options.normxsec: # this is only implemented for absolute xsecs
+        if not options.normxsec and 'W{charge}_Ybin_0_{xs}'.format(charge=charge,xs='sumxsec') in valuesAndErrors[flav]: # this is only implemented for absolute xsecs
             # now do the unpolarized ones
             cp = 'plus_left' # this works if the binning for all the pol is the same
             xsec_params = ['sumxsec']

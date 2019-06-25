@@ -17,22 +17,15 @@ print "Starting the cards combination..."
 for s in suff:
     freezePOI = True if len(s)==0 else False
     print "## Start the combination for freezePOI = ",freezePOI
-    datacards=[]; channels=[]
+    datacards=[]
     for flav in ['el','mu']:
-        for charge in ['plus','minus']:
-            datacards.append('{inputdir}/W{flav}_{ch}_card.txt'.format(inputdir=os.path.abspath(inputdirs[flav]),flav=flav,ch=charge))
-            channels.append('W{flav}_{ch}'.format(flav=flav,ch=charge))
-            if not freezePOI:
-                for mc in maskedChannels:
-                    datacards.append('{inputdir}/W{flav}_{ch}_xsec_{maskchan}_card.txt'.format(inputdir=os.path.abspath(inputdirs[flav]),flav=flav,ch=charge,maskchan=mc))
-                    channels.append('W{flav}_{ch}_xsec_{maskchan}'.format(flav=flav,ch=charge,maskchan=mc))
-            
-    combinedCard = outdir+"/Wlep"+'_card'+s+'.txt'
-    ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+        datacards.append('{inputdir}/W{flav}_card{suffix}.txt'.format(inputdir=os.path.abspath(inputdirs[flav]),flav=flav,suffix=s))
+    combinedCard = outdir+"/Wlep_card{suffix}.txt".format(suffix=s)
+    ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{dcfile}'.format(dcfile=dc) for dc in datacards])+' > '+combinedCard
     if freezePOI:
         txt2hdf5Cmd = 'text2hdf5.py '+combinedCard
     else:
-        maskchan = [' --maskedChan W{flav}_{charge}_xsec_{mc}'.format(flav=flav,charge=ch,mc=mc) for flav in ['el','mu'] for ch in ['plus','minus'] for mc in maskedChannels]
+        maskchan = [' --maskedChan ch{icha}_W{flav}_{charge}_xsec_{mc}'.format(icha=iflav+1,flav=flav,charge=ch,mc=mc) for iflav,flav in enumerate(['el','mu']) for ch in ['plus','minus'] for mc in maskedChannels]
         txt2hdf5Cmd = 'text2hdf5.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
     ## here running the combine cards command first
     print ccCmd+'\n'

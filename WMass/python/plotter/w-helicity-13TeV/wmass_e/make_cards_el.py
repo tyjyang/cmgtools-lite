@@ -32,5 +32,7 @@ for c in components:
         (" -l %f " % LUMI)
     if options.dryRun: cmd += '  --dry-run '
     if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
-    cmd += ' -g 3 --vpt-weight W --vpt-weight TauDecaysW --vpt-weight Z '
+    cmd += ' -g 5 '
+    cmd += ' --decorrelateSignalScales '
+    cmd += ' --vpt-weight W --vpt-weight TauDecaysW --vpt-weight Z '
     os.system(cmd)
