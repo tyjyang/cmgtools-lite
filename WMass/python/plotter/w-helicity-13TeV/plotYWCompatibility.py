@@ -569,9 +569,10 @@ if __name__ == "__main__":
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
-    polarizations = ['left','right']
+    polarizations = ['left','right','long']
+    signal_polarizations = ['left','right']
     if not options.longBkg:
-        polarizations.append('long')
+        signal_polarizations.append('long')
     flavors = ['mu','el','lep']
 
     nChan = 2
@@ -582,7 +583,7 @@ if __name__ == "__main__":
         sign = 1. if charge=='plus' else -1.
 
         ## this gets the pdf central variation binned in the correct format
-        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations, excludeYbins=bkgYBins)
+        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations)
         xsec_nominal_allCharges[charge] = xsec_nominal
 
         value_syst = {}
@@ -592,7 +593,7 @@ if __name__ == "__main__":
             for ip in xrange(1,NPDFs+1):
                 # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
                 ## this gets the pdf variations after correctly rebinning the YW
-                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan, polarizations=polarizations, excludeYbins=bkgYBins)
+                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan, polarizations=polarizations)
                 values.append(xsec_pdf[pol])
             value_syst[pol] = values
 
@@ -601,7 +602,6 @@ if __name__ == "__main__":
             #print "===> Running pol = ",pol
             xsec_systs=[]
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-                if any(iy == x for x in bkgYBins): continue
                 xsec_nom = xsec_nominal[pol][iy]
                 #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
                 totUp=0; xsec_totUp=0
@@ -624,49 +624,41 @@ if __name__ == "__main__":
         angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
         angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}
         for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-            if any(iy == x for x in bkgYBins): continue
             xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
             angcoeff_nominal['sumxsec'].append(xsec_unpolarized_nominal_iy)
             xsec_unpolarized_iy = sum([xsec_systematics[pol][iy] for pol in polarizations])
             angcoeff_systematics['sumxsec'].append(xsec_unpolarized_iy)
-
-            # skip this part if long component was not fitted 
-            if not options.longBkg:
-                coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
-                                                 xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
-
-                angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
-                angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
-                angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
-                angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
+            coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
+                                             xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
+            angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
+            angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
+            angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
+            angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
 
         nOuterBinsToExclude = 0  ### out of acceptance Y bins, or that were treated as background (not to be considered for the total xsec)
-        if len(bkgYBins):
-            nOuterBinsToExclude = len(bkgYBins)
         if len(outAccYBins):
             nOuterBinsToExclude = len(outAccYBins)
         print "number of outer bins to exclude: " + str(nOuterBinsToExclude)
+
+        cp = '{ch}_left'.format(ch=charge)
+        MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
+        print "MAXYFORNORM = " + str(MAXYFORNORM)
+        normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+        normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
 
         allValues = {}
         normsigmaInFit = {}; normsigmaOutFit = {}
         for flav in flavors:
             nChan = 2 if flav=='lep' else 1
-            for pol in polarizations:
-                cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
-                MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
-                normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
-                normsigmaInFit[flav] = sum([valuesAndErrors[flav]['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])/float(nChan)
-                print "total expected (fit for {flav}) xsec up to |Y|<{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(flav=flav,maxy=MAXYFORNORM,sigma=normsigmaIn,fit=normsigmaInFit[flav])
+            for pol in signal_polarizations:
+                print "total expected (fit for {flav}) xsec up to |Y|<{maxy} = {sigma:.3f} pb".format(flav=flav,maxy=MAXYFORNORM,sigma=normsigmaIn)
                 if len(outAccYBins):
-                    normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
-                    normsigmaOutFit[flav] = sum([valuesAndErrors[flav]['W{charge}_{pol}_Ybin_{iy}_pmaskedexp'.format(charge=charge,pol=allpol,iy=iy)][0]/LUMINOSITY for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])/float(nChan)
-                    print "total expected (fit for {flav}) xsec beyond |Y|>{maxy} = {sigma:.3f} ({fit:.3f}) pb".format(flav=flav,maxy=MAXYFORNORM,sigma=normsigmaOut,fit=normsigmaOutFit[flav])
-     
+                    print "total expected (fit for {flav}) xsec beyond |Y|>{maxy} = {sigma:.3f} pb".format(flav=flav,maxy=MAXYFORNORM,sigma=normsigmaOut)
      
                 tmp_val = valueClass('values_'+charge+'_'+pol+'_'+flav)
      
                 for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                    if any(iy == x for x in bkgYBins): continue
+                    if iy in bkgYBins: continue
                     # normsigma is used to normalize the expected: then, the sum should be the one on the expected
                     # which is also less sensitive to fluctuations, since in data some bins can be 0
                     normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
@@ -720,64 +712,70 @@ if __name__ == "__main__":
 
         plotValues(allValues,charge,channel,options)
 
-        if not options.normxsec and 'W{charge}_Ybin_0_{xs}'.format(charge=charge,xs='sumxsec') in valuesAndErrors[flav]: # this is only implemented for absolute xsecs
-            # now do the unpolarized ones
-            cp = 'plus_left' # this works if the binning for all the pol is the same
-            xsec_params = ['sumxsec']
-            if not options.longBkg:
-                xsec_params.extend(['a0','a4'])
-            for xs in xsec_params:
-                allValuesUnpol = {}
-                for flav in flavors:
-                    nChan = 2 if flav=='lep' else 1
-                    tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
-                    for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
-                        if any(iy == x for x in bkgYBins): continue
-                        parname = 'W{charge}_Ybin_{iy}_{xs}'.format(charge=charge,iy=iy,xs=xs)
-                        if xs=='sumxsec':
-                            ybinwidth_scale = ybinwidths[cp][iy]
-                            scale = LUMINOSITY
-                        else:
-                            ybinwidth_scale = 1.
-                            scale = 1.
-         
-                        tmp_val.val.append(abs(angcoeff_nominal[xs][iy]/ybinwidth_scale))
-                        experr = angcoeff_systematics[xs][iy]/ybinwidth_scale
-                        tmp_val.ehi.append(experr)
-                        tmp_val.elo.append(experr) # symmetric for the expected
-                
-                        xsec_fit = valuesAndErrors[flav][parname]
-                        scale = LUMINOSITY*float(nChan) if xs=='sumxsec' else 1.
-                
-                        tmp_val.val_fit.append(xsec_fit[0]/ybinwidth_scale/scale)
-                        tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
-                        tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidth_scale/scale)
-         
-                        tmp_val.relv. append(tmp_val.val[-1]/tmp_val.val_fit[-1])
-                        experrrel = angcoeff_systematics[xs][iy]/angcoeff_nominal[xs][iy]
-                        tmp_val.rello.append(experrrel)
-                        tmp_val.relhi.append(experrrel) # symmetric for the expected
-                        
-                        units = '(pb)' if xs=='sumxsec' else ''
-                        print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,
-                                                                                                                                                  val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
-                        tmp_val.relv_fit .append(1.)
-                        tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
-                        tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
-                
-                        tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
-                        tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-                        tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
-                
-                    tmp_val.makeGraphs()
-                    allValuesUnpol[flav] = tmp_val
-                plotUnpolarizedValues(allValuesUnpol,charge,channel,options)
+        # now do the unpolarized ones
+        cp = 'plus_left' # this works if the binning for all the pol is the same
+        xsec_params = ['sumxsecnorm','a0','a4'] if options.normxsec else ['sumxsec']
+        for xs in xsec_params:
+            allValuesUnpol = {}
+            for flav in flavors:
+                nChan = 2 if flav=='lep' else 1
+                tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
+                for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
+                    if iy in bkgYBins: continue
+                    parname = 'W{charge}_Ybin_{iy}_{xs}'.format(charge=charge,iy=iy,xs=xs)
+
+                    ybinwidth_scale = 1.
+                    scale = 1.
+                    xskey=xs
+                    if xs=='sumxsec':
+                        ybinwidth_scale = ybinwidths[cp][iy]
+                        scale = LUMINOSITY*float(nChan)
+                    elif xs=='sumxsecnorm':
+                        ybinwidth_scale = ybinwidths[cp][iy]
+                        xskey = xs.replace('norm','') # to use the expected xsec values, which have to be normalized
+        
+                    tmp_val.val.append(abs(angcoeff_nominal[xskey][iy]/ybinwidth_scale))
+                    experr = angcoeff_systematics[xskey][iy]/ybinwidth_scale
+                    tmp_val.ehi.append(experr)
+                    tmp_val.elo.append(experr) # symmetric for the expected
+
+                    if xs=='sumxsecnorm':
+                        tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                        tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
+                        tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
+            
+                    xsec_fit = valuesAndErrors[flav][parname]
+            
+                    tmp_val.val_fit.append(xsec_fit[0]/ybinwidth_scale/scale)
+                    tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
+                    tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidth_scale/scale)
+        
+                    tmp_val.relv. append(tmp_val.val[-1]/tmp_val.val_fit[-1])
+                    experrrel = angcoeff_systematics[xskey][iy]/angcoeff_nominal[xskey][iy]
+                    print "xskey = ",xskey,"  iy = ",iy," xsec_fit[0] = ",xsec_fit[0],"  ",xsec_fit[1],"   ",xsec_fit[2] 
+                    tmp_val.rello.append(experrrel)
+                    tmp_val.relhi.append(experrrel) # symmetric for the expected
+                    
+                    units = '(pb)' if xs=='sumxsec' else ''
+                    print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,
+                                                                                                                                              val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+                    tmp_val.relv_fit .append(1.)
+                    tmp_val.rello_fit.append(tmp_val.elo_fit[-1]/tmp_val.val_fit[-1])
+                    tmp_val.relhi_fit.append(tmp_val.ehi_fit[-1]/tmp_val.val_fit[-1])
+            
+                    tmp_val.rap.append((ybins[cp][iy]+ybins[cp][iy+1])/2.)
+                    tmp_val.rlo.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+                    tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
+            
+                tmp_val.makeGraphs()
+                allValuesUnpol[flav] = tmp_val
+            plotUnpolarizedValues(allValuesUnpol,charge,channel,options)
 
     if len(charges)>1 and not options.normxsec:
         print "Making charge asymmetry plots now..."
         asymmetryValues = {}
         for flav in flavors:
-            for pol in polarizations:
+            for pol in signal_polarizations:
                 cp = 'plus_'+pol
                 tmp_val = valueClass('asymmetry_'+pol)
                 for iy,y in enumerate(ybinwidths[cp]):
@@ -814,7 +812,7 @@ if __name__ == "__main__":
         asymmetryValuesUnpol = {}
         for flav in flavors:
             # now do the unpolarized ones
-            tmp_val = valueClass('asymmetry_unpolarized')
+            tmp_val = valueClass('values_asymmetry_unpolarized')
             for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
                 if any(iy == x for x in bkgYBins): continue
                 xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
