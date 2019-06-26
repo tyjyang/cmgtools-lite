@@ -166,7 +166,8 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                     for ipt in range(1,11): ## start from 1 to 10
                         for pol in ['left', 'right', 'long'] if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
                             ## have to redo the postfix for these
-                            postfix = "_{proc}_{p}{syst}{ipt}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,p=pol)
+                            pm = 'plus' if 'plus' in incl_mca.split('_')[1] else 'minus'
+                            postfix = "_{proc}_{p}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,p=pol,ch=pm)
                             mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
                             ptcut = wptBinsScales(ipt)
                             wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
