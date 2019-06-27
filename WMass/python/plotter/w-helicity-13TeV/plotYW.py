@@ -269,7 +269,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
                       'a0': '|A_{0}|', 
                       'a4': '|A_{4}|',
                       'sumxsec': '',
-                      'sumxsecnorm': 'frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
+                      'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
                       'a4': (-1,2),

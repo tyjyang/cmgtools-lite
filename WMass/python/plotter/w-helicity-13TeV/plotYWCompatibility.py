@@ -351,10 +351,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
     ch = '#plus' if charge == 'plus' else '#minus'
     if charge == 'asymmetry': ch = ''
     date = datetime.date.today().isoformat()
-    if 'values_a0' in values['lep'].name: normstr = 'A0'
-    elif 'values_a4' in values['lep'].name: normstr = 'A4'
-    elif 'values_sumxsec' in values['lep'].name: normstr = 'xsec'
-    else: normstr = 'norm' if (options.normxsec and charge!='asymmetry') else ''
+
+    valkey = values['lep'].name.split('_')[1]
 
     applyChannelStylesUnpol(values)
 
@@ -378,20 +376,19 @@ def plotUnpolarizedValues(values,charge,channel,options):
         mg.GetXaxis().SetTitle('|Y_{W}|')
         mg.GetXaxis().SetTitleOffset(5.5)
         mg.GetXaxis().SetLabelSize(0)
-        if charge=='asymmetry':
-             mg.GetYaxis().SetTitle('Charge asymmetry')
-             mg.GetYaxis().SetRangeUser(-0.1,0.4)
-        else:
-            if normstr=='xsec':
-                if options.normxsec: 
-                    mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.7 else 0.4)
-                else: 
-                    mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
-                    mg.GetYaxis().SetRangeUser(1500,4500)
-            else:
-                mg.GetYaxis().SetRangeUser(-0.05 if normstr=='A0' else -1,0.4 if normstr=='A0' else 2)
-                mg.GetYaxis().SetTitle('|A_{0}|' if normstr=='A0' else '|A_{4}|')
+        titles = {'asymmetry': 'Charge asymmetry',
+                  'a0': '|A_{0}|', 
+                  'a4': '|A_{4}|',
+                  'sumxsec': '',
+                  'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
+        ranges = {'asymmetry': (-0.1,0.4),
+                  'a0': (0.07,0.2),
+                  'a4': (-1,2),
+                  'sumxsec': (1500,4500),
+                  'sumxsecnorm': (0.1,0.5)}
+        mg.GetYaxis().SetTitle(titles[valkey])
+        mg.GetYaxis().SetRangeUser(ranges[valkey][0],ranges[valkey][1])
+
         mg.GetYaxis().SetTitleSize(0.06)
         mg.GetYaxis().SetLabelSize(0.04)
         mg.GetYaxis().SetTitleOffset(1.)
@@ -409,13 +406,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
         pads[1].Draw(); pads[1].cd(); ROOT.gPad.SetBottomMargin(0); ROOT.gPad.SetTopMargin(0)
         ROOT.gPad.SetBottomMargin(0)
 
-        if charge=='asymmetry':
+        if valkey=='asymmetry':
             yaxtitle = 'Theory-Data'
             yaxrange = (-0.2, 0.2)
             yaxtitlesize = 0.18
         else:
             yaxtitle = 'Theory/Data'
-            yaxrange = (0.70, 1.30) if normstr=='xsec' else (-1.5, 3.5)
+            yaxrange = (0.70, 1.30) if 'xsec' in valkey else (0.7,1.3) if valkey=='a0' else (-0.5, 2.5)
             yaxtitlesize = 0.18
         
         values['lep'].graph_fit_rel.Draw("A2")
@@ -496,7 +493,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
     for ext in ['png', 'pdf']:
-        c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
+        c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext))
 
 
 NPDFs = 60
@@ -752,7 +749,7 @@ if __name__ == "__main__":
         
                     tmp_val.relv. append(tmp_val.val[-1]/tmp_val.val_fit[-1])
                     experrrel = angcoeff_systematics[xskey][iy]/angcoeff_nominal[xskey][iy]
-                    print "xskey = ",xskey,"  iy = ",iy," xsec_fit[0] = ",xsec_fit[0],"  ",xsec_fit[1],"   ",xsec_fit[2] 
+
                     tmp_val.rello.append(experrrel)
                     tmp_val.relhi.append(experrrel) # symmetric for the expected
                     
