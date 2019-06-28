@@ -290,6 +290,9 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
             ptBorders = [26, 29, 32, 35, 38, 41, 45] if isMu else [30, 35, 40, 45]                
+            if isMu and recoBins.ptBins[0] > 29.9:
+                # just for tests on 2D xsec, where pT >= 30
+                ptBorders = [30, 32, 35, 38, 41, 45]
             # now a tuning for 2D xsec binning, for which I have some pt bins after 45
             if ptbins[-1] > ptBorders[-1]:
                 if ptBorders[-1] not in ptbins:  # in case I use different binning here
@@ -308,6 +311,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins.append(len(ptbins))
 
             scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
+            if isMu and recoBins.ptBins[0] > 29.9:
+                [0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
