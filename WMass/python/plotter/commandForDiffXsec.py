@@ -4,22 +4,26 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=0
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0
-skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipUnpack=1
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1
+skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
-allPtBinsSignalElectron = 1
+allPtBinsSignal = 1
 
 # el
-folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale.root"
+#folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
+#th3file_el = "cards/" + folder_el + "wel_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale.root"
+folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
 #folder_mu = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
+#folder_mu = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/" # keep "/" at the end
+#th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
 folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
 th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
 
@@ -32,11 +36,10 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
-# --useBinUncEffStat
+optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ") #+ " --useBinUncEffStat " 
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
 optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
-optionsForCardMaker += binnedSystOpt    #     + " --useBinUncEffStat "
+optionsForCardMaker += binnedSystOpt # + " --useBinUncEffStat "
 
 #--WZ-testEffSyst-LnN 0.012" 
 # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
@@ -46,7 +49,7 @@ optionsForCardMaker += binnedSystOpt    #     + " --useBinUncEffStat "
 optionsForCardMakerMerger = " --postfix zptReweight  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_7June2019_noScipyMinimizer --sig-out-bkg " # --no-text2hdf5 --no-combinetf --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight --sig-out-bkg " # --no-text2hdf5 --no-combinetf --useSciPyMinimizer "  
 
 #================================
 
@@ -55,9 +58,8 @@ if uncorrelateFakesNuisancesByCharge:
     optionsForCardMaker += " --uncorrelate-fakes-by-charge "
 
 flavour = "mu" if doMuons else "el"
-if flavour == "el":
-    # when creating cards for mu-el combination, all signal bins must be treated in the same way as for muons, so as signal
-    optionsForCardMaker = optionsForCardMaker  + (" --pt-range-bkg 25.9 30.1  " if not allPtBinsSignalElectron else "") #--eta-range-bkg 1.39 1.61 "
+# when creating cards for mu-el combination, all signal bins must be treated in the same way as for muons, so as signal
+optionsForCardMaker = optionsForCardMaker  + (" --pt-range-bkg 25.9 30.1  " if not allPtBinsSignal else "") #--eta-range-bkg 1.39 1.61 "
 
 charges = ["plus", "minus"]
 

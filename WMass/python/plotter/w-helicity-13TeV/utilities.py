@@ -184,6 +184,49 @@ class util:
         histo_file.Close()
         return 0
 
+    # generalizing previous function getPDFbandFromXsecEta()
+    def getPDFbandFromXsec1D(self, histoPDF, charge, infile, netabins, nptbins, firstVarBin=0, firstOtherVarBin=0, isEta = True):
+
+        print "Inside getPDFbandFromXsec1D() ..."
+        histo_file = ROOT.TFile(infile, 'READ')            
+
+        nvarbins = netabins if isEta else nptbins
+        nothervarbins = nptbins if isEta else netabins
+
+        for ivar in range(firstVarBin,nvarbins):
+            pdfquadrsum = 0.0
+            xsecnomi = 0.0
+            xsecpdf = [0.0 for i in range(60)]
+            for iother in range(firstOtherVarBin,nothervarbins):
+
+                nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ivar if isEta else iother, ip=iother if isEta else ivar)
+                hnomi = histo_file.Get(nomi)
+                if not hnomi:
+                    print "Error in getPDFbandFromXsec1D(): I couldn't find histogram " + nomi
+                    quit()
+
+                hpdftmp = None            
+                xsecnomi += hnomi.Integral()                
+
+                for ipdf in range(1, 61):
+                    pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
+                    hpdftmp = histo_file.Get(pdfvar)
+                    if not hpdftmp:
+                        print "Error in getPDFbandFromXsec1D(): I couldn't find histogram " + pdfvar
+                        quit()
+                    
+                    xsecpdf[ipdf-1] += hpdftmp.Integral()
+
+            pdfquadrsum = 0.0
+            for ipdf in range(60):
+                tmpval = xsecpdf[ipdf] - xsecnomi 
+                pdfquadrsum += tmpval*tmpval
+            histoPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum))
+            histoPDF.SetBinContent(ivar+1, xsecnomi)                        
+
+        histo_file.Close()
+        return 0
+
 
 
     def getParametersFromWS(self, ws, regexp):
@@ -528,7 +571,7 @@ class util:
         expr = "W{c}_lep_i{var}_{ivar}_sumxsecnorm".format(c=charge,var="eta" if isIeta else "pt", ivar=ietaORipt)
         if getErr: expr += "_err"
         elif getGen: expr += "_gen"
-        ret = self.getExprFromHessianFast('diffXsec1D_{var}'.format(var="eta" if isIeta else "pt"),expr, nHistBins, minHist, maxHist, tree=tree)
+        ret = self.getExprFromHessianFast('diffXsecNorm1D_{var}'.format(var="eta" if isIeta else "pt"),expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
 
 

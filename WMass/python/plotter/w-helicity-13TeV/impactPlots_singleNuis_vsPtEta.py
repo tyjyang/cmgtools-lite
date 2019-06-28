@@ -2,7 +2,7 @@
 
 # script to plot impacts versus pt-eta for a single nuisance parameter or a single group
 # EXAMPLE
-# python w-helicity-13TeV/impactPlots_singleNuis_vsPtEta.py cards/diffXsec_mu_2019_06_17_zptReweight//fit/data/fitresults_123456789_Data_zptReweight_bbb1_cxs1.root -o plots/diffXsecAnalysis_new/muon/diffXsec_mu_2019_06_17_zptReweight//impactPlots_singleNuis_vsPtEta/zptReweight_bbb1_cxs1/  --suffix Data --nContours 51 --margin '0.16,0.15,0.05,0.25' --canvasSize '1000,1000' --splitOutByTarget  --etaptbinfile cards/diffXsec_mu_2019_06_17_zptReweight//binningPtEta.txt  -c mu  --nuisgroups EffStat --target asym --palette 55
+# python w-helicity-13TeV/impactPlots_singleNuis_vsPtEta.py cards/diffXsec_mu_2019_06_17_zptReweight//fit/data/fitresults_123456789_Data_zptReweight_bbb1_cxs1.root -o plots/diffXsecAnalysis_new/muon/diffXsec_mu_2019_06_17_zptReweight//impactPlots_singleNuis_vsPtEta/zptReweight_bbb1_cxs1/  --suffix Data --nContours 51 --margin '0.16,0.2,0.1,0.12' --canvasSize '1200,1000' --splitOutByTarget  --etaptbinfile cards/diffXsec_mu_2019_06_17_zptReweight//binningPtEta.txt  -c mu  --nuisgroups EffStat --target asym --palette 107
 
 import ROOT, os, datetime, re, operator, math
 from array import array
@@ -30,8 +30,8 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage='%prog fitresults.root [options] ')
     parser.add_option('-o','--outdir',     dest='outdir',     default='',   type='string', help='outdput directory to save the matrix')
-    parser.add_option(     '--nuis',       dest='nuis',       default='',   type='string', help='single nuis for which you want to show the impacts versus pt-eta')
-    parser.add_option(     '--nuisgroups', dest='nuisgroups', default='',   type='string', help='nuis groups for which you want to show the correlation matrix. comma separated list of regexps')
+    parser.add_option(     '--nuis',       dest='nuis',       default='',   type='string', help='single nuisances for which you want to show the impacts versus pt-eta (can pass comma-separated list to make all of them one after the other)')
+    parser.add_option(     '--nuisgroups', dest='nuisgroups', default='',   type='string', help='nuis groups for which you want to show the impacts versus pt-eta (can pass comma-separated list to make all of them one after the other)')
     parser.add_option(     '--suffix',     dest='suffix',     default='',   type='string', help='suffix for the correlation matrix')
     parser.add_option(     '--target',     dest='target',     default='mu', type='string', help='target POI (can be mu,xsec,xsecnorm, or other things)')
     parser.add_option(     '--zrange',     dest='zrange',     default='', type='string', help='Pass range for z axis as "min,max". If not given, it is set automatically based on the extremes of the impacts')
@@ -47,16 +47,25 @@ if __name__ == "__main__":
     parser.add_option(     '--latex',      dest='latex',      default=False, action='store_true', help='target POI (can be mu,xsec,xsecnorm)')
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='use this file with the |eta|-pT binning')
     parser.add_option(     '--splitOutByTarget', dest='splitOutByTarget' , default=False , action='store_true',   help='Create a subfolder appending target to output directory, where plots will be saved')
-    parser.add_option(     '--pt-min-signal'  , dest='ptMinSignal',  default=-1, type=float, help='specify the minimum pt for the bins considered as signal. If not given, take the very first pt value from the gen pt binning')
+    #parser.add_option(     '--pt-min-signal'  , dest='ptMinSignal',  default=-1, type=float, help='specify the minimum pt for the bins considered as signal. If not given, take the very first pt value from the gen pt binning')
     parser.add_option('-c', '--channel',     dest='channel',     default='',   type='string', help='Specify channel (el|mu) to make legend. It is no longer guessed from the name of POIs. If empty, generic "l" will be used in legends instead of (#mu|e)')
     (options, args) = parser.parse_args()
 
     # palettes:
     # 69 + inverted, using TColor::InvertPalette(), kBeach
     # 70 + inverted, using TColor::InvertPalette(), kBlackBody
-    # 107, kCool
+    # 109, kCool
     # 57 kBird
     # 55 kRainBow
+    # 62 kColorPrintableOnGrey
+    # 73 kCMYK
+    # 58 kCubehelix
+    # 68 kAvocado
+    # 111 kGistEarth + inverted
+    # 87 kLightTemperature
+    # 85 kIsland
+    # 56 kInvertedDarkBodyRadiator
+    # 100 kSolar + inverted
 
     if len(options.nuis) and len(options.nuisgroups):
         print 'You can specify either single nuis (--nuis) or poi groups (--nuisgroups), not both!'
@@ -81,7 +90,7 @@ if __name__ == "__main__":
                                          array ("d", [0.82, 1.00, 0.00]),
                                          255,  0.95)
 
-    if options.absValue:
+    if options.absValue:    
         ROOT.TColor.CreateGradientColorTable(2,
                                              array ("d", [0.00, 1.00]),
                                              ##array ("d", [1.00, 1.00, 0.00]),
@@ -112,7 +121,7 @@ if __name__ == "__main__":
             os.system('mkdir -p {od}'.format(od=options.outdir))
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
-    nuis = options.nuis if len(options.nuis) else options.nuisgroups
+    nuis = list(options.nuis.split(',')) if len(options.nuis) else list(options.nuisgroups.split(','))
 
     hessfile = ROOT.TFile(args[0],'read')
     valuesAndErrors = utilities.getFromHessian(args[0])
@@ -153,20 +162,22 @@ if __name__ == "__main__":
                     pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
 
 
-    nuisance = ""; nuisance_index = ""
+    nuisance = {}; nuisance_index = {}
     for ib in xrange(1,impMat.GetNbinsY()+1):
-        if re.match(nuis, impMat.GetYaxis().GetBinLabel(ib)):
-            nuisance = impMat.GetYaxis().GetBinLabel(ib)
-            nuisance_index = ib
+        for n in nuis:
+            if re.match(n, impMat.GetYaxis().GetBinLabel(ib)):
+                nuisance[n] = impMat.GetYaxis().GetBinLabel(ib)
+                nuisance_index[n] = ib
 
     mat = {}
 
-    pois = sorted(pois, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+    #pois = sorted(pois, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     # sort by charge if needed
-    pois = sorted(pois, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
+    #pois = sorted(pois, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
 
     for ipoi, poi in enumerate(pois):        
-            mat[(poi,nuisance)] = impMat.GetBinContent(pois_indices[poi], nuisance_index)
+        for n in nuis:
+            mat[(poi,nuisance[n])] = impMat.GetBinContent(pois_indices[poi], nuisance_index[n])
 
     ch = 1200
     cw = 1200
@@ -198,88 +209,89 @@ if __name__ == "__main__":
     etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")                                                                                                    
     genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])                                                                                                     
 
-    charges = ["allCharges"] if re.match("asym",options.target) else ["plus", "minus"]
-    for charge in charges:
+    for n in nuis:
 
-        th2_sub = ROOT.TH2F('sub_imp_matrix_%s' % charge, 
-                            'nuisance: %s' % niceSystName(nuisance), 
-                            genBins.Neta, array("d",genBins.etaBins), genBins.Npt, array("d",genBins.ptBins))
-        #th2_sub.GetXaxis().SetTickLength(0.)
-        #th2_sub.GetYaxis().SetTickLength(0.)
-        th2_sub.GetXaxis().SetTitle("%s |#eta|" % "muon" if options.channel == "mu" else "electron")
-        th2_sub.GetYaxis().SetTitle("%s p_{T} [GeV]" % "muon" if options.channel == "mu" else "electron")
+        charges = ["allCharges"] if re.match("asym",options.target) else ["plus", "minus"]
+        for charge in charges:
 
-        th2_sub.GetXaxis().SetTitleSize(0.05)
-        th2_sub.GetXaxis().SetLabelSize(0.04) 
-        th2_sub.GetXaxis().SetTitleOffset(0.95) 
+            th2_sub = ROOT.TH2F('sub_imp_matrix_%s_%s' % (charge, n), 
+                                'nuisance: %s' % niceSystName(nuisance[n]), 
+                                genBins.Neta, array("d",genBins.etaBins), genBins.Npt, array("d",genBins.ptBins))
+            #th2_sub.GetXaxis().SetTickLength(0.)
+            #th2_sub.GetYaxis().SetTickLength(0.)
+            th2_sub.GetXaxis().SetTitle("%s |#eta|" % "muon" if options.channel == "mu" else "electron")
+            th2_sub.GetYaxis().SetTitle("%s p_{T} [GeV]" % "muon" if options.channel == "mu" else "electron")
 
-        th2_sub.GetYaxis().SetTitleSize(0.05)
-        th2_sub.GetYaxis().SetLabelSize(0.04)
-        th2_sub.GetYaxis().SetTitleOffset(1.1) 
-        
-        poiName_target = {"mu":        "signal strength",
-                          "xsec":      "cross section",
-                          "xsecnorm":  "normalized cross section",
-                          "asym":   "charge asymmetry",
-                          }
-        th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
-        th2_sub.GetZaxis().SetTitleOffset(1.4)
-        th2_sub.GetZaxis().SetTitleSize(0.05)
-        th2_sub.GetZaxis().SetLabelSize(0.04)                                                                                                                               
+            th2_sub.GetXaxis().SetTitleSize(0.05)
+            th2_sub.GetXaxis().SetLabelSize(0.04) 
+            th2_sub.GetXaxis().SetTitleOffset(0.95) 
 
-        for p in pois:
-            if charge != "allCharges" and not charge in p: continue
-            if '_ieta_' in p and '_ipt_' in p:
-                if options.absolute: 
-                    val = mat[(p,nuisance)]
-                else: 
-                    val = 100*mat[(p,nuisance)]/valuesAndErrors[p][0] if valuesAndErrors[p][0] !=0 else 0.0
-                ieta,ipt = get_ieta_ipt_from_process_name(p)
-                th2_sub.SetBinContent(ieta+1, ipt+1, val)
+            th2_sub.GetYaxis().SetTitleSize(0.05)
+            th2_sub.GetYaxis().SetLabelSize(0.04)
+            th2_sub.GetYaxis().SetTitleOffset(1.1) 
 
-        rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
-        if not options.absolute: rmax = min(20.,rmax)
-        if options.absValue:
-            th2_sub.GetZaxis().SetRangeUser(0,rmax)
-        else :
-            th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
-        if options.zrange:
-            rmin,rmax = (float(x) for x in options.zrange.split(','))
-            th2_sub.GetZaxis().SetRangeUser(rmin,rmax)
-        th2_sub.GetXaxis().LabelsOption("v")
-        if options.absolute: 
-            ROOT.gStyle.SetPaintTextFormat('1.3f')
-            if options.target != "mu":
-                ROOT.gStyle.SetPaintTextFormat('.3g')
-        else: 
-            ROOT.gStyle.SetPaintTextFormat('1.1f')
+            poiName_target = {"mu":        "signal strength",
+                              "xsec":      "cross section",
+                              "xsecnorm":  "normalized cross section",
+                              "asym":   "charge asymmetry",
+                              }
+            th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
+            th2_sub.GetZaxis().SetTitleOffset(1.4)
+            th2_sub.GetZaxis().SetTitleSize(0.05)
+            th2_sub.GetZaxis().SetLabelSize(0.04)                                                                                                                               
 
-        th2_sub.Draw(options.drawOption)    # colz0 text45
+            for p in pois:
+                if charge != "allCharges" and not charge in p: continue
+                if '_ieta_' in p and '_ipt_' in p:
+                    if options.absolute: 
+                        val = mat[(p,nuisance[n])]
+                    else: 
+                        val = 100*mat[(p,nuisance[n])]/valuesAndErrors[p][0] if valuesAndErrors[p][0] !=0 else 0.0
+                    ieta,ipt = get_ieta_ipt_from_process_name(p)
+                    th2_sub.SetBinContent(ieta+1, ipt+1, val)
 
-        if options.parNameCanvas: 
-            cname = options.parNameCanvas
-        else:
-            nuisName = ('NuisGroup'+options.nuisgroups) if len(options.nuisgroups) else options.nuis
-            cname = "{nn}_vs_EtaPt".format(nn=nuisName)
+            rmax = max(abs(th2_sub.GetMaximum()),abs(th2_sub.GetMinimum()))
+            if not options.absolute: rmax = min(20.,rmax)
+            if options.absValue:
+                th2_sub.GetZaxis().SetRangeUser(0,rmax)
+            else :
+                th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
+            if options.zrange:
+                rmin,rmax = (float(x) for x in options.zrange.split(','))
+                th2_sub.GetZaxis().SetRangeUser(rmin,rmax)
+            if options.absolute: 
+                ROOT.gStyle.SetPaintTextFormat('1.3f')
+                if options.target != "mu":
+                    ROOT.gStyle.SetPaintTextFormat('.3g')
+            else: 
+                ROOT.gStyle.SetPaintTextFormat('1.1f')
 
-        suff = '' if not options.suffix else '_'+options.suffix
+            th2_sub.Draw(options.drawOption)    # colz0 text45
 
-        if options.latex:
-            txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname)
-            if options.outdir: txtfilename = options.outdir + '/' + txtfilename
-            txtfile = open(txtfilename,'w')
-            txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
-            txtfile.write('                    ' + " & ".join(['{poi}'.format(poi=latexLabel(th2_sub.GetXaxis().GetBinLabel(i+1))) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \\hline \n")
-            for j in xrange(th2_sub.GetNbinsY()):
-                txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
-            txtfile.write("\\end{tabular}\n")
-            txtfile.close()
-            print "Saved the latex table in file ",txtfilename
+            if options.parNameCanvas: 
+                cname = options.parNameCanvas
+            else:
+                nuisName = ('NuisGroup'+n) if len(options.nuisgroups) else n
+                cname = "{nn}_vs_EtaPt".format(nn=nuisName)
 
-        if options.outdir and not options.latex:
-            for i in ['pdf', 'png']:
-                suff = '' if not options.suffix else ('_'+options.suffix)
-                c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}_{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname,ch=charge))
+            suff = '' if not options.suffix else '_'+options.suffix
 
-            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+            if options.latex:
+                txtfilename = 'smallImpacts{rel}{suff}_{target}_{nn}_On_{pn}.tex'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname)
+                if options.outdir: txtfilename = options.outdir + '/' + txtfilename
+                txtfile = open(txtfilename,'w')
+                txtfile.write("\\begin{tabular}{l "+"   ".join(['r' for i in xrange(th2_sub.GetNbinsX())])+"} \\hline \n")
+                txtfile.write('                    ' + " & ".join(['{poi}'.format(poi=latexLabel(th2_sub.GetXaxis().GetBinLabel(i+1))) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \\hline \n")
+                for j in xrange(th2_sub.GetNbinsY()):
+                    txtfile.write('{label:<20}& '.format(label=th2_sub.GetYaxis().GetBinLabel(j+1)) + " & ".join(['{syst:^.2f}'.format(syst=th2_sub.GetBinContent(i+1,j+1)) for i in xrange(th2_sub.GetNbinsX())]) + "\\\\ \n")
+                txtfile.write("\\end{tabular}\n")
+                txtfile.close()
+                print "Saved the latex table in file ",txtfilename
+
+            if options.outdir and not options.latex:
+                for i in ['pdf', 'png']:
+                    suff = '' if not options.suffix else ('_'+options.suffix)
+                    c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}_{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname,ch=charge))
+
+                os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 

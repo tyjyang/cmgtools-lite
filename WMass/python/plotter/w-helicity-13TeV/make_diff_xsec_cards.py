@@ -83,6 +83,7 @@ def get_ieta_ipt_from_process_name(name):
 def get_ieta_from_process_name(name):
     if "_ieta_" in name:
         ieta = int((name.split("_ieta_")[1]).split("_")[0])
+        return ieta
     else:
         print "Error in get_ieta_from_process_name(): '_ieta_' key not found in %s. Exit" % name
         quit()
@@ -90,6 +91,7 @@ def get_ieta_from_process_name(name):
 def get_ipt_from_process_name(name):
     if "_ipt_" in name:
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
+        return ipt
     else:
         print "Error in get_ipt_from_process_name(): '_ipt_' key not found in %s. Exit" % name
         quit()

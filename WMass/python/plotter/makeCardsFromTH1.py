@@ -900,6 +900,25 @@ for ieta in range(genBins.Neta):
     chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
     card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
 
+# xsec inclusive in eta
+for ch in ["plus", "minus"]:
+    for ipt in range(genBins.Npt):
+        if ptBinIsBackground[ipt]: continue
+        # remember that {ipt} is now the last word
+        procsThisIpt = filter( lambda x: re.match('.*_ipt_{ipt}'.format(ipt=ipt),x) and x.endswith("_"+str(ipt)), isInAccProc.keys() )        
+        procsThisIpt = sorted(procsThisIpt, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+        newp = "W{ch}_lep_ipt_{ipt}".format(ch=ch, ipt=str(ipt))
+        tmpnames = [x.replace("plus","TMP").replace("minus","TMP") for x in procsThisIpt]
+        card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
+    card.write("\n")
+card.write("\n")
+
+for ipt in range(genBins.Npt):
+    if ptBinIsBackground[ipt]: continue
+    newp = "W_lep_ipt_{ipt}".format(ipt=str(ipt))
+    chpair = "Wplus_lep_ipt_{ipt} Wminus_lep_ipt_{ipt}".format(ch=ch, fl=flavour, ipt=str(ipt))
+    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
+
         
 
 card.write("\n")

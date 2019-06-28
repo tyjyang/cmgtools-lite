@@ -29,6 +29,7 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
 parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*ErfPar.*EffStat.*|.*pdf.*|.*fsr.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
+parser.add_option(      "--shape-only-symmetrized-syst",  dest="shapeOnlySymSyst", type="string", default='.*fsr.*', help="Regular expression matching systematics that are mirrored and which shouldbe shap-only");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -227,7 +228,10 @@ for i,key in enumerate(symmetrizedTH1):
 
     # get name prefix to retrieve nominal
     pfx = "_".join(key.split('_')[:-1])  # remove last piece (might be 'pdf10')
-    (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,use2xNomiIfAltIsZero=True)
+    if re.match(options.shapeOnlySymSyst,key):        
+        (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,alternateShapeOnly=True,use2xNomiIfAltIsZero=True)
+    else:
+        (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,use2xNomiIfAltIsZero=True)
     for alt in [alternate,mirror]:
         alt.Write()    
 

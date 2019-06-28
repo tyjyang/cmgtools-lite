@@ -283,7 +283,10 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
 # signal is assumed to be named W<flavour>_<charge>_shapes_signal.root
 
 # test function
-def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
+def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix="", subtractSystPart = False):
+
+    # subtractSystPart is needed to test only the real statistical component (stat+syst is saved in the inputs)
+    # this is very hardcoded
 
     if not isMu:
         print "putBinUncEffStatHistosDiffXsec() currently implemented for electrons only"
@@ -324,7 +327,7 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
         ndone += 1
 
         ## now should be left with only the ones we are interested in
-        print 'reweighting erfpareffstat nuisances for process', tmp_name
+        print 'reweighting binunceffstat nuisances for process', tmp_name
         
         tmp_nominal = tmp_infile.Get(tmp_name)
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
@@ -399,9 +402,15 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
                     tmp_scale_up =        parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
                     tmp_scale_dn = -1.0 * parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
                     # modify scaling if template bin has larger width than the ErfPar histogram
-                    if binwidths[ietaTemplate-1] > 1.: 
-                        tmp_scale_up = tmp_scale_up / binwidths[ietaTemplate-1]
-                        tmp_scale_dn = tmp_scale_dn / binwidths[ietaTemplate-1]
+                    # no longer scaling, trying to be conservative
+                    # if binwidths[ietaTemplate-1] > 1.: 
+                    #     tmp_scale_up = tmp_scale_up / binwidths[ietaTemplate-1]
+                    #     tmp_scale_dn = tmp_scale_dn / binwidths[ietaTemplate-1]
+                    if sub:
+                        if (abseta<1): syst = 0.002
+        elif (abseta<1.5):   syst = 0.004;                                                                                        
+                else                   syst = 0.014;                                                                                                                                     
+
                     tmp_scale_up = 1 +  tmp_scale_up
                     tmp_scale_dn = 1 +  tmp_scale_dn
                     ## scale up and down with what we got from the histo
