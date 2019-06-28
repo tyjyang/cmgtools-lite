@@ -1,4 +1,4 @@
-import ROOT, optparse, os, re
+import ROOT, optparse, os, re, itertools
 
 ## usage:
 ## python resultPlots.py --config results_config_mu.txt --outdir <outputdirectory> (--runtoys)
@@ -54,6 +54,12 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
+        
+        tmp_systs = []
+        for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
+            tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
+        systs += [','.join(tmp_systs)]
+
         for nuis in systs:
             cmd = 'python w-helicity-13TeV/systRatios.py --projections --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
@@ -192,6 +198,7 @@ if __name__ == '__main__':
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)

@@ -600,7 +600,7 @@ def putTestEffSyst(infile,regexp,charge, outdir=None, isMu=True, suffix="", isHe
     #     print "Electrons not implemented in putTestEffSyst(). Exit"
     #     quit()
 
-    # this is mainly for tests, one should actually change the definition of weights when filling histograms
+    # this is primarily for tests, one should actually change the definition of weights when filling histograms
     # however, the efficiency systematics is almost flat in pt and varies only as a function of eta
 
     indir = outdir if outdir != None else options.inputdir
@@ -1295,35 +1295,15 @@ if __name__ == "__main__":
         ## first make a list of all the signal processes.
         ## then, some processes and/or polarizations might be removed
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
-        polarizations = ['left','right']
+        polarizations = ['left','right','long']
 
-        if options.longBkg: 
-            tmp_sigprocs = filter(lambda x: 'long_' not in x,tmp_sigprocs)
-        else:
-            polarizations.append('long')
-
-        if options.ybinsBkg != '':
-            pruned_tmp_sigprocs = []
-            for thisproc in tmp_sigprocs:
-                thisybin = get_iy_from_process_name(thisproc)
-                if any(thisybin == x for x in bkgYBins): pass
-                else: pruned_tmp_sigprocs.append(thisproc)
-            tmp_sigprocs = pruned_tmp_sigprocs
-
-        # filters already made above (options.longLnN automatically activates options.longBkg)
-        #if options.longLnN: 
-        #    tmp_sigprocs = filter(lambda x: 'long_' not in x,tmp_sigprocs)
-        #else:
-        #    polarizations.append('long')
         print '============================================================================='
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
         print '============================================================================='
         # in case long is missing, the sum groups will only sum WR and WL, while polGroup cannt be defined
         if not options.freezePOIs:
-            if not options.longLnN and not options.longBkg:
-                writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
-            # the following works even if Wlong is missing, although their usefulness in this case is questionable
+            writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
             writeRegGroup(combinedCard,tmp_sigprocs,polarizations,grouping='regGroup')
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
