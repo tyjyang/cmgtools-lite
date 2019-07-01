@@ -187,6 +187,8 @@ if __name__ == "__main__":
     Wchannel = "W #rightarrow %s#nu" % ("e" if channel == "el" else "#mu" if channel == "mu" else "l")
     ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                             ptmin=genBins.ptBins[firstPtSignalBin], ptmax=genBins.ptBins[-1])
+    etaRangeText = "|#eta|^{{{l}}} #in [{etamin:3g}, {etamax:3g}] GeV".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+                                                                              etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
     labelRatioDataExp = "exp./obs.::0.9,1.1" if options.invertRatio else "obs./exp.::0.9,1.1"
 
     hChAsymm = ROOT.TH2F("hChAsymm_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
@@ -197,11 +199,14 @@ if __name__ == "__main__":
 
     hChAsymm1Deta = ROOT.TH1F("hChAsymm1Deta_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                               genBins.Neta, array('d',genBins.etaBins))
+    hChAsymm1Dpt = ROOT.TH1F("hChAsymm1Dpt_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
+                              genBins.Npt, array('d',genBins.ptBins))
 
 
     hChAsymm.SetDirectory(tfOut)
     hChAsymmErr.SetDirectory(tfOut)
     hChAsymm1Deta.SetDirectory(tfOut)
+    hChAsymm1Dpt.SetDirectory(tfOut)
 
     nbins = (genBins.Neta - nEtaBinsBkg) * (genBins.Npt - nPtBinsBkg)
     binCount = 1        
@@ -246,6 +251,13 @@ if __name__ == "__main__":
         error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(ieta-1,isIeta=True,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
         hChAsymm1Deta.SetBinContent(ieta,central)
         hChAsymm1Deta.SetBinError(ieta,error)
+
+    for ipt in range(1,genBins.Npt+1):            
+        if ptBinIsBackground[ipt-1]: continue
+        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree)
+        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+        hChAsymm1Dpt.SetBinContent(ipt,central)
+        hChAsymm1Dpt.SetBinError(ipt,error)
 
     setTDRStyle()
 
@@ -313,6 +325,17 @@ if __name__ == "__main__":
                   passCanvas=canvas1D, lumi=options.lumiInt,
                   lowerPanelHeight=0.35, moreTextLatex=additionalText
                   )
+    legendCoords = "0.6,0.8,0.75,0.85"
+    texCoord = "0.6,0.65"
+    additionalText = "W #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+                                                                               etatext=etaRangeText,
+                                                                               txc=texCoord)
+    drawSingleTH1(hChAsymm1Dpt,yaxisTitle,"charge asymmetry",
+                  "chargeAsym1D_pt_{fl}".format(fl=channel),
+                  outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1, drawLineLowerPanel="",
+                  passCanvas=canvas1D, lumi=options.lumiInt,
+                  lowerPanelHeight=0.35, moreTextLatex=additionalText
+                  )
 
     icharge = 0
 
@@ -325,7 +348,8 @@ if __name__ == "__main__":
     # hDiffXsec_1Deta = {}
     # hDiffXsecNorm_1Deta = {}
     hDiffXsecPDF = {}
-    hDiffXsecPDF_1D = {}
+    hDiffXsecPDF_1Deta = {}
+    hDiffXsecPDF_1Dpt = {}
 
     for charge in charges:
 
@@ -364,16 +388,27 @@ if __name__ == "__main__":
                                                 "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                                 genBins.Neta, array('d',genBins.etaBins))
 
+        hDiffXsec_1Dpt= ROOT.TH1F("hDiffXsec_1Dpt_{lep}_{ch}".format(lep=lepton,ch=charge),
+                                            "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                            genBins.Npt, array('d',genBins.ptBins))
 
-        # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
+        hDiffXsecNorm_1Dpt= ROOT.TH1F("hDiffXsecNorm_1Dpt_{lep}_{ch}".format(lep=lepton,ch=charge),
+                                                "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                genBins.Npt, array('d',genBins.ptBins))
+
+
+        # histogram to keep track of PDF variations from the Asimov. It is like the nominal, but the uncertainty only includes the prefit pdf variations
         hDiffXsecPDF[charge] = ROOT.TH2F("hDiffXsec_{lep}_{ch}_PDF".format(lep=lepton,ch=charge),
                                          "cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                          genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
-        # histogram to keep track of PDF variations from the Asimov. I is like the nominal, but the uncertainty only includes the prefit pdf variations
-        hDiffXsecPDF_1D[charge] = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDF_1D".format(lep=lepton,ch=charge),
+        # histogram to keep track of PDF variations from the Asimov. It is like the nominal, but the uncertainty only includes the prefit pdf variations
+        hDiffXsecPDF_1Deta[charge] = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDF_1Deta".format(lep=lepton,ch=charge),
                                             "cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                             genBins.Neta, array('d',genBins.etaBins))
+        hDiffXsecPDF_1Dpt[charge] = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDF_1Dpt".format(lep=lepton,ch=charge),
+                                            "cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                            genBins.Npt, array('d',genBins.ptBins))
 
         hMu.SetDirectory(tfOut)
         hMuErr.SetDirectory(tfOut)
@@ -383,12 +418,18 @@ if __name__ == "__main__":
         hDiffXsecNormErr.SetDirectory(tfOut)
         hDiffXsec_1Deta.SetDirectory(tfOut)
         hDiffXsecNorm_1Deta.SetDirectory(tfOut)
+        hDiffXsec_1Dpt.SetDirectory(tfOut)
+        hDiffXsecNorm_1Dpt.SetDirectory(tfOut)
         hDiffXsecPDF[charge].SetDirectory(tfOut)
-        hDiffXsecPDF_1D[charge].SetDirectory(tfOut)
+        hDiffXsecPDF_1Deta[charge].SetDirectory(tfOut)
+        hDiffXsecPDF_1Dpt[charge].SetDirectory(tfOut)
 
         #utilities.getPDFbandFromXsec(   hDiffXsecPDF[charge],    charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
         if options.fitData or options.blindData: 
-            utilities.getPDFbandFromXsecEta(hDiffXsecPDF_1D[charge], charge, xsecChargefile[charge], genBins.Neta, genBins.Npt, firstPtBin=firstPtSignalBin)
+            utilities.getPDFbandFromXsec1D(hDiffXsecPDF_1Deta[charge], charge, xsecChargefile[charge], 
+                                           genBins.Neta, genBins.Npt, firstOtherVarBin=firstPtSignalBin,isEta=True)
+            utilities.getPDFbandFromXsec1D(hDiffXsecPDF_1Dpt[charge], charge, xsecChargefile[charge], 
+                                           genBins.Neta, genBins.Npt, firstVarBin=firstPtSignalBin, isEta=False)
 
 
         #nbins = genBins.Neta * (genBins.Npt - nPtBinsBkg)
@@ -470,6 +511,18 @@ if __name__ == "__main__":
             hDiffXsecNorm_1Deta.SetBinContent(ieta, central)
             hDiffXsecNorm_1Deta.SetBinError(ieta, error)
 
+        for ipt in range(1,genBins.Npt+1):
+            if ptBinIsBackground[ipt-1]: continue
+            central = utilities.getDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=5000, minHist=0., maxHist=5000., tree=tree)
+            error   = utilities.getDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=5000, minHist=0., maxHist=5000., tree=tree, getErr=True)
+            hDiffXsec_1Dpt.SetBinContent(ipt, central)
+            hDiffXsec_1Dpt.SetBinError(ipt, error)
+
+            central = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1., tree=tree)
+            error   = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1., tree=tree, getErr=True)
+            hDiffXsecNorm_1Dpt.SetBinContent(ipt, central)
+            hDiffXsecNorm_1Dpt.SetBinError(ipt, error)
+
 
         if options.normWidth:
             hDiffXsec.Scale(1.,"width")
@@ -478,8 +531,11 @@ if __name__ == "__main__":
             hDiffXsecNormErr.Scale(1.,"width")
             hDiffXsec_1Deta.Scale(1.,"width")
             hDiffXsecNorm_1Deta.Scale(1.,"width")            
+            hDiffXsec_1Dpt.Scale(1.,"width")
+            hDiffXsecNorm_1Dpt.Scale(1.,"width")            
             hDiffXsecPDF[charge].Scale(1.,"width")
-            hDiffXsecPDF_1D[charge].Scale(1.,"width")
+            hDiffXsecPDF_1Deta[charge].Scale(1.,"width")
+            hDiffXsecPDF_1Dpt[charge].Scale(1.,"width")
 
         if options.lumiNorm > 0:
             scaleFactor = 1./options.lumiNorm
@@ -489,8 +545,10 @@ if __name__ == "__main__":
             #hDiffXsecNorm.Scale(scaleFactor)
             #hDiffXsecNormErr.Scale(scaleFactor)
             hDiffXsec_1Deta.Scale(scaleFactor)        
+            hDiffXsec_1Dpt.Scale(scaleFactor)        
             hDiffXsecPDF[charge].Scale(scaleFactor)
-            hDiffXsecPDF_1D[charge].Scale(scaleFactor)
+            hDiffXsecPDF_1Deta[charge].Scale(scaleFactor)
+            hDiffXsecPDF_1Dpt[charge].Scale(scaleFactor)
 
         if isMuElComb:
             hDiffXsec.Scale(0.5)
@@ -499,6 +557,8 @@ if __name__ == "__main__":
             hDiffXsecNormErr.Scale(0.5)
             hDiffXsec_1Deta.Scale(0.5)
             hDiffXsecNorm_1Deta.Scale(0.5)
+            hDiffXsec_1Dpt.Scale(0.5)
+            hDiffXsecNorm_1Dpt.Scale(0.5)
 
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)
@@ -514,7 +574,7 @@ if __name__ == "__main__":
 
         zaxisTitle = "Signal strength #mu::0.98,1.02"
         if options.hessian: zaxisTitle = "Signal strength #mu::0.995,1.005"
-        if options.fitData: zaxisTitle = "Signal strength #mu::0.5,1.5"
+        if options.fitData: zaxisTitle = "Signal strength #mu::0.75,1.25"
         drawCorrelationPlot(hMu,
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hMu.GetName(),
@@ -607,6 +667,24 @@ if __name__ == "__main__":
                       )
         drawSingleTH1(hDiffXsecNorm_1Deta,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
                       "xsec_eta_norm_{ch}_{fl}".format(ch=charge,fl=channel),
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="",
+                      passCanvas=canvas1D, lumi=options.lumiInt,
+                      lowerPanelHeight=0.35, moreTextLatex=additionalText
+                      )
+        legendCoords = "0.65,0.85,0.75,0.85"
+        texCoord = "0.2,0.4"
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
+                                                                                             lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
+                                                                                             etatext=etaRangeText,
+                                                                                             txc=texCoord) 
+        drawSingleTH1(hDiffXsec_1Dpt,yaxisTitle,"d#sigma/dp_{T} [pb/GeV]",
+                      "xsec_pt_abs_{ch}_{fl}".format(ch=charge,fl=channel),
+                      outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                      passCanvas=canvas1D, lumi=options.lumiInt,
+                      lowerPanelHeight=0.35, moreTextLatex=additionalText
+                      )
+        drawSingleTH1(hDiffXsecNorm_1Dpt,yaxisTitle,"d#sigma/dp_{T} / #sigma_{tot} [1/GeV]",
+                      "xsec_pt_norm_{ch}_{fl}".format(ch=charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
@@ -714,9 +792,12 @@ if __name__ == "__main__":
 
                     hChAsymm1Deta_exp = ROOT.TH1F("hChAsymm1Deta_{lep}_exp".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                                                   genBins.Neta, array('d',genBins.etaBins))
+                    hChAsymm1Dpt_exp = ROOT.TH1F("hChAsymm1Dpt_{lep}_exp".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
+                                                  genBins.Npt, array('d',genBins.ptBins))
 
                     hChargeAsym_exp.SetDirectory(tfOut)
                     hChAsymm1Deta_exp.SetDirectory(tfOut)
+                    hChAsymm1Dpt_exp.SetDirectory(tfOut)
 
 
                 hDiffXsec_exp = ROOT.TH2F("hDiffXsec_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
@@ -741,10 +822,20 @@ if __name__ == "__main__":
                                                     "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                                     genBins.Neta, array('d',genBins.etaBins))
 
+                hDiffXsec_1Dpt_exp = ROOT.TH1F("hDiffXsec_1Dpt_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
+                                                "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                genBins.Npt, array('d',genBins.ptBins))
+
+                hDiffXsecNorm_1Dpt_exp = ROOT.TH1F("hDiffXsecNorm_1Dpt_{lep}_{ch}_exp".format(lep=lepton,ch=charge),
+                                                    "cross section: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                    genBins.Npt, array('d',genBins.ptBins))
+
                 hDiffXsec_exp.SetDirectory(tfOut)
                 hDiffXsecNorm_exp.SetDirectory(tfOut)
                 hDiffXsec_1Deta_exp.SetDirectory(tfOut)
                 hDiffXsecNorm_1Deta_exp.SetDirectory(tfOut)
+                hDiffXsec_1Dpt_exp.SetDirectory(tfOut)
+                hDiffXsecNorm_1Dpt_exp.SetDirectory(tfOut)
 
                 binCount = 0
                 print ""
@@ -809,24 +900,49 @@ if __name__ == "__main__":
                     hDiffXsecNorm_1Deta_exp.SetBinContent(ieta, central)
                     hDiffXsecNorm_1Deta_exp.SetBinError(ieta, error)
 
+                for ipt in range(1,genBins.Npt+1):
+
+                    if ptBinIsBackground[ipt-1]: continue
+
+                    if icharge == 2:
+                        central = utilities.getDiffXsecAsymmetry1DFromHessianFast(ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp)
+                        error   = utilities.getDiffXsecAsymmetry1DFromHessianFast(ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1.0, tree=treeexp, getErr=True)
+                        hChAsymm1Dpt_exp.SetBinContent(ipt,central)
+                        hChAsymm1Dpt_exp.SetBinError(ipt,error)
+        
+                    central = utilities.getDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp)
+                    error   = utilities.getDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=5000, minHist=0., maxHist=5000., tree=treeexp, getErr=True)
+                    hDiffXsec_1Dpt_exp.SetBinContent(ipt, central)
+                    hDiffXsec_1Dpt_exp.SetBinError(ipt, error)
+
+                    central = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp)
+                    error   = utilities.getNormalizedDiffXsec1DFromHessianFast(charge,ipt-1,isIeta=False,nHistBins=1000, minHist=0., maxHist=1., tree=treeexp, getErr=True)
+                    hDiffXsecNorm_1Dpt_exp.SetBinContent(ipt, central)
+                    hDiffXsecNorm_1Dpt_exp.SetBinError(ipt, error)
+
 
                 if options.normWidth:
                     hDiffXsec_exp.Scale(1.,"width")
                     hDiffXsecNorm_exp.Scale(1.,"width")
                     hDiffXsec_1Deta_exp.Scale(1.,"width")
                     hDiffXsecNorm_1Deta_exp.Scale(1.,"width")
+                    hDiffXsec_1Dpt_exp.Scale(1.,"width")
+                    hDiffXsecNorm_1Dpt_exp.Scale(1.,"width")
                     
 
                 if options.lumiNorm > 0:
                     scaleFactor = 1./options.lumiNorm
                     hDiffXsec_exp.Scale(scaleFactor)
                     hDiffXsec_1Deta_exp.Scale(scaleFactor)
+                    hDiffXsec_1Dpt_exp.Scale(scaleFactor)
 
                 if isMuElComb:
                     hDiffXsec_exp.Scale(0.5)
                     hDiffXsec_1Deta_exp.Scale(0.5)
+                    hDiffXsec_1Dpt_exp.Scale(0.5)
                     hDiffXsecNorm_exp.Scale(0.5)
                     hDiffXsecNorm_1Deta_exp.Scale(0.5)
+                    hDiffXsecNorm_1Dpt_exp.Scale(0.5)
 
 
                 # # now drawing a TH1 unrolling TH2
@@ -909,7 +1025,7 @@ if __name__ == "__main__":
                               outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                               passCanvas=canvas1D, lumi=options.lumiInt,
                               lowerPanelHeight=0.35, moreTextLatex=additionalText, 
-                              invertRatio=options.invertRatio, histMCpartialUnc=hDiffXsecPDF_1D[charge], histMCpartialUncLegEntry="PDF unc."
+                              invertRatio=options.invertRatio, histMCpartialUnc=hDiffXsecPDF_1Deta[charge], histMCpartialUncLegEntry="PDF unc."
                               )
                 drawDataAndMC(hDiffXsecNorm_1Deta,hDiffXsecNorm_1Deta_exp,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
                               "xsec_eta_norm_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
@@ -917,6 +1033,26 @@ if __name__ == "__main__":
                               passCanvas=canvas1D, lumi=options.lumiInt,
                               lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio
                               )
+                legendCoords = "0.65,0.85,0.75,0.85" 
+                texCoord = "0.2,0.5"
+                additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
+                                                                                                     lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
+                                                                                                     etatext=etaRangeText,
+                                                                                                     txc=texCoord) 
+                drawDataAndMC(hDiffXsec_1Dpt,hDiffXsec_1Dpt_exp,yaxisTitle,"d#sigma/dp_{T} [pb/GeV]",
+                              "xsec_pt_abs_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
+                              outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              passCanvas=canvas1D, lumi=options.lumiInt,
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText, 
+                              invertRatio=options.invertRatio, histMCpartialUnc=hDiffXsecPDF_1Dpt[charge], histMCpartialUncLegEntry="PDF unc."
+                              )
+                drawDataAndMC(hDiffXsecNorm_1Dpt,hDiffXsecNorm_1Dpt_exp,yaxisTitle,"d#sigma/dp_{T} / #sigma_{tot} [1/GeV]",
+                              "xsec_pt_norm_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
+                              outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
+                              passCanvas=canvas1D, lumi=options.lumiInt,
+                              lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio
+                              )
+
                 additionalText = additionalTextBackup
 
                 if icharge == 2:
@@ -929,11 +1065,24 @@ if __name__ == "__main__":
                                                                                                txc=texCoord)
                     legendCoords = "0.2,0.4,0.75,0.85"
                     # now building PDF band for charge asymmetry (this is wrong, doesn't include correlations)
-                    #hChAsymmPDF_1D = utilities.getChargeAsyFromTH1pair(hDiffXsecPDF_1D["plus"],hDiffXsecPDF_1D["minus"],name="asymPDF")
+                    #hChAsymmPDF_1D = utilities.getChargeAsyFromTH1pair(hDiffXsecPDF_1Deta["plus"],hDiffXsecPDF_1Deta["minus"],name="asymPDF")
                     labelRatioDataExp_asym = labelRatioDataExp
                     labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
                     drawDataAndMC(hChAsymm1Deta, hChAsymm1Deta_exp, xaxisTitle, "charge asymmetry::0.06,0.25",
                                   "chargeAsym1D_eta_{fl}_dataAndExp".format(fl=channel),
+                                  outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,
+                                  passCanvas=canvas1D,lumi=options.lumiInt, legendCoords=legendCoords,
+                                  lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio,
+                                  #histMCpartialUnc=hChAsymmPDF_1D, histMCpartialUncLegEntry="PDF unc."
+                                  )
+                    
+                    legendCoords = "0.2,0.4,0.3,0.4"
+                    texCoord = "0.6,0.88"
+                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+                                                                                               pttext=etaRangeText,
+                                                                                               txc=texCoord)
+                    drawDataAndMC(hChAsymm1Dpt, hChAsymm1Dpt_exp, yaxisTitle, "charge asymmetry::0.0,0.25",
+                                  "chargeAsym1D_pt_{fl}_dataAndExp".format(fl=channel),
                                   outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,
                                   passCanvas=canvas1D,lumi=options.lumiInt, legendCoords=legendCoords,
                                   lowerPanelHeight=0.35, moreTextLatex=additionalText, invertRatio=options.invertRatio,

@@ -252,8 +252,14 @@ void fillHistograms(const string& treedir = "./",
   // value instead of array because they have only 1 entry per event
   // this suppresses the following error
   // Error in <TTreeReaderValueBase::CreateProxy()>: The branch nGenLepPreFSR contains data of type unsigned int. It cannot be accessed by a TTreeReaderValue<int>
+  TTreeReaderValue<Float_t> GenLep_pdgId( reader, usePreFSRvar ? "GenLepPreFSR_pdgId"  : "GenLepDressed_pdgId"); 
   TTreeReaderValue<Float_t> GenLep_pt( reader, usePreFSRvar ? "GenLepPreFSR_pt"  : "GenLepDressed_pt"); 
   TTreeReaderValue<Float_t> GenLep_eta(reader, usePreFSRvar ? "GenLepPreFSR_eta" : "GenLepDressed_eta");
+  TTreeReaderValue<Float_t> GenLep_phi(reader, usePreFSRvar ? "GenLepPreFSR_phi" : "GenLepDressed_phi");
+
+  TTreeReaderValue<Float_t> GenPromptNu_pt(reader, "GenPromptNu_pt");
+  TTreeReaderValue<Float_t> GenPromptNu_phi(reader, "GenPromptNu_phi");
+  TTreeReaderValue<Float_t> GenLepBare_pt( reader, "GenLepBare_pt"); 
 
   TTreeReaderValue<Float_t> genw_charge( reader, usePreFSRvar ? "prefsrw_charge"  : "genw_charge");
   TTreeReaderValue<Float_t> genw_decayId(reader, usePreFSRvar ? "prefsrw_decayId" : "genw_decayId");
@@ -329,6 +335,8 @@ void fillHistograms(const string& treedir = "./",
   vector<TH3F*> h3_charge_eta_pt_globalBin_mWUp;
   vector<TH3F*> h3_charge_eta_pt_globalBin_mWDn;
 
+  vector<TH3F*> h3_charge_eta_pt_globalBin_fsr;
+
   // will use 10 bins of wptbins array for now
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRUp_wpt(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muFUp_wpt(charges.size());
@@ -336,6 +344,7 @@ void fillHistograms(const string& treedir = "./",
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRDn_wpt(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muFDn_wpt(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_muRmuFDn_wpt(charges.size());
+
 
   // ErfParXXEffStatYY  XX = 0,1,2; YY from 1 to 48 or 50
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar0EffStat(charges.size());
@@ -489,6 +498,12 @@ void fillHistograms(const string& treedir = "./",
     // 							   nptBins,ptBinEdgesTemplate.data(),
     // 							   nGenBinsTemplate,globalBin_binning.data())
     // 					 );
+
+    h3_charge_eta_pt_globalBin_fsr.push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_fsr",charges[ch].c_str()),"",
+						      netaBins,etaBinEdgesTemplate.data(),
+						      nptBins,ptBinEdgesTemplate.data(),
+						      nGenBinsTemplate,globalBin_binning.data())
+					     );
 
     for (Int_t ipdf = 1; ipdf <= nPDFweight; ++ipdf) {
       h3_charge_eta_pt_globalBin_pdf[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_pdf%d",charges[ch].c_str(),ipdf),"",
@@ -660,8 +675,6 @@ void fillHistograms(const string& treedir = "./",
   while (reader.Next()) {
   
     //cout << "check -1" << endl;
-
-
     cout.flush();
     if (nEvents % CHECK_EVERY_N == 0) cout << "\r" << "Analyzing events " << ((Double_t) nEvents)/nTotal*100.0 << " % ";
     //cout << "entry : " << nEvents << endl;
@@ -796,7 +809,10 @@ void fillHistograms(const string& treedir = "./",
 	  
     }
 
-
+    // add weight for zpt (we use it on W as well)
+    // if we used the loop to run on Z, we should use GenLepDressed_pt[1],GenLepDressed_phi[1] instead of GenPromptNu_pt[0],GenPromptNu_phi[0]
+    // note that we should always use Dressed lepton (I assume GenLep points to that and not to PreFsr variables, although the difference is generally small)
+    wgt *= dyptWeight(pt_2(*GenLep_pt,*GenLep_phi,*GenPromptNu_pt,*GenPromptNu_phi),0);
     // try to put common factor together
     wgt *= (wjets_NLO_wgt_partial * *genWeight * puw2016_nTrueInt_36fb(*nTrueInt));
 
@@ -875,6 +891,9 @@ void fillHistograms(const string& treedir = "./",
     h3_charge_eta_pt_globalBin_alphaSDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *qcd_alphaSDn * wgt);
     h3_charge_eta_pt_globalBin_mWUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *mass_80470 * wgt);
     h3_charge_eta_pt_globalBin_mWDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *mass_80370 * wgt);
+    Double_t fsrweight = fsrPhotosWeight(*GenLep_pdgId,*GenLep_eta,*GenLep_pt,*GenLepBare_pt);
+    h3_charge_eta_pt_globalBin_fsr[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, fsrweight * wgt);
+    
     // pdf syst
     for (Int_t ipdf = 0; ipdf < nPDFweight; ++ipdf) {
       h3_charge_eta_pt_globalBin_pdf[chargeIndex][ipdf]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, **(pdfwgt[ipdf]) * wgt);
@@ -913,7 +932,7 @@ void fillHistograms(const string& treedir = "./",
       h3_charge_eta_pt_globalBin_ErfPar2EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
       									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etahigh,chargeSign) * wgt);
       // test for muons only      
-      if (lep_eta[0] > etalow && lep_eta[0] < etahigh) {
+      if (isMuon && lep_eta[0] > etalow && lep_eta[0] < etahigh) {
 	h3_charge_eta_pt_globalBin_BinUncEffStatUp[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
 									    wgt * wgtMuTrigSFup / sfTriggerMu);
 	h3_charge_eta_pt_globalBin_BinUncEffStatDn[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 

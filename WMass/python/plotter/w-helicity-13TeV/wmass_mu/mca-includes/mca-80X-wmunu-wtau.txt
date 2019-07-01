@@ -1,1 +1,8 @@
 TauDecaysW  : TauDecaysW_*                        : 3.*20508.9 : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kSpring+9   ,  Label="W\#rightarrow\#tau\#nu"
+
+# TauDecaysW_muscale0_Up   : TauDecaysW_* : 3.*20508.9 : genw_decayId != 12 && genw_decayId != 14; FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale0Up_xsec.txt" , SkipMe=True
+# TauDecaysW_muscale0_Dn   : TauDecaysW_* : 3.*20508.9 : genw_decayId != 12 && genw_decayId != 14; FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale0Dn_xsec.txt" , SkipMe=True
+
+# TauDecaysW_muscale1_Up   : TauDecaysW_* : 3.*20508.9 : genw_decayId != 12 && genw_decayId != 14; FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale1Up_xsec.txt"  , SkipMe=True
+# TauDecaysW_muscale1_Dn   : TauDecaysW_* : 3.*20508.9 : genw_decayId != 12 && genw_decayId != 14; FakeRate="w-helicity-13TeV/wmass_mu/variations/lepScaleUncorr/doSyst_muscale1Dn_xsec.txt" , SkipMe=True
+ 

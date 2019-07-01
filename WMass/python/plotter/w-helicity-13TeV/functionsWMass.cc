@@ -110,8 +110,12 @@ TH3F * fsrWeights_muplus  = NULL;
 TH3F * fsrWeights_muminus = NULL;
 
 float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
   if (!fsrWeights_elplus || !fsrWeights_elminus || !fsrWeights_muplus || !fsrWeights_muminus) {
-    _file_fsrWeights = new TFile("w-helicity-13TeV/fsrReweighting/photos_rwgt.root","read");
+    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fsrReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
     fsrWeights_elplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_e"));
     fsrWeights_elminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_e"));
     fsrWeights_muplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
@@ -133,8 +137,12 @@ TFile *_file_dyptWeights = NULL;
 TH1F *amcnlody = NULL; 
 
 float dyptWeight(float pt2l, int isZ) {
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
   if (!amcnlody) {
-    _file_dyptWeights = new TFile("w-helicity-13TeV/dyReweighting/zpt_weights.root");
+    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/dyReweighting/zpt_weights.root",_cmssw_base_.c_str()));
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));

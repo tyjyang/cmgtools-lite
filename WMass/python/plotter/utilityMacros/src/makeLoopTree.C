@@ -40,10 +40,10 @@ void makeLoopTree(const bool isMuon = false,
   if (isMuon) {
 
     if (host_name.find("lxplus") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_13June2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
 
     else if (host_name.find("pccmsrm") != string::npos) 
-      command = "loopNtuplesSkeleton(\"/u1/mciprian/trees/muon/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_14Feb2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
+      command = "loopNtuplesSkeleton(\"/u1/mciprian/trees/muon/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_13June2019/\",\"./\",\"" + outfileName + "\",true,"+ usePreFSRvar + ")";
 
   } else {
 
