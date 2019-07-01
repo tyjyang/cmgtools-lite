@@ -15,6 +15,8 @@ from make_diff_xsec_cards import templateBinning
 
 def correctScale(sys, p):
     if not re.match('.*mu(R|F).*',sys): return True
+    match = re.match('x_W(plus|minus)_.*(plus|minus)(Up|Down)',sys)
+    if match and match.group(1) != match.group(2): return False
     isCorrectScale = False
     if 'long'  in sys and 'long'  in p: isCorrectScale = True
     if 'left'  in sys and 'left'  in p: isCorrectScale = True
@@ -76,6 +78,7 @@ def getXsecs(processes, systs, ybins, lumi, infile):
             if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
                 if not pol in sys: continue
                 sys = sys.replace('long','').replace('right','').replace('left','')
+                sys = sys.replace('minus','').replace('plus','')
 
             upn = sys+'Up' if not 'pdf' in sys else sys
             dnn = sys+'Dn' if not 'pdf' in sys else sys
@@ -918,6 +921,9 @@ if __name__ == "__main__":
                                     newprocname = cleanProcessName(newprocname); newname = cleanProcessName(newname)
                                     if re.match('x_(Wplus|Wminus|TauDecaysW)_.*',newname) and options.rescaleWBackToMCaNLO:
                                         obj.Scale(W_MCANLO_over_DATA_fromZ)
+                                    ### fix for a misnaming of the decorrelated QCD scales by charge. All have minus
+                                    if re.match('x_Wplus_.*minus(Up|Dn)',newname):
+                                        newname = newname.replace('minusDn','plusDn').replace('minusUp','plusUp')
                                     if irf==0:
                                         if newname not in plots:
                                             ############### special case to fix jet pt syst on FR
