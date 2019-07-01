@@ -312,7 +312,7 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
 
             scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
             if isMu and recoBins.ptBins[0] > 29.9:
-                [0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30]
+                scalings = [0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30]
 
         ## loop over all eta bins of the 2d histogram
         for ib, borderBin in enumerate(borderBins[:-1]):
