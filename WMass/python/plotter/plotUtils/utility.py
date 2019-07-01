@@ -924,8 +924,8 @@ def drawDataAndMC(h1, h2,
         h3.SetFillColor(ROOT.kRed+2)
         h3.SetFillStyle(3244)  # 3144 , 3244, 3003
         h3.Draw("E2 SAME")
-        for i in range(1,1+h3.GetNbinsX()):
-            print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
+        #for i in range(1,1+h3.GetNbinsX()):
+        #    print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
     h2line.Draw("HIST SAME")
     h1.Draw("EP SAME")
 

@@ -8,6 +8,8 @@ import datetime
 from optparse import OptionParser
 #import HiggsAnalysis.CombinedLimit.calculate_pulls as CP 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from make_diff_xsec_cards import get_ipt_from_process_name
+from make_diff_xsec_cards import get_ieta_from_process_name
 from subMatrix import niceName
 
 import ROOT
@@ -73,9 +75,12 @@ if __name__ == "__main__":
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
     elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
         params = sorted(params)
-        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
-        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
-        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+        # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+        params = sorted(params, key= lambda x: utilities.getNFromString(x))
+        params = sorted(params, key = lambda x: 0 if "muRmuF" in x else 1 if "muR" in x else 2 if "muF" in x else 3)
+        params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
     elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
         params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
     elif any(re.match('FakesPtUncorrelated.*',x) for x in params):
@@ -302,7 +307,7 @@ if __name__ == "__main__":
         canvas_nuis.SetTopMargin(ctm)
 
         lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
-        lat.DrawLatex(0.71 +(0.1-crm), 0.92, '36 fb^{-1} (13 TeV)')
+        lat.DrawLatex(0.71 +(0.1-crm), 0.92, '35.9 fb^{-1} (13 TeV)')
         line.DrawLine(0., ycen, len(params), ycen)
         line.DrawLine(0., ymax, len(params), ymax)
         line.DrawLine(0., ymin, len(params), ymin)

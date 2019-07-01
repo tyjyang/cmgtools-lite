@@ -89,8 +89,13 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True):
 
         hists.append(copy.deepcopy(tmp_hist))
 
-        for sys in systs:
+        for sys_tmp in systs:
 
+            sys = sys_tmp
+            if any(x in sys for x in ["muR","muF"]):
+                # if I want to uncorrelate QCD scales by charge I can still use the old histogram
+                sys = sys.replace(charge,'')
+                # print "sys_tmp = %s    sys = %s" % (sys_tmp,sys)
             # scales muR, muF, muRmuF in bins of pt are named like mu1RUp, where the number after muR goes from 1 to 10
             # pdf do not have Up and Dn inside file
             upn = sys+'Up' if not 'pdf' in sys else sys
@@ -129,12 +134,12 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True):
                 ndn = sys_dn_hist.Integral(istart_eta, iend_eta-1, istart_pt,iend_pt-1)
 
             if 'pdf' in sys:
-                ndn = ncen*ncen/nup # ndn = 2.*ncen-nup ## or ncen/nup?  # FIXME: this should be decided and motivated
+                ndn = 2.*ncen - nup # ndn = 2.*ncen-nup ## or ncen/nup?  # FIXME: this should be decided and motivated
                 # I think we should be consistent with the histogram definition, which uses the ratio, but if central and up differs by an epsilon it doesn't matter
 
-            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
+            tmp_hist_up = ROOT.TH1F('x_'+process+'_'+sys_tmp+'Up','x_'+process+'_'+sys+'Up', 1, 0., 1.)
             tmp_hist_up.SetBinContent(1, nup)
-            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+sys+'Down','x_'+process+'_'+sys+'Dn', 1, 0., 1.)
+            tmp_hist_dn = ROOT.TH1F('x_'+process+'_'+sys_tmp+'Down','x_'+process+'_'+sys+'Dn', 1, 0., 1.)
             tmp_hist_dn.SetBinContent(1, ndn)
             hists.append(copy.deepcopy(tmp_hist_up))
             hists.append(copy.deepcopy(tmp_hist_dn))

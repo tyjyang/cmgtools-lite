@@ -325,8 +325,8 @@ if __name__ == "__main__":
                   passCanvas=canvas1D, lumi=options.lumiInt,
                   lowerPanelHeight=0.35, moreTextLatex=additionalText
                   )
-    legendCoords = "0.6,0.8,0.75,0.85"
-    texCoord = "0.6,0.65"
+    legendCoords = "0.2,0.4,0.45,0.55"
+    texCoord = "0.6,0.85"
     additionalText = "W #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                etatext=etaRangeText,
                                                                                txc=texCoord)
@@ -672,7 +672,7 @@ if __name__ == "__main__":
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
         legendCoords = "0.65,0.85,0.75,0.85"
-        texCoord = "0.2,0.4"
+        texCoord = "0.2,0.5"
         additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
                                                                                              lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                                                                                              etatext=etaRangeText,
@@ -1076,7 +1076,7 @@ if __name__ == "__main__":
                                   #histMCpartialUnc=hChAsymmPDF_1D, histMCpartialUncLegEntry="PDF unc."
                                   )
                     
-                    legendCoords = "0.2,0.4,0.3,0.4"
+                    legendCoords = "0.2,0.4,0.4,0.5"
                     texCoord = "0.6,0.88"
                     additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                                pttext=etaRangeText,
