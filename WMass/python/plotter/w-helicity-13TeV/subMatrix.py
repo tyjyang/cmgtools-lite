@@ -3,6 +3,8 @@ from array import array
 ROOT.gROOT.SetBatch(True)
 
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from make_diff_xsec_cards import get_ieta_from_process_name
+from make_diff_xsec_cards import get_ipt_from_process_name
 
 import utilities
 utilities = utilities.util()
@@ -41,7 +43,7 @@ def niceName(name):
             nn = '#epsilon_{unc}^{'+nn+'}'
         return nn
 
-    elif '_ieta_' and '_ipt_' in name:
+    elif '_ieta_' in name and '_ipt_' in name:
         nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta,ipt = get_ieta_ipt_from_process_name(name)
@@ -59,7 +61,7 @@ def niceName(name):
         nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
-        nn += "i#p_{{T}} = {npt}".format(npt=ipt)
+        nn += "ip_{{T}} = {npt}".format(npt=ipt)
         return nn
 
     elif "CMS_" in name:
@@ -117,6 +119,7 @@ if __name__ == "__main__":
     parser.add_option(     '--vertical-labels-X', dest='verticalLabelsX',    default=False, action='store_true', help='Set labels on X axis vertically (sometimes they overlap if rotated)')
     parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ("small correlation matrix" is used as default). Use 0 to remove title')
     parser.add_option(     '--show-more-correlated' , dest='showMoreCorrelated',    default=0, type=int, help='Show the N nuisances more correlated (in absolute value) with the parameters given with --params. If 0, do not do this part')
+    parser.add_option('-m','--matrix-type', dest='matrixType',    default='channelpmaskedexpnorm', type='string', help='Select which matrix to read from file')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -180,7 +183,7 @@ if __name__ == "__main__":
 
     elif options.type == 'hessian':
         hessfile = ROOT.TFile(args[0],'read')
-        suffix = 'channelpmaskedexpnorm'
+        suffix = options.matrixType
         corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
         covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
         for ib in range(1+corrmatrix.GetNbinsX()+1):
@@ -225,6 +228,8 @@ if __name__ == "__main__":
     # one might want to invert the order of charge and helicity for the sorting
 
     params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
+    params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
+    params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)

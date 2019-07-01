@@ -7,7 +7,7 @@ from array import array
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] f1.root h1 f2.root h2")
 parser.add_option("-o", "--outdir",    dest="outdir", type="string", default="./", help="Output folder (current one as default)");
-parser.add_option("-n", "--name",      dest="name",   type="string", default="comparison", help="Name for output root file");
+parser.add_option("-n", "--name",      dest="name",   type="string", default="", help="Name for output root file");
 parser.add_option("-x", "--xname",    dest="xname",   type="string", default="", help="Name for x axis (h1 default if empty)");
 parser.add_option("-y", "--yname",    dest="yname",   type="string", default="", help="Name for y axis (h2 default if empty)");
 parser.add_option(      "--xrange",    dest="xrange",   type="string", default="", help="x axis range (comma separated pair of floats)");
@@ -91,7 +91,7 @@ if len(options.dummyError):
     for i in range(1,1+hratio.GetNbinsX()):
         hratio.SetBinError(i,err)
 
-canvasName = options.name + "_" + h1.GetName() + "__" + h2.GetName()
+canvasName =  options.name if  options.name else ("comparison_" + h1.GetName() + "__" + h2.GetName())
 canvas = ROOT.TCanvas("canvas","",700,600)
 canvas.SetTickx(1)
 canvas.SetTicky(1)

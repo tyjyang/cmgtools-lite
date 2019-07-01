@@ -4,37 +4,50 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 dryrun = 0
-skipData = 1
-onlyData = 0
+skipData = 0
+onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
-skipImpacts = 0
+skipImpacts = 1
+skipImpactsEtaPt = 1
 
-allPtBinsSignalElectron = 0
+allPtBinsSignal = 1
 
 seed = 123456789
 
 #folder = "diffXsec_el_2019_04_13_newSystAndWtau/"
 #folder = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/"
-folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
+#folder = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/"
 #folder = "diffXsec_mu_2019_05_04_etaReco0p1_etaGen0p2from1p3_last2p1to2p4//"
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight/"
+folder = "diffXsec_el_2019_06_21_zptReweight/"
+#folder = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/"
 if doMuElComb:
     folder = "muElCombination"
+    skipTemplate = 1
 
-postfix = "testEffSystUncorrEta_uncorrPtScale"
-postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
+#postfix = "testEffSystUncorrEta_uncorrPtScale"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_noCorrelateXsecStat"
+#postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
+#postfix = "finalTest_EffStatNotScaled_EffSystAndScaleOnTau"
+#postfix = "finalTest_EffStatNotScaled"
+#postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
+#postfix = "zptReweight"
+postfix = "zptReweight"
 #postfix = "combinedLep"
 if doMuElComb:
-    postfix = "combinedLep"
+    postfix = "combinedLep_zptReweight"
 postfix += "_bbb1_cxs1"
+#postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
 
 flavour = "el" if "_el_" in folder else "mu"
@@ -45,25 +58,25 @@ if doMuElComb:
 
 fits = ["Asimov", "Data"]
 
-ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (flavour == "el" and not allPtBinsSignalElectron) else ""  # " --eta-range-bkg 1.39 1.61 "
-ptMinForImpacts = " --pt-min-signal 30" if (flavour == "el" and not allPtBinsSignalElectron) else ""
+ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (not allPtBinsSignal) else ""  # " --eta-range-bkg 1.39 1.61 "
+ptMinForImpacts = " --pt-min-signal 30" if (not allPtBinsSignal) else ""
 optTemplate = " --norm-width --draw-selected-etaPt 0.55,39.5 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffStat.*|.*scale0.*|.*scale1.*|.*lepeff.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
-ptMinTemplate = "30" if flavour == "el" else "26"
+ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = [#"pdf.*|alphaS|mW", 
-                      #"muR.*|muF.*", 
-                      #"Fakes(Eta|Pt).*[0-9]+mu.*", 
+diffNuisances_pois = ["pdf.*|alphaS|mW|fsr", 
+                      "muR.*|muF.*", 
+                      "Fakes(Eta|Pt).*[0-9]+mu.*", 
                       #"Fakes(Eta|Pt).*[0-9]+el.*", 
-                      #"ErfPar0EffStat.*", 
-                      #"ErfPar1EffStat.*", 
-                      #"ErfPar2EffStat.*", 
-                      "CMS_.*|.*TestEffSyst.*|mW", 
-                      #"Wplus.*_ieta_.*_mu",     
-                      #"Wminus.*_ieta_.*_mu"
+                      "ErfPar0EffStat.*", 
+                      "ErfPar1EffStat.*", 
+                      "ErfPar2EffStat.*", 
+                      "CMS_.*|.*TestEffSyst.*", 
+                      "Wplus.*_ieta_.*_mu",     
+                      "Wminus.*_ieta_.*_mu"
                       ]
 
 # this is appended to nuis below
@@ -81,7 +94,7 @@ correlationNuisRegexp = {# "allPDF"           : "pdf.*",
                          # "muRmuF"           : "^muRmuF[1-9]+", 
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+mu.*",
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+el.*", 
-                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|mW",
+                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|mW|fsr",
                          # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
                          # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
                          # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
@@ -102,13 +115,20 @@ correlationMatrixTitle = {"allPDF"           : "all PDFs",
 
 # for impacts
 targets = [#"mu", 
-           "xsec", 
-           "xsecnorm",
-           "etaptasym",
+           #"xsec", 
+           #"xsecnorm",
+           #"etaptasym",
            "etaxsec",
            "etaxsecnorm",
            "etaasym"
            ]
+
+# for impacts vs pT-eta
+targetsPtEta = [#"mu", 
+                "xsec", 
+                "xsecnorm",
+                "asym",
+                ]
 
 # impacts_nuis = [".*pdf.*", 
 #                 ".*muR.*|.*muF.*", 
@@ -120,7 +140,9 @@ targets = [#"mu",
 #                 ]
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
-groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale'
+groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
+#groupnamesEtaPt = groupnames
+groupnamesEtaPt = "EffStat,EffSyst"
 
 # no longer used: for impacts in the form of graphs, use "W.*_ieta_.*" for pt-integrated stuff, and "W.*_ieta_.*_ipt_XX" for the rest, where XX is a given pt bin 
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",
@@ -141,7 +163,7 @@ for charge in ["plus","minus"]:
     print ""
 
     command = "python w-helicity-13TeV/templateRolling.py"
-    command += " cards/{fd} -o plots/diffXsecAnalysis/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
+    command += " cards/{fd} -o plots/diffXsecAnalysis_new/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
     command += " --plot-binned-signal -a diffXsec -C {ch} --pt-range '{ptmin},{ptmax}' ".format(ch=charge, ptmin=ptMinTemplate, ptmax=ptMaxTemplate)
     command += " {opt} ".format(opt=optTemplate)
     if not skipTemplate:
@@ -172,9 +194,9 @@ for fit in fits:
     ## DIFFERENTIAL CROSS SECTION AND CHARGE ASYMMETRY
     command = "python w-helicity-13TeV/plotDiffXsecChargeAsymmetry.py"
     command += " -i cards/{fd} -c {fl}".format(fd=folder, fl=flavour)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
     command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --lumi-norm 35900.0  -n --palette 57 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
+    command += " --lumi-norm 35900.0  -n --palette -1 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
     if fit == "Data":
         command += " --fit-data --invert-ratio --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
     if not skipPlot:
@@ -192,7 +214,7 @@ for fit in fits:
     ## POSTFIT NUISANCES
     command = "python w-helicity-13TeV/diffNuisances.py"
     command += " --infile cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/diffNuisances/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/diffNuisances/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
     command += " -a --format html --type hessian  --suffix  {fit} ".format(fit=fit)
     for poi in diffNuisances_pois:
         tmpcommand = command + " --pois '{poi}' ".format(poi=poi)
@@ -210,7 +232,7 @@ for fit in fits:
     ## POSTFIT PLOTS
     command = "python w-helicity-13TeV/postFitPlots_xsec.py"
     command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root cards/{fd}/ ".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/postFitPlots_xsec/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
     command += " --no2Dplot-signal-bin -n ".format(fit=fit)  # -n
     if fit == "Data":
         if not skipPostfit:
@@ -227,7 +249,7 @@ for fit in fits:
 
     ## ADD CORRELATION
     command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
     command += " --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
     for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
@@ -247,8 +269,9 @@ for fit in fits:
 
     ## IMPACTS
     command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " -o plots/diffXsecAnalysis/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} {pt} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix, pt=ptMinForImpacts)
-    command += " --abs-value --nContours 51 --margin '0.16,0.15,0.05,0.25' --canvasSize '1500,1200' --splitOutByTarget "
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/impactPlots/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
+    command += " {pt} ".format(pt=ptMinForImpacts)
+    command += " --nContours 51 --margin '0.16,0.2,0.1,0.12' --canvasSize '1200,1000' --splitOutByTarget "
     # --palette 70 --invertPalette: kDarkBody from light blue to red
     # with following line will make impacts with graphs, not matrix                        
     command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
@@ -274,6 +297,32 @@ for fit in fits:
                     print tmpcommand
                     if not dryrun:
                         os.system(tmpcommand)
+
+    ## IMPACTS versus pT-eta
+    command = "python w-helicity-13TeV/impactPlots_singleNuis_vsPtEta.py" 
+    command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/impactPlots_singleNuis_vsPtEta/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,
+                                                                                                                        fit=fit,pf=postfix)
+    command += " --abs-value --nContours 51 --margin '0.16,0.2,0.1,0.12' --canvasSize '1500,1200' --splitOutByTarget --palette 109 "
+    command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
+    if flavour != "lep":
+        command += " -c {fl}".format(fl=flavour)
+    for nuis in impacts_nuis:
+        if nuis == "GROUP":
+            varopt = " --nuisgroups '{ng}' ".format(ng=groupnamesEtaPt)
+        else:
+            varopt = " --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
+
+        for target in targetsPtEta:
+            if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
+                continue
+            tmpcommand = command + " {vopt} --target {t}  ".format(vopt=varopt, t=target)                      
+            if not skipImpactsEtaPt:
+                print ""
+                print tmpcommand
+                if not dryrun:
+                    os.system(tmpcommand)
+
 
 print ""
 print "THE END"

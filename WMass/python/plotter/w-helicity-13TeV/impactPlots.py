@@ -24,6 +24,7 @@ def niceSystName(label):
     elif 'OtherExp' in label: niceName = 'other experimental'
     elif 'lumi' in label: niceName = 'luminosity'
     elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}, #alpha_{S}'
+    elif 'QEDTheo' in label: niceName = 'FSR'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total'
     elif 'EffSyst' in label: niceName = 'efficiency syst.'
@@ -362,12 +363,22 @@ if __name__ == "__main__":
         cp = 'plus_left' # groups assume a common Y binning
         for charge in charges:
             for pol in polarizations:
-                for ing,nuisgroup in enumerate(groups):
+                ing  = 0
+                ing2 = 0
+                for ing_tmp,nuisgroup in enumerate(groups):
+                    # in case we add other lines, let's avoid messing up all the colors of the old ones
+                    # I define a new integer counter that is not updated on certain conditions
                     h = ROOT.TH1D(charge+'_'+pol+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
                     summaries[(charge,pol,nuisgroup)] = h
                     summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
-                    summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
-                    summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                    if nuisgroup in ["QCDTheo"]:
+                        summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
+                        summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
+                        ing2 += 1
+                    else:
+                        summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                        summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                        ing += 1
                     summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,2.75)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
@@ -433,6 +444,7 @@ if __name__ == "__main__":
                     if   ng=='binByBinStat': summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle)
                     elif ng=='stat'        : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle); summaries[(charge,pol,ng)].SetMarkerColor(ROOT.kBlack); summaries[(charge,pol,ng)].SetLineColor(ROOT.kBlack);
                     elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                    elif ng=='QEDTheo'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
                     else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                     leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
                     # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
@@ -468,13 +480,23 @@ if __name__ == "__main__":
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         for charge in charges:
-            for ing,nuisgroup in enumerate(groups):
+            ing = 0
+            ing2 = 0
+            for ing_tmp,nuisgroup in enumerate(groups):
+                # in case we add other lines, let's avoid messing up all the colors of the old ones
+                # I define a new integer counter that is not updated on certain conditions
                 h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Neta,array('d',genBins.etaBins))
                 #print "Last bin right edge: " + str(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
                 summaries[(charge,nuisgroup)] = h
                 summaries[(charge,nuisgroup)].SetMarkerSize(2)
-                summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
-                summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                if nuisgroup in ["QEDTheo"]:
+                    summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
+                    summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
+                    ing2 += 1
+                else:
+                    summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                    summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                    ing += 1
                 summaries[(charge,nuisgroup)].SetLineWidth(2)
                 summaries[(charge,nuisgroup)].GetXaxis().SetRangeUser(0.,2.4)
                 summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
@@ -583,6 +605,8 @@ if __name__ == "__main__":
                     summaries[(charge,ng)].SetLineColor(ROOT.kBlack);
                 elif ng=='luminosity'  : 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                elif ng=='QEDTheo'  : 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
                 else: 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                 leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
