@@ -165,14 +165,15 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 if signal:
                     for ipt in range(1,11): ## start from 1 to 10
                         for pol in ['left', 'right', 'long'] if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
-                            ## have to redo the postfix for these
-                            pm = 'plus' if 'plus' in incl_mca.split('_')[1] else 'minus'
-                            postfix = "_{proc}_{p}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,p=pol,ch=pm)
-                            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                            ptcut = wptBinsScales(ipt)
-                            wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
-                            mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                            qcdsysts.append(postfix)
+                            for pm in ['plus', 'minus']:
+                                ## have to redo the postfix for these
+                                ##pm = 'plus' if 'plus' in incl_mca.split('_')[1] else 'minus'
+                                postfix = "_{proc}_{p}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,p=pol,ch=pm)
+                                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                                ptcut = wptBinsScales(ipt)
+                                wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                                qcdsysts.append(postfix)
                 else:
                     ## for the Z only do the unnumbered ones
                     postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
@@ -399,6 +400,7 @@ if options.signalCards:
                     ycut += POSCUT if charge=='plus' else NEGCUT
                     ## marc excl_long_signal  = '' if not options.longBkg else ',W{ch}_long.*'.format(ch=charge)
                     ## marc xpsel=' --xp "W{antich}.*,W{ch}_{antihel}.*,Flips,Z,Top,DiBosons,TauDecaysW{longbkg},data.*" --asimov '.format(antich=antich,ch=charge,antihel=antihel,longbkg = excl_long_signal)
+                    if antich in var: continue
                     excl_antihel = ','.join('W'+charge+'_'+ah+'.*' for ah in antihel)
                     xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_antihel)
                     if not os.path.exists(outdir): os.mkdir(outdir)
