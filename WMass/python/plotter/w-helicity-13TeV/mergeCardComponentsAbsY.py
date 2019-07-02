@@ -1029,6 +1029,7 @@ if __name__ == "__main__":
                 binWsyst = '_'.join(name.split('_')[1:-1])
                 if re.match('.*_pdf.*|.*_mu(R|F).*|.*_(long|left|right)muR.*|.*_(long|left|right)muF.*|.*alphaS.*|.*mW.*',name):
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
+                    if re.match('.*_muR\d+(minus|plus)|.*_muF\d+(minus|plus)|.*_muRmuF\d+(minus|plus)',name) and name.startswith('x_TauDecaysW_'): continue
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
                 if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
