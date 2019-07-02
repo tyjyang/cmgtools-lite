@@ -6,9 +6,9 @@ dryrun=0
 doMuons=1
 skipUnpack=1
 skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1
-skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipSingleCard=0
+skipMergeCard=0
+skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 
 allPtBinsSignal = 1
 
@@ -24,7 +24,7 @@ th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
 #folder_mu = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
-folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
+folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
 th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
 
 folder = folder_mu if doMuons else folder_el
@@ -36,9 +36,9 @@ uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when cha
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ") #+ " --useBinUncEffStat " 
+optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ") #+ " --useBinUncEffStat " 
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
-optionsForCardMaker = " --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
+optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
 optionsForCardMaker += binnedSystOpt # + " --useBinUncEffStat "
 
 #--WZ-testEffSyst-LnN 0.012" 
@@ -46,7 +46,7 @@ optionsForCardMaker += binnedSystOpt # + " --useBinUncEffStat "
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
+optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
 # --no-correlate-xsec-stat
 
 optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight --sig-out-bkg " # --no-text2hdf5 --no-combinetf --useSciPyMinimizer "  

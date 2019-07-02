@@ -406,10 +406,11 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
                     # if binwidths[ietaTemplate-1] > 1.: 
                     #     tmp_scale_up = tmp_scale_up / binwidths[ietaTemplate-1]
                     #     tmp_scale_dn = tmp_scale_dn / binwidths[ietaTemplate-1]
-                    if sub:
-                        if (abseta<1): syst = 0.002
-        elif (abseta<1.5):   syst = 0.004;                                                                                        
-                else                   syst = 0.014;                                                                                                                                     
+  
+                  # if subtractSystPart:
+                    #     if (abseta<1): syst = 0.002
+                    #     elif (abseta<1.5):   syst = 0.004;                                                                                        
+                    #     else                   syst = 0.014;                                                                                                                        
 
                     tmp_scale_up = 1 +  tmp_scale_up
                     tmp_scale_dn = 1 +  tmp_scale_dn
@@ -450,7 +451,7 @@ parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_f
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 parser.add_option(       "--test-eff-syst", dest="testEffSyst",   action="store_true", default=False, help="Add some more nuisances to test efficiency systematics on signal and Z (possily other components as well)");
 parser.add_option(       "--useBinUncEffStat", dest="useBinUncEffStat",   action="store_true", default=False, help="Add some more nuisances representing eff stat with SF shifted by their uncertainty (for tests)");
-
+parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -798,6 +799,40 @@ if options.testEffSyst:
     print ""
     print "Wrote again root file in %s" % shapename
     print ""
+
+if options.uncorrelateQCDscalesByCharge:
+    # loop on final merged file, look for muRXX or muFXX and add charge
+    print "Now I will uncorrelate QCD scales between charges for signal and tau"
+    shapenameNoQCDuncorr = shapename.replace("_shapes","_shapes_QCDscalesNoChargeUncorr")
+    print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoQCDuncorr)
+    print "I will then copy it back into the original after uncorrelating QCD scales between charges" 
+    if not options.dryrun:
+        os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoQCDuncorr))
+    tfno = ROOT.TFile.Open(shapenameNoQCDuncorr,"READ")
+    if not tfno or not tfno.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameNoQCDuncorr))
+    # open output file
+    of = ROOT.TFile(shapename,'recreate')
+    if not of or not of.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=shapename))
+    nKeys = tfno.GetNkeys()
+    nCopiedKeys = 0
+    for ikey,e in enumerate(tfno.GetListOfKeys()):
+        name = e.GetName()
+        obj  = e.ReadObj()
+        if not obj:
+            raise RuntimeError('Unable to read object {n}'.format(n=name))
+        newname = name
+        if re.match(".*mu(R|F)\d+",name):
+            if name.endswith('Up'): newname = name.replace('Up','{ch}Up'.format(ch=charge))
+            elif name.endswith('Down'): newname = name.replace('Down','{ch}Down'.format(ch=charge))
+        newobj = obj.Clone(newname)
+        newobj.Write(newname)        
+        nCopiedKeys += 1
+    print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapenameNoQCDuncorr)
+    of.Close()
+    tfno.Close()
+        
 
 print ""
 print "-"*20
