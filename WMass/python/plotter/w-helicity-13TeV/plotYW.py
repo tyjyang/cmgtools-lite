@@ -451,6 +451,7 @@ if __name__ == "__main__":
         ## this gets the pdf central variation binned in the correct format
         xsec_nominal     = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations )
         xsec_qcdenvelope = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations )
+        xsec_alphas_syst = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations, doAlphaS=True )
 
         xsec_nominal_allCharges[charge] = xsec_nominal
 
@@ -484,6 +485,8 @@ if __name__ == "__main__":
                         xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
                 # now to the total PDF error, add the QCD scales envelope
                 xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
+                # and add alphaS (which in principle is part of PDF variations)
+                xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)

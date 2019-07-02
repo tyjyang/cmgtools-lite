@@ -75,7 +75,7 @@ def getXsecs(processes, systs, ybins, lumi, infile):
         for sys in systs:
 
             # skipping the look for xsec for the theory systematics which belong only to Wtau
-            if re.match('muR\d+(minus|plus)|muF\d+(minus|plus)|muRmuF\d+(minus|plus)',sys) and not any([pol in sys for pol in ['left','right','long']]): continue
+            if re.match('^muR\d+(minus|plus)|^muF\d+(minus|plus)|^muRmuF\d+(minus|plus)',sys): continue
 
             original_sys = sys
             if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
