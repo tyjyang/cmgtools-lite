@@ -101,12 +101,33 @@ class util:
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             xsecs = []
             for iv, val in enumerate(ybins[cp][:-1]):                
-                if any(iv == x for x in excludeYbins): continue
+                if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
                 #print name
                 histo = histo_file.Get(name)
                 val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
+            values[pol] = xsecs
+        histo_file.Close()
+        return values
+
+    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = []):
+        values = {}
+        histo_file = ROOT.TFile(infile, 'READ')
+        for pol in polarizations:
+            systs = ['alphaSUp','alphaSDown']+[pol+qcdscale+str(ptbin)+charge+direction for qcdscale in ['muR','muF','muRmuF'] for ptbin in xrange(1,11) for direction in ['Up','Down']]
+            cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
+            xsecs = []
+            for iv, val in enumerate(ybins[cp][:-1]):
+                if val in excludeYbins: continue
+                binname = 'x_W{ch}_{pol}_Ybin_{iy}'.format(ch=charge,pol=pol,iy=iv)
+                histo_nominal = histo_file.Get(binname)
+                nominal = histo_nominal.Integral()/36000./float(nchannels)
+                envelope = 0
+                for s in systs:
+                    histo_systs = histo_file.Get(binname+'_'+s)
+                    envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
+                xsecs.append(float(envelope))
             values[pol] = xsecs
         histo_file.Close()
         return values
