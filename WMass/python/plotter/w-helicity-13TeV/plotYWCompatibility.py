@@ -580,7 +580,9 @@ if __name__ == "__main__":
         sign = 1. if charge=='plus' else -1.
 
         ## this gets the pdf central variation binned in the correct format
-        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations)
+        xsec_nominal     = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations)
+        xsec_qcdenvelope = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations )
+
         xsec_nominal_allCharges[charge] = xsec_nominal
 
         value_syst = {}
@@ -611,6 +613,8 @@ if __name__ == "__main__":
                         print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,xsec_relsyst)
                     else:
                         xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
+                # now to the total PDF error, add the QCD scales envelope
+                xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
