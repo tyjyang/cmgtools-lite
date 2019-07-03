@@ -93,7 +93,7 @@ environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
 +MaxRuntime = {rt}\n
-'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.grouping*2.0*3600), here=os.environ['PWD'] ) )
+'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=int(options.grouping*6.0*3600), here=os.environ['PWD'] ) )
 ##requirements = (OpSysAndVer =?= "SLCern6")
 
         if os.environ['USER'] in ['mdunser', 'psilva']:
@@ -142,6 +142,15 @@ request_memory = 4000
                         f_ok = False
                     elif tfile.GetNkeys() == 0:
                         if self.options.verbose>1: print '# WARNING',f, ' has no keys inside!!'
+                        f_ok = False
+
+                ## one last check by opening the text file
+                intext = open(self.card_dir+'/'+card_subdir[key]+'/'+f.replace('.input.root','.card.txt'),'r')
+                inlines = intext.readlines()
+                ## check if this really works
+                for line in inlines:
+                    if 'observation 0' in line:
+                        print '# WARNING found an observation == 0 file:', self.card_dir+'/'+card_subdir[key]+'/'+f.replace('.input.root','.card.txt')
                         f_ok = False
 
             if not f_ok: 

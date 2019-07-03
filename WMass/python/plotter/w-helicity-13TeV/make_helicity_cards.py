@@ -549,7 +549,7 @@ if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
                             print(lin)
 
 def getShFile(jobdir, name):
-    tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
+    tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
     tmp_srcfile = open(tmp_srcfile_name, 'w')
     tmp_srcfile.write("#! /bin/sh\n")
     tmp_srcfile.write("ulimit -c 0 -S\n")
