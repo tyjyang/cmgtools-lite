@@ -125,6 +125,7 @@ def makeUncorrDiff(gr1,gr2):
     return diff
 
 def makeFullLegend(values):
+    doAltExp = (len(values[('lep','left')].altval)>0)
     legs = []
     # expected values
     legExp = ROOT.TLegend(0.25, 0.75, 0.90, 0.85)
@@ -132,6 +133,10 @@ def makeFullLegend(values):
     legExp.SetBorderSize(0)
     legExp.AddEntry(values[('lep','left')] .graph     , '#sigma_{L} (Theory)', 'f')
     legExp.AddEntry(values[('lep','right')].graph     , '#sigma_{R} (Theory)', 'f')
+    if doAltExp:
+        legExp.SetNColumns(2)
+        legExp.AddEntry(values[('lep','left')] .altgraph     , 'W_{{L}} (unw {mc})'.format(mc=REFMC) , 'l')
+        legExp.AddEntry(values[('lep','right')].altgraph     , 'W_{{R}} (unw {mc})'.format(mc=REFMC) , 'l')
     legs.append(legExp)
     # data Left
     legLeft = ROOT.TLegend(0.25, 0.60, 0.90, 0.75)
@@ -152,11 +157,14 @@ def makeFullLegend(values):
     return legs
 
 def makeFullLegendUnpol(values):
+    doAltExp = (len(values['lep'].altval)>0)
     # expected values
     leg = ROOT.TLegend(0.25, 0.60, 0.90, 0.85)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
-    leg.AddEntry(values['lep'] .graph    , '#sigma (Theory)', 'f')
+    leg.AddEntry(values['lep'] .graph    , '#sigma (Wgt Theory)', 'f')
+    if doAltExp:
+        leg.AddEntry(values['lep'] .altgraph    , '#sigma (Unw Theory)', 'l')
     leg.AddEntry(values['mu'] .graph_fit , 'data #mu', 'p')
     leg.AddEntry(values['el'] .graph_fit , 'data e', 'p')
     leg.AddEntry(values['lep'].graph_fit , 'data comb ', 'p')
@@ -173,6 +181,7 @@ def plotValues(values,charge,channel,options):
 
     skipLong = False
     if options.nolong or options.longBkg: skipLong = True
+    doAltExp = (len(values[('lep','left')].altval)>0)
 
     flavors = ['mu','el','lep']; 
     polarizations = ['left','right']
@@ -202,6 +211,9 @@ def plotValues(values,charge,channel,options):
             mg.Add(values[(flav,'left')] .graph_fit)
             mg.Add(values[(flav,'right')].graph_fit)
             if not skipLong: mg.Add(values[(flav,'long')] .graph_fit)
+            if doAltExp:
+                mg.Add(values[(flav,'left')] .altgraph,'L2')
+                mg.Add(values[(flav,'right')].altgraph,'L2')
     
         mg.Draw('Pa')
         mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
@@ -351,6 +363,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
     ch = '#plus' if charge == 'plus' else '#minus'
     if charge == 'asymmetry': ch = ''
     date = datetime.date.today().isoformat()
+    doAltExp = (len(values['lep'].altval)>0)
 
     valkey = values['lep'].name.split('_')[1]
 
@@ -370,7 +383,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
         mg.Add(values['lep'].graph,'P2')
         for flav in flavors:
             mg.Add(values[flav].graph_fit)
-            
+            if doAltExp:
+                mg.Add(values[flav].altgraph,'L2')
+        
         mg.Draw('Pa')
         mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
         mg.GetXaxis().SetTitle('|Y_{W}|')
@@ -507,7 +522,8 @@ if __name__ == "__main__":
     parser.add_option(      '--infile-el'   , dest='infileEl' , default=''            , type='string', help='fitresults file with electron results')
     parser.add_option(      '--infile-lep'  , dest='infileLep', default=''            , type='string', help='fitresults file with muon,electron combination results')
     parser.add_option('-y', '--ybinfile'    , dest='ybinfile' , default=''            , type='string', help='file with the yw binning')
-    parser.add_option(      '--xsecfiles'    , dest='xsecfiles' , default=None          , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
+    parser.add_option(      '--xsecfiles'   , dest='xsecfiles', default=None          , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
+    parser.add_option(      '--altxsecfiles', dest='altxsecfiles' , default=None      , type='string', help='files that contains alternative xsecs as the nominal to be drawn as a line ')
     parser.add_option('-C', '--charge'      , dest='charge'   , default='plus,minus'  , type='string', help='process given charge. default is both')
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
@@ -565,7 +581,13 @@ if __name__ == "__main__":
 
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
+    doAltExp =  options.altxsecfiles
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
+
+    if doAltExp:
+        alt_xsecfiles = options.altxsecfiles.split(',')
+        alt_xsec_nominal_allCharges = {}
+
     polarizations = ['left','right','long']
     signal_polarizations = ['left','right']
     if not options.longBkg:
@@ -583,8 +605,11 @@ if __name__ == "__main__":
         xsec_nominal     = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations)
         xsec_qcdenvelope = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations )
         xsec_alphas_syst = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations, doAlphaS=True )
-
         xsec_nominal_allCharges[charge] = xsec_nominal
+
+        if doAltExp: 
+            alt_xsec_nominal = utilities.getXSecFromShapes(ybins,charge,alt_xsecfiles[ic],0,nChan, polarizations=polarizations )
+            alt_xsec_nominal_allCharges[charge] = alt_xsec_nominal
 
         value_syst = {}
         for pol in polarizations:
@@ -625,7 +650,7 @@ if __name__ == "__main__":
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
-        angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
+        angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}; alt_angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
         angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}
         for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
             xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
@@ -638,6 +663,13 @@ if __name__ == "__main__":
             angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
             angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
             angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
+            if doAltExp:
+                alt_xsec_unpolarized_nominal_iy = sum([alt_xsec_nominal[pol][iy] for pol in polarizations])
+                alt_angcoeff_nominal['sumxsec'].append(alt_xsec_unpolarized_nominal_iy)
+                alt_coeffs_val = utilities.getCoeffs(alt_xsec_nominal['left'][iy],     alt_xsec_nominal['right'][iy],     alt_xsec_nominal['long'][iy],
+                                                     xsec_systematics['left'][iy],     xsec_systematics['right'][iy],     xsec_systematics['long'][iy])
+                alt_angcoeff_nominal['a0'].append(alt_coeffs_val['a0'][0])
+                alt_angcoeff_nominal['a4'].append(sign*alt_coeffs_val['a4'][0])
 
         nOuterBinsToExclude = 0  ### out of acceptance Y bins, or that were treated as background (not to be considered for the total xsec)
         if len(outAccYBins):
@@ -649,6 +681,9 @@ if __name__ == "__main__":
         print "MAXYFORNORM = " + str(MAXYFORNORM)
         normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
         normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+        if doAltExp:
+            alt_normsigmaIn  = sum([alt_xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            alt_normsigmaOut = sum([alt_xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
 
         allValues = {}
         normsigmaInFit = {}; normsigmaOutFit = {}
@@ -666,6 +701,7 @@ if __name__ == "__main__":
                     # normsigma is used to normalize the expected: then, the sum should be the one on the expected
                     # which is also less sensitive to fluctuations, since in data some bins can be 0
                     normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+                    if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
                     parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
      
                     scale = 1.
@@ -682,10 +718,14 @@ if __name__ == "__main__":
                     rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] 
      
                     tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
+                    if doAltExp: 
+                        tmp_val.altval.append(alt_xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                     tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
                     tmp_val.elo.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
                     if options.normxsec:
                         tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                        if doAltExp:
+                            tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
                         tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
                         tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
      
@@ -724,6 +764,8 @@ if __name__ == "__main__":
             for flav in flavors:
                 nChan = 2 if flav=='lep' else 1
                 tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
+                normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+                if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
                 for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
                     if iy in bkgYBins: continue
                     parname = 'W{charge}_Ybin_{iy}_{xs}'.format(charge=charge,iy=iy,xs=xs)
@@ -739,12 +781,16 @@ if __name__ == "__main__":
                         xskey = xs.replace('norm','') # to use the expected xsec values, which have to be normalized
         
                     tmp_val.val.append(abs(angcoeff_nominal[xskey][iy]/ybinwidth_scale))
+                    if doAltExp:
+                        tmp_val.altval.append(abs(alt_angcoeff_nominal[xskey][iy]/ybinwidth_scale))
                     experr = angcoeff_systematics[xskey][iy]/ybinwidth_scale
                     tmp_val.ehi.append(experr)
                     tmp_val.elo.append(experr) # symmetric for the expected
 
                     if xs=='sumxsecnorm':
                         tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                        if doAltExp:
+                            tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
                         tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
                         tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
             
@@ -786,7 +832,12 @@ if __name__ == "__main__":
                     if any(iy == x for x in bkgYBins): continue
                     chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
                                                        xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
+                    if doAltExp:
+                        chasy_altval = utilities.getChargeAsy(alt_xsec_nominal_allCharges['plus'][pol][iy],     alt_xsec_nominal_allCharges['minus'][pol][iy],
+                                                              xsec_systematics_allCharges['plus'][pol][iy],     xsec_systematics_allCharges['minus'][pol][iy]) # assumes the same error band for nominal and alternative, which is ~true for pt-unw and pt-w samples
                     tmp_val.val .append(chasy_val['asy'][0])
+                    if doAltExp:
+                        tmp_val.altval .append(chasy_altval['asy'][0])
                     tmp_val.ehi.append(chasy_val['asy'][1])
                     tmp_val.elo.append(chasy_val['asy'][1])
      
@@ -820,16 +871,23 @@ if __name__ == "__main__":
             for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
                 if any(iy == x for x in bkgYBins): continue
                 xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
+                alt_xval = {'plus': 0, 'minus': 0}
                 for charge in ['plus','minus']:
                     for pol in polarizations:
                         xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
                         xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
+                        if doAltExp: alt_xval[charge] += alt_xsec_nominal_allCharges[charge][pol][iy]
                     xerr[charge] = math.sqrt(xerr[charge])
      
                 chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
                                                    xerr['plus'], xerr['minus'])
+                if doAltExp:
+                    chasy_altval = utilities.getChargeAsy(alt_xval['plus'], alt_xval['minus'],
+                                                          xerr['plus'], xerr['minus'])
                 
                 tmp_val.val .append(chasy_val['asy'][0])
+                if doAltExp:
+                    tmp_val.altval .append(chasy_altval['asy'][0])
                 tmp_val.ehi.append(chasy_val['asy'][1])
                 tmp_val.elo.append(chasy_val['asy'][1])
      
