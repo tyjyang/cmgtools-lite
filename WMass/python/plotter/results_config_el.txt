@@ -1,10 +1,10 @@
 basedir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV'
-cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_06_20_laCremeDeLaCreme'
-fitsdir = basedir+'/fitsel/laCremeDeLaCreme/fitsout_2019-06-21/'
+cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_06_26_ChocolateSprungli'
+fitsdir = basedir+'/fitsel/chocolateSprungli/fitsout_2019-07-02/'
 toysdir = basedir+'/toys/tf/21-11-18'
 
 ### FLOATING POIS ###
-#both_floatingPOIs_hessian_exp1_bbb1 = fitsdir+'/fitresults_123456789_poim1_exp1_bbb1.root'
+both_floatingPOIs_hessian_exp1_bbb1 = fitsdir+'/fitresults_123456789_poim1_exp1_bbb1.root'
 #both_floatingPOIs_hessian_exp1_bbb0 = fitsdir+'/fitresults_123456789_poim1_exp1_bbb0.root'
 both_floatingPOIs_hessian_exp0_bbb1 = fitsdir+'/fitresults_123456789_poim1_exp0_bbb1.root'
 #both_floatingPOIs_hessian_exp0_bbb0 = fitsdir+'/fitresults_123456789_poim1_exp0_bbb0.root'
@@ -23,6 +23,10 @@ shapes_files = cardsdir+'/Wel_shapes.root'
 
 xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
 xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
+
+noWgt_cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_04_08'
+alt_xsecs_plus  = noWgt_cardsdir+'/Wel_plus_shapes_xsec.root'
+alt_xsecs_minus = noWgt_cardsdir+'/Wel_minus_shapes_xsec.root'
 
 #postfit_poim1_exp0_bbb0  = fitsdir+'/fitresults_poim1_exp0_bbb0.root'
 postfit_poim1_exp0_bbb1  = fitsdir+'/fitresults_123456789_poim1_exp0_bbb1.root'

@@ -103,7 +103,6 @@ class util:
             for iv, val in enumerate(ybins[cp][:-1]):                
                 if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
-                #print name
                 histo = histo_file.Get(name)
                 val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
@@ -111,11 +110,11 @@ class util:
         histo_file.Close()
         return values
 
-    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = []):
+    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], doAlphaS=False):
         values = {}
         histo_file = ROOT.TFile(infile, 'READ')
         for pol in polarizations:
-            systs = ['alphaSUp','alphaSDown']+[pol+qcdscale+str(ptbin)+charge+direction for qcdscale in ['muR','muF','muRmuF'] for ptbin in xrange(1,11) for direction in ['Up','Down']]
+            systs = ['alphaSUp','alphaSDown'] if doAlphaS else [pol+qcdscale+str(ptbin)+charge+direction for qcdscale in ['muR','muF','muRmuF'] for ptbin in xrange(1,11) for direction in ['Up','Down']]
             cp = '{ch}_{pol}'.format(ch=charge,pol=pol)
             xsecs = []
             for iv, val in enumerate(ybins[cp][:-1]):
