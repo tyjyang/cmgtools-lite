@@ -1,4 +1,4 @@
-#!/usr/bin/env python                                                                                                     
+ #!/usr/bin/env python                                                                                                     
  
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
@@ -250,6 +250,7 @@ parser.add_option(       '--WZ-testEffSyst-LnN'   , dest='wzTestEffSystLnN'     
 parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where eff.syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,1.0,1.5')
 parser.add_option(       '--WZ-ptScaleSyst-shape'   , dest='wzPtScaleSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where pt-scale syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,2.1 for muons, 0,1.0,1.5,2.1 for electrons')
 parser.add_option(       '--useBinUncEffStat', dest='useBinUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
+parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
 (options, args) = parser.parse_args()
 
 print ""
@@ -696,9 +697,10 @@ if not isExcludedNuisance(excludeNuisances, "fsr"):
 
 qcdScale_wptBins = [] 
 for i in range(1,11):
-    qcdScale_wptBins.append("muR%d" % i)
-    qcdScale_wptBins.append("muF%d" % i)
-    qcdScale_wptBins.append("muRmuF%d" % i)
+    chargePostfixQCDscales = charge if options.uncorrelateQCDscalesByCharge else ""
+    qcdScale_wptBins.append("muR%d%s" % (i,charge))
+    qcdScale_wptBins.append("muF%d%s" % (i,charge))
+    qcdScale_wptBins.append("muRmuF%d%s" % (i,charge))
 for syst in qcdScale_wptBins:
     if isExcludedNuisance(excludeNuisances, syst): continue
     allSystForGroups.append(syst)

@@ -74,6 +74,9 @@ def getXsecs(processes, systs, ybins, lumi, infile):
 
         for sys in systs:
 
+            # skipping the look for xsec for the theory systematics which belong only to Wtau
+            if re.match('^muR\d+(minus|plus)|^muF\d+(minus|plus)|^muRmuF\d+(minus|plus)',sys): continue
+
             original_sys = sys
             if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
                 if not pol in sys: continue
@@ -1029,7 +1032,6 @@ if __name__ == "__main__":
                 binWsyst = '_'.join(name.split('_')[1:-1])
                 if re.match('.*_pdf.*|.*_mu(R|F).*|.*_(long|left|right)muR.*|.*_(long|left|right)muF.*|.*alphaS.*|.*mW.*',name):
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
-                    if re.match('.*_muR\d+(minus|plus)|.*_muF\d+(minus|plus)|.*_muRmuF\d+(minus|plus)',name) and name.startswith('x_TauDecaysW_'): continue
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
                 if re.match('.*TestEffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
