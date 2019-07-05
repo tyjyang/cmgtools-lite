@@ -706,7 +706,7 @@ if __name__ == "__main__":
      
                     scale = 1.
                     if options.normxsec:
-                        xsec_fit = [x/float(nChan) for x in valuesAndErrors[flav][parname+'_pmaskedexpnorm']]
+                        xsec_fit = [x for x in valuesAndErrors[flav][parname+'_pmaskedexpnorm']]
                     else:
                         xsec_fit = [x/float(nChan) for x in valuesAndErrors[flav][parname+'_pmaskedexp']]
                         scale = LUMINOSITY
