@@ -5,11 +5,12 @@ from submitToys import makeCondorFile,jobstring_tf
 
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] cardsDir flavor ")
-parser.add_option("-q", "--queue",     dest="queue",  action="store_true",  default=False, help="Run jobs on condor instead of locally");
-parser.add_option('-r'  , '--runtime', default=24, type=int, help='New runtime for condor resubmission in hours. default: 24h (combined fits may be long)');
-parser.add_option(        '--regularize', action='store_true', default=False, help='regularize with the standard options for poim1');
-parser.add_option(        '--useSciPy'  , action='store_true', default=False, help='use the slower SciPy minimizer (should be not necessary any more)');
-parser.add_option('--toys', default=0, type=int, help='run that number of toys, randomly generated');
+parser.add_option("-q", "--queue",      default=False, dest="queue",  action="store_true",   help="Run jobs on condor instead of locally");
+parser.add_option('-r', '--runtime',    default=24, type=int,   help='New runtime for condor resubmission in hours. default: 24h (combined fits may be long)');
+parser.add_option(      '--regularize', default=False,  dest="regularize", action="store_true",   help='do regularization with optimized taus');
+parser.add_option(      '--useSciPy',   default=False, action='store_true',  help='use the slower SciPy minimizer (should be not necessary any more)');
+parser.add_option('-s', '--suffix',     default='', type="string", help='use suffix for the output dir');
+parser.add_option(      '--toys',       default=0,  type=int, help='run that number of toys, randomly generated');
 (options, args) = parser.parse_args()
 
 cardsdir = os.path.abspath(args[0])
@@ -20,10 +21,13 @@ if channel not in ['mu','el','lep']:
 
 pois = [('poim1',''),('poim0',' --POIMode none ')]
 expected = [('exp1',' -t -1 '),('exp0',' -t 0 ')]
-BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
+#BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
+BBBs = [('bbb1',' --binByBinStat --correlateXsecStat ')]
 
 date = datetime.date.today().isoformat()
 absopath  = os.path.abspath('fitsout_'+date)
+if options.suffix: absopath += '_'+options.suffix
+
 if options.queue:
     jobdir = absopath+'/jobs/'
     if not os.path.isdir(jobdir):
@@ -40,6 +44,10 @@ if options.queue:
 
 srcfiles = []
 
+# values optimized for el/mu. For lep use muon value
+# taureg = 600 if channel=='el' else 932.5 ## values for useExp
+taureg = 600 if channel=='el' else 950
+
 for itoy in range(options.toys) if options.toys else range(1):
     if options.toys:
         irand = random.randint(1,1e9)
@@ -51,7 +59,7 @@ for itoy in range(options.toys) if options.toys else range(1):
     for ipm,POImode in pois:
         card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if ipm=='poim1' else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
         doImpacts = ' --doImpacts ' if ipm=='poim1' else ''
-        regularize = ' --doRegularization --regularizationUseExpected --regularizationTau 1  ' if ipm=='poim1' and options.regularize else ''
+        regularize = ' --doRegularization --regularizationUseLog --regularizationTau {tau} '.format(tau=taureg) if ipm=='poim1' and options.regularize else ''
         for iexp,exp in expected:
             saveHist = ' --saveHists --computeHistErrors '
             for ibbb,bbb in BBBs:
