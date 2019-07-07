@@ -40,8 +40,8 @@ if __name__ == "__main__":
     createPlotDirAndCopyPhp(options.printDir)    
     
     outf = ROOT.TFile.Open(outfilename,'recreate')
-    nbins_eta = 50; nbins_pt=200
-    var0 = ROOT.TH2F('p0','',nbins_eta,-2.5,2.5,nbins_pt,25,45)
+    nbins_eta = 50; nbins_pt=300
+    var0 = ROOT.TH2F('p0','',nbins_eta,-2.5,2.5,nbins_pt,25,55)
     var1 = var0.Clone('p1')
     var2 = var0.Clone('p2')
     systHistos = [var0,var1,var2]
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         systHistos[ivar].SetTitle('nuisance for Erf p%d' % ivar)
         xaxisTitle = "%s #eta" % lepton
         yaxisTitle = "%s p_{T} [GeV]" % lepton
-        if isEle: yaxisTitle += "::30,45"
+        if isEle: yaxisTitle += "::30,55"
         zaxisTitle = "variation / nominal"
         if ivar==0: zaxisTitle += "::-0.004,0.001" # 0.002,0.002
         else      : zaxisTitle += "::-0.01,0.01"

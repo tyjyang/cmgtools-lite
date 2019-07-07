@@ -17,11 +17,16 @@
 
 # 30/01/2019 muon trigger
 # https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50/triggerMu/
+# https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_PLUS/triggerMu/egammaEffi.txt
+# https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_MINUS/triggerMu/egammaEffi.txt
 
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50/ -c mu -n smoothEfficiency.root -t
 
 # test for muon SF with charge dependency
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50_MINUS/egammaEffi.txt_EGM2D_MINUS.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS_pol3forAbsEta1p5/ -c mu -n smoothEfficiency.root -t -C minus
+
+# 05/07/2019 (still on this topic!)
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
 
 import ROOT, os, sys, re, array, math
 
@@ -148,6 +153,9 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     forcePol3 = False
     forceErfByKey = True  # if True, force the Erf specifying in which bin it should happen
     doOnlyErf = True
+    forceErfAlways = True # added on 5 July 2019 when testing fits to binned efficiencies with only stat error 
+    # it was needed to always force Erf regardless the key (one could have used forceErfByKey selectng specific keys)
+    # it became necessary because with reduced error bars the chi^2 for the Erf fits increased a lot, more than the tolerance
 
     originalMaxPt = hist.GetXaxis().GetBinLowEdge(1+hist.GetNbinsX())
 
@@ -308,23 +316,49 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                     elif any(key == x for x in [14]):
                         tf1_erf.SetParameter(1,30)
             elif charge == "plus":
+                # following commented was when using uncertainty from TnP txt file
+                # if mc == "Data":
+                #     if any(key == x for x in [12,14,22,25,35,40,6,7]):
+                #         tf1_erf.SetParameter(1,32)
+                # elif mc == "MC":
+                #     # following commented was used with point uncertainty equal to stat+syst from TnP
+                #     #if any(key == x for x in [12,14,22,25,33,35,40]):
+                #     #    tf1_erf.SetParameter(1,32)
+                #     if any(key == x for x in [12,14,22,25,33,35]):
+                #         tf1_erf.SetParameter(1,32)
                 if mc == "Data":
-                    if any(key == x for x in [12,14,22,25,35,40,6,7]):
+                    if any(key == x for x in [12,14,22,25,35,40,6,7, 20, 32, 41, 46]):
                         tf1_erf.SetParameter(1,32)
                 elif mc == "MC":
-                    if any(key == x for x in [12,14,22,25,33,35,40]):
+                    # following commented was used with point uncertainty equal to stat+syst from TnP
+                    #if any(key == x for x in [12,14,22,25,33,35,40]):
+                    #    tf1_erf.SetParameter(1,32)
+                    if any(key == x for x in [12,14,22,25,33,35, 8, 32]):
                         tf1_erf.SetParameter(1,32)
+
             elif charge == "minus":
                 if mc == "Data":
-                    if any(key == x for x in [18,20,29,39,6, 9]):
+                    # following commented was when using uncertainty from TnP txt file
+                    #if any(key == x for x in [2, 18,20,29,39,6, 9]):
+                    #    tf1_erf.SetParameter(1,32)
+                    if any(key == x for x in [2, 18, 29,39,6, 9, 4, 23, 32, 45]):
                         # key 9 actually has an evident drop, should be RPC transition 
                         # http://mciprian.web.cern.ch/mciprian/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS/Data/effVsPt_Data_mu_eta9_minus.png
                         # maybe here I should force pol3, or assign a large uncertainty
                         tf1_erf.SetParameter(1,32)
+                    # elif any(key == x for x in [2]):
+                    #     tf1_erf.SetParameter(1,32)
                 elif mc == "MC":                    
-                    if any(key == x for x in [14,18,20,29,44,47]):
-                        tf1_erf.SetParameter(1,32)
-
+                    # following commented was when using uncertainty from TnP txt file
+                    # if any(key == x for x in [0,14,18,20,29,44,47]):
+                    #     tf1_erf.SetParameter(1,32)
+                    # # elif any(key == x for x in [0]):
+                    # #     tf1_erf.SetParameter(1,32)
+                    if any(key == x for x in [0, 18,20,29,44,47, 4, 6, 12, 23, 45]):
+                        tf1_erf.SetParameter(1,32) 
+                    elif any(key == x for x in [17]):
+                        tf1_erf.SetParameter(1,33)
+                        tf1_erf.SetParameter(2,4.0)
 
     if isFullID:
         if mc == "Data":
@@ -551,7 +585,12 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
             if retFunc.GetName() != fit_erf.GetName():
                 retFunc = fit_erf
                 line = "Best fit: Erf[x] (forced)"
-  
+
+    if forceErfAlways:
+        if retFunc.GetName() != fit_erf.GetName():
+            retFunc = fit_erf
+            line = "Best fit: Erf[x] (forced)"
+        
 
     reducedChi2,lineChi2 = getReducedChi2andLabel(retFunc)
     if hist_reducedChi2: hist_reducedChi2.Fill(reducedChi2)
@@ -744,6 +783,8 @@ if __name__ == "__main__":
     parser.add_option(    '--weights-average', dest='weightsAverage',default='', type='string', help='Comma separated list of two weights (can be luminosity for era BF and GH, they are 19.91/fb and 16.30/fb respectively)')
     parser.add_option(    '--average-uncertainty-mode', dest='averageUncertaintyMode',default='max', type='string', help='Can be max, weight, diff (see function makeSFweightedAverage)')
     parser.add_option(    '--hists-average', dest='histsAverage',default='', type='string', help='Comma separated list of histograms to average (pass names, one for each average, it is assumed the names in each file are the same)')
+    parser.add_option(    '--input-hist-names', dest='inputHistNames',default='', type='string', help='Pass comma separated list of 3  names, for eff(data),eff(MC),SF, to be used instead of the default names')
+    parser.add_option(    '--use-MC-error-from-histo', dest='useMCerrorFromHisto',action="store_true", default=False, help='use uncertainty stored in histogram for MC (normally in the TnP output it is not stored, and the same uncertainty as data is used)')
     (options, args) = parser.parse_args()
 
 
@@ -866,9 +907,9 @@ if __name__ == "__main__":
     if options.inputfile:
         tf = ROOT.TFile.Open(options.inputfile)        
         if options.isTriggerScaleFactor or options.isFullIDScaleFactor or options.isMuonRecoToSel:
-            hmc =   tf.Get("EGamma_EffMC2D")
-            hdata = tf.Get("EGamma_EffData2D")
-            hsf = tf.Get("EGamma_SF2D")
+            hmc =   tf.Get("EGamma_EffMC2D" if not options.inputHistNames else options.inputHistNames.split(',')[1])
+            hdata = tf.Get("EGamma_EffData2D" if not options.inputHistNames else options.inputHistNames.split(',')[0])
+            hsf = tf.Get("EGamma_SF2D" if not options.inputHistNames else options.inputHistNames.split(',')[2])
             if (hsf == 0):
                 print "Error: could not retrieve hsf from input file %s. Exit" % options.inputfile
                 quit()
@@ -1009,8 +1050,11 @@ if __name__ == "__main__":
         for y in range(1,hmc.GetNbinsY()+1):
             hmcpt[bin].SetBinContent(y,hmc.GetBinContent(x,y))         
             #hmcpt[bin].SetBinError(y,hmc.GetBinError(x,y))  # no error on MC, have to assign a random value to fit
-            hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use the corresponding uncertainty on data
-
+            if options.useMCerrorFromHisto:
+                hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use the corresponding uncertainty on data
+            else:
+                hmcpt[bin].SetBinError(y,mc.GetBinError(x,y))  # use the corresponding uncertainty on data
+                                
     hdatapt = {}
     for x in range(1,hdata.GetNbinsX()+1):
         bin = x-1
@@ -1265,7 +1309,7 @@ if __name__ == "__main__":
 
 
     ######################
-    # See the difference between smoothing Data and MC efficiency and taking the ratio or smoothing directly the efifciency ratio
+    # See the difference between smoothing Data and MC efficiency and taking the ratio or smoothing directly the efficiency ratio
     ######################    
     ratioSF_smoothNumDen_smoothRatio = ROOT.TH2D("ratioSF_smoothNumDen_smoothRatio","SF ratio: smooth eff or ratio directly",
                                                  len(etabins)-1,array('d',etabins),
@@ -1403,8 +1447,8 @@ if __name__ == "__main__":
         for iy in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ieta = hdata.GetXaxis().FindFixBin(hdataSmoothCheck.GetXaxis().GetBinCenter(ix))
             ipt = hdata.GetYaxis().FindFixBin(hdataSmoothCheck.GetYaxis().GetBinCenter(iy))
-            hdataSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
-            hmcSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))
+            hdataSmoothCheck.SetBinError(ix,iy,hdata.GetBinError(ieta,ipt))            
+            hmcSmoothCheck.SetBinError(ix,iy,hmc.GetBinError(ieta,ipt) if options.useMCerrorFromHisto else hdata.GetBinError(ieta,ipt))
             scaleFactor.SetBinError(ix,iy,hsf.GetBinError(ieta,ipt))
 
     # now I also smooth the scale factors versus eta
