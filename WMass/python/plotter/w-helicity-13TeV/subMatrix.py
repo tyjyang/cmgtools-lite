@@ -5,6 +5,8 @@ ROOT.gROOT.SetBatch(True)
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from make_diff_xsec_cards import get_ieta_from_process_name
 from make_diff_xsec_cards import get_ipt_from_process_name
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
 
 import utilities
 utilities = utilities.util()
@@ -25,8 +27,7 @@ utilities = utilities.util()
 #def SetCorrMatrixPalette():
 #ROOT.gStyle.SetPalette()
 
-
-def niceName(name):
+def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
 
     if '_Ybin' in name:
         nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
@@ -51,17 +52,47 @@ def niceName(name):
         return nn
 
     elif '_ieta_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
-        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+        # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta = int((name.split("_ieta_")[1]).split("_")[0])
-        nn += "i#eta = {neta}".format(neta=ieta)
+        # nn += "i#eta = {neta}".format(neta=ieta)
+        nn = ""
+        if drawRangeInLabel:
+            etal,etah = 0.0,0.0
+            if genEtaPtBins:
+                etal = genEtaPtBins.etaBins[ieta]
+                etah = genEtaPtBins.etaBins[ieta+1]
+            wch = 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            nn = "{wch} |#eta^{{{lep}}}| #in [{etal:1.1f}, {etah:1.1f}]".format(wch=wch,lep=lep,etal=etal,etah=etah)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '            
+            nn += "i#eta = {neta}".format(neta=ieta)
+            
         return nn
 
     elif '_ipt_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
-        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+        # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
-        nn += "ip_{{T}} = {npt}".format(npt=ipt)
+        # nn += "ip_{{T}} = {npt}".format(npt=ipt)
+        nn = ""
+        if drawRangeInLabel:
+            ptl,pth = 0.0,0.0
+            if genEtaPtBins:
+                ptl = genEtaPtBins.ptBins[ipt]
+                pth = genEtaPtBins.ptBins[ipt+1]
+            wch = 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            nn = "{wch} p_{{T}}({lep}) #in [{ptl:3g}, {pth:3g}]".format(wch=wch,lep=lep,ptl=ptl,pth=pth)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            nn += "ip_{{T}} = {npt}".format(npt=ipt)
         return nn
 
     elif "CMS_" in name:
@@ -109,7 +140,7 @@ if __name__ == "__main__":
 
     from optparse import OptionParser
     parser = OptionParser(usage='%prog toys.root [options] ')
-    parser.add_option('-o','--outdir', dest='outdir',    default='', type='string', help='outdput directory to save the matrix')
+    parser.add_option('-o','--outdir', dest='outdir',    default='', type='string', help='output directory to save the matrix')
     parser.add_option('-p','--params', dest='params',    default='', type='string', help='parameters for which you want to show the correlation matrix. comma separated list of regexps')
     parser.add_option('-t','--type'  , dest='type'  ,    default='toys', type='string', help='which type of input file: toys(default),scans, or hessian')
     parser.add_option(     '--suffix', dest='suffix',    default='', type='string', help='suffix for the correlation matrix')
@@ -120,6 +151,10 @@ if __name__ == "__main__":
     parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ("small correlation matrix" is used as default). Use 0 to remove title')
     parser.add_option(     '--show-more-correlated' , dest='showMoreCorrelated',    default=0, type=int, help='Show the N nuisances more correlated (in absolute value) with the parameters given with --params. If 0, do not do this part')
     parser.add_option('-m','--matrix-type', dest='matrixType',    default='channelpmaskedexpnorm', type='string', help='Select which matrix to read from file')
+    parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
+    parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height" ')
+    parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec')
+    parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu), if not given it is inferred from the inputs, but might be wrong depending on naming conventions')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -149,6 +184,10 @@ if __name__ == "__main__":
 
     pois_regexps = list(options.params.split(','))
     print "Filtering POIs with the following regex: ",pois_regexps
+
+    if options.etaptbinfile:
+        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
+        genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 
     params = []; indices = []
 
@@ -244,7 +283,12 @@ if __name__ == "__main__":
     params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
     print "sorted params = ", params
 
-    c = ROOT.TCanvas("c","",1200,800)
+    ch = 1200
+    cw = 1200
+    if options.canvasSize:
+        cw = int(options.canvasSize.split(',')[0])
+        ch = int(options.canvasSize.split(',')[1])
+    c = ROOT.TCanvas("c","",cw,ch,)
     c.SetGridx()
     c.SetGridy()
     #ROOT.gStyle.SetPalette(55)
@@ -253,9 +297,16 @@ if __name__ == "__main__":
     if options.palette:   ROOT.gStyle.SetPalette(options.palette)
 
 
-    c.SetLeftMargin(0.15)
-    c.SetRightMargin(0.11)
-    c.SetBottomMargin(0.15)
+    clm = 0.15
+    crm = 0.11
+    cbm = 0.15
+    ctm = 0.1
+    if options.margin:
+        clm,crm,ctm,cbm = (float(x) for x in options.margin.split(','))
+    c.SetLeftMargin(clm)
+    c.SetRightMargin(crm)
+    c.SetBottomMargin(cbm)
+    c.SetTopMargin(ctm)
 
     ## make the new, smaller TH2F correlation matrix
     nbins = len(params)
@@ -269,8 +320,8 @@ if __name__ == "__main__":
             ## set it into the new sub-matrix
             th2_sub.SetBinContent(i+1, j+1, corr[(x,y)])
             ## set the labels correctly
-            new_x = niceName(x)
-            new_y = niceName(y)
+            new_x = niceName(x,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
+            new_y = niceName(y,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
 
