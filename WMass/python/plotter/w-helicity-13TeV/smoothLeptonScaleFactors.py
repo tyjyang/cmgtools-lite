@@ -244,15 +244,26 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
 
     # here I decide to override the range of some fits to be able to use Erf (the graph is still drawn in the full range, because the TH1 range is already set above)
     # in case I ovverride the range for all bins with the option fitRange, the range here is still overriden, but the X axis setting is modified according to the option
+    overriden_bincontent = -1
+    overriden_binerror = -1
     if isTrigger and not isEle:        
         if charge == "plus":
             if mc == "Data":
                 if any(key == x for x in [38]): 
                     maxFitRange = 45
+            elif mc == "MC":
+                if any(key == x for x in [6]):
+                    minFitRange = 27.5
         if charge == "minus":
             if mc == "Data":
                 if any(key == x for x in [9]): 
                     maxFitRange = 45
+            elif mc == "MC":
+                if key == 41:
+                    overriden_bincontent = hist.GetBinContent(2)
+                    overriden_binerror = hist.GetBinError(2)
+                    hist.SetBinContent(2,0)
+                    hist.SetBinError(2,0)
         # if mc == "Data":
         #     if any(key == x for x in [9]):
         #         maxFitRange = 45
@@ -358,11 +369,11 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                     #     tf1_erf.SetParameter(1,32)
                     # # elif any(key == x for x in [0]):
                     # #     tf1_erf.SetParameter(1,32)
-                    if any(key == x for x in [0, 18,20,29,44,47, 4, 6, 12, 23, 45]):
+                    if any(key == x for x in [0, 18,20,29,44,47, 4, 6, 12, 23, 32, 41, 45]):
                         tf1_erf.SetParameter(1,32) 
                     elif any(key == x for x in [17]):
-                        tf1_erf.SetParameter(1,33)
-                        tf1_erf.SetParameter(2,4.0)
+                        tf1_erf.SetParameter(1,34)
+                        tf1_erf.SetParameter(2,5.0)
 
     if isFullID:
         if mc == "Data":
@@ -618,6 +629,11 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
         hist_ErfParam_vs_eta.SetBinError(  key+1, 2, retFunc.GetParError(1))
         hist_ErfParam_vs_eta.SetBinContent(key+1, 3, retFunc.GetParameter(2))
         hist_ErfParam_vs_eta.SetBinError(  key+1, 3, retFunc.GetParError(2))
+
+        
+    if overriden_bincontent > 0:
+        hist.SetBinContent(2,overriden_bincontent)
+        hist.SetBinError(2,overriden_binerror)
 
 
     # some hand-fix for bins with muons around |eta| 1.5

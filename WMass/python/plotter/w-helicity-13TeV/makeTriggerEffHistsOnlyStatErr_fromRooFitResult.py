@@ -13,15 +13,17 @@ ROOT.TH1.SetDefaultSumw2()
 
 # [0] https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_PLUS/triggerMu/egammaEffi.txt
 
-charge = "plus"
+charge = "minus"
 #mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
 mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/"
 infileData = mypath + "mu{ch}_Run2016_noMu50_all_triggerMu.nominalFit.root".format(ch="Minus" if charge == "minus" else "Plus")
-infileMC = mypath + "mu{ch}_DY_noMu50_triggerMu.altSigFit.root".format(ch="Minus" if charge == "minus" else "Plus")
+#infileMC = mypath + "mu{ch}_DY_noMu50_triggerMu.altSigFit.root".format(ch="Minus" if charge == "minus" else "Plus")
+# following MC file has TH1 with mass distribution, for Passign and Failing probes, can just use integral
+infileMC = mypath + "mu{ch}_DY_noMu50_triggerMu.root".format(ch="Minus" if charge == "minus" else "Plus")
 outfile = mypath + 'triggerMuonEff{ch}_fromRooFitResult_onlyStatUnc.root'.format(ch="Minus" if charge == "minus" else "Plus")
 plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/muonTriggerSF_onlyStatUnc/"
 
-# files used to get uncertainty when RooFitResults yields crazy numbers: these files below contain the uncertainties from the txt stored in TH2
+# files used to get uncertainty when RooFitResults yields crazy numbers: they contain the efficiencies and uncertainties from the txt stored in TH2
 infile_help = mypath + "triggerMuonEff{ch}_onlyStatUnc.root".format(ch="Minus" if charge == "minus" else "Plus")
 hEffData_help = None
 hEffMC_help = None
@@ -120,13 +122,13 @@ for ipt in range(len(ptbins)-1):
         ibin = ipt * (len(etabins) - 1) + ieta
         if ibin < 10: ibin = "00" + str(ibin)
         elif ibin < 100: ibin  = "0" + str(ibin)
-        # name should be something like bin383_probe_lep_eta_2p30To2p40_probe_lep_pt_52p00To55p00_resP
+        # name should be something like bin383_probe_lep_eta_2p30To2p40_probe_lep_pt_52p00To55p00_Pass or Fail
         el = str(etabins[ieta]).replace('.','p').replace('-','m')+"0"
         eh = str(etabins[ieta+1]).replace('.','p').replace('-','m')+"0"
         pl = str(ptbins[ipt]).replace('.','p').replace('-','m')+"0"
         ph = str(ptbins[ipt+1]).replace('.','p').replace('-','m')+"0"
-        frPname = "bin{n}_probe_lep_eta_{el}To{eh}_probe_lep_pt_{pl}To{ph}_resP".format(n=ibin,el=el,eh=eh,pl=pl,ph=ph)
-        frFname = "bin{n}_probe_lep_eta_{el}To{eh}_probe_lep_pt_{pl}To{ph}_resF".format(n=ibin,el=el,eh=eh,pl=pl,ph=ph)
+        frPname = "bin{n}_probe_lep_eta_{el}To{eh}_probe_lep_pt_{pl}To{ph}_Pass".format(n=ibin,el=el,eh=eh,pl=pl,ph=ph)
+        frFname = "bin{n}_probe_lep_eta_{el}To{eh}_probe_lep_pt_{pl}To{ph}_Fail".format(n=ibin,el=el,eh=eh,pl=pl,ph=ph)
         frP = tf.Get(frPname)
         if not frP: 
             print "Error: object %s not found in file %s" % (frPname, infile)
@@ -135,20 +137,20 @@ for ipt in range(len(ptbins)-1):
         if not frF: 
             print "Error: object %s not found in file %s" % (frFname, infile)
             quit()
-        # get RooRealVar with nSigP or nSigF
-        rrv_npass = frP.floatParsFinal().find("nSigP")
-        rrv_nfail = frF.floatParsFinal().find("nSigF")
-        hPassMC.SetBinContent(ieta+1,rrv_npass.getValV())        
-        hPassMC.SetBinError(ieta+1, rrv_npass.getError())        
-        hFailMC.SetBinContent(ieta+1,rrv_nfail.getValV())        
-        hFailMC.SetBinError(ieta+1, rrv_nfail.getError())        
+        # get histogram and retrieve integral and uncertainty (sqrt(N))
+        npass = frP.Integral()
+        nfail = frF.Integral()
+        hPassMC.SetBinContent(ieta+1,npass)        
+        hPassMC.SetBinError(ieta+1, math.sqrt(npass))        
+        hFailMC.SetBinContent(ieta+1,nfail)        
+        hFailMC.SetBinError(ieta+1, math.sqrt(nfail))        
         
     hTotMC.Add(hPassMC, hFailMC)
     gr = ROOT.TGraphAsymmErrors(hPassMC, hTotMC, "cl=0.683 b(1,1) mode") 
     for i in range(gr.GetN()):
         heffMC.SetBinContent(i+1, ipt+1, hPassMC.GetBinContent(i+1)/hTotMC.GetBinContent(i+1))
         uncertainty = gr.GetErrorY(i)  # or max(gr.GetErrorYhigh(i),gr.GetErrorYlow(i)) ?
-        if uncertainty > 0.01: uncertainty = min(uncertainty, hEffMC_help.GetBinError(i+1, ipt+1))
+        #if uncertainty > 0.01: uncertainty = min(uncertainty, hEffMC_help.GetBinError(i+1, ipt+1))
         heffMC.SetBinError(i+1, ipt+1, uncertainty)
         htmp.SetBinContent(i+1, ipt+1, uncertainty)
 
