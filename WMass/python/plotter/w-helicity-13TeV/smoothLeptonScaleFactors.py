@@ -26,7 +26,11 @@
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/scaleFactorFiles/muon/trigger/muFullData_trigger_fineBin_noMu50_MINUS/egammaEffi.txt_EGM2D_MINUS.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS_pol3forAbsEta1p5/ -c mu -n smoothEfficiency.root -t -C minus
 
 # 05/07/2019 (still on this topic!)
+# using uncertainties from txt file of TnP, input made with makeTriggerEffHistsOnlyStatErr.py
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
+
+# inputs made with makeTriggerEffHistsOnlyStatErr_fromRooFitResult.py
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_fromRooFitResult_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
 
 import ROOT, os, sys, re, array, math
 

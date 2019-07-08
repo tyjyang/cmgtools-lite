@@ -36,17 +36,62 @@ def combFlavours(options):
     indirLep = {'Wmu': options.indirMu,
                 'Wel': options.indirEl,
                 }
+    inFileXsecbin = {}
+    comb_xsec_histfile_name = {}
     for charge in ['plus','minus']:
         for bin in ['Wmu', 'Wel']:
             datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_card.txt'.format(ch=charge))
             channels.append('{bin}_{ch}'.format(bin=bin,ch=charge))
-            maskedChannels = ['InAcc']
-            if len(options.eta_range_outAcc) or options.sig_out_outAcc:
-                maskedChannels.append('OutAcc')
-            if not options.freezePOIs:
-                for mc in maskedChannels:
-                    datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
-                    channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=bin,ch=charge,maskchan=mc))
+            # we should use a single masked channel for e+mu (still one for each charge)
+            # so, the following lines are commented out
+            #
+            # maskedChannels = ['InAcc']
+            # if len(options.eta_range_outAcc) or options.sig_out_outAcc:
+            #     maskedChannels.append('OutAcc')
+            # if not options.freezePOIs:
+            #     for mc in maskedChannels:
+            #         datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+            #         channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=bin,ch=charge,maskchan=mc))
+            inFileXsecbin[(bin,charge)] = os.path.abspath(indirLep[bin])+'/'+bin+'_{ch}_shapes_xsec.root'.format(ch=charge)
+
+        print "Creating combined xsec file for charge {ch}".format(ch=charge)
+        comb_xsec_histfile_name[charge] = os.path.abspath(options.outdir + '/' + 'Wlep_{ch}_shapes_xsec.root'.format(ch=charge))
+        haddCmd = "hadd -f {comb} {mu} {el}".format(comb=comb_xsec_histfile_name[charge], 
+                                                    mu=inFileXsecbin[("Wmu",charge)], el=inFileXsecbin[("Wel",charge)])
+        print haddCmd
+        os.system(haddCmd)
+
+        # create shapes file in output folder, merging those for mu and e
+        # or equivalently taking those for muons and doubleing the bin content (mu and e have the same content)
+        # print "Creating combined xsec file for charge {ch}".format(ch=charge)
+        # this is super-slow
+        # inFileXsec = os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_shapes_xsec.root'.format(ch=charge)
+        # tfmu = ROOT.TFile.Open(inFileXsec,"READ")
+        # if not tfmu or not tfmu.IsOpen():
+        #     raise RuntimeError('Unable to open file {fn}'.format(fn=inFileXsec))       
+        # comb_xsec_histfile_name = 'Wlep_{ch}_shapes_xsec.root'.format(ch=charge)
+        # tflep = ROOT.TFile(options.outdir + '/' + comb_xsec_histfile_name, 'recreate')
+        # nKeys = tfmu.GetNkeys()
+        # nCopiedKeys = 0
+        # for ikey,e in enumerate(tfmu.GetListOfKeys()):
+        #     name = e.GetName()
+        #     obj  = e.ReadObj()
+        #     if not obj:
+        #         raise RuntimeError('Unable to read object {n}'.format(n=name))
+        #     newobj = obj.Clone(name)
+        #     for ibin in range(0,newobj.GetNbinsX()+2): newobj.SetBinContent(ibin,2.*newobj.GetBinContent(ibin))
+        #     newobj.Write(name)
+        #     nCopiedKeys += 1
+        # print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=inFileXsec)
+        # tflep.Close()
+        # tfmu.Close()
+
+        # now we can merge using as masked channels only those for muons, but we have to change the shapes file for it
+        maskedChannels = ['InAcc'] 
+        if len(options.eta_range_outAcc) or options.sig_out_outAcc: maskedChannels.append('OutAcc')
+        for mc in maskedChannels:
+            datacards.append(os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+            channels.append('Wlep_{ch}_xsec_{maskchan}'.format(ch=charge,maskchan=mc))    
 
     print "="*20
     print "Looking for these cards"
@@ -62,12 +107,28 @@ def combFlavours(options):
         ## here running the combine cards command first 
         print ccCmd
         os.system(ccCmd)
+        # now I need to open the newly created card and change the path to the xsec files
+        combinedCardTMP = combinedCard.replace('.txt','_TMP.txt')
+        # copy card into a temporary file (will be removed later) and open a new file overwriting the card
+        os.system('cp {fn} {fntmp}'.format(fn=combinedCard,fntmp=combinedCardTMP))
+        fcard_new = open(combinedCard,'w')
+        with open(combinedCardTMP) as fileTMP:
+            for l in fileTMP.readlines():
+                if re.match('shapes.*',l) and "_shapes_xsec.root" in l:
+                    tokens = l.split()
+                    fcard_new.write(l.replace(tokens[3],comb_xsec_histfile_name["plus" if "plus" in tokens[2] else "minus"]))
+                else:
+                    fcard_new.write(l)
+            fcard_new.close()
+        os.system('rm {fntmp}'.format(fntmp=combinedCardTMP)) 
+        ###########
+        
         ## here making the TF meta file
         if options.freezePOIs:
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
             txt2hdf5Cmd = 'text2hdf5.py --sparse {cf}'.format(cf=combinedCard)
         else:
-            maskchan = [' --maskedChan {bin}_{charge}_xsec_{maskchan}'.format(bin=bin,charge=ch,maskchan=mc) for bin in ['Wmu', 'Wel'] for ch in ['plus','minus'] for mc in maskedChannels]
+            maskchan = [' --maskedChan Wlep_{charge}_xsec_{maskchan}'.format(bin=bin,charge=ch,maskchan=mc)  for ch in ['plus','minus'] for mc in maskedChannels]
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
         if not options.doSystematics:
             txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")

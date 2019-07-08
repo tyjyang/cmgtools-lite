@@ -1,4 +1,7 @@
 # usage: python make2DEffSystVariations.py electrons_triggerSF_covariance.root effsyst.root --pdir plots
+# when you have more files done in different configurations, you can compare them using the following example command
+# python w-helicity-13TeV/makeRatioTH2.py plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_muMinus/systEff_trgmu_minus_OnlyStatUnc_mu.root p2 ../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu_backupSTATplusSYST.root p2 -o plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_muMinus/ratioWithQuadSumStatSyst/ -f ratio_minus_p2 -n FILE -z "ratio p2" -t "stat / stat #oplus syst" --h1Dbinning 100,0,1.0 -r 0.0 1.0 --yRange 25 45
+
 import os, sys
 import numpy as np
 import ROOT

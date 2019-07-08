@@ -9,11 +9,12 @@ dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
+skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
 
@@ -29,7 +30,9 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/"
+folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/"
 if doMuElComb:
     folder = "muElCombination"
@@ -42,8 +45,11 @@ if doMuElComb:
 #postfix = "finalTest_EffStatNotScaled_EffSystAndScaleOnTau"
 #postfix = "finalTest_EffStatNotScaled"
 #postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
-#postfix = "zptReweight"
-postfix = "zptReweight_uncorrQCDscales"
+#postfix = "zptReweight_uncorrQCDscales"
+postfix = "zptReweight_uncorrQCDscales_EffStatOnlyStatUnc"
+#postfix = "zptReweight_uncorrQCDscales_fixFSRcharge"
+#postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
+#postfix = "zptReweight_uncorrQCDscales_fixedPOIs"
 #postfix = "combinedLep"
 if doMuElComb:
     postfix = "combinedLep_zptReweight"
@@ -61,21 +67,21 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (not allPtBinsSignal) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (not allPtBinsSignal) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffStat.*|.*scale0.*|.*scale1.*|.*lepeff.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffSyst.*|.*scale0.*|.*scale1.*|.*lepeff.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr", 
+diffNuisances_pois = ["pdf.*|alphaS|mW|fsr", 
                       "muR.*|muF.*", 
                       #"Fakes(Eta|Pt).*[0-9]+mu.*", 
                       #"Fakes(Eta|Pt).*[0-9]+el.*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      #"CMS_.*|.*TestEffSyst.*", 
+                      "CMS_.*|.*TestEffSyst.*", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]
@@ -258,6 +264,24 @@ for fit in fits:
             title = "correlation matrix for {t}".format(t=correlationMatrixTitle[nuisRegexp])
             tmpcommand += " --parNameCanvas {nuis}_{poi} --title '{t}' ".format(nuis=nuisRegexp, poi=poiRegexp, t=title)
             if not skipCorr:
+                print ""
+                print tmpcommand
+                if not dryrun:
+                    os.system(tmpcommand)
+
+    ## ADD CORRELATION for pt-(eta) integrated cross section
+    for matrixType in ["channelsumpois", "channelsumpoisnorm"]:
+        command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+        command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}/{mt}".format(lep=lepton,fd=folder, pf=postfix, mt=matrixType)
+        command += " --nContours 51 --type hessian --suffix  {fit} --matrix-type {mt} --margin 0.18,0.11,0.08,0.22".format(fit=fit, mt=matrixType)
+        command += " --etaptbinfile cards/{fd}/binningPtEta.txt --canvasSize '1200,1000' ".format(fd=folder)
+        for poiRegexp in [".*Wplus_.*ieta.*", ".*Wplus_.*ipt.*", ".*Wminus_.*ieta.*", ".*Wminus_.*ipt.*"]:            
+            tmpcommand = command + " --params '{poi},fsr,mW,.*scale.*,.*EffSyst.*,CMS_.*' ".format(poi=poiRegexp)
+            title = "correlation matrix: {whichXsec} {var}-integrated cross section for W^{{{chs}}}".format(whichXsec="normalized" if "norm" in matrixType else "absolute",
+                                                                                                            var="p_{T}" if "ieta" in poiRegexp else "|#eta|", 
+                                                                                                            chs="+" if "plus" in poiRegexp else "-")
+            tmpcommand += " --parNameCanvas {poi}_someNuis --title '{t}' -c {fl} ".format(poi=poiRegexp.replace(".*",""), t=title, fl=flavour)
+            if not skipCorr1D:
                 print ""
                 print tmpcommand
                 if not dryrun:

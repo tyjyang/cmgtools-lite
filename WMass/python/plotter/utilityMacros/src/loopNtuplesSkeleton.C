@@ -721,8 +721,8 @@ void fillHistograms(const string& treedir = "./",
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
       sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0]);
-      wgtMuTrigSFup = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], 1.0);
-      wgtMuTrigSFdn = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], -1.0);
+      wgtMuTrigSFup = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], 1.0, true);
+      wgtMuTrigSFdn = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], -1.0, true);
       // in the ntuples the reco2Selection SF is eta-smoothed, the one from the function is not
       sfRecoToSelectionMu = lep_SF2[0];  // _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0]);
       sfPrefireMu = prefireJetsWeight(lep_eta[0]);

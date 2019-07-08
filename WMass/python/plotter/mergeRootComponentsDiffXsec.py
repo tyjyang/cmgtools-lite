@@ -283,10 +283,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
 # signal is assumed to be named W<flavour>_<charge>_shapes_signal.root
 
 # test function
-def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix="", subtractSystPart = False):
-
-    # subtractSystPart is needed to test only the real statistical component (stat+syst is saved in the inputs)
-    # this is very hardcoded
+def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
 
     if not isMu:
         print "putBinUncEffStatHistosDiffXsec() currently implemented for electrons only"
@@ -304,11 +301,12 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
     basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'    
     if isMu:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_{ch}_trigger.root'.format(ch=charge)
+        staterrfile_name = "../postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEff{ch}_onlyStatUnc.root".format(ch="Plus" if charge == "plus" else "Minus") # can't use CMSSW_BASE, because code runs from release for combinetf.pt, >= 10_3_X
     else:
         parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
 
     parfile = ROOT.TFile(parfile_name, 'read')
-    
+    staterrfile = ROOT.TFile(staterrfile_name, 'read')
 
     tmp_infile = ROOT.TFile(infile, 'read')
 
@@ -351,6 +349,10 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
         ## loop over the three parameters
         for npar in range(1):
             parhist = parfile.Get('scaleFactor')
+            staterrhist = staterrfile.Get('triggerSF_{ch}'.format(ch=charge))
+            if not staterrhist:
+                print "Error: histogram %s not found in %s" % ('triggerSF_{ch}'.format(ch=charge), staterrfile_name) 
+                quit()
             ## loop over all eta bins of the 2d histogram
             for ietaErf in range(1,nEtaErfPar+1):
 
@@ -370,8 +372,9 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
                 if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):
                     continue
 
+                etabincenter = parhist.GetXaxis().GetBinCenter(ietaErf)
                 if not isMu:
-                    if parhist.GetXaxis().GetBinCenter(ietaErf) > 1.4 and parhist.GetXaxis().GetBinCenter(ietaErf) < 1.5:
+                    if etabincenter > 1.4 and etabincenter < 1.5:
                         ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 )
 
                 # for electrons there is the gap:
@@ -399,19 +402,21 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
                     if maxyparhist <= phistybin:
                         phistybin = parhist.GetNbinsY()
                     # if I need to reduce the variation as below, first get the variation (with proper sign), scale it, and then sum 1
-                    tmp_scale_up =        parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
-                    tmp_scale_dn = -1.0 * parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
+                    binstatunc = staterrhist.GetBinError(staterrhist.GetXaxis().FindFixBin(etabincenter), 
+                                                         staterrhist.GetYaxis().FindFixBin(ybincenter)) 
+                    # inflate to account for other SF, here we are just using trigger
+                    binstatunc *= (math.sqrt(2.) if isMu else 2.)  
+                    tmp_scale_up = binstatunc / parhist.GetBinContent(ietaErf, phistybin)
+                    tmp_scale_dn = -1.0 * tmp_scale_up
+        
+                    #tmp_scale_up =        parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
+                    #tmp_scale_dn = -1.0 * parhist.GetBinError(ietaErf, phistybin) / parhist.GetBinContent(ietaErf, phistybin)
                     # modify scaling if template bin has larger width than the ErfPar histogram
                     # no longer scaling, trying to be conservative
                     # if binwidths[ietaTemplate-1] > 1.: 
                     #     tmp_scale_up = tmp_scale_up / binwidths[ietaTemplate-1]
                     #     tmp_scale_dn = tmp_scale_dn / binwidths[ietaTemplate-1]
   
-                  # if subtractSystPart:
-                    #     if (abseta<1): syst = 0.002
-                    #     elif (abseta<1.5):   syst = 0.004;                                                                                        
-                    #     else                   syst = 0.014;                                                                                                                        
-
                     tmp_scale_up = 1 +  tmp_scale_up
                     tmp_scale_dn = 1 +  tmp_scale_dn
                     ## scale up and down with what we got from the histo
