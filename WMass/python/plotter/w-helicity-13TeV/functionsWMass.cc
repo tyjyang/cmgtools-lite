@@ -147,7 +147,8 @@ float dyptWeight(float pt2l, int isZ) {
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
   // for the Z, change the pT *and* normalization to the measured one in data
-  // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec)
+  // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec in acceptance)
+  // when using pt range 26-56 instead of 26-45, there is an additional factor 0.987, so the actual number would be 0.946 
   float scaleToMCaNLO = isZ ? 1. : 0.958;
   // plots are MC/data
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
@@ -731,7 +732,13 @@ TFile *_file_trigger_leptonSF_mu_plus = NULL;
 TH2F *_histo_trigger_leptonSF_mu_plus = NULL;
 TFile *_file_trigger_leptonSF_mu_minus = NULL;
 TH2F *_histo_trigger_leptonSF_mu_minus = NULL;
-float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, float sumErrorTimesThis = 0.0) {
+// following are used to test effstat uncertainties using the stat uncertainty from binned efficiencies only
+TFile *_file_triggerBinUncEffStat_leptonSF_mu_plus = NULL;
+TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_plus = NULL;
+TFile *_file_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
+TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
+
+float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, float sumErrorTimesThis = 0.0, bool useStatErrOnly = false) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
@@ -747,13 +754,36 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
     _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get("scaleFactor"));
   }
 
+
+  if (useStatErrOnly) {
+    if (!_histo_triggerBinUncEffStat_leptonSF_mu_plus) {
+      _file_triggerBinUncEffStat_leptonSF_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_onlyStatUnc.root",_cmssw_base_.c_str()),"read");
+      _histo_triggerBinUncEffStat_leptonSF_mu_plus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_plus->Get("triggerSF_plus"));
+    }
+    if (!_histo_triggerBinUncEffStat_leptonSF_mu_minus) {
+      _file_triggerBinUncEffStat_leptonSF_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffMinus_onlyStatUnc.root",_cmssw_base_.c_str()),"read");
+      _histo_triggerBinUncEffStat_leptonSF_mu_minus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_minus->Get("triggerSF_minus"));
+    }
+  }
+
+
   if(abs(pdgid)==13) {
     TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_mu_plus : _histo_trigger_leptonSF_mu_minus );
 
     int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
     int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
 
-    float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * histTrigger->GetBinError(etabin,ptbin);
+    //float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * histTrigger->GetBinError(etabin,ptbin);
+    TH2F *histTriggerBinUnc = nullptr; 
+    double binunc = histTrigger->GetBinError(etabin,ptbin);
+    if (useStatErrOnly) {
+      histTriggerBinUnc = ( charge > 0 ? _histo_triggerBinUncEffStat_leptonSF_mu_plus : _histo_triggerBinUncEffStat_leptonSF_mu_minus );
+      int etabinUnc = std::max(1, std::min(histTriggerBinUnc->GetNbinsX(), histTriggerBinUnc->GetXaxis()->FindFixBin(eta)));
+      int ptbinUnc  = std::max(1, std::min(histTriggerBinUnc->GetNbinsY(), histTriggerBinUnc->GetYaxis()->FindFixBin(pt)));      
+      binunc = histTriggerBinUnc->GetBinError(etabin,ptbin);
+    }
+    // inflate error by sqrt(2.) to account for other SF (here only trigger is considered)
+    float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * TMath::Sqrt(2.) * binunc;
 
     return out;
   }
