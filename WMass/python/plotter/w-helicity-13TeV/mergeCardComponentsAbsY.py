@@ -74,6 +74,9 @@ def getXsecs(processes, systs, ybins, lumi, infile):
 
         for sys in systs:
 
+            # skipping the look for xsec for the theory systematics which belong only to Wtau
+            if re.match('^muR\d+(minus|plus)|^muF\d+(minus|plus)|^muRmuF\d+(minus|plus)',sys): continue
+
             original_sys = sys
             if 'longmu' in sys or 'leftmu' in sys or 'rightmu' in sys:
                 if not pol in sys: continue
@@ -733,7 +736,7 @@ def writePolGroup(cardfile,signals,polarizations,grouping='polGroup'):
             group = ' '.join(['W{charge}_{pol}_Ybin_{y}'.format(charge=charge,pol=pol,y=y) for pol in polarizations])
             cardfile.write('W{charge}_Ybin_{y} {grp} = {procs}\n'. format(charge=charge,y=y,grp=grouping,procs=group))
 
-def writeRegGroup(cardfile,signals,polarizations,grouping='regGroup'):
+def writeRegGroup(cardfile,signals,polarizations,grouping='regGroup',bkgYBins=[]):
     print 'WRITING REGULARIZATION GROUPS!!!'
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
     for pol in polarizations:
@@ -741,7 +744,8 @@ def writeRegGroup(cardfile,signals,polarizations,grouping='regGroup'):
             cardfile.write('\n')
             slist = ''
             for i in xrange(maxiY+1):
-                slist += ' W{charge}_{pol}_Ybin_{i} '.format(charge=charge,pol=pol,i=i)
+                if i not in bkgYBins: 
+                    slist += ' W{charge}_{pol}_Ybin_{i} '.format(charge=charge,pol=pol,i=i)
             cardfile.write('reg_W{charge}_{pol} {grp} = {procs}\n'. format(charge=charge,pol=pol,grp=grouping,procs=slist))
 
 def writeChargeMetaGroup(cardfile,signals):
@@ -769,6 +773,7 @@ if __name__ == "__main__":
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
+    parser.add_option(     '--ybinsBkgLnN', dest='ybinsBkgLnN', type='float', default=1.3, help='add a common lnN constraint to all the L,R components treated as bkg.')
     parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background. Different from --long-lnN, which would also assing an additional LnN uncertainty')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
@@ -1149,7 +1154,7 @@ if __name__ == "__main__":
         for ybfix in bkgYBins:
             for pol in ['left','right']:
                 lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
-                combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.longLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
+                combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
     
         combinedCard = open(cardfile,'r')
         procs = []
@@ -1302,7 +1307,9 @@ if __name__ == "__main__":
         ## then, some processes and/or polarizations might be removed
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
         polarizations = ['left','right','long']
-
+        # regGroups don't allow background bins inside
+        polToRegularize = polarizations if not options.longBkg else ['left','right']
+        
         print '============================================================================='
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
@@ -1311,7 +1318,7 @@ if __name__ == "__main__":
         if not options.freezePOIs:
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
-            writeRegGroup(combinedCard,tmp_sigprocs,polarizations,grouping='regGroup')
+            writeRegGroup(combinedCard,tmp_sigprocs,polToRegularize,grouping='regGroup',bkgYBins=bkgYBins)
             writeChargeGroup(combinedCard,tmp_sigprocs,polarizations)
             writeChargeMetaGroup(combinedCard,tmp_sigprocs)
         combinedCard.close()

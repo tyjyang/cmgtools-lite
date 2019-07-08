@@ -45,6 +45,7 @@ class valueClass:
         self.relv      = array.array('f', []); self.relhi     = array.array('f', []); self.rello     = array.array('f', []);
         self.relv_fit  = array.array('f', []); self.relhi_fit = array.array('f', []); self.rello_fit = array.array('f', []);
         self.rap       = array.array('f', []); self.rlo       = array.array('f', []); self.rhi       = array.array('f', []);
+        self.altval    = array.array('f', [])
 
     def makeGraphs(self):
         if len(self.val):
@@ -64,6 +65,10 @@ class valueClass:
             self.graph_fit_rel = ROOT.TGraphAsymmErrors(len(self.relv_fit), self.rap, self.relv_fit, zeros, zeros, self.rello_fit, self.relhi_fit)
             self.graph_fit_rel.SetName('graph'+self.pol+'_fit_rel')
             self.graph_fit_rel.SetTitle('')
+        if len(self.altval):
+            self.altgraph = ROOT.TGraph(len(self.val), self.rap, self.altval)
+            self.graph.SetName('altgraph'+self.pol)
+            self.graph.SetTitle('')            
 
         self.graphStyle()
         if len(self.relv) and len(self.relv_fit): self.makeMultiGraphRel()
@@ -103,6 +108,11 @@ class valueClass:
             self.graph_fit_rel.SetMarkerColor(self.color)
             self.graph_fit_rel.SetFillColor(ROOT.kGreen+3)
             self.graph_fit_rel.SetFillStyle(3001)
+        if hasattr(self,'altgraph'):
+            self.altgraph.SetLineColor(self.colorf+1)
+            self.altgraph.SetLineWidth(2)
+            self.altgraph.SetFillColor(self.colorf+1)
+            self.altgraph.SetFillStyle(fillstyles[self.pol])
 
     def shiftPoints(self, graph):
         shifts = {'left': -0.01, 'right': 0.01, 'long': 0.0, 'unpolarized': 0.0}
@@ -123,6 +133,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
 
         skipLong = False
         if options.nolong or options.longBkg: skipLong = True
+        doAltExp = (len(values['left'].altval)>0)
 
         ch = '#plus' if charge == 'plus' else '#minus'
         if charge == 'asymmetry': ch = ''
@@ -139,14 +150,17 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
+            leg.AddEntry(values['left'] .graph     , 'W_{{L}} (wgt {mc})'.format(mc=REFMC) , 'f')
             leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
-            leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
+            leg.AddEntry(values['right'].graph     , 'W_{{R}} (wgt {mc})'.format(mc=REFMC) , 'f')
             leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(2)
             if not skipLong:
-                leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
+                leg.AddEntry(values['long'] .graph     , 'W_{{0}} (wgt {mc})'.format(mc=REFMC) , 'f')
                 leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
+            if doAltExp:
+                leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} (unw {mc})'.format(mc=REFMC) , 'l')
+                leg.AddEntry(values['right'].altgraph     , 'W_{{R}} (unw {mc})'.format(mc=REFMC) , 'l')
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
                 
@@ -154,6 +168,9 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             mg.Add(values['left'] .graph,'P2')
             mg.Add(values['right'].graph,'P2')
             if not skipLong: mg.Add(values['long'] .graph,'P2')
+            if doAltExp:
+                mg.Add(values['left'] .altgraph,'L2')
+                mg.Add(values['right'].altgraph,'L2')
             mg.Add(values['left'] .graph_fit)
             mg.Add(values['right'].graph_fit)
             if not skipLong: mg.Add(values['long'] .graph_fit)
@@ -247,6 +264,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         ch = '#plus' if charge == 'plus' else '#minus'
         if charge == 'asymmetry': ch = ''
         date = datetime.date.today().isoformat()
+        doAltExp = (len(values.altval)>0)
         
         valkey = values.name.split('_')[1]
 
@@ -260,6 +278,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg = ROOT.TMultiGraph()
             mg.Add(values.graph,'P2')
             mg.Add(values.graph_fit)
+            if doAltExp:
+                mg.Add(values.altgraph,'L2')
             mg.Draw('Pa')
             mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
             mg.GetXaxis().SetTitle('')
@@ -286,7 +306,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values.graph_fit , 'data', 'pl')
-            leg.AddEntry(values.graph     , REFMC, 'f')
+            leg.AddEntry(values.graph     , 'wgt '+REFMC, 'f')
+            if doAltExp:
+                leg.AddEntry(values.graph     , 'unw '+REFMC, 'l')
 
             leg.Draw('same')
             lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
@@ -358,7 +380,8 @@ if __name__ == "__main__":
     parser.add_option(      '--toyfile'     , dest='toyfile'  , default=''            , type='string', help='file that has the toys')
     parser.add_option(      '--scandir'     , dest='scandir'  , default=''            , type='string', help='directory with all the scans')
     parser.add_option(      '--hessfile'    , dest='hessfile' , default=''            , type='string', help='file that contains the hessian errors in a dictionary')
-    parser.add_option(      '--xsecfiles'    , dest='xsecfiles' , default=None          , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
+    parser.add_option(      '--xsecfiles'   , dest='xsecfiles' , default=None         , type='string', help='files that contains the expected x sections with variations (one per charge,comma separated in the same order of the charges) ')
+    parser.add_option(      '--altxsecfiles', dest='altxsecfiles' , default=None      , type='string', help='files that contains alternative xsecs as the nominal to be drawn as a line ')
     parser.add_option('-C', '--charge'      , dest='charge'   , default='plus,minus'  , type='string', help='process given charge. default is both')
     parser.add_option('-o', '--outdir'      , dest='outdir'   , default='.'           , type='string', help='outdput directory to save the plots')
     parser.add_option(      '--suffix'      , dest='suffix'   , default=''            , type='string', help='suffix for the correlation matrix')
@@ -430,7 +453,13 @@ if __name__ == "__main__":
 
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
+    doAltExp =  options.altxsecfiles
     xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}
+
+    if doAltExp:
+        alt_xsecfiles = options.altxsecfiles.split(',')
+        alt_xsec_nominal_allCharges = {}
+
     polarizations = ['left','right','long']
     signal_polarizations = ['left','right']
     if not options.longBkg:
@@ -449,8 +478,14 @@ if __name__ == "__main__":
         sign = 1. if charge=='plus' else -1.
 
         ## this gets the pdf central variation binned in the correct format
-        xsec_nominal = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations )
+        xsec_nominal     = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations )
+        xsec_qcdenvelope = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations )
+        xsec_alphas_syst = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations, doAlphaS=True )
         xsec_nominal_allCharges[charge] = xsec_nominal
+
+        if doAltExp: 
+            alt_xsec_nominal = utilities.getXSecFromShapes(ybins,charge,alt_xsecfiles[ic],0,nChan, polarizations=polarizations )
+            alt_xsec_nominal_allCharges[charge] = alt_xsec_nominal
 
         value_syst = {}
         for pol in polarizations:
@@ -480,6 +515,10 @@ if __name__ == "__main__":
                         print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,relsyst)
                     else:
                         xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
+                # now to the total PDF error, add the QCD scales envelope
+                xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
+                # and add alphaS (which in principle is part of PDF variations)
+                xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
@@ -487,7 +526,7 @@ if __name__ == "__main__":
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics
 
-        angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
+        angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}; alt_angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
         angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}
         for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
             xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
@@ -500,6 +539,13 @@ if __name__ == "__main__":
             angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
             angcoeff_systematics['a0'].append(coeffs_val['a0'][1])
             angcoeff_systematics['a4'].append(coeffs_val['a4'][1])
+            if doAltExp:
+                alt_xsec_unpolarized_nominal_iy = sum([alt_xsec_nominal[pol][iy] for pol in polarizations])
+                alt_angcoeff_nominal['sumxsec'].append(alt_xsec_unpolarized_nominal_iy)
+                alt_coeffs_val = utilities.getCoeffs(alt_xsec_nominal['left'][iy],     alt_xsec_nominal['right'][iy],     alt_xsec_nominal['long'][iy],
+                                                     xsec_systematics['left'][iy],     xsec_systematics['right'][iy],     xsec_systematics['long'][iy])
+                alt_angcoeff_nominal['a0'].append(alt_coeffs_val['a0'][0])
+                alt_angcoeff_nominal['a4'].append(sign*alt_coeffs_val['a4'][0])
 
         nOuterBinsToExclude = 0  ### out of acceptance Y bins, or that were treated as background (not to be considered for the total xsec)
         if len(outAccYBins):
@@ -509,8 +555,11 @@ if __name__ == "__main__":
         cp = '{ch}_left'.format(ch=charge)
         MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
         print "MAXYFORNORM = " + str(MAXYFORNORM)
-        normsigmaIn = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+        normsigmaIn  = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
         normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
+        if doAltExp:
+            alt_normsigmaIn  = sum([alt_xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+            alt_normsigmaOut = sum([alt_xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
 
         allValues = {}
         for pol in signal_polarizations:
@@ -525,6 +574,7 @@ if __name__ == "__main__":
                 # normsigma is used to normalize the expected: then, the sum should be the one on the expected
                 # which is also less sensitive to fluctuations, since in data some bins can be 0
                 normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+                if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
                 parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
 
                 scale = 1.
@@ -544,13 +594,17 @@ if __name__ == "__main__":
                     rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
                 else:
                     rfit     = xsec_nominal[pol][iy]/xsec_fit[0]*scale
-                rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] 
+                rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0]
 
                 tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
+                if doAltExp: 
+                    tmp_val.altval.append(alt_xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                 tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
                 tmp_val.elo.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
                 if options.normxsec:
                     tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                    if doAltExp:
+                        tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
                     tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
                     tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
 
@@ -591,6 +645,7 @@ if __name__ == "__main__":
             if len(outAccYBins):
                 print "total expected (fit) xsec beyond |Y|>{maxy} = {sigma:.3f} pb".format(maxy=MAXYFORNORM,sigma=normsigmaOut)
             normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
+            if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
 
             for iy,y in enumerate(ybinwidths[cp]):
                 if iy in bkgYBins: continue
@@ -607,12 +662,16 @@ if __name__ == "__main__":
                     xskey = xs.replace('norm','') # to use the expected xsec values, which have to be normalized
 
                 tmp_val.val.append(abs(angcoeff_nominal[xskey][iy]/ybinwidth_scale))
+                if doAltExp:
+                    tmp_val.altval.append(abs(alt_angcoeff_nominal[xskey][iy]/ybinwidth_scale))
                 experr = angcoeff_systematics[xskey][iy]/ybinwidth_scale
                 tmp_val.ehi.append(experr)
                 tmp_val.elo.append(experr) # symmetric for the expected
                 
                 if xs=='sumxsecnorm':
                     tmp_val.val[-1] = tmp_val.val[-1]/normsigma
+                    if doAltExp:
+                        tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
                     tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
                     tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
         
@@ -653,7 +712,12 @@ if __name__ == "__main__":
                 if iy in bkgYBins: continue
                 chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
                                                    xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
+                if doAltExp:
+                    chasy_altval = utilities.getChargeAsy(alt_xsec_nominal_allCharges['plus'][pol][iy],     alt_xsec_nominal_allCharges['minus'][pol][iy],
+                                                          xsec_systematics_allCharges['plus'][pol][iy],     xsec_systematics_allCharges['minus'][pol][iy]) # assumes the same error band for nominal and alternative, which is ~true for pt-unw and pt-w samples
                 tmp_val.val .append(chasy_val['asy'][0])
+                if doAltExp:
+                    tmp_val.altval .append(chasy_altval['asy'][0])
                 tmp_val.ehi.append(chasy_val['asy'][1])
                 tmp_val.elo.append(chasy_val['asy'][1])
 
@@ -688,16 +752,24 @@ if __name__ == "__main__":
         for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
             if iy in bkgYBins: continue
             xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}
+            alt_xval = {'plus': 0, 'minus': 0}
             for charge in ['plus','minus']:
                 for pol in polarizations:
                     xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
                     xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
+                    if doAltExp: alt_xval[charge] += alt_xsec_nominal_allCharges[charge][pol][iy]
+                        
                 xerr[charge] = math.sqrt(xerr[charge])
 
             chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
                                                xerr['plus'], xerr['minus'])
+            if doAltExp:
+                chasy_altval = utilities.getChargeAsy(alt_xval['plus'], alt_xval['minus'],
+                                                      xerr['plus'], xerr['minus'])
             
             tmp_val.val .append(chasy_val['asy'][0])
+            if doAltExp:
+                tmp_val.altval .append(chasy_altval['asy'][0])
             tmp_val.ehi.append(chasy_val['asy'][1])
             tmp_val.elo.append(chasy_val['asy'][1])
 
