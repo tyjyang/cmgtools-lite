@@ -57,15 +57,65 @@ def getCorrelatedParameters(params,covmat):
     y = np.dot(c,biases)
     # this should be ~the same as the original covariance matrix 
     #print "cov corr = ",np.cov(y)
-    corr_pars = []
+    corr_pars = {}
     for ip,par in enumerate(params):
-        corr_pars.append( (par[0],np.mean(y[ip]),np.std(y[ip])) )
+        corr_pars[par[0]] = (np.mean(y[ip]),np.std(y[ip]))
     return corr_pars
 
-def getWeightProd(allthetas,pattern):
-    seltheta = filter(lambda x: re.match(pattern,x[0]),allthetas)
-    ## weight is e^(k1theta1)*e^(k2theta2). The thetas here are already normalized, so k is already there
-    return np.prod([math.exp(x[1]) for x in seltheta])
+def getUnpolSyst(syst):
+    unpolsyst = syst.replace('left','').replace('right','').replace('long','')
+    unpolsyst = unpolsyst.replace('plus','').replace('minus','')
+    return unpolsyst
+    
+def loadKappas(xsecfile):
+    tf = ROOT.TFile(xsecfile)
+    print "Now loading the arrays of kappas from ",xsecfile,". May take time..."
+    kappas = {}
+    edges = []
+    for charge in ['plus','minus']:
+        for pol in ['left','right','long']:
+            for syst in qcdScalesNames():
+                unpolsyst = getUnpolSyst(syst)
+                # don't waste time to load copies of the same syst. Just rename them later
+                if (charge,pol,unpolsyst) in kappas: continue
+                hcen = 'w{charge}_wy_central_W{charge}_{pol}'.format(charge=charge,pol=pol) 
+                hup  = 'w{charge}_wy_{syst}Up_W{charge}_{pol}'.format(charge=charge,syst=unpolsyst,pol=pol)
+                hdn  = hup.replace('Up','Dn')
+                thcen = tf.Get(hcen)
+                thup  = tf.Get(hup)
+                thdn  = tf.Get(hdn)
+                nbins = thup.GetNbinsX()
+                kappasup = np.zeros(shape=nbins)
+                kappasdn = np.zeros(shape=nbins)
+                for b in xrange(0,nbins):
+                    cen,up,dn = thcen.GetBinContent(b+1), thup.GetBinContent(b+1), thdn.GetBinContent(b+1)
+                    kappasup[b] = math.log(max(up/cen,dn/cen)) if min(min(up,dn),cen)>0 else 0.
+                    kappasdn[b] = math.log(min(up/cen,dn/cen)) if min(min(up,dn),cen)>0 else 0.
+                    if len(edges)<nbins: edges.append(thdn.GetBinLowEdge(b+1))
+                kappas[(charge,pol,unpolsyst)] = (kappasup,kappasdn)
+    edges.append(thdn.GetBinLowEdge(nbins+1)) # they are all the same. Take the last bin upper edge from the last used one
+    tf.Close()
+    return edges,kappas
+
+def kappa(kappas,charge,pol,syst,kbin):
+    unpolsyst = getUnpolSyst(syst)
+    kappa_up = kappas[(charge,pol,unpolsyst)][0]
+    kappa_dn = kappas[(charge,pol,unpolsyst)][1]
+    return (kappa_up[kbin],kappa_dn[kbin])
+
+def getQCDWeightProd(kappas,thetas,nuisbin,kbin):
+    thetak = {} # not really necessary, useful for debugging
+    for pol in ['left','right','long']:
+        for charge in ['plus','minus']:
+            for qcdscale in ['muR','muF','muRmuF']:
+                nuis = pol+qcdscale+str(nuisbin)+charge
+                theta = thetas[nuis][0]
+                ## should inteprolate, but let's just separate Up/Dn
+                side = 0 if theta>0 else 1
+                k = kappa(kappas,charge,pol,nuis,kbin)[side]
+                thetak[nuis] = (abs(theta),k)
+    wgt = np.prod([math.exp(nuis[0]*nuis[1]) for k,nuis in thetak.iteritems()])
+    return wgt
 
 if __name__ == "__main__":
 
@@ -74,29 +124,44 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     fitresfile = args[0]
 
+    ## load the kappas
+    ## theta=1  corresponds to doubling the scale
+    ## theta=-1 corresponds to halfing it
+    ## Translating this into a cross section requires knowing by how much the xsec changed from the X2 or x1/2 variations in the first place, Ie the k_i
+    xsecfile = "/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections.root"
+    kedges,kappas = loadKappas(xsecfile)
+
     postfit_weights_file = ROOT.TFile('postfit_wgts.root','recreate')
 
     ## QCD scales
     scales = fitValues(fitresfile,qcdScalesNames())
     covsubmat = getSubMatrix(fitresfile,scales)
-    theta = getCorrelatedParameters(scales,covsubmat)
-    edges   = [float(wptBinsScales(ipt)[0]) for ipt in xrange(1,11)] + [float(13000.0)]
-    hscales = ROOT.TH1F('scales_postfit_wgts','',len(edges)-1,array('f',edges))
-    for ipt in xrange(1,11):
-        hscales.SetBinContent( ipt, getWeightProd(theta,'.*(muR|muF){ipt}(plus|minus)'.format(ipt=ipt)) )
+    thetas = getCorrelatedParameters(scales,covsubmat)
+    
+    # nuisances have a coarse pt binning
+    nuis_edges = [wptBinsScales(i)[0] for i in xrange(1,11)] + [13000.0]
+    hnuisscales = ROOT.TH1F('hnuisscales','',len(nuis_edges)-1,array('f',nuis_edges))
+
+    # kappas have a more granular binning (e.g. 1 GeV in wpt)
+    hscales = ROOT.TH1F('scales_postfit_wgts','',len(kedges)-1,array('f',kedges))
+    for ipt in xrange(len(kedges)-1):
+        iptcenter = hscales.GetBinCenter(ipt+1)
+        nuisbin = hnuisscales.FindBin(iptcenter) 
+        wgt = getQCDWeightProd(kappas,thetas,nuisbin,ipt)
+        hscales.SetBinContent(ipt,wgt)
     postfit_weights_file.cd()
     hscales.Write()
 
     ## PDFs
-    pdfs = fitValues(fitresfile,pdfNames())
-    covsubmat = getSubMatrix(fitresfile,pdfs)
-    theta = getCorrelatedParameters(pdfs,covsubmat)
-    edges   = [float(0.5+i) for i in xrange(61)]
-    hpdfs = ROOT.TH1F('pdfs_postfit_wgts','',len(edges)-1,array('f',edges))
-    for ipdf in xrange(1,61):
-        hpdfs.SetBinContent( ipdf, getWeightProd(theta,'pdf{ipdf}'.format(ipdf=ipdf)) )
-    postfit_weights_file.cd()
-    hpdfs.Write()
+    # pdfs = fitValues(fitresfile,pdfNames())
+    # covsubmat = getSubMatrix(fitresfile,pdfs)
+    # theta = getCorrelatedParameters(pdfs,covsubmat)
+    # edges   = [float(0.5+i) for i in xrange(61)]
+    # hpdfs = ROOT.TH1F('pdfs_postfit_wgts','',len(edges)-1,array('f',edges))
+    # for ipdf in xrange(1,61):
+    #     hpdfs.SetBinContent( ipdf, getWeightProd(theta,'pdf{ipdf}'.format(ipdf=ipdf)) )
+    # postfit_weights_file.cd()
+    # hpdfs.Write()
 
     postfit_weights_file.Close()
     print "DONE. Weights are stored in ",postfit_weights_file
