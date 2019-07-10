@@ -6,8 +6,16 @@
 # for Data
 # python w-helicity-13TeV/make2DEffSystVariations.py plots/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_fromRooFitResult_testOnlyStatUnc/smoothEfficiency_muons_plus_trigger.root systEff_trgmu_plus_OnlyStatUnc.root --pdir plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_muPlus/ --suffix forData
 
+# ele eta 0.2
+# python w-helicity-13TeV/make2DEffSystVariations.py /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/scaleFactors_Final/electron/trigger_pt_30_55_etaEB0p1_etaEE0p2_fromRooFitResult_onlyStatUnc/smoothEfficiency_electrons_trigger.root systEff_trgel_OnlyStatUnc.root --pdir plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_el_etaEB0p1_etaEE0p2/ --suffix forData
+
+# ele eta 0.1
+# python w-helicity-13TeV/make2DEffSystVariations.py /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/scaleFactors_Final/electron/trigger_pt_30_45_etaEE0p1_fromRooFitResult_onlyStatUnc/smoothEfficiency_electrons_trigger.root systEff_trgel_OnlyStatUnc.root --pdir plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_el_etaEE0p1/ --suffix forData
+
 # when you have more files done in different configurations, you can compare them using the following example command
 # python w-helicity-13TeV/makeRatioTH2.py plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_muMinus/systEff_trgmu_minus_OnlyStatUnc_mu.root p2 ../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu_backupSTATplusSYST.root p2 -o plots/scaleFactors_Final/effSyst_fromRooFitResult_onlyStatUnc_muMinus/ratioWithQuadSumStatSyst/ -f ratio_minus_p2 -n FILE -z "ratio p2" -t "stat / stat #oplus syst" --h1Dbinning 100,0,1.0 -r 0.0 1.0 --yRange 25 45
+
+# to merge data and MC, summing effstat variations in quadratue, use w-helicity-13TeV/sumEffStatDataAndMC.py
 
 import os, sys
 import numpy as np

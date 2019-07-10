@@ -6,16 +6,16 @@ import ROOT, os, sys, re, array
 
 doMuElComb = 0
 dryrun = 0
-skipData = 0
-onlyData = 1
+skipData = 1
+onlyData = 0
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 0
+skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsEtaPt = 1
 
 allPtBinsSignal = 1
@@ -30,7 +30,7 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/"
+folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/"
@@ -46,7 +46,7 @@ if doMuElComb:
 #postfix = "finalTest_EffStatNotScaled"
 #postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
 #postfix = "zptReweight_uncorrQCDscales"
-postfix = "zptReweight_uncorrQCDscales_EffStatOnlyStatUnc"
+postfix = "zptReweight_uncorrQCDscales_EffStatOnlyStatUncDataMC"
 #postfix = "zptReweight_uncorrQCDscales_fixFSRcharge"
 #postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
 #postfix = "zptReweight_uncorrQCDscales_fixedPOIs"

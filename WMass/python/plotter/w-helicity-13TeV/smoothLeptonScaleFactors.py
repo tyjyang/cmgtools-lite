@@ -27,10 +27,19 @@
 
 # 05/07/2019 (still on this topic!)
 # using uncertainties from txt file of TnP, input made with makeTriggerEffHistsOnlyStatErr.py
-# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
 
 # inputs made with makeTriggerEffHistsOnlyStatErr_fromRooFitResult.py
-# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_fromRooFitResult_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_PLUS_fromRooFitResult_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C plus --input-hist-names "effData_plus,effMC_plus,triggerSF_plus" --use-MC-error-from-histo
+
+# mu -
+#python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffMinus_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/muFullData_trigger_fineBin_noMu50_MINUS_fromRooFitResult_testOnlyStatUnc/ -c mu -n smoothEfficiency.root -t -C minus --input-hist-names "effData_minus,effMC_minus,triggerSF_minus" --use-MC-error-from-histo
+
+# electrons (EE 0.2 eta)
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/trigger_etaEB0p1_etaEE0p2/triggerElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/trigger_pt_30_55_etaEB0p1_etaEE0p2_fromRooFitResult_onlyStatUnc/ -c el -n smoothEfficiency.root -t --input-hist-names "effData_all,effMC_all,triggerSF_all" --use-MC-error-from-histo -r 30 -1
+
+# electrons (EE 0.1 eta)
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/trigger_etaEE0p1/triggerElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/trigger_pt_30_45_etaEE0p1_fromRooFitResult_onlyStatUnc/ -c el -n smoothEfficiency.root -t --input-hist-names "effData_all,effMC_all,triggerSF_all" --use-MC-error-from-histo  -r 30 -1
 
 import ROOT, os, sys, re, array, math
 
@@ -144,7 +153,8 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
               hist_reducedChi2=0,
               hist_ErfParam_vs_eta=0,
               hist_ErfCovMatrix_vs_eta=0,  # TH3, eta on x and cov matrix in yz
-              charge = ""
+              charge = "",
+              etabins = []
               ):
 
     # there might be some obsolete options below
@@ -153,7 +163,6 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     if charge == "plus": chargeText = "positive"
     if charge == "minus": chargeText = "negative"
     
-
     forcePol3 = False
     forceErfByKey = True  # if True, force the Erf specifying in which bin it should happen
     doOnlyErf = True
@@ -171,6 +180,13 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     if not isEle: isFullID = False
     #print "isEle",str(isEle)
     #mc = "MC" if isMC else "Data"
+
+    # patch for trigger
+    isEle_etaEE0p1 = False
+    if isEle and isTrigger and len(etabins):
+        if abs(etabins[1] - etabins[0]) < 0.1001: 
+            isEle_etaEE0p1 = True
+
     outdir = "{out}{mc}/".format(out=outname,mc=mc)
     createPlotDirAndCopyPhp(outdir)
 
@@ -246,34 +262,37 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     # in case I ovverride the range for all bins with the option fitRange, the range here is still overriden, but the X axis setting is modified according to the option
     overriden_bincontent = -1
     overriden_binerror = -1
-    if isTrigger and not isEle:        
-        if charge == "plus":
-            if mc == "Data":
-                if any(key == x for x in [38]): 
-                    maxFitRange = 45
-            elif mc == "MC":
-                if any(key == x for x in [6]):
-                    minFitRange = 27.5
-        if charge == "minus":
-            if mc == "Data":
-                if any(key == x for x in [9]): 
-                    maxFitRange = 45
-            elif mc == "MC":
-                if key == 41:
-                    overriden_bincontent = hist.GetBinContent(2)
-                    overriden_binerror = hist.GetBinError(2)
-                    hist.SetBinContent(2,0)
-                    hist.SetBinError(2,0)
-        # if mc == "Data":
-        #     if any(key == x for x in [9]):
-        #         maxFitRange = 45
-        #     elif any(key == x for x in [14]):
-        #         maxFitRange = 50
-        # elif mc == "MC":
-        #     if any(key == x for x in [9]):
-        #         maxFitRange = 45
-        #     # elif any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
-        #     #     maxFitRange = 48
+    if isTrigger:        
+        if isEle:
+            pass
+        else:
+            if charge == "plus":
+                if mc == "Data":
+                    if any(key == x for x in [38]): 
+                        maxFitRange = 45
+                elif mc == "MC":
+                    if any(key == x for x in [6]):
+                        minFitRange = 27.5
+            if charge == "minus":
+                if mc == "Data":
+                    if any(key == x for x in [9]): 
+                        maxFitRange = 45
+                elif mc == "MC":
+                    if key == 41:
+                        overriden_bincontent = hist.GetBinContent(2)
+                        overriden_binerror = hist.GetBinError(2)
+                        hist.SetBinContent(2,0)
+                        hist.SetBinError(2,0)
+            # if mc == "Data":
+            #     if any(key == x for x in [9]):
+            #         maxFitRange = 45
+            #     elif any(key == x for x in [14]):
+            #         maxFitRange = 50
+            # elif mc == "MC":
+            #     if any(key == x for x in [9]):
+            #         maxFitRange = 45
+            #     # elif any(key == x for x in [6, 7,8,33,39,43,46]):  # these are ok-ish even without this tuning, I might just force the Erf
+            #     #     maxFitRange = 48
 
 
     ###################
@@ -304,18 +323,47 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
     # tune Erf
     if isTrigger:
         if isEle:
-            # if mc =="Data":
-            #     if key == 29:
-            #         tf1_erf2.SetParameter(1,31)
-            # elif mc == "MC":
-            #     if any(key == x for x in [20,29]):
-            #         tf1_erf2.SetParameter(1,31)                
-            #     elif key == 12:
-            #         tf1_erf2.SetParameter(1,30.545)
-            #         tf1_erf2.SetParameter(2,5.0)
-            #     elif key == 17:
-            #         tf1_erf2.SetParameter(1,31.2)
-            pass
+            if isEle_etaEE0p1:
+                if mc == "MC":
+                    if any(key == x for x in [1,17,18]):
+                        tf1_erf.SetParameter(1,34)
+                        tf1_erf.SetParameter(2,5.0)
+                        # set parameters's limit: taken from other good bins
+                        print "="*30
+                        print "="*30
+                        print "Hardcoding Erf parameters for {mc}: key = {k}".format(mc=mc,k=key)
+                        print "="*30
+                        print "="*30
+                        tf1_erf.SetParLimits(0, 0.1, 0.9)
+                        tf1_erf.SetParLimits(1, 3.0, 50.0)
+                        tf1_erf.SetParLimits(2, 3.0, 50.0)
+            else:
+                # if mc =="Data":
+                #     if key == 29:
+                #         tf1_erf2.SetParameter(1,31)
+                # elif mc == "MC":
+                #     if any(key == x for x in [20,29]):
+                #         tf1_erf2.SetParameter(1,31)                
+                #     elif key == 12:
+                #         tf1_erf2.SetParameter(1,30.545)
+                #         tf1_erf2.SetParameter(2,5.0)
+                #     elif key == 17:
+                #         tf1_erf2.SetParameter(1,31.2)            
+                if mc == "SF":
+                    if any(key == x for x in [39]):
+                        tf1_erf.SetParameter(1,34)
+                elif mc == "MC":
+                    if any(key == x for x in [1,38]):
+                        tf1_erf.SetParameter(1,31)
+                        tf1_erf.SetParameter(2,5.0)
+                    elif any(key == x for x in [10]):
+                        tf1_erf.SetParameter(1,31)
+                        tf1_erf.SetParameter(2,2.0)
+                        tf1_erf.SetParLimits(2,1.0,45.0)
+                    elif any(key == x for x in [21]):
+                        tf1_erf.SetParameter(1,31)
+                        tf1_erf.SetParameter(2,2.0)
+                        tf1_erf.SetParLimits(2,1.0,55.0)
         else:                        
             if charge == "":
                 if mc == "Data":
@@ -348,7 +396,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                     # following commented was used with point uncertainty equal to stat+syst from TnP
                     #if any(key == x for x in [12,14,22,25,33,35,40]):
                     #    tf1_erf.SetParameter(1,32)
-                    if any(key == x for x in [12,14,22,25,33,35, 8, 32]):
+                    if any(key == x for x in [12,14,22,25,33,35, 8, 18, 30, 32]):
                         tf1_erf.SetParameter(1,32)
 
             elif charge == "minus":
@@ -369,7 +417,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                     #     tf1_erf.SetParameter(1,32)
                     # # elif any(key == x for x in [0]):
                     # #     tf1_erf.SetParameter(1,32)
-                    if any(key == x for x in [0, 18,20,29,44,47, 4, 6, 12, 23, 32, 41, 45]):
+                    if any(key == x for x in [0, 18,20,29,44,47, 4, 6, 12, 14, 23, 32, 41, 45]):
                         tf1_erf.SetParameter(1,32) 
                     elif any(key == x for x in [17]):
                         tf1_erf.SetParameter(1,34)
@@ -1071,9 +1119,9 @@ if __name__ == "__main__":
             hmcpt[bin].SetBinContent(y,hmc.GetBinContent(x,y))         
             #hmcpt[bin].SetBinError(y,hmc.GetBinError(x,y))  # no error on MC, have to assign a random value to fit
             if options.useMCerrorFromHisto:
-                hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use the corresponding uncertainty on data
+                hmcpt[bin].SetBinError(y,hmc.GetBinError(x,y))  # use the corresponding uncertainty on MC
             else:
-                hmcpt[bin].SetBinError(y,mc.GetBinError(x,y))  # use the corresponding uncertainty on data
+                hmcpt[bin].SetBinError(y,hdata.GetBinError(x,y))  # use the corresponding uncertainty on data
                                 
     hdatapt = {}
     for x in range(1,hdata.GetNbinsX()+1):
@@ -1085,6 +1133,9 @@ if __name__ == "__main__":
         for y in range(1,hdata.GetNbinsY()+1):
             hdatapt[bin].SetBinContent(y,hdata.GetBinContent(x,y))         
             hdatapt[bin].SetBinError(y,hdata.GetBinError(x,y))
+            # hardcoded patch for el trigger with 0.1 eta granularity in EE, bin [-1.566, 1.566] has 0 uncertainty on data
+            if hdatapt[bin].GetBinError(y) <= 0.0:
+                hdatapt[bin].SetBinError(y, 1.0)
             #hdatapt[bin].SetBinError(y,0.01)
 
     hsfpt = {}
@@ -1118,7 +1169,7 @@ if __name__ == "__main__":
                                 fitRange=options.range, hist_reducedChi2=hist_reducedChi2_MC,
                                 hist_ErfParam_vs_eta=hist_ErfParam_vs_eta_mc,
                                 hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_mc,
-                                charge=options.charge)
+                                charge=options.charge, etabins=etabins)
         bestFit_MC["smoothFunc_MC_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hmcSmoothCheck.GetNbinsY()+1):
             ptval = hmcSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1155,7 +1206,7 @@ if __name__ == "__main__":
                                 fitRange=options.range, hist_reducedChi2=hist_reducedChi2_data,
                                 hist_ErfParam_vs_eta=hist_ErfParam_vs_eta_data,
                                 hist_ErfCovMatrix_vs_eta=hist_ErfCovMatrix_vs_eta_data,
-                                charge=options.charge)
+                                charge=options.charge, etabins=etabins)
         bestFit_Data["smoothFunc_Data_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hdataSmoothCheck.GetNbinsY()+1):
             ptval = hdataSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1191,7 +1242,7 @@ if __name__ == "__main__":
                                 isFullID=options.isFullIDScaleFactor,
                                 isMuonRecoToSel=options.isMuonRecoToSel,
                                 fitRange=options.range, hist_reducedChi2=0,
-                                charge=options.charge)
+                                charge=options.charge, etabins=etabins)
         bestFit_SF["smoothFunc_SF_ieta%d" % key] = bestFitFunc
         for ipt in range(1,hsfSmoothCheck.GetNbinsY()+1):
             ptval = hsfSmoothCheck.GetYaxis().GetBinCenter(ipt)
@@ -1344,6 +1395,16 @@ if __name__ == "__main__":
 
     ##############
     # Erf[x] parameter and error for data and MC efficiency
+    # before, set error of bins in gap to 0 if electrons
+    if isEle:
+        ietabinGapPlus = hist_ErfParam_vs_eta_data.GetXaxis().FindFixBin(1.5)
+        ietabinGapMinus = hist_ErfParam_vs_eta_data.GetXaxis().FindFixBin(-1.5)
+        for iy in range(1,hist_ErfParam_vs_eta_data.GetNbinsY()+1):
+            hist_ErfParam_vs_eta_data.SetBinError(ietabinGapPlus,iy,0.0)
+            hist_ErfParam_vs_eta_mc.SetBinError(ietabinGapPlus,iy,0.0)
+            hist_ErfParam_vs_eta_data.SetBinError(ietabinGapMinus,iy,0.0)
+            hist_ErfParam_vs_eta_mc.SetBinError(ietabinGapMinus,iy,0.0)
+
     drawCorrelationPlot(hist_ErfParam_vs_eta_data,"{lep} #eta".format(lep=lepton),"Erf[x] parameter number",
                         "parameter value",
                         "hist_ErfParam_vs_eta_data","ForceTitle",outname,1,1,False,False,False,1,palette=55,passCanvas=canvas)

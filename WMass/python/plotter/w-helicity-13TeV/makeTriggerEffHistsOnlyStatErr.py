@@ -13,17 +13,38 @@ ROOT.TH1.SetDefaultSumw2()
 
 # [0] https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_PLUS/triggerMu/egammaEffi.txt
 
-charge = "plus"
+isMu = False
+charge = "plus" if isMu else "all"
+#lepton = "muon" 
+lepton = "muon" if isMu else "electron" 
+subdir = "" if isMu else "trigger_etaEE0p1/"
 #mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
-mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/"
-infile = mypath + "triggerMuonEff{ch}.txt".format(ch="Minus" if charge == "minus" else "Plus")
+mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/{lep}/{sub}".format(lep=lepton,sub=subdir)
+infile = mypath + "trigger{lep}Eff{ch}.txt".format(lep="Muon" if isMu else "Electron", ch="Minus" if charge == "minus" else "Plus" if charge == "plus" else "AllCharge")
 outfile = infile.replace('.txt','_onlyStatUnc.root')
-plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/trash/"
+plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/{lep}/{sub}".format(lep=lepton,sub=subdir)
 
-etabins = [round(-2.40 + 0.10*x,1) for x in range(49)]
-ptbins = [25, 27.5, 30, 33, 36, 39, 45, 52, 55]
-#print etabins
-#print ptbins
+noAlternativeFitData = False
+if subdir == "trigger_etaEE0p1/":
+    noAlternativeFitData = True
+    
+etabins = []
+ptbins = []
+if isMu:
+    etabins = [round(-2.40 + 0.10*x,1) for x in range(49)]
+    ptbins = [25, 27.5, 30, 33, 36, 39, 45, 52, 55]
+else:
+    if "etaEE0p2" in subdir:
+        posetabins = [round(0.10*x,1) for x in range(1,14)] + [1.444, 1.566, 1.7, 1.9, 2.1, 2.3, 2.5]
+        etabins = [-1.0*x for x in reversed(posetabins)] + [0.0] + posetabins
+        ptbins = [25, 27.5, 30, 31.5, 33, 36, 39, 42, 45, 48, 52, 55] 
+    else:
+        posetabins = [round(0.10*x,1) for x in range(17,26)]
+        etabins = [-1.0*x for x in reversed(posetabins)] + [-1.566, 1.566] + posetabins
+        ptbins = [30, 33, 36, 40, 45]
+
+print etabins
+print ptbins
 
 heffData = ROOT.TH2D("effData_{ch}".format(ch=charge),"",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
 heffMC = ROOT.TH2D("effMC_{ch}".format(ch=charge),"",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
@@ -47,13 +68,15 @@ with open(infile) as f:
         heffMC.SetBinContent(ieta,ipt,float(columns[6]))
         heffMC.SetBinError(ieta,ipt,float(columns[7]))
         systUncData = abs(float(columns[9]) - float(columns[4]))
+        if noAlternativeFitData: 
+            systUncData = 0.0
         totUncData = math.sqrt( float(columns[5]) * float(columns[5]) + systUncData * systUncData)
         heffData_statUncOverTot.SetBinContent(ieta,ipt,float(columns[5])/totUncData)
 
 heffSF.Divide(heffData,heffMC)  # uncertainties are uncorrelated, can use simple Divide to propagate uncertainty on SF
 
-drawCorrelationPlot(heffData_statUncOverTot,"muon #eta","muon p_{T} [GeV]",
-                    "#sigma(stat) / #sigma(Tot): #mu trigger data efficiency",
+drawCorrelationPlot(heffData_statUncOverTot,"%s #eta" % lepton, "%s p_{T} [GeV]" % lepton,
+                    "#sigma(stat) / #sigma(Tot): {l} trigger data efficiency".format(l="#mu" if isMu else "e"),
                     heffData_statUncOverTot.GetName(),"ForceTitle",plotoutdir,0,0,False,False,False,
                     1,palette=55)
 
@@ -63,4 +86,4 @@ heffMC.Write(heffMC.GetName())
 heffSF.Write(heffSF.GetName())
 heffData_statUncOverTot.Write(heffData_statUncOverTot.GetName())
 tf.Close()
-
+print "Created file %s " % outfile

@@ -30,11 +30,13 @@ th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
 #folder_mu = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
-folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
+folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
-th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
+th3file_mu = "cards/" + folder_mu + "wmu_09July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUncDataMC.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_04July2019_zptReweight_unfixedFSRcharge_testBinUncEffStat.root"
 
 folder = folder_mu if doMuons else folder_el
@@ -57,7 +59,7 @@ if useBinUncEffStat:
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_EffStatOnlyStatUnc  --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
+optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_EffStatOnlyStatUncDataMC  --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs: optionsForCardMakerMerger += " --freezePOIs "
 # --no-correlate-xsec-stat
 
