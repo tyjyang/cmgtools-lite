@@ -263,395 +263,397 @@ queue 1\n
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
     condor_file.close()
 
-from optparse import OptionParser
-parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
-parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
-parser.add_option("-l", "--lumi",    dest="integratedLuminosity",     type="float", default=35.9, help="Integrated luminosity");
-parser.add_option("--dry-run", dest="dryRun",    action="store_true", default=False, help="Do not run the job, only print the command");
-parser.add_option("--long-bkg", dest="longBkg",    action="store_true", default=False, help="Treat the longitudinal polarization as one background template.");
-parser.add_option("--decorrelateSignalScales", action="store_true", default=False, help="Treat qcd scales uncorrelated for left/right/long");
-parser.add_option("-s", "--signal-cards",  dest="signalCards",  action="store_true", default=False, help="Make the signal part of the datacards");
-parser.add_option("-b", "--bkgdata-cards", dest="bkgdataCards", action="store_true", default=False, help="Make the background and data part of the datacards");
-parser.add_option("-W", "--weight", dest="weightExpr", default="-W 1", help="Event weight expression (default 1)");
-parser.add_option("-P", "--path", dest="path", type="string",default=None, help="Path to directory with input trees and pickle files");
-parser.add_option("-C", "--channel", dest="channel", type="string", default='el', help="Channel. either 'el' or 'mu'");
-parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
-parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
-parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
-parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
-parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
-(options, args) = parser.parse_args()
+if __name__ == "__main__":
 
-if not options.wvar in ['genw', 'prefsrw']:
-    print 'the W variable has to be either "genw" or "prefsrw". exiting...'
-    quit()
-
-if len(sys.argv) < 6:
-    parser.print_usage()
-    quit()
-
-signal_helicities = ['left', 'right']
-if not options.longBkg:
-    signal_helicities += ['long']
-
-print 'these are signal helicities', signal_helicities
-
-FASTTEST=''
-#FASTTEST='--max-entries 1000 '
-T=options.path
-print "used trees from: ",T
-J=2
-MCA = args[0]
-CUTFILE = args[1]
-fitvar = args[2]
-binning = args[3]
-SYSTFILE = args[4]
-
-luminosity = options.integratedLuminosity
-
-if not os.path.exists("cards/"):
-    os.makedirs("cards/")
-outdir="cards/"+args[5]
-
-if not os.path.exists(outdir): os.mkdir(outdir)
-if options.queue and not os.path.exists(outdir+"/jobs"): 
-    os.mkdir(outdir+"/jobs")
-    os.mkdir(outdir+"/mca")
-
-# copy some cfg for bookkeeping
-os.system("cp %s %s" % (CUTFILE, outdir))
-os.system("cp %s %s" % (MCA, outdir))
-
-## save template binning (eta on X, pt on y axis)                                                                                                                       
-ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
-ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
-ptEta_binfile.write("reco: "+binning+"\n")
-ptEta_binfile.write('\n')
-ptEta_binfile.close()
-
-if options.addPdfSyst:
-    # write the additional systematic samples in the MCA file
-    writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
-    writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
-    writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtau') # on WTau
-    # write the complete systematics file (this was needed when trying to run all systs in one job)
-    # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
-if options.addQCDSyst:
-    scales = ['muR','muF',"muRmuF", "alphaS"]
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
-    writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau',overrideDecorrelation=True)
-writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
-
-if len(pdfsysts+qcdsysts)>1:
-    for proc in ['dy','wtau']:
-        if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
-
-# not needed if we fit eta/pt. Will be needed if we fit another variable correlated with eta/pt
-# writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
-
-ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
-BASECONFIG=os.path.dirname(MCA)
-## use rel paths if options.queue:
-## use rel paths     ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
-OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj tree "+FASTTEST
-if not os.path.exists(outdir): os.makedirs(outdir)
-OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
-if not options.notUnroll2D:
-    OPTIONS+=" --2d-binning-function unroll2Dto1D "
-
-if options.queue:
-    import os, sys
-    basecmd = "bsub -q {queue} {dir}/lxbatch_runner.sh {dir} {cmssw} python {self}".format(
-                queue = options.queue, dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0]
-            )
-
-POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
-NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
-fullJobList = set()
-if options.signalCards:
-    WYBinsEdges = makeFixedYWBinning()
-    ybinfile = open(outdir+'/binningYW.txt','w')
-    ybinfile.write(json.dumps(WYBinsEdges))
-    #ybinfile.writelines(' '.join(str(i) for i in WYBinsEdges))
-    ybinfile.close()
-    print "MAKING SIGNAL PART: WYBinsEdges = ",WYBinsEdges
-    wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if 'sig' in x]
-    for ivar,var in enumerate(wsyst):
-        for helicity in signal_helicities:
-            ## marc antihel = 'right' if helicity == 'left' else 'left'
-            antihel = ['right', 'long'] if helicity == 'left' else ['left','long'] if helicity == 'right' else ['right','left']
-            if any(i in var for i in antihel) and options.decorrelateSignalScales: continue ## this might work. but who knows...
-            for charge in ['plus', 'minus']:
+    from optparse import OptionParser
+    parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
+    parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
+    parser.add_option("-l", "--lumi",    dest="integratedLuminosity",     type="float", default=35.9, help="Integrated luminosity");
+    parser.add_option("--dry-run", dest="dryRun",    action="store_true", default=False, help="Do not run the job, only print the command");
+    parser.add_option("--long-bkg", dest="longBkg",    action="store_true", default=False, help="Treat the longitudinal polarization as one background template.");
+    parser.add_option("--decorrelateSignalScales", action="store_true", default=False, help="Treat qcd scales uncorrelated for left/right/long");
+    parser.add_option("-s", "--signal-cards",  dest="signalCards",  action="store_true", default=False, help="Make the signal part of the datacards");
+    parser.add_option("-b", "--bkgdata-cards", dest="bkgdataCards", action="store_true", default=False, help="Make the background and data part of the datacards");
+    parser.add_option("-W", "--weight", dest="weightExpr", default="-W 1", help="Event weight expression (default 1)");
+    parser.add_option("-P", "--path", dest="path", type="string",default=None, help="Path to directory with input trees and pickle files");
+    parser.add_option("-C", "--channel", dest="channel", type="string", default='el', help="Channel. either 'el' or 'mu'");
+    parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
+    parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
+    parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
+    parser.add_option("--useLSF", action='store_true', default=False, help="force use LSF. default is using condor");
+    parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+    parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
+    parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
+    (options, args) = parser.parse_args()
+    
+    if not options.wvar in ['genw', 'prefsrw']:
+        print 'the W variable has to be either "genw" or "prefsrw". exiting...'
+        quit()
+    
+    if len(sys.argv) < 6:
+        parser.print_usage()
+        quit()
+    
+    signal_helicities = ['left', 'right']
+    if not options.longBkg:
+        signal_helicities += ['long']
+    
+    print 'these are signal helicities', signal_helicities
+    
+    FASTTEST=''
+    #FASTTEST='--max-entries 1000 '
+    T=options.path
+    print "used trees from: ",T
+    J=2
+    MCA = args[0]
+    CUTFILE = args[1]
+    fitvar = args[2]
+    binning = args[3]
+    SYSTFILE = args[4]
+    
+    luminosity = options.integratedLuminosity
+    
+    if not os.path.exists("cards/"):
+        os.makedirs("cards/")
+    outdir="cards/"+args[5]
+    
+    if not os.path.exists(outdir): os.mkdir(outdir)
+    if options.queue and not os.path.exists(outdir+"/jobs"): 
+        os.mkdir(outdir+"/jobs")
+        os.mkdir(outdir+"/mca")
+    
+    # copy some cfg for bookkeeping
+    os.system("cp %s %s" % (CUTFILE, outdir))
+    os.system("cp %s %s" % (MCA, outdir))
+    
+    ## save template binning (eta on X, pt on y axis)                                                                                                                       
+    ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
+    ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
+    ptEta_binfile.write("reco: "+binning+"\n")
+    ptEta_binfile.write('\n')
+    ptEta_binfile.close()
+    
+    if options.addPdfSyst:
+        # write the additional systematic samples in the MCA file
+        writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtau') # on WTau
+        # write the complete systematics file (this was needed when trying to run all systs in one job)
+        # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
+    if options.addQCDSyst:
+        scales = ['muR','muF',"muRmuF", "alphaS"]
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["wptSlope", "mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau',overrideDecorrelation=True)
+    writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
+    
+    if len(pdfsysts+qcdsysts)>1:
+        for proc in ['dy','wtau']:
+            if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
+    
+    # not needed if we fit eta/pt. Will be needed if we fit another variable correlated with eta/pt
+    # writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
+    
+    ARGS=" ".join([MCA,CUTFILE,"'"+fitvar+"' "+"'"+binning+"'",SYSTFILE])
+    BASECONFIG=os.path.dirname(MCA)
+    ## use rel paths if options.queue:
+    ## use rel paths     ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
+    OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj tree "+FASTTEST
+    if not os.path.exists(outdir): os.makedirs(outdir)
+    OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
+    if not options.notUnroll2D:
+        OPTIONS+=" --2d-binning-function unroll2Dto1D "
+    
+    if options.queue:
+        import os, sys
+        basecmd = "bsub -q {queue} {dir}/lxbatch_runner.sh {dir} {cmssw} python {self}".format(
+                    queue = options.queue, dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE'], self=sys.argv[0]
+                )
+    
+    POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
+    NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
+    fullJobList = set()
+    if options.signalCards:
+        WYBinsEdges = makeFixedYWBinning()
+        ybinfile = open(outdir+'/binningYW.txt','w')
+        ybinfile.write(json.dumps(WYBinsEdges))
+        #ybinfile.writelines(' '.join(str(i) for i in WYBinsEdges))
+        ybinfile.close()
+        print "MAKING SIGNAL PART: WYBinsEdges = ",WYBinsEdges
+        wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if 'sig' in x]
+        for ivar,var in enumerate(wsyst):
+            for helicity in signal_helicities:
+                ## marc antihel = 'right' if helicity == 'left' else 'left'
+                antihel = ['right', 'long'] if helicity == 'left' else ['left','long'] if helicity == 'right' else ['right','left']
+                if any(i in var for i in antihel) and options.decorrelateSignalScales: continue ## this might work. but who knows...
+                for charge in ['plus', 'minus']:
+                    antich = 'plus' if charge == 'minus' else 'minus'
+                    YWbinning = WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=helicity)]
+                    if ivar==0: 
+                        IARGS = ARGS
+                    else: 
+                        IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                        IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                        print "Running the systematic: ",var
+                    job_group =  [] ## group
+                    for iy in xrange(len(YWbinning)-1):
+                        print "Making card for {yl}<=abs({wv}_y)<{yh} and signal process with charge {ch} ".format(yl=YWbinning[iy],wv=options.wvar,yh=YWbinning[iy+1],ch=charge)
+                        ycut=" -A alwaystrue YW{iy} 'abs({wv}_y)>={yl} && abs({wv}_y)<{yh}' ".format(iy=iy,wv=options.wvar,yl=YWbinning[iy],yh=YWbinning[iy+1])
+                        ycut += POSCUT if charge=='plus' else NEGCUT
+                        ## marc excl_long_signal  = '' if not options.longBkg else ',W{ch}_long.*'.format(ch=charge)
+                        ## marc xpsel=' --xp "W{antich}.*,W{ch}_{antihel}.*,Flips,Z,Top,DiBosons,TauDecaysW{longbkg},data.*" --asimov '.format(antich=antich,ch=charge,antihel=antihel,longbkg = excl_long_signal)
+                        if antich in var: continue
+                        excl_antihel = ','.join('W'+charge+'_'+ah+'.*' for ah in antihel)
+                        xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_antihel)
+                        if not os.path.exists(outdir): os.mkdir(outdir)
+                        if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
+                        syst = '' if ivar==0 else var
+                        dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
+                        zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                        fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
+                        BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
+                        if options.queue:
+                            mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                            ## here accumulate signal jobs if running with long. make long+right+left one job
+                            ## marcmarc if not options.longBkg and WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=antihel[0])]
+                            if not options.longBkg:
+                                job_group.append(mkShCardsCmd)
+                                if len(job_group) == options.groupJobs or iy == len(YWbinning)-2:
+                                    if options.useLSF: 
+                                        submitBatch(dcname,outdir,'\n'.join(job_group),options)
+                                    else:
+                                        pass
+                                        ## passing this submitCondor(dcname,outdir,'\n'.join(job_group),options)
+                                    job_group = []
+                            else:
+                                if options.useLSF:
+                                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                                else:
+                                    pass
+                                    ## passing this now too submitCondor(dcname,outdir,mkShCardsCmd,options)
+                            fullJobList.add(mkShCardsCmd)
+                        else:
+                            cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                            if options.dryRun: print cmd
+                            else:
+                                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                                out, err = p.communicate() 
+                                result = out.split('\n')
+                                for lin in result:
+                                    if not lin.startswith('#'):
+                                        print(lin)
+    
+    if options.bkgdataCards:
+        print "MAKING BKG and DATA PART:\n"
+        for charge in ['plus','minus']:
+            xpsel=' --xp "W.*" ' if not options.longBkg else ' --xp "W{ch}_left,W{ch}_right,W{ach}.*" '.format(ch=charge, ach='minus' if charge=='plus' else 'plus')
+            if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
+                xpsel+=' --xp "Z.*,TauDecaysW.*" '   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
+            chargecut = POSCUT if charge=='plus' else NEGCUT
+            dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
+            BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
+            if options.queue:
+                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
+                if options.useLSF:
+                    submitBatch(dcname,outdir,mkShCardsCmd,options)
+                else:
+                    ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                    pass
+                fullJobList.add(mkShCardsCmd)
+            else:
+                cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
+                if options.dryRun: print cmd
+                else:
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                    out, err = p.communicate() 
+                    result = out.split('\n')
+                    for lin in result:
+                        if not lin.startswith('#'):
+                            print(lin)
+    
+    if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
+        dysyst = ['_dy_nominal']+[x for x in pdfsysts+inclqcdsysts if 'dy' in x]
+        for ivar,var in enumerate(dysyst):
+            for charge in ['plus','minus']:
                 antich = 'plus' if charge == 'minus' else 'minus'
-                YWbinning = WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=helicity)]
                 if ivar==0: 
+                    # the following would be faster with DY-only, but it misses the lines for the Z_lepeff systs
+                    # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
                     IARGS = ARGS
                 else: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                    print "Running the systematic: ",var
-                job_group =  [] ## group
-                for iy in xrange(len(YWbinning)-1):
-                    print "Making card for {yl}<=abs({wv}_y)<{yh} and signal process with charge {ch} ".format(yl=YWbinning[iy],wv=options.wvar,yh=YWbinning[iy+1],ch=charge)
-                    ycut=" -A alwaystrue YW{iy} 'abs({wv}_y)>={yl} && abs({wv}_y)<{yh}' ".format(iy=iy,wv=options.wvar,yl=YWbinning[iy],yh=YWbinning[iy+1])
-                    ycut += POSCUT if charge=='plus' else NEGCUT
-                    ## marc excl_long_signal  = '' if not options.longBkg else ',W{ch}_long.*'.format(ch=charge)
-                    ## marc xpsel=' --xp "W{antich}.*,W{ch}_{antihel}.*,Flips,Z,Top,DiBosons,TauDecaysW{longbkg},data.*" --asimov '.format(antich=antich,ch=charge,antihel=antihel,longbkg = excl_long_signal)
-                    if antich in var: continue
-                    excl_antihel = ','.join('W'+charge+'_'+ah+'.*' for ah in antihel)
-                    xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_antihel)
-                    if not os.path.exists(outdir): os.mkdir(outdir)
-                    if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
-                    syst = '' if ivar==0 else var
-                    dcname = "W{charge}_{hel}_{channel}_Ybin_{iy}{syst}".format(charge=charge, hel=helicity, channel=options.channel,iy=iy,syst=syst)
-                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
-                    fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
-                    BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
-                    if options.queue:
-                        mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                        ## here accumulate signal jobs if running with long. make long+right+left one job
-                        ## marcmarc if not options.longBkg and WYBinsEdges['{ch}_{hel}'.format(ch=charge,hel=antihel[0])]
-                        if not options.longBkg:
-                            job_group.append(mkShCardsCmd)
-                            if len(job_group) == options.groupJobs or iy == len(YWbinning)-2:
-                                if options.useLSF: 
-                                    submitBatch(dcname,outdir,'\n'.join(job_group),options)
-                                else:
-                                    pass
-                                    ## passing this submitCondor(dcname,outdir,'\n'.join(job_group),options)
-                                job_group = []
-                        else:
-                            if options.useLSF:
-                                submitBatch(dcname,outdir,mkShCardsCmd,options)
-                            else:
-                                pass
-                                ## passing this now too submitCondor(dcname,outdir,mkShCardsCmd,options)
-                        fullJobList.add(mkShCardsCmd)
+                    print "Running the DY with systematic: ",var
+                print "Making card for DY process with charge ", charge
+                chcut = POSCUT if charge=='plus' else NEGCUT
+                xpsel=' --xp "[^Z]*" --asimov '
+                syst = '' if ivar==0 else var
+                dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
+                fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+                if options.queue:
+                    mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    if options.useLSF:
+                        submitBatch(dcname,outdir,mkShCardsCmd,options)
                     else:
-                        cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
-                        if options.dryRun: print cmd
-                        else:
-                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                            out, err = p.communicate() 
-                            result = out.split('\n')
-                            for lin in result:
-                                if not lin.startswith('#'):
-                                    print(lin)
-
-if options.bkgdataCards:
-    print "MAKING BKG and DATA PART:\n"
-    for charge in ['plus','minus']:
-        xpsel=' --xp "W.*" ' if not options.longBkg else ' --xp "W{ch}_left,W{ch}_right,W{ach}.*" '.format(ch=charge, ach='minus' if charge=='plus' else 'plus')
-        if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-            xpsel+=' --xp "Z.*,TauDecaysW.*" '   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
-        chargecut = POSCUT if charge=='plus' else NEGCUT
-        dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
-        BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
-        if options.queue:
-            mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
-            if options.useLSF:
-                submitBatch(dcname,outdir,mkShCardsCmd,options)
-            else:
-                ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
-                pass
-            fullJobList.add(mkShCardsCmd)
+                        ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                        pass
+                    fullJobList.add(mkShCardsCmd)
+                else:
+                    cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                    if options.dryRun: print cmd
+                    else:
+                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                        out, err = p.communicate() 
+                        result = out.split('\n')
+                        for lin in result:
+                            if not lin.startswith('#'):
+                                print(lin)
+    
+    # repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
+    if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
+        wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
+        for ivar,var in enumerate(wtausyst):
+            for charge in ['plus','minus']:
+                antich = 'plus' if charge == 'minus' else 'minus'
+                if ivar==0: 
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir))
+                else: 
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                    print "Running the WTau with systematic: ",var
+                print "Making card for WTau process with charge ", charge
+                chcut = POSCUT if charge=='plus' else NEGCUT
+                xpsel=' --xp "[^TauDecaysW]*" --asimov '
+                syst = '' if ivar==0 else var
+                dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+                if options.queue:
+                    mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    if options.useLSF:
+                        submitBatch(dcname,outdir,mkShCardsCmd,options)
+                    else:
+                        ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
+                        pass
+                    fullJobList.add(mkShCardsCmd)
+                else:
+                    cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                    if options.dryRun: print cmd
+                    else:
+                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                        out, err = p.communicate() 
+                        result = out.split('\n')
+                        for lin in result:
+                            if not lin.startswith('#'):
+                                print(lin)
+    
+    def getShFile(jobdir, name):
+        tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
+        tmp_srcfile = open(tmp_srcfile_name, 'w')
+        tmp_srcfile.write("#! /bin/sh\n")
+        tmp_srcfile.write("ulimit -c 0 -S\n")
+        tmp_srcfile.write("ulimit -c 0 -H\n")
+        tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+        return tmp_srcfile_name, tmp_srcfile
+    
+    if len(fullJobList):
+        reslist = list(fullJobList)
+    
+        ## analysis too large protection
+        reslistnew = []
+        npart = 0
+        for ic, pc in enumerate(reslist):
+            nc = pc.replace('--od {od}'.format(od=outdir), '--od {od}/part{n}'.format(od=outdir,n=npart))
+            reslistnew.append(nc)
+            if not (ic+1)%6000:
+                npart += 1
+    
+        reslist = reslistnew
+    
+        ## split the list into non-bkg and bkg_and_data
+        bkglist = [i for i in reslist if     'bkg_and_data' in i]
+        reslist = [i for i in reslist if not 'bkg_and_data' in i]
+    
+        nj = len(reslist)
+        print 'full number of python commands to submit', nj+len(bkglist)
+        print '   ... grouping them into bunches of', options.groupJobs
+        
+        if not nj%options.groupJobs:
+            njobs = int(nj/options.groupJobs)
+        else: 
+            njobs = int(nj/options.groupJobs) + 1
+        
+        jobdir = outdir+'/jobs/'
+        os.system('mkdir -p '+jobdir)
+        subcommands = []
+    
+        sourcefiles = []
+        ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first
+        for ib in bkglist:
+            pm = 'plus' if 'positive' in ib else 'minus'
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+            tmp_srcfile.write(ib)
+            tmp_srcfile.close()
+            sourcefiles.append(tmp_srcfile_name)
+            #makeCondorFile(tmp_srcfile_name)
+            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+    
+        ## now do the others.
+        for ij in range(njobs):
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
+            tmp_n = options.groupJobs
+            while len(reslist) and tmp_n:
+                tmp_pycmd = reslist[0]
+                tmp_srcfile.write(tmp_pycmd)
+                reslist.remove(tmp_pycmd)
+                tmp_n -= 1
+            tmp_srcfile.close()
+            sourcefiles.append(tmp_srcfile_name)
+            #makeCondorFile(tmp_srcfile_name)
+            #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
+    
+        dummy_exec = open(jobdir+'/dummy_exec.sh','w')
+        dummy_exec.write('#!/bin/bash\n')
+        dummy_exec.write('bash $*\n')
+        dummy_exec.close()
+    
+        condor_file_name = jobdir+'/condor_submit_'+('background' if options.bkgdataCards else 'signal')+'.condor'
+        condor_file = open(condor_file_name,'w')
+        condor_file.write('''Universe = vanilla
+    Executable = {de}
+    use_x509userproxy = $ENV(X509_USER_PROXY)
+    Log        = {jd}/$(ProcId).log
+    Output     = {jd}/$(ProcId).out
+    Error      = {jd}/$(ProcId).error
+    getenv      = True
+    environment = "LS_SUBCWD={here}"
+    request_memory = 4000
+    +MaxRuntime = {rt}\n
+    '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+        if os.environ['USER'] in ['mdunser', 'psilva']:
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+        for sf in sourcefiles:
+            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
+        condor_file.close()
+    
+        print 'i have {n} jobs to submit!'.format(n=len(subcommands))
+        if options.dryRun:
+            print 'running dry, printing the commands...'
+            print 'condor_submit ',condor_file_name
+            #for cmd in subcommands:
+            #    print cmd
         else:
-            cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
-            if options.dryRun: print cmd
-            else:
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                out, err = p.communicate() 
-                result = out.split('\n')
-                for lin in result:
-                    if not lin.startswith('#'):
-                        print(lin)
-
-if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
-    dysyst = ['_dy_nominal']+[x for x in pdfsysts+inclqcdsysts if 'dy' in x]
-    for ivar,var in enumerate(dysyst):
-        for charge in ['plus','minus']:
-            antich = 'plus' if charge == 'minus' else 'minus'
-            if ivar==0: 
-                # the following would be faster with DY-only, but it misses the lines for the Z_lepeff systs
-                # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
-                IARGS = ARGS
-            else: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                print "Running the DY with systematic: ",var
-            print "Making card for DY process with charge ", charge
-            chcut = POSCUT if charge=='plus' else NEGCUT
-            xpsel=' --xp "[^Z]*" --asimov '
-            syst = '' if ivar==0 else var
-            dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
-            fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
-            BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
-            if options.queue:
-                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                if options.useLSF:
-                    submitBatch(dcname,outdir,mkShCardsCmd,options)
-                else:
-                    ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
-                    pass
-                fullJobList.add(mkShCardsCmd)
-            else:
-                cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
-                if options.dryRun: print cmd
-                else:
-                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                    out, err = p.communicate() 
-                    result = out.split('\n')
-                    for lin in result:
-                        if not lin.startswith('#'):
-                            print(lin)
-
-# repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
-if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
-    wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
-    for ivar,var in enumerate(wtausyst):
-        for charge in ['plus','minus']:
-            antich = 'plus' if charge == 'minus' else 'minus'
-            if ivar==0: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir))
-            else: 
-                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                print "Running the WTau with systematic: ",var
-            print "Making card for WTau process with charge ", charge
-            chcut = POSCUT if charge=='plus' else NEGCUT
-            xpsel=' --xp "[^TauDecaysW]*" --asimov '
-            syst = '' if ivar==0 else var
-            dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-            zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
-            fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
-            BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
-            if options.queue:
-                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                if options.useLSF:
-                    submitBatch(dcname,outdir,mkShCardsCmd,options)
-                else:
-                    ## passing this now submitCondor(dcname,outdir,mkShCardsCmd,options)
-                    pass
-                fullJobList.add(mkShCardsCmd)
-            else:
-                cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
-                if options.dryRun: print cmd
-                else:
-                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                    out, err = p.communicate() 
-                    result = out.split('\n')
-                    for lin in result:
-                        if not lin.startswith('#'):
-                            print(lin)
-
-def getShFile(jobdir, name):
-    tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
-    tmp_srcfile = open(tmp_srcfile_name, 'w')
-    tmp_srcfile.write("#! /bin/sh\n")
-    tmp_srcfile.write("ulimit -c 0 -S\n")
-    tmp_srcfile.write("ulimit -c 0 -H\n")
-    tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
-    return tmp_srcfile_name, tmp_srcfile
-
-if len(fullJobList):
-    reslist = list(fullJobList)
-
-    ## analysis too large protection
-    reslistnew = []
-    npart = 0
-    for ic, pc in enumerate(reslist):
-        nc = pc.replace('--od {od}'.format(od=outdir), '--od {od}/part{n}'.format(od=outdir,n=npart))
-        reslistnew.append(nc)
-        if not (ic+1)%6000:
-            npart += 1
-
-    reslist = reslistnew
-
-    ## split the list into non-bkg and bkg_and_data
-    bkglist = [i for i in reslist if     'bkg_and_data' in i]
-    reslist = [i for i in reslist if not 'bkg_and_data' in i]
-
-    nj = len(reslist)
-    print 'full number of python commands to submit', nj+len(bkglist)
-    print '   ... grouping them into bunches of', options.groupJobs
-    
-    if not nj%options.groupJobs:
-        njobs = int(nj/options.groupJobs)
-    else: 
-        njobs = int(nj/options.groupJobs) + 1
-    
-    jobdir = outdir+'/jobs/'
-    os.system('mkdir -p '+jobdir)
-    subcommands = []
-
-    sourcefiles = []
-    ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first
-    for ib in bkglist:
-        pm = 'plus' if 'positive' in ib else 'minus'
-        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
-        tmp_srcfile.write(ib)
-        tmp_srcfile.close()
-        sourcefiles.append(tmp_srcfile_name)
-        #makeCondorFile(tmp_srcfile_name)
-        #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
-
-    ## now do the others.
-    for ij in range(njobs):
-        tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
-        tmp_n = options.groupJobs
-        while len(reslist) and tmp_n:
-            tmp_pycmd = reslist[0]
-            tmp_srcfile.write(tmp_pycmd)
-            reslist.remove(tmp_pycmd)
-            tmp_n -= 1
-        tmp_srcfile.close()
-        sourcefiles.append(tmp_srcfile_name)
-        #makeCondorFile(tmp_srcfile_name)
-        #subcommands.append( 'condor_submit {rf} '.format(rf = tmp_srcfile_name.replace('.sh','.condor')) )
-
-    dummy_exec = open(jobdir+'/dummy_exec.sh','w')
-    dummy_exec.write('#!/bin/bash\n')
-    dummy_exec.write('bash $*\n')
-    dummy_exec.close()
-
-    condor_file_name = jobdir+'/condor_submit_'+('background' if options.bkgdataCards else 'signal')+'.condor'
-    condor_file = open(condor_file_name,'w')
-    condor_file.write('''Universe = vanilla
-Executable = {de}
-use_x509userproxy = $ENV(X509_USER_PROXY)
-Log        = {jd}/$(ProcId).log
-Output     = {jd}/$(ProcId).out
-Error      = {jd}/$(ProcId).error
-getenv      = True
-environment = "LS_SUBCWD={here}"
-request_memory = 4000
-+MaxRuntime = {rt}\n
-'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
-    if os.environ['USER'] in ['mdunser', 'psilva']:
-        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
-    for sf in sourcefiles:
-        condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
-    condor_file.close()
-
-    print 'i have {n} jobs to submit!'.format(n=len(subcommands))
-    if options.dryRun:
-        print 'running dry, printing the commands...'
-        print 'condor_submit ',condor_file_name
-        #for cmd in subcommands:
-        #    print cmd
-    else:
-        print 'submitting for real...'
-        os.system('condor_submit '+condor_file_name)
-        ##sigDyBkg = '_signal' if options.signalCards else '_background'
-        ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
-        ##pipefile = open(pipefilename, 'w')
-        ##print 'piping all the commands in file', pipefilename
-        ##for cmd in subcommands:
-        ##    pipefile.write(cmd+'\n')
-        ##pipefile.close()
-        ##os.system('bash '+pipefilename)
-print 'done'
+            print 'submitting for real...'
+            os.system('condor_submit '+condor_file_name)
+            ##sigDyBkg = '_signal' if options.signalCards else '_background'
+            ##pipefilename = args[5]+'_submission{t}.sh'.format(t=sigDyBkg)
+            ##pipefile = open(pipefilename, 'w')
+            ##print 'piping all the commands in file', pipefilename
+            ##for cmd in subcommands:
+            ##    pipefile.write(cmd+'\n')
+            ##pipefile.close()
+            ##os.system('bash '+pipefilename)
+    print 'done'

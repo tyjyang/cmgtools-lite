@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # may use as: cat w-helicity-13TeV/wmass_e/zee_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/testZskim {} > runplots.sh
 # may use as: cat w-helicity-13TeV/wmass_e/wgen_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/gen {} > runplots.sh
-import sys
-import re
-import os
+import sys,re,os,inspect
+sys.path.insert(0,os.path.abspath(os.getcwd()+"/w-helicity-13TeV"))
+from submitToys import makeCondorFile,jobstring_tf
 
 ODIR=sys.argv[1]
 
@@ -15,7 +15,7 @@ dowhat = "plots"
 #dowhat = "yields" 
 
 TREES = "-F Friends '{P}/friends/tree_Friend_{cname}.root' "
-TREESONLYSKIMW = "-P  /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY"
+TREESONLYSKIMW = "-P /afs/cern.ch/work/e/emanuele/TREES/TREES_electrons_1l_V6_TINY"
 TREESONLYSKIMZ = "-P /data1/emanuele/wmass/TREES_2018-07-17-recoLeptons" # trees with the Trigger Match object
 TREESONLYFULL  = "-P /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3"
 
@@ -38,13 +38,14 @@ def base(selection,useSkim=True):
 
     if selection=='wenu':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-simpleplots.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
-        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)'"%GO
-        if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "
+        GO="%s -W 'puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)*prefireJetsWeight(LepGood_eta[0])'"%GO
+        if dowhat in ["plots","ntuple"]: 
+            plotfile = "wenu_plots.txt "
+            GO+=" w-helicity-13TeV/wmass_e/"+wenu_plots.txt
     elif selection=='wgen':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
         GO="%s -p Wplus_long,Wplus_left,Wplus_right --plotmode=nostack "%GO
         #GO="%s --sP wplus_mtwtk,wplus_etal1,wplus_ptl1,wplus_etal1gen,wplus_ptl1gen,wplus_wy,wplus_wpt "%GO
-        GO="%s --sP wplus_wy "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
     elif selection=='zee':
         GO="%s w-helicity-13TeV/wmass_e/mca-80X-zee.txt w-helicity-13TeV/wmass_e/zee.txt --fitData --flp Z "%CORE
@@ -65,20 +66,25 @@ def runIt(GO,name,plots=[],noplots=[]):
     elif dowhat == "dumps":  print 'echo %s; python mcDump.py'%name,GO
     elif dowhat == "ntuple": print 'echo %s; python mcNtuple.py'%name,GO
 def submitIt(GO,name,plots=[],noplots=[],opts=None):
-    outdir=ODIR+"/jobs/"
-    if not os.path.isdir(outdir): os.mkdir(outdir)
-    srcfile = outdir+name+".sh"
-    logfile = outdir+name+".log"
-    srcfile_op = open(srcfile,"w")
-    srcfile_op.write("#! /bin/sh\n")
-    srcfile_op.write("ulimit -c 0\n")
-    srcfile_op.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {dir};\n".format( 
-            dir = os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
-    srcfile_op.write("python mcPlots.py "+" --pdir %s/%s "%(ODIR,name)+GO+' '.join(['--sP \'%s\''%p for p in plots])+' '.join(['--xP \'%s\''%p for p in noplots])+'\n')
-    os.system("chmod a+x "+srcfile)
-    cmd = "bsub -q 8nh -o {dir}/{logfile} {dir}/{srcfile}\n".format(dir=os.getcwd(), logfile=logfile, srcfile=srcfile)
-    if opts.dryRun: print "[DRY-RUN]: ", cmd
-    else: os.system(cmd)
+
+    jobdir= os.path.abspath("./jobsplots/")
+    if not os.path.isdir(jobdir): os.mkdir(jobdir)
+
+    srcfiles = []
+    for i,pl in enumerate(plots):
+        cmd = "python mcPlots.py --pdir {pdir} --sP {plot} {GO}".format(pdir=os.path.abspath(ODIR+"/"+name),plot=pl,GO=GO)
+
+        job_file_name = jobdir+'/plot_{i}.sh'.format(i=i)
+        log_file_name = job_file_name.replace('.sh','.log')
+        tmp_file = open(job_file_name, 'w')
+        tmp_filecont = jobstring_tf
+        tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
+        tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
+        tmp_filecont = tmp_filecont.replace('OUTDIR', os.path.abspath(os.getcwd()))
+        tmp_file.write(tmp_filecont)
+        tmp_file.close()
+        srcfiles.append(job_file_name)
+    cf = makeCondorFile(jobdir,srcfiles,opts,jobdir,jobdir,jobdir)
 def add(GO,opt):
     return '%s %s'%(GO,opt)
 def remove(GO,opt):
@@ -103,10 +109,10 @@ if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage="%prog outdir what [options] ")
     parser.add_option("--dry-run", dest="dryRun",    action="store_true", default=False, help="Do not run the job, only print the command");
-    parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
+    parser.add_option('-r', '--runtime',    default=0, type=int,   help='New runtime for condor resubmission in hours. default: 0 (it means interactively)');
     (options, args) = parser.parse_args()
 
-    torun = sys.argv[2]
+    torun = args[1]
 
     if (not allow_unblinding) and '_data' in torun and (not any([re.match(x.strip()+'$',torun) for x in ['.*_appl.*','cr_.*']])): raise RuntimeError, 'You are trying to unblind!'
 
@@ -128,7 +134,7 @@ if __name__ == '__main__':
         if 'plus' in torun: x = swapcharge(x,'plus')
         elif 'minus' in torun: x = swapcharge(x,'minus')
         if 'nosel' in torun:
-             x = add(x," -U 'alwaystrue' ")
+            x = add(x," -U 'alwaystrue' ")
         if 'fullsel' in torun:
             x = add(x," -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)' ")
         if torun.endswith('pdfs'):
@@ -139,7 +145,11 @@ if __name__ == '__main__':
                 xw = add(xw," -W '{wgt}' -o {output}".format(wgt=wgt,output=output))
                 submitIt( xw,'%s_%s' % (torun,i), opts=options )
 
-    plots = [] # if empty, to all the ones of the txt file
+    plotlist = args[2] # if empty, to all the ones of the txt file
     if not torun.endswith('pdfs'): 
-        if options.queue: submitIt(x,'%s'%torun,plots,opts=options)
+        plotlistfile = open(plotlist,'r')
+        plots = [p.strip() for p in plotlistfile.readlines()]
+        print "I will select these plots from the plotfile:"
+        print plots
+        if options.runtime>0: submitIt(x,'%s'%torun,plots,opts=options)
         else: runIt(x,'%s'%torun,plots)

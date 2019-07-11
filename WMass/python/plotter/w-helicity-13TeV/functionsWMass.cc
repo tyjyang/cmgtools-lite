@@ -115,7 +115,7 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   if (!fsrWeights_elplus || !fsrWeights_elminus || !fsrWeights_muplus || !fsrWeights_muminus) {
-    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fsrReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
+    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
     fsrWeights_elplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_e"));
     fsrWeights_elminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_e"));
     fsrWeights_muplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
@@ -142,7 +142,7 @@ float dyptWeight(float pt2l, int isZ) {
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   if (!amcnlody) {
-    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/dyReweighting/zpt_weights.root",_cmssw_base_.c_str()));
+    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
@@ -154,6 +154,21 @@ float dyptWeight(float pt2l, int isZ) {
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
 
+TFile *_file_postfitWeights = NULL;
+TH1F *qcdscales = NULL;
+
+float postfitQCDWeight(float pt2l) {
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+  if (!qcdscales) {
+    _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts.root",_cmssw_base_.c_str()));
+    qcdscales = (TH1F*)(_file_postfitWeights->Get("scales_postfit_wgts"));
+  }
+  int ptbin = std::max(1, std::min(qcdscales->GetNbinsX(), qcdscales->GetXaxis()->FindFixBin(pt2l)));
+  return qcdscales->GetBinContent(ptbin);
+}
 
 TFile *_file_recoToMedium_leptonSF_el = NULL;
 TH2F *_histo_recoToMedium_leptonSF_el = NULL;
