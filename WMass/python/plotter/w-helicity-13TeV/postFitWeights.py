@@ -78,8 +78,8 @@ def loadKappas(xsecfile):
                 unpolsyst = getUnpolSyst(syst)
                 # don't waste time to load copies of the same syst. Just rename them later
                 if (charge,pol,unpolsyst) in kappas: continue
-                hcen = 'w{charge}_wy_central_W{charge}_{pol}'.format(charge=charge,pol=pol) 
-                hup  = 'w{charge}_wy_{syst}Up_W{charge}_{pol}'.format(charge=charge,syst=unpolsyst,pol=pol)
+                hcen = 'w{charge}_wpt_central_W{charge}_{pol}'.format(charge=charge,pol=pol) 
+                hup  = 'w{charge}_wpt_{syst}Up_W{charge}_{pol}'.format(charge=charge,syst=unpolsyst,pol=pol)
                 hdn  = hup.replace('Up','Dn')
                 thcen = tf.Get(hcen)
                 thup  = tf.Get(hup)
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     ## theta=1  corresponds to doubling the scale
     ## theta=-1 corresponds to halfing it
     ## Translating this into a cross section requires knowing by how much the xsec changed from the X2 or x1/2 variations in the first place, Ie the k_i
-    xsecfile = "/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections.root"
+    xsecfile = "/afs/cern.ch/user/m/mdunser/public/wpTspectra.root"
     kedges,kappas = loadKappas(xsecfile)
 
     postfit_weights_file = ROOT.TFile('postfit_wgts.root','recreate')
