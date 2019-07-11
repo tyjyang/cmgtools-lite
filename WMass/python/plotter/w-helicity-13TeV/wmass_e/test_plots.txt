@@ -85,3 +85,5 @@ ptl1_26to56: ptElFull(LepGood1_calPt,LepGood1_eta): 30,26,56 ; XTitle="electron 
 ptl1_26to56_elescaleUp: ptElFull(LepGood1_calPt,LepGood1_eta,1): 30,26,56 ; XTitle="electron p_{T} [GeV]", Legend='TR', IncludeOverflows=False
 ptl1_26to56__etal1: ptElFull(LepGood1_calPt,LepGood1_eta)\:LepGood1_eta: 50,-2.5,2.5,30,26,56; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
 ptl1_26to56_elescaleUp__etal1: ptElFull(LepGood1_calPt,LepGood1_eta,1)\:LepGood1_eta: 50,-2.5,2.5,30,26,56; XTitle='reco electron #eta', YTitle='reco electron p_{T} [GeV]', Legend='TR'
+
+gen_ptl1_absetal1_dressed: GenLepDressed_pt[0]\:abs(GenLepDressed_eta[0]) : 50,0,5.0,70,10,80 ; XTitle='dressed electron |#eta|', YTitle='dressed electron p_{T} [GeV]', Legend='TR'

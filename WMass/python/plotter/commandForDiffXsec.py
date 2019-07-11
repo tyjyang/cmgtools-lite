@@ -4,13 +4,18 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=1
-skipMergeRoot=1
+skipUnpack=0
+skipMergeRoot=0
 skipSingleCard=0
 skipMergeCard=0
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
+flavourCombinationOutdir = "muElCombination"
 
 allPtBinsSignal = 1
+useBinUncEffStat = False
+uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
+# note that there is always a part of the uncertainty that is charge-uncorrelated
+freezePOIs = False
 
 # el
 #folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
@@ -24,32 +29,41 @@ th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2.root"
 #folder_mu = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
-folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
-th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
+folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
+#th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
+th3file_mu = "cards/" + folder_mu + "wmu_09July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUncDataMC.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_04July2019_zptReweight_unfixedFSRcharge_testBinUncEffStat.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
 
-uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
-# note that there is always a part of the uncertainty that is charge-uncorrelated
-
 #================================
 # some more things are set below
 
-optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ") #+ " --useBinUncEffStat " 
+optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
 optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
-optionsForCardMaker += binnedSystOpt # + " --useBinUncEffStat "
+optionsForCardMaker += binnedSystOpt 
+
+if useBinUncEffStat:
+    optionsForRootMerger += " --useBinUncEffStat "
+    optionsForCardMaker  += " --useBinUncEffStat "
 
 #--WZ-testEffSyst-LnN 0.012" 
 # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales  --sig-out-bkg " #--no-text2hdf5 --no-combinetf --useSciPyMinimizer  " 
+optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_EffStatOnlyStatUncDataMC  --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
+if freezePOIs: optionsForCardMakerMerger += " --freezePOIs "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight --sig-out-bkg " # --no-text2hdf5 --no-combinetf --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales --sig-out-bkg " # --useSciPyMinimizer "  
 
 #================================
 
@@ -91,7 +105,7 @@ if not skipMergeCard:
 
 
 combineCardsFlavour = "python makeCardsFromTH1.py --indir-mu cards/{fdmu} --indir-el cards/{fdel} --comb-flavour".format(fdmu=folder_mu, fdel=folder_el) 
-combineCardsFlavour += " {opt} -o cards/muElCombination/ ".format(opt=optionsForCardMakerMergerFlavour)
+combineCardsFlavour += " {opt} -o cards/{combOut}/ ".format(opt=optionsForCardMakerMergerFlavour,combOut=flavourCombinationOutdir)
 if not skipMergeCardFlavour:
     print combineCardsFlavour
     if not dryrun: os.system(combineCardsFlavour)
@@ -99,3 +113,4 @@ if not skipMergeCardFlavour:
 print ""
 print "DONE"
 print ""
+

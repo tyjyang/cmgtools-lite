@@ -1225,6 +1225,7 @@ class PlotMaker:
                                     if "TGraph" in plot.ClassName(): continue
                                     c1.SetRightMargin(0.20)
                                     plot.SetContour(100)
+                                    ROOT.gStyle.SetPalette(options.palette)
                                     ROOT.gStyle.SetPaintTextFormat(pspec.getOption("PaintTextFormat","g"))
                                     plot.SetMarkerSize(pspec.getOption("MarkerSize",1))
                                     if pspec.hasOption('ZMin') and pspec.hasOption('ZMax'):
@@ -1246,6 +1247,7 @@ class PlotMaker:
                                     #########################################
                                     if drawBox != None:
                                         liner = ROOT.TLine()
+                                        liner.SetLineColor(options.boxColor)
                                         liner.SetLineWidth(3)
                                         x1,x2,y1,y2 = (float(x) for x in drawBox.split(','))
                                         liner.DrawLine(x1, y1, x1, y2)  # vertical at x=x1, y in [y1,y2]
@@ -1270,9 +1272,19 @@ class PlotMaker:
                                     # inside the function some histograms are created, which means they are being redefined
                                     # this will issue a warning that a histogram with same name is being replaced, but should be harmless
                                     rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
-                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
+                                                           ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
                                     for r in rdata:
                                         r.Draw(pspec.getOption("PlotMode","COLZ0"))
+                                        if drawBox != None:
+                                            # liner = ROOT.TLine()
+                                            # liner.SetLineColor(options.boxColor)
+                                            # liner.SetLineWidth(3)
+                                            # x1,x2,y1,y2 = (float(x) for x in drawBox.split(','))
+                                            liner.DrawLine(x1, y1, x1, y2)  # vertical at x=x1, y in [y1,y2]
+                                            liner.DrawLine(x2, y1, x2, y2)  # vertical at x=x2, y in [y1,y2]
+                                            liner.DrawLine(x1, y1, x2, y1)  # horizontal at y=y1, x in [x1,x2]
+                                            liner.DrawLine(x1, y2, x2, y2)  # horizontal at y=y2, x in [x1,x2]
+                                        
                                         c1.Print("%s/%s_%s.%s" % (fdir, outputName, r.GetName(), ext))
                                         r.Write(r.GetName())
                             else:
@@ -1351,10 +1363,13 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--cmssqrtS", dest="cmssqrtS", type="string", default="13 TeV", help="Sqrt of s to be written in the official CMS text.")
     parser.add_option("--printBin", dest="printBinning", type="string", default=None, help="Write 'Events/xx' instead of 'Events' on the y axis")
     parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
+    parser.add_option("--box-color", dest="boxColor", type="int", default=1, help="Set line color for box (works with --drawBox). Default is black")
     parser.add_option("--contentAxisTitle", dest="contentAxisTitle", type="string", default=None, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
     parser.add_option("--setLegendCoordinates", dest="setLegendCoordinates", type="string", default=None, help="Pass a comma separated list of 4 numbers (x1,y1,x2,y2) used to build the legend. It overrides options to set the legend position in MCA, so this option is more suited to create a single plot")
     parser.add_option("--n-column-legend", dest="nColumnLegend", type="int", default=1, help="Number of columns for legend (for monster plot, 3 is better)")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
+    parser.add_option("--palette", dest="palette", type="int", default=57, help="Set color palette (only for 2D histograms)")
+
 
 if __name__ == "__main__":
     from optparse import OptionParser

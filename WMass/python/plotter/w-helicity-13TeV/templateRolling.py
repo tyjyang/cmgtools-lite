@@ -98,7 +98,7 @@ if __name__ == "__main__":
     parser.add_option(     '--draw-selected-etaPt', dest='draw_selected_etaPt', default='', type='string', help='Only for xsection. Pass pairs of eta,pt: only the corresponding gen bins will be plotted (inclusive signal is still drawn, unless options --noplot is used as well).')
     parser.add_option(     '--draw-all-bins', dest='draw_all_bins', default=False, action='store_true', help='Draw all bins for signal (default is false, it is quite a huge bunch of plots).')
     parser.add_option(     '--skipSyst', dest='skipSyst', default=False, action='store_true', help='Skip histograms for systematics (will not make plots of ratio with nominal, and should save some time)')
-    parser.add_option(     '--do-signal-syst', dest='doSigSyst', default=".*scale.*|.*lepeff.*", type='string', help='If --skipSyst is not given, make ratios for signal templates with only systematics matching this regular expression for example ".*pdf.*|.*muR.*|.*muF.*". Pass ".*" to make all of them ')
+    parser.add_option(     '--do-signal-syst', dest='doSigSyst', default=".*scale.*|.*lepeff.*|.*TestEffSyst.*|.*fsr.*|.mW.*", type='string', help='If --skipSyst is not given, make ratios for signal templates with only systematics matching this regular expression for example ".*pdf.*|.*muR.*|.*muF.*". Pass ".*" to make all of them ')
     parser.add_option(     '--skipBkg', dest='skipBackground', default=False, action='store_true', help='Skip histograms for background processes')
     parser.add_option('-r','--syst-ratio-range', dest='syst_ratio_range', default='0.98,1.02', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template min and max values are used (it will be different for each template). This option is for signal templates only') 
     parser.add_option(     '--pt-range', dest='ptRange', default='template', type='string', help='Comma separated pair of floats used to define the pt range. If "template" is passed, the template min and max values are used')
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         qcdsyst.append("muF%d" % i)
         qcdsyst.append("muRmuF%d" % i)
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["mW", "lepeff"] # might add others
+    allsysts = qcdsyst + pdfsyst + ["mW", "lepeff", "fsr"] # might add others
     if channel == "el":
         allsysts.extend(["elescale%d" % i for i in range(4)])
     else:
@@ -442,6 +442,7 @@ if __name__ == "__main__":
                         elif not options.skipSyst:
                             systvar = name.split('_')[-1]
                             if re.match(options.doSigSyst,systvar):
+                                #print systvar
                                 h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
                                 if options.normWidth:
                                     h2_backrolled_1.Scale(1.,"width")
