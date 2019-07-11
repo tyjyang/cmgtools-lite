@@ -677,7 +677,7 @@ def wptBinsScales(i):
     pthi = wptbins[2*i]
     return [ptlo, pthi]
 
-def makePDFvariations():
+def makePDFvariations(doPtInstead):
     print '=========================================='
     print 'running pdf variations of the abs(Y)'
     print '=========================================='
@@ -694,7 +694,10 @@ def makePDFvariations():
 
     fmca      = 'w-helicity-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt'
     fcut      = 'w-helicity-13TeV/wmass_mu/helicityTemplates/cuts.txt'
-    fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots.txt'
+    if not doPtInstead:
+        fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots.txt'
+    else:
+        fplots    = 'w-helicity-13TeV/wmass_mu/helicityTemplates/plots_wpt.txt'
 
     enable    = []
     disable   = []
@@ -732,45 +735,60 @@ request_memory = 4000
  '''.format(scriptName=os.path.abspath(srcfile), of=os.path.abspath(srcfile).replace('.sh','') ) )
 
     cmds = []
+    ptweight = ' -W dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0) '
 
     for ch in ['plus', 'minus']:
         processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch)]
-        for i in range(1,61):
-            extraopts = " --plotmode=nostack -W hessWgt{i} ".format(i=i)
-            makeplots = ['w{ch}_wy_pdf{i}'.format(ch=ch,i=i)]
-            cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_pdf{i}'.format(ch=ch,i=i)))
+        for process in processes:
+            for ipdf in range(1,61):
+                extraopts = ptweight + ' --plotmode=nostack -W hessWgt{i} '.format(i=ipdf)
+
+                ## fancy reweighting of the reweighting
+                if not doPtInstead:
+                    pdfRatioWeight = 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})'.format(pol = 0 if 'long' in process else 1 if 'left' in process else 2,ipdf=ipdf)
+                    extraopts += ' -W '+pdfRatioWeight+' '
+
+                makeplots = ['w{ch}_{var}_pdf{i}'.format(ch=ch,i=ipdf,var= 'wy' if not doPtInstead else 'wpt')]
+                cmds.append(runplots(trees, friends, targetdir+'/'+process, fmca, fcut, fplots, enable, disable, [process], scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_pdf{i}'.format(ch=ch,i=ipdf)))
         for sys, var in itertools.product(['muR','muF', 'muRmuF', 'alphaS', 'mW'],['Up', 'Dn']):
             sv = sys+var
 
             if sys == 'mW': ## mW variation here
-                extraopts = " --plotmode=nostack -W mass_{newmass} ".format(newmass = '80470' if var == 'Up' else '80370')
-                makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+                extraopts = ptweight+ " --plotmode=nostack -W mass_{newmass} ".format(newmass = '80470' if var == 'Up' else '80370')
+                makeplots = ['w{ch}_{var}_{sv}'.format(ch=ch,sv=sv,var= 'wy' if not doPtInstead else 'wpt')]
                 cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
 
             elif 'muR' in sys or 'muF' in sys: ## here run the 1-10 and the fully correlated in W-pT
                 for ipt in range(0,11):
                     if not ipt:
-                        extraopts = " --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
-                        makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
+                        extraopts = ptweight +" --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
+                        makeplots = ['w{ch}_{var}_{sv}'.format(ch=ch,sv=sv,var= 'wy' if not doPtInstead else 'wpt')]
                         cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
                     else:
                         newsv = sys+str(ipt)+var
                         ptcut = wptBinsScales(ipt)
                         wgtstr = 'TMath::Power(qcd_{sv},(prefsrw_pt>={ptlo}&&prefsrw_pt<{pthi}))'.format(sv=sv,ptlo=ptcut[0],pthi=ptcut[1])
-                        extraopts = ' --plotmode=nostack -W {ws} '.format(ws=wgtstr)
-                        makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=newsv)]
+                        extraopts = ptweight+' --plotmode=nostack -W {ws} '.format(ws=wgtstr)
+                        makeplots = ['w{ch}_{var}_{sv}'.format(ch=ch,sv=newsv,var= 'wy' if not doPtInstead else 'wpt')]
                         cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=newsv)))
 
             else: ## this leaves alphaS here
-                extraopts = " --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
-                makeplots = ['w{ch}_wy_{sv}'.format(ch=ch,sv=sv)]
-                cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
+                for process in processes:
+                    extraopts = ptweight+" --plotmode=nostack -W qcd_{sv} ".format(sv=sv)
+
+                    ## fancy reweighting of the reweighting
+                    if not doPtInstead:
+                        pdfRatioWeight = 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})'.format(pol = 0 if 'long' in process else 1 if 'left' in process else 2,ipdf=61 if var == 'Up' else 62)
+                        extraopts += ' -W '+pdfRatioWeight+' '
+
+                    makeplots = ['w{ch}_{var}_{sv}'.format(ch=ch,sv=sv,var= 'wy' if not doPtInstead else 'wpt')]
+                    cmds.append(runplots(trees, friends, targetdir+'/'+process, fmca, fcut, fplots, enable, disable, [process], scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_{sv}'.format(ch=ch,sv=sv)))
 
 
     for ch in ['plus', 'minus']:
         processes = ['W{ch}_left'.format(ch=ch), 'W{ch}_right'.format(ch=ch), 'W{ch}_long'.format(ch=ch)]
-        extraopts = ' --plotmode=nostack -W 1. '
-        makeplots = ['w{ch}_wy_central'.format(ch=ch)]
+        extraopts = ptweight+' --plotmode=nostack -W 1. '
+        makeplots = ['w{ch}_{var}_central'.format(ch=ch,var= 'wy' if not doPtInstead else 'wpt')]
         cmds.append(runplots(trees, friends, targetdir, fmca, fcut, fplots, enable, disable, processes, scalethem, fittodata, makeplots, showratio, extraopts, [], 'return', '{ch}_central'.format(ch=ch)))
 
     for c in cmds:
@@ -1450,6 +1468,7 @@ if __name__ == '__main__':
     parser.add_option('--mt'        , '--makeTemplates', dest='makeTemplates', action='store_true' , default=False , help='make templates')
     parser.add_option('--dy'        , '--dyComparison' , dest='dyComparison' , action='store_true' , default=False , help='make dy comparisons')
     parser.add_option('--pdf'       , '--pdfVariations', dest='pdfVariations', action='store_true' , default=False , help='make plots with pdf variations')
+    parser.add_option(                '--doPtInstead'  , dest='doPtInstead', action='store_true' , default=False , help='do Pt xsecs instead of yw xsecs. goes with option pdfVariations')
     parser.add_option('--unfold'    , '--unfoldEffs'   , dest='unfoldEff'    , action='store_true' , default=False , help='make unfolding efficiencies gen-reco')
     parser.add_option('--unfoldLO'  , '--unfoldLO'   , dest='unfoldLO'    , action='store_true' , default=False , help='make unfolding for LO')
     parser.add_option('--compareScales', '--scales'   , dest='compareScales'    , action='store_true' , default=False , help='compare qcd scales')
@@ -1498,7 +1517,7 @@ if __name__ == '__main__':
         dyComparison()
     if opts.pdfVariations:
         print 'making pdf variations'
-        makePDFvariations()
+        makePDFvariations(opts.doPtInstead)
     if opts.unfoldEff:
         print 'making unfolding efficiencies'
         makeGenRecoEfficiencies(opts.unfoldLO)
