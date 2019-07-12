@@ -128,7 +128,7 @@ if __name__ == "__main__":
     ## theta=1  corresponds to doubling the scale
     ## theta=-1 corresponds to halfing it
     ## Translating this into a cross section requires knowing by how much the xsec changed from the X2 or x1/2 variations in the first place, Ie the k_i
-    xsecfile = "/afs/cern.ch/user/m/mdunser/public/wpTspectra.root"
+    xsecfile = "/afs/cern.ch/user/m/mdunser/public/wpTspectraFixed.root"
     kedges,kappas = loadKappas(xsecfile)
 
     postfit_weights_file = ROOT.TFile('postfit_wgts.root','recreate')
