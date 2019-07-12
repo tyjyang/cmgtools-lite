@@ -6,25 +6,22 @@ BASECONFIG   = 'w-helicity-13TeV/wmass_mu'
 MCA          = BASECONFIG+'/mca-wmu-helicity.txt'
 CUTFILE      = BASECONFIG+'/cuts_wmu.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
-#TREEPATH     = '/eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_latest_new_1muskim/'
-#TREEPATH     = '/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/'
-TREEPATH     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/'
+
 QUEUE        = '2nd'
 VAR          = '\'ptMuFull(LepGood1_calPt,LepGood1_eta):LepGood1_eta\''
 
-## old variable binning in eta
-## old binning binsEta = list(i*0.1 for i in range(1,11)) + list(1.+0.15*i for i in range(1,9))
-## old binning negstring = '[-2.4,'+','.join(reversed(  list(str(-1.*i) for i in binsEta) ))
-## old binning posstring =     ','.join(           list(str(    i) for i in binsEta) )+',2.4]'
-## old binning etabinning= negstring+',0.,'+posstring
+TREEPATH     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/' ## this makes cremedelacreme
+# TREEPATH     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_withFSR/' ## this is marco's skim
 
 binningeta = [-2.4 + i*0.1 for i in range(49) ]
+#binningeta = [-2.2 + i*0.2 for i in range(23) ]
 binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
 
 etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 
 ## variable binning in pt
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
+#ptbinning = '['+','.join(str(i) for i in range(30,46))+']'
 #ptbinning = '['+','.join(str(26+1.5*i) for i in range(0,14))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
@@ -32,8 +29,8 @@ BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_selectionToTrigger(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0],LepGood_charge[0])*LepGood_SF2[0]*prefireJetsWeight(LepGood_eta[0])\' '
 OUTDIR       = 'helicity_%s' % datetime.now().strftime('%Y_%m_%d')
 
-#components=[' -b ', ' -s ']
-components=[' -b ']#, ' -s ']
+#components=[' -b ']#, ' -s ']
+components=[' -s ', ' -b ']
     
 
 if __name__ == '__main__':
@@ -55,5 +52,7 @@ if __name__ == '__main__':
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if options.longBkg: cmd += ' --long-bkg '
         if not options.genw: cmd += ' --wvar prefsrw '
-        cmd += ' -g 1 '
+        cmd += ' -g 5 '
+        cmd += ' --decorrelateSignalScales '
+        cmd += ' --vpt-weight Z '#--vpt-weight W --vpt-weight TauDecaysW '
         os.system(cmd)
