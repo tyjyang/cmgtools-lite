@@ -1,9 +1,152 @@
-import ROOT, itertools, datetime, math, copy, os, commands
+import ROOT, itertools, datetime, math, copy, os, commands, sys
 from array import array
 
 
-## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_NLO_amcatnlo_newDefinitionFinalFix.root --nlo --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-10-10-fineBin/
-## usage:  python templatesRoofit.py --infile /eos/user/m/mdunser/W_LO_madgraph_finalDressing_extOnly.root        --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-10-10-fineBin/
+## usage:  python templatesRoofit.py --infile /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/friends/ --nlo --outdir ~/www/private/w-helicity-13TeV/cosThetaFits/2018-10-10-fineBin/
+
+## usage add --batch to run on the batch
+
+def fixFits():
+    bf_txt = open(options.fixFits+'/badfits.txt', 'r')
+    bf_ls  = bf_txt.readlines()
+    #bf_ls = [i.replace('norm_','').strip() for i in bf_ls]
+    bf_ls = [i.strip() for i in bf_ls]
+    bf_ls = list(set(bf_ls))
+    nbadfits = 0
+    badfits = {}
+    for bf in bf_ls:
+        if '16_19' in bf or '16_0' in bf: continue
+
+        print 'really found a bad fit', bf
+
+        var = bf.split('_')[-1]
+        varf = [i for i in os.listdir(options.fixFits) if var+'.root' in i][0]
+        if not badfits.has_key(varf):
+            badfits[varf] = []
+            badfits[varf].append(bf) #.split('_')[:3])
+        else:
+            badfits[varf].append(bf) #.split('_')[:3])
+            nbadfits += 1
+
+    print 'found', nbadfits, 'bad fits'
+    print badfits
+
+    ## we also need the three analytic helicity fraction functions
+    
+    ana_r = ROOT.TF1('ana_r', '3./8.*(1+x)^2')
+    ana_l = ROOT.TF1('ana_l', '3./8.*(1-x)^2')
+    ana_0 = ROOT.TF1('ana_0', '3./4*(TMath::Sqrt(1-x*x))^2')
+
+    fixedHists = []
+    c = ROOT.TCanvas()
+    lat = ROOT.TLatex(); lat.SetNDC(); lat.SetTextSize(0.03)
+
+    for k,v in badfits.items():
+        tmp_f = ROOT.TFile(options.fixFits+'/'+k,'update')
+        if not len(tmp_f.GetListOfKeys()): 
+            print 'this file is screwed up', tmp_f.GetName()
+            continue
+
+        for h in v:
+            print 'from file', tmp_f.GetName(), 'reading histogram', h
+            tmp_hist_orig = tmp_f.Get(h)
+            tmp_hist = tmp_hist_orig.Clone(h+'_fixed')
+
+            ## bit of a duplication here
+            fitterR = ROOT.TF1('helR_'+h,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
+            fitterL = ROOT.TF1('helL_'+h,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
+            fitter0 = ROOT.TF1('hel0_'+h,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
+            fitterR .SetLineColor(ROOT.kBlue); fitterR .SetLineWidth(2)
+            fitterL .SetLineColor(ROOT.kBlue); fitterL .SetLineWidth(2)
+            fitter0 .SetLineColor(ROOT.kBlue); fitter0 .SetLineWidth(2)
+    
+            fitterR.SetParLimits(0, 0., 0.45); fitterR.SetParLimits(1, 0.25, 1.)
+            fitterL.SetParLimits(0, 0., 0.45); fitterL.SetParLimits(1, 0.25, 1.)
+            fitter0.SetParLimits(0, 0., 0.45); fitter0.SetParLimits(1, 0.25, 1.)
+
+            tmp_hist.Fit(fitterR.GetName(), '', '', -1., 1.)
+            tmp_hist.Fit(fitterL.GetName(), '', '', -1., 1.)
+            tmp_hist.Fit(fitter0.GetName(), '', '', -1., 1.)
+
+            f0 = fitterR.GetParameter(0); f0_err = fitterR.GetParError(0)
+            fL = fitterR.GetParameter(1); fL_err = fitterR.GetParError(1)
+            fR = 1.-fL-f0               ; fR_err = math.sqrt(f0_err**2 + fL_err**2)
+    
+            tmp_hist.Draw()
+
+            lat.DrawLatex(0.45, 0.85, 'f0: {a1:.4f} +- {a2:.4f}'.format(a1=f0,a2=f0_err))
+            lat.DrawLatex(0.45, 0.80, 'fL: {a1:.4f} +- {a2:.4f}'.format(a1=fL,a2=fL_err))
+            lat.DrawLatex(0.45, 0.75, 'fR: {a1:.4f} +- {a2:.4f}'.format(a1=fR,a2=fR_err))
+    
+            c.SaveAs(options.fixFits+'/fixedFits/'+tmp_hist.GetName()+'.png')
+            c.SaveAs(options.fixFits+'/fixedFits/'+tmp_hist.GetName()+'.pdf')
+
+            ## now update the fractions in the 2d histograms
+            ch = h.split('_')[3]
+            vfull = h.split('_')[-1]
+            vind = int(vfull[3:]) if 'pdf' in vfull else 0 if 'nominal' in vfull else 61 if 'alphaSUp' in vfull else 62
+            tmp_fractionL = tmp_f.Get('fractionL_'+ch+'_'+str(vind))
+            tmp_fractionR = tmp_f.Get('fractionR_'+ch+'_'+str(vind))
+            tmp_fraction0 = tmp_f.Get('fraction0_'+ch+'_'+str(vind))
+
+            binx, biny = int(h.split('_')[1])+1, int(h.split('_')[2])+1 ## +1 needed because i was stupid. who knows why. a great mystery of science
+
+            f0_old = tmp_fraction0.GetBinContent(binx,biny)
+            fR_old = tmp_fractionR.GetBinContent(binx,biny)
+            fL_old = tmp_fractionL.GetBinContent(binx,biny)
+
+            oldstr = 'f0: {f0:.4f}, fR: {fR:.4f}, fL: {fL:.4f}'.format(f0=f0_old, fR=fR_old, fL=fL_old)
+            newstr = 'f0: {f0:.4f}, fR: {fR:.4f}, fL: {fL:.4f}'.format(f0=f0    , fR=fR    , fL=fL    )
+
+            print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+            print 'for binx {bx} and biny {by}, changing the fractions from '.format(bx=binx-1, by=biny-1)
+            print 'OLD: {old} to'.format(old=oldstr)
+            print 'NEW: {new}   '.format(new=newstr)
+            print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+            
+            ## actually doing the change
+            f0_old = tmp_fraction0.SetBinContent(binx,biny, f0); f0_old = tmp_fraction0.SetBinError(binx,biny, f0_err)
+            fR_old = tmp_fractionR.SetBinContent(binx,biny, fR); fR_old = tmp_fractionR.SetBinError(binx,biny, fR_err)
+            fL_old = tmp_fractionL.SetBinContent(binx,biny, fL); fL_old = tmp_fractionL.SetBinError(binx,biny, fL_err)
+            
+            tmp_fractionL.Write('', ROOT.TObject.kWriteDelete)
+            tmp_fractionR.Write('', ROOT.TObject.kWriteDelete)
+            tmp_fraction0.Write('', ROOT.TObject.kWriteDelete)
+
+            fixedHists.append(copy.deepcopy(tmp_hist)) 
+
+        tmp_f.Close()
+
+    os.system('mkdir -p '+options.fixFits+'/fixedFits/')
+    os.system('cp ~/public/index.php '+options.fixFits+'/fixedFits/')
+
+
+    fixedFile = ROOT.TFile(options.fixFits+'/fixedFits/fixedFits.root', 'recreate')
+    for f in fixedHists:
+        f.Write()
+    fixedFile.Close()
+    
+
+def makeCondorFile():
+    condor_file = open(options.outdir+'/submitFile.condor','w')
+    condor_file.write('''Universe = vanilla
+Executable = {od}/dummy.sh
+use_x509userproxy = $ENV(X509_USER_PROXY)
+Log        = {od}/$(ProcId).log   
+Output     = {od}/$(ProcId).out   
+Error      = {od}/$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
++MaxRuntime = 36000\n\n
+'''.format(od=options.outdir,here=os.environ['PWD'] ) )
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n')
+
+    for ipdf in range(63):
+        condor_file.write('arguments = templatesRoofit.py --infile {inf} --outdir {od} --nlo --ipdf {p}\n'.format(inf=options.infile, od=options.outdir, p=ipdf))
+        condor_file.write('queue 1\n\n')
+    
+    condor_file.close()
 
 def formatHisto(hist):
     hist.GetXaxis().SetTitleOffset(1.02)
@@ -62,11 +205,22 @@ parser.add_option('--bins-atlas', dest='atlasBins'    , default=False, action='s
 parser.add_option('-i','--infile', dest='infile', default='', type='string', help='Specify the input file. should be a single (big) friendtree.')
 parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='Specify the output directory for the plots. It makes a lot of plots.')
 parser.add_option('-l','--lorenzo', dest='doLorenzo', default=False, action='store_true', help='use lorenzo\'s trees')
-parser.add_option('--preFSR', default=False, action='store_true', help='use preFSR leptons/Ws')
+parser.add_option('--preFSR', default=True, action='store_true', help='use preFSR leptons/Ws')
+parser.add_option('--batch', default=False, action='store_true', help='run on the batch')
+parser.add_option('--ipdf', default=-1, type='int', help='run only this pdf')
+parser.add_option('--fixFits', default='', type='string', help='fix cosine theta fits that failed from input directory')
 (options, args) = parser.parse_args()
 
 
 ROOT.gROOT.SetBatch()
+
+if options.fixFits:
+    if not os.path.isdir(options.fixFits):
+        raise RuntimError, 'you should give the input directory in which you want to fix the fits as argument of the option!'
+    else:
+        fixFits()
+        sys.exit(0)
+
 
 if not (options.outdir or options.infile):
     raise RuntimeError, 'You have to give an input file and an output directory!'
@@ -76,6 +230,12 @@ plotsdir = '{od}/chi2_muEl/'.format(od=options.outdir)
 if not os.path.isdir(plotsdir):
     os.system('mkdir -p {pd}'.format(pd=plotsdir))
     os.system('cp ~/index.php {pd}/'.format(pd=plotsdir))
+
+if options.batch:
+    makeCondorFile()
+    os.system('cp dummy.sh {pd}/../'.format(pd=plotsdir))
+    print 'condor_submit {od}/submitFile.condor'.format(od=options.outdir)
+    sys.exit(0)
 
 maxYW = 10.
 
@@ -91,7 +251,7 @@ if options.doLorenzo:
     var_phi = 'WpreFSR_phiCS'
     
     ## weightstring
-    gen_weight = '(weights[0]/abs(weights[0]))'
+    gen_weight = 'weights[0]/abs(weights[0])'
 
 else:
     if options.preFSR:
@@ -109,7 +269,7 @@ else:
         var_cos = 'genw_costcs'
     
     ## weightstring
-    gen_weight = '(weightGen/abs(weightGen))'
+    gen_weight = 'weightGen/abs(weightGen)'
 
 
 ## get the tree from the file
@@ -120,7 +280,9 @@ if os.path.isfile(options.infile):
 else:
     tree = ROOT.TChain('Friends' if not options.doLorenzo else 'tree')
     ## rootlist = list( i for i in os.listdir(options.infile) if '.root' in i)
-    rootlist = list( i for i in commands.getoutput('eos ls '+options.infile).split('\n') if '.root' in i)
+    #rootlist = list( i for i in commands.getoutput('eos ls '+options.infile).split('\n') if '.root' in i)
+    rootlist = [i for i in os.listdir(options.infile) if '.root' in i and 'WJetsToLNu' in i]
+    print 'adding these files', rootlist
     for f in rootlist:
         tree.Add('root://eoscms.cern.ch//'+options.infile+'/'+f)
 
@@ -151,7 +313,6 @@ if not options.atlasBins:
     ## ===================================
     
     print('FILLING FOR THE W-pT QUANTILES')
-    nq =  20 ## number of quantiles
     ## fixed binning h_tmp_wpt = ROOT.TH1F('h_tmp_wpt','quantile calculation', 1000, 0., 100.)
     ## fixed binning tree.Draw(var_wpt+'>>h_tmp_wpt', '(abs(genw_decayId)==14 || abs(genw_decayId)== 12) *'+gen_weight)
     ## fixed binning xq = array('d', [i/float(nq)+1./float(nq) for i in range(int(nq))])
@@ -161,7 +322,10 @@ if not options.atlasBins:
     ## fixed binning 
     ## fixed binning yqnew = array('d', [0.] + [float('{a:.3f}'.format(a=i)) for i in yq])
     ## fixed binning hnew = ROOT.TH1F('h_wpt_quantiles', 'wpt rebinned', len(yq), yqnew)
+    nq = 20
     yqnew = array('d', [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 100.0])
+    #nq =  10 ## number of quantiles
+    #yqnew = array('d', [0.0, 2.949, 4.733, 6.684, 8.979, 11.777, 15.332, 20.115, 27.173, 40.151, 100.0])
     
     wpt_nbins = nq
     wpt_bins = yqnew
@@ -178,34 +342,6 @@ print('these are the w-pt quantiles: ', wpt_bins)
 ## ===================================
 ## finished with the quantile production. we now have wpt_bins and wrap_bins
 
-## first we need a bunch of histograms in which we store the weights
-## as a function of cos(theta)* and the helicity fractions :
-
-cost_nbins =  50
-cost_bins = array('d', [2*i/float(cost_nbins)-1 for i in range(cost_nbins+1)])
-
-h3_rapVsCMvsWPtPlus  = ROOT.TH3D('h3_rapVsCMvsWPtPlus' ,'h3_rapVsCMvsWPtPlus' , cost_nbins, cost_bins, wrap_nbins, wrap_bins, wpt_nbins, wpt_bins); h3_rapVsCMvsWPtPlus .Sumw2()
-h3_rapVsCMvsWPtMinus = ROOT.TH3D('h3_rapVsCMvsWPtMinus','h3_rapVsCMvsWPtMinus', cost_nbins, cost_bins, wrap_nbins, wrap_bins, wpt_nbins, wpt_bins); h3_rapVsCMvsWPtMinus.Sumw2()
-
-h3_rapVsCMvsWPtPlus .GetXaxis().SetTitle('cos #theta'); h3_rapVsCMvsWPtPlus .GetYaxis().SetTitle('Y_{W}'); h3_rapVsCMvsWPtPlus .GetZaxis().SetTitle('W-p_{T}')
-h3_rapVsCMvsWPtMinus.GetXaxis().SetTitle('cos #theta'); h3_rapVsCMvsWPtMinus.GetYaxis().SetTitle('Y_{W}'); h3_rapVsCMvsWPtMinus.GetZaxis().SetTitle('W-p_{T}')
-
-nbinsX = h3_rapVsCMvsWPtPlus.GetXaxis().GetNbins()
-nbinsY = h3_rapVsCMvsWPtPlus.GetYaxis().GetNbins()
-nbinsZ = h3_rapVsCMvsWPtPlus.GetZaxis().GetNbins()
-
-typeString = ' preFSR leptons' if options.preFSR else 'dressed leptons'
-
-## project pT versus rapidity for the fractions
-fractionR_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionR_plus'); fractionR_plus.SetTitle('W^{+}: fractions R'+typeString); fractionR_plus.Reset(); formatHisto(fractionR_plus)
-fractionL_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionL_plus'); fractionL_plus.SetTitle('W^{+}: fractions L'+typeString); fractionL_plus.Reset(); formatHisto(fractionL_plus)
-fraction0_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fraction0_plus'); fraction0_plus.SetTitle('W^{+}: fractions 0'+typeString); fraction0_plus.Reset(); formatHisto(fraction0_plus)
-
-fractionR_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionR_minus'); fractionR_minus.SetTitle('W^{-}:fractions R'+typeString); fractionR_minus.Reset(); formatHisto(fractionR_minus)
-fractionL_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionL_minus'); fractionL_minus.SetTitle('W^{-}:fractions L'+typeString); fractionL_minus.Reset(); formatHisto(fractionL_minus)
-fraction0_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fraction0_minus'); fraction0_minus.SetTitle('W^{-}:fractions 0'+typeString); fraction0_minus.Reset(); formatHisto(fraction0_minus)
-
-## done making the histograms
 
 
 ## we also need the three analytic helicity fraction functions
@@ -218,179 +354,83 @@ ana_0 = ROOT.TF1('ana_0', '3./4*(TMath::Sqrt(1-x*x))^2')
 
 lat = ROOT.TLatex(); lat.SetNDC(); lat.SetTextSize(0.03)
 
-if options.doRooFit:
-    ## name the bins and make a cut for each bin. needed later for slicing the
-    ## roodataset
-    
-    bins = {}
-    
-    for ( (irap, rap), (ipt, pt) , ch) in itertools.product(enumerate(wrap_bins),enumerate(wpt_bins), ['minus','plus']):
-        _bin = (irap, ipt, ch)
-        if rap == wrap_bins[-1] or pt == wpt_bins[-1]  : continue
-        bins[_bin] = 'abs(genw_y) >= {ylo} && abs(genw_y) < {yhi} && genw_pt >= {plo} && genw_pt < {phi} && genw_charge {wch}'.format(ylo=rap, yhi=wrap_bins[irap+1], plo=pt, phi=wpt_bins[ipt+1], wch = '>0' if ch == 'plus' else '<0')
-    
-    #print(bins)
-    #sys.exit()
-    
-    
-    ## moving on to some more roofit specific things in
-    ## defining the roorealvars we want to load from the tree
-    
-    # Define W variables
-    wy  = ROOT.RooRealVar(var_wy ,'wy'  , 0., maxYW  )
-    wpt = ROOT.RooRealVar(var_wpt,'wpt' ,  0., 100.)
-    wch = ROOT.RooRealVar(var_wch,'wch' , -2., 2.  )
-    cos = ROOT.RooRealVar(var_cos,'cos #theta^{*}' , -1., 1.  )
-    dec = ROOT.RooRealVar(var_dec,'decay id of w'  , 10 , 18  )
 
-    argset = ROOT.RooArgSet(wy, wpt, wch, cos, dec)
+## build normalized templates of CM for each of the helicities
+cost_nbins =  50
+cost_bins = array('d', [2*i/float(cost_nbins)-1 for i in range(cost_nbins+1)])
     
-    ## import the variables into a dataset. note that there is a W+ cut
-    ## applied here
-    
-    if options.doNLO:
-        genw = ROOT.RooRealVar('weightGen','gen weight' , -225995., 225995.  )
-        wfor = ROOT.RooFormulaVar('weight', 'event weight', gen_weight, ROOT.RooArgList(genw) )
-        argset.add(genw)
-        ds1 = ROOT.RooDataSet('ds1','ds1', argset, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut('genw_decayId == 14') )
-        wvar = ds1.addColumn(wfor)
-        ds = ROOT.RooDataSet('ds','ds', ds1, ds1.get(), '',  wvar.GetName() )
-        ds.Print()
-    else:
-        ds = ROOT.RooDataSet('ds','ds', argset, ROOT.RooFit.Import(tree), ROOT.RooFit.Cut('genw_decayId == 14') )
-        ds.Print()
-    
-    
-    ## make the rooworkspace which will have all the objects
-    
-    w = ROOT.RooWorkspace('w')
-    getattr(w,'import')(ds)
-    
-    ## for plotting 
-    c1 = ROOT.TCanvas()
-    
-    ## foobar getattr(w, 'import')(f_f0)
-    ## foobar getattr(w, 'import')(f_fL)
-    ## foobar getattr(w, 'import')(f_fR)
-    
-    ## here we start looping on the bins in rapidity and pT of the W
-    ## we make a roodataset for each cut (a .reduce from the original)
-    ## we make pdf for each bin, with parameters fL and f0 and a n
-    ## normalization parameter for each of the bins. then we fit the bin
-    
-    for (ib,( (irap, ipt, ch) , cut)) in enumerate(bins.items()):  ## a lot of unpacking. but it works
-        name = '{irap}_{ipt}_{wch}'.format(irap=irap, ipt=ipt, wch=ch)
-    
-        #if ib: continue
-        #if not name == '0_17': continue
-        # if not ipt < 3: continue
-        print('at bin number {i}: {n}'.format(i=ib, n=name))
-    
-        ## slice the roodataset with the specific cut and import it into the workspace
-        ds_tmp = ds.reduce(ROOT.RooFit.Name('ds_'+name), ROOT.RooFit.Cut(cut) )
-        getattr(w,'import')(ds_tmp)
-    
-        if options.doGeneric:
-            ## make the three parameters for each bin
-            w.factory('norm_{n}[1.,0.,1e6]'.format(n=name)) ## could probably give a smarter initial value and ranges here
-            w.factory('fL_{n}[0.7,0.,1.]'  .format(n=name))
-            w.factory('f0_{n}[0.1,0.,1.]'  .format(n=name))
-    
-            ## making a RooGenericPdf
-            ## =====================================
-            ## construct the pdf-string for each bin and import into workspace
-            model_str  = 'EXPR::helicityFractions_'+name
-            ## model_str += '("norm_{n}*( (1.-fL_{n}-f0_{n}) * 3./8.*(1+{x})^2  + fL_{n} * 3./8.*(1-{x})^2 + f0_{n} * 3./4*(TMath::Sqrt(1-{x}*{x}))^2 )"'.format(n=name, x=var_cos)
-            ## model_str += ',{{{x},norm_{n},fL_{n},f0_{n}}} )'.format(n=name, x=var_cos)
-            model_str += '("( (1.-fL_{n}-f0_{n}) * 3./8.*(1+{x})^2  + fL_{n} * 3./8.*(1-{x})^2 + f0_{n} * 3./4*(TMath::Sqrt(1-{x}*{x}))^2 )"'.format(n=name, x=var_cos)
-            model_str += ',{{{x},fL_{n},f0_{n}}} )'.format(n=name, x=var_cos)
-    
-            w.factory(model_str)
-        else:
-            ##tmp_func_f0 = ROOT.RooGenericPdf('func_f0_'+name,'func_f0_'+name, '3./4.*(TMath::Sqrt(1-{x}*{x}))^2'.format(x=var_cos), ROOT.RooArgList(cos))
-            ##tmp_func_fL = ROOT.RooGenericPdf('func_fL_'+name,'func_fL_'+name, '3./8.*(1-{x})^2'                 .format(x=var_cos), ROOT.RooArgList(cos))
-            ##tmp_func_fR = ROOT.RooGenericPdf('func_fR_'+name,'func_fR_'+name, '3./8.*(1+{x})^2'                 .format(x=var_cos), ROOT.RooArgList(cos))
-            ##tmp_f0 = ROOT.RooRealVar('f0_'+name, 'f0 in bin '+name, 0.1, 0., 1.); getattr(w, 'import')(tmp_f0)
-            ##tmp_fL = ROOT.RooRealVar('fL_'+name, 'fL in bin '+name, 0.7, 0., 1.); getattr(w, 'import')(tmp_fL)
-            ##tmp_fR = ROOT.RooRealVar('fR_'+name, 'fR in bin '+name, 0.2, 0., 1.); getattr(w, 'import')(tmp_fR)
-            ##tmp_f_all = ROOT.RooAddPdf('helicityFractions_'+name, 'helicityFractions_'+name, ROOT.RooArgList(tmp_func_f0, tmp_func_fL, tmp_func_fR), ROOT.RooArgList(tmp_f0, tmp_fL), 1) ## recursive version
-    
-            tmp_f0 = ROOT.RooRealVar('f0_'+name, 'f0 in bin '+name, 0., 1e6); getattr(w, 'import')(tmp_f0)
-            tmp_fL = ROOT.RooRealVar('fL_'+name, 'fL in bin '+name, 0., 1e6); getattr(w, 'import')(tmp_fL)
-            tmp_fR = ROOT.RooRealVar('fR_'+name, 'fR in bin '+name, 0., 1e6); getattr(w, 'import')(tmp_fR)
-    
-            gen_tmp_func_f0 = ROOT.RooGenericPdf('gen_func_f0_'+name,'gen_func_f0_'+name, '(3./4.*(TMath::Sqrt(1-{x}*{x}))^2)'.format(x=var_cos), ROOT.RooArgList(cos))
-            gen_tmp_func_fL = ROOT.RooGenericPdf('gen_func_fL_'+name,'gen_func_fL_'+name, '(3./8.*(1-{x})^2)'                 .format(x=var_cos), ROOT.RooArgList(cos))
-            gen_tmp_func_fR = ROOT.RooGenericPdf('gen_func_fR_'+name,'gen_func_fR_'+name, '(3./8.*(1+{x})^2)'                 .format(x=var_cos), ROOT.RooArgList(cos))
-    
-            tmp_func_f0 = ROOT.RooExtendPdf('func_f0_'+name,'func_f0_'+name, gen_tmp_func_f0, tmp_f0)
-            tmp_func_fL = ROOT.RooExtendPdf('func_fL_'+name,'func_fL_'+name, gen_tmp_func_fL, tmp_fL)
-            tmp_func_fR = ROOT.RooExtendPdf('func_fR_'+name,'func_fR_'+name, gen_tmp_func_fR, tmp_fR)
-            tmp_f_all = ROOT.RooAddPdf('helicityFractions_'+name, 'helicityFractions_'+name, ROOT.RooArgList(tmp_func_f0, tmp_func_fL, tmp_func_fR))##, ROOT.RooArgList(tmp_f0, tmp_fL, tmp_fR), 1)
-            getattr(w, 'import')(tmp_f_all)
-    
-        ## fit the thing!
-        w.pdf('helicityFractions_'+name).fitTo( w.data(ds_tmp.GetName()) )#, ROOT.RooFit.Strategy(2)) #, ROOT.RooFit.Extended(1) )
-        ## w.pdf('helicityFractions_'+name).chi2FitTo( w.data(ds_tmp.GetName()).binnedClone(), ROOT.RooFit.Verbose(1) )
-        if options.doGeneric:
-            f0 = w.var('f0_{n}'.format(n=name)).getValV()
-            fL = w.var('fL_{n}'.format(n=name)).getValV()
-            fR = 1. - f0 - fL
-        else:
-            ## f0 = w.var('f0_{n}'.format(n=name)).getValV()
-            ## fL_param = w.var('fL_{n}'.format(n=name)).getValV()
-            ## fR = (1.-f0)*(1.-fL_param)
-            ## fL = (1.-f0)*fL_param
-            n0 = w.var('f0_{n}'.format(n=name)).getValV()
-            nL = w.var('fL_{n}'.format(n=name)).getValV()
-            nR = w.var('fR_{n}'.format(n=name)).getValV()
-            f0 = n0/(n0+nL+nR)
-            fL = nL/(n0+nL+nR)
-            fR = nR/(n0+nL+nR)
-            
-        ## fill the histogram of the fractions. get the correct bin number first
-        bin_yw = irap+1
-        bin_pt = ipt +1
-        fractionR.SetBinContent(bin_yw, bin_pt, fR); fractionR.SetBinError(bin_yw, bin_pt, 0.) ## no errors yet
-        fractionL.SetBinContent(bin_yw, bin_pt, fL); fractionL.SetBinError(bin_yw, bin_pt, 0.) ## no errors yet
-        fraction0.SetBinContent(bin_yw, bin_pt, f0); fraction0.SetBinError(bin_yw, bin_pt, 0.) ## no errors yet
-    
-        for bin_cos in range(1, h3_weightsR.GetNbinsX()+1):
-            ## get the bin center and set the roorealvar to it
-            tmp_cos = h3_weightsR.GetXaxis().GetBinCenter(bin_cos)
-            w.var(var_cos).setVal(tmp_cos)
-            ## evaluate the fitted function:
-            tmp_cos_fit = w.pdf('helicityFractions_'+name).getVal(ROOT.RooArgSet(cos))
-            ## print('this is the fit evaluation at costheta {cos:.3f}: {foo:.3f}'.format(cos=tmp_cos,foo=tmp_cos_fit))
-            ## evaluate the 3 analytic functions
-            tmp_cos_ana_r = ana_r.Eval(tmp_cos)
-            tmp_cos_ana_l = ana_l.Eval(tmp_cos)
-            tmp_cos_ana_0 = ana_0.Eval(tmp_cos)
-    
-            h3_weightsR.SetBinContent(bin_cos, bin_yw, bin_pt, tmp_cos_ana_r/tmp_cos_fit); #h3_weightsR.SetBinError(jx, bin_yw, bin_pt, tmp_wr.GetBinError(jx))
-            h3_weightsL.SetBinContent(bin_cos, bin_yw, bin_pt, tmp_cos_ana_l/tmp_cos_fit); #h3_weightsL.SetBinError(jx, bin_yw, bin_pt, tmp_wl.GetBinError(jx))
-            h3_weights0.SetBinContent(bin_cos, bin_yw, bin_pt, tmp_cos_ana_0/tmp_cos_fit); #h3_weights0.SetBinError(jx, bin_yw, bin_pt, tmp_w0.GetBinError(jx))
-        
-    
-        ## do some drawing (of the function and the data)
-        c1.Clear()
-        frame_cos_tmp = cos.frame(ROOT.RooFit.Title('bin: {n}'.format(n=name)))
-        w.data(ds_tmp.GetName()).plotOn(frame_cos_tmp, ROOT.RooFit.Binning(cost_nbins))
-        w.pdf ('helicityFractions_{n}'.format(n=name)).plotOn(frame_cos_tmp)
-        frame_cos_tmp.Draw()
-        lat.DrawLatex(0.45, 0.85, 'f0: {f0:.4f}'.format(f0=f0) )
-        lat.DrawLatex(0.45, 0.80, 'fL: {fL:.4f}'.format(fL=fL) )
-        lat.DrawLatex(0.45, 0.75, 'fR: {fR:.4f}'.format(fR=fR) )
-        c1.SaveAs('plotsRoofit/MLfit_muOnly/cosTheta_roofit_newDef_{n}.pdf'.format(n=name))
-        c1.SaveAs('plotsRoofit/MLfit_muOnly/cosTheta_roofit_newDef_{n}.png'.format(n=name))
+nfills = int(1e7)
+h_ana_wr = ROOT.TH1F('h_analytic_wr', 'h_analytic_wr', cost_nbins, -1., 1.); h_ana_wr.FillRandom(ana_r.GetName(), nfills); h_ana_wr.Scale(1./nfills);
+h_ana_wl = ROOT.TH1F('h_analytic_wl', 'h_analytic_wl', cost_nbins, -1., 1.); h_ana_wl.FillRandom(ana_l.GetName(), nfills); h_ana_wl.Scale(1./nfills);
+h_ana_w0 = ROOT.TH1F('h_analytic_w0', 'h_analytic_w0', cost_nbins, -1., 1.); h_ana_w0.FillRandom(ana_0.GetName(), nfills); h_ana_w0.Scale(1./nfills);
+h_ana_wr .GetXaxis().SetTitle('cos #theta')
+h_ana_wl .GetXaxis().SetTitle('cos #theta')
+h_ana_w0 .GetXaxis().SetTitle('cos #theta')
 
-else:
-    print('FILLING THE 3D HISTOGRAM!!')
+## write the histograms into a file
+date = datetime.date.today().isoformat()
+ofn = 'fractions_roofit_histos_chi2_{date}_muEl_plusMinus{lor}{fsr}'.format(date=date,lor = '_lorenzo' if options.doLorenzo else '',fsr='_preFSR' if options.preFSR else 'dressed')
+if options.ipdf > -1:
+    ofn = options.outdir+'/'+ofn
+    ofn+= '_pdf'+str(options.ipdf) if options.ipdf  and options.ipdf < 61 else '_nominal' if not options.ipdf else '_alphaSUp' if options.ipdf == 61 else '_alphaSDown'
+ofn +='.root'
+outfile = ROOT.TFile(ofn, 'recreate')
+outfile.cd()
+    
+
+for pdfWgt in range(63):
+
+    if options.ipdf > -1 and options.ipdf != pdfWgt:
+        continue
+
+    pdfWgtString = 'nominal' if not pdfWgt else 'pdf'+str(pdfWgt) if pdfWgt < 61 else 'alphaSUp' if pdfWgt == 61 else 'alphaSDown'
+
+    print 'AT PDF WEIGHT {w}'.format(w=pdfWgtString)
+
+    ## first we need a bunch of histograms in which we store the weights
+    ## as a function of cos(theta)* and the helicity fractions :
+    
+    h3_rapVsCMvsWPtPlus  = ROOT.TH3D('h3_rapVsCMvsWPtPlus' +str(pdfWgt),'h3_rapVsCMvsWPtPlus' , cost_nbins, cost_bins, wrap_nbins, wrap_bins, wpt_nbins, wpt_bins); h3_rapVsCMvsWPtPlus .Sumw2()
+    h3_rapVsCMvsWPtMinus = ROOT.TH3D('h3_rapVsCMvsWPtMinus'+str(pdfWgt),'h3_rapVsCMvsWPtMinus', cost_nbins, cost_bins, wrap_nbins, wrap_bins, wpt_nbins, wpt_bins); h3_rapVsCMvsWPtMinus.Sumw2()
+    
+    h3_rapVsCMvsWPtPlus .GetXaxis().SetTitle('cos #theta'); h3_rapVsCMvsWPtPlus .GetYaxis().SetTitle('Y_{W}'); h3_rapVsCMvsWPtPlus .GetZaxis().SetTitle('W-p_{T}')
+    h3_rapVsCMvsWPtMinus.GetXaxis().SetTitle('cos #theta'); h3_rapVsCMvsWPtMinus.GetYaxis().SetTitle('Y_{W}'); h3_rapVsCMvsWPtMinus.GetZaxis().SetTitle('W-p_{T}')
+    
+    nbinsX = h3_rapVsCMvsWPtPlus.GetXaxis().GetNbins()
+    nbinsY = h3_rapVsCMvsWPtPlus.GetYaxis().GetNbins()
+    nbinsZ = h3_rapVsCMvsWPtPlus.GetZaxis().GetNbins()
+    
+    typeString = ' preFSR leptons' if options.preFSR else 'dressed leptons'
+    typeString = typeString + pdfWgtString
+    
+    ## project pT versus rapidity for the fractions
+    fractionR_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionR_plus_'+str(pdfWgt)); fractionR_plus.SetTitle('W^{+}: fractions R: '+typeString); fractionR_plus.Reset()
+    fractionL_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fractionL_plus_'+str(pdfWgt)); fractionL_plus.SetTitle('W^{+}: fractions L: '+typeString); fractionL_plus.Reset()
+    fraction0_plus = h3_rapVsCMvsWPtPlus.Project3D('zy').Clone('fraction0_plus_'+str(pdfWgt)); fraction0_plus.SetTitle('W^{+}: fractions 0: '+typeString); fraction0_plus.Reset()
+    formatHisto(fractionR_plus)
+    formatHisto(fractionL_plus)
+    formatHisto(fraction0_plus)
+    
+    fractionR_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionR_minus_'+str(pdfWgt)); fractionR_minus.SetTitle('W^{-}:fractions R: '+typeString); fractionR_minus.Reset()
+    fractionL_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fractionL_minus_'+str(pdfWgt)); fractionL_minus.SetTitle('W^{-}:fractions L: '+typeString); fractionL_minus.Reset()
+    fraction0_minus = h3_rapVsCMvsWPtMinus.Project3D('zy').Clone('fraction0_minus_'+str(pdfWgt)); fraction0_minus.SetTitle('W^{-}:fractions 0: '+typeString); fraction0_minus.Reset()
+    formatHisto(fractionR_minus)
+    formatHisto(fractionL_minus)
+    formatHisto(fraction0_minus)
+    
+    ## done making the histograms
+    
+    genWeightPDF = '({pdfw}*{gw})'.format(pdfw='1.' if not pdfWgt else 'hessWgt'+str(pdfWgt) if pdfWgt < 61 else 'qcd_alphaSUp' if pdfWgt == 61 else 'qcd_alphaSDn', gw=gen_weight)
+
+    print('FILLING THE 3D HISTOGRAM!! with weight', genWeightPDF)
     genIdCut = '(genw_decayId == 14 || genw_decayId == 12)' if not options.doLorenzo else ' 1.'
     chargePos = var_wch + (' > ' if not options.doLorenzo else ' < ')+ '0' 
     chargeNeg = var_wch + (' < ' if not options.doLorenzo else ' > ')+ '0' 
-    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtPlus' , '('+chargePos + ' && '+genIdCut+' )* '+gen_weight, '')
-    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtMinus', '('+chargeNeg + ' && '+genIdCut+' )* '+gen_weight, '')
+    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtPlus' +str(pdfWgt), '('+chargePos + ' && '+genIdCut+' )* '+genWeightPDF, '')
+    tree.Draw(var_wpt+':'+var_wy+':'+var_cos+'>>h3_rapVsCMvsWPtMinus'+str(pdfWgt), '('+chargeNeg + ' && '+genIdCut+' )* '+genWeightPDF, '')
+    print('... done filling the 3D histogram. writing it for future use.')
+    h3_rapVsCMvsWPtPlus  .Write()
+    h3_rapVsCMvsWPtMinus .Write()
     
     ## END FILLING WPT YW CM HISTOGRAM
     ## ======================================
@@ -399,22 +439,13 @@ else:
     ## f_wl = ROOT.TF1('f_analytic_wl', '3./8.*(1-x)^2'              , -1., 1.)
     ## f_w0 = ROOT.TF1('f_analytic_w0', '3./4*(TMath::Sqrt(1-x*x))^2', -1., 1.)
     
-    ## build normalized templates of CM for each of the helicities
-    nfills = int(1e7)
-    h_ana_wr = ROOT.TH1F('h_analytic_wr', 'h_analytic_wr', cost_nbins, -1., 1.); h_ana_wr.FillRandom(ana_r.GetName(), nfills); h_ana_wr.Scale(1./nfills);
-    h_ana_wl = ROOT.TH1F('h_analytic_wl', 'h_analytic_wl', cost_nbins, -1., 1.); h_ana_wl.FillRandom(ana_l.GetName(), nfills); h_ana_wl.Scale(1./nfills);
-    h_ana_w0 = ROOT.TH1F('h_analytic_w0', 'h_analytic_w0', cost_nbins, -1., 1.); h_ana_w0.FillRandom(ana_0.GetName(), nfills); h_ana_w0.Scale(1./nfills);
-    h_ana_wr .GetXaxis().SetTitle('cos #theta')
-    h_ana_wl .GetXaxis().SetTitle('cos #theta')
-    h_ana_w0 .GetXaxis().SetTitle('cos #theta')
-
-    c = ROOT.TCanvas()
+    c = ROOT.TCanvas('canv'+str(pdfWgt), '')
     nfits = 0
     badfits = {}
     allfits = {}
-
+    
     ROOT.gStyle.SetOptStat(0)
-
+    
     for iy in range(1,nbinsY+1):
         for iz in range(1,nbinsZ+1):
             for wch in ['plus', 'minus']:
@@ -424,8 +455,8 @@ else:
                 pos = wch == 'plus'
                 name = '{iy}_{iz}_{ch}'.format(iy=iy-1,iz=iz-1,ch=wch)
                 print('at bin {n}'.format(n=name))
-                c.SetName ('canv_'+name)
-                c.SetTitle('canv_'+name)
+                c.SetName ('canv_'+name+'_'+pdfWgtString)
+                c.SetTitle('canv_'+name+pdfWgtString)
                 h3_rapVsCMvsWPt = h3_rapVsCMvsWPtPlus if wch == 'plus' else h3_rapVsCMvsWPtMinus
                 h_cm = h3_rapVsCMvsWPt.ProjectionX(name, iy if iy else 1, iy if iy else nbinsY, iz if iz else 1, iz if iz else nbinsZ)
                 #h_cm.SetTitle('cosTheta_'+name)
@@ -439,16 +470,19 @@ else:
                 fitterL = ROOT.TF1('helL_'+name,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
                 fitter0 = ROOT.TF1('hel0_'+name,'[2] * ( (1.-[1]-[0])*{wr} + [1]*{wl} + [0]*{w0} )'.format(wr=ana_r.GetExpFormula(), wl=ana_l.GetExpFormula(), w0=ana_0.GetExpFormula()), -1., 1.)
     
-                fitterR.SetParLimits(0, 0., 1.); fitterR.SetParLimits(1, 0., 1.)
-                fitterL.SetParLimits(0, 0., 1.); fitterL.SetParLimits(1, 0., 1.)
-                fitter0.SetParLimits(0, 0., 1.); fitter0.SetParLimits(1, 0., 1.)
+                fitterR.SetParLimits(0, 0., 0.55); fitterR.SetParLimits(1, 0.25, 1.)
+                fitterL.SetParLimits(0, 0., 0.55); fitterL.SetParLimits(1, 0.25, 1.)
+                fitter0.SetParLimits(0, 0., 0.55); fitter0.SetParLimits(1, 0.25, 1.)
     
-                h_cm_norm = h_cm.Clone(h_cm.GetName()+'_norm')
+                h_cm_norm = h_cm.Clone('norm_'+h_cm.GetName()+'_'+pdfWgtString)
                 h_cm_norm.Scale(1./h_cm_norm.Integral())
+                h_cm_norm.Draw()
     
                 h_cm_norm.Fit(fitterR.GetName(), '', '', -1., 1.)
                 h_cm_norm.Fit(fitterL.GetName(), '', '', -1., 1.)
                 h_cm_norm.Fit(fitter0.GetName(), '', '', -1., 1.)
+
+                h_cm_norm.Write()
     
                 f0 = fitterR.GetParameter(0)
                 fL = fitterR.GetParameter(1)
@@ -459,7 +493,7 @@ else:
                 f0_err = fitterR.GetParError(0)
                 fL_err = fitterR.GetParError(1)
                 fR_err = math.sqrt(f0_err**2 + fL_err**2)
-
+    
                 print('fractions: \t fL: {fL:.4f} +- {fLe:.4f} \t fR: {fR:.4f} +- {fRe:.4f} \t f0: {f0:.4f} +- {f0e:.4f}'.format(fL=fL, fLe=fL_err, fR=fR, fRe=fR_err, f0=f0, f0e=f0_err))
                 (fractionR_plus if pos else fractionR_minus).SetBinContent(iy, iz, fR); (fractionR_plus if pos else fractionR_minus).SetBinError(iy, iz, fR_err)
                 (fractionL_plus if pos else fractionL_minus).SetBinContent(iy, iz, fL); (fractionL_plus if pos else fractionL_minus).SetBinError(iy, iz, fL_err)
@@ -475,16 +509,19 @@ else:
                     print('VERY FEW EVENTS!!!!')
                     print(name)
                     print('nev = {v}'.format(v=h_cm.Integral()))
-                if chi2/ndf > 1.5:
-                    print('VERY BAD FIT!!!!')
-                    print(name)
-                    print('chi2/ndf = {v}'.format(v=chi2/ndf))
+                if chi2/ndf > 5.0:
+                    print('VERY BAD FIT!!!! in bin', name, 'for pdf weight', pdfWgtString, '. chi2/ndf = {f}'.format(f=chi2/ndf))
                     badfits[name] = chi2/ndf
+                    os.system('echo '+h_cm_norm.GetName()+' >> '+options.outdir+'/badfits.txt')
+                    ## save the plots only for the bad fits!
+                    lat.DrawLatex(0.45, 0.68, '#chi^{{2}}/ndf: {a1:.2f}/{a2} = {a3:.2f}'.format(a1=chi2, a2=ndf, a3=chi2/ndf))
+                    c.SaveAs('{pd}/cosTheta_chi2_{n}_{pdf}.pdf'.format(pd=plotsdir,n=name, pdf= pdfWgtString))
+                    c.SaveAs('{pd}/cosTheta_chi2_{n}_{pdf}.png'.format(pd=plotsdir,n=name, pdf= pdfWgtString))
                 allfits[name] = chi2/ndf
     
-                lat.DrawLatex(0.45, 0.68, '#chi^{{2}}/ndf: {a1:.2f}/{a2} = {a3:.2f}'.format(a1=chi2, a2=ndf, a3=chi2/ndf))
-                c.SaveAs('{pd}/cosTheta_chi2_{n}.pdf'.format(pd=plotsdir,n=name))
-                c.SaveAs('{pd}/cosTheta_chi2_{n}.png'.format(pd=plotsdir,n=name))
+                ## lat.DrawLatex(0.45, 0.68, '#chi^{{2}}/ndf: {a1:.2f}/{a2} = {a3:.2f}'.format(a1=chi2, a2=ndf, a3=chi2/ndf))
+                # don't make all the plots... c.SaveAs('{pd}/cosTheta_chi2_{n}.pdf'.format(pd=plotsdir,n=name))
+                # don't make all the plots... c.SaveAs('{pd}/cosTheta_chi2_{n}.png'.format(pd=plotsdir,n=name))
     
     
     chi2dist = ROOT.TH1F('chi2', '#chi^{{2}} distribution - {n}'.format(n=('NLO' if options.doNLO else 'LO')), 50, 0., 5.); chi2dist.SetLineWidth(2); chi2dist.SetLineColor(ROOT.kAzure-2)
@@ -495,93 +532,85 @@ else:
     chi2dist.Draw()
     lat.DrawLatex(0.7, 0.6, 'mean #chi^{{2}}: {m:.2f}'.format(m=chi2dist.GetMean()))
     
-    c.SaveAs('{pd}/chi2_chi2.pdf'.format(pd=plotsdir))
-    c.SaveAs('{pd}/chi2_chi2.png'.format(pd=plotsdir))
-
+    c.SaveAs('{pd}/chi2_chi2_pdfWgt{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/chi2_chi2_pdfWgt{w}.png'.format(pd=plotsdir,w=pdfWgtString))
     
-## don't symmetrize for absY (fractionR_plus_sym  , fractionL_plus_sym , fraction0_plus_sym ) = symmetrizeFractions(copy.deepcopy(fractionR_plus ), copy.deepcopy(fractionL_plus ), copy.deepcopy(fraction0_plus ))
-## don't symmetrize for absY (fractionR_minus_sym , fractionL_minus_sym, fraction0_minus_sym) = symmetrizeFractions(copy.deepcopy(fractionR_minus), copy.deepcopy(fractionL_minus), copy.deepcopy(fraction0_minus))
-
-## ## this doesn't do anything
-## for i in range(0):
-##     fractionR_plus_sym .Smooth(1, 'k5b')
-##     fractionL_plus_sym .Smooth(1, 'k5b')
-##     fraction0_plus_sym .Smooth(1, 'k5b')
-##     fractionR_minus_sym.Smooth(1, 'k5b')
-##     fractionL_minus_sym.Smooth(1, 'k5b')
-##     fraction0_minus_sym.Smooth(1, 'k5b')
-
+        
+    ## don't symmetrize for absY (fractionR_plus_sym  , fractionL_plus_sym , fraction0_plus_sym ) = symmetrizeFractions(copy.deepcopy(fractionR_plus ), copy.deepcopy(fractionL_plus ), copy.deepcopy(fraction0_plus ))
+    ## don't symmetrize for absY (fractionR_minus_sym , fractionL_minus_sym, fraction0_minus_sym) = symmetrizeFractions(copy.deepcopy(fractionR_minus), copy.deepcopy(fractionL_minus), copy.deepcopy(fraction0_minus))
     
-date = datetime.date.today().isoformat()
-
-fittype = 'MLroofit' if options.doRooFit else 'chi2'
-
-c.SetLeftMargin  (0.15)
-c.SetRightMargin (0.15)
-c.SetBottomMargin(0.15)
-
-fractionR_plus .GetZaxis().SetRangeUser(0., 0.5)
-fractionR_minus.GetZaxis().SetRangeUser(0., 0.5)
-fractionL_plus .GetZaxis().SetRangeUser(0., 0.8)
-fractionL_minus.GetZaxis().SetRangeUser(0., 0.8)
-fraction0_plus .GetZaxis().SetRangeUser(0., 0.4)
-fraction0_minus.GetZaxis().SetRangeUser(0., 0.4)
-
-fractionR_plus .Draw('colz')
-c.SaveAs('{pd}/fractionR_plus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionR_plus.png'.format(pd=plotsdir))
-fractionL_plus .Draw('colz')
-c.SaveAs('{pd}/fractionL_plus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionL_plus.png'.format(pd=plotsdir))
-fraction0_plus .Draw('colz')
-c.SaveAs('{pd}/fraction0_plus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fraction0_plus.png'.format(pd=plotsdir))
-fractionR_minus.Draw('colz')
-c.SaveAs('{pd}/fractionR_minus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionR_minus.png'.format(pd=plotsdir))
-fractionL_minus.Draw('colz')
-c.SaveAs('{pd}/fractionL_minus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionL_minus.png'.format(pd=plotsdir))
-fraction0_minus.Draw('colz')
-c.SaveAs('{pd}/fraction0_minus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fraction0_minus.png'.format(pd=plotsdir))
-
-fractionLmR_plus = fractionL_plus .Clone('fractionLmR_plus')
-fractionLmR_minus= fractionL_minus.Clone('fractionLmR_minus')
-fractionLmR_plus .SetTitle('W^{+}: fractions L-R'+typeString)
-fractionLmR_minus.SetTitle('W^{-}: fractions L-R'+typeString)
-fractionLmR_plus .Add(fractionR_plus ,-1.)
-fractionLmR_minus.Add(fractionR_minus,-1.)
-fractionLmR_plus .GetZaxis().SetRangeUser(0., 0.8)
-fractionLmR_minus.GetZaxis().SetRangeUser(0., 0.8)
-
-fractionLmR_plus.Draw('colz')
-c.SaveAs('{pd}/fractionLmR_plus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionLmR_plus.png'.format(pd=plotsdir))
-fractionLmR_minus.Draw('colz')
-c.SaveAs('{pd}/fractionLmR_minus.pdf'.format(pd=plotsdir))
-c.SaveAs('{pd}/fractionLmR_minus.png'.format(pd=plotsdir))
-
-## write the histograms into a file
-ofn = 'fractions_roofit_histos_{t}_{date}_muEl_plusMinus{lor}{fsr}.root'.format(t=fittype,date=date,lor = '_lorenzo' if options.doLorenzo else '',fsr='_preFSR' if options.preFSR else 'dressed')
-outfile = ROOT.TFile(ofn, 'recreate')
-
-fractionR_plus.Write()
-fractionL_plus.Write()
-fraction0_plus.Write()
-fractionR_minus.Write()
-fractionL_minus.Write()
-fraction0_minus.Write()
-
-## fractionR_plus_sym .Write()
-## fractionL_plus_sym .Write()
-## fraction0_plus_sym .Write()
-## fractionR_minus_sym.Write()
-## fractionL_minus_sym.Write()
-## fraction0_minus_sym.Write()
-
-#h_tmp_wy.Write()
-
+    ## ## this doesn't do anything
+    ## for i in range(0):
+    ##     fractionR_plus_sym .Smooth(1, 'k5b')
+    ##     fractionL_plus_sym .Smooth(1, 'k5b')
+    ##     fraction0_plus_sym .Smooth(1, 'k5b')
+    ##     fractionR_minus_sym.Smooth(1, 'k5b')
+    ##     fractionL_minus_sym.Smooth(1, 'k5b')
+    ##     fraction0_minus_sym.Smooth(1, 'k5b')
+    
+        
+    c.SetLeftMargin  (0.15)
+    c.SetRightMargin (0.15)
+    c.SetBottomMargin(0.15)
+    
+    fractionR_plus .GetZaxis().SetRangeUser(0., 0.5)
+    fractionR_minus.GetZaxis().SetRangeUser(0., 0.5)
+    fractionL_plus .GetZaxis().SetRangeUser(0., 0.8)
+    fractionL_minus.GetZaxis().SetRangeUser(0., 0.8)
+    fraction0_plus .GetZaxis().SetRangeUser(0., 0.4)
+    fraction0_minus.GetZaxis().SetRangeUser(0., 0.4)
+    
+    fractionR_plus .Draw('colz')
+    c.SaveAs('{pd}/fractionR_plus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fractionR_plus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    fractionL_plus .Draw('colz')
+    c.SaveAs('{pd}/fractionL_plus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fractionL_plus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    fraction0_plus .Draw('colz')
+    c.SaveAs('{pd}/fraction0_plus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fraction0_plus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    fractionR_minus.Draw('colz')
+    c.SaveAs('{pd}/fractionR_minus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fractionR_minus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    fractionL_minus.Draw('colz')
+    c.SaveAs('{pd}/fractionL_minus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fractionL_minus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    fraction0_minus.Draw('colz')
+    c.SaveAs('{pd}/fraction0_minus_pdf{w}.pdf'.format(pd=plotsdir,w=pdfWgtString))
+    c.SaveAs('{pd}/fraction0_minus_pdf{w}.png'.format(pd=plotsdir,w=pdfWgtString))
+    
+    fractionLmR_plus = fractionL_plus .Clone('fractionLmR_plus_pdf{w}' .format(w=pdfWgtString))
+    fractionLmR_minus= fractionL_minus.Clone('fractionLmR_minus_pdf{w}'.format(w=pdfWgtString))
+    fractionLmR_plus .SetTitle('W^{+}: fractions L-R'+typeString)
+    fractionLmR_minus.SetTitle('W^{-}: fractions L-R'+typeString)
+    fractionLmR_plus .Add(fractionR_plus ,-1.)
+    fractionLmR_minus.Add(fractionR_minus,-1.)
+    fractionLmR_plus .GetZaxis().SetRangeUser(0., 0.8)
+    fractionLmR_minus.GetZaxis().SetRangeUser(0., 0.8)
+    
+    fractionLmR_plus.Draw('colz')
+    c.SaveAs('{pd}/fractionLmR_plus_pdf{w}.pdf'.format(pd=plotsdir, w=pdfWgtString))
+    c.SaveAs('{pd}/fractionLmR_plus_pdf{w}.png'.format(pd=plotsdir, w=pdfWgtString))
+    fractionLmR_minus.Draw('colz')
+    c.SaveAs('{pd}/fractionLmR_minus_pdf{w}.pdf'.format(pd=plotsdir, w=pdfWgtString))
+    c.SaveAs('{pd}/fractionLmR_minus_pdf{w}.png'.format(pd=plotsdir, w=pdfWgtString))
+    
+    fractionR_plus.Write()
+    fractionL_plus.Write()
+    fraction0_plus.Write()
+    fractionR_minus.Write()
+    fractionL_minus.Write()
+    fraction0_minus.Write()
+    
+    ## fractionR_plus_sym .Write()
+    ## fractionL_plus_sym .Write()
+    ## fraction0_plus_sym .Write()
+    ## fractionR_minus_sym.Write()
+    ## fractionL_minus_sym.Write()
+    ## fraction0_minus_sym.Write()
+    
+    #h_tmp_wy.Write()
+    
 outfile.Close()
 
 

@@ -1,28 +1,27 @@
-basedir  = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_03_06_withPrefireWeights/'
-cardsdir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_03_06_withPrefireWeights/'
+basedir  = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_07_03_decorScaledCharge_noWpT/defaultMerge/fitsout_2019-07-03/'
+cardsdir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_07_03_decorScaledCharge_noWpT/'
 
-both_floatingPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_poim1_exp0_bbb0.root'
-both_floatingPOIs_hessian_bbb1_syst1_data   = basedir+'/fitresults_poim1_exp0_bbb1.root'
-both_floatingPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_poim1_exp1_bbb0.root'
-both_floatingPOIs_hessian_bbb1_syst1_asimov = basedir+'/fitresults_poim1_exp1_bbb1.root'
+dirWithToyFits = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/'
 
-both_fixedPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_poim0_exp0_bbb0.root'
-both_fixedPOIs_hessian_bbb1_syst1_data   = basedir+'/fitresults_poim0_exp0_bbb1.root'
-both_fixedPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_poim0_exp1_bbb0.root'
-both_fixedPOIs_hessian_bbb1_syst1_asimov = basedir+'/fitresults_poim0_exp1_bbb1.root'
+both_floatingPOIs_hessian_bbb1_syst1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
+both_floatingPOIs_hessian_bbb1_syst1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'
+both_fixedPOIs_hessian_bbb1_syst1_data      = basedir+'/fitresults_123456789_poim0_exp0_bbb1.root'
+both_fixedPOIs_hessian_bbb1_syst1_asimov    = basedir+'/fitresults_123456789_poim0_exp1_bbb1.root'
+
+#both_floatingPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb0.root'
+#both_floatingPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb0.root'
+#both_fixedPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_123456789_poim0_exp0_bbb0.root'
+#both_fixedPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_123456789_poim0_exp1_bbb0.root'
 
 ###both_floatingPOIs_toys              = basedir+'/toys/fitresults_both_floatingPOIs_toys.root'
 
-###both_floatingPOIs_hessian            = basboth_fixedPOIs_hessian    = basedir+'/fitresults_both_fixedPOIs_hessian_fix14and15.root'
-###both_fixedPOIs_toys       = basedir+'/toys/fitresults_both_fixedPOIs_toys.root'
+shapes_files = cardsdir+'/Wmu_shapes.root'
 
-shapes_files = basedir+'/Wmu_shapes.root'
+xsecs_plus  = cardsdir+'/Wmu_plus_shapes_xsec.root'
+xsecs_minus = cardsdir+'/Wmu_minus_shapes_xsec.root'
 
-xsecs_plus  = basedir+'/Wmu_plus_shapes_xsec.root'
-xsecs_minus = basedir+'/Wmu_minus_shapes_xsec.root'
-
-postfit_bbb1 = basedir+'/fitresults_poim1_exp0_bbb1.root'
-postfit_bbb0 = basedir+'/fitresults_poim1_exp0_bbb0.root'
+postfit_bbb1 = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
+#postfit_bbb0 = basedir+'/fitresults_123456789_poim1_exp0_bbb0.root'
 #
-postfit_bbb1_asimov = basedir+'/fitresults_poim1_exp1_bbb1.root'
-postfit_bbb0_asimov = basedir+'/fitresults_poim1_exp1_bbb0.root'
+postfit_bbb1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'
+#postfit_bbb0_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb0.root'

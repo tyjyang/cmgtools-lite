@@ -149,7 +149,10 @@ class TreeToYield:
         self._objname = objname if objname else options.obj
         self._weight  = (options.weight and 'data' not in self._name and '2012' not in self._name and '2011' not in self._name )
         self._isdata = 'data' in self._name
-        self._weightString  = options.weightString if not self._isdata else "1"
+        if self._isdata:
+            self._weightString = "1"
+        else:
+            self._weightString = "*".join("("+str(w)+")" for w in options.weightString)
         self._scaleFactor = scaleFactor
         self._fullYield = 0 # yield of the full sample, as if it passed the full skim and all cuts
         self._fullNevt = 0 # number of events of the full sample, as if it passed the full skim and all cuts
@@ -551,7 +554,7 @@ def addTreeToYieldOptions(parser):
     parser.add_option("-l", "--lumi",           dest="lumi",   type="float", default="1", help="Luminosity (in 1/fb)");
     parser.add_option("-u", "--unweight",       dest="weight",       action="store_false", default=True, help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_option("--uf", "--unweight-forced",  dest="forceunweight", action="store_true", default=False, help="Do not use weight even if a fake rate file is given.");
-    parser.add_option("-W", "--weightString",   dest="weightString", type="string", default="1", help="Use weight (in MC events)");
+    parser.add_option("-W", "--weightString",   dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");
     parser.add_option("-f", "--final",  dest="final", action="store_true", help="Just compute final yield after all cuts");
     parser.add_option("-e", "--errors",  dest="errors", action="store_true", help="Include uncertainties in the reports");
     parser.add_option("--tf", "--text-format",   dest="txtfmt", type="string", default="text", help="Output format: text, html");
