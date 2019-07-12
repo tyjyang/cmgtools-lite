@@ -297,7 +297,9 @@ if __name__ == "__main__":
     signal_helicities = ['left', 'right']
     if not options.longBkg:
         signal_helicities += ['long']
-    
+
+    helmap = {'long': 0, 'left': 1, 'right': 2}
+
     print 'these are signal helicities', signal_helicities
     
     FASTTEST=''
@@ -412,6 +414,9 @@ if __name__ == "__main__":
                         zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
                         fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
                         BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
+                        pdfmatch = re.search('pdf(\d+)',var)
+                        if pdfmatch:
+                            BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
                         if options.queue:
                             mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                             ## here accumulate signal jobs if running with long. make long+right+left one job

@@ -760,6 +760,25 @@ def cleanProcessName(name):
     cleanName = '_'.join([t for t in uniquet if (t!='el' and t!='mu')])
     return cleanName
 
+def writeXSecFile(outfile,tmp_sigprocs,theosyst,ybins,options,nominal):
+    ## xsecfilname 
+    lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
+    dirtheo = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/'
+    theory_xsecs_file =  dirtheo+'/theory_cross_sections.root' if nominal else dirtheo+'/theory_cross_sections_2D_noWpTReweighting.root'
+    hists = getXsecs(tmp_sigprocs, 
+                     [i for i in theosyst.keys()],
+                     ybins, 
+                     lumiScale, 
+                     theory_xsecs_file
+                    )
+    tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
+    if not nominal: tmp_xsec_histfile_name = tmp_xsec_histfile_name.replace('_shapes_xsec','shapes_xsec_baremc')
+    tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
+    for hist in hists:
+        hist.Write()
+    tmp_xsec_hists.Close()
+    return tmp_xsec_histfile_name
+
 W_MCANLO_over_DATA_fromZ = 0.958
 
 if __name__ == "__main__":
@@ -1326,20 +1345,10 @@ if __name__ == "__main__":
         ## here we make a second datacard that will be masked. which for every process
         ## has a 1-bin histogram with the cross section for every nuisance parameter and
         ## every signal process inside
-
-        ## xsecfilname 
-        lumiScale = 36000. if options.xsecMaskedYields else 36.0/35.9 # x-sec file done with 36. fb-1
-        hists = getXsecs(tmp_sigprocs, 
-                         [i for i in theosyst.keys()],
-                         ybins, 
-                         lumiScale, 
-                         '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections.root' ## hard coded for now
-                        )
-        tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
-        tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
-        for hist in hists:
-            hist.Write()
-        tmp_xsec_hists.Close()
+        ## The non-nominal one (bare MC@NLO w/o V-pT reweighting) is not used in the fit, 
+        ## but used for plotting an alternative band
+        tmp_xsec_histfile_name = writeXSecFile(outfile,tmp_sigprocs,theosyst,ybins,options,nominal=True)
+        writeXSecFile(outfile,tmp_sigprocs,theosyst,ybins,options,nominal=False)
 
         maskedChannels = ['InAcc']
         if options.ybinsOutAcc: maskedChannels.append('OutAcc')
