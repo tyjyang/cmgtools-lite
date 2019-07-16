@@ -103,6 +103,31 @@ float prefireJetsWeight(float eta){
     return 1.;
 }
 
+TFile *_file_fsrWeights_simple = NULL;
+TH1F * fsrWeights_el = NULL;
+TH1F * fsrWeights_mu = NULL;
+
+float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept) {
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+  if (!fsrWeights_el || !fsrWeights_mu) {
+    _file_fsrWeights_simple = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/photos_rwgt_integrated.root",_cmssw_base_.c_str()),"read");
+    fsrWeights_el  = (TH1F*)(_file_fsrWeights_simple->Get("w_e_h_lptBareOverDressed_ratio"));
+    fsrWeights_mu  = (TH1F*)(_file_fsrWeights_simple->Get("w_mu_h_lptBareOverDressed_ratio"));
+  }
+  TH1F *fsrWeights = 0;
+  if      (abs(pdgId)==11) fsrWeights = fsrWeights_el;
+  else if (abs(pdgId)==13) fsrWeights = fsrWeights_mu;
+  else return 1;
+
+  int ratiobin  = std::max(1, std::min(fsrWeights->GetNbinsX(), fsrWeights->GetXaxis()->FindFixBin(barept/dresspt)));
+
+  return fsrWeights->GetBinContent(ratiobin);
+}
+
+
 TFile *_file_fsrWeights = NULL;
 TH3F * fsrWeights_elplus  = NULL;
 TH3F * fsrWeights_elminus = NULL;

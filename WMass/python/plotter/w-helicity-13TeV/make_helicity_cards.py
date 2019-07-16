@@ -214,7 +214,7 @@ def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_sig',append=False)
     incl_file=getMcaIncl(mcafile,incl_mca)
     postfix = "_{proc}_{syst}".format(proc=incl_mca.split('_')[1],syst=syst)
     mcafile_syst = open("%s/mca%s.txt" % (odir,postfix), "w")
-    weightFcn = 'fsrPhotosWeight(GenLepDressed_pdgId[0]\,GenLepDressed_eta[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
+    weightFcn = 'fsrPhotosWeightSimple(GenLepDressed_pdgId[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
     fsrsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
