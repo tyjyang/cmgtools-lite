@@ -155,19 +155,41 @@ float dyptWeight(float pt2l, int isZ) {
 }
 
 TFile *_file_postfitWeights = NULL;
-TH1F *qcdscales = NULL;
+TH1F *hist_scales_0plus  = NULL;
+TH1F *hist_scales_Lplus  = NULL;
+TH1F *hist_scales_Rplus  = NULL;
+TH1F *hist_scales_0minus = NULL;
+TH1F *hist_scales_Lminus = NULL;
+TH1F *hist_scales_Rminus = NULL;
 
-float postfitQCDWeight(float pt2l) {
+float postfitQCDWeight(float pt2l, int pol, int charge) {
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
-  if (!qcdscales) {
+  TH1F* hist_scales = NULL;
+  if (!_file_postfitWeights) {
     _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts.root",_cmssw_base_.c_str()));
-    qcdscales = (TH1F*)(_file_postfitWeights->Get("scales_postfit_wgts"));
+    hist_scales_0plus  = (TH1F*)(_file_postfitWeights->Get("weights_longplus"));
+    hist_scales_Lplus  = (TH1F*)(_file_postfitWeights->Get("weights_leftplus"));
+    hist_scales_Rplus  = (TH1F*)(_file_postfitWeights->Get("weights_rightplus"));
+    hist_scales_0minus = (TH1F*)(_file_postfitWeights->Get("weights_longminus"));
+    hist_scales_Lminus = (TH1F*)(_file_postfitWeights->Get("weights_leftminus"));
+    hist_scales_Rminus = (TH1F*)(_file_postfitWeights->Get("weights_rightminus"));
   }
-  int ptbin = std::max(1, std::min(qcdscales->GetNbinsX(), qcdscales->GetXaxis()->FindFixBin(pt2l)));
-  return qcdscales->GetBinContent(ptbin);
+  if (charge>0) {
+    if (pol==0)      hist_scales = hist_scales_0plus;
+    else if (pol==1) hist_scales = hist_scales_Lplus;
+    else if (pol==2) hist_scales = hist_scales_Rplus;
+    else std::cerr << "ERROR: polarization " << pol << " not defined for postfitQCDWeight()" << std::endl;
+  } else {
+    if (pol==0)      hist_scales = hist_scales_0minus;
+    else if (pol==1) hist_scales = hist_scales_Lminus;
+    else if (pol==2) hist_scales = hist_scales_Rminus;
+    else std::cerr << "ERROR: polarization " << pol << " not defined for postfitQCDWeight()" << std::endl;
+  }
+  int ptbin = std::max(1, std::min(hist_scales->GetNbinsX(), hist_scales->GetXaxis()->FindFixBin(pt2l)));
+  return hist_scales->GetBinContent(ptbin);
 }
 
 TFile *_file_recoToMedium_leptonSF_el = NULL;

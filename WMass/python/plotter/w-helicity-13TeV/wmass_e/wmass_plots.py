@@ -151,7 +151,15 @@ if __name__ == '__main__':
                 xw = add(xw," -W '{wgt}' -o {output}".format(wgt=wgt,output=output))
                 submitIt( xw,'%s_%s' % (torun,i), opts=options )
         if 'qcdpostfit' in torun:
-            x = add(x," -W 'postfitQCDWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))' ")
+            #x = x.replace('mca-80X-wenu-helicity.txt','mca-80X-wenu-helicity-postfit.txt')
+            poldic = {'long':0,'left':1,'right':2}
+            chargedic = {'plus':1,'minus':-1}
+            scalings = ''
+            for charge,sign in chargedic.iteritems():
+                for pol,ipol in poldic.iteritems():
+                    scalings += '--scale-process W{charge}_{pol} "postfitQCDWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{ipol},{sign})" '.format(charge=charge,pol=pol,ipol=ipol,sign=sign)
+            x = add(x,scalings)
+                    
 
     plotlist = args[2] # if empty, to all the ones of the txt file
     if not torun.endswith('pdfs'): 
