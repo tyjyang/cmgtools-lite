@@ -380,7 +380,7 @@ if __name__ == "__main__":
                         summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
                         ing += 1
                     summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
-                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,2.75)
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,2.41)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
                     if options.absolute:
                         summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
