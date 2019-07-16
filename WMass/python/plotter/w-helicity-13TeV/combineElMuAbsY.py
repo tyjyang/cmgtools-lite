@@ -46,6 +46,9 @@ for s in suff:
                 newpath = os.path.abspath('{clep}/Wlep_{ch}_shapes_xsec.root'.format(clep=outdir,ch=charge))
                 haddCmd = 'hadd -f {newpath}'.format(newpath=newpath)+' '+' '.join([rfile for i in xrange(2)])
                 os.system(haddCmd)
+                ## this is only for plotting Y spectra
+                haddCmd = haddCmd.replace('shapes_xsec.root','shapes_xsec_baremc.root')
+                os.system(haddCmd)
                 os.system('sed -i "s|{origpath}|{newpath}|g" {card} '.format(origpath=rfile,newpath=newpath,card=combinedCard))
         maskchan = [' --maskedChan xsecs_{ch}_InAcc'.format(ch=ch) for ch in ['plus','minus']]
         txt2hdf5Cmd = 'text2hdf5.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
