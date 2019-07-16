@@ -119,8 +119,9 @@ def makeRatios(args,options):
     for var,histoarr in histos.iteritems():
         for h in histoarr:
             if not options.selectPlots or any([name in h.GetName() for name in sp]):
+                h.SetName(options.name+'_'+h.GetName())
                 h.Write()
-
+                
     toutfile.Close()
 
     return histos
