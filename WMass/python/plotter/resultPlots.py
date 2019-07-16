@@ -106,7 +106,7 @@ if __name__ == '__main__':
                     for norm in normstr:
                         print cmd+norm
                         os.system(cmd+norm)
-                else: # single charge
+                else: # single channel
                     cmd  = 'python w-helicity-13TeV/plotYW.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
                     cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
