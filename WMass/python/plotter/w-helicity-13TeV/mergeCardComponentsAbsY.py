@@ -772,7 +772,7 @@ def writeXSecFile(outfile,tmp_sigprocs,theosyst,ybins,options,nominal):
                      theory_xsecs_file
                     )
     tmp_xsec_histfile_name = os.path.abspath(outfile.replace('_shapes','_shapes_xsec'))
-    if not nominal: tmp_xsec_histfile_name = tmp_xsec_histfile_name.replace('_shapes_xsec','shapes_xsec_baremc')
+    if not nominal: tmp_xsec_histfile_name = tmp_xsec_histfile_name.replace('_shapes_xsec','_shapes_xsec_baremc')
     tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
     for hist in hists:
         hist.Write()

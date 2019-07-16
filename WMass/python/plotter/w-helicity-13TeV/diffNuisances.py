@@ -68,7 +68,7 @@ if __name__ == "__main__":
     params = valuesAndErrors.keys()
     if len(params)==0:
         print "No parameters selected. Exiting."
-        sys.exit()
+        exit(1)
 
     if any(re.match('pdf.*',x) for x in params):
         # generally there will be alphaS along with pdfs

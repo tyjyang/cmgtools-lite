@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # may use as: cat w-helicity-13TeV/wmass_e/zee_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/testZskim {} > runplots.sh
 # may use as: cat w-helicity-13TeV/wmass_e/wgen_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/gen {} > runplots.sh
-import sys,re,os,inspect
+
+# to submit a subset of the plots in the plots.txt on condor may do:
+
+import sys,re,os,datetime
 sys.path.insert(0,os.path.abspath(os.getcwd()+"/w-helicity-13TeV"))
 from submitToys import makeCondorFile,jobstring_tf
 
@@ -43,7 +46,8 @@ def base(selection,useSkim=True):
             plotfile = "wenu_plots.txt "
             GO+=" w-helicity-13TeV/wmass_e/"+wenu_plots.txt
     elif selection=='wgen':
-        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
+        GO="%s -W 1 "%CORE
+        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%GO
         GO="%s -p Wplus_long,Wplus_left,Wplus_right --plotmode=nostack "%GO
         #GO="%s --sP wplus_mtwtk,wplus_etal1,wplus_ptl1,wplus_etal1gen,wplus_ptl1gen,wplus_wy,wplus_wpt "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
@@ -67,7 +71,8 @@ def runIt(GO,name,plots=[],noplots=[]):
     elif dowhat == "ntuple": print 'echo %s; python mcNtuple.py'%name,GO
 def submitIt(GO,name,plots=[],noplots=[],opts=None):
 
-    jobdir= os.path.abspath("./jobsplots/")
+    date = datetime.date.today().isoformat()
+    jobdir= os.path.abspath("./jobsplots_{name}_{date}/".format(name=name,date=date))
     if not os.path.isdir(jobdir): os.mkdir(jobdir)
 
     srcfiles = []
@@ -85,6 +90,7 @@ def submitIt(GO,name,plots=[],noplots=[],opts=None):
         tmp_file.close()
         srcfiles.append(job_file_name)
     cf = makeCondorFile(jobdir,srcfiles,opts,jobdir,jobdir,jobdir)
+    print "condor file is in ",jobdir+"/condor_submit.condor"
 def add(GO,opt):
     return '%s %s'%(GO,opt)
 def remove(GO,opt):
@@ -134,7 +140,7 @@ if __name__ == '__main__':
         if 'plus' in torun: x = swapcharge(x,'plus')
         elif 'minus' in torun: x = swapcharge(x,'minus')
         if 'nosel' in torun:
-            x = add(x," -U 'alwaystrue' ")
+            x = add(x," -U 'alwaystrue ' ")
         if 'fullsel' in torun:
             x = add(x," -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)' ")
         if torun.endswith('pdfs'):
@@ -144,6 +150,8 @@ if __name__ == '__main__':
                 xw = x
                 xw = add(xw," -W '{wgt}' -o {output}".format(wgt=wgt,output=output))
                 submitIt( xw,'%s_%s' % (torun,i), opts=options )
+        if 'qcdpostfit' in torun:
+            x = add(x," -W 'postfitQCDWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]))' ")
 
     plotlist = args[2] # if empty, to all the ones of the txt file
     if not torun.endswith('pdfs'): 
