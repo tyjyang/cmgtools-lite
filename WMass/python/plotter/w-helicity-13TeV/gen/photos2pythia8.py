@@ -1,3 +1,7 @@
+## USAGE (for making the integrated TH1 barept/dresspt) -> weight
+# python photos2pythia8.py wpm_munu_photos.root wpm_munu_pythia8.root wpm_munu_ratio.root --name w_mu --make plots --sP lptBareOverDressed
+# (where the wpm_xxx are the single charges hadded)
+
 ## USAGE (for making the reweight TH3 (eta,pt,barept/dresspt) -> weight. The normalization is such that the integral should be conserved in one lepton eta/pt coarse bin
 # PLUS:  python photos2pythia8.py wp_munu_photos.root wp_munu_pythia8.root wp_munu_ratio.root --name wp_mu --make th3
 # MINUS: python photos2pythia8.py wm_munu_photos.root wm_munu_pythia8.root wm_munu_ratio.root --name wm_mu --make th3
@@ -106,10 +110,16 @@ def makeRatios(args,options):
         histoarr.append(ratio)
 
     ## save everything in one file
+    sp = []
+    if options.selectPlots:
+        plotsToSave = options.selectPlots.split(',')
+        sp = plotsToSave
+    print "plots to save = ",plotsToSave
     toutfile = ROOT.TFile(outfile,'recreate')
     for var,histoarr in histos.iteritems():
         for h in histoarr:
-            h.Write()
+            if not options.selectPlots or any([name in h.GetName() for name in sp]):
+                h.Write()
 
     toutfile.Close()
 
@@ -386,12 +396,13 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] photos.root pythia8.root photosOverPythia8.root ")
     parser.add_option('', '--make'   , type='string'       , default='all' , help='run all (default) or only parts (plots, plotsbinned, th3)')
     parser.add_option("-n", "--name",     dest="name", type="string", default="wp_mu", help="Channel naming (should be wp_mu', 'wm_mu', 'wp_el', 'wm_el'");
+    parser.add_option('--sP', '--select-plot'   , type='string', dest='selectPlots'       , default=None , help='select the plots (comma-separated) to be saved in the root file. Eg. lptBareOverDressed')
     (options, args) = parser.parse_args()
     if len(args)<3:
         print "Need photos.root pythia8.root photosOverPythia8.root"
         exit(1)
 
-    possible_names = ['wp_mu', 'wm_mu', 'wp_e', 'wm_e']
+    possible_names = ['w_mu','w_e', 'wp_mu', 'wm_mu', 'wp_e', 'wm_e']
     if options.name not in possible_names:
         print "name should be one among ",possible_names
         exit(1)
