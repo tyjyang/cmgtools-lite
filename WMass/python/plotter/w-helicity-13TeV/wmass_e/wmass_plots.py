@@ -77,7 +77,9 @@ def submitIt(GO,name,plots=[],noplots=[],opts=None):
 
     srcfiles = []
     for i,pl in enumerate(plots):
-        cmd = "python mcPlots.py --pdir {pdir} --sP {plot} {GO}".format(pdir=os.path.abspath(ODIR+"/"+name),plot=pl,GO=GO)
+        cmd = "python mcPlots.py --pdir {pdir} --sP {plot} -o {pdir}/{plot}.root {GO}".format(pdir=os.path.abspath(ODIR+"/"+name),plot=pl,GO=GO)
+        if 'plus' in pl: cmd = swapcharge(cmd,'plus')
+        elif 'minus' in pl: cmd = swapcharge(cmd,'minus')
 
         job_file_name = jobdir+'/plot_{i}.sh'.format(i=i)
         log_file_name = job_file_name.replace('.sh','.log')
@@ -137,8 +139,6 @@ if __name__ == '__main__':
         x = x = add(x," --sP 'etalep,ptlep' ")
     elif 'wgen' in torun:
         x = base('wgen')
-        if 'plus' in torun: x = swapcharge(x,'plus')
-        elif 'minus' in torun: x = swapcharge(x,'minus')
         if 'nosel' in torun:
             x = add(x," -U 'alwaystrue ' ")
         if 'fullsel' in torun:
@@ -159,7 +159,6 @@ if __name__ == '__main__':
                 for pol,ipol in poldic.iteritems():
                     scalings += '--scale-process W{charge}_{pol} "postfitQCDWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{ipol},{sign})" '.format(charge=charge,pol=pol,ipol=ipol,sign=sign)
             x = add(x,scalings)
-                    
 
     plotlist = args[2] # if empty, to all the ones of the txt file
     if not torun.endswith('pdfs'): 
