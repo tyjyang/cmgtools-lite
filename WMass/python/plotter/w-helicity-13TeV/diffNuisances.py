@@ -102,8 +102,8 @@ if __name__ == "__main__":
     #hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
     hist_fit_s    = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
     pmin, pmax = -3., 3.
-    hist_fit_1d   = ROOT.TH1F("fit_1d " ,'',50,pmin,pmax)
-    hist_fit_1d_e = ROOT.TH1F("fit_1d_e",'',50,pmin,pmax)
+    hist_fit_1d   = ROOT.TH1F("fit_1d " ,'',25,pmin,pmax)
+    hist_fit_1d_e = ROOT.TH1F("fit_1d_e",'',25,pmin,pmax)
     hist_fit_1d   .SetLineColor(ROOT.kBlack); hist_fit_1d  .SetLineWidth(2)
     hist_fit_1d_e .SetLineColor(ROOT.kRed  ); hist_fit_1d_e.SetLineWidth(2)
 
@@ -131,8 +131,8 @@ if __name__ == "__main__":
             hist_fit_s.SetBinContent(nuis_p_i,val_f)
             hist_fit_s.SetBinError(nuis_p_i,err_f)
             hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,niceName(name.replace('CMS_','')))
-            hist_fit_1d  .Fill(max(pmin,min(pmax,val_f)))
-            hist_fit_1d_e.Fill(max(pmin,min(pmax,err_f)))
+            hist_fit_1d  .Fill(max(pmin,min(pmax-0.01,val_f)))
+            hist_fit_1d_e.Fill(max(pmin,min(pmax-0.01,err_f-1.)))
 
         if options.absolute_values:
             valShift = val_f
@@ -332,29 +332,47 @@ if __name__ == "__main__":
         for ext in ['png', 'pdf']:
             canvas_nuis.SaveAs("{od}/nuisances_{ps}_{suff}.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
         if len(params) >= 10:
+            canv_constraints = ROOT.TCanvas('foobar', '', 800, 800)
             ## hist_fit_1d  .Scale(1./len(params))
-            ## hist_fit_1d_e.Scale(1./len(params))
-            if hist_fit_1d.GetStdDev() > 0.01:
-                hist_fit_1d.Fit('gaus')
-                ff = hist_fit_1d.GetFunction('gaus')
-                ff.SetLineColor(ROOT.kBlack)
-            hist_fit_1d  .Draw("HIST")
-            canvas_nuis.Update()
+            hist_fit_1d.GetXaxis().SetTitle('pulls and constraints')
+            hist_fit_1d.GetYaxis().SetTitle('# of PDF variations')
+            #if hist_fit_1d.GetStdDev() > 0.01:
+            hist_fit_1d  .SetMarkerSize(0.9)
+            hist_fit_1d  .SetMarkerStyle(20)
+            hist_fit_1d  .Draw("hist")
+            hist_fit_1d.Fit('gaus')
+            ff = hist_fit_1d.GetFunction('gaus')
+            ff.SetLineColor(ROOT.kBlue-3)
+            ff.Draw('same')
+
+            canv_constraints.Update()
             rightmax = 1.1*hist_fit_1d_e.GetMaximum()
             scale = ROOT.gPad.GetUymax()/rightmax
-            hist_fit_1d_e.SetLineColor(ROOT.kRed)
+            hist_fit_1d_e.SetLineColor(ROOT.kRed-7)
+            hist_fit_1d_e.SetLineWidth(2)
             hist_fit_1d_e.Scale(scale)
             hist_fit_1d_e.Draw("hist same")
+            lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.61 , 0.92, '35.9 fb^{-1} (13 TeV)')
             ## draw an axis on the right side
             axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(),ROOT.gPad.GetUymin(), ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),0,rightmax,510,"+L")
-            axis.SetLineColor(ROOT.kRed)
-            axis.SetTextColor(ROOT.kRed)
-            axis.SetLabelColor(ROOT.kRed)
+            axis.SetLineColor (ROOT.kRed-7)
+            axis.SetTextColor (ROOT.kRed-7)
+            axis.SetLabelColor(ROOT.kRed-7)
             axis.Draw()
+
+            leg1 = ROOT.TLegend(0.65, 0.6, 0.85, 0.85)
+            leg1.SetLineWidth(0)
+            leg1.SetFillStyle(0)
+            leg1.AddEntry(hist_fit_1d  , 'pulls', 'l')
+            leg1.AddEntry(ff, 'fit to pulls', 'l')
+            leg1.AddEntry(hist_fit_1d_e, 'constraints', 'pl')
+            leg1.Draw('same')
+
             ##hist_fit_1d.GetYaxis().SetRangeUser(0., len(params)/2.)
             hist_fit_1d_e.Draw(' same')
             for ext in ['png', 'pdf']:
-                canvas_nuis.SaveAs("{od}/nuisances_{ps}_{suff}_pulls1D.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
+                canv_constraints.SaveAs("{od}/nuisances_{ps}_{suff}_pulls1D.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
 
    
 
