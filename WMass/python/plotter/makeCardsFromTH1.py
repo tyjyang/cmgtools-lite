@@ -22,10 +22,13 @@ from w_helicity_13TeV.mergeCardComponentsDiffXsec import getXsecs_etaPt
 
 ## python makeCardsFromTH1.py -i cards/diffXsec_el_2018_11_25_group10_onlyBkg_recoEta2p5/ -f el -c plus -s w-helicity-13TeV/wmass_e/systsEnv.txt --sig-out-outAcc --eta-range-outAcc 1.45 2.55 
 
-def isExcludedNuisance(excludeNuisances=[], name=""):
+def isExcludedNuisance(excludeNuisances=[], name="", keepNuisances=[]):
     if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances): 
-        print ">>>>> Excluding nuisance: ", name
-        return True
+        if len(keepNuisances) and any(re.match(x,name) for x in keepNuisances): 
+            return False
+        else:
+            print ">>>>> Excluding nuisance: ", name
+            return True
     else:
         return False
 
@@ -169,11 +172,11 @@ def combFlavours(options):
         combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
-        if not options.skip_combinetf:
+        if not options.skip_combinetf and not options.skipFitData:
             os.system(combineCmd_data)
         print ""
         print combineCmd_Asimov            
-        if not options.skip_combinetf:
+        if not options.skip_combinetf and not options.skipFitAsimov:
             os.system(combineCmd_Asimov)
             
 
@@ -255,11 +258,11 @@ def combCharges(options):
         combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
-        if not options.skip_combinetf:
+        if not options.skip_combinetf and not options.skipFitData:
             os.system(combineCmd_data)
         print ""
         print combineCmd_Asimov            
-        if not options.skip_combinetf:
+        if not options.skip_combinetf and not options.skipFitAsimov:
             os.system(combineCmd_Asimov)
             
 
@@ -299,6 +302,7 @@ parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='stor
 parser.add_option(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
 parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
+parser.add_option(       "--keep-nuisances", dest="keepNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
 parser.add_option("-p", "--postfix",    dest="postfix", type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
 parser.add_option(       '--preFSRxsec', dest='preFSRxsec' , default=False, action='store_true', help='Use gen cross section made with preFSR lepton. Alternative is dressed, which might be  relevant for some things like QCD scales in Wpt bins')
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
@@ -312,6 +316,8 @@ parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape',
 parser.add_option(       '--WZ-ptScaleSyst-shape'   , dest='wzPtScaleSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where pt-scale syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,2.1 for muons, 0,1.0,1.5,2.1 for electrons')
 parser.add_option(       '--useBinUncEffStat', dest='useBinUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
+parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
+parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
 (options, args) = parser.parse_args()
 
 print ""
@@ -406,8 +412,12 @@ if options.useBinUncEffStat:
 
 allSystForGroups = [] # filled with all systs not excluded by excludeNuisances
 excludeNuisances = []
+keepNuisances = []
 if len(options.excludeNuisances):
     excludeNuisances = options.excludeNuisances.split(",")
+if len(options.keepNuisances):
+    keepNuisances = options.keepNuisances.split(",")
+
 
 # consider some signal bins as background
 etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
@@ -598,7 +608,7 @@ if options.systfile != "":
             effmap[p] = effect
         systs[name] = effmap
     for name,effmap in systs.iteritems():
-        if isExcludedNuisance(excludeNuisances, name): continue
+        if isExcludedNuisance(excludeNuisances, name, keepNuisances): continue
         allSystForGroups.append(name)
         card.write(('%-16s lnN' % name) + " ".join([kpatt % effmap[p]   for p in allprocesses]) +"\n")
 
@@ -607,19 +617,19 @@ if options.systfile != "":
 # if some signal bins are treated as background, assign 3.8% norm uncertainty
 if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bkg):
     Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
-    if not isExcludedNuisance(excludeNuisances, "CMS_Wbkg"): 
+    if not isExcludedNuisance(excludeNuisances, "CMS_Wbkg", keepNuisances): 
         allSystForGroups.append("CMS_Wbkg")
         card.write(('%-16s lnN' % "CMS_Wbkg") + ' '.join([kpatt % (Wxsec if procIsSignalBkg[p] else "-") for p in allprocesses]) + "\n")
 
 if options.tauChargeLnN > 0.0:
     syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")
-    if not isExcludedNuisance(excludeNuisances, syst): 
+    if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
         allSystForGroups.append(syst)
         card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.tauChargeLnN) if p == "TauDecaysW"  else "-") for p in allprocesses]) + "\n")
 
 if options.fakesChargeLnN > 0.0:
     syst = "CMS_W" + flavour + "_FR_norm" + ("Plus" if charge == "plus" else "Minus")
-    if not isExcludedNuisance(excludeNuisances, syst): 
+    if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
         allSystForGroups.append(syst)
         card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.fakesChargeLnN) if p == "data_fakes"  else "-") for p in allprocesses]) + "\n")
 
@@ -645,7 +655,7 @@ ff.Close()
 if nFakesEtaUncorrelated:
     for i in range(1,nFakesEtaUncorrelated+1):
         syst = "FakesEtaUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge) # flch=flavour+charge)  #flch=postfixForFlavourAndCharge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
@@ -661,7 +671,7 @@ ff.Close()
 if nFakesPtSlopeUncorrelated:
     for i in range(1,nFakesPtSlopeUncorrelated+1):
         syst = "FakesPtSlopeUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
@@ -677,7 +687,7 @@ ff.Close()
 if nFakesPtNormUncorrelated:
     for i in range(1,nFakesPtNormUncorrelated+1):
         syst = "FakesPtNormUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
@@ -694,7 +704,7 @@ ff.Close()
 if nFakesEtaChargeUncorrelated:
     for i in range(1,nFakesEtaChargeUncorrelated+1):
         syst = "FakesEtaChargeUncorrelated{d}{flch}".format(d=i, flch=flavour+charge)  #flch=postfixForFlavourAndCharge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
@@ -704,7 +714,7 @@ if nFakesEtaChargeUncorrelated:
 fakeSysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if flavour == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
 #fakeSysts = ["CMS_We_FRe_slope"] if flavour == "el" else ["CMS_Wmu_FRmu_slope"]
 for syst in fakeSysts:
-    if isExcludedNuisance(excludeNuisances, syst): continue
+    if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")
 
@@ -722,10 +732,10 @@ if options.unbinnedQCDscaleW: procQCDunbin.append(signalMatch)
 qcdUnbinned = ["muR", "muF", "muRmuF"] 
 if len(procQCDunbin):
     for syst in qcdUnbinned:
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if options.unbinnedQCDscaleW: sortedTheoSystkeys.append(syst)
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procQCDunbin) else "-") for p in allprocesses]) +"\n")
-        if options.unbinnedQCDscaleW: sortedTheoSystkeys.append(syst)
 
 # W and Z common systematics (maybe also tau)
 WandZ = [signalMatch, "Z"]
@@ -734,23 +744,23 @@ WandTau = [signalMatch, "TauDecaysW"]
 qcdAndPDF = ["pdf%d" % i for i in range(1,61)]
 qcdAndPDF.append("alphaS")
 for syst in qcdAndPDF:
-    if isExcludedNuisance(excludeNuisances, syst): continue
+    sortedTheoSystkeys.append(syst)
+    if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
     nSigma = "1.0"
     if "alphaS" in syst:
         # the alphaS variations should be scaled so that one sigma corresponds to +-0.0015 (weights correspond to +-0.001)
         nSigma = "0.67"
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % (nSigma if any(x in p for x in WandZandTau) else "-") for p in allprocesses]) +"\n")
-    sortedTheoSystkeys.append(syst)
 
 # W only
-if not isExcludedNuisance(excludeNuisances, "mW"): 
+sortedTheoSystkeys.append("mW")
+if not isExcludedNuisance(excludeNuisances, "mW", keepNuisances): 
     allSystForGroups.append("mW")
     card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
-    sortedTheoSystkeys.append("mW")
 
 # signal W only for now (might add it to Z and Tau later)
-if not isExcludedNuisance(excludeNuisances, "fsr"):
+if not isExcludedNuisance(excludeNuisances, "fsr", keepNuisances):
     allSystForGroups.append("fsr")
     card.write(('%-16s shape' % "fsr") + " ".join([kpatt % ("1.0" if any(x in p for x in [signalMatch]) else "-") for p in allprocesses]) +"\n")
     # sortedTheoSystkeys.append("fsr")  # do not append to this list: for fsr we don't have a specific generator cross section, as fsr doesn't change it
@@ -763,15 +773,15 @@ for i in range(1,11):
     qcdScale_wptBins.append("muF%d%s" % (i,charge))
     qcdScale_wptBins.append("muRmuF%d%s" % (i,charge))
 for syst in qcdScale_wptBins:
-    if isExcludedNuisance(excludeNuisances, syst): continue
+    sortedTheoSystkeys.append(syst)
+    if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
-    sortedTheoSystkeys.append(syst)
     
 #wExpSysts = ["CMS_We_sig_lepeff", "CMS_We_elescale"] if flavour == "el" else ["CMS_Wmu_sig_lepeff", "CMS_Wmu_muscale"]
 wExpSysts = ["CMS_We_sig_lepeff"] if flavour == "el" else ["CMS_Wmu_sig_lepeff"]
 for syst in wExpSysts:
-    if isExcludedNuisance(excludeNuisances, syst): continue
+    if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
 
@@ -793,14 +803,14 @@ if options.wzPtScaleSystShape:
                 tmp_procsForPtScaleSystShape.append(proc)
         procsForPtScaleSystShape = tmp_procsForPtScaleSystShape
 
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
 
 if options.wzTestEffSystLnN:
     syst = "CMS_W%s_sig_testEffSyst" % ("e" if flavour == "el" else "mu")
     WZtesteffsyst = "{0:.3f}".format(1.0 + options.wzTestEffSystLnN)
-    if not isExcludedNuisance(excludeNuisances, syst): 
+    if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
         allSystForGroups.append(syst)
         card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (WZtesteffsyst if any(x in p for x in WandZ) else "-") for p in allprocesses]) + "\n")
 
@@ -819,7 +829,7 @@ if options.wzTestEffSystShape:
             else:
                 tmp_procsForTestEffSystShape.append(proc)
         procsForTestEffSystShape = tmp_procsForTestEffSystShape
-        if not isExcludedNuisance(excludeNuisances, syst): 
+        if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
             allSystForGroups.append(syst)
             card.write(('%-16s shape' % syst) + ' '.join([kpatt % ("1.0" if (p in procsForTestEffSystShape) else "-") for p in allprocesses]) + "\n")
 
@@ -835,7 +845,7 @@ for ipar in range(3):
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "ErfPar%dEffStat%d" % (ipar,ietabin)
         syst += "{fl}{ch}".format(fl=flavour,ch=charge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
         if etaEffStat < 0:
@@ -863,7 +873,7 @@ if options.useBinUncEffStat:
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "BinUncEffStat%d" % (ietabin)
         syst += "{fl}{ch}".format(fl=flavour,ch=charge)
-        if isExcludedNuisance(excludeNuisances, syst): continue
+        if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
         # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
         if etaEffStat < 0:
@@ -888,7 +898,7 @@ if options.useBinUncEffStat:
 
 card.write("\n")
 if options.doSystematics:
-    if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV"): card.write("luminosity group = CMS_lumi_13TeV\n\n")
+    if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV", keepNuisances): card.write("luminosity group = CMS_lumi_13TeV\n\n")
     #if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
@@ -938,14 +948,8 @@ for p in allprocesses:
 # now adding additional stuff for charge asymmetry, and pt-integrated cross section
 # actually, this would only work for the charge-combined card, but it is easier to have it here, so to use combineCards.py later
 
-for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
-    # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
-    newp = p.replace("plus","").replace("minus","")        
-    tmpp = p.replace("plus","TMP").replace("minus","TMP")        
-    tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
-    card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
-card.write("\n")
-
+# the following stuff would work on the single charge fit, but only for the correct charge
+# we add both charges to facilitate the combination
 # xsec inclusive in pt
 for ch in ["plus", "minus"]:
     for ieta in range(genBins.Neta):
@@ -957,11 +961,6 @@ for ch in ["plus", "minus"]:
         card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
     card.write("\n")
 card.write("\n")
-
-for ieta in range(genBins.Neta):
-    newp = "W_lep_ieta_{ieta}".format(ieta=str(ieta))
-    chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
-    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
 
 # xsec inclusive in eta
 for ch in ["plus", "minus"]:
@@ -976,6 +975,23 @@ for ch in ["plus", "minus"]:
     card.write("\n")
 card.write("\n")
 
+
+# the following stuff can't work on the single charge fit: we write it here to facilitate the combination
+# if you want to run the fit to a single charge, don't add them
+for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
+    # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
+    newp = p.replace("plus","").replace("minus","")        
+    tmpp = p.replace("plus","TMP").replace("minus","TMP")        
+    tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
+    card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
+card.write("\n")
+
+
+for ieta in range(genBins.Neta):
+    newp = "W_lep_ieta_{ieta}".format(ieta=str(ieta))
+    chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
+    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
+card.write("\n")
 for ipt in range(genBins.Npt):
     if ptBinIsBackground[ipt]: continue
     newp = "W_lep_ipt_{ipt}".format(ipt=str(ipt))
@@ -1044,6 +1060,7 @@ for maskChan in maskedChannels:
     tmp_xsec_dc.write('rate     {s}\n'.format(s=' '.join('-1' for i in range(len(tmp_sigprocs_mcha)))))
     tmp_xsec_dc.write('# --------------------------------------------------------------\n')
     for sys in sortedTheoSystkeys: # this is only theoretical systs
+        if isExcludedNuisance(excludeNuisances, sys, keepNuisances): continue
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     tmp_xsec_dc.close()
 

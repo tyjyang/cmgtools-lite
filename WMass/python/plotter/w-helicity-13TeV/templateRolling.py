@@ -307,8 +307,8 @@ if __name__ == "__main__":
                                     #print "systvar: " + systvar
                                     h2_backrolled_1 = dressed2D(obj,binning,name+"_tmp","")                            
                                     if options.normWidth:
-                                        h2_backrolled_1.Scale(1.,"width")
-                                    hSigInclusivePol_syst[systvar].Add(h2_backrolled_1)
+                                        h2_backrolled_1.Scale(1.,"width")                                    
+                                    hSigInclusivePol_syst[systvar].Add(h2_backrolled_1)                                    
                                     print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusivePol_syst[systvar].Integral())
                                 
 

@@ -47,6 +47,9 @@ import time
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 from templateRolling import roll1Dto2D
+from templateRolling import dressed2D
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
 
 ROOT.gROOT.SetBatch(True)
         
@@ -180,8 +183,18 @@ if __name__ == "__main__":
         hinput1 = hFR1
         hinput2 = hFR2
 
-    #if options.roll1Dto2D:
+    if options.roll1Dto2D:
       # TO DO   
+        if options.binFileToRoll:
+            etaPtBinningVec = getDiffXsecBinning(options.binFileToRoll, "reco")
+            recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+            #following array is used to call function dressed2D()         
+            binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+            hinput1 = dressed2D(hist1,binning,hist1.GetName()+"_rolled2D",hist1.GetName()+"_rolled2D")
+            hinput2 = dressed2D(hist2,binning,hist2.GetName()+"_rolled2D",hist2.GetName()+"_rolled2D")
+        else:
+            print "Error: you need to pass the binning to roll 1D histograms into 2D"
+            quit()
 
     xMin = options.xRange[0]
     xMax = options.xRange[1]

@@ -4,18 +4,18 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 dryrun = 0
-skipData = 1
-onlyData = 0
+skipData = 0
+onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsEtaPt = 1
 
 allPtBinsSignal = 1
@@ -30,10 +30,11 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
-#folder = "diffXsec_mu_2019_06_23_zptReweight_ptReco30/"
+#folder = "diffXsec_mu_2019_07_12_noSyst/"
+folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
 if doMuElComb:
     folder = "muElCombination"
     skipTemplate = 1
@@ -46,13 +47,14 @@ if doMuElComb:
 #postfix = "finalTest_EffStatNotScaled"
 #postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
 #postfix = "zptReweight_uncorrQCDscales"
-postfix = "zptReweight_uncorrQCDscales_EffStatOnlyStatUncDataMC"
-#postfix = "zptReweight_uncorrQCDscales_fixFSRcharge"
+#postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC"
+#postfix = "onlyEtaPlus_noSystButFSR"
 #postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
 #postfix = "zptReweight_uncorrQCDscales_fixedPOIs"
 #postfix = "combinedLep"
+postfix = "zptReweight_fixEffStat"
 if doMuElComb:
-    postfix = "combinedLep_zptReweight"
+    postfix = "combinedLep_zptReweight_uncorrQCDscales_fixEffStat"
 postfix += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
@@ -149,7 +151,7 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
 #groupnamesEtaPt = groupnames
-groupnamesEtaPt = "EffStat,EffSyst"
+groupnamesEtaPt = "EffStat,Fakes,binByBinStat,stat"
 
 # no longer used: for impacts in the form of graphs, use "W.*_ieta_.*" for pt-integrated stuff, and "W.*_ieta_.*_ipt_XX" for the rest, where XX is a given pt bin 
 impacts_pois = [#"Wplus.*_ipt_2_.*" if flavour == "el" else "Wplus.*_ipt_0_.*",

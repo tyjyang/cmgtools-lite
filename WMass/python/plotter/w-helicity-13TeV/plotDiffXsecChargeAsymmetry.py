@@ -559,6 +559,10 @@ if __name__ == "__main__":
             hDiffXsecNorm_1Deta.Scale(0.5)
             hDiffXsec_1Dpt.Scale(0.5)
             hDiffXsecNorm_1Dpt.Scale(0.5)
+            hDiffXsecPDF[charge].Scale(0.5)
+            hDiffXsecPDF_1Deta[charge].Scale(0.5)
+            hDiffXsecPDF_1Dpt[charge].Scale(0.5)
+
 
         hDiffXsecRelErr = hDiffXsecErr.Clone(hDiffXsecErr.GetName().replace('XsecErr','XsecRelErr'))
         hDiffXsecRelErr.Divide(hDiffXsec)

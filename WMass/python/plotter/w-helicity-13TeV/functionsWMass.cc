@@ -264,11 +264,11 @@ float _get_electronSF_anyStep(float pt, float eta, int step, bool geterr=false) 
     
   if (!_histo_trigger_wmass_leptonSF_el) {
     _file_trigger_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/etaptSmooth_electrons_trigger_30_55_onlyErf.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_wmass_leptonSF_el = (TH2F*)(_file_trigger_wmass_leptonSF_el->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
+    _histo_trigger_wmass_leptonSF_el = (TH2F*)(_file_trigger_wmass_leptonSF_el->Get("scaleFactor"));
   }
   if (!_histo_trigger_ee0p1_wmass_leptonSF_el) {
     _file_trigger_ee0p1_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_trigger_endcap0p1.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_ee0p1_wmass_leptonSF_el = (TH2F*)(_file_trigger_ee0p1_wmass_leptonSF_el->Get("EGamma_SF2D"));
+    _histo_trigger_ee0p1_wmass_leptonSF_el = (TH2F*)(_file_trigger_ee0p1_wmass_leptonSF_el->Get("scaleFactor"));
   }
   if (!_histo_reco_wmass_leptonSF_el) {
     _file_reco_wmass_leptonSF_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_reco_pt30to45.root",_cmssw_base_.c_str()),"read");
@@ -807,6 +807,69 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
 
 }
 
+TFile *_file_eleTrigger_EBeta0p1 = NULL;
+TH2F *_histo_eleTrigger_EBeta0p1 = NULL;
+TFile *_file_eleTrigger_EEeta0p1 = NULL;
+TH2F *_histo_eleTrigger_EEeta0p1 = NULL;
+TFile *_file_eleID_EBeta0p1 = NULL;
+TH2F *_histo_eleID_EBeta0p1 = NULL;
+TFile *_file_eleID_EEeta0p1 = NULL;
+TH2F *_histo_eleID_EEeta0p1 = NULL;
+
+float _get_electronSF_TriggerAndID(int pdgid, float pt, float eta) {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  // get all histograms 
+  if (!_histo_eleTrigger_EBeta0p1) {
+    _file_eleTrigger_EBeta0p1 = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/etaptSmooth_electrons_trigger_30_55_onlyErf.root",_cmssw_base_.c_str()),"read");
+    _histo_eleTrigger_EBeta0p1 = (TH2F*)(_file_eleTrigger_EBeta0p1->Get("scaleFactor"));
+  }
+
+  if (!_histo_eleTrigger_EEeta0p1) {
+    _file_eleTrigger_EEeta0p1 = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/electrons_trigger_endcap0p1.root",_cmssw_base_.c_str()),"read");
+    _histo_eleTrigger_EEeta0p1 = (TH2F*)(_file_eleTrigger_EEeta0p1->Get("scaleFactor"));
+  }
+
+  if (!_histo_eleID_EBeta0p1) {
+    _file_eleID_EBeta0p1 = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/smoothEfficiency_electrons_fullID_V2_granular.root",_cmssw_base_.c_str()),"read");
+    _histo_eleID_EBeta0p1 = (TH2F*)(_file_eleID_EBeta0p1->Get("scaleFactor"));
+  }
+
+  if (!_histo_eleID_EEeta0p1) {
+    _file_eleID_EEeta0p1 = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_endcap0p1/smoothEfficiency_electrons_fulID_V2_endcap0p1.root",_cmssw_base_.c_str()),"read");
+    _histo_eleID_EEeta0p1 = (TH2F*)(_file_eleID_EEeta0p1->Get("scaleFactor"));
+  }
+
+  int etabinTrigger = 0;
+  int etabinID = 0;
+  int ptbinTrigger = 0;
+  int ptbinID = 0;
+  TH2F *histTrigger = NULL;
+  TH2F *histID = NULL;
+
+  if (fabs(pdgid) == 11) {
+    if (fabs(eta) >= 1.566) {
+      histTrigger = _histo_eleTrigger_EEeta0p1;
+      histID = _histo_eleID_EEeta0p1;      
+    } else {
+      histTrigger = _histo_eleTrigger_EBeta0p1;
+      histID = _histo_eleID_EBeta0p1;      
+    }
+    int etabinTrigger = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
+    int ptbinTrigger  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
+    int etabinID = std::max(1, std::min(histID->GetNbinsX(), histID->GetXaxis()->FindFixBin(eta)));
+    int ptbinID  = std::max(1, std::min(histID->GetNbinsY(), histID->GetYaxis()->FindFixBin(pt)));
+    return histTrigger->GetBinContent(etabinTrigger,ptbinTrigger) * histID->GetBinContent(etabinID,ptbinID);
+  }
+
+  return 0;
+
+}
+
 //float triggerSF_2l_histo(float l1pt, float l1eta, float l11pass, float l12pass, float l2pt, float l2eta, float l21pass, float l22pass){
 //  float weight = -999.;
 //
@@ -957,7 +1020,12 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
     
     int etabin = std::max(1, std::min(_hist_relSystErr->GetNbinsX(), _hist_relSystErr->GetXaxis()->FindFixBin(eta)));
     int ptbin  = std::max(1, std::min(_hist_relSystErr->GetNbinsY(), _hist_relSystErr->GetYaxis()->FindFixBin(pt)));
+    // add protection for electrons close to gap (events in the gap are already excluded by selection)
+    // if(abs(pdgId)==11 and fabs(eta) > 1.4 and fabs(eta) < 1.6 ) {
+    //   ret = 1.0
+    // } else {    
     ret = 1.0 + factor*_hist_relSystErr->GetBinContent(etabin,ptbin); //blow up the uncertainty
+    //}
     // factor = sqrt(2) for muons. 
     // For electrons, need another factor sqrt(2) because the efficiency are made inclusively in charge, but treated as uncorrelated between W+ and W-
   }

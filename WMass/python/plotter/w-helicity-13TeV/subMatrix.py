@@ -188,6 +188,8 @@ if __name__ == "__main__":
     if options.etaptbinfile:
         etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    else:
+        genBins = ""
 
     params = []; indices = []
 
