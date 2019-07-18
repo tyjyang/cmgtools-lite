@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     ## plot rapidity spectra
     ## ==============================================================
-    if options.make in ['all', 'rap']:
+    if options.make in ['all', 'rap', 'rapcomp']:
         print 'plotting rapidity spectra'
         tmp_outdir = options.outdir+'/rapiditySpectra/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
@@ -96,7 +96,7 @@ if __name__ == '__main__':
                 fitflavor = os.path.splitext(os.path.basename(options.config.split('_')[-1]))[0]
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 normstr = [' ', ' --normxsec ']
-                if sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
+                if options.make=='rapcomp' and sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
@@ -106,15 +106,15 @@ if __name__ == '__main__':
                     for norm in normstr:
                         print cmd+norm
                         os.system(cmd+norm)
-                else: # single channel
-                    cmd  = 'python w-helicity-13TeV/plotYW.py '
-                    cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
-                    if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
-                        cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
-                    for norm in normstr:
-                        print cmd+norm
-                        os.system(cmd+norm)
+                # do the single plots for both the single channels and the combined (w/o the el-mu comparison)
+                cmd  = 'python w-helicity-13TeV/plotYW.py '
+                cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
+                    cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
+                for norm in normstr:
+                    print cmd+norm
+                    os.system(cmd+norm)
 
     ## plot rapidity spectra for many toys, do not do this by default
     ## ==============================================================
