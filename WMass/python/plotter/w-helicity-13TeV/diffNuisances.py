@@ -102,8 +102,8 @@ if __name__ == "__main__":
     #hist_fit_s  = ROOT.TH1F("fit_s"   ,"S+B fit Nuisances   ;;%s "%title,len(params),0,len(params))
     hist_fit_s    = ROOT.TH1F("fit_s"   ,'',len(params),0,len(params))
     pmin, pmax = -3., 3.
-    hist_fit_1d   = ROOT.TH1F("fit_1d " ,'',25,pmin,pmax)
-    hist_fit_1d_e = ROOT.TH1F("fit_1d_e",'',25,pmin,pmax)
+    hist_fit_1d   = ROOT.TH1F("fit_1d " ,'',20,pmin,pmax)
+    hist_fit_1d_e = ROOT.TH1F("fit_1d_e",'',59,pmin,pmax)
     hist_fit_1d   .SetLineColor(ROOT.kBlack); hist_fit_1d  .SetLineWidth(2)
     hist_fit_1d_e .SetLineColor(ROOT.kRed  ); hist_fit_1d_e.SetLineWidth(2)
 
@@ -343,12 +343,14 @@ if __name__ == "__main__":
             hist_fit_1d.Fit('gaus')
             ff = hist_fit_1d.GetFunction('gaus')
             ff.SetLineColor(ROOT.kBlue-3)
+            ff.SetLineWidth(2)
             ff.Draw('same')
 
+            constraintColor = ROOT.kOrange+7
             canv_constraints.Update()
-            rightmax = 1.1*hist_fit_1d_e.GetMaximum()
+            rightmax = 1.5*hist_fit_1d_e.GetMaximum()
             scale = ROOT.gPad.GetUymax()/rightmax
-            hist_fit_1d_e.SetLineColor(ROOT.kRed-7)
+            hist_fit_1d_e.SetLineColor(constraintColor)
             hist_fit_1d_e.SetLineWidth(2)
             hist_fit_1d_e.Scale(scale)
             hist_fit_1d_e.Draw("hist same")
@@ -356,21 +358,22 @@ if __name__ == "__main__":
             lat.DrawLatex(0.61 , 0.92, '35.9 fb^{-1} (13 TeV)')
             ## draw an axis on the right side
             axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(),ROOT.gPad.GetUymin(), ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),0,rightmax,510,"+L")
-            axis.SetLineColor (ROOT.kRed-7)
-            axis.SetTextColor (ROOT.kRed-7)
-            axis.SetLabelColor(ROOT.kRed-7)
+            axis.SetLineColor (constraintColor)
+            axis.SetTextColor (constraintColor)
+            axis.SetLabelColor(constraintColor)
             axis.Draw()
 
-            leg1 = ROOT.TLegend(0.65, 0.6, 0.85, 0.85)
+            leg1 = ROOT.TLegend(0.61, 0.6, 0.85, 0.85)
             leg1.SetLineWidth(0)
             leg1.SetFillStyle(0)
+            leg1.SetTextSize(0.04)
             leg1.AddEntry(hist_fit_1d  , 'pulls', 'l')
-            leg1.AddEntry(ff, 'fit to pulls', 'l')
-            leg1.AddEntry(hist_fit_1d_e, 'constraints', 'pl')
+            leg1.AddEntry(ff, '#splitline{{fit to pulls}}{{#scale[0.5]{{(#hat{{#mu}} = {mu:.2f}, #sigma = {si:.2f} }} }}'.format(mu=ff.GetParameter(1), si=ff.GetParameter(2)), 'l')
+            leg1.AddEntry(hist_fit_1d_e, '#splitline{{constraints}}{{ #scale[0.5]{{(mean = {a:.2f} }} }}'.format(a=hist_fit_1d_e.GetMean()), 'pl')
             leg1.Draw('same')
 
             ##hist_fit_1d.GetYaxis().SetRangeUser(0., len(params)/2.)
-            hist_fit_1d_e.Draw(' same')
+            #hist_fit_1d_e.Draw(' same')
             for ext in ['png', 'pdf']:
                 canv_constraints.SaveAs("{od}/nuisances_{ps}_{suff}_pulls1D.{ext}".format(od=options.outdir, ps=uniquestr, suff=options.suffix, ext=ext))
 
