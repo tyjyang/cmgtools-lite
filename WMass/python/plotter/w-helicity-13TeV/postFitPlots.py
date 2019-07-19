@@ -9,6 +9,7 @@ from make_diff_xsec_cards import templateBinning
 
 import utilities
 utilities = utilities.util()
+print 'right pad margin', ROOT.gStyle.GetPadRightMargin()
 
 def getbinning(splitline):
     bins = splitline[5]
@@ -29,7 +30,12 @@ def getbinning(splitline):
     return binning
 
 ROOT.gStyle.SetOptStat(0)
-ROOT.gStyle.SetPadRightMargin(0.13)
+
+marL = ROOT.gStyle.GetPadLeftMargin()
+marR = ROOT.gStyle.GetPadRightMargin()
+marT = ROOT.gStyle.GetPadTopMargin()
+marB = ROOT.gStyle.GetPadBottomMargin()
+
 
 def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
     if len(binning) == 4:
@@ -90,23 +96,42 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     ## Prepare split screen
     plotformat = (2400,600) if veryWide else (600,750)
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
-    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
-    ROOT.gStyle.SetPadLeftMargin(0.07 if veryWide else 0.18)
-    ROOT.gStyle.SetPadRightMargin(0.02 if veryWide else 0.13)
-    p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
-    p1.SetBottomMargin(0.03);
-    p1.Draw();
-    p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
-    p2.SetTopMargin(0);
-    p2.SetBottomMargin(0.3);
-    p2.SetFillStyle(0);
-    p2.Draw();
-    p1.cd();
+    if not 'projection' in prefix:
+        ROOT.gStyle.SetPadLeftMargin(0.07 if veryWide else 0.18)
+        ROOT.gStyle.SetPadRightMargin(0.02 if veryWide else 0.13)
+        ROOT.gStyle.SetPadTopMargin(marT)
+        ROOT.gStyle.SetPadBottomMargin(marB)
+        c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
+        p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
+        p1.SetBottomMargin(0.03);
+        p1.Draw();
+        p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
+        p2.SetTopMargin(0);
+        p2.SetBottomMargin(0.3);
+        p2.SetFillStyle(0);
+        p2.Draw();
+        p1.cd();
+    else:
+        c1.GetPad(0).SetTopMargin   (0.09)
+        c1.GetPad(0).SetBottomMargin(0.15)
+        c1.GetPad(0).SetLeftMargin  (0.17)
+        c1.GetPad(0).SetRightMargin (0.04)
+        c1.GetPad(0).SetTickx(1)
+        c1.GetPad(0).SetTicky(1)
+        ##ROOT.gStyle.SetPadLeftMargin  (0.17)
+        ##ROOT.gStyle.SetPadRightMargin (0.05)
+        ##ROOT.gStyle.SetPadTopMargin   (0.12)
+        ##ROOT.gStyle.SetPadBottomMargin(0.33)
+        c1.cd()
     ## Draw absolute prediction in top frame
     offset = 0.45 if veryWide else 0.62
     htot.GetYaxis().SetTitleOffset(offset)
     htot.SetTitle('')
-    htot.GetYaxis().SetTitleOffset(1.2)
+    htot.GetYaxis().SetTitleOffset(1.35)
+    htot.GetYaxis().SetTitleSize(0.05)
+    htot.GetXaxis().SetLabelSize(0.04)
+    htot.GetYaxis().SetLabelSize(0.04)
+    htot.GetXaxis().SetTitleSize(0.05)
     htot.Draw("HIST")
     #htot.SetLabelOffset(9999.0);
     #htot.SetTitleOffset(9999.0);
@@ -122,8 +147,8 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     if veryWide:
         x1 = 0.09; x2 = 0.85
     else:
-        x1 = 0.16; x2 = 0.65
-    lat.DrawLatex(x1, 0.92, '#bf{CMS} #it{Preliminary}')
+        x1 = 0.26; x2 = 0.60
+    lat.DrawLatex(x1, 0.92, '#bf{CMS}')# #it{Preliminary}')
     lat.DrawLatex(x2, 0.92, '35.9 fb^{-1} (13 TeV)')
     
 
@@ -148,9 +173,12 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
                 bintext.DrawLatex(etarange*i + etarange/6., 0.7 *ymaxBackup, textForLines[i])
 
 
-    p2.cd()
-    maxrange = [0.95,1.05] if prepost == 'postfit' else [0.90,1.10]
-    rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
+    if not 'projection' in prefix:
+        p2.cd()
+        maxrange = [0.97,1.03] if prepost == 'postfit' else [0.90,1.10]
+        if 'projection' in prefix and prepost == 'postfit':
+            maxrange = [0.99,1.01]
+        rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
     c1.cd()
     outf_basename = '{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix)
     for ext in ['pdf', 'png']:
@@ -159,6 +187,10 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
         ofo = open(outf_basename+'txt', 'w')
         ofo.write(outtext)
         ofo.close()
+    ROOT.gStyle.SetPadLeftMargin  (marL)
+    ROOT.gStyle.SetPadRightMargin (marR)
+    ROOT.gStyle.SetPadTopMargin   (marT)
+    ROOT.gStyle.SetPadBottomMargin(marB)
         
 
 
@@ -269,7 +301,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
     line.Draw("L")
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.94, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.15, 0.94, '#bf{CMS}')# #it{Preliminary}')
     lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
 
     # draw vertical lines to facilitate reading of plot
@@ -300,6 +332,10 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
 
     for ext in ['pdf', 'png']:
         c1.SaveAs('{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
+
+    ROOT.gStyle.SetPadLeftMargin(marL)
+    ROOT.gStyle.SetPadRightMargin(marR)
+    ROOT.gStyle.SetPadBottomMargin(marB);
 
 def getNormSysts(channel):
     systs = {}
