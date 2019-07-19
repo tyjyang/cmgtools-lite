@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # USAGE: python postFitPlots.py wel_minus_floatPOI.root cards_el -o outputdir [--prefit]
-import ROOT, os, re
+import ROOT, os, re, copy
 from array import array
 from rollingFunctions import roll1Dto2D, unroll2Dto1D
 
@@ -40,8 +40,8 @@ def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
         n1 = binning[0]; min1 = binning[1]; max1 = binning[2]
         n2 = binning[3]; min2 = binning[4]; max2 = binning[5]
         h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
-    h1d_shifted = singleChargeUnrolled(h1d,shift,nCharges,nMaskedCha)
-    h2_backrolled_1 = roll1Dto2D(h1d_shifted, h2_1 )
+    #h1d_shifted = singleChargeUnrolled(h1d,shift,nCharges,nMaskedCha)
+    h2_backrolled_1 = roll1Dto2D(h1d, h2_1 )
     h2_backrolled_1 .GetXaxis().SetTitle('lepton #eta')
     h2_backrolled_1 .GetYaxis().SetTitle('lepton p_{T} (GeV)')
     h2_backrolled_1 .GetZaxis().SetRangeUser(0.01*h2_backrolled_1.GetMaximum(),1.1*h2_backrolled_1.GetMaximum())
@@ -105,6 +105,8 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     ## Draw absolute prediction in top frame
     offset = 0.45 if veryWide else 0.62
     htot.GetYaxis().SetTitleOffset(offset)
+    htot.SetTitle('')
+    htot.GetYaxis().SetTitleOffset(1.2)
     htot.Draw("HIST")
     #htot.SetLabelOffset(9999.0);
     #htot.SetTitleOffset(9999.0);
@@ -320,7 +322,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] fitresults.root cards_dir")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=2, type='int', help='Number of masked channels in the fit for each charge')
+    parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=1, type='int', help='Number of masked channels in the fit for each charge')
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
     (options, args) = parser.parse_args()
 
@@ -371,6 +373,7 @@ if __name__ == "__main__":
 
 
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
+    print 'THESE ARE THE BINSHIFTS', shifts
 
     for charge in ['plus','minus']:
         binshift = shifts[charge]
@@ -405,8 +408,8 @@ if __name__ == "__main__":
                     h1_1 = infile.Get('expproc_W{ch}_{pol}_Ybin_{ybin}_{sfx}'.format(ch=charge,pol=pol,ybin=ybin,sfx=prepost))
                     name2D = 'W{ch}_{pol}_Ybin_{ybin}'.format(ch=charge,pol=pol,ybin=ybin)
                     title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
-                    h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift)
-                    h1_unrolled = singleChargeUnrolled(h1_1,binshift)
+                    h1_unrolled = singleChargeUnrolled(h1_1,binshift,nMaskedCha=options.nMaskedChannel)
+                    h2_backrolled_1 = dressed2D(copy.deepcopy(h1_unrolled),binning,name2D,title=title2D,shift=binshift,nMaskedCha=options.nMaskedChannel)
                     single_sig_unrolled[ykeyplot] = h1_unrolled.Clone('Y{iy}_W{ch}_{pol}_{flav}_unrolled'.format(iy=ybin,ch=charge,pol=pol,flav=channel))
                     single_sig_unrolled[ykeyplot].SetDirectory(None)
                     if ybin==0:
@@ -452,8 +455,9 @@ if __name__ == "__main__":
                 keyplot = p if 'obs' in p else p+'_'+prepost
                 h1_1 = infile.Get('expproc_{p}_{sfx}'.format(p=p,sfx=prepost)) if 'obs' not in p else infile.Get('obs')
                 if not h1_1: continue # muons don't have Flips components
-                h1_unrolled =  singleChargeUnrolled(h1_1,binshift)
-                h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift)
+                h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=options.nMaskedChannel)
+                # march2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
+                h2_backrolled_1 = dressed2D(copy.deepcopy(h1_unrolled),binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
                 bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
                 if prepost=='prefit' and p!='obs':
@@ -486,12 +490,18 @@ if __name__ == "__main__":
      
             # this has the uncertainty propagated with the full covariance matrix
             h1_expfull = infile.Get('expfull_{sfx}'.format(sfx=prepost))
-            h2_expfull_backrolled = dressed2D(h1_expfull,binning,'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),binshift)
+            print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+            print 'NUMBER OF BINS FOR THE 1D HISTOGRAM', h1_expfull.GetNbinsX()
+            h1_expfull_ch = singleChargeUnrolled(h1_expfull,binshift,nMaskedCha=options.nMaskedChannel)
+            h2_expfull_backrolled = dressed2D(copy.deepcopy(h1_expfull_ch),binning,'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),binshift,nMaskedCha=options.nMaskedChannel)
+            print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+            print 'nbinsX of 2D histogram:', h2_expfull_backrolled.GetNbinsX()
+            print 'nbinsY of 2D histogram:', h2_expfull_backrolled.GetNbinsY()
      
             for projection in ['X','Y']:
                 nbinsProj = all_procs['obs'].GetNbinsY() if projection=='X' else all_procs['obs'].GetNbinsX()
-                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),0,-1,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),0,-1,"e")
-                hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),0,-1,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),0,-1,"e")
+                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj+1,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj+1,"e")
+                hdata = all_procs['obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj+1,"e") if projection=='X' else all_procs['obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj+1,"e")
                 htot = hdata.Clone('tot_{ch}'.format(ch=charge)); htot.Reset(); htot.Sumw2()
                 stack = ROOT.THStack("stack_{sfx}_{ch}".format(sfx=prepost,ch=charge),"")
                 
@@ -500,7 +510,7 @@ if __name__ == "__main__":
                 for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                     keycolor = key.replace('_prefit','').replace('_postfit','')
                     if key=='obs' or prepost not in key: continue
-                    proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",0,-1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",0,-1,"e")
+                    proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",1,nbinsProj+1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",1,nbinsProj+1,"e")
                     proj1d.SetFillColor(colors[keycolor])
                     stack.Add(proj1d)
                     htot.Add(proj1d) 
@@ -521,6 +531,8 @@ if __name__ == "__main__":
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
             leg_unrolled = prepareLegend(legWidth=0.10)
             output_txt = ''
+            print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+            print 'nbinsX of hdata_unrolled', hdata_unrolled.GetNbinsX()
             for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                 keycolor = key.replace('_prefit','').replace('_postfit','')
                 if key=='obs' or prepost not in key: continue
