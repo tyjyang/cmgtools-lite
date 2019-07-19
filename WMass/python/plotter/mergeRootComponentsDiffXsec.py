@@ -212,15 +212,15 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                     etabinOffset = 1
                 ietaErf = ietaErf_tmp + etabinOffset
 
+                tmp_parhist_val = parhist.GetXaxis().GetBinCenter(ietaErf)
                 #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
-                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf) )
+                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( tmp_parhist_val )
 
                 # if template has eta range narrower than parhist, continue
                 if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):
                     continue
 
                 if not isMu:
-                    tmp_parhist_val = parhist.GetXaxis().GetBinCenter(ietaErf)
                     if abs(tmp_parhist_val) > 1.4 and abs(tmp_parhist_val) < 1.5:
                         ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 if tmp_parhist_val > 0 else -1.41)
                     elif abs(tmp_parhist_val) > 1.5 and abs(tmp_parhist_val) < 1.6:

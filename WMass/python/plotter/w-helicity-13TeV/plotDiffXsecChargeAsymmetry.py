@@ -16,6 +16,13 @@ import utilities
 utilities = utilities.util()
 
 
+def writeHistoIntoFile(h,f, name="", verbose=True):
+    f.cd()
+    h.Write(name if len(name) else h.GetName())
+    if verbose: 
+        print ">>> Saving histogram: {n}".format(n=name if len(name) else h.GetName())
+
+
 def getTH1fromTH2(h2D,h2Derr=None,unrollAlongX=True):  # unrollAlongX=True --> select rows, i.e. takes a stripe from x1 to xn at same y, then go to next stripe at next y
     nX = h2D.GetNbinsX()
     nY = h2D.GetNbinsY()
@@ -337,6 +344,12 @@ if __name__ == "__main__":
                   lowerPanelHeight=0.35, moreTextLatex=additionalText
                   )
 
+    writeHistoIntoFile(hChAsymm,tfOut)
+    writeHistoIntoFile(hChAsymmErr,tfOut)
+    writeHistoIntoFile(hChAsymmRelErr,tfOut)
+    writeHistoIntoFile(hChAsymm1Deta,tfOut)
+    writeHistoIntoFile(hChAsymm1Dpt,tfOut)
+
     icharge = 0
 
     # hMu = {}
@@ -553,12 +566,12 @@ if __name__ == "__main__":
         if isMuElComb:
             hDiffXsec.Scale(0.5)
             hDiffXsecErr.Scale(0.5)
-            hDiffXsecNorm.Scale(0.5)
-            hDiffXsecNormErr.Scale(0.5)
+            #hDiffXsecNorm.Scale(0.5)
+            #hDiffXsecNormErr.Scale(0.5)
             hDiffXsec_1Deta.Scale(0.5)
-            hDiffXsecNorm_1Deta.Scale(0.5)
+            #hDiffXsecNorm_1Deta.Scale(0.5)
             hDiffXsec_1Dpt.Scale(0.5)
-            hDiffXsecNorm_1Dpt.Scale(0.5)
+            #hDiffXsecNorm_1Dpt.Scale(0.5)
             hDiffXsecPDF[charge].Scale(0.5)
             hDiffXsecPDF_1Deta[charge].Scale(0.5)
             hDiffXsecPDF_1Dpt[charge].Scale(0.5)
@@ -583,6 +596,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hMu.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hMu,tfOut)
 
         zaxisTitle = "uncertainty on signal strength #mu::0.0,0.5"
         if options.hessian: zaxisTitle = "uncertainty on signal strength #mu::0.0,0.25"
@@ -590,6 +604,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hMuErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hMuErr,tfOut)
 
         if options.fitData:
             if charge == "plus": zmin,zmax = 30,130
@@ -606,6 +621,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsec.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hDiffXsec,tfOut)
 
         if options.fitData:
             if charge == "plus": zmin,zmax = 0.5,4.5
@@ -619,6 +635,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hDiffXsecErr,tfOut)
 
         #zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T}::%.3f,%.3f" % (0.9*hDiffXsecRelErr.GetMinimum(),hDiffXsecRelErr.GetMaximum())
         if options.fitData:
@@ -629,6 +646,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecRelErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hDiffXsecRelErr,tfOut)
 
         if charge == "plus": zmin,zmax = 0.002,0.032
         else:                zmin,zmax = 0.002,0.032
@@ -638,6 +656,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNorm.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hDiffXsecNorm,tfOut)
 
         if charge == "plus": zmin,zmax = 0.0,0.0015
         else:                zmin,zmax = 0.0,0.0015
@@ -647,6 +666,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
+        writeHistoIntoFile(hDiffXsecNormErr,tfOut)
 
         zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::%.4f,%.4f" % (min(0.01,0.9*hDiffXsecNormRelErr.GetMinimum()),min(0.2,hDiffXsecNormRelErr.GetBinContent(hDiffXsecNormRelErr.GetMaximumBin())))
         #zaxisTitle = "rel. uncertainty on d^{2}#sigma / d|#eta|dp_{T} / #sigma_{tot}::0,0.1"
@@ -654,7 +674,7 @@ if __name__ == "__main__":
                             xaxisTitle, yaxisTitle, zaxisTitle,
                             hDiffXsecNormRelErr.GetName(),
                             "ForceTitle",outname,1,1,False,False,False,1, canvasSize="700,625",leftMargin=0.14,rightMargin=0.22,passCanvas=canvas,palette=options.palette)
-
+        writeHistoIntoFile(hDiffXsecNormRelErr,tfOut)
 
         # with only W -> munu, coordinates can be 0.45,0.8,0.65,0.9 with TPaveText
         texCoord = "0.45,0.85" if charge == "plus" else "0.45,0.5"
@@ -669,12 +689,16 @@ if __name__ == "__main__":
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
+        writeHistoIntoFile(hDiffXsec_1Deta,tfOut)
+
         drawSingleTH1(hDiffXsecNorm_1Deta,xaxisTitle,"d#sigma/d|#eta| / #sigma_{tot}",
                       "xsec_eta_norm_{ch}_{fl}".format(ch=charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
+        writeHistoIntoFile(hDiffXsecNorm_1Deta,tfOut)
+
         legendCoords = "0.65,0.85,0.75,0.85"
         texCoord = "0.2,0.5"
         additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
@@ -687,13 +711,18 @@ if __name__ == "__main__":
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
+        writeHistoIntoFile(hDiffXsec_1Dpt,tfOut)
+
         drawSingleTH1(hDiffXsecNorm_1Dpt,yaxisTitle,"d#sigma/dp_{T} / #sigma_{tot} [1/GeV]",
                       "xsec_pt_norm_{ch}_{fl}".format(ch=charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
                       lowerPanelHeight=0.35, moreTextLatex=additionalText
                       )
+        writeHistoIntoFile(hDiffXsecNorm_1Dpt,tfOut)
 
+        writeHistoIntoFile(hDiffXsecPDF_1Deta[charge],tfOut)
+        writeHistoIntoFile(hDiffXsecPDF_1Dpt[charge],tfOut)
 
 
 ######
@@ -743,6 +772,7 @@ if __name__ == "__main__":
                           outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                           leftMargin=leftMargin, rightMargin=rightMargin)
+            writeHistoIntoFile(h1D_pmaskedexp[(unrollAlongEta,charge)],tfOut)
             #h1D_pmaskedexp[unrollAlongEta].Write()
 
             h1D_pmaskedexp_norm[(unrollAlongEta,charge)] = getTH1fromTH2(hDiffXsecNorm, hDiffXsecNormErr, unrollAlongX=unrollAlongEta)        
@@ -752,6 +782,7 @@ if __name__ == "__main__":
                           outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt, drawLineLowerPanel="",
                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35,moreText=additionalText,
                           leftMargin=leftMargin, rightMargin=rightMargin)
+            writeHistoIntoFile(h1D_pmaskedexp_norm[(unrollAlongEta,charge)],tfOut)
 
             # do also charge asymmetry (only once if running on both charges)
             if icharge == 2:
@@ -768,6 +799,7 @@ if __name__ == "__main__":
                               passCanvas=canvUnroll,lumi=options.lumiInt,
                               drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                               leftMargin=leftMargin, rightMargin=rightMargin)
+                writeHistoIntoFile(h1D_chargeAsym[unrollAlongEta],tfOut)
 
                 additionalText = additionalTextBackup
 
@@ -944,9 +976,9 @@ if __name__ == "__main__":
                     hDiffXsec_exp.Scale(0.5)
                     hDiffXsec_1Deta_exp.Scale(0.5)
                     hDiffXsec_1Dpt_exp.Scale(0.5)
-                    hDiffXsecNorm_exp.Scale(0.5)
-                    hDiffXsecNorm_1Deta_exp.Scale(0.5)
-                    hDiffXsecNorm_1Dpt_exp.Scale(0.5)
+                    #hDiffXsecNorm_exp.Scale(0.5)
+                    #hDiffXsecNorm_1Deta_exp.Scale(0.5)
+                    #hDiffXsecNorm_1Dpt_exp.Scale(0.5)
 
 
                 # # now drawing a TH1 unrolling TH2
@@ -1101,7 +1133,7 @@ if __name__ == "__main__":
         print ""
 
 
-    tfOut.Write()
+    #tfOut.Write()
     tfOut.Close()
     print ""
     print "Created file %s" % (outname+outfilename)

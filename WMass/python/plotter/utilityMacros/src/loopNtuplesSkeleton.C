@@ -773,7 +773,7 @@ void fillHistograms(const string& treedir = "./",
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
       //wgt = lepSF(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]); 
-      wgt = _get_electronSF_TriggerAndID(lep_pdgId[0],lep_pt[0],lep_eta[0]);     
+      wgt = _get_electronSF_TriggerAndID(lep_pdgId[0],lep_calPt[0],lep_eta[0]) * lep_SF2[0] * eleSF_L1Eff(lep_pt[0],lep_eta[0]);     
       lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
       lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
       // ptLepFullUp = ptElFullUp(lep_calPt[0],lep_eta[0]);

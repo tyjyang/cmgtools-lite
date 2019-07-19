@@ -9,16 +9,16 @@ dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsEtaPt = 1
 
-allPtBinsSignal = 1
+allPtBinsSignal = 0
 
 seed = 123456789
 
@@ -34,7 +34,8 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
-folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
+#folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
+folder = "diffXsec_el_2019_07_18_latestScaleFactor/"
 if doMuElComb:
     folder = "muElCombination"
     skipTemplate = 1

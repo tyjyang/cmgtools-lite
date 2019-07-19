@@ -4,10 +4,10 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=0
-skipUnpack=0
-skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1
+skipUnpack=1
+skipMergeRoot=0
+skipSingleCard=0
+skipMergeCard=0
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 flavourCombinationOutdir = "muElCombination"
 
@@ -27,8 +27,8 @@ skipFitAsimov = False
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-folder_el = "diffXsec_el_2019_07_18_latestScaleFactor/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_18July2019_latestScaleFactor.root"
+folder_el = "diffXsec_el_2019_07_19_latestScaleFactor_AllIn/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_19July2019_latestScaleFactor_AllIn.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
