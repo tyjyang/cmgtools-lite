@@ -4,21 +4,21 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
+doMuElComb = 0
 dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
-skipPostfit = 1  # only for Data
+skipPostfit = 0  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 0
 skipImpactsEtaPt = 1
 
-allPtBinsSignal = 0
+allPtBinsSignal = 1
 
 seed = 123456789
 
@@ -30,13 +30,14 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-folder = "diffXsec_el_2019_07_18_latestScaleFactor/"
+#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 if doMuElComb:
+    allPtBinsSignal = 1
     folder = "muElCombination"
     skipTemplate = 1
 
@@ -53,7 +54,8 @@ if doMuElComb:
 #postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
 #postfix = "zptReweight_uncorrQCDscales_fixedPOIs"
 #postfix = "combinedLep"
-postfix = "zptReweight_fixEffStat"
+#postfix = "zptReweight_fixEffStat"
+postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes"
 if doMuElComb:
     postfix = "combinedLep_zptReweight_uncorrQCDscales_fixEffStat"
 postfix += "_bbb1_cxs1"
@@ -77,14 +79,14 @@ ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS|mW|fsr", 
-                      "muR.*|muF.*", 
+diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr", 
+                      #"muR.*|muF.*", 
                       #"Fakes(Eta|Pt).*[0-9]+mu.*", 
-                      #"Fakes(Eta|Pt).*[0-9]+el.*", 
+                      "Fakes(Eta|Pt).*[0-9]+el.*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      "CMS_.*|.*TestEffSyst.*", 
+                      #"CMS_.*|.*TestEffSyst.*", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]

@@ -221,10 +221,13 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                     continue
 
                 if not isMu:
+                    # if in the gap, skip this EffStat, it only creates troubles
                     if abs(tmp_parhist_val) > 1.4 and abs(tmp_parhist_val) < 1.5:
-                        ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 if tmp_parhist_val > 0 else -1.41)
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 if tmp_parhist_val > 0 else -1.41)
                     elif abs(tmp_parhist_val) > 1.5 and abs(tmp_parhist_val) < 1.6:
-                        ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.57 if tmp_parhist_val > 0 else -1.57)
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.57 if tmp_parhist_val > 0 else -1.57)
 
                 # for electrons there is the gap:
                 # eg, we can have 1.3, 1.4442, 1.5, 1.566, 1.7
@@ -248,7 +251,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ietaTemplate, ipt)
                     ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
                     ## now get the content of the parameter variation!
-                    phistybin = parhist.GetYaxis().FindBin(ybincenter)
+                    phistybin = min(parhist.GetNbinsX(),parhist.GetYaxis().FindBin(ybincenter))
                     tmp_scale = parhist.GetBinContent(ietaErf, phistybin)
                     scaling = math.sqrt(2.)*tmp_scale
                     ## scale electrons by sqrt(2) due to the input file being charge inclusive

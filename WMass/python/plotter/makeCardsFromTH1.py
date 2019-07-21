@@ -853,6 +853,10 @@ for ipar in range(3):
         # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
         # a template bin might have more than 1 efficiency variation if binning is coarser
         etaBinCenter = etaEffStat * 0.1 + 0.05  
+        if flavour != "mu":
+            # skip EffStat in gap, they seem to only create troubles
+            if abs(etaBinCenter) > 1.4 and abs(etaBinCenter) < 1.6:
+                continue
         ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)  
         # if genBins extends below the reco, the returned value is negative, so no match for signal
         # for outliers, must also check the reco binning

@@ -29,11 +29,13 @@ def formatBinBoundary(num):
 
 # [0] https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_PLUS/triggerMu/egammaEffi.txt
 
+useHelpFile = False  # eg for electron ID SF I didn't use the helper file made from txt
+isTrigger = False
 isMu = False
 charge = "plus" if isMu else "all"
 #lepton = "muon" 
 lepton = "muon" if isMu else "electron" 
-subdir = "" if isMu else "trigger_etaEE0p1/"
+subdir = "" if isMu else ("trigger_etaEE0p1/" if isTrigger else "elFullID_V2_endcap0p1/")
 #mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
 mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/{lep}/{sub}".format(lep=lepton,sub=subdir)
 
@@ -50,20 +52,39 @@ if isMu:
     etabins = [round(-2.40 + 0.10*x,1) for x in range(49)]
     ptbins = [round(x,1) for x in [25, 27.5, 30, 33, 36, 39, 45, 52, 55]]
 else:
-    infileData = mypath + "el_Run2016B_triggerEl.nominalFit.root"
-    # following MC file has TH1 with mass distribution, for Passign and Failing probes, can just use integral
-    infileMC = mypath + "el_DY_triggerEl.root"
-    outfile = mypath + 'triggerElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root'
-    plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/electronTriggerSF_onlyStatUnc/{sub}".format(sub=subdir)
-    infile_help = mypath + "triggerElectronEffAllCharge_onlyStatUnc.root".format(ch="Minus" if charge == "minus" else "Plus")
-    if "etaEE0p2" in subdir:
-        posetabins = [round(0.10*x,1) for x in range(1,14)] + [1.444, 1.566, 1.7, 1.9, 2.1, 2.3, 2.5]
-        etabins = [-1.0*x for x in reversed(posetabins)] + [0.0] + posetabins
-        ptbins = [round(x,1) for x in [25, 27.5, 30, 31.5, 33, 36, 39, 42, 45, 48, 52, 55]]
+    if isTrigger:
+        infileData = mypath + "el_Run2016B_triggerEl.nominalFit.root" 
+        # following MC file has TH1 with mass distribution, for Passign and Failing probes, can just use integral
+        infileMC = mypath + "el_DY_triggerEl.root"
+        outfile = mypath + 'triggerElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root'
+        plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/electronTriggerSF_onlyStatUnc/{sub}".format(sub=subdir)
+        infile_help = mypath + "triggerElectronEffAllCharge_onlyStatUnc.root".format(ch="Minus" if charge == "minus" else "Plus")
     else:
-        posetabins = [round(0.10*x,1) for x in range(17,26)]
-        etabins = [-1.0*x for x in reversed(posetabins)] + [-1.566, 1.566] + posetabins
-        ptbins = [round(x,1) for x in [30, 33, 36, 40, 45]]
+        infileData = mypath + "el_Run2016B_fullID.nominalFit.root"
+        # following MC file has TH1 with mass distribution, for Passign and Failing probes, can just use integral
+        infileMC = mypath + "el_DY_fullID.root"
+        outfile = mypath + 'fullIDElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root'
+        plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/electronFullIDSF_onlyStatUnc/{sub}".format(sub=subdir)
+        infile_help = mypath + "fullIDElectronEffAllCharge_onlyStatUnc.root".format(ch="Minus" if charge == "minus" else "Plus")
+
+    if isTrigger:
+        if "etaEE0p2" in subdir:
+            posetabins = [round(0.10*x,1) for x in range(1,14)] + [1.444, 1.566, 1.7, 1.9, 2.1, 2.3, 2.5]
+            etabins = [-1.0*x for x in reversed(posetabins)] + [0.0] + posetabins
+            ptbins = [round(x,1) for x in [25, 27.5, 30, 31.5, 33, 36, 39, 42, 45, 48, 52, 55]]
+        else:
+            posetabins = [round(0.10*x,1) for x in range(17,26)]
+            etabins = [-1.0*x for x in reversed(posetabins)] + [-1.566, 1.566] + posetabins
+            ptbins = [round(x,1) for x in [30, 33, 36, 40, 45]]
+    else:
+        if "granular" in subdir:
+            posetabins = [round(0.10*x,1) for x in range(1,14)] + [1.444, 1.566, 1.7, 1.9, 2.1, 2.3, 2.5]
+            etabins = [-1.0*x for x in reversed(posetabins)] + [0.0] + posetabins
+            ptbins = [round(x,1) for x in [25, 27.5, 30, 31.5, 33, 36, 39, 42, 45, 48, 52, 55]]
+        else:
+            posetabins = [round(0.10*x,1) for x in range(17,26)]
+            etabins = [-1.0*x for x in reversed(posetabins)] + [-1.566, 1.566] + posetabins
+            ptbins = [round(x,1) for x in [30, 33, 36, 40, 45]]
 
 print etabins
 print ptbins
@@ -72,20 +93,21 @@ print ptbins
 
 hEffData_help = None
 hEffMC_help = None
-tf = ROOT.TFile(infile_help)
-if not tf or not tf.IsOpen():
-    print "Error opening file %s" % infile_help
-    quit()
-else:
-    hEffData_help = tf.Get("effData_%s" % charge)
-    hEffMC_help = tf.Get("effMC_%s" % charge)
-    if not hEffData_help or not hEffMC_help:
-        print "Error while getting histograms from file %s" % infile_help
+if useHelpFile:
+    tf = ROOT.TFile(infile_help)
+    if not tf or not tf.IsOpen():
+        print "Error opening file %s" % infile_help
         quit()
     else:
-        hEffData_help.SetDirectory(0)
-        hEffMC_help.SetDirectory(0)
-    tf.Close()
+        hEffData_help = tf.Get("effData_%s" % charge)
+        hEffMC_help = tf.Get("effMC_%s" % charge)
+        if not hEffData_help or not hEffMC_help:
+            print "Error while getting histograms from file %s" % infile_help
+            quit()
+        else:
+            hEffData_help.SetDirectory(0)
+            hEffMC_help.SetDirectory(0)
+        tf.Close()
         
 print etabins
 print ptbins
@@ -174,16 +196,16 @@ for ipt in range(len(ptbins)-1):
             heffData.SetBinContent(i+1, ipt+1, 1.0)
             uncertainty = 1.0
         if isMu:
-            if uncertainty > 0.01: 
+            if uncertainty > 0.01 and useHelpFile: 
                 uncertainty = min(uncertainty, hEffData_help.GetBinError(i+1, ipt+1))
         else:
-            if uncertainty > 0.02 and uncertainty < 1.0:
+            if uncertainty > 0.02 and uncertainty < 1.0 and useHelpFile:
                 uncertainty = min(uncertainty, hEffData_help.GetBinError(i+1, ipt+1))
         heffData.SetBinError(i+1, ipt+1, uncertainty)
         heffUncRatio_DataOverMC.SetBinContent(i+1, ipt+1, uncertainty)
 
 tf.Close()
-print "Created file %s" % infileData
+print "Done with file %s" % infileData
 
 # ugly to repeat the same code, but faster to manage for now
 tf = ROOT.TFile(infileMC)
@@ -193,7 +215,7 @@ if not tf or not tf.IsOpen():
 nFits = 0
 for k in tf.GetListOfKeys():
     obj=k.ReadObj()
-    if obj.ClassName() == "RooFitResult": nFits += 1
+    if obj.ClassName() == "TH1D": nFits += 1
 nFits = nFits/2
 
 for ipt in range(len(ptbins)-1):
@@ -234,12 +256,12 @@ for ipt in range(len(ptbins)-1):
         else:
             heffMC.SetBinContent(i+1, ipt+1, 1.0)
         uncertainty = gr.GetErrorY(i)  # or max(gr.GetErrorYhigh(i),gr.GetErrorYlow(i)) ?
-        #if uncertainty > 0.01: uncertainty = min(uncertainty, hEffMC_help.GetBinError(i+1, ipt+1))
+        #if uncertainty > 0.01 and useHelpFile: uncertainty = min(uncertainty, hEffMC_help.GetBinError(i+1, ipt+1))
         heffMC.SetBinError(i+1, ipt+1, uncertainty)
         htmp.SetBinContent(i+1, ipt+1, uncertainty)
 
 tf.Close()
-print "Created file %s" % infileMC
+print "Done with file %s" % infileMC
 
 heffSF.Divide(heffData,heffMC)  # uncertainties are uncorrelated, can use simple Divide to propagate uncertainty on SF
 heffUncRatio_DataOverMC.Divide(htmp)

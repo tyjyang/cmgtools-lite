@@ -3,7 +3,7 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-doMuons=0
+doMuons=1
 skipUnpack=1
 skipMergeRoot=0
 skipSingleCard=0
@@ -11,13 +11,16 @@ skipMergeCard=0
 skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 flavourCombinationOutdir = "muElCombination"
 
-allPtBinsSignal = 0
+allPtBinsSignal = 1
 useBinUncEffStat = False
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 # note that there is always a part of the uncertainty that is charge-uncorrelated
 freezePOIs = False
 skipFitData = False
 skipFitAsimov = False
+
+if not skipMergeCardFlavour:
+    allPtBinsSignal = 1
 
 # el
 #folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
@@ -27,8 +30,8 @@ skipFitAsimov = False
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-folder_el = "diffXsec_el_2019_07_19_latestScaleFactor_AllIn/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_19July2019_latestScaleFactor_AllIn.root"
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_20July2019_latestScaleFactor_AllIn_IDwithMConlyStat.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
@@ -73,7 +76,7 @@ if useBinUncEffStat:
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight_fixEffStat --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
+optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  optionsForCardMakerMerger += " --freezePOIs "
 if skipFitData: optionsForCardMakerMerger += " --skip-fit-data "
 if skipFitAsimov: optionsForCardMakerMerger += " --skip-fit-asimov "

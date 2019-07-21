@@ -42,10 +42,10 @@
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/trigger_etaEE0p1/triggerElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/trigger_pt_30_45_etaEE0p1_fromRooFitResult_onlyStatUnc/ -c el -n smoothEfficiency.root -t --input-hist-names "effData_all,effMC_all,triggerSF_all" --use-MC-error-from-histo  -r 30 -1 --set-max-pt-histo 55
 
 # electron ID in EE
-# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_endcap0p1/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/elFullID_V2_endcap0p1/ -c el -n smoothEfficiency.root --fullID --set-max-pt-histo 55
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_endcap0p1/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/elFullID_V2_endcap0p1_trueMCstatUncertainty/ -c el -n smoothEfficiency.root --fullID --set-max-pt-histo 55 --use-MC-error-from-histo --file-hist-forMCuncertainty "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_endcap0p1/fullIDElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root,effMC_all"
 
 # electron ID in EB (EE with 0.2 eta)
-# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/elFullID_V2_granular/ -c el -n smoothEfficiency.root --fullID
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/elFullID_V2_granular_trueMCstatUncertainty/ -c el -n smoothEfficiency.root --fullID  --use-MC-error-from-histo --file-hist-forMCuncertainty "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/fullIDElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root,effMC_all"
 
 import ROOT, os, sys, re, array, math
 
@@ -435,7 +435,7 @@ def fitTurnOn(hist, key, outname, mc, channel="el", hist_chosenFunc=0, drawFit=T
                 if any(key == x for x in [4,9,17]):
                     tf1_erf.SetParameter(1,35)
             elif mc == "MC":
-                if any(key == x for x in [4]):
+                if any(key == x for x in [4,37]):
                     tf1_erf.SetParameter(1,35)
         else:
             if mc == "Data":
@@ -868,6 +868,7 @@ if __name__ == "__main__":
     parser.add_option(    '--hists-average', dest='histsAverage',default='', type='string', help='Comma separated list of histograms to average (pass names, one for each average, it is assumed the names in each file are the same)')
     parser.add_option(    '--input-hist-names', dest='inputHistNames',default='', type='string', help='Pass comma separated list of 3  names, for eff(data),eff(MC),SF, to be used instead of the default names')
     parser.add_option(    '--use-MC-error-from-histo', dest='useMCerrorFromHisto',action="store_true", default=False, help='use uncertainty stored in histogram for MC (normally in the TnP output it is not stored, and the same uncertainty as data is used)')
+    parser.add_option(    '--file-hist-forMCuncertainty', dest='fileHistMCuncertainty',default='', type='string', help='Pass file and histogram names (comma separated) that will be used to get MC uncertainty (generally it is not stored with the histogram). Unlike --input-hist-names, it allows to only use an alternative input for MC. This option requires --use-MC-error-from-histo')
     (options, args) = parser.parse_args()
 
 
@@ -881,6 +882,10 @@ if __name__ == "__main__":
             print "Error: option -t is incompatible with --fullID. Exit"
             quit()
     
+    if not options.useMCerrorFromHisto and len(options.fileHistMCuncertainty):
+        print "Error: option --file-hist-forMCuncertainty requires --use-MC-error-from-histo"
+        quit()
+
     channel = options.channel
     if channel not in ["el","mu"]:
         print "Error: unknown channel %s (select 'el' or 'mu')" % channel
@@ -1019,6 +1024,17 @@ if __name__ == "__main__":
     etabins = hdata.GetXaxis().GetXbins()
     ptbins = hdata.GetYaxis().GetXbins()
     #etaBinHisto = ROOT.TH1F("etaBinEdges","The x axis of this histogram has the eta binning",len(etabins)-1,array('d',etabins))
+
+    if len(options.fileHistMCuncertainty):
+        tfMC = ROOT.TFile.Open(options.fileHistMCuncertainty.split(',')[0])
+        hmc = tfMC.Get(options.fileHistMCuncertainty.split(',')[1]).Clone("hmcExt")
+        if (hmc == 0):
+            print "Error: could not retrieve %s from input file %s. Exit" % (options.fileHistMCuncertainty.split(',')[1],
+                                                                             options.fileHistMCuncertainty.split(',')[0])
+            quit()
+        else:
+            hmc.SetDirectory(0)
+        tfMC.Close()
         
     # for muons must create original scale factor as well, unless it was trigger (which also have the SF in the input file)
     if isEle or options.isTriggerScaleFactor:
