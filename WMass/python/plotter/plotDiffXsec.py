@@ -57,7 +57,7 @@ if doMuElComb:
 #postfix = "zptReweight_fixEffStat"
 postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes"
 if doMuElComb:
-    postfix = "combinedLep_zptReweight_uncorrQCDscales_fixEffStat"
+    postfix = "combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes"
 postfix += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"

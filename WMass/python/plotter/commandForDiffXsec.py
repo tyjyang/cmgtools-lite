@@ -5,10 +5,10 @@ import ROOT, os, sys, re, array
 dryrun=0
 doMuons=1
 skipUnpack=1
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0
-skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1
+skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
 flavourCombinationOutdir = "muElCombination"
 
 allPtBinsSignal = 1
@@ -30,7 +30,7 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/" # keep "/" at the end
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_20July2019_latestScaleFactor_AllIn_IDwithMConlyStat.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
@@ -82,7 +82,7 @@ if skipFitData: optionsForCardMakerMerger += " --skip-fit-data "
 if skipFitAsimov: optionsForCardMakerMerger += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales_fixEffStat --sig-out-bkg " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes --sig-out-bkg " # --useSciPyMinimizer "  
 
 #================================
 
