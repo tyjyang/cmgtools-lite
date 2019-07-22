@@ -13,6 +13,7 @@ import utilities
 utilities = utilities.util()
 
 REFMC = 'MC@NLO'
+PRELIMINARY = '' #'#it{Preliminary}'
 
 class valueClass:
     def __init__(self, name):
@@ -76,18 +77,20 @@ class valueClass:
     def makeMultiGraphRel(self):
         self.mg = ROOT.TMultiGraph()
         self.mg.SetTitle() ## no title 'W^{{{ch}}}: {p}'.format(ch=self.ch,p=self.pol))
-        #self.shiftPoints(self.graph_fit_rel)
+        self.shiftPoints(self.graph_fit_rel)
         self.mg.Add(self.graph_rel,'P2')
         self.mg.Add(self.graph_fit_rel)
 
     def graphStyle(self):
         #fillstyles = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
         #fillstyles_rel = {'left': 3244, 'right': 3001, 'long': 3144, 'unpolarized': 3001}
-        fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
-        fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
+        #fillstyles = {'left': 3244, 'right': 3244, 'long': 3244, 'unpolarized': 3244}
+        #fillstyles_rel = {'left': 3444, 'right': 3444, 'long': 3444, 'unpolarized': 3244}
+        fillstyles     = {'left': 1001, 'right': 1001, 'long': 1001, 'unpolarized': 1001}
+        fillstyles_rel = {'left': 1001, 'right': 1001, 'long': 1001, 'unpolarized': 1001}
         if hasattr(self,'graph'):
             self.graph.SetLineColor(self.color)
-            self.graph.SetFillColor(self.colorf)
+            self.graph.SetFillColorAlpha(self.colorf,0.30)
             self.graph.SetFillStyle(fillstyles[self.pol])
         if hasattr(self,'graph_fit'):
             self.graph_fit.SetLineWidth(3)
@@ -98,7 +101,7 @@ class valueClass:
         if hasattr(self,'graph_rel'):
             self.graph_rel.SetLineWidth(5)
             self.graph_rel.SetLineColor(self.color)
-            self.graph_rel.SetFillColor(self.colorf)
+            self.graph_rel.SetFillColorAlpha(self.colorf,0.30)
             self.graph_rel.SetFillStyle(fillstyles_rel[self.pol])
         if hasattr(self,'graph_fit_rel'):
             self.graph_fit_rel.SetLineWidth(2)
@@ -115,7 +118,8 @@ class valueClass:
             self.altgraph.SetFillStyle(fillstyles[self.pol])
 
     def shiftPoints(self, graph):
-        shifts = {'left': -0.01, 'right': 0.01, 'long': 0.0, 'unpolarized': 0.0}
+        shift = 0.25/8.
+        shifts = {'left': -shift, 'right': shift, 'long': 0.0, 'unpolarized': 0.0}
         for p in xrange(graph.GetN()):
             x = ROOT.Double(0); y = ROOT.Double(0)
             graph.GetPoint(p,x,y)
@@ -150,24 +154,25 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph     , 'W_{{L}} (wgt {mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
-            leg.AddEntry(values['right'].graph     , 'W_{{R}} (wgt {mc})'.format(mc=REFMC) , 'f')
-            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
-            leg.SetNColumns(2)
-            if not skipLong:
-                leg.AddEntry(values['long'] .graph     , 'W_{{0}} (wgt {mc})'.format(mc=REFMC) , 'f')
-                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
+            leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc}*)'.format(mc=REFMC) , 'f')
             if doAltExp:
-                leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} (unw {mc})'.format(mc=REFMC) , 'l')
-                leg.AddEntry(values['right'].altgraph     , 'W_{{R}} (unw {mc})'.format(mc=REFMC) , 'l')
+                leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'l')
+            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
+            leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc}*)'.format(mc=REFMC) , 'f')
+            if doAltExp:
+                leg.AddEntry(values['right'].altgraph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'l')
+            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
+            leg.SetNColumns(3 if doAltExp else 3)
+            if not skipLong:
+                leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc}*)'.format(mc=REFMC) , 'f')
+                leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
                 
             mg = ROOT.TMultiGraph()
-            mg.Add(values['left'] .graph,'P2')
-            mg.Add(values['right'].graph,'P2')
-            if not skipLong: mg.Add(values['long'] .graph,'P2')
+            mg.Add(values['left'] .graph,'E2')
+            mg.Add(values['right'].graph,'E2')
+            if not skipLong: mg.Add(values['long'] .graph,'E2')
             if doAltExp:
                 mg.Add(values['left'] .altgraph,'L2')
                 mg.Add(values['right'].altgraph,'L2')
@@ -184,14 +189,16 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                 mg.GetYaxis().SetRangeUser(-0.1,0.4)
             else:
                 if options.normxsec: 
-                    mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
+                    #mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
+                    mg.GetYaxis().SetTitle('d#sigma/dY_{W}/#sigma_{tot}')
+                    mg.GetYaxis().SetRangeUser(0.,0.8 if options.maxRapidity > 2.9 else 0.25)
                 else: 
-                    mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
+                    mg.GetYaxis().SetTitle('d#sigma/dY_{W} (pb)')
                     mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(2.0)
+            mg.GetYaxis().CenterTitle()
      
             leg.Draw('same')
      
@@ -222,7 +229,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                 yaxrange = (-0.1, 0.1)
             else:
                 yaxtitle = '#sigma_{Theory}/#sigma_{Data}'
-                yaxrange = (0.70, 1.30)
+                yaxrange = (0.80, 1.20)
      
 
             helToPlot = ['left','right']
@@ -244,9 +251,10 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                     values[hel].mg.GetYaxis().CenterTitle()
             line.Draw("Lsame");
             c2.cd()
-            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
+            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
         for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
@@ -276,7 +284,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         if hasattr(values,'graph') and hasattr(values,'graph_fit'):
                 
             mg = ROOT.TMultiGraph()
-            mg.Add(values.graph,'P2')
+            mg.Add(values.graph,'E2')
             mg.Add(values.graph_fit)
             if doAltExp:
                 mg.Add(values.altgraph,'L2')
@@ -289,7 +297,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
                       'a0': '|A_{0}|', 
                       'a4': '|A_{4}|',
                       'sumxsec': '',
-                      'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
+                      #'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
+                      'sumxsecnorm': 'd#sigma/dY_{W}/#sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
                       'a4': (-1,2),
@@ -301,19 +310,21 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(2.0)
-     
+            mg.GetYaxis().CenterTitle()
+
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values.graph_fit , 'data', 'pl')
-            leg.AddEntry(values.graph     , 'wgt '+REFMC, 'f')
+            leg.AddEntry(values.graph     , REFMC+'*', 'f')
             if doAltExp:
-                leg.AddEntry(values.graph     , 'unw '+REFMC, 'l')
+                leg.AddEntry(values.graph     , REFMC, 'l')
 
             leg.Draw('same')
-            lat.DrawLatex(0.16, 0.94, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
-            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep="#mu" if channel == "mu" else "e",nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
+            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
 
         ## now make the relative error plot:
@@ -582,7 +593,7 @@ if __name__ == "__main__":
                     if   options.type == 'toys': 
                         xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
                     elif options.type == 'hessian':
-                        xsec_fit = [x/float(nChan) for x in valuesAndErrors[parname+'_pmaskedexpnorm']]
+                        xsec_fit = [x for x in valuesAndErrors[parname+'_pmaskedexpnorm']]
                     else:
                         print "--normxsec not implemented yet for scans."
                         sys.exit()
@@ -656,7 +667,7 @@ if __name__ == "__main__":
                 xskey=xs
                 if xs=='sumxsec':
                     ybinwidth_scale = ybinwidths[cp][iy]
-                    scale = LUMINOSITY*float(nChan)
+                    scale = LUMINOSITY
                 elif xs=='sumxsecnorm':
                     ybinwidth_scale = ybinwidths[cp][iy]
                     xskey = xs.replace('norm','') # to use the expected xsec values, which have to be normalized

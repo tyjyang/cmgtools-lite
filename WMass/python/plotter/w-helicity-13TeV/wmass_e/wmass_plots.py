@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # may use as: cat w-helicity-13TeV/wmass_e/zee_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/testZskim {} > runplots.sh
 # may use as: cat w-helicity-13TeV/wmass_e/wgen_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/gen {} > runplots.sh
-import sys,re,os,inspect
+
+# to submit a subset of the plots in the plots.txt on condor may do:
+
+import sys,re,os,datetime
 sys.path.insert(0,os.path.abspath(os.getcwd()+"/w-helicity-13TeV"))
 from submitToys import makeCondorFile,jobstring_tf
 
@@ -43,7 +46,8 @@ def base(selection,useSkim=True):
             plotfile = "wenu_plots.txt "
             GO+=" w-helicity-13TeV/wmass_e/"+wenu_plots.txt
     elif selection=='wgen':
-        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%CORE
+        GO="%s -W 1 "%CORE
+        GO="%s w-helicity-13TeV/wmass_e/mca-80X-wenu-helicity.txt w-helicity-13TeV/wmass_e/wenu_80X.txt "%GO
         GO="%s -p Wplus_long,Wplus_left,Wplus_right --plotmode=nostack "%GO
         #GO="%s --sP wplus_mtwtk,wplus_etal1,wplus_ptl1,wplus_etal1gen,wplus_ptl1gen,wplus_wy,wplus_wpt "%GO
         if dowhat in ["plots","ntuple"]: GO+=" w-helicity-13TeV/wmass_e/wenu_plots.txt "        
@@ -67,12 +71,15 @@ def runIt(GO,name,plots=[],noplots=[]):
     elif dowhat == "ntuple": print 'echo %s; python mcNtuple.py'%name,GO
 def submitIt(GO,name,plots=[],noplots=[],opts=None):
 
-    jobdir= os.path.abspath("./jobsplots/")
+    date = datetime.date.today().isoformat()
+    jobdir= os.path.abspath("./jobsplots_{name}_{date}/".format(name=name,date=date))
     if not os.path.isdir(jobdir): os.mkdir(jobdir)
 
     srcfiles = []
     for i,pl in enumerate(plots):
-        cmd = "python mcPlots.py --pdir {pdir} --sP {plot} {GO}".format(pdir=os.path.abspath(ODIR+"/"+name),plot=pl,GO=GO)
+        cmd = "python mcPlots.py --pdir {pdir} --sP {plot} -o {pdir}/{plot}.root {GO}".format(pdir=os.path.abspath(ODIR+"/"+name),plot=pl,GO=GO)
+        if 'plus' in pl: cmd = swapcharge(cmd,'plus')
+        elif 'minus' in pl: cmd = swapcharge(cmd,'minus')
 
         job_file_name = jobdir+'/plot_{i}.sh'.format(i=i)
         log_file_name = job_file_name.replace('.sh','.log')
@@ -85,6 +92,7 @@ def submitIt(GO,name,plots=[],noplots=[],opts=None):
         tmp_file.close()
         srcfiles.append(job_file_name)
     cf = makeCondorFile(jobdir,srcfiles,opts,jobdir,jobdir,jobdir)
+    print "condor file is in ",jobdir+"/condor_submit.condor"
 def add(GO,opt):
     return '%s %s'%(GO,opt)
 def remove(GO,opt):
@@ -131,10 +139,8 @@ if __name__ == '__main__':
         x = x = add(x," --sP 'etalep,ptlep' ")
     elif 'wgen' in torun:
         x = base('wgen')
-        if 'plus' in torun: x = swapcharge(x,'plus')
-        elif 'minus' in torun: x = swapcharge(x,'minus')
         if 'nosel' in torun:
-            x = add(x," -U 'alwaystrue' ")
+            x = add(x," -U 'alwaystrue ' ")
         if 'fullsel' in torun:
             x = add(x," -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)' ")
         if torun.endswith('pdfs'):
@@ -144,6 +150,15 @@ if __name__ == '__main__':
                 xw = x
                 xw = add(xw," -W '{wgt}' -o {output}".format(wgt=wgt,output=output))
                 submitIt( xw,'%s_%s' % (torun,i), opts=options )
+        if 'qcdpostfit' in torun:
+            #x = x.replace('mca-80X-wenu-helicity.txt','mca-80X-wenu-helicity-postfit.txt')
+            poldic = {'long':0,'left':1,'right':2}
+            chargedic = {'plus':1,'minus':-1}
+            scalings = ''
+            for charge,sign in chargedic.iteritems():
+                for pol,ipol in poldic.iteritems():
+                    scalings += '--scale-process W{charge}_{pol} "postfitQCDWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{ipol},{sign})" '.format(charge=charge,pol=pol,ipol=ipol,sign=sign)
+            x = add(x,scalings)
 
     plotlist = args[2] # if empty, to all the ones of the txt file
     if not torun.endswith('pdfs'): 

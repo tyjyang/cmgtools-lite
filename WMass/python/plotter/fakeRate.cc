@@ -3,6 +3,8 @@
 
 #include <TH2.h>
 #include <TH2D.h>
+#include <TH3.h>
+#include <TH3F.h>
 #include <TFile.h>
 #include <TMath.h>
 #include <TRandom3.h>
@@ -14,9 +16,9 @@
 #include <cstdlib> //as stdlib.h         
 #include <cstdio>
 
-TH2 * helicityFractions_0 = 0;
-TH2 * helicityFractions_L = 0;
-TH2 * helicityFractions_R = 0;
+TH3 * helicityFractions_0 = 0;
+TH3 * helicityFractions_L = 0;
+TH3 * helicityFractions_R = 0;
 
 TH2 * angular_c = 0;
 TH2 * angular_0 = 0;
@@ -78,9 +80,9 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
   else if (histoName == "PR_mu")  { histo = & PR_mu;  hptr2 = & PRi_mu[0]; }
   else if (TString(histoName).BeginsWith("FR_mu_i")) {histo = & FR_temp; hptr2 = & FRi_mu[TString(histoName).ReplaceAll("FR_mu_i","").Atoi()];}
   else if (TString(histoName).BeginsWith("FR_el_i")) {histo = & FR_temp; hptr2 = & FRi_el[TString(histoName).ReplaceAll("FR_el_i","").Atoi()];}
-  else if (TString(histoName).Contains("helicityFractions_0")) { histo = & helicityFractions_0; }
-  else if (TString(histoName).Contains("helicityFractions_L")) { histo = & helicityFractions_L; }
-  else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
+  //else if (TString(histoName).Contains("helicityFractions_0")) { histo = & helicityFractions_0; }
+  //else if (TString(histoName).Contains("helicityFractions_L")) { histo = & helicityFractions_L; }
+  //else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
   else if (TString(histoName).Contains("angular_c")) { histo = & angular_c; }
   else if (TString(histoName).Contains("angular_0")) { histo = & angular_0; }
   else if (TString(histoName).Contains("angular_1")) { histo = & angular_1; }
@@ -110,17 +112,17 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
     } else {
       TH2* hnew = (TH2*) f->Get(name);
       if (hnew == 0 || hnew->GetNbinsX() != (*histo)->GetNbinsX() || hnew->GetNbinsY() != (*histo)->GetNbinsY()) {
-	std::cerr << "WARNING 2: overwriting histogram " << (*histo)->GetName() << std::endl;
+    std::cerr << "WARNING 2: overwriting histogram " << (*histo)->GetName() << std::endl;
       } else {
-	bool fail = false;
-	for (int ix = 1; ix <= (*histo)->GetNbinsX(); ++ix) {
-	  for (int iy = 1; iy <= (*histo)->GetNbinsX(); ++iy) {
-	    if ((*histo)->GetBinContent(ix,iy) != hnew->GetBinContent(ix,iy)) {
-	      fail = true; break;
-	    }
-	  }
-	}
-	if (fail) std::cerr << "WARNING 3: overwriting histogram " << (*histo)->GetName() << std::endl;
+    bool fail = false;
+    for (int ix = 1; ix <= (*histo)->GetNbinsX(); ++ix) {
+      for (int iy = 1; iy <= (*histo)->GetNbinsX(); ++iy) {
+        if ((*histo)->GetBinContent(ix,iy) != hnew->GetBinContent(ix,iy)) {
+          fail = true; break;
+        }
+      }
+    }
+    if (fail) std::cerr << "WARNING 3: overwriting histogram " << (*histo)->GetName() << std::endl;
       }
     }
     delete *histo;
@@ -130,6 +132,55 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
     *histo = 0;
   } else {
     *histo = (TH2*) f->Get(name)->Clone(name);
+    (*histo)->SetDirectory(0);
+    if (hptr2) *hptr2 = *histo;
+  }
+  f->Close();
+  return histo != 0;
+
+}
+
+bool loadFRHisto3D(const std::string &histoName, const std::string file, const char *name) {
+
+  TH3 **histo = 0, **hptr2 = 0;
+
+  if      (TString(histoName).Contains("helicityFractions_0")) { histo = & helicityFractions_0; }
+  else if (TString(histoName).Contains("helicityFractions_L")) { histo = & helicityFractions_L; }
+  else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
+  if (histo == 0)  {
+    std::cerr << "ERROR: histogram " << histoName << " is not defined in fakeRate.cc." << std::endl;
+    return 0;
+  }
+
+  TFile *f = TFile::Open(file.c_str());
+  if (*histo != 0) {
+    if (std::string(name) != (*histo)->GetName()) {
+      std::cerr << "WARNING 1: overwriting histogram " << (*histo)->GetName() << std::endl;
+    } else {
+      TH3* hnew = (TH3*) f->Get(name);
+      if (hnew == 0 || hnew->GetNbinsX() != (*histo)->GetNbinsX() || hnew->GetNbinsY() != (*histo)->GetNbinsY() || hnew->GetNbinsZ() != (*histo)->GetNbinsZ()) {
+    std::cerr << "WARNING 2: overwriting histogram " << (*histo)->GetName() << std::endl;
+      } else {
+    bool fail = false;
+    for (int ix = 1; ix <= (*histo)->GetNbinsX(); ++ix) {
+      for (int iy = 1; iy <= (*histo)->GetNbinsY(); ++iy) {
+        for (int iz = 1; iz <= (*histo)->GetNbinsZ(); ++iz) {
+          if ((*histo)->GetBinContent(ix,iy,iz) != hnew->GetBinContent(ix,iy,iz)) {
+            fail = true; break;
+          }
+        }
+      }
+    }
+    if (fail) std::cerr << "WARNING 3: overwriting histogram " << (*histo)->GetName() << std::endl;
+      }
+    }
+    delete *histo;
+  }
+  if (f->Get(name) == 0) {
+    std::cerr << "ERROR: could not find " << name << " in " << file << std::endl;
+    *histo = 0;
+  } else {
+    *histo = (TH3*) f->Get(name)->Clone(name);
     (*histo)->SetDirectory(0);
     if (hptr2) *hptr2 = *histo;
   }
@@ -476,14 +527,16 @@ float fetchFR_i(float l1pt, float l1eta, int l1pdgId, int iFR)
 }
 
    
-TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(1-x*x)", -1., 1.);
-TF1 * helicityFraction_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
-TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2"              , -1., 1.);
+TF1 * helicityFraction_0 = new TF1("helicityFraction_0", "3./4*(1-x*x)" , -1., 1.);
+TF1 * helicityFraction_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2", -1., 1.);
+TF1 * helicityFraction_R = new TF1("helicityFraction_R", "3./8.*(1+x)^2", -1., 1.);
 
 //TRandom3 * helRand = new TRandom3(42);
+//
 
-float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol)
+float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol, int ipdf = 0)
 {
+// pdfs go from 0 (nominal) through the pdf variations (1-60) to alphaS Up/Down (61/62)
 
   float ayw = std::abs(yw);
 
@@ -504,9 +557,9 @@ float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol)
   // else if (tmp_rand >= 0.6                   && pol != 2) return 0.;
 
 
-  TH2 *hist_f0 = helicityFractions_0;
-  TH2 *hist_fL = helicityFractions_L;
-  TH2 *hist_fR = helicityFractions_R;
+  TH3 *hist_f0 = helicityFractions_0;
+  TH3 *hist_fL = helicityFractions_L;
+  TH3 *hist_fR = helicityFractions_R;
 
   // float yval  = std::abs(yw) > hist_f0->GetXaxis()->GetXmax() ? hist_f0->GetXaxis()->GetXmax() : yw;
   // float ptval = ptw > hist_f0->GetYaxis()->GetXmax() ? hist_f0->GetYaxis()->GetXmax() : ptw;
@@ -514,20 +567,29 @@ float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol)
   int ywbin = std::max(1, std::min(hist_f0->GetNbinsX(), hist_f0->GetXaxis()->FindBin(ayw)));
   int ptbin = std::max(1, std::min(hist_f0->GetNbinsY(), hist_f0->GetYaxis()->FindBin(ptw)));
 
-  float f0 = hist_f0->GetBinContent(ywbin, ptbin);
-  float fL = hist_fL->GetBinContent(ywbin, ptbin);
-  float fR = hist_fR->GetBinContent(ywbin, ptbin);
+  // here it takes the bin number, so need to add 1 to the ipdf
+  float f0 = std::max(0., hist_f0->GetBinContent(ywbin, ptbin, ipdf+1));
+  float fL = std::max(0., hist_fL->GetBinContent(ywbin, ptbin, ipdf+1));
+  float fR = std::max(0., hist_fR->GetBinContent(ywbin, ptbin, ipdf+1));
 
   float f0Term = helicityFraction_0->Eval(costheta);
   float fLTerm = helicityFraction_L->Eval(costheta);
   float fRTerm = helicityFraction_R->Eval(costheta);
 
-  float weight = 0.;
+  float weight = f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm);
   float max_weight = 99999.;
 
    //std::cout << "normalization of the weights: " << f0*f0Term+fL*fLTerm+fR*fRTerm << std::endl;
    //weight = fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm);
-   // if (weight >= max_weight) std::cout << " weight for fR larger than 4!!!!" << weight << std::endl;
+   // if (weight >= 100.) {
+   //   std::cout << " weight for f0 larger than 100.!!!!" << weight << std::endl;
+   //   std::cout << " this is f0: " << f0 << std::endl;
+   //   std::cout << " this is fR: " << fR << std::endl;
+   //   std::cout << " this is fL: " << fL << std::endl;
+   //   std::cout << " this is f0Term: " << f0Term << std::endl;
+   //   std::cout << " this is fRTerm: " << fRTerm << std::endl;
+   //   std::cout << " this is fLTerm: " << fLTerm << std::endl;
+   // }
 
   if      (pol == 0) return 5.0*std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
   else if (pol == 1) return 2.5*std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
@@ -538,6 +600,14 @@ float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol)
 
 }
 
+float pdfRatioHel(float yw, float ptw, float costheta, long int evt, int pol, int ipdf){
+    float den = helicityWeight(yw, ptw, costheta, evt, pol);
+    if (den == 0.) return 1.;
+    float num = helicityWeight(yw, ptw, costheta, evt, pol, ipdf);
+    // std::cout << "num: " << num << "    den: " << den << std::endl;
+    //if (num/den > 1000.) std::cout << "num: " << num << "    den: " << den << " pT: " << ptw << " yw " << yw << std::endl;
+    return (num/den);
+}
 // ================================================================================
 float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
 {

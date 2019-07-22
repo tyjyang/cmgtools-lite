@@ -214,7 +214,7 @@ def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_sig',append=False)
     incl_file=getMcaIncl(mcafile,incl_mca)
     postfix = "_{proc}_{syst}".format(proc=incl_mca.split('_')[1],syst=syst)
     mcafile_syst = open("%s/mca%s.txt" % (odir,postfix), "w")
-    weightFcn = 'fsrPhotosWeight(GenLepDressed_pdgId[0]\,GenLepDressed_eta[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
+    weightFcn = 'fsrPhotosWeightSimple(GenLepDressed_pdgId[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
     fsrsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
@@ -297,7 +297,9 @@ if __name__ == "__main__":
     signal_helicities = ['left', 'right']
     if not options.longBkg:
         signal_helicities += ['long']
-    
+
+    helmap = {'long': 0, 'left': 1, 'right': 2}
+
     print 'these are signal helicities', signal_helicities
     
     FASTTEST=''
@@ -412,6 +414,9 @@ if __name__ == "__main__":
                         zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
                         fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
                         BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
+                        pdfmatch = re.search('pdf(\d+)',var)
+                        if pdfmatch:
+                            BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
                         if options.queue:
                             mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                             ## here accumulate signal jobs if running with long. make long+right+left one job

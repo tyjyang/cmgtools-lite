@@ -103,17 +103,17 @@ def kappa(kappas,charge,pol,syst,kbin):
     kappa_dn = kappas[(charge,pol,unpolsyst)][1]
     return (kappa_up[kbin],kappa_dn[kbin])
 
-def getQCDWeightProd(kappas,thetas,nuisbin,kbin):
+def getQCDWeightProd(kappas,thetas,pol,charge,nuisbin,kbin):
     thetak = {} # not really necessary, useful for debugging
-    for pol in ['left','right','long']:
-        for charge in ['plus','minus']:
-            for qcdscale in ['muR','muF','muRmuF']:
-                nuis = pol+qcdscale+str(nuisbin)+charge
-                theta = thetas[nuis][0]
-                ## should inteprolate, but let's just separate Up/Dn
-                side = 0 if theta>0 else 1
-                k = kappa(kappas,charge,pol,nuis,kbin)[side]
-                thetak[nuis] = (abs(theta),k)
+    for qcdscale in ['muR','muF','muRmuF']:
+        nuis = pol+qcdscale+str(nuisbin)+charge
+        theta = thetas[nuis][0]
+        ## should inteprolate, but let's just separate Up/Dn
+        side = 0 if theta>0 else 1
+        k = kappa(kappas,charge,pol,nuis,kbin)[side]
+        thetak[nuis] = (abs(theta),k)
+    #print "Calc wgt for ",pol,"  ",charge
+    #print "thetak = ",thetak
     wgt = np.prod([math.exp(nuis[0]*nuis[1]) for k,nuis in thetak.iteritems()])
     return wgt
 
@@ -124,11 +124,14 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     fitresfile = args[0]
 
+    polarizations = ['left','right','long']
+    charges = ['plus','minus']
+
     ## load the kappas
     ## theta=1  corresponds to doubling the scale
     ## theta=-1 corresponds to halfing it
     ## Translating this into a cross section requires knowing by how much the xsec changed from the X2 or x1/2 variations in the first place, Ie the k_i
-    xsecfile = "/afs/cern.ch/user/m/mdunser/public/wpTspectra.root"
+    xsecfile = "/afs/cern.ch/user/m/mdunser/public/wpTspectraFixed.root"
     kedges,kappas = loadKappas(xsecfile)
 
     postfit_weights_file = ROOT.TFile('postfit_wgts.root','recreate')
@@ -143,25 +146,21 @@ if __name__ == "__main__":
     hnuisscales = ROOT.TH1F('hnuisscales','',len(nuis_edges)-1,array('f',nuis_edges))
 
     # kappas have a more granular binning (e.g. 1 GeV in wpt)
-    hscales = ROOT.TH1F('scales_postfit_wgts','',len(kedges)-1,array('f',kedges))
-    for ipt in xrange(len(kedges)-1):
-        iptcenter = hscales.GetBinCenter(ipt+1)
-        nuisbin = hnuisscales.FindBin(iptcenter) 
-        wgt = getQCDWeightProd(kappas,thetas,nuisbin,ipt)
-        hscales.SetBinContent(ipt,wgt)
+    hscale = ROOT.TH1F('scales_postfit_wgts','',len(kedges)-1,array('f',kedges))
+    hwgts = []
+    for pol in polarizations:
+        for charge in charges:
+            hwgt = hscale.Clone('weights_{pol}{charge}'.format(pol=pol,charge=charge))
+            hwgt.SetDirectory(None)
+            for ipt in xrange(len(kedges)-1):
+                iptcenter = hwgt.GetBinCenter(ipt+1)
+                nuisbin = hnuisscales.FindBin(iptcenter) 
+                wgt = getQCDWeightProd(kappas,thetas,pol,charge,nuisbin,ipt)
+                hwgt.SetBinContent(ipt,wgt)
+            hwgts.append(hwgt)
     postfit_weights_file.cd()
-    hscales.Write()
-
-    ## PDFs
-    # pdfs = fitValues(fitresfile,pdfNames())
-    # covsubmat = getSubMatrix(fitresfile,pdfs)
-    # theta = getCorrelatedParameters(pdfs,covsubmat)
-    # edges   = [float(0.5+i) for i in xrange(61)]
-    # hpdfs = ROOT.TH1F('pdfs_postfit_wgts','',len(edges)-1,array('f',edges))
-    # for ipdf in xrange(1,61):
-    #     hpdfs.SetBinContent( ipdf, getWeightProd(theta,'pdf{ipdf}'.format(ipdf=ipdf)) )
-    # postfit_weights_file.cd()
-    # hpdfs.Write()
+    for h in hwgts:
+        h.Write()
 
     postfit_weights_file.Close()
     print "DONE. Weights are stored in ",postfit_weights_file
