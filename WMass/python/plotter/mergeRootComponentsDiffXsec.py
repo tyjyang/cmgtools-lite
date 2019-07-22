@@ -200,27 +200,34 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
         for npar in range(3):
             parhist = parfile.Get('p'+str(npar))
             ## loop over all eta bins of the 2d histogram
-            for ietaErf in range(1,nEtaErfPar+1):
+            for ietaErf_tmp in range(1,nEtaErfPar+1):
 
                 # FIXME, need more care for electron channel, template binning can be odd around the gap
                 # identify template eta which contain that erfPar eta
-
                 etabinOffset = 0
-                # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
-                # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
+                # # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
+                # # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
+                # or we can just use both and have ErfParXEffStatY with Y from 2 to 49 instead than from 1 to 48 (1 and 50 won't be used)
                 if isMu and parhist.GetNbinsX() == 50:
                     etabinOffset = 1
+                ietaErf = ietaErf_tmp + etabinOffset
 
-                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
-                #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf + parhistBinOffset) )
+                tmp_parhist_val = parhist.GetXaxis().GetBinCenter(ietaErf)
+                #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
+                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( tmp_parhist_val )
 
                 # if template has eta range narrower than parhist, continue
                 if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):
                     continue
 
                 if not isMu:
-                    if parhist.GetXaxis().GetBinCenter(ietaErf) > 1.4 and parhist.GetXaxis().GetBinCenter(ietaErf) < 1.5:
-                        ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 )
+                    # if in the gap, skip this EffStat, it only creates troubles
+                    if abs(tmp_parhist_val) > 1.4 and abs(tmp_parhist_val) < 1.5:
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 if tmp_parhist_val > 0 else -1.41)
+                    elif abs(tmp_parhist_val) > 1.5 and abs(tmp_parhist_val) < 1.6:
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.57 if tmp_parhist_val > 0 else -1.57)
 
                 # for electrons there is the gap:
                 # eg, we can have 1.3, 1.4442, 1.5, 1.566, 1.7
@@ -230,8 +237,11 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                 # in this case, the syst is ineffective. The same for 1.55, which select the other "side" of the empty bin around 1.5
                 # one could device a fancy way to isolate the gap and assign a larger uncertainty around it but let's keep it simple
 
-                #print "ErfPar{p}EffStat{ieta}".format(p=npar,ieta=ietaErf)
-                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{ieta}{fl}{ch}2DROLLED'.format(p=npar,ieta=ietaErf,fl=flavour,ch=charge)
+                #print "ErfPar{p}EffStat{ieta}".format(p=npar,ieta=ietaErf_tmp)
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_ErfPar{p}EffStat{ieta}{fl}{ch}2DROLLED'.format(p=npar,
+                                                                                                                                ieta=ietaErf_tmp,
+                                                                                                                                fl=flavour,
+                                                                                                                                ch=charge)
             
                 tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
                 tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
@@ -241,7 +251,7 @@ def putEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffi
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ietaTemplate, ipt)
                     ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
                     ## now get the content of the parameter variation!
-                    phistybin = parhist.GetYaxis().FindBin(ybincenter)
+                    phistybin = min(parhist.GetNbinsX(),parhist.GetYaxis().FindBin(ybincenter))
                     tmp_scale = parhist.GetBinContent(ietaErf, phistybin)
                     scaling = math.sqrt(2.)*tmp_scale
                     ## scale electrons by sqrt(2) due to the input file being charge inclusive
@@ -359,14 +369,13 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
                 # FIXME, need more care for electron channel, template binning can be odd around the gap
                 # identify template eta which contain that erfPar eta
 
-                etabinOffset = 0
-                # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
-                # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
-                if isMu and parhist.GetNbinsX() == 50:
-                    etabinOffset = 1
-
-                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
-                #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf + parhistBinOffset) )
+                # etabinOffset = 0
+                # # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
+                # # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
+                # if isMu and parhist.GetNbinsX() == 50:
+                #     etabinOffset = 1
+                # ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf+etabinOffset) )
+                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( parhist.GetXaxis().GetBinCenter(ietaErf) )
 
                 # if template has eta range narrower than parhist, continue
                 if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):

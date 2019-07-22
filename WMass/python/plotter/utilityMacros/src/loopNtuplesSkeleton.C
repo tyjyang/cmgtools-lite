@@ -76,9 +76,13 @@ void fillHistograms(const string& treedir = "./",
   //vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.1,-1.0,-0.9,
   //					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
   //					    1.1,1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
+  // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.1, -1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
+  // 					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
   vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.1, -1.9,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.9,
-  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
-  					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
+  					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0};
+  // vector<Double_t> etaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,
+  // 					    1.1,1.2,1.3,1.5,1.7,1.9, 2.1, 2.4};
   // vector<Double_t> etaBinEdgesTemplateMu = {-2.4, -2.2, -2.0,-1.8,-1.6,-1.4,-1.2,-1.0,
   // 					    -0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1.0,
   // 					    1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
@@ -768,7 +772,8 @@ void fillHistograms(const string& treedir = "./",
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
-      wgt = lepSF(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]); 
+      //wgt = lepSF(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]); 
+      wgt = _get_electronSF_TriggerAndID(lep_pdgId[0],lep_calPt[0],lep_eta[0]) * lep_SF2[0] * eleSF_L1Eff(lep_pt[0],lep_eta[0]);     
       lepEffWgtUp = lepSFRelUp(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
       lepEffWgtDn = lepSFRelDn(lep_pdgId[0],lep_pt[0],lep_eta[0],lep_SF1[0],lep_SF2[0],lep_SF3[0]);
       // ptLepFullUp = ptElFullUp(lep_calPt[0],lep_eta[0]);

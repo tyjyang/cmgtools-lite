@@ -4,11 +4,11 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=0
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0
-skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipUnpack=1
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1
+skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
 flavourCombinationOutdir = "muElCombination"
 
 allPtBinsSignal = 1
@@ -16,12 +16,22 @@ useBinUncEffStat = False
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 # note that there is always a part of the uncertainty that is charge-uncorrelated
 freezePOIs = False
+skipFitData = False
+skipFitAsimov = False
+
+if not skipMergeCardFlavour:
+    allPtBinsSignal = 1
 
 # el
 #folder_el = "diffXsec_el_2019_05_13_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale.root"
-folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
+#folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
+#th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
+#folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
+#folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
+#th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_20July2019_latestScaleFactor_AllIn_IDwithMConlyStat.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
@@ -32,22 +42,29 @@ th3file_el = "cards/" + folder_el + "wel_15June2019_zptReweight.root"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
 folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_07_12_noSyst_onlyEtaMinus/"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
-th3file_mu = "cards/" + folder_mu + "wmu_09July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUncDataMC.root"
+th3file_mu = "cards/" + folder_mu + "wmu_10July2019_zptReweight_unfixedFSRcharge_fixEffStatOnlyStatUncDataMC.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_04July2019_zptReweight_unfixedFSRcharge_testBinUncEffStat.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_12July2019_onlyRecoEtaMinus.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
 
 #================================
 # some more things are set below
+excludeNuisRegexp = "CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff"
+if useBinUncEffStat: 
+    excludeNuisRegexp = excludeNuisRegexp + "{comma}".format(comma="," if len(excludeNuisRegexp) else "") + ".*BinUncEffStat.*"
 
-optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,1.9 " if doMuons else "0.5,1.0,1.5,1.9 ")
+optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,2.1 " if doMuons else "0.5,1.0,1.5,2.1 ")
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
-optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z --sig-out-bkg  --exclude-nuisances 'CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff' " 
+optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z --sig-out-bkg  "
+#optionsForCardMaker += " --exclude-nuisances '.*' --keep-nuisances 'fsr'  "
+optionsForCardMaker += " --exclude-nuisances '{expr}' ".format(expr=excludeNuisRegexp) 
 optionsForCardMaker += binnedSystOpt 
 
 if useBinUncEffStat:
@@ -59,11 +76,13 @@ if useBinUncEffStat:
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_EffStatOnlyStatUncDataMC  --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
-if freezePOIs: optionsForCardMakerMerger += " --freezePOIs "
+optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
+if freezePOIs:  optionsForCardMakerMerger += " --freezePOIs "
+if skipFitData: optionsForCardMakerMerger += " --skip-fit-data "
+if skipFitAsimov: optionsForCardMakerMerger += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales --sig-out-bkg " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes --sig-out-bkg " # --useSciPyMinimizer "  
 
 #================================
 

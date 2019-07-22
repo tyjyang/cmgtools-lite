@@ -72,6 +72,10 @@ if __name__ == "__main__":
     
     for ieta in xrange(nbins_eta):
         eta = var0.GetXaxis().GetBinCenter(ieta+1)
+        # manage gap for electrons: when picking the gap, move to previous or following bin depending on eta
+        if isEle:
+            if abs(eta) > 1.4442 and abs(eta) < 1.5: eta = 1.43 if eta > 0 else -1.43
+            if abs(eta) > 1.5 and abs(eta) < 1.566:  eta = 1.58 if eta > 0 else -1.58
         for ipt in xrange(nbins_pt):
             pt = var0.GetYaxis().GetBinCenter(ipt+1)
             relSysts = np.array([0,0,0],dtype=float)
