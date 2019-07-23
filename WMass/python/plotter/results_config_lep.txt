@@ -1,7 +1,7 @@
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep'
-fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/sprungli_grandcru/fitsout_2019-07-15/'
-fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_grandcru/fitsout_2019-07-15/'
-fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_grandcru/fitsout_2019-07-15/'
+fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/sprungli_crusauvage/fitsout_2019-07-22/'
+fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_crusauvage/fitsout_2019-07-18/'
+fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_crusauvage/fitsout_2019-07-22/'
 
 ### FLOATING POIS ###
 both_floatingPOIs_hessian_bbb1_syst1_asimov    = fitsdir+   '/fitresults_123456789_poim1_exp1_bbb1.root'
