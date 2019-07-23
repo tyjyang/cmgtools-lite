@@ -140,7 +140,7 @@ if __name__ == '__main__':
     elif 'wgen' in torun:
         x = base('wgen')
         if 'nosel' in torun:
-            x = add(x," -U 'alwaystrue ' ")
+            x = add(x," -U 'alwaystrue' ")
         if 'fullsel' in torun:
             x = add(x," -W 'puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)' ")
         if torun.endswith('pdfs'):
