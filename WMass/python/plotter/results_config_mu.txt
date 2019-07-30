@@ -1,5 +1,5 @@
-basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_grandcru/fitsout_2019-07-15/'
-cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_mu/'
+basedir  = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_07_22_newFSR_VpT_fullSet/defaultMerge/fitsout_2019-07-23/'
+cardsdir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/cards/helicity_2019_07_22_newFSR_VpT_fullSet/defaultMerge/'
 
 dirWithToyFits = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/'
 
