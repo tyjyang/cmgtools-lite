@@ -409,6 +409,10 @@ binning = [genBins.Neta, genBins.etaBins, genBins.Npt, genBins.ptBins]
 if options.useBinUncEffStat:
     if options.excludeNuisances == "": options.excludeNuisances = ".*ErfPar.*EffStat.*"
     else                             : options.excludeNuisances += ",.*ErfPar.*EffStat.*"
+else:
+    if options.excludeNuisances == "": options.excludeNuisances = ".*BinUncEffStat.*"
+    else                             : options.excludeNuisances += ",.*BinUncEffStat.*"
+
 
 allSystForGroups = [] # filled with all systs not excluded by excludeNuisances
 excludeNuisances = []

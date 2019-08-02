@@ -61,6 +61,7 @@ def roll1Dto2D(h1d, histo):
         xbin = (i - 1) % histo.GetNbinsX() + 1  
         ybin = (i - 1) / histo.GetNbinsX() + 1
         histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
+        histo.SetBinError(xbin,ybin,h1d.GetBinError(i)) 
     return histo
 
 def dressed2D(h1d,binning,name,title=''):

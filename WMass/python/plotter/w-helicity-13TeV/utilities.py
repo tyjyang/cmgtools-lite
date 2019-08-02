@@ -8,6 +8,12 @@ class util:
         self.cmssw_version = os.environ['CMSSW_VERSION']
         self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
+    def checkHistInFile(h, hname, fname, message=""):
+        if not h:
+            print "Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname)
+            quit()
+
+
     def solvePol2(self, a,b,c):
     
         # calculate the discriminant
@@ -131,11 +137,14 @@ class util:
         histo_file.Close()
         return values
 
-    def getPDFbandFromXsec(self, histoPDF, charge, infile, netabins, nptbins, firstPtBin=0):
+    def getPDFbandFromXsec(self, histoPDF, charge, infile, netabins, nptbins, firstPtBin=0, histoTotTheory = 0):
+
+        # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
 
         print "Inside getPDFbandFromXsec() ..."
         histo_file = ROOT.TFile(infile, 'READ')            
 
+        # NOTE: hnomi is a TH1
         for ieta in range(netabins):
             for ipt in range(firstPtBin,nptbins):
 
@@ -147,7 +156,7 @@ class util:
 
                 hpdftmp = None            
                 pdfquadrsum = 0.0 
-                xsecnomi = hnomi.Integral()                
+                xsecnomi = hnomi.Integral(0, 1+hnomi.GetNbinsX())                
 
                 for ipdf in range(1, 61):
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
@@ -155,11 +164,41 @@ class util:
                     if not hpdftmp:
                         print "Error in getPDFbandFromXsec(): I couldn't find histogram " + pdfvar
                         quit()                    
-                    tmpval = hpdftmp.Integral() - xsecnomi                     
+                    tmpval = hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX()) - xsecnomi                     
                     pdfquadrsum += tmpval * tmpval
 
-                histoPDF.SetBinError(ieta+1, ipt+1, math.sqrt(pdfquadrsum))
-                histoPDF.SetBinContent(ieta+1, ipt+1, xsecnomi)
+                envelopeQCD = 0
+                for iqcd in range(1,11):
+                    for idir in ["Up", "Down"]:
+                        for qcdType in ["muF", "muR", "muRmuF"]:
+                            qcdvar = nomi + '_{qt}{iq}{ch}{d}'.format(qt=qcdType,iq=iqcd,ch=charge,d=idir)
+                            hqcdtmp = histo_file.Get(qcdvar)
+                            if not hqcdtmp:
+                                print "Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar
+                                quit()                    
+                            tmpval = hqcdtmp.Integral(0, 1+hqcdtmp.GetNbinsX()) - xsecnomi                     
+                            envelopeQCD = max(abs(envelopeQCD),abs(tmpval))
+                                
+                alphaS = 0
+                for idir in ["Up", "Down"]:
+                    alphaSvar = nomi + '_alphaS{d}'.format(d=idir)
+                    halphaStmp = histo_file.Get(alphaSvar)
+                    if not halphaStmp:
+                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar
+                        quit()                    
+                    # 1.5 is because weight corresponds to 0.001, but should be 0.0015 
+                    tmpval = halphaStmp.Integral(0, 1+halphaStmp.GetNbinsX()) - xsecnomi  
+                    alphaS = max(abs(alphaS),abs(1.5*tmpval))
+
+                if histoTotTheory:
+                    histoPDF.SetBinError(ieta+1, ipt+1, math.sqrt(pdfquadrsum + alphaS * alphaS))
+                    histoPDF.SetBinContent(ieta+1, ipt+1, xsecnomi)
+                    histoTotTheory.SetBinError(ieta+1, ipt+1, math.sqrt(pdfquadrsum + envelopeQCD * envelopeQCD + alphaS * alphaS))
+                    histoTotTheory.SetBinContent(ieta+1, ipt+1, xsecnomi)
+                else:
+                    histoPDF.SetBinError(ieta+1, ipt+1, math.sqrt(pdfquadrsum + envelopeQCD * envelopeQCD + alphaS * alphaS))
+                    histoPDF.SetBinContent(ieta+1, ipt+1, xsecnomi)
+                                      
                         
         histo_file.Close()
         return 0
@@ -167,13 +206,14 @@ class util:
 
     def getPDFbandFromXsecEta(self, histoPDF, charge, infile, netabins, nptbins, firstPtBin=0):
 
+        # obsolete, use the next one, generic for pt and eta
         print "Inside getPDFbandFromXsecEta() ..."
         histo_file = ROOT.TFile(infile, 'READ')            
 
         for ieta in range(netabins):
             pdfquadrsum = 0.0
             xsecnomi = 0.0
-            xsecpdf = [0.0 for i in range(60)]
+            xsecpdf = [0.0 for i in range(60)] 
             for ipt in range(firstPtBin,nptbins):
 
                 nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ieta, ip=ipt)
@@ -183,7 +223,7 @@ class util:
                     quit()
 
                 hpdftmp = None            
-                xsecnomi += hnomi.Integral()                
+                xsecnomi += hnomi.Integral(0, 1+hnomi.GetNbinsX())                
 
                 for ipdf in range(1, 61):
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
@@ -192,7 +232,7 @@ class util:
                         print "Error in getPDFbandFromXsecEta(): I couldn't find histogram " + pdfvar
                         quit()
                     
-                    xsecpdf[ipdf-1] += hpdftmp.Integral()
+                    xsecpdf[ipdf-1] += hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX())
 
             pdfquadrsum = 0.0
             for ipdf in range(60):
@@ -205,7 +245,7 @@ class util:
         return 0
 
     # generalizing previous function getPDFbandFromXsecEta()
-    def getPDFbandFromXsec1D(self, histoPDF, charge, infile, netabins, nptbins, firstVarBin=0, firstOtherVarBin=0, isEta = True):
+    def getPDFbandFromXsec1D(self, histoPDF, charge, infile, netabins, nptbins, firstVarBin=0, firstOtherVarBin=0, isEta = True, histoTotTheory = 0):
 
         print "Inside getPDFbandFromXsec1D() ..."
         histo_file = ROOT.TFile(infile, 'READ')            
@@ -217,6 +257,13 @@ class util:
             pdfquadrsum = 0.0
             xsecnomi = 0.0
             xsecpdf = [0.0 for i in range(60)]
+            # beofre taking envelope for the following must sum the relevant bins being integrated
+            xsecalphaS = {"Up": 0.0, "Down" : 0.0}
+            xsecqcd = {}
+            for iqcd in range(1,11):
+                for idir in ["Up", "Down"]:
+                    for itype in ["muR", "muF", "muRmuF"]:
+                        xsecqcd["{t}{n}{d}".format(t=itype,n=iqcd,d=idir)] = 0.0
             for iother in range(firstOtherVarBin,nothervarbins):
 
                 nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ivar if isEta else iother, ip=iother if isEta else ivar)
@@ -226,7 +273,7 @@ class util:
                     quit()
 
                 hpdftmp = None            
-                xsecnomi += hnomi.Integral()                
+                xsecnomi += hnomi.Integral(0, 1+hnomi.GetNbinsX())                
 
                 for ipdf in range(1, 61):
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
@@ -235,19 +282,165 @@ class util:
                         print "Error in getPDFbandFromXsec1D(): I couldn't find histogram " + pdfvar
                         quit()
                     
-                    xsecpdf[ipdf-1] += hpdftmp.Integral()
+                    xsecpdf[ipdf-1] += hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX())
+
+                #########################
+                for iqcd in range(1,11):
+                    for idir in ["Up", "Down"]:
+                        for qcdType in ["muF", "muR", "muRmuF"]:
+                            qcdvar = nomi + '_{qt}{iq}{ch}{d}'.format(qt=qcdType,iq=iqcd,ch=charge,d=idir)
+                            hqcdtmp = histo_file.Get(qcdvar)
+                            if not hqcdtmp:
+                                print "Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar
+                                quit()                    
+                            tmpval = hqcdtmp.Integral(0, 1+hqcdtmp.GetNbinsX())
+                            xsecqcd["{qt}{iq}{d}".format(qt=qcdType,iq=iqcd,d=idir)] += tmpval
+                                
+                for idir in ["Up", "Down"]:
+                    alphaSvar = nomi + '_alphaS{d}'.format(d=idir)
+                    halphaStmp = histo_file.Get(alphaSvar)
+                    if not halphaStmp:
+                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar
+                        quit()                    
+                    tmpval = halphaStmp.Integral(0, 1+halphaStmp.GetNbinsX())
+                    xsecalphaS[idir] +=  tmpval
+                #########################
+
 
             pdfquadrsum = 0.0
             for ipdf in range(60):
                 tmpval = xsecpdf[ipdf] - xsecnomi 
                 pdfquadrsum += tmpval*tmpval
-            histoPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum))
-            histoPDF.SetBinContent(ivar+1, xsecnomi)                        
+
+            envelopeQCD = 0
+            for iqcd in range(1,11):
+                for idir in ["Up", "Down"]:
+                    for qcdType in ["muF", "muR", "muRmuF"]:
+                        tmpval = xsecqcd["{qt}{iq}{d}".format(qt=qcdType,iq=iqcd,d=idir)] - xsecnomi
+                        envelopeQCD = max(abs(envelopeQCD),abs(tmpval))
+
+            alphaS = 0
+            for idir in ["Up", "Down"]:
+                # 1.5 is because weight corresponds to 0.001, but should be 0.0015 
+                tmpval = xsecalphaS[idir] - xsecnomi
+                alphaS = max(abs(alphaS),abs(1.5*tmpval))
+
+            if histoTotTheory:
+                histoPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum + alphaS * alphaS))
+                histoPDF.SetBinContent(ivar+1, xsecnomi)
+                histoTotTheory.SetBinError(ivar+1, math.sqrt(pdfquadrsum + envelopeQCD * envelopeQCD + alphaS * alphaS))
+                histoTotTheory.SetBinContent(ivar+1, xsecnomi)
+            else:
+                histoPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum + envelopeQCD * envelopeQCD + alphaS * alphaS))
+                histoPDF.SetBinContent(ivar+1, xsecnomi)
+
 
         histo_file.Close()
         return 0
 
+#######################
 
+    def getTheorybandDiffXsecFast(self):
+
+        # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
+
+        print "Inside getTheorybandDiffXsecFast() ..."
+        # hardcoded for now
+        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_yields.root"
+        histo_file = ROOT.TFile(infile, 'READ')            
+
+        htheory = {}
+        htheory_1Deta = {}
+        htheory_1Dpt = {}
+
+        htheory_xsecnorm = {}
+        htheory_1Deta_xsecnorm = {}
+        htheory_1Dpt_xsecnorm = {}
+
+        htheory_asym = {}
+        htheory_1Deta_asym = {}
+        htheory_1Dpt_asym = {}
+
+        for charge in ["plus", "minus"]:
+ 
+            nomi = "gen_ptl1_absetal1_dressed_binAna_W{ch}_mu".format(ch=charge)
+            hnomi = histo_file.Get(nomi)
+            checkHistInFile(hnomi, nomi, infile, message="in getTheorybandDiffXsecFast()")
+            hnomi.SetDirectory(0)
+
+            for ipdf in range(1,61):
+                name = "pdf{ip}".format(ip=ipdf)
+                pdfvar = nomi + '_{n}'.format(n=name)
+                htheory[(charge,name)] = histo_file.Get(pdfvar)
+                checkHistInFile(htheory[(charge,name)], pdfvar, infile, message="in getTheorybandDiffXsecFast()")
+                htheory[(charge,name)].SetDirectory(0)
+
+            for idir in ["Up", "Down"]:
+                for qcdType in ["muF", "muR", "muRmuF"]:
+                    name = "{qt}{d}".format(qt=qcdType,d=idir)
+                    qcdvar = nomi + '_{n}'.format(n=name)
+                    htheory[(charge,name)] = histo_file.Get(qcdvar)
+                    checkHistInFile(htheory[(charge,name)], qcdvar, infile, message="in getTheorybandDiffXsecFast()")
+                    htheory[(charge,name)]
+
+                name = "alphaS{d}".format(d=idir)
+                alphaSvar = nomi + '_{n}'.format(n=name)
+                htheory[(charge,name)] = histo_file.Get(alphaSvar)
+                checkHistInFile(htheory[(charge,name)], alphaSvar, infile, message="in getTheorybandDiffXsecFast()")
+                htheory[(charge,name)]
+
+            htheory[(charge,"nominal")] = hnomi
+
+        # key has both plus and minus charges
+        for key in htheory:
+            # projections
+            htheory_1Deta[key] = htheory[key].ProjectionX(htheory[key].GetName()+"_1Deta",1,htheory[key].GetNbinsY())
+            htheory_1Dpt[key] = htheory[key].ProjectionY(htheory[key].GetName()+"_1Dpt",1,htheory[key].GetNbinsX())             
+            # this uses only the xsec in acceptance, |eta| in [0, 2.4], pT in [26, 56]
+            # WARNING: for electrons I should restrict pt range to [30, 56], unless the fit uses also bkg processes to make the total xsec
+            htheory_xsecnorm[key] = htheory[key].Clone(htheory[key].GetName() + "_xsecnorm")
+            htheory_xsecnorm[key].Scale(1./htheory_xsecnorm[key].Integral()) 
+            htheory_1Deta_xsecnorm[key] = htheory[key].Clone(htheory_1Deta[key].GetName() + "_xsecnorm")
+            htheory_1Deta_xsecnorm[key].Scale(1./htheory_1Deta_xsecnorm[key].Integral()) 
+            htheory_1Dpt_xsecnorm[key] = htheory[key].Clone(htheory_1Dpt[key].GetName() + "_xsecnorm")
+            htheory_1Dpt_xsecnorm[key].Scale(1./htheory_1Dpt_xsecnorm[key].Integral()) 
+
+        # now charge asymmetry
+        htmp_num = htheory[("plus","nominal")].Clone("_tmp_helper_asym_num")
+        htmp_den = htheory[("plus","nominal")].Clone("_tmp_helper_asym_den")
+        htmp_num_1Deta = htheory_1Deta[("plus","nominal")].Clone("_tmp_helper_asym_num_1Deta")
+        htmp_den_1Deta = htheory_1Deta[("plus","nominal")].Clone("_tmp_helper_asym_den_1Deta")
+        htmp_num_1Dpt = htheory_1Dpt[("plus","nominal")].Clone("_tmp_helper_asym_num_1Dpt")
+        htmp_den_1Dpt = htheory_1Dpt[("plus","nominal")].Clone("_tmp_helper_asym_den_1Dpt")
+        for key in htheory:
+            # filter keys for plus charge
+            if str(key[0]) == "minus": continue
+            # 2D
+            htheory_asym[key] = htheory[key].Clone(htheory[key].GetName() + "_asymm")
+            htmp_num.Add(htheory[key], htheory[("minus",key[1])], 1.0, -1.0)
+            htmp_den.Add(htheory[key], htheory[("minus",key[1])], 1.0,  1.0)
+            htheory_asym[key].Divide(htmp_num,htmp_den)
+            # 1D eta
+            htheory_1Deta_asym[key] = htheory_1Deta[key].Clone(htheory_1Deta[key].GetName() + "_asymm")
+            htmp_num_1Deta.Add(htheory_1Deta[key], htheory_1Deta[("minus",key[1])], 1.0, -1.0)
+            htmp_den_1Deta.Add(htheory_1Deta[key], htheory_1Deta[("minus",key[1])], 1.0,  1.0)
+            htheory_1Deta_asym[key].Divide(htmp_num_1Deta,htmp_den_1Deta)
+            # 1D pt
+            htheory_1Dpt_asym[key] = htheory_1Dpt[key].Clone(htheory_1Dpt[key].GetName() + "_asymm")
+            htmp_num_1Dpt.Add(htheory_1Dpt[key], htheory_1Dpt[("minus",key[1])], 1.0, -1.0)
+            htmp_den_1Dpt.Add(htheory_1Dpt[key], htheory_1Dpt[("minus",key[1])], 1.0,  1.0)
+            htheory_1Dpt_asym[key].Divide(htmp_num_1Dpt,htmp_den_1Dpt)
+
+        histo_file.Close()
+        ret = { "xsec"     : [htheory, htheory_1Deta, htheory_1Dpt],
+                "xsecnorm" : [htheory_xsecnorm, htheory_1Deta_xsecnorm, htheory_1Dpt_xsecnorm],
+                "asym" : [htheory_asym, htheory_1Deta_asym, htheory_1Dpt_asym]}
+        return ret
+
+#######################
+
+
+#######################
 
     def getParametersFromWS(self, ws, regexp):
 

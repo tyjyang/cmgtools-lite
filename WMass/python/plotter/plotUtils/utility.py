@@ -612,12 +612,16 @@ def drawSingleTH1(h1,
     h1err.Draw("E2same")
     #h1.Draw("HIST same")
 
-    legcoords = [float(x) for x in legendCoords.split(',')]
+    nColumnsLeg = 1
+    if ";" in legendCoords: 
+        nColumnsLeg = int(legendCoords.split(";")[1])
+    legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
     #leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
+    leg.SetNColumns(nColumnsLeg)
     leg.AddEntry(h1,"Value","L")
     leg.AddEntry(h1err,"Uncertainty","F")
     leg.Draw("same")
@@ -807,7 +811,8 @@ def drawDataAndMC(h1, h2,
                   rightMargin=0.04,
                   labelRatioTmp="Data/pred.::0.5,1.5",
                   drawStatBox=False,
-                  legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
+                  #legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
+                  legendCoords="0.15,0.65,0.85,0.9;3",  # for unrolled use 1 line # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
                   lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
@@ -821,6 +826,9 @@ def drawDataAndMC(h1, h2,
                   invertRatio = False,  # make expected over observed if True
                   histMCpartialUnc = None,
                   histMCpartialUncLegEntry = "",
+                  useDifferenceInLowerPanel = False,
+                  noLegendLowerPanel = False,
+                  legendEntries = []
                   ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -911,9 +919,9 @@ def drawDataAndMC(h1, h2,
     h1.Draw("EP")
     #h1err = h1.Clone("h1err")
     #h1err.SetFillColor(ROOT.kRed+2)
-    h2.SetFillStyle(3001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
-    h2.SetLineColor(ROOT.kGreen+2)  #kRed+2
-    h2.SetFillColor(ROOT.kGreen)
+    h2.SetFillStyle(1001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
+    h2.SetLineColor(ROOT.kRed+2)  # kGreen+2
+    h2.SetFillColor(ROOT.kRed+1)    # kGreen
     h2.SetLineWidth(1)
     h2.Draw("E2 SAME")
     h2line = h2.Clone("h2line")
@@ -921,16 +929,20 @@ def drawDataAndMC(h1, h2,
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
-        h3.SetFillColor(ROOT.kRed+2)
-        h3.SetFillStyle(3244)  # 3144 , 3244, 3003
+        h3.SetFillColor(ROOT.kGreen)
+        h3.SetFillStyle(1001)  # 3001, 3144 , 3244, 3003
+        #h3.SetFillStyle(3244)  # 3144 , 3244, 3003
         h3.Draw("E2 SAME")
         #for i in range(1,1+h3.GetNbinsX()):
         #    print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
     h2line.Draw("HIST SAME")
     h1.Draw("EP SAME")
 
-
-    legcoords = [float(x) for x in legendCoords.split(',')]
+    nColumnsLeg = 1
+    if ";" in legendCoords: 
+        nColumnsLeg = int(legendCoords.split(";")[1])
+        #if histMCpartialUnc != None: nColumnsLeg = 3
+    legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     if histMCpartialUnc != None:
         ly2 = ly2 + 0.5 * (ly2 - ly1) # add one more row
@@ -938,8 +950,13 @@ def drawDataAndMC(h1, h2,
     #leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
-    leg.AddEntry(h1,"data","LPE")
-    leg.AddEntry(h2,"aMC@NLO","LF")
+    leg.SetNColumns(nColumnsLeg)
+    if len(legendEntries):
+        leg.AddEntry(h1,str(legendEntries[0]),"LPE")
+        leg.AddEntry(h2,str(legendEntries[1]),"LF")        
+    else:
+        leg.AddEntry(h1,"measured","LPE")
+        leg.AddEntry(h2,"aMC@NLO","LF")
     if histMCpartialUnc != None:
         leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
@@ -976,7 +993,7 @@ def drawDataAndMC(h1, h2,
             for i in range(0,len(textForLines)): # we need nptBins texts
                 #texoffset = 0.1 * (4 - (i%4))
                 #ytext = (1. + texoffset)*ymax/2.  
-                ytext = (1.1)*ymax/2.                  
+                ytext = 0.6*ymax                  
                 bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
 
     # redraw legend, or vertical lines appear on top of it
@@ -1067,17 +1084,22 @@ def drawDataAndMC(h1, h2,
         for iBin in range (1,den_noerr.GetNbinsX()+1):
             den_noerr.SetBinError(iBin,0.)
 
-        ratio.Divide(den_noerr)
-        den.Divide(den_noerr)
+        if useDifferenceInLowerPanel:
+            ratio.Add(den_noerr,-1.0)
+            den.Add(den_noerr,-1.0)
+        else:
+            ratio.Divide(den_noerr)
+            den.Divide(den_noerr)
+
         if invertRatio:
             if histMCpartialUnc == None:
                 ratio.SetFillColor(ROOT.kGray+1)
                 ratio.SetFillStyle(1001)  # make it solid again
                 ratio.SetLineColor(ROOT.kGray+3)
             else:
-                ratio.SetFillColor(ROOT.kGreen+1)
-                ratio.SetFillStyle(3001)  # 1001 to make it solid again
-                ratio.SetLineColor(ROOT.kGreen+2)                        
+                ratio.SetFillColor(ROOT.kRed+1) # kGreen+1
+                ratio.SetFillStyle(1001)  # 1001 to make it solid again
+                ratio.SetLineColor(ROOT.kRed+2) # kGreen+2                       
                 ratio.SetLineWidth(1) # make it smaller when it is drawn on top of something
         else:
             if histMCpartialUnc == None:
@@ -1086,10 +1108,14 @@ def drawDataAndMC(h1, h2,
                 den.SetLineColor(ROOT.kRed)        
         if histMCpartialUnc != None:
             h3ratio = h3.Clone("h3ratio")
-            h3ratio.Divide(den_noerr)
-            h3ratio.SetFillStyle(3144) # 1001 for solid, 3144 instead of 3244, to have more dense hatches
-            #h3ratio.SetFillStyle(3001) # 
-            h3ratio.SetFillColor(ROOT.kRed-4)  # -7
+            if useDifferenceInLowerPanel:
+                h3ratio.Add(den_noerr,-1.0)
+            else:
+                h3ratio.Divide(den_noerr)
+            #h3ratio.SetFillStyle(3144) # 1001 for solid, 3144 instead of 3244, to have more dense hatches
+            h3ratio.SetFillStyle(1001) # 
+            h3ratio.SetFillColor(ROOT.kGreen+1)  # kRed-4
+            h3ratio.SetLineColor(ROOT.kGreen+2)  # kRed-4
 
         frame.Draw()        
         if invertRatio:
@@ -1106,13 +1132,16 @@ def drawDataAndMC(h1, h2,
         if histMCpartialUnc != None:
             h3ratio.Draw("E2 same")
         
-        line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-        line.SetLineColor(ROOT.kRed)
+        line = ROOT.TF1("horiz_line","0" if useDifferenceInLowerPanel else "1",
+                        ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineWidth(1)
         line.Draw("Lsame")
         if invertRatio:
             ratioline = ratio.Clone("ratioline")
             ratioline.SetFillColor(0)
+            if histMCpartialUnc != None and len(drawVertLines):
+                # unrolled, here the red line would be too large and given the fluctuations is could be seen as an additional band
+                ratioline.SetLineColor(histMCpartialUnc.GetLineColor())
             ratioline.SetFillStyle(0)
             if histMCpartialUnc != None: ratioline.Draw("HIST same") # to draw the line inside the band for the expected
             den.Draw("EPsame")
@@ -1129,17 +1158,17 @@ def drawDataAndMC(h1, h2,
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)
         if invertRatio:
-            leg2.AddEntry(ratio,"total expected uncertainty","LF")
+            leg2.AddEntry(ratio,"total theory uncertainty","LF")
         else:
-            leg2.AddEntry(den,"total expected uncertainty","LF")
-        leg2.Draw("same")
+            leg2.AddEntry(den,"total theory uncertainty","LF")
+        if not noLegendLowerPanel: leg2.Draw("same")
         if histMCpartialUnc != None:
             leg2bis = ROOT.TLegend(x1leg2 + 0.45, y1leg2, x2leg2 + 0.45, y2leg2)
             leg2bis.SetFillColor(0)
             leg2bis.SetFillStyle(0)
             leg2bis.SetBorderSize(0)
             leg2bis.AddEntry(h3ratio,histMCpartialUncLegEntry,"LF")
-            leg2bis.Draw("same")
+            if not noLegendLowerPanel: leg2bis.Draw("same")
 
         pad2.RedrawAxis("sameaxis")
 
@@ -1504,3 +1533,333 @@ def drawTH1dataMCstack(h1, thestack,
             _canvas_pull.SaveAs(outdir + "pull_onlyEE_" + canvasName + ".png")    
             _canvas_pull.SaveAs(outdir + "pull_onlyEE_" + canvasName + ".pdf")
             
+#########################################################################
+
+def drawMuElComparison(hlep, hmu, hel,
+                       labelXtmp="xaxis", labelYtmp="yaxis",
+                       canvasName="default", outdir="./",
+                       #rebinFactorX=0,
+                       draw_both0_noLog1_onlyLog2=0,                  
+                       leftMargin=0.15,
+                       rightMargin=0.04,
+                       labelRatioTmp="Data/pred.::0.5,1.5",
+                       drawStatBox=False,
+                       legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
+                       canvasSize="600,700",  # use X,Y to pass X and Y size     
+                       lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+                       #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
+                       #drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
+                       passCanvas=None,
+                       lumi=None,
+                       drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+                       textForLines=[],                       
+                       moreText="",
+                       moreTextLatex="",
+                   ):
+
+    # moreText is used to pass some text to write somewhere (TPaveText is used)
+    # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
+    # one can add more lines using the ";" key. FOr example, "stuff1;stuff2::x1,y1,x2,y2"
+    # the coordinates should be defined taking into account how many lines will be drawn
+    # if the coordinates are not passed (no "::"), then default ones are used, but this might not be satisfactory
+
+    # moreTextLatex is similar, but used TLatex, and the four coordinates are x1,y1,ypass,textsize
+    # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
+
+    # h1 is data, h2 in MC
+
+    #if (rebinFactorX): 
+    #    if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
+    #    # case in which rebinFactorX is a list of bin edges
+    #    else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+
+    xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
+
+    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
+
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+
+    cw,ch = canvasSize.split(',')
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
+    canvas.cd()
+
+    pad2 = 0
+    if lowerPanelHeight: 
+        canvas.SetBottomMargin(lowerPanelHeight)
+        pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+        pad2.SetTopMargin(1-lowerPanelHeight)
+        pad2.SetRightMargin(rightMargin)
+        pad2.SetLeftMargin(leftMargin)
+        pad2.SetFillColor(0)
+        pad2.SetGridy(1)
+        pad2.SetFillStyle(0)
+
+
+    frame = hlep.Clone("frame")
+    frame.GetXaxis().SetLabelSize(0.04)
+    frame.SetStats(0)
+
+    hlep.SetLineColor(ROOT.kGreen-2) # kBlack
+    hlep.SetMarkerColor(ROOT.kGreen-2)
+    hlep.SetMarkerStyle(20)
+    hlep.SetMarkerSize(1.2)
+
+    #ymax = max(ymax, max(hlep.GetBinContent(i)+hlep.GetBinError(i) for i in range(1,hlep.GetNbinsX()+1)))
+    # if min and max were not set, set them based on histogram content
+    if ymin == ymax == 0.0:
+        ymin,ymax = getMinMaxHisto(hlep,excludeEmpty=True,sumError=True)            
+        ymin *= 0.9
+        ymax *= (1.1 if leftMargin > 0.1 else 2.0)
+        if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (hlep.GetName(),ymin,ymax)
+
+    # print "#### WARNING ####"
+    # print "Hardcoding ymin = 0 in function drawDataAndMC(): change it if it is not what you need"
+    # print "#################"
+    # ymin = 0 # hardcoded
+
+    if lowerPanelHeight:
+        hlep.GetXaxis().SetLabelSize(0)
+        hlep.GetXaxis().SetTitle("")  
+    else:
+        hlep.GetXaxis().SetTitle(xAxisName)
+        hlep.GetXaxis().SetTitleOffset(1.2)
+        hlep.GetXaxis().SetTitleSize(0.05)
+        hlep.GetXaxis().SetLabelSize(0.04)
+    hlep.GetYaxis().SetTitle(yAxisName)
+    hlep.GetYaxis().SetTitleOffset(yAxisTitleOffset)
+    hlep.GetYaxis().SetTitleSize(0.05)
+    hlep.GetYaxis().SetLabelSize(0.04)
+    hlep.GetYaxis().SetRangeUser(ymin, ymax)    
+    hlep.GetYaxis().SetTickSize(0.01)
+    if setXAxisRangeFromUser: hlep.GetXaxis().SetRangeUser(xmin,xmax)
+    hlep.Draw("EP")
+    #hleperr = hlep.Clone("hleperr")
+    #hleperr.SetFillColor(ROOT.kRed+2)
+
+    # hmu.SetFillStyle(3001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
+    # hmu.SetLineColor(ROOT.kGreen+2)  #kRed+2
+    # hmu.SetFillColor(ROOT.kGreen)
+    # hmu.SetLineWidth(1)
+    # hmu.Draw("E2 SAME")
+    # hmuline = hmu.Clone("hmuline")
+    # hmuline.SetFillColor(0)
+    # h3 = None
+    # hmuline.Draw("HIST SAME")
+    # hlep.Draw("EP SAME")
+
+    hmu.SetLineColor(ROOT.kAzure+7) # kgreen+2
+    hmu.SetMarkerColor(ROOT.kAzure+7)
+    hmu.SetMarkerStyle(21)
+    hmu.SetMarkerSize(1.2)
+    hmu.Draw("EP SAME")
+
+    hel.SetLineColor(ROOT.kRed-2)  # kRed+2
+    hel.SetMarkerColor(ROOT.kRed-2)
+    hel.SetMarkerStyle(22)
+    hel.SetMarkerSize(1.2)
+    hel.Draw("EP SAME")
+
+    nColumnsLeg = 1
+    if ";" in legendCoords: 
+        nColumnsLeg = int(legendCoords.split(";")[1])
+    legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
+    lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
+    #leg.SetFillColor(0)
+    #leg.SetFillStyle(0)
+    #leg.SetBorderSize(0)
+    leg.SetNColumns(nColumnsLeg)
+    leg.AddEntry(hlep,"combination","LPE")
+    leg.AddEntry(hmu,"muon","LPE")
+    leg.AddEntry(hel,"electron","LPE")
+    #leg.AddEntry(hleperr,"Uncertainty","LF")
+    leg.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    if drawStatBox:
+        ROOT.gPad.Update()
+        ROOT.gStyle.SetOptStat(1110)
+        ROOT.gStyle.SetOptFit(1102)
+    else:
+        hlep.SetStats(0)
+
+    vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(3) # 2 for denser hatches
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    if len(textForLines):
+        bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = hlep.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
+            vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = 0.6*ymax                  
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+    # redraw legend, or vertical lines appear on top of it
+    leg.Draw("same")
+
+    if len(moreText):
+        realtext = moreText.split("::")[0]
+        x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
+        if "::" in moreText:
+            x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
+        pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
+        for tx in realtext.split(";"):
+            pavetext.AddText(tx)
+        pavetext.SetFillColor(0)
+        pavetext.SetFillStyle(0)
+        pavetext.SetBorderSize(0)
+        pavetext.SetLineColor(0)
+        pavetext.Draw("same")
+
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
+
+  # TPaveText *pvtxt = NULL;
+  # if (yAxisName == "a.u.") {
+  #   pvtxt = new TPaveText(0.6,0.6,0.95,0.7, "BR NDC")
+  #   pvtxt.SetFillColor(0)
+  #   pvtxt.SetFillStyle(0)
+  #   pvtxt.SetBorderSize(0)
+  #   pvtxt.AddText(Form("norm num/den = %.2f +/- %.2f",IntegralRatio,ratioError))
+  #   pvtxt.Draw()
+  # }
+
+    setTDRStyle()
+    if leftMargin > 0.1:
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
+    else:
+        latCMS = ROOT.TLatex()
+        latCMS.SetNDC();
+        latCMS.SetTextFont(42)
+        latCMS.SetTextSize(0.045)
+        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+
+    if lowerPanelHeight:
+        pad2.Draw()
+        pad2.cd()
+
+        frame.Reset("ICES")
+        if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+        #else:                          
+        #frame.GetYaxis().SetRangeUser(0.5,1.5)
+        frame.GetYaxis().SetNdivisions(5)
+        frame.GetYaxis().SetTitle(yRatioAxisName)
+        frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
+        frame.GetYaxis().SetTitleSize(0.05)
+        frame.GetYaxis().SetLabelSize(0.04)
+        frame.GetYaxis().CenterTitle()
+        frame.GetXaxis().SetTitle(xAxisName)
+        if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
+        frame.GetXaxis().SetTitleOffset(1.2)
+        frame.GetXaxis().SetTitleSize(0.05)
+
+        #ratio = copy.deepcopy(hlep.Clone("ratio"))
+        #den_noerr = copy.deepcopy(h2.Clone("den_noerr"))
+        ratiomu = None
+        ratioel = None
+        den_noerr = None
+        den = None
+        ratiomu = hmu.Clone("ratiomu")
+        ratioel = hel.Clone("ratioel")
+        den_noerr = hlep.Clone("den_noerr")
+        den = hlep.Clone("den")
+       
+        for iBin in range (1,den_noerr.GetNbinsX()+1):
+            den_noerr.SetBinError(iBin,0.)
+
+        ratiomu.Divide(den_noerr)
+        ratioel.Divide(den_noerr)
+        den.Divide(den_noerr)
+        den.SetFillColor(ROOT.kGray)
+        den.SetFillStyle(1001)  # make it solid again
+        den.SetLineColor(ROOT.kBlack)        
+        den.SetLineWidth(2)        
+
+        frame.Draw()        
+        ratiomu.SetMarkerSize(1.0)
+        ratioel.SetMarkerSize(1.0)
+        den.SetMarkerSize(0) 
+        den.Draw("E2same")
+        ratiomu.Draw("EP same")
+        ratioel.Draw("EP same")
+        
+ 
+        line = ROOT.TF1("horiz_line","1",den.GetXaxis().GetBinLowEdge(1),den.GetXaxis().GetBinLowEdge(den.GetNbinsX()+1))
+        line.SetLineColor(ROOT.kBlack)
+        line.SetLineWidth(1)
+        line.Draw("Lsame")
+        # if invertRatio:
+        #     ratioline = ratio.Clone("ratioline")
+        #     ratioline.SetFillColor(0)
+        #     ratioline.SetFillStyle(0)
+        #     den.Draw("EPsame")
+        # else: 
+        #     ratio.Draw("EPsame")
+
+        x1leg2 = 0.15 if leftMargin > 0.1 else 0.07
+        x2leg2 = 0.55 if leftMargin > 0.1 else 0.27
+        y1leg2 = 0.28 if leftMargin > 0.1 else 0.3
+        y2leg2 = 0.33 if leftMargin > 0.1 else 0.35
+        leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
+        #leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
+        leg2.SetFillColor(0)
+        leg2.SetFillStyle(0)
+        leg2.SetBorderSize(0)
+        leg2.AddEntry(den,"combination","LF")
+        leg2.Draw("same")
+        pad2.RedrawAxis("sameaxis")
+
+
+    if draw_both0_noLog1_onlyLog2 != 2:
+        canvas.SaveAs(outdir + canvasName + ".png")
+        canvas.SaveAs(outdir + canvasName + ".pdf")
+
+    if draw_both0_noLog1_onlyLog2 != 1:        
+        if yAxisName == "a.u.": 
+            hlep.GetYaxis().SetRangeUser(max(0.0001,hlep.GetMinimum()*0.8),hlep.GetMaximum()*100)
+        else:
+            hlep.GetYaxis().SetRangeUser(max(0.001,hlep.GetMinimum()*0.8),hlep.GetMaximum()*100)
+        canvas.SetLogy()
+        canvas.SaveAs(outdir + canvasName + "_logY.png")
+        canvas.SaveAs(outdir + canvasName + "_logY.pdf")
+        canvas.SetLogy(0)
+        
+          
+#########################################################################

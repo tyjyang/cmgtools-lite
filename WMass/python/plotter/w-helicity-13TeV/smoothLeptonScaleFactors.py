@@ -995,8 +995,8 @@ if __name__ == "__main__":
     if options.inputfile:
         tf = ROOT.TFile.Open(options.inputfile)        
         if options.isTriggerScaleFactor or options.isFullIDScaleFactor or options.isMuonRecoToSel:
-            hmc =   tf.Get("EGamma_EffMC2D" if not options.inputHistNames else options.inputHistNames.split(',')[1])
             hdata = tf.Get("EGamma_EffData2D" if not options.inputHistNames else options.inputHistNames.split(',')[0])
+            hmc =   tf.Get("EGamma_EffMC2D" if not options.inputHistNames else options.inputHistNames.split(',')[1])
             hsf = tf.Get("EGamma_SF2D" if not options.inputHistNames else options.inputHistNames.split(',')[2])
             if (hsf == 0):
                 print "Error: could not retrieve hsf from input file %s. Exit" % options.inputfile
@@ -1301,7 +1301,7 @@ if __name__ == "__main__":
             zaxisRangeSF = "0.84,1.12"
         if options.isMuonRecoToSel:
             zaxisRange = "0.7,1.01"
-            zaxisRangeSF = "0.86,1.12"
+            zaxisRangeSF = "0.85,1.05"
     else:
         if options.isTriggerScaleFactor: 
             zaxisRangeSF = "0.55,1.05"

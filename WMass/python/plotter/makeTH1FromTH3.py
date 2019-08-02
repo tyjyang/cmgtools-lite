@@ -12,11 +12,32 @@ from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 
 from w_helicity_13TeV.mergeCardComponentsAbsY import mirrorShape
 
+#from w_helicity_13TeV.templateRolling import roll1Dto2D, dressed2D
+#from w_helicity_13TeV.rollingFunctions import unroll2Dto1D
+
 # originally developed to make cards for diff xsec in lepton pt and |eta|
 # transform TH3 into TH1 usable by combine
 # this is supposed to be done only on signal histograms, then they will be merged to data and background ones by hand
 
 ## python makeTH1FromTH3.py cards/diffXsec_mu_2018_11_24_group10_onlyBkg/wmass_varhists_mu_withScale.root -o cards/diffXsec_mu_2018_11_24_group10_onlyBkg/ -f mu -c plus --binfile cards/diffXsec_mu_2018_11_24_group10_onlyBkg/binningPtEta.txt
+
+def makeAlternateFromSymmetricRatio(alt, nomi, binning):
+    # make ratio of alt and nomi, roll inot TH2 (pt-eta), symmetrize this ratio versus eta and then unroll again
+    #
+    # should I return the new alt or is it enough to modify the argument to really change it outside the function?
+    ratio1D = alt.Clone(alt.getName()+"ratio1D")
+    ratio1D.Divide(nomi)
+    name2D = alt.GetName() + "_ratio2D"
+    ratio2D = dressed2D(ratio1D,binning,name2D,name2D)
+    # now make the ratio symmetric versus central eta
+    for ieta in range(1,ratio2D.GetNbinsX()+1):
+        for ipt in range(1,ratio2D.GetNbinsY()+1):
+            contentInThisEta = ratio2D.GetBinContent(ieta,ipt)  
+            contentInSymmetricEta = ratio2D.GetBinContent(1+ratio2D.GetNbinsX()-ieta,ipt)  
+            ratio2D.SetBinContent(ieta,ipt, 0.5 * (contentInThisEta+contentInSymmetricEta))
+    # finally redefine the alt histogram, after unrolling again the ratio
+    ratio1D = unroll2Dto1D(ratio2D,newname=ratio1D.getName(),cropNegativeBins=False) 
+    alt.Multiply(ratio1D,nomi)
 
 from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] shapes.root")
@@ -29,7 +50,8 @@ parser.add_option("-c", "--charge",    dest="charge", type="string", default='',
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates.')
 parser.add_option(      "--effStat-all", dest="effStatAll",   action="store_true", default=False, help="If True, assign any EffStat syst to any eta bin: otherwise, it is associated only to the corresponding eta bin");
 parser.add_option(      "--symmetrize-syst",  dest="symSyst", type="string", default='.*ErfPar.*EffStat.*|.*pdf.*|.*fsr.*', help="Regular expression matching systematics whose histograms should be symmetrized with respect to nominal (Up and Down variations not already present)");
-parser.add_option(      "--shape-only-symmetrized-syst",  dest="shapeOnlySymSyst", type="string", default='.*fsr.*', help="Regular expression matching systematics that are mirrored and which shouldbe shap-only");
+parser.add_option(      "--shape-only-symmetrized-syst",  dest="shapeOnlySymSyst", type="string", default='', help="Regular expression matching systematics that are mirrored and which should be shape-only");
+#parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="string", default='.*fsr.*', help="Regular expression matching systematics whose histograms should be obtained by making the ratio with nominal symmetric in eta");
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -70,6 +92,8 @@ etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
 recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 etaPtGenBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
 genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
+#following array is used to call function dressed2D() 
+#recoBinning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
 #
 print ""
 recoBins.printBinAll()
@@ -110,6 +134,7 @@ name = ""
 obj = None
 nominalTH1 = {}
 symmetrizedTH1 = {}
+#alternateFromSymmetrizedRatio = {}
 # efficiencies are made with 0.1 eta bins between -2.5 and 2.5, even though the template might have a coarser binning
 # if genEta ends at 2.4, only the nuisances EffStatXX with X from 2 to 49 are used
 effstatOffset = 25 if flavour == "mu" else 26  
@@ -199,17 +224,24 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
         # unroll a slice of TH3 at fixed z (this is a TH2) into a 1D histogram
         for ix in range(1,1+obj.GetNbinsX()):
             for iy in range(1,1+obj.GetNbinsY()):
-                bin = ix + obj.GetNbinsX() * (iy-1)
-                hist.SetBinContent(bin, obj.GetBinContent(ix,iy,iz))
-                hist.SetBinError(bin, obj.GetBinError(ix,iy,iz))
+                bin1D = ix + obj.GetNbinsX() * (iy-1)
+                hist.SetBinContent(bin1D, obj.GetBinContent(ix,iy,iz))
+                hist.SetBinError(bin1D, obj.GetBinError(ix,iy,iz))
         if toBeMirrored:
             # save but not write it to file yet
-            if newname not in symmetrizedTH1: symmetrizedTH1[newname] = hist.Clone()
+            if newname not in symmetrizedTH1: 
+                symmetrizedTH1[newname] = hist.Clone()
+                #if re.match(options.symSystRatio,newname) and newname not in alternateFromSymmetrizedRatio:
+                #    alternateFromSymmetrizedRatio[newname] = symmetrizedTH1[newname]
         else:
             if isNominal:
                 # save nominal to allow to retrieve it easily later: it will be used to symmetrize PDF and EffStat histograms
                 if newname not in nominalTH1: nominalTH1[newname] = hist.Clone()
+            #else:
+            #    if re.match(options.symSystRatio,newname) and newname not in alternateFromSymmetrizedRatio:
+            #        alternateFromSymmetrizedRatio[newname] = hist
             hist.Write(newname)  # write in output file
+
 
 # print "Printing key of symmetrizedTH1"
 # for key in symmetrizedTH1: print key,
@@ -217,6 +249,17 @@ for ikey,e in enumerate(tf.GetListOfKeys()):
 # print "Printing key of nominalTH1"
 # for key in nominalTH1: print key,
 # print ""
+
+# test: symmetrize ratio of some systs over nominal, and redefine the alternate as nominal times symmetrized ratio 
+# moved in the merger
+# for k in alternateFromSymmetrizedRatio:
+#     makeAlternateFromSymmetricRatio(alternateFromSymmetrizedRatio[k], nominalTH1[k], binning=recoBinning)
+#     print ">>> Histogram %s defined by making its ratio with nominal symmetric in eta" % k
+#     if k in symmetrizedTH1:
+#         pass # we haven't written the histogram in the file yet, but this is done later when mirroring
+#     else:
+#         print ">>>>>> Rewriting histogram %s in file" % k
+#         alternateFromSymmetrizedRatio[k].Write(k) # here we overwrite the histogram that was already written, it should work
 
 print "Creating mirror histogram for PDFs and EffStat"     
 # now symmetrize what need to be

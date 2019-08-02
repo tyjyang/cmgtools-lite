@@ -4,15 +4,15 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=1
-skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1
-skipMergeCardFlavour=0 # requires both flavours, and the electron cards must have all signal bins considered as signal
+skipUnpack=0
+skipMergeRoot=0
+skipSingleCard=0
+skipMergeCard=0
+skipMergeCardFlavour=1 # requires both flavours, and the electron cards must have all signal bins considered as signal
 flavourCombinationOutdir = "muElCombination"
 
 allPtBinsSignal = 1
-useBinUncEffStat = False
+useBinUncEffStat = True
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 # note that there is always a part of the uncertainty that is charge-uncorrelated
 freezePOIs = False
@@ -30,8 +30,13 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
-th3file_el = "cards/" + folder_el + "wel_20July2019_latestScaleFactor_AllIn_IDwithMConlyStat.root"
+#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+#folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
+th3file_el = "cards/" + folder_el + "wel_22July2019_integratedFSR.root"
+#th3file_el = "cards/" + folder_el + "wel_24July2019_testCoarserPt.root"
+#folder_el = "diffXsec_el_2019_07_28_testPt2GeV/"
+#th3file_el = "cards/" + folder_el + "wel_28July2019_testPt2GeV.root"
 # mu
 #folder_mu = "diffXsec_mu_2019_04_28_eta0p2widthFrom1p3_last2p1to2p4/" # keep "/" at the end
 #th3file_mu = "cards/" + folder_mu + "wmu_eta0p2widthFrom1p3_last2p1to2p4_fixLepScale_uncorrPtScale_addBinUncEffStat.root"
@@ -41,13 +46,15 @@ th3file_el = "cards/" + folder_el + "wel_20July2019_latestScaleFactor_AllIn_IDwi
 #th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
-folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_07_12_noSyst_onlyEtaMinus/"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
+folder_mu = "diffXsec_mu_2019_08_01_testBinnedSFandUnc/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
-th3file_mu = "cards/" + folder_mu + "wmu_10July2019_zptReweight_unfixedFSRcharge_fixEffStatOnlyStatUncDataMC.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_22July2019_integratedFSR.root"
+th3file_mu = "cards/" + folder_mu + "wmu_01August_testBinnedSFandUnc.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_04July2019_zptReweight_unfixedFSRcharge_testBinUncEffStat.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_12July2019_onlyRecoEtaMinus.root"
 
@@ -58,7 +65,11 @@ th3file = th3file_mu if doMuons else th3file_el
 # some more things are set below
 excludeNuisRegexp = "CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff"
 if useBinUncEffStat: 
+    excludeNuisRegexp = excludeNuisRegexp + "{comma}".format(comma="," if len(excludeNuisRegexp) else "") + ".*ErfPar\d+EffStat.*"
+else:
     excludeNuisRegexp = excludeNuisRegexp + "{comma}".format(comma="," if len(excludeNuisRegexp) else "") + ".*BinUncEffStat.*"
+
+nuisToSymmetrizeVsEta = " '.*fsr.*' "
 
 optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,2.1 " if doMuons else "0.5,1.0,1.5,2.1 ")
 binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.479,2.0' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
@@ -71,18 +82,24 @@ if useBinUncEffStat:
     optionsForRootMerger += " --useBinUncEffStat "
     optionsForCardMaker  += " --useBinUncEffStat "
 
+if nuisToSymmetrizeVsEta:
+    optionsForRootMerger += " --symmetrize-syst-ratio {regexp} ".format(regexp=nuisToSymmetrizeVsEta)
+
 #--WZ-testEffSyst-LnN 0.012" 
 # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
-optionsForCardMakerMerger = " --postfix zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes --sig-out-bkg " #--no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
+postfixCardMakerMerger = ""
+if doMuons: postfixCardMakerMerger = "testBinUncEffStat_01August2019"
+else      : postfixCardMakerMerger = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_testFakesPtV2"
+optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg " # --no-text2hdf5 --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  optionsForCardMakerMerger += " --freezePOIs "
 if skipFitData: optionsForCardMakerMerger += " --skip-fit-data "
 if skipFitAsimov: optionsForCardMakerMerger += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes --sig-out-bkg " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes_newFSR_scaleEffStatEE --sig-out-bkg " # --useSciPyMinimizer "  
 
 #================================
 

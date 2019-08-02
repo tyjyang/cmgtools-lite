@@ -123,8 +123,12 @@ float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept) {
   else return 1;
 
   int ratiobin  = std::max(1, std::min(fsrWeights->GetNbinsX(), fsrWeights->GetXaxis()->FindFixBin(barept/dresspt)));
-
-  return fsrWeights->GetBinContent(ratiobin);
+  
+  // normfactor is used to keep the total xsec unchanged when using the fsr
+  // it was obtained from the gen level cross section for e/mu without any cut (except the gen-pdgid), as the ratio of nomi/fsr (nomi/fsr < 1)
+  //Double_t normfactor = (abs(pdgId) == 11) ? 0.964792 : 0.914320; 
+  Double_t normfactor = 1.0; 
+  return normfactor * fsrWeights->GetBinContent(ratiobin);
 }
 
 
@@ -757,39 +761,43 @@ float triggerSF_2l(float l11pass, float l12pass, float l21pass, float l22pass, f
   return weight;
 }
 
+//============================     
+
 TFile *_file_recoToSelection_leptonSF_mu = NULL;
 TH2F *_histo_recoToSelection_leptonSF_mu = NULL;
 
-static string basedirSF_mu = string("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/");
-
-float _get_muonSF_recoToSelection(int pdgid, float pt, float eta) {
+float _get_muonSF_recoToSelection(int pdgid, float pt, float eta, bool useBinnedSF = false) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
 
+  string hSFname = "scaleFactor_etaInterpolated";
+  if (useBinnedSF) hSFname = "scaleFactorOriginal";
+
   if (!_histo_recoToSelection_leptonSF_mu) {
-    // _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/muons_idiso_smooth.root",basedirSF_mu.c_str()),"read");
-    // _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("Graph2D_from_scaleFactor_smoothedByGraph"));
-    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/smoothEfficiency_muons_recoToSel_finerETA.root",basedirSF_mu.c_str()),"read");
-    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get("scaleFactor"));
+    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_recoToSel_finerETA.root",_cmssw_base_.c_str()),"read");
+    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get(hSFname.c_str()));
   }
 
   if(abs(pdgid)==13) {
-    TH2F *histSelection = _histo_recoToSelection_leptonSF_mu;
+    TH2F *histRecoToSelection = _histo_recoToSelection_leptonSF_mu;
 
-    int etabin = std::max(1, std::min(histSelection->GetNbinsX(), histSelection->GetXaxis()->FindFixBin(eta)));
-    int ptbin  = std::max(1, std::min(histSelection->GetNbinsY(), histSelection->GetYaxis()->FindFixBin(pt)));
+    int etabin = std::max(1, std::min(histRecoToSelection->GetNbinsX(), histRecoToSelection->GetXaxis()->FindFixBin(eta)));
+    int ptbin  = std::max(1, std::min(histRecoToSelection->GetNbinsY(), histRecoToSelection->GetYaxis()->FindFixBin(pt)));
 
-    float out = histSelection->GetBinContent(etabin,ptbin);
-
-    return out;
+    return histRecoToSelection->GetBinContent(etabin,ptbin);
   }
 
   return 0;
 
 }
+
+
+//============================
+
+
 TFile *_file_trigger_leptonSF_mu_plus = NULL;
 TH2F *_histo_trigger_leptonSF_mu_plus = NULL;
 TFile *_file_trigger_leptonSF_mu_minus = NULL;
@@ -800,24 +808,30 @@ TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_plus = NULL;
 TFile *_file_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
 TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
 
-float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, float sumErrorTimesThis = 0.0, bool useStatErrOnly = false) {
+float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, 
+				     float sumErrorTimesThis = 0.0, bool useStatErrOnly = false,
+				     bool useBinnedSF = false) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
 
+  string hSFname = "scaleFactor";
+  if (useBinnedSF) hSFname = "scaleFactorOriginal";
+
   if (!_histo_trigger_leptonSF_mu_plus) {
-    _file_trigger_leptonSF_mu_plus = new TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root","read");
-    _histo_trigger_leptonSF_mu_plus = (TH2F*)(_file_trigger_leptonSF_mu_plus->Get("scaleFactor"));
+    _file_trigger_leptonSF_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_mu_plus = (TH2F*)(_file_trigger_leptonSF_mu_plus->Get(hSFname.c_str()));
   }
   if (!_histo_trigger_leptonSF_mu_minus) {
-    _file_trigger_leptonSF_mu_minus = new TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root","read");
-    _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get("scaleFactor"));
+    _file_trigger_leptonSF_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get(hSFname.c_str()));
   }
 
 
   if (useStatErrOnly) {
+    // since July 2019 we could take them from the same file as above, as we stored these numbers there, but whatever works is fine)
     if (!_histo_triggerBinUncEffStat_leptonSF_mu_plus) {
       _file_triggerBinUncEffStat_leptonSF_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root",_cmssw_base_.c_str()),"read");
       _histo_triggerBinUncEffStat_leptonSF_mu_plus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_plus->Get("triggerSF_plus"));
@@ -839,10 +853,11 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
     TH2F *histTriggerBinUnc = nullptr; 
     double binunc = histTrigger->GetBinError(etabin,ptbin);
     if (useStatErrOnly) {
+      // see above, this would no longer be needed
       histTriggerBinUnc = ( charge > 0 ? _histo_triggerBinUncEffStat_leptonSF_mu_plus : _histo_triggerBinUncEffStat_leptonSF_mu_minus );
       int etabinUnc = std::max(1, std::min(histTriggerBinUnc->GetNbinsX(), histTriggerBinUnc->GetXaxis()->FindFixBin(eta)));
       int ptbinUnc  = std::max(1, std::min(histTriggerBinUnc->GetNbinsY(), histTriggerBinUnc->GetYaxis()->FindFixBin(pt)));      
-      binunc = histTriggerBinUnc->GetBinError(etabin,ptbin);
+      binunc = histTriggerBinUnc->GetBinError(etabinUnc,ptbinUnc);
     }
     // inflate error by sqrt(2.) to account for other SF (here only trigger is considered)
     float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * TMath::Sqrt(2.) * binunc;
@@ -853,6 +868,8 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
   return 0;
 
 }
+
+//============================
 
 TFile *_file_eleTrigger_EBeta0p1 = NULL;
 TH2F *_histo_eleTrigger_EBeta0p1 = NULL;
@@ -1024,7 +1041,7 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
     return 1.0;
   }
 
-  float ret;
+  float ret = 1.0;
   if (eta < etamin || eta > etamax) ret = 1.0;
   else {
     Double_t factor = 1.;
