@@ -126,6 +126,7 @@ class util:
                 for s in systs:
                     histo_systs = histo_file.Get(binname+'_'+s)
                     envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
+                    if doAlphaS: envelope = 1.5*envelope # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) 
                 xsecs.append(float(envelope))
             values[pol] = xsecs
         histo_file.Close()
