@@ -40,9 +40,6 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        #systs += [','.join(['muR'   +str(i) for i in range(1,11)])]
-        #systs += [','.join(['muF'   +str(i) for i in range(1,11)])]
-        #systs += [','.join(['muRmuF'+str(i) for i in range(1,11)])]
         systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
@@ -53,8 +50,8 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
-        
+        # systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
+        # systs += [','.join(['ErfPar{ipar}EffStat{etabin}{flav}{charge}'.format(ipar=i,etabin=eb,flav=muEl,charge=charge) for i in xrange(3) for eb in xrange(48) for charge in charges])]
         tmp_systs = []
         for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
             tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
@@ -75,7 +72,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW']
+                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW,fsr']
                 if 'floatingPOIs' in tmp_file:
                     #nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                     nuisancesAndPOIs += ['W{charge}_right.*pmaskedexpnorm,W{charge}_left.*pmaskedexpnorm'.format(charge=charge) for charge in ['plus','minus'] ]
@@ -96,7 +93,7 @@ if __name__ == '__main__':
                 fitflavor = os.path.splitext(os.path.basename(options.config.split('_')[-1]))[0]
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 normstr = [' ', ' --normxsec ']
-                if options.make=='rapcomp' and sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
+                if options.make in ['rapcomp','all'] and sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
@@ -159,8 +156,8 @@ if __name__ == '__main__':
         poisGroups = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
         singleNuisGroups = ['CMS.*','pdf.*','mu.*','ErfPar0.*','ErfPar1.*','ErfPar2.*']
         #targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec', 'A0', 'A4']
-        targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec']
-        POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'A0': '.*a0', 'A4': '.*a4'}
+        targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec','unpolxsecnorm','A0','A4']
+        POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'unpolxsecnorm': '.*sumxsecnorm', 'A0': '.*a0', 'A4': '.*a4'}
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
@@ -201,7 +198,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_,fsr', 'ErfPar']
                 nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
