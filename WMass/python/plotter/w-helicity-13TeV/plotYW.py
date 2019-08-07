@@ -685,8 +685,10 @@ if __name__ == "__main__":
                         tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
                     tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
                     tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
-                else:
+                elif xs=='sumxsec':
                     scale *= float(nChan)
+                else:
+                    pass # a0, a4 are already normalized
         
                 xsec_fit = valuesAndErrors[parname]
         
