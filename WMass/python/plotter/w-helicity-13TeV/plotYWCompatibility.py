@@ -81,6 +81,7 @@ def applyChannelStyles(values,polarizations):
 def applyChannelStylesUnpol(values):
     markerStyles = {'mu': ROOT.kOpenSquare, 'el': ROOT.kOpenCircle, 'lep': ROOT.kFullTriangleDown}
     markerSizes = {'mu': 2, 'el': 2, 'lep': 2}
+    tmpcolors = {'mu': ROOT.kAzure+7, 'el': ROOT.kRed-2, 'lep': ROOT.kGreen-2}
     for flav in ['lep','mu','el']:
         # remove the x error bars for the single channels
         values[flav].graph.SetLineStyle(1)
@@ -88,6 +89,8 @@ def applyChannelStylesUnpol(values):
         values[flav].graph.SetLineColor(values[flav].color)
         values[flav].graph_fit.SetMarkerStyle(markerStyles[flav])
         values[flav].graph_fit.SetMarkerSize(markerSizes[flav])
+        values[flav].graph_fit.SetMarkerColor(tmpcolors[flav])
+        values[flav].graph_fit.SetLineColor(tmpcolors[flav])
         values[flav].graph_fit_rel.SetMarkerStyle(markerStyles[flav])
         values[flav].graph_fit_rel.SetMarkerSize(markerSizes[flav])
         values[flav].graph_fit_rel.SetLineColor(ROOT.kBlack)
@@ -150,9 +153,9 @@ def makeFullLegend(values):
     legRight = ROOT.TLegend(0.35, 0.60, 0.90, 0.75)
     legRight.SetFillStyle(0)
     legRight.SetBorderSize(0)
-    legRight.AddEntry(values[('mu','right')] .graph_fit     , 'data #mu', 'p')
-    legRight.AddEntry(values[('el','right')].graph_fit     , 'data e', 'p')
-    legRight.AddEntry(values[('lep','right')].graph_fit     , 'data comb', 'p')
+    legRight.AddEntry(values[('mu','right')] .graph_fit    , 'data #mu' , 'p')
+    legRight.AddEntry(values[('el','right')].graph_fit     , 'data e'   , 'p')
+    legRight.AddEntry(values[('lep','right')].graph_fit    , 'data comb', 'p')
     legs.append(legRight)
     return legs
 
@@ -165,9 +168,9 @@ def makeFullLegendUnpol(values):
     leg.AddEntry(values['lep'] .graph    , '#sigma (Wgt Theory)', 'f')
     if doAltExp:
         leg.AddEntry(values['lep'] .altgraph    , '#sigma (Unw Theory)', 'l')
-    leg.AddEntry(values['mu'] .graph_fit , 'data #mu', 'p')
-    leg.AddEntry(values['el'] .graph_fit , 'data e', 'p')
-    leg.AddEntry(values['lep'].graph_fit , 'data comb ', 'p')
+    leg.AddEntry(values['mu'] .graph_fit , 'data #mu', 'pl')
+    leg.AddEntry(values['el'] .graph_fit , 'data e', 'pl')
+    leg.AddEntry(values['lep'].graph_fit , 'data comb ', 'pl')
     return leg
 
 def plotValues(values,charge,channel,options):
@@ -394,7 +397,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         titles = {'asymmetry': 'Charge asymmetry',
                   'a0': '|A_{0}|', 
                   'a4': '|A_{4}|',
-                  'sumxsec': '',
+                  'sumxsec': '#frac{d#sigma}{d|Y_{W}|}',
                   'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
         ranges = {'asymmetry': (-0.1,0.4),
                   'a0': (0.07,0.2),
@@ -406,7 +409,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
         mg.GetYaxis().SetTitleSize(0.06)
         mg.GetYaxis().SetLabelSize(0.04)
-        mg.GetYaxis().SetTitleOffset(1.)
+        mg.GetYaxis().SetTitleOffset(1.2)
     
         leg = makeFullLegendUnpol(values)
         leg.Draw('same')
