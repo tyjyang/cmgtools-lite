@@ -154,17 +154,17 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc}*)'.format(mc=REFMC) , 'f')
+            leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
             if doAltExp:
-                leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'l')
+                leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} ({mc}*)'.format(mc=REFMC) , 'l')
             leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
-            leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc}*)'.format(mc=REFMC) , 'f')
+            leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
             if doAltExp:
-                leg.AddEntry(values['right'].altgraph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'l')
+                leg.AddEntry(values['right'].altgraph     , 'W_{{R}} ({mc}*)'.format(mc=REFMC) , 'l')
             leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(3 if doAltExp else 3)
             if not skipLong:
-                leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc}*)'.format(mc=REFMC) , 'f')
+                leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
                 leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
 
             values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
@@ -316,9 +316,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
             leg.AddEntry(values.graph_fit , 'data', 'pl')
-            leg.AddEntry(values.graph     , REFMC+'*', 'f')
+            leg.AddEntry(values.graph     , REFMC, 'f')
             if doAltExp:
-                leg.AddEntry(values.graph     , REFMC, 'l')
+                leg.AddEntry(values.graph     , REFMC+'*', 'l')
 
             leg.Draw('same')
             lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
@@ -526,13 +526,16 @@ if __name__ == "__main__":
                         print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,relsyst)
                     else:
                         xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
+                print "rel PDFs on xsec for Y bin %d = +/-%.3f" % (iy,math.sqrt(xsec_totUp)/xsec_nom if xsec_nom else 0.)
                 # now to the total PDF error, add the QCD scales envelope
                 xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
                 # and add alphaS (which in principle is part of PDF variations)
                 xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
-                # print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
+                #print "rel QCD scales on xsec for Y bin %d = +/-%.3f" % (iy,xsec_qcdenvelope[pol][iy]/xsec_nom if xsec_nom else 0.) 
+                #print "Rel alphs syst on xsec for Y bin %d = +/-%.3f" % (iy,xsec_alphas_syst[pol][iy]/xsec_nom if xsec_nom else 0.) 
+                #print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
                 xsec_systs.append(xsec_totUp)
             xsec_systematics[pol]=xsec_systs
         xsec_systematics_allCharges[charge] = xsec_systematics

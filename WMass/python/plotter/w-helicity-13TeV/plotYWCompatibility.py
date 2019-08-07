@@ -134,12 +134,12 @@ def makeFullLegend(values):
     legExp = ROOT.TLegend(0.25, 0.75, 0.90, 0.85)
     legExp.SetFillStyle(0)
     legExp.SetBorderSize(0)
-    legExp.AddEntry(values[('lep','left')] .graph     , '#sigma_{L} (Theory)', 'f')
-    legExp.AddEntry(values[('lep','right')].graph     , '#sigma_{R} (Theory)', 'f')
+    legExp.AddEntry(values[('lep','left')] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC), 'f')
+    legExp.AddEntry(values[('lep','right')].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC), 'f')
     if doAltExp:
         legExp.SetNColumns(2)
-        legExp.AddEntry(values[('lep','left')] .altgraph     , 'W_{{L}} (unw {mc})'.format(mc=REFMC) , 'l')
-        legExp.AddEntry(values[('lep','right')].altgraph     , 'W_{{R}} (unw {mc})'.format(mc=REFMC) , 'l')
+        legExp.AddEntry(values[('lep','left')] .altgraph     , 'W_{{L}} ({mc}*)'.format(mc=REFMC) , 'l')
+        legExp.AddEntry(values[('lep','right')].altgraph     , 'W_{{R}} ({mc}*)'.format(mc=REFMC) , 'l')
     legs.append(legExp)
     # data Left
     legLeft = ROOT.TLegend(0.25, 0.60, 0.90, 0.75)
@@ -165,9 +165,9 @@ def makeFullLegendUnpol(values):
     leg = ROOT.TLegend(0.25, 0.60, 0.90, 0.85)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
-    leg.AddEntry(values['lep'] .graph    , '#sigma (Wgt Theory)', 'f')
+    leg.AddEntry(values['lep'] .graph    , REFMC, 'f')
     if doAltExp:
-        leg.AddEntry(values['lep'] .altgraph    , '#sigma (Unw Theory)', 'l')
+        leg.AddEntry(values['lep'] .altgraph    , REFMC+'*', 'l')
     leg.AddEntry(values['mu'] .graph_fit , 'data #mu', 'pl')
     leg.AddEntry(values['el'] .graph_fit , 'data e', 'pl')
     leg.AddEntry(values['lep'].graph_fit , 'data comb ', 'pl')
