@@ -1,4 +1,4 @@
-basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_grandcru/fitsout_2019-07-15/'
+basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_crusauvage/fitsout_2019-07-18/'
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_el/'
 
 dirWithToyFits = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/'
@@ -23,8 +23,5 @@ xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
 alt_xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec_baremc.root'
 alt_xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec_baremc.root'
 
-postfit_bbb1 = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
-#postfit_bbb0 = basedir+'/fitresults_123456789_poim1_exp0_bbb0.root'
-#
+postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
 postfit_bbb1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'
-#postfit_bbb0_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb0.root'

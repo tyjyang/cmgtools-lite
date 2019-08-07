@@ -46,7 +46,7 @@ def getCorrelatedParameters(params,covmat):
     c = cholesky(covmat,lower=True)
     # generate samples from N independent normally distributed random variables
     # with mean the measured bias and std. dev. 1
-    num_samples = 100000
+    num_samples = int(1e+6)
     par_samples = []
     print "generating ",num_samples," Toy MC samples to build the correlated samples..."
     for par in params:
