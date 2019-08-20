@@ -10,8 +10,8 @@ if channel not in ['mu','el']:
 fps = ['',' --fp ']
 charges = [' -C plus,minus', '--comb' ]
 
-for ch in charges:
-    for fp in fps:
+for fp in fps:
+    for ch in charges:
         cmd = './mergeCardComponentsAbsY.py -b W{channel} {ch} -i {cdir} {fp}'.format(channel=channel,cdir=cardsdir,ch=ch,fp=fp)
         print cmd
         os.system(cmd)

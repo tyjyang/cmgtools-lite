@@ -791,3 +791,34 @@ class util:
         channel = 'el' if 'ErfPar0EffStat1elminus' in t_fitres.GetListOfBranches() else 'mu'
         return channel
 
+    def wxsec(self,generator='mcatnlo'):
+        # FEWZ3.1 comes from https://twiki.cern.ch/twiki/bin/viewauth/CMS/StandardModelCrossSectionsat13TeV
+        # 770.9  pb is the PDF uncertainty
+        # +165.7 -88.2 is the QCD scales uncertainty
+        # for the native mcatnlo 110 pb is added in quadrature since it is the stat error on the partial sample (JB recomputed it -cf mail of 8/8/2019)
+        xsec = {'fewz3p1': (3*20508.9,math.hypot(165.7,770.9),math.hypot(88.2,770.9)),
+                'mcatnlo': (60400,    math.hypot(110,math.hypot(165.7,770.9)),math.hypot(110,math.hypot(88.2,770.9)))}
+        return xsec
+
+    def getL1SF(self,pt,eta,histo):
+        ret = (0,0)
+        if not histo: 
+            print "The ", histo, " is not present in the file ",rfile
+            return ret
+        etabin = max(1, min(histo.GetNbinsX(), histo.GetXaxis().FindFixBin(eta)))
+        ptbin  = max(1, min(histo.GetNbinsY(), histo.GetYaxis().FindFixBin(pt)))
+        ret = ( histo.GetBinContent(etabin,ptbin), histo.GetBinError(etabin,ptbin) )
+        return ret
+
+    def getEffSyst(self,pt,eta,pdgId):
+        abseta = abs(eta)
+        if abs(pdgId)==11:
+            if abseta<1:       syst = 0.006
+            elif abseta<1.479: syst = 0.008
+            elif abseta<2:     syst = 0.013
+            else:              syst = 0.019
+        elif abs(pdgId)==13:
+            if abseta<1:       syst = 0.002
+            elif abseta<1.5:   syst = 0.004
+            else:              syst = 0.014
+        return syst
