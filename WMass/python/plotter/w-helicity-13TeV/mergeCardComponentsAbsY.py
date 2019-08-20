@@ -670,6 +670,9 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
                         if doType=='L1PrefireEle':
                             ## now get the content of the variation histogram!
                             sf,tmp_scale = utilities.getL1SF(ybincenter,eta,l1hist)
+                            ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
+                            if process=='Z':
+                                tmp_scale *= math.sqrt(2)
                         elif doType=='TnP':
                             pdgId = 13 if flav=='mu' else 11
                             tmp_scale_2 = math.pow(utilities.getEffSyst(ybincenter,etasyst_loweredge,pdgId),2)
@@ -679,9 +682,6 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
                                 #print " subtracting bin ",etabins[innersyst]," which has ",utilities.getEffSyst(ybincenter,etabins[innersyst],pdgId)
                             tmp_scale = math.sqrt(tmp_scale_2)
                         scaling = tmp_scale
-                        ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
-                        if flav == 'el' and process=='Z':
-                            scaling *= math.sqrt(2)
                     ## scale up and down with what we got from the histo
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)

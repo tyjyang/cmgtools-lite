@@ -81,7 +81,9 @@ class util:
         histo_file.Close()
         return histos
 
-    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1, polarizations = ['left','right','long'], excludeYbins = []):
+    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], generator='fewz3p1'):
+        ## the xsec used in the templates is FEWZ 3.1
+        rescale = self.wxsec(generator)[0]/self.wxsec('fewz3p1')[0]
         values = {}
         if not infile:
             for pol in polarizations: 
@@ -104,13 +106,15 @@ class util:
                 if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
                 histo = histo_file.Get(name)
-                val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
+                val = rescale*histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()
         return values
 
-    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], doAlphaS=False):
+    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], doAlphaS=False, generator='mcatnlo'):
+        ## the xsec used in the templates is FEWZ 3.1
+        rescale = self.wxsec(generator)[0]/self.wxsec('fewz3p1')[0]
         values = {}
         histo_file = ROOT.TFile(infile, 'READ')
         for pol in polarizations:
@@ -127,6 +131,7 @@ class util:
                     histo_systs = histo_file.Get(binname+'_'+s)
                     envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
                     if doAlphaS: envelope = 1.5*envelope # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) 
+                    envelope = rescale*envelope
                 xsecs.append(float(envelope))
             values[pol] = xsecs
         histo_file.Close()
@@ -798,7 +803,10 @@ class util:
         # for the native mcatnlo 110 pb is added in quadrature since it is the stat error on the partial sample (JB recomputed it -cf mail of 8/8/2019)
         xsec = {'fewz3p1': (3*20508.9,math.hypot(165.7,770.9),math.hypot(88.2,770.9)),
                 'mcatnlo': (60400,    math.hypot(110,math.hypot(165.7,770.9)),math.hypot(110,math.hypot(88.2,770.9)))}
-        return xsec
+        if generator not in xsec:
+            print "ERROR! Generator ",generator," unknown. Returning 0 xsec"
+            return (0,-1,-1)
+        return xsec[generator]
 
     def getL1SF(self,pt,eta,histo):
         ret = (0,0)
