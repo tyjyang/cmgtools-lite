@@ -1014,11 +1014,6 @@ if __name__ == "__main__":
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
             os.system(final_haddcmd)
 
-        ## remake
-        print 'now putting the erfpar systematics into the file'
-        putEffStatHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)        
-        #########
-
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
         expsyst = {}
