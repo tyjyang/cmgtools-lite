@@ -700,6 +700,55 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the correlated effsyst'
 
+def addZOutOfAccPrefireSyst(infile,outdir=None):
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    tf    = ROOT.TFile.Open("/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/OutOfAcceptancePrefireDYUnc.root")
+    histo = tf.Get("ZOutAccPrefireUnc")
+
+    indir = outdir if outdir != None else options.inputdir
+    outfile = ROOT.TFile(indir+'/ZOutOfAccPrefireSyst_el.root', 'recreate')
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+
+    tmp_name = 'x_Z'
+    tmp_nominal = tmp_infile.Get(tmp_name)
+    tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+    for iside,sign in enumerate([-1,1]):
+        outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_OutOfAccPrefireSyst{i}el2DROLLED'.format(i=iside)
+        tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+        tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+
+        ## loop over all eta bins of the 2d histogram
+        for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+            eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+            ## loop over all pT bins in that bin of eta (which is ieta)
+            for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
+                pt = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                scaling = 0
+                if eta*sign>0:
+                    scaling = histo.GetBinContent(histo.GetXaxis().FindFixBin(eta),histo.GetYaxis().FindFixBin(pt))
+                ## scale up and down with what we got from the histo
+                tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
+                tmp_bincontent_up = tmp_bincontent*(1.+scaling)
+                tmp_bincontent_dn = tmp_bincontent*(1.-scaling)
+                tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_bincontent_up)
+                tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
+
+        ## re-roll the 2D to a 1D histo
+        tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
+        tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+
+        outfile.cd()
+        tmp_scaledHisto_up_1d.Write()
+        tmp_scaledHisto_dn_1d.Write()
+    outfile.Close()
+    print 'done with the reweighting for the Z OutOfAcc prefire syst'
+
 def writeChargeGroup(cardfile,signals,polarizations):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
     for pol in polarizations:
@@ -997,6 +1046,7 @@ if __name__ == "__main__":
             putEffSystHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', doType='TnP', isMu= 'mu' in options.bin)
             if 'el' in options.bin:
                 putEffSystHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', doType='L1PrefireEle', isMu=False)
+                addZOutOfAccPrefireSyst(outfile+'.noErfPar')
 
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
@@ -1011,7 +1061,7 @@ if __name__ == "__main__":
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='ptnorm')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='ptnorm')
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/ZOutOfAccPrefireSyst_el.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
             os.system(final_haddcmd)
 
         print "Now trying to get info on theory uncertainties..."
@@ -1029,7 +1079,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
+                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*OutOfAccPrefireSyst.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -1289,7 +1339,7 @@ if __name__ == "__main__":
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale\d.*',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
-        combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*EffSyst.*',x),finalsystnames))+'\n')
+        combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*EffSyst.*|.*OutOfAccPrefireSyst.*',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
                                                        filter(lambda x: re.match('.*FR.*(_norm|lnN|continuous)',x),finalsystnames))+'\n')
         combinedCard.write('\nOtherBkg group = '+' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau|CMS_We_flips',x),finalsystnames))+'\n')

@@ -40,25 +40,28 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
+        systs += ['CMS_We_elescale']
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['CMS_Wmu_muscale0']
         systs += ['CMS_Wmu_muscale1']
+        systs += ['']
+        nTnPUnc = 3 if muEl=='mu' else 4
+        systs += ['TnPEffSyst{idx}{flav}'.format(idx=i,flav=muEl) for i in range(0,nTnPUnc)]
+        systs += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
+        systs += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
         systs += [','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        # systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
-        # systs += [','.join(['ErfPar{ipar}EffStat{etabin}{flav}{charge}'.format(ipar=i,etabin=eb,flav=muEl,charge=charge) for i in xrange(3) for eb in xrange(48) for charge in charges])]
         tmp_systs = []
         for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
             tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
         systs += [','.join(tmp_systs)]
 
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --projections --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
 
