@@ -1190,14 +1190,15 @@ if __name__ == "__main__":
         os.system('rm {tmpcard}'.format(tmpcard=tmpcard))
 
         kpatt = " %7s "
-        if options.longLnN:
-            for ybin in xrange(len(ybins['long'])-1):
-                longW_proc = 'W{ch}_long_Ybin_{yb}'.format(ch=charge,yb=ybin)
-                combinedCard.write('norm_'+longW_proc+'       lnN    ' + ' '.join([kpatt % (options.longLnN if longW_proc in x else '-') for x in realprocesses])+'\n')
-        for ybfix in bkgYBins:
-            for pol in ['left','right']:
-                lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
-                combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
+        if not options.freezePOIs:
+            if options.longLnN:
+                for ybin in xrange(len(ybins['long'])-1):
+                    longW_proc = 'W{ch}_long_Ybin_{yb}'.format(ch=charge,yb=ybin)
+                    combinedCard.write('norm_'+longW_proc+'       lnN    ' + ' '.join([kpatt % (options.longLnN if longW_proc in x else '-') for x in realprocesses])+'\n')
+            for ybfix in bkgYBins:
+                for pol in ['left','right']:
+                    lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
+                    combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
     
         combinedCard = open(cardfile,'r')
         procs = []
