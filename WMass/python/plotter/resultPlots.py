@@ -51,9 +51,9 @@ if __name__ == '__main__':
         systs += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
         systs += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
-        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         tmp_systs = []
         for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
@@ -144,9 +144,11 @@ if __name__ == '__main__':
             tmp_outdir = options.outdir+'/postFitPlots/'
             os.system('mkdir -p {od}'.format(od=tmp_outdir))
             os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
-            cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
-            cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
-            os.system(cmd)
+            for reverse in ['',' --reverseUnrolling ']:
+                print "NOW RUNNING WITH REVERSE UNROLLING OPTION: ",reverse
+                cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
+                cmd += ' {inf} {cd} --outdir {od} --suffix {suf} {rev} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''), rev=reverse)
+                os.system(cmd)
             for charge in ['plus','minus']:
                 cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
                 os.system(cmdpull)

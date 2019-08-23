@@ -2,7 +2,7 @@
 # USAGE: python postFitPlots.py wel_minus_floatPOI.root cards_el -o outputdir [--prefit]
 import ROOT, os, re, copy
 from array import array
-from rollingFunctions import roll1Dto2D, unroll2Dto1D
+from rollingFunctions import roll1Dto2D, unroll2Dto1D, reverseUnroll2Dto1D
 
 from make_diff_xsec_cards import getDiffXsecBinning
 from make_diff_xsec_cards import templateBinning
@@ -360,6 +360,7 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=1, type='int', help='Number of masked channels in the fit for each charge')
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
+    parser.add_option(     '--reverseUnrolling', dest="reverseUnrolling", default=False, action='store_true', help="do the unrolling in the ohter way around (pt in eta chunks)");
     (options, args) = parser.parse_args()
 
     groupJobs=5 # used in make_helicity_cards.py
@@ -411,6 +412,8 @@ if __name__ == "__main__":
     shifts = chargeUnrolledBinShifts(infile,channel,nCharges,nMaskedChanPerCharge)
     print 'THESE ARE THE BINSHIFTS', shifts
 
+    reverse = 'reverse' if options.reverseUnrolling else ''
+
     for charge in ['plus','minus']:
         binshift = shifts[charge]
         
@@ -425,7 +428,8 @@ if __name__ == "__main__":
             suffix = prepost+options.suffix
             # doing signal
             canv = ROOT.TCanvas()
-            for pol in ['right', 'left', 'long']:
+            unpolkeyplot = 'W'+charge+'_unpol_'+prepost
+            for ipol,pol in enumerate(['right', 'left', 'long']):
                 print "\tPOLARIZATION ",pol
                 chpol = '{ch}_{pol}'.format(ch=charge,pol=pol)
                 keyplot = 'W'+chpol+'_'+prepost
@@ -446,11 +450,13 @@ if __name__ == "__main__":
                     title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
                     h1_unrolled = singleChargeUnrolled(h1_1,binshift,nMaskedCha=options.nMaskedChannel)
                     h2_backrolled_1 = dressed2D(copy.deepcopy(h1_unrolled),binning,name2D,title=title2D,shift=binshift,nMaskedCha=options.nMaskedChannel)
-                    single_sig_unrolled[ykeyplot] = h1_unrolled.Clone('Y{iy}_W{ch}_{pol}_{flav}_unrolled'.format(iy=ybin,ch=charge,pol=pol,flav=channel))
+                    if options.reverseUnrolling:
+                        h1_unrolled = reverseUnroll2Dto1D(h2_backrolled_1,newname=h1_unrolled.GetName()+'_'+reverse)
+                    single_sig_unrolled[ykeyplot] = h1_unrolled.Clone('Y{iy}_W{ch}_{pol}_{flav}_{rev}unrolled'.format(iy=ybin,ch=charge,pol=pol,flav=channel,rev=reverse))
                     single_sig_unrolled[ykeyplot].SetDirectory(None)
                     if ybin==0:
                         total_sig[keyplot] = h2_backrolled_1.Clone('W{ch}_{pol}_{flav}'.format(ch=charge,pol=pol,flav=channel))
-                        total_sig_unrolled[keyplot] = h1_unrolled.Clone('W{ch}_{pol}_{flav}_unrolled'.format(ch=charge,pol=pol,flav=channel))
+                        total_sig_unrolled[keyplot] = h1_unrolled.Clone('W{ch}_{pol}_{flav}_{rev}unrolled'.format(ch=charge,pol=pol,flav=channel,rev=reverse))
                     else:
                         total_sig[keyplot].Add(h2_backrolled_1)
                         total_sig_unrolled[keyplot].Add(h1_unrolled)
@@ -470,6 +476,12 @@ if __name__ == "__main__":
                             canv.SaveAs('{odir}/W{ch}_{pol}_W{ch}_{flav}_Ybin_{ybin}_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,ybin=ybin,sfx=suffix,ext=ext))
                         total_sig[keyplot].Draw('colz')
                         total_sig[keyplot].Write(total_sig[keyplot].GetName())
+                if ipol==0:
+                    total_sig[unpolkeyplot] = total_sig['W'+chpol+'_'+prepost].Clone('W{ch}_unpol_{flav}'.format(ch=charge,flav=channel))
+                    total_sig_unrolled[unpolkeyplot] = total_sig_unrolled['W'+chpol+'_'+prepost].Clone('W{ch}_unpol_{flav}_{rev}unrolled'.format(ch=charge,flav=channel,rev=reverse))
+                else:
+                    total_sig[unpolkeyplot].Add(total_sig['W'+chpol+'_'+prepost])
+                    total_sig_unrolled[unpolkeyplot].Add(total_sig_unrolled['W'+chpol+'_'+prepost])
                 if prepost=='prefit':
                     postfitkey  = 'W'+chpol+'_postfit'
                     if total_sig_unrolled[postfitkey]!=None:
@@ -481,8 +493,15 @@ if __name__ == "__main__":
                 if not options.no2Dplot:
                     for ext in ['pdf', 'png']:
                         canv.SaveAs('{odir}/W{ch}_{pol}_{flav}_TOTALSIG_PFMT40_absY_{sfx}.{ext}'.format(odir=outname,ch=charge,flav=channel,pol=pol,sfx=suffix,ext=ext))
-     
-     
+
+            if prepost=='prefit':
+                unpolpostfitkey = 'W'+charge+'_unpol_postfit'
+                if total_sig_unrolled[unpolpostfitkey]!=None:
+                    keyratio = 'W'+charge+'_unpol_ratio'
+                    ratios_unrolled[keyratio] = total_sig_unrolled[unpolpostfitkey].Clone(total_sig_unrolled[unpolpostfitkey].GetName()+'_ratio')
+                    ratios_unrolled[keyratio].SetDirectory(None)
+                    ratios_unrolled[keyratio].Divide(total_sig_unrolled[unpolkeyplot])
+                                                          
             # do backgrounds now
             procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
             titles=["charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","data"]
@@ -494,6 +513,8 @@ if __name__ == "__main__":
                 h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=options.nMaskedChannel)
                 # march2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
                 h2_backrolled_1 = dressed2D(copy.deepcopy(h1_unrolled),binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
+                if options.reverseUnrolling:
+                    h1_unrolled = reverseUnroll2Dto1D(h2_backrolled_1,newname=h1_unrolled.GetName()+'_'+reverse)
                 bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
                 if prepost=='prefit' and p!='obs':
@@ -515,11 +536,13 @@ if __name__ == "__main__":
             polsym = {'left': 'L', 'right': 'R', 'long': '0'}; chargesym={'plus':'+', 'minus':'-'}
             for pol in ['right', 'left', 'long']:
                 procsAndTitles['W{ch}_{pol}'.format(ch=charge,pol=pol)] = 'W^{{{sign}}}_{{{pol}}}'.format(sign=chargesym[charge],pol=polsym[pol])
+            procsAndTitles['W{ch}_unpol'.format(ch=charge)] = 'W^{{{sign}}}'.format(sign=chargesym[charge])
          
             colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kBlue-1,   'Wplus_right' : ROOT.kGreen+1,
                       'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
                       'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
-                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2 }
+                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2,
+                      'Wplus_unpol': ROOT.kRed+2,    'Wminus_unpol': ROOT.kRed+2 }
          
             for p,h in all_procs.iteritems():
                 h.integral = h.Integral()
@@ -530,6 +553,8 @@ if __name__ == "__main__":
             print 'NUMBER OF BINS FOR THE 1D HISTOGRAM', h1_expfull.GetNbinsX()
             h1_expfull_ch = singleChargeUnrolled(h1_expfull,binshift,nMaskedCha=options.nMaskedChannel)
             h2_expfull_backrolled = dressed2D(copy.deepcopy(h1_expfull_ch),binning,'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost),binshift,nMaskedCha=options.nMaskedChannel)
+            if options.reverseUnrolling:
+                h1_expfull_ch = reverseUnroll2Dto1D(h2_expfull_backrolled,newname=h1_expfull.GetName()+'_'+reverse)
             print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
             print 'nbinsX of 2D histogram:', h2_expfull_backrolled.GetNbinsX()
             print 'nbinsY of 2D histogram:', h2_expfull_backrolled.GetNbinsY()
@@ -545,7 +570,7 @@ if __name__ == "__main__":
             
                 for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                     keycolor = key.replace('_prefit','').replace('_postfit','')
-                    if key=='obs' or prepost not in key: continue
+                    if key=='obs' or 'unpol' in key or prepost not in key: continue
                     proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",1,nbinsProj+1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",1,nbinsProj+1,"e")
                     proj1d.SetFillColor(colors[keycolor])
                     stack.Add(proj1d)
@@ -561,6 +586,9 @@ if __name__ == "__main__":
             
             # now the unrolled, assign names to run monsterPull.py on them
             hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge).Clone('unrolled_{ch}_data'.format(ch=charge))
+            hdata_backrolled_1 = dressed2D(copy.deepcopy(hdata_unrolled),binning,'obs','data2D',binshift,nMaskedCha=options.nMaskedChannel)
+            if options.reverseUnrolling:
+                hdata_unrolled = reverseUnroll2Dto1D(hdata_backrolled_1,newname=hdata_unrolled.GetName()+'_'+reverse)
             hdata_unrolled.SetDirectory(None)
             htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
             htot_unrolled.SetDirectory(None)
@@ -571,7 +599,7 @@ if __name__ == "__main__":
             print 'nbinsX of hdata_unrolled', hdata_unrolled.GetNbinsX()
             for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                 keycolor = key.replace('_prefit','').replace('_postfit','')
-                if key=='obs' or prepost not in key: continue
+                if key=='obs' or 'unpol' in key or prepost not in key: continue
                 proc_unrolled = all_procs_unrolled[key]
                 proc_unrolled.SetFillColor(colors[keycolor])
                 stack_unrolled.Add(proc_unrolled)
@@ -583,8 +611,11 @@ if __name__ == "__main__":
             htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
             htot_unrolled.GetYaxis().SetTitle('Events')
             htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
-            plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True, 
-                    drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges, outtext=output_txt)
+            if options.reverseUnrolling:
+                plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled_reverse',suffix,True)
+            else:
+                plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled',suffix,True, 
+                        drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges, outtext=output_txt)
             hdata_unrolled.Write(); htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
@@ -592,8 +623,11 @@ if __name__ == "__main__":
         for key,histo in ratios_unrolled.iteritems():
             print "Making unrolled ratio for ",key
             outdir = outnamesub if key.startswith('Y') else outname
-            plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_'+key,options.suffix, 
-                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
+            if options.reverseUnrolling:
+                plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit_reverse_'+key,options.suffix)
+            else:
+                plotPostFitRatio(charge,channel,histo,outdir,'postfit2prefit'+reverse+'_'+key,options.suffix, 
+                                 drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
                 
     outfile.Close()
 
