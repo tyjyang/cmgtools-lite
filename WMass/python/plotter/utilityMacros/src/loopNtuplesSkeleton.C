@@ -120,15 +120,15 @@ void fillHistograms(const string& treedir = "./",
   vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
   					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
   					    1.4442,1.5,1.566,1.7,1.9,2.1,2.4};
-  //vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {30,33,36,39,42,45,48,51,54,56};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,32,34,36,38,40,42,44,46,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateEl = {30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
   vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
-  //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,33,36,39,42,45,48,51,54,56};
-  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
+  //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   
   vector<Double_t> etaBinEdgesTemplate;
   vector<Double_t> ptBinEdgesTemplate;
@@ -357,8 +357,8 @@ void fillHistograms(const string& treedir = "./",
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar1EffStat(charges.size());
   vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_ErfPar2EffStat(charges.size());
 
-  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatUp(charges.size());
-  vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatDn(charges.size());
+  //vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatUp(charges.size());
+  //vector< vector<TH3F*> > h3_charge_eta_pt_globalBin_BinUncEffStatDn(charges.size());
 
   // better to do it as done below
   //Int_t maxEffStat = 2 * ((Int_t) (10 * (genEtaBinEdgesTemplate.back() + 0.0001)));
@@ -574,16 +574,16 @@ void fillHistograms(const string& treedir = "./",
 								       nptBins,ptBinEdgesTemplate.data(),
 								       nGenBinsTemplate,globalBin_binning.data())
 							      );
-      h3_charge_eta_pt_globalBin_BinUncEffStatUp[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dUp",charges[ch].c_str(),ieff+1),"",
-									netaBins,etaBinEdgesTemplate.data(),
-									nptBins,ptBinEdgesTemplate.data(),
-									nGenBinsTemplate,globalBin_binning.data())
-							       );
-      h3_charge_eta_pt_globalBin_BinUncEffStatDn[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dDn",charges[ch].c_str(),ieff+1),"",
-									netaBins,etaBinEdgesTemplate.data(),
-									nptBins,ptBinEdgesTemplate.data(),
-									nGenBinsTemplate,globalBin_binning.data())
-							       );
+      // h3_charge_eta_pt_globalBin_BinUncEffStatUp[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dUp",charges[ch].c_str(),ieff+1),"",
+      // 									netaBins,etaBinEdgesTemplate.data(),
+      // 									nptBins,ptBinEdgesTemplate.data(),
+      // 									nGenBinsTemplate,globalBin_binning.data())
+      // 							       );
+      // h3_charge_eta_pt_globalBin_BinUncEffStatDn[ch].push_back(new TH3F(Form("h3_%s_eta_pt_globalBin_BinUncEffStat%dDn",charges[ch].c_str(),ieff+1),"",
+      // 									netaBins,etaBinEdgesTemplate.data(),
+      // 									nptBins,ptBinEdgesTemplate.data(),
+      // 									nGenBinsTemplate,globalBin_binning.data())
+      // 							       );
 
     }
 
@@ -726,13 +726,13 @@ void fillHistograms(const string& treedir = "./",
 
       // PU reweigthing, trigger scale factors, lepton efficiency scale factors
       // done like this to speed it up
-      bool useBinnedSF = true;  // true for tests, otherwise false 
+      bool useBinnedSF = false;  // true for tests, otherwise false 
       sfTriggerMu = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], 0.0, false, useBinnedSF);
       wgtMuTrigSFup = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], 1.0, true, useBinnedSF);
       wgtMuTrigSFdn = _get_muonSF_selectionToTrigger(lep_pdgId[0], lep1calPt, lep_eta[0], lep_charge[0], -1.0, true, useBinnedSF);
       // the reco2Selection SF is eta-smoothed
       //sfRecoToSelectionMu = lep_SF2[0]; 
-      sfRecoToSelectionMu = _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0],useBinnedSF); // this is also eta-smoothed 
+      sfRecoToSelectionMu = _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0], useBinnedSF); // this is also eta-smoothed 
       sfPrefireMu = prefireJetsWeight(lep_eta[0]);
       wgt = sfTriggerMu * sfRecoToSelectionMu * sfPrefireMu; 
       // for muons, get fast weight for efficiency Up/Down
@@ -901,7 +901,7 @@ void fillHistograms(const string& treedir = "./",
     h3_charge_eta_pt_globalBin_mWUp[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *mass_80470 * wgt);
     h3_charge_eta_pt_globalBin_mWDn[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, *mass_80370 * wgt);
     //Double_t fsrweight = fsrPhotosWeight(*GenLep_pdgId,*GenLep_eta,*GenLep_pt,*GenLepBare_pt);
-    Double_t fsrweight = fsrPhotosWeightSimple(*GenLep_pdgId,*GenLep_pt,*GenLepBare_pt);
+    Double_t fsrweight = fsrPhotosWeightSimple(*GenLep_pdgId,*GenLep_pt,*GenLepBare_pt, true, *GenLep_eta);
     h3_charge_eta_pt_globalBin_fsr[chargeIndex]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, fsrweight * wgt);
     
     // pdf syst
@@ -942,20 +942,20 @@ void fillHistograms(const string& treedir = "./",
       h3_charge_eta_pt_globalBin_ErfPar2EffStat[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
       									 effSystEtaBins(2,lep_pdgId[0],lep_eta[0],lep1calPt,etalow,etahigh,chargeSign) * wgt);
       // test for muons only      
-      if (isMuon) {
-	Double_t binunc_scaling_up = 1.0; 
-	Double_t binunc_scaling_dn = 1.0; 
-	if (lep_eta[0] > etalow && lep_eta[0] < etahigh) {
-	  binunc_scaling_up = wgtMuTrigSFup / sfTriggerMu; 
-	  binunc_scaling_dn = wgtMuTrigSFdn / sfTriggerMu; 	  	  
-	}
+      // if (isMuon) {
+      // 	Double_t binunc_scaling_up = 1.0; 
+      // 	Double_t binunc_scaling_dn = 1.0; 
+      // 	if (lep_eta[0] > etalow && lep_eta[0] < etahigh) {
+      // 	  binunc_scaling_up = wgtMuTrigSFup / sfTriggerMu; 
+      // 	  binunc_scaling_dn = wgtMuTrigSFdn / sfTriggerMu; 	  	  
+      // 	}
 
-	h3_charge_eta_pt_globalBin_BinUncEffStatUp[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									    wgt * binunc_scaling_up);
-	h3_charge_eta_pt_globalBin_BinUncEffStatDn[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
-									    wgt * binunc_scaling_dn);
+      // 	h3_charge_eta_pt_globalBin_BinUncEffStatUp[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
+      // 									    wgt * binunc_scaling_up);
+      // 	h3_charge_eta_pt_globalBin_BinUncEffStatDn[chargeIndex][ieff]->Fill(lep_eta[0],lep1calPt, globalBinEtaPt, 
+      // 									    wgt * binunc_scaling_dn);
 
-      }
+      // }
 
     }
 

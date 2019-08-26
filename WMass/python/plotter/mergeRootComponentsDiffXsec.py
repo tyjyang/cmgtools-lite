@@ -481,6 +481,221 @@ def putBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True,
     print 'done with the many reweightings for the binunc effstat'
 
 
+def putEtaPtBinUncEffStatHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix="", useBinnedSF=True):
+
+    if not isMu:
+        print "putEtaPtBinUncEffStatHistosDiffXsec() currently implemented for electrons only"
+        quit()
+
+    # for differential cross section I don't use the same option for inputs, so I pass it from outside
+    indir = outdir if outdir != None else options.inputdir
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
+
+    etaPtBinningVecGen = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
+    genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])        # this create a class to manage the binnings
+
+    basedir = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/'    
+    if isMu:
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_{ch}_trigger.root'.format(ch=charge)
+        staterrfile_name = "../postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEff{ch}_fromRooFitResult_onlyStatUnc.root".format(ch="Plus" if charge == "plus" else "Minus") # can't use CMSSW_BASE, because code runs from release for combinetf.pt, >= 10_3_X
+    else:
+        parfile_name = basedir+'/leptonSF/new2016_madeSummer2018/systEff_trgel.root'
+
+    parfile = ROOT.TFile(parfile_name, 'read')
+    staterrfile = ROOT.TFile(staterrfile_name, 'read')
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+
+    flavour = "mu" if isMu else "el"
+    outfile = ROOT.TFile(indir+'/BinEtaPtUncorrUncEffStat_{fl}_{ch}{sfx}.root'.format(fl=flavour, ch=charge, sfx=suffix), 'recreate')
+
+    ndone = 0
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+
+        #if ndone: continue
+        ndone += 1
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting binetaptuncorrunceffstat nuisances for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        # the erfPar histogram has 50 bins for muons and electrons (for muons, the extremes are equal to the neighbours because eta goes up to 2.4 at most)
+        # the binning in eta is always 0.1 wide
+        # if the template has coarser granularity, that bin will have N variations, for the N 0.1-wide bins contained in it
+        # this would require using the loop to reweight the histograms, because each on the N-th variation would only affect 1/N of the events in the wider bin
+        # so, here we will reduce the scaling by 1/N as well.
+
+        # get width of bins in multiples of 0.1
+        # for electrons the region around the gap is odd
+        # we don't need this value to be integer, otherwise keep in mind that 0.1 is not perfectly represented with float in python
+        # which entails that 0.2/0.1 might not yield 2.0, but 1.999
+        binwidths = []
+        for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+            binwidths.append(tmp_nominal_2d.GetXaxis().GetBinWidth(ieta)/0.1)  
+
+        nEtaErfPar = 48 if isMu else 50
+
+        ## loop over the three parameters
+        for npar in range(1):
+            parhist = parfile.Get('scaleFactor' + ("Original" if useBinnedSF else ""))
+            staterrhist = staterrfile.Get('triggerSF_{ch}'.format(ch=charge))
+            if not staterrhist:
+                print "Error: histogram %s not found in %s" % ('triggerSF_{ch}'.format(ch=charge), staterrfile_name) 
+                quit()
+            ## loop over all eta bins of the 2d histogram
+            for ietaErf_tmp in range(1,nEtaErfPar+1):
+
+                etabinOffset = 0
+                # # the parhist histogram for muons is defined with 50 bins, where the two with |eta| in [2.4,2.5] are filled like the inner ones
+                # # these bins for muons do not make sense: when looping on the bin number, we need to add an offset to skip the first bin
+                if isMu and parhist.GetNbinsX() == 50:
+                     etabinOffset = 1
+                ietaErf = ietaErf_tmp + etabinOffset
+
+                tmp_parhist_val = parhist.GetXaxis().GetBinCenter(ietaErf)
+                ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( tmp_parhist_val )
+                isSignalInAcc = False
+                ietabin = 0.0
+                iptbin = 0.0
+                if re.match(".*_ieta_.*_ipt_.*",tmp_name):
+                    ietabin,iptbin = get_ieta_ipt_from_process_name(tmp_name)
+                    isSignalInAcc = True
+                    if abs(tmp_parhist_val) < genBins.etaBins[ietabin] or abs(tmp_parhist_val) > genBins.etaBins[ietabin+1]:
+                        continue
+                
+                # if template has eta range narrower than parhist, continue
+                if ietaTemplate == 0 or ietaTemplate == (1 + tmp_nominal_2d.GetNbinsX()):
+                    continue
+
+                if not isMu:
+                    # if in the gap, skip this EffStat, it only creates troubles 
+                    if abs(tmp_parhist_val) > 1.4 and abs(tmp_parhist_val) < 1.5:
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.41 if tmp_parhist_val > 0 else -1.41) 
+                    elif abs(tmp_parhist_val) > 1.5 and abs(tmp_parhist_val) < 1.6:
+                        continue
+                        #ietaTemplate = tmp_nominal_2d.GetXaxis().FindFixBin( 1.57 if tmp_parhist_val > 0 else -1.57) 
+               
+
+                # for electrons there is the gap:
+                # eg, we can have 1.3, 1.4442, 1.5, 1.566, 1.7
+                # and the bin centers of the erfPar are 1.35, 1.45, 1.55, ...
+                # so with 1.35 we get the template bin from 1.3 to 1.4442
+                # but with 1.45 we would fall in the empty bin, while we would want to reweight the template bin that would span between 1.4 to 1.5
+                # in this case, the syst is ineffective. The same for 1.55, which select the other "side" of the empty bin around 1.5
+                # one could device a fancy way to isolate the gap and assign a larger uncertainty around it but let's keep it simple
+
+                #print "ErfPar{p}EffStat{ieta}".format(p=npar,ieta=ietaErf)
+                
+                ## loop over all pT bins in that bin of eta (which is ieta)
+                for ipt in range(1, 1 + staterrhist.GetNbinsY()):
+
+                    tmpptval = staterrhist.GetYaxis().GetBinCenter(ipt)
+                    ptlow = staterrhist.GetYaxis().GetBinLowEdge(ipt)
+                    pthigh = staterrhist.GetYaxis().GetBinUpEdge(ipt)
+                    if pthigh <= recoBins.ptBins[0]: continue  # might happen only on electrons, neglect bins outside reco acceptance
+                    if ptlow >= recoBins.ptBins[-1]: continue # if it is larger than last edge it is out of the template, so we skip it, but also if it is larger than the previous bin, because the algorithm would choose the next edge, which means we would still fall out of the template range
+                    elif ptlow > recoBins.ptBins[-2]: continue # use > and not >= here, as the equality denotes a good range
+
+                    # now we will reweight template's bins contained in ptlow, pthigh, choosing the edges just above if the binning does not coincide   
+                    # e.g., if we have 25,27.5, the template bins are 26, 28
+                    ptBinLow = -1
+                    ptBinHigh = -1
+                    for i in range(recoBins.Npt):
+                        if ptBinLow < 0 and ptlow <= recoBins.ptBins[i]: 
+                            ptBinLow = i
+                            # to save time, check if upper edge is within acceptance, if it is out then set ptBinHigh to last bin and exit loop
+                            if ptBinHigh < 0 and pthigh >= recoBins.ptBins[-2]:
+                                ptBinHigh = recoBins.Npt
+                                break
+                        if ptBinHigh < 0 and pthigh <= recoBins.ptBins[i]: 
+                            ptBinHigh = i
+                            break # exit loop once the upper edge is matched
+                    #print "pt range: SF [%.1f, %.1f], template [%.1f, %.1f] (%d bins)" % (ptlow,pthigh, 
+                    #                                                                      recoBins.ptBins[ptBinLow], recoBins.ptBins[ptBinHigh],
+                    #                                                                      1+ptBinHigh-ptBinLow)
+
+                    # add 1 to use these indices as the bins of the histogram
+                    ptBinLow += 1
+                    ptBinHigh += 1
+
+                    # at this point we know that the pt bin of the efficiency hist span the template bins from ptBinLow to ptBinHigh
+                    # they could coincide, i.e. they can be a single bin
+                    # we will only have to reweight those bins
+                    # this algorithm is expected to lead to the reweighting of non-overlapping pt-segments of the template 
+                    
+                    # for signal make this pt variation only if we satisfy a given criterium
+                    # it could be to do it only for bins which are close to the pt value of this bin
+                    # I could choose only the central and neighboring bins, or all the bins if they have at least 1% or 0.5% of the integral
+                    # former would be fine (and very simple to implement) if pt resolution were constant at all eta bins, but it is not the case
+                    # if isSignalInAcc:
+                    #     integralRatio = 0.005 # 0.5%
+                    #     tmp_bincontent_integral = tmp_nominal_2d.Integral(ietaTemplate,ietaTemplate,  # single eta bin
+                    #                                                       ptBinLow,ptBinHigh)         # potentially more pt bins
+                    #     if tmp_bincontent_integral < (integralRatio * tmp_nominal_2d.Integral()):
+                    #         continue
+
+                    nametag= "BinEtaPtUncorrUncEffStat"
+                    outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{tag}{ieta}ipt{ipt}{fl}{ch}2DROLLED'.format(p=npar,
+                                                                                                                                 tag=nametag,
+                                                                                                                                 ieta=ietaErf_tmp,
+                                                                                                                                 ipt=ipt,
+                                                                                                                                 fl=flavour,
+                                                                                                                                 ch=charge)
+                                
+                    tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+                    tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+                    
+                    # now reweight the corresponding pt bins (might be more than one)
+                    for iptrange in range(ptBinLow,ptBinHigh+1):
+                        tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ietaTemplate, iptrange)
+                        # following two lines would not be really needed, but we admit the possibility that the smoothed central values are being used
+                        # in other words, the histograms with central values and uncertainties might not coincide (they would in the latest version of 
+                        # the root file, i.e., the uncertainty stored in the SF histogram, either smoothed or original, should already be stat only)
+                        ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(iptrange)
+                        phistybin = min(parhist.GetNbinsY(),parhist.GetYaxis().FindBin(ybincenter))
+                        ## now get the content of the parameter variation!                    
+                        # if I need to reduce the variation as below, first get the variation (with proper sign), scale it, and then sum 1
+                        binstatunc = staterrhist.GetBinError(ietaErf,ipt) # ietaErf,ipt already define the bin of the histogram with binned uncertainties
+                        # inflate to account for other SF, here we are just using trigger
+                        binstatunc *= (math.sqrt(2.) if isMu else 2.)  
+                        tmp_scale_up = binstatunc / parhist.GetBinContent(ietaErf, phistybin)
+                        tmp_scale_dn = -1.0 * tmp_scale_up                    
+                        tmp_scale_up = 1. +  tmp_scale_up
+                        tmp_scale_dn = 1. +  tmp_scale_dn
+                        ## scale up and down with what we got from the histo
+                        tmp_bincontent_up = tmp_bincontent*tmp_scale_up
+                        tmp_bincontent_dn = tmp_bincontent*tmp_scale_dn
+                        tmp_scaledHisto_up.SetBinContent(ietaTemplate, iptrange, tmp_bincontent_up)
+                        tmp_scaledHisto_dn.SetBinContent(ietaTemplate, iptrange, tmp_bincontent_dn)
+
+                    ## re-roll the 2D to a 1D histo
+                    tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, 
+                                                         newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''),
+                                                         cropNegativeBins=False)
+                    tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, 
+                                                         newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''),
+                                                         cropNegativeBins=False)
+
+                    outfile.cd()
+                    tmp_scaledHisto_up_1d.Write()
+                    tmp_scaledHisto_dn_1d.Write()
+    outfile.Close()
+    print 'done with the many reweightings for the binunc effstat (eta-pt uncorrelated)'
+
+
 
 ## python mergeRootComponentsDiffXsec.py -f mu -c minus --indir-bkg  cards/diffXsec_mu_2018_11_24_group10_onlyBkg/part0/  --indir-sig cards/diffXsec_mu_2018_11_24_group10_onlyBkg/ -o cards/diffXsec_mu_2018_11_24_group10_onlyBkg/ -d
 
@@ -500,8 +715,10 @@ parser.add_option(      "--no-qcdsyst-Z", dest="useQCDsystForZ", action="store_f
 parser.add_option(       '--uncorrelate-fakes-by-charge', dest='uncorrelateFakesByCharge' , default=False, action='store_true', help='If True, nuisances for fakes are uncorrelated between charges (Eta, PtSlope, PtNorm)')
 parser.add_option(       "--test-eff-syst", dest="testEffSyst",   action="store_true", default=False, help="Add some more nuisances to test efficiency systematics on signal and Z (possily other components as well)");
 parser.add_option(       "--useBinUncEffStat", dest="useBinUncEffStat",   action="store_true", default=False, help="Add some more nuisances representing eff stat with SF shifted by their uncertainty (for tests)");
+parser.add_option(       "--useBinEtaPtUncorrUncEffStat", dest="useBinEtaPtUncorrUncEffStat",   action="store_true", default=False, help="Add some more nuisances representing eff stat with SF shifted by their uncertainty (for tests)");
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
-parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="string", default='.*fsr.*', help="Regular expression matching systematics whose histograms should be obtained by making the ratio with nominal symmetric in eta");
+parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
+parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="string", default='', help="Regular expression matching systematics whose histograms should be obtained by making the ratio with nominal symmetric in eta");
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -528,6 +745,11 @@ if not len(options.indirBkg):
 if not len(options.indirSig):
     print "Warning: you must specify a folder with signal root files with option --indir-sig"
     quit()
+
+if options.useBinEtaPtUncorrUncEffStat and options.useBinUncEffStat:
+    print "Warning: useBinUncEffStat and useBinEtaPtUncorrUncEffStat are incompatible. Use only one of them"
+    quit()
+
 
 # define ultimate output file
 shapename = ""
@@ -618,16 +840,20 @@ if not options.dryrun: os.system("rm {tmp}".format(tmp=tmpZfile))
 print "-"*20
 print ""
 
-fileZeffStat = "{od}ErfParEffStat_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
-# this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
-print "Now adding ErfParXEffStatYY systematics to x_Z process"
-print "Will create file --> {of}".format(of=fileZeffStat)
-if not options.dryrun: putEffStatHistosDiffXsec(Zfile, 'x_Z', charge, outdir, isMu=True if flavour=="mu" else False)
-print ""
+fileZeffStat = ""
+if options.useBinEtaPtUncorrUncEffStat or options.useBinUncEffStat:
+    pass
+else:
+    fileZeffStat = "{od}ErfParEffStat_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
+    print "Now adding ErfParXEffStatYY systematics to x_Z process"
+    print "Will create file --> {of}".format(of=fileZeffStat)
+    if not options.dryrun: putEffStatHistosDiffXsec(Zfile, 'x_Z', charge, outdir, isMu=True if flavour=="mu" else False)
+    print ""
 
-print ""
-print "-"*20
-print ""
+    print ""
+    print "-"*20
+    print ""
 
 fileZbinUncEffStat = ""  
 if options.useBinUncEffStat:
@@ -637,7 +863,18 @@ if options.useBinUncEffStat:
     print "Will create file --> {of}".format(of=fileZbinUncEffStat)
     if not options.dryrun: putBinUncEffStatHistosDiffXsec(Zfile, 'x_Z', charge, outdir, isMu=True if flavour=="mu" else False)
     print ""
+    print ""
+    print "-"*20
+    print ""
 
+fileZbinEtaPtUncorrUncEffStat = ""  
+if options.useBinEtaPtUncorrUncEffStat:
+    fileZbinEtaPtUncorrUncEffStat = "{od}BinEtaPtUncorrUncEffStat_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putBinUncEffStatHistosDiffXsec (do not change it outside here)
+    print "Now adding BinEtaPtUncorrUncEffStatEffStatYYiptZZ systematics to x_Z process"
+    print "Will create file --> {of}".format(of=fileZbinEtaPtUncorrUncEffStat)
+    if not options.dryrun: putEtaPtBinUncEffStatHistosDiffXsec(Zfile, 'x_Z', charge, outdir, isMu=True if flavour=="mu" else False)
+    print ""
     print ""
     print "-"*20
     print ""
@@ -716,12 +953,19 @@ if not options.dryrun: os.system("rm {tmp}".format(tmp=tmpTaufile))
 print "-"*20
 print ""
 
-fileTaueffStat = "{od}ErfParEffStat_{fl}_{ch}_Tau.root".format(od=outdir, fl=flavour, ch=options.charge)  
-# this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
-print "Now adding ErfParXEffStatYY systematics to x_TauDecaysW process"
-print "Will create file --> {of}".format(of=fileTaueffStat)
-if not options.dryrun: putEffStatHistosDiffXsec(Taufile, 'x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False, suffix="_Tau")
-print ""
+fileTaueffStat = ""
+if options.useBinEtaPtUncorrUncEffStat or options.useBinUncEffStat:
+    pass
+else:
+    fileTaueffStat = "{od}ErfParEffStat_{fl}_{ch}_Tau.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putEffStatHistosDiffXsec (do not change it outside here)
+    print "Now adding ErfParXEffStatYY systematics to x_TauDecaysW process"
+    print "Will create file --> {of}".format(of=fileTaueffStat)
+    if not options.dryrun: putEffStatHistosDiffXsec(Taufile, 'x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False, suffix="_Tau")
+    print ""
+    print ""
+    print "-"*20
+    print ""
 
 fileTaubinUncEffStat = ""
 if options.useBinUncEffStat:
@@ -731,7 +975,18 @@ if options.useBinUncEffStat:
     print "Will create file --> {of}".format(of=fileTaubinUncEffStat)
     if not options.dryrun: putBinUncEffStatHistosDiffXsec(Taufile, 'x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False, suffix="_Tau")
     print ""
+    print ""
+    print "-"*20
+    print ""
 
+fileTaubinEtaPtUncorrUncEffStat = ""
+if options.useBinEtaPtUncorrUncEffStat:
+    fileTaubinEtaPtUncorrUncEffStat = "{od}BinEtaPtUncorrUncEffStat_{fl}_{ch}_Tau.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putBinUncEffStatHistosDiffXsec (do not change it outside here)
+    print "Now adding BinEtaPtUncorrUncEffStatYYiptZZ systematics to x_TauDecaysW process"
+    print "Will create file --> {of}".format(of=fileTaubinEtaPtUncorrUncEffStat)
+    if not options.dryrun: putEtaPtBinUncEffStatHistosDiffXsec(Taufile, 'x_TauDecaysW', charge, outdir, isMu=True if flavour=="mu" else False, suffix="_Tau")
+    print ""
     print ""
     print "-"*20
     print ""
@@ -800,8 +1055,23 @@ if not options.dryrun:
     putUncorrelatedFakes(dataAndBkgFileTmp, 'x_data_fakes', charge, outdir, isMu=True if flavour=="mu" else False, etaBordersTmp=etaBordersForFakes, 
                          doType='ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge, isHelicity=False)
 
-print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 sigfile = "{osig}W{fl}_{ch}_shapes_signal.root".format(osig=options.indirSig, fl=flavour, ch=charge)
+fileSignalbinEtaPtUncorrUncEffStat = ""  
+if options.useBinEtaPtUncorrUncEffStat:
+    fileSignalbinEtaPtUncorrUncEffStat = "{od}BinEtaPtUncorrUncEffStat_{fl}_{ch}_signal.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    # this name is used inside putBinUncEffStatHistosDiffXsec (do not change it outside here)
+    print "Now adding BinEtaPtUncorrUncEffStatEffStatYYiptZZ systematics to signal process"
+    print "Will create file --> {of}".format(of=fileSignalbinEtaPtUncorrUncEffStat)
+    if not options.dryrun: putEtaPtBinUncEffStatHistosDiffXsec(sigfile, 'x_W{ch}_lep'.format(ch=charge), 
+                                                               charge, outdir, isMu=True if flavour=="mu" else False, suffix="_signal")
+    print ""
+
+    print ""
+    print "-"*20
+    print ""
+
+
+print "Now merging signal + Z + data + other backgrounds + Fakes*Uncorrelated + ZEffStat"
 
 cmdFinalMerge="hadd -f -k -O {of} {sig} {zf} {tauf} {bkg} ".format(of=shapename,  
                                                                    sig=sigfile, 
@@ -815,8 +1085,15 @@ cmdFinalMerge += " {fakesEta} {fakesEtaCharge} {fakesPtSlope} {fakesPtNorm} {zEf
                                                                                                              fakesPtNorm=fileFakesPtNormUncorr,
                                                                                                              zEffStat=fileZeffStat,
                                                                                                              tauEffStat=fileTaueffStat)
+
 if options.useBinUncEffStat:
     cmdFinalMerge += "{zBinUncEffStat} {tauBinUncEffStat} ".format(zBinUncEffStat=fileZbinUncEffStat,tauBinUncEffStat=fileTaubinUncEffStat)
+elif options.useBinEtaPtUncorrUncEffStat:
+    cmdFinalMerge += "{zBinUncEffStat} {tauBinUncEffStat} {sigBinUncEffStat}".format(zBinUncEffStat=fileZbinEtaPtUncorrUncEffStat,
+                                                                                     tauBinUncEffStat=fileTaubinEtaPtUncorrUncEffStat,
+                                                                                     sigBinUncEffStat=fileSignalbinEtaPtUncorrUncEffStat)
+
+
 
 print "Final merging ..."
 print cmdFinalMerge
@@ -881,7 +1158,12 @@ if options.symSystRatio:
             if re.match(options.symSystRatio,name) and any(x in name for x in ["Up","Down"]):
                 thisAlternate = obj.Clone(name+"_TMP_SYMMETRIZED")
                 thisAlternate.SetDirectory(0)
-                thisNominalName = "_".join(name.split("_")[:-1]) # remove last token, with syst name (WARNING, might not work for some systs)
+                thisNominalName = ""
+                # remove last token, with syst name (WARNING, might not work for some systs)
+                if "_CMS_W" in name:
+                    thisNominalName = name.split("_CMS_W")[0]
+                else:
+                    thisNominalName = "_".join(name.split("_")[:-1]) 
                 thisNominal = tfno.Get(thisNominalName)
                 if not thisNominal:
                     print "Error when symmetrizing nuisances versus eta. I couldn't find nominal histogram %s. Abort" % thisNominalName
@@ -906,9 +1188,15 @@ if options.symSystRatio:
 
 print ""
 ## uncorrelate QCD scales by charge
+regexp_uncorrCharge = options.uncorrelateNuisancesByCharge
 if options.uncorrelateQCDscalesByCharge:
-    # loop on final merged file, look for muRXX or muFXX and add charge
-    print "Now I will uncorrelate QCD scales between charges for signal and tau"
+    if len(regexp_uncorrCharge):
+        regexp_uncorrCharge += "|.*mu(R|F)\d+"
+    else:
+        regexp_uncorrCharge = ".*mu(R|F)\d+"
+if len(regexp_uncorrCharge):
+    # loop on final merged file, look for muRXX or muFXX and add charge    
+    print "Now I will uncorrelate between charges nuisances matching '{regexp}'".format(regexp=regexp_uncorrCharge)
     shapenameQCDuncorr = shapename.replace("_shapes","_shapes_QCDscalesChargeUncorr")
     #print "I will then copy it back into the original after uncorrelating QCD scales between charges" 
     tfno = ROOT.TFile.Open(shapename,"READ")
@@ -927,7 +1215,7 @@ if options.uncorrelateQCDscalesByCharge:
             if not obj:
                 raise RuntimeError('Unable to read object {n}'.format(n=name))
             newname = name
-            if re.match(".*mu(R|F)\d+",name):
+            if re.match(regexp_uncorrCharge,name):
                 if name.endswith('Up'): newname = name.replace('Up','{ch}Up'.format(ch=charge))
                 elif name.endswith('Down'): newname = name.replace('Down','{ch}Down'.format(ch=charge))
             newobj = obj.Clone(newname)

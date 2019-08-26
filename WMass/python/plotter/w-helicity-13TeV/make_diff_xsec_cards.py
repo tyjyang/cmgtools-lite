@@ -131,7 +131,7 @@ def getDiffXsecBinning(inputBins, whichBins="reco"):
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
-    if inputBins.startswith("file=") or "binningPtEta.txt" in inputBins:
+    if inputBins.startswith("file=") or re.match(".*binningPtEta.*.txt",inputBins):
         etaPtbinningFile = inputBins.replace("file=","")
         with open(etaPtbinningFile) as f:
             content = f.readlines()

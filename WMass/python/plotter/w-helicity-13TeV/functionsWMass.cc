@@ -103,15 +103,79 @@ float prefireJetsWeight(float eta){
     return 1.;
 }
 
-TFile *_file_fsrWeights_simple = NULL;
-TH1F * fsrWeights_el = NULL;
-TH1F * fsrWeights_mu = NULL;
+//-------------------
 
-float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept) {
+TFile *_file_ratio_FSRoverNoFSR_etaPt_mu = NULL;
+TH2D * ratio_FSRoverNoFSR_etaPt_mu = NULL;
+TFile *_file_ratio_FSRoverNoFSR_etaPt_el = NULL;
+TH2D * ratio_FSRoverNoFSR_etaPt_el = NULL;
+
+float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
+
+  // these histograms are the gen-level xsec before any cut (except the gen_decayId)
+  // the yields and ratio of fsr and no-fsr (both on top of W-pt reweighting) are here:
+  // muon: http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/FSR_atGenLevel_muon_genBinAnalysis/
+  // electron: http://mciprian.web.cern.ch/mciprian/wmass/13TeV/distribution/FSR_atGenLevel_electron_genBinAnalysis/
+  // FSR should not change the gen-level xsec, but our fsr weights can artificially do it
+  // so, we use the ratio to rescale the fsr weight in bins of gen-level pt and eta
+  // the histogram uses the binning for the 2D xsec measurement (as each of them should keep the same xsec as without fsr)
+ 
+
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
+
+  TH2D* hratio_FSR_noFSR = NULL;
+  Double_t outlierWgt = 0.0;  // hardcoded below, taken from ratio of yields outside acceptance
+
+  if (abs(pdgId)==11) {
+
+    if (!ratio_FSRoverNoFSR_etaPt_el) {
+      _file_ratio_FSRoverNoFSR_etaPt_el = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_electron_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      ratio_FSRoverNoFSR_etaPt_el = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_el->Get("ratio__Wzpt_el__Wfsr_el");
+    }
+    hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_el;
+    outlierWgt = 0.964796;
+
+  } else if (abs(pdgId)==13) {
+
+     if (!ratio_FSRoverNoFSR_etaPt_mu) {
+      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
+    }
+    hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_mu;
+    outlierWgt = 0.914322;
+
+  } else {
+
+    return 1.0;
+
+  }
+
+  int etabin = hratio_FSR_noFSR->GetXaxis()->FindFixBin(fabs(dresseta));
+  int ptbin = hratio_FSR_noFSR->GetXaxis()->FindFixBin(fabs(dresspt));
+  if (ptbin == 0 or ptbin > hratio_FSR_noFSR->GetNbinsY() or etabin == 0 or etabin> hratio_FSR_noFSR->GetNbinsX()) {
+    return outlierWgt;
+  } else {
+    return 1./hratio_FSR_noFSR->GetBinContent(etabin,ptbin); // ratio is FSR/no-FSR, but need the opposite
+  }
+
+}
+
+//-------------------
+
+TFile *_file_fsrWeights_simple = NULL;
+TH1F * fsrWeights_el = NULL;
+TH1F * fsrWeights_mu = NULL;
+
+float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToSameGenArea = true, float dresseta = 0) {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+  
   if (!fsrWeights_el || !fsrWeights_mu) {
     _file_fsrWeights_simple = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/photos_rwgt_integrated.root",_cmssw_base_.c_str()),"read");
     fsrWeights_el  = (TH1F*)(_file_fsrWeights_simple->Get("w_e_h_lptBareOverDressed_ratio"));
@@ -127,8 +191,9 @@ float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept) {
   // normfactor is used to keep the total xsec unchanged when using the fsr
   // it was obtained from the gen level cross section for e/mu without any cut (except the gen-pdgid), as the ratio of nomi/fsr (nomi/fsr < 1)
   //Double_t normfactor = (abs(pdgId) == 11) ? 0.964792 : 0.914320; 
-  Double_t normfactor = 1.0; 
+  Double_t normfactor = (normToSameGenArea) ? FSRscaleFactorEtaPt(pdgId, dresspt, dresseta) : 1.0; 
   return normfactor * fsrWeights->GetBinContent(ratiobin);
+
 }
 
 
@@ -178,7 +243,12 @@ float dyptWeight(float pt2l, int isZ) {
   // for the Z, change the pT *and* normalization to the measured one in data
   // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec in acceptance)
   // when using pt range 26-56 instead of 26-45, there is an additional factor 0.987, so the actual number would be 0.946 
+  
+  // when suing only 0.958 I see that total gen-xsec no-Wpt over with-Wpt is 1.0138013 for W+ and 1.0144267 for W-
+  // let's take only 1.014 without distinguishing charges
+  //float scaleW = 0.9714120;  //1.014 * 0.958 
   float scaleToMCaNLO = isZ ? 1. : 0.958;
+  float scaleToMCaNLO = isZ ? 1. : scaleW;
   // plots are MC/data
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }

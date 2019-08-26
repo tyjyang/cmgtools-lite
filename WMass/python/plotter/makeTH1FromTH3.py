@@ -271,7 +271,7 @@ for i,key in enumerate(symmetrizedTH1):
 
     # get name prefix to retrieve nominal
     pfx = "_".join(key.split('_')[:-1])  # remove last piece (might be 'pdf10')
-    if re.match(options.shapeOnlySymSyst,key):        
+    if len(options.shapeOnlySymSyst) and  re.match(options.shapeOnlySymSyst,key):        
         (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,alternateShapeOnly=True,use2xNomiIfAltIsZero=True)
     else:
         (alternate,mirror) = mirrorShape(nominalTH1[pfx],symmetrizedTH1[key],key,use2xNomiIfAltIsZero=True)

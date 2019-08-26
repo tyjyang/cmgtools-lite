@@ -164,9 +164,9 @@ if __name__ == "__main__":
     elif options.target=='unpolasym':  target = 'chargemetapois'
     elif options.target=='A0' or options.target=='A4': target = 'polpois'
     elif options.target=='etaptasym':  target = 'chargepois'
-    elif options.target=='etaxsec':    target = 'sumpois'
-    elif options.target=='etaxsecnorm':target = 'sumpoisnorm'
-    elif options.target=='etaasym':    target = 'chargemetapois'
+    elif any(options.target==x for x in ['etaxsec','ptxsec']):          target = 'sumpois'
+    elif any(options.target==x for x in ['etaxsecnorm', 'ptxsecnorm']): target = 'sumpoisnorm'
+    elif any(options.target==x for x in ['etaasym', 'ptasym']):         target = 'chargemetapois'
     else:                              target = 'mu'
 
     # patch for diff.xsec, because I usually pass pois as regular expressions matching the charge
@@ -276,6 +276,9 @@ if __name__ == "__main__":
                       "etaasym":   "charge asymmetry",
                       "etaxsec":   "cross section",
                       "etaxsecnorm": "normalized cross section",
+                      "ptasym":   "charge asymmetry",
+                      "ptxsec":   "cross section",
+                      "ptxsecnorm": "normalized cross section",
                       }
     th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
     th2_sub.GetZaxis().SetTitleOffset(1.2)
@@ -485,7 +488,16 @@ if __name__ == "__main__":
             for ing_tmp,nuisgroup in enumerate(groups):
                 # in case we add other lines, let's avoid messing up all the colors of the old ones
                 # I define a new integer counter that is not updated on certain conditions
-                h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Neta,array('d',genBins.etaBins))
+                h = None
+                if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                    # ptBinsInRange = []
+                    # for x in genBins.ptBins:
+                    #     if x >= options.ptMinSignal: ptBinsInRange.append(float(x))
+                    # print ptBinsInRange
+                    # h = ROOT.TH1D(charge+'_'+nuisgroup,'',len(ptBinsInRange),array('d',ptBinsInRange))
+                    h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Npt,array('d',genBins.ptBins))
+                else:
+                    h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Neta,array('d',genBins.etaBins))
                 #print "Last bin right edge: " + str(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
                 summaries[(charge,nuisgroup)] = h
                 summaries[(charge,nuisgroup)].SetMarkerSize(2)
@@ -500,6 +512,8 @@ if __name__ == "__main__":
                 summaries[(charge,nuisgroup)].SetLineWidth(2)
                 summaries[(charge,nuisgroup)].GetXaxis().SetRangeUser(0.,2.4)
                 summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
+                if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                    summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
                 if options.absolute:
                     summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
@@ -520,14 +534,24 @@ if __name__ == "__main__":
                 if 'W+' in lbl: charge='plus'
                 elif 'W-' in lbl: charge='minus'
                 else: charge='allcharges' 
-                summaries[(charge,nuisgroup)].SetBinContent(etabin+1,th2_sub.GetBinContent(i+1,j+1))
+                if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                    if options.ptMinSignal > 0 and genBins.ptBins[int(etabin)] < options.ptMinSignal:
+                        summaries[(charge,nuisgroup)].SetBinContent(etabin+1,0.0)
+                    else:
+                        summaries[(charge,nuisgroup)].SetBinContent(etabin+1,th2_sub.GetBinContent(i+1,j+1))
+                else:
+                    summaries[(charge,nuisgroup)].SetBinContent(etabin+1,th2_sub.GetBinContent(i+1,j+1))
 
         fitErrors = {} # this is needed to have the error associated to the TH2 x axis label
         for i,x in enumerate(pois):
             #print "Debug: poi = " + x
-            bineta = (x.split("_ieta_")[1]).split("_")[0]
+            ivarMatch = "_ieta_" if options.target not in ["ptxsec", "ptxsecnorm", "ptasym"] else "_ipt_"
+            bineta = (x.split(ivarMatch)[1]).split("_")[0]
             new_x = "W{ch} {bin}".format(ch="+" if "plus" in x else "-" if "minus" in x else "", bin=bineta)
             # print "new_x = " + new_x
+            if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                if options.ptMinSignal > 0 and genBins.ptBins[int(bineta)] < options.ptMinSignal:
+                    continue
             if options.absolute:
                 fitErrors[new_x] = abs(valuesAndErrors[x][1]-valuesAndErrors[x][0])
             else:
@@ -535,9 +559,11 @@ if __name__ == "__main__":
 
         ptmin = genBins.ptBins[0] if options.ptMinSignal < 0 else options.ptMinSignal
         ptmax = genBins.ptBins[-1]
+        etamin = genBins.etaBins[0]
+        etamax = genBins.etaBins[-1]
         # this will be for strips at constant pt (if the proper options were passed)
         isSinglePtStrip = False
-        if options.target not in ["etaxsec", "etaxsecnorm", "etaasym"]:
+        if options.target not in ["etaxsec", "etaxsecnorm", "etaasym", "ptxsec", "ptxsecnorm", "ptasym"]:
             print "Going to draw a strip at constant pt"
             isSinglePtStrip = True
             ptbin_hasChanged = False
@@ -562,6 +588,9 @@ if __name__ == "__main__":
             ptmax = genBins.ptBins[theptbin+1]
             print "Plot for pt-bin %d: ptmin, ptmax = %.3g, %.3g " % (theptbin, ptmin, ptmax)
         ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, ptmin, ptmax)
+        etaRangeText = "| #eta^{%s} | #in [%.3g, %.3g]" % (flavour, etamin, etamax)
+        if etamin == 0.0:
+            etaRangeText = "| #eta^{%s} | < %.3g" % (flavour, etamax)            
         #print ptRangeText
         #for key in fitErrors:
         #    print "fitErrors: key = " + key
@@ -581,7 +610,8 @@ if __name__ == "__main__":
                 sign='+' if charge is 'plus' else '-'
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
             thischannel = "W^{{{chsign}}} #rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-            header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+            varRangeText = etaRangeText if any(options.target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]) else ptRangeText  
+            header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
             leg.SetHeader(header)            
             leg.SetNColumns(4)
             lat = ROOT.TLatex()
@@ -593,7 +623,10 @@ if __name__ == "__main__":
                 drawopt = 'pl' if ing==0 else 'pl same'
                 summaries[(charge,ng)].Draw(drawopt)                
                 if ing == 0: 
-                    summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
+                    if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                        summaries[(charge,ng)].GetXaxis().SetRangeUser(ptmin,ptmax)
+                    else:
+                        summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
                 if   ng=='binByBinStat': 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle)
                 elif ng=='stat':
@@ -612,7 +645,13 @@ if __name__ == "__main__":
                 leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
                 # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
                 for y in xrange(quadrsum.GetNbinsX()):
-                    quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,ng)].GetBinContent(y+1)))
+                    if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                        if options.ptMinSignal > 0 and genBins.ptBins[int(y)] < options.ptMinSignal:
+                            quadrsum.SetBinContent(y+1,0.0)
+                        else:
+                            quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,ng)].GetBinContent(y+1)))
+                    else:
+                        quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,ng)].GetBinContent(y+1)))
             quadrsum.SetMarkerStyle(ROOT.kFullCrossX); 
             quadrsum.SetMarkerSize(3); 
             quadrsum.SetMarkerColor(ROOT.kBlack); 
@@ -621,7 +660,13 @@ if __name__ == "__main__":
             quadrsum.Draw('pl same')
             # now fill the real total error from the fit (with correct correlations)
             for y in xrange(totalerr.GetNbinsX()):
-                totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
+                if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                    if options.ptMinSignal > 0 and genBins.ptBins[int(y)] < options.ptMinSignal:
+                        totalerr.SetBinContent(y+1,0.0)
+                    else:
+                        totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
+                else:
+                    totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
             totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); 
             totalerr.SetMarkerSize(3); 
             totalerr.SetMarkerColor(ROOT.kRed+1); 

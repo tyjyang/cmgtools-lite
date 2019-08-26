@@ -47,7 +47,7 @@ if __name__ == "__main__":
     if   options.type == 'toys':
         valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True,params=pois_regexps)
     elif options.type == 'hessian':
-        valuesAndErrorsAll = utilities.getFromHessian(infile,keepGen=True)
+        valuesAndErrorsAll = utilities.getFromHessian(infile,keepGen=True, params=pois_regexps)
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
@@ -70,6 +70,7 @@ if __name__ == "__main__":
         print "No parameters selected. Exiting."
         exit(1)
 
+    params = sorted(params)
     if any(re.match('pdf.*',x) for x in params):
         # generally there will be alphaS along with pdfs
         params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
@@ -225,6 +226,7 @@ if __name__ == "__main__":
             fmtstring = "<tr><td><tt>%-40s</tt> </td><td> %-15s </td></tr>\n"
      
         names = table.keys()
+        names = sorted(names) # first ordering
         #names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
         names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'pdf' in x else 0)
         ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10

@@ -34,6 +34,14 @@ def isExcludedNuisance(excludeNuisances=[], name="", keepNuisances=[]):
 
 
 def combFlavours(options):
+    
+    print "-"*30
+    print "Creating links to binning files"
+    os.system("ln -sv {target}/binningPtEta.txt binningPtEta.txt".format(target=options.indirMu))
+    os.system("ln -sv {target}/binningPtEta_mu.txt binningPtEta.txt".format(target=options.indirMu))
+    os.system("ln -sv {target}/binningPtEta_el.txt binningPtEta.txt".format(target=options.indirEl))
+    print "-"*30
+
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
     datacards=[]; channels=[]
     indirLep = {'Wmu': options.indirMu,
@@ -42,9 +50,9 @@ def combFlavours(options):
     inFileXsecbin = {}
     comb_xsec_histfile_name = {}
     for charge in ['plus','minus']:
-        for bin in ['Wmu', 'Wel']:
-            datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_card.txt'.format(ch=charge))
-            channels.append('{bin}_{ch}'.format(bin=bin,ch=charge))
+        for cbin in ['Wmu', 'Wel']:
+            datacards.append(os.path.abspath(indirLep[cbin])+"/"+cbin+'_{ch}_card.txt'.format(ch=charge))
+            channels.append('{bin}_{ch}'.format(bin=cbin,ch=charge))
             # we should use a single masked channel for e+mu (still one for each charge)
             # so, the following lines are commented out
             #
@@ -53,16 +61,17 @@ def combFlavours(options):
             #     maskedChannels.append('OutAcc')
             # if not options.freezePOIs:
             #     for mc in maskedChannels:
-            #         datacards.append(os.path.abspath(indirLep[bin])+"/"+bin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
-            #         channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=bin,ch=charge,maskchan=mc))
-            inFileXsecbin[(bin,charge)] = os.path.abspath(indirLep[bin])+'/'+bin+'_{ch}_shapes_xsec.root'.format(ch=charge)
+            #         datacards.append(os.path.abspath(indirLep[cbin])+"/"+cbin+'_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+            #         channels.append('{bin}_{ch}_xsec_{maskchan}'.format(bin=cbin,ch=charge,maskchan=mc))
+            inFileXsecbin[(cbin,charge)] = os.path.abspath(indirLep[cbin])+'/'+cbin+'_{ch}_shapes_xsec.root'.format(ch=charge)
 
-        print "Creating combined xsec file for charge {ch}".format(ch=charge)
-        comb_xsec_histfile_name[charge] = os.path.abspath(options.outdir + '/' + 'Wlep_{ch}_shapes_xsec.root'.format(ch=charge))
-        haddCmd = "hadd -f {comb} {mu} {el}".format(comb=comb_xsec_histfile_name[charge], 
+        if not options.justFit:
+            print "Creating combined xsec file for charge {ch}".format(ch=charge)
+            comb_xsec_histfile_name[charge] = os.path.abspath(options.outdir + '/' + 'Wlep_{ch}_shapes_xsec.root'.format(ch=charge))
+            haddCmd = "hadd -f {comb} {mu} {el}".format(comb=comb_xsec_histfile_name[charge], 
                                                     mu=inFileXsecbin[("Wmu",charge)], el=inFileXsecbin[("Wel",charge)])
-        print haddCmd
-        os.system(haddCmd)
+            print haddCmd
+            os.system(haddCmd)
 
         # create shapes file in output folder, merging those for mu and e
         # or equivalently taking those for muons and doubleing the bin content (mu and e have the same content)
@@ -95,6 +104,9 @@ def combFlavours(options):
         for mc in maskedChannels:
             datacards.append(os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
             channels.append('Wlep_{ch}_xsec_{maskchan}'.format(ch=charge,maskchan=mc))    
+            #for cbin in ['Wmu', 'Wel']:
+            #    datacards.append(os.path.abspath(indirLep[cbin])+'/W{cb}_{ch}_xsec_{maskchan}_card.txt'.format(cb=cbin,ch=charge,maskchan=mc))
+            #    channels.append('W{cb}_{ch}_xsec_{maskchan}'.format(cb=cbin,ch=charge,maskchan=mc))    
 
     print "="*20
     print "Looking for these cards"
@@ -104,27 +116,29 @@ def combFlavours(options):
     print "="*20
 
     if sum([os.path.exists(card) for card in datacards])==len(datacards):
-        print "Cards for W+ and W- done. Combining them now..."
+
         combinedCard = os.path.abspath(options.outdir)+"/"+'Wlep_'+suffix+'.txt'
-        ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
-        ## here running the combine cards command first 
-        print ccCmd
-        os.system(ccCmd)
-        # now I need to open the newly created card and change the path to the xsec files
-        combinedCardTMP = combinedCard.replace('.txt','_TMP.txt')
-        # copy card into a temporary file (will be removed later) and open a new file overwriting the card
-        os.system('cp {fn} {fntmp}'.format(fn=combinedCard,fntmp=combinedCardTMP))
-        fcard_new = open(combinedCard,'w')
-        with open(combinedCardTMP) as fileTMP:
-            for l in fileTMP.readlines():
-                if re.match('shapes.*',l) and "_shapes_xsec.root" in l:
-                    tokens = l.split()
-                    fcard_new.write(l.replace(tokens[3],comb_xsec_histfile_name["plus" if "plus" in tokens[2] else "minus"]))
-                else:
-                    fcard_new.write(l)
-            fcard_new.close()
-        os.system('rm {fntmp}'.format(fntmp=combinedCardTMP)) 
-        ###########
+        if not options.justFit:
+            print "Cards for W+ and W- done. Combining them now..."
+            ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
+            ## here running the combine cards command first 
+            print ccCmd
+            os.system(ccCmd)
+            # now I need to open the newly created card and change the path to the xsec files
+            combinedCardTMP = combinedCard.replace('.txt','_TMP.txt')
+            # copy card into a temporary file (will be removed later) and open a new file overwriting the card
+            os.system('cp {fn} {fntmp}'.format(fn=combinedCard,fntmp=combinedCardTMP))
+            fcard_new = open(combinedCard,'w')
+            with open(combinedCardTMP) as fileTMP:
+                for l in fileTMP.readlines():
+                    if re.match('shapes.*',l) and "_shapes_xsec.root" in l:
+                        tokens = l.split()
+                        fcard_new.write(l.replace(tokens[3],comb_xsec_histfile_name["plus" if "plus" in tokens[2] else "minus"]))
+                    else:
+                        fcard_new.write(l)
+                fcard_new.close()
+            os.system('rm {fntmp}'.format(fntmp=combinedCardTMP)) 
+            ###########
         
         ## here making the TF meta file
         if options.freezePOIs:
@@ -184,10 +198,13 @@ def combFlavours(options):
         print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
 
 
-def combCharges(options):
+
+def prepareChargeFit(options, charges=["plus"]):
+
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
+    if options.fitSingleCharge: suffix += "_singleCharge{ch}".format(ch=charges[0])
     datacards=[]; channels=[]
-    for charge in ['plus','minus']:
+    for charge in charges:
         datacards.append(os.path.abspath(options.outdir)+"/"+options.bin+'_{ch}_card.txt'.format(ch=charge))
         channels.append('{bin}_{ch}'.format(bin=options.bin,ch=charge))
         maskedChannels = ['InAcc']
@@ -217,7 +234,7 @@ def combCharges(options):
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
             txt2hdf5Cmd = 'text2hdf5.py --sparse {cf}'.format(cf=combinedCard)
         else:
-            maskchan = [' --maskedChan {bin}_{charge}_xsec_{maskchan}'.format(bin=options.bin,charge=ch,maskchan=mc) for ch in ['plus','minus'] for mc in maskedChannels]
+            maskchan = [' --maskedChan {bin}_{charge}_xsec_{maskchan}'.format(bin=options.bin,charge=ch,maskchan=mc) for ch in charges for mc in maskedChannels]
             txt2hdf5Cmd = 'text2hdf5.py --sparse {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
         if not options.doSystematics:
             txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")
@@ -253,10 +270,13 @@ def combCharges(options):
             os.system("mkdir -p " + fitdir_Asimov)
         print ""
         # add --saveHists --computeHistErrors 
+        fitPostfix = "" if not len(options.postfix) else ("_"+options.postfix)
+        if options.fitSingleCharge:
+            fitPostfix += "_singleCharge{ch}".format(ch=charges[0]) 
         print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
-        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
-        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf="" if not len(options.postfix) else ("_"+options.postfix), od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
+        combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf=fitPostfix, od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf=fitPostfix, od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
         if not options.skip_combinetf and not options.skipFitData:
             os.system(combineCmd_data)
@@ -267,7 +287,13 @@ def combCharges(options):
             
 
     else:
-        print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
+        if len(charges) > 1:
+            print "It looks like at least one of the datacards for a single charge is missing. I cannot make the combination."
+        else:
+            print "It looks like at least one of the partial datacards for the single charge is missing."
+
+def combCharges(options):
+    prepareChargeFit(options, charges=['plus','minus'])
 
 
 
@@ -283,6 +309,7 @@ parser.add_option("-b", "--bin",       dest="bin", default="", type="string", he
 parser.add_option("-s", "--syst-file", dest="systfile", default="", type="string", help="File defining the systematics (only the constant ones are used)")
 parser.add_option(      '--binfile'  , dest='binfile', default='binningPtEta.txt', type='string', help='eta-pt binning for templates, by default it is expected to be in input folder')
 parser.add_option(      '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
+parser.add_option(      '--fit-single-charge', dest='fitSingleCharge', default=False, action='store_true', help='Prepare datacard for single-charge fit (groups with other charge are skipped')
 parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', default=False, action='store_true', help='Assign muR, muF and muRmuF to W (those in bins of W-pt will be used for W in any case)')
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
@@ -292,12 +319,13 @@ parser.add_option(       '--fakesChargeLnN' , dest='fakesChargeLnN' , default=0.
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
 parser.add_option(       '--eta-range-bkg', dest='eta_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+parser.add_option(       '--distinguish-name-sig-as-bkg', dest='distinguishNameSigAsBkg' , default=False, action='store_true', help='Use different name (hardcoded for now) to identify name of signal processes that are treated as background. Mainly for first pt bins of electrons when combining with muons, so to keep treating them as background in the combination')
 parser.add_option(       '--sig-out-outAcc', dest='sig_out_outAcc' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as an out of acceptance channel, it will be fitted as any signal bin, but form a separate channel')
 parser.add_option(       '--eta-range-outAcc', dest='eta_range_outAcc', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level eta in this range as a separate out-of-acceptance channel in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as out-of-acceptance if at least one edge is outside this range. For the outliers template, use option --sig-out-outAcc')
 parser.add_option(       '--comb-charge'          , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done. It ignores some options, since it is executed immediately and quit right afterwards')
 parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
-parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
-parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges, skip running combinetf.py at the end')
+parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges/flavors, skip running text2hdf5.py at the end')
+parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='when combining charges/flavors, skip running combinetf.py at the end')
 parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
 parser.add_option(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
 parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
@@ -315,9 +343,13 @@ parser.add_option(       '--WZ-testEffSyst-LnN'   , dest='wzTestEffSystLnN'     
 parser.add_option(       '--WZ-testEffSyst-shape'   , dest='wzTestEffSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where eff.syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,1.0,1.5')
 parser.add_option(       '--WZ-ptScaleSyst-shape'   , dest='wzPtScaleSystShape', default="", type='string', help='Add these nuisance passing comma-separated list of edges where pt-scale syst changes. For signal, only gen bins containing that region take this systematics. E.g.: pass 0,2.1 for muons, 0,1.0,1.5,2.1 for electrons')
 parser.add_option(       '--useBinUncEffStat', dest='useBinUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
+parser.add_option(       '--useBinEtaPtUncorrUncEffStat', dest='useBinEtaPtUncorrUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
+parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
+parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit (it works for flavor combination only)')
 parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
 parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
+parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
 (options, args) = parser.parse_args()
 
 print ""
@@ -341,6 +373,14 @@ if options.sig_out_bkg and options.sig_out_outAcc:
     print "Warning: outliers cannot be considered as a background and an out-of-acceptance template. Select either --sig-out-outAcc or --sig-out-bkg"
     quit()
 
+if options.useBinUncEffStat and options.useBinEtaPtUncorrUncEffStat:
+    print "Warning: useBinUncEffStat and useBinEtaPtUncorrUncEffStat are incompatible. Select only one of them"
+    quit()
+
+if options.fitSingleCharge and options.combineCharges:
+    print "Error: options --fit-single-charge and --comb-charge are incompatible. Abort"
+    quit()
+
 if not options.indir.endswith('/'): options.indir += "/"    
 # manage output folder
 outdir = options.outdir
@@ -359,6 +399,13 @@ charge = options.charge
 flavour = options.flavour
 binname = options.bin if len(options.bin) else "W%s" % flavour
 signalMatch = "W%s" % charge
+
+# do not add postfix here for single charge: will be added only to the output of combinetf.py afterwards
+#if options.fitSingleCharge:
+#    if len(options.postfix): 
+#        options.postfix = options.postfix + "_singleCharge{ch}".format(ch=charge)
+#    else:
+#        options.postfix = "singleCharge{ch}".format(ch=charge)
 
 if options.combineCharges:
     cmssw = os.environ['CMSSW_VERSION']
@@ -407,11 +454,14 @@ genBins  = templateBinning(etaPtGenBinningVec[0],etaPtGenBinningVec[1])
 binning = [genBins.Neta, genBins.etaBins, genBins.Npt, genBins.ptBins]
 
 if options.useBinUncEffStat:
-    if options.excludeNuisances == "": options.excludeNuisances = ".*ErfPar.*EffStat.*"
-    else                             : options.excludeNuisances += ",.*ErfPar.*EffStat.*"
+    if options.excludeNuisances == "": options.excludeNuisances = ".*ErfPar.*EffStat.*|.*BinEtaPtUncorrUncEffStat.*"
+    else                             : options.excludeNuisances += ",.*ErfPar.*EffStat.*|.*BinEtaPtUncorrUncEffStat.*"
+elif options.useBinEtaPtUncorrUncEffStat:
+    if options.excludeNuisances == "": options.excludeNuisances = ".*BinUncEffStat.*|.*ErfPar.*EffStat.*"
+    else                             : options.excludeNuisances += ",.*BinUncEffStat.*|.*ErfPar.*EffStat.*"
 else:
-    if options.excludeNuisances == "": options.excludeNuisances = ".*BinUncEffStat.*"
-    else                             : options.excludeNuisances += ",.*BinUncEffStat.*"
+    if options.excludeNuisances == "": options.excludeNuisances = ".*BinUncEffStat.*|.*BinEtaPtUncorrUncEffStat.*"
+    else                             : options.excludeNuisances += ",.*BinUncEffStat.*|.*BinEtaPtUncorrUncEffStat.*"
 
 
 allSystForGroups = [] # filled with all systs not excluded by excludeNuisances
@@ -490,10 +540,16 @@ for ieta in range(genBins.Neta):
             igroup = int(int(ieta + ipt * genBins.Neta)/options.group)
             sigName = "W{ch}_lep_ieta_{ieta}_ipt_{ipt}_group_{gr}".format(ch=charge, ieta=str(ieta), ipt=str(ipt), gr=str(igroup))
         else:
-            sigName = "W{ch}_lep_ieta_{ieta}_ipt_{ipt}".format(ch=charge, ieta=str(ieta), ipt=str(ipt))            
+            if options.distinguishNameSigAsBkg and ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
+                sigName = "W{ch}_{fl}_ieta_{ieta}_ipt_{ipt}".format(ch=charge, fl=flavour, ieta=str(ieta), ipt=str(ipt))            
+            else:
+                sigName = "W{ch}_lep_ieta_{ieta}_ipt_{ipt}".format(ch=charge, ieta=str(ieta), ipt=str(ipt))            
         signalprocesses.append(sigName)
 # add last bin with outliers (outlirs might be written in name once or twice, please check
 sigOutName = "W{ch}_lep_outliers".format(ch=charge)
+# for outliers it might be better to have the same name for both muons and electrons
+#if options.sig_out_bkg and options.distinguishNameSigAsBkg:
+#    sigOutName = "W{ch}_{fl}_outliers".format(ch=charge, fl=flavour)
 if options.group:
     sigOutName += "_group_{gr}".format(gr=str(igroup+1))
 signalprocesses.append(sigOutName)
@@ -795,6 +851,8 @@ if options.wzPtScaleSystShape:
     edgesForPtScale = [float(x) for x in options.wzPtScaleSystShape.split(",")]
     for nl in range(len(edgesForPtScale)):
         wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
+        if re.match(options.uncorrelateNuisancesByCharge,wExpPtScaleSysts[-1]):
+            wExpPtScaleSysts[-1] = wExpPtScaleSysts[-1] + charge
     for isyst,syst in enumerate(wExpPtScaleSysts):    
         procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
         tmp_procsForPtScaleSystShape = []
@@ -877,6 +935,33 @@ for ipar in range(3):
         #card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (signalMatch in p and any(x in p for x in matchesForEffStat)) else "-") for p in allprocesses]) +"\n")
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
 
+if options.useBinEtaPtUncorrUncEffStat:
+    for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
+        for iptbin in range(1,9): # hardcoded but works
+            syst = "BinEtaPtUncorrUncEffStat%dipt%d" % (ietabin,iptbin)
+            syst += "{fl}{ch}".format(fl=flavour,ch=charge)
+            if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
+            etaEffStat = ietabin - effstatOffset # assess whether it is in the first half, corresponding to negative eta            
+            # since ietabin goes from 1 to XX, make etaEffStat goes from 0 to XX                 
+            if etaEffStat < 0:
+                etaEffStat = abs(etaEffStat) - 1
+            # we always have 48 or 50 efficiency bins, but the reco binning might be coarser: get the eta for the efficiency bin
+            # a template bin might have more than 1 efficiency variation if binning is coarser
+            etaBinCenter = etaEffStat * 0.1 + 0.05  
+            ietaTemplate = getArrayBinNumberFromValue(genBins.etaBins,etaBinCenter)  
+            # if genBins extends below the reco, the returned value is negative, so no match for signal
+            # for outliers, must also check the reco binning
+
+            # if the reco binning along eta is narrower than the EffStat histogram used for the reweighting, skip this etaEffStat              
+            # this happens for example for bin 1 and 50 in the electron channel if the reco binning (and therefore also the gen) stops at |eta|=2.4    
+            if etaBinCenter < recoBins.etaBins[0] or etaBinCenter > recoBins.etaBins[-1]:
+                continue
+            EffStat_systs.append(syst)
+            allSystForGroups.append(syst)
+            matchesForEffStat = ["outliers", "_ieta_%d_" % ietaTemplate, "Z", "TauDecaysW"]
+            card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in matchesForEffStat) else "-") for p in allprocesses]) +"\n")
+
+
 if options.useBinUncEffStat:
     for ietabin in range(1, 1+nSystEffStat):        # there are 48 (or 50) etabins from 1 to 48 (or 50)
         syst = "BinUncEffStat%d" % (ietabin)
@@ -928,6 +1013,11 @@ card.write("\n")
 
 ## first make a list of all the signal processes
 #tmp_sigprocs = [p for p in allprocesses if 'Wminus' in p or 'Wplus' in p]
+
+# 19/08/2019: might try to consider signal processes treated as background as in-acceptance bins (except outliers)
+# must be careful about groups when combining electrons and muons if some processes have different names for muons and electrons
+# in that case the actual group line going inot the combined card must be the one for muons
+# maybe it is better not to use signal bins as background in the definition of the group (assuming that when combining cards and merging groups with different definition but same name the largest one is used, if not a new solution will have to be found)
 tmp_sigprocs = []
 isInAccProc = {}
 for p in allprocesses:
@@ -945,7 +1035,13 @@ for p in allprocesses:
         else:
             ieta,ipt = get_ieta_ipt_from_process_name(p)
             if ((hasPtRangeBkg and ptBinIsBackground[ipt]) or (hasEtaRangeBkg and etaBinIsBackground[ieta])):
-                pass
+                #pass
+                # try same code as below
+                tmp_sigprocs.append(p)
+                if hasEtaRangeOutAcc and etaBinIsOutAcc[ieta]:
+                    isInAccProc[p] = False
+                else:
+                    isInAccProc[p] = True
             else:
                 tmp_sigprocs.append(p)
                 if hasEtaRangeOutAcc and etaBinIsOutAcc[ieta]:
@@ -960,10 +1056,15 @@ for p in allprocesses:
 # we add both charges to facilitate the combination
 # xsec inclusive in pt
 for ch in ["plus", "minus"]:
+    if options.fitSingleCharge and not ch == charge: continue
     for ieta in range(genBins.Neta):
         # can keep '_' after {ieta} in regular expression, because it is followed by ipt (but in case you want ipt remember that {ipt} is now the last word)
         procsThisIeta = filter( lambda x: re.match('.*_ieta_{ieta}_.*'.format(ieta=ieta),x), isInAccProc.keys() )        
         procsThisIeta = sorted(procsThisIeta, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+        # if options.distinguishNameSigAsBkg and ((hasEtaRangeBkg and etaBinIsBackground[ieta])):
+        #     newp = "W{ch}_{fl}_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
+        # else:
+        #     newp = "W{ch}_lep_ieta_{ieta}".format(ch=ch, ieta=str(ieta))
         newp = "W{ch}_lep_ieta_{ieta}".format(ch=ch, ieta=str(ieta))
         tmpnames = [x.replace("plus","TMP").replace("minus","TMP") for x in procsThisIeta]
         card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
@@ -972,6 +1073,7 @@ card.write("\n")
 
 # xsec inclusive in eta
 for ch in ["plus", "minus"]:
+    if options.fitSingleCharge and not ch == charge: continue
     for ipt in range(genBins.Npt):
         if ptBinIsBackground[ipt]: continue
         # remember that {ipt} is now the last word
@@ -986,25 +1088,26 @@ card.write("\n")
 
 # the following stuff can't work on the single charge fit: we write it here to facilitate the combination
 # if you want to run the fit to a single charge, don't add them
-for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
-    # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
-    newp = p.replace("plus","").replace("minus","")        
-    tmpp = p.replace("plus","TMP").replace("minus","TMP")        
-    tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
-    card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
-card.write("\n")
+if not options.fitSingleCharge:
 
+    for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
+        # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
+        newp = p.replace("plus","").replace("minus","")        
+        tmpp = p.replace("plus","TMP").replace("minus","TMP")        
+        tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
+        card.write("{np} chargeGroup = {bg}\n".format(np=newp, bg=tmpline )) 
+    card.write("\n")
 
-for ieta in range(genBins.Neta):
-    newp = "W_lep_ieta_{ieta}".format(ieta=str(ieta))
-    chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
-    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
-card.write("\n")
-for ipt in range(genBins.Npt):
-    if ptBinIsBackground[ipt]: continue
-    newp = "W_lep_ipt_{ipt}".format(ipt=str(ipt))
-    chpair = "Wplus_lep_ipt_{ipt} Wminus_lep_ipt_{ipt}".format(ch=ch, fl=flavour, ipt=str(ipt))
-    card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
+    for ieta in range(genBins.Neta):
+        newp = "W_lep_ieta_{ieta}".format(ieta=str(ieta))
+        chpair = "Wplus_lep_ieta_{ieta} Wminus_lep_ieta_{ieta}".format(ch=ch, fl=flavour, ieta=str(ieta))
+        card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
+    card.write("\n")
+    for ipt in range(genBins.Npt):
+        if ptBinIsBackground[ipt]: continue
+        newp = "W_lep_ipt_{ipt}".format(ipt=str(ipt))
+        chpair = "Wplus_lep_ipt_{ipt} Wminus_lep_ipt_{ipt}".format(ch=ch, fl=flavour, ipt=str(ipt))
+        card.write("{np} chargeMetaGroup = {bg}\n".format(np=newp, bg=chpair )) 
 
         
 
@@ -1026,17 +1129,23 @@ print ""
 
 ## xsecfilename                                                                                           
 # this file has pt between 0 and 70, has 0.5 GeV granularity between 25 and 60 GeV, and 1 GeV elsewhere
+# it has the binned QCD scales but not the unbinned, and it was made without Wpt reweighting
 xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt0p5_eta0p1_etaGap_yields_v2.root"
 # FIXME: following file has pt binning with width = 1GeV!
-if options.xsecMaskedYields:
-    xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"
-if options.preFSRxsec:
-    xsecfile = xsecfile.replace("_dressed_","_preFSR_")
+# if options.xsecMaskedYields:
+#     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_pt1_eta0p1_etaGap_xsecPb.root"
+# if options.preFSRxsec:
+#     xsecfile = xsecfile.replace("_dressed_","_preFSR_")
+if options.useXsecWithWptWeights:
+    xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields.root"
+    
+
 hists = getXsecs_etaPt(tmp_sigprocs,
                        [i for i in sortedTheoSystkeys], 
                        binning,
                        xsecfile,
-                       usePreFSR = True if options.preFSRxsec else False
+                       usePreFSR = True if options.preFSRxsec else False,
+                       hasBinAnalysis=True
                        )
 tmp_xsec_histfile_name = shapefile.replace('_shapes.root','_shapes_xsec.root')
 tmp_xsec_hists = ROOT.TFile(tmp_xsec_histfile_name, 'recreate')
@@ -1076,3 +1185,11 @@ for maskChan in maskedChannels:
 ## end of all the xsec construction of datacard and making the file                                                               
 print "Wrote cross section datacard in %s" % tmp_xsec_dc_name
 print ""
+
+if options.fitSingleCharge:
+    options.bin = binname
+    options.outdir = outdir # to pass to prepareChargeFit()
+    prepareChargeFit(options, charges=[charge])
+    print "-"*30
+    print "Done fitting charge {ch}".format(ch=charge)
+    print "="*30

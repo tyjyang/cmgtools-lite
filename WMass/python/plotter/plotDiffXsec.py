@@ -11,14 +11,20 @@ onlyData = 1
 
 skipPlot = 0
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
 
+useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
 allPtBinsSignal = 1
+forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
+#
+# some script allow to plot a single charge
+plotSingleCharge = 0
+singleChargeToPlot = "minus" # "minus"
 
 seed = 123456789
 
@@ -36,11 +42,17 @@ folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlySt
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
+#folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
 if doMuElComb:
     allPtBinsSignal = 1
     folder = "muElCombination"
     skipTemplate = 1
+
+if plotSingleCharge and doMuElComb:
+    print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
+    quit()
 
 #postfix = "testEffSystUncorrEta_uncorrPtScale"
 #postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
@@ -55,11 +67,17 @@ if doMuElComb:
 #postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
 #postfix = "zptReweight_uncorrQCDscales_fixedPOIs"
 #postfix = "combinedLep"
-#postfix = "zptReweight_fixEffStat"
-postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_scaleEffStatEE_symFSR"
+#postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_scaleEffStatEE_symFSR"
+#postfix = "finalFixes_symFSRptScalemW"
+postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW"
+postfix = "finalFixes_symFSRptScalemW_ptScaleUncorrCharge"
 #postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_testFakesPtV2"
 if doMuElComb:
-    postfix = "combinedLep_zptReweight_uncorrQCDscales_fixEffStat_FinalFixes_newFSR_scaleEffStatEE"
+    #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
+    postfix = "combinedLep_finalFixes_elePt01Bkg_bkgNotInGroupOrMaskedChan_scaleXsecPt01by2"
+if plotSingleCharge:
+    postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
+
 postfix += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
@@ -81,14 +99,14 @@ ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS|mW|fsr", 
-                      "muR.*|muF.*", 
+diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr", 
+                      #"muR.*|muF.*", 
                       #"Fakes(Eta|Pt).*[0-9]+mu.*", 
                       #"Fakes(Eta|Pt).*[0-9]+el.*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      "CMS_.*|.*TestEffSyst.*", 
+                      "CMS_.*|.*TestEffSyst.*|mW|fsr", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]
@@ -134,14 +152,17 @@ targets = [#"mu",
            #"etaptasym",
            "etaxsec",
            "etaxsecnorm",
-           #"etaasym"
+           "etaasym",
+           "ptxsec",
+           "ptxsecnorm",
+           "ptasym"
            ]
 
 # for impacts vs pT-eta
 targetsPtEta = [#"mu", 
                 "xsec", 
                 "xsecnorm",
-                #"asym",
+                "asym",
                 ]
 
 # impacts_nuis = [".*pdf.*", 
@@ -213,8 +234,15 @@ for fit in fits:
     command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/plotDiffXsecChargeAsymmetry/".format(lep=lepton,fd=folder)
     command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " --lumi-norm 35900.0  -n --palette -1 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
+    if plotSingleCharge:
+        command += " -C {ch}".format(ch=singleChargeToPlot)
+    if useXsecWptWeights:
+        command += " --use-xsec-wpt "
+    if forceAllptbinsTheoryband:
+        command += " --force-allptbins-theoryband "
     if fit == "Data":
-        command += " --fit-data --invert-ratio --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
+        command += " --fit-data --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
+        # --invert-ratio
     if not skipPlot:
         print ""
         print command
@@ -252,10 +280,18 @@ for fit in fits:
     command += " --no2Dplot-signal-bin -n ".format(fit=fit)  # -n
     if fit == "Data":
         if not skipPostfit:
-            print ""    
-            print command
-            if not dryrun:
-                os.system(command)
+            if doMuElComb:
+                for flav in ["mu", "el"]:
+                    command2 = command + " --plot-flavour-from-combination {fl} ".format(fl=flav)
+                    print ""    
+                    print command2
+                    if not dryrun:
+                        os.system(command2)
+            else:
+                print ""    
+                print command
+                if not dryrun:
+                    os.system(command)
 
 
     print ""
@@ -320,6 +356,8 @@ for fit in fits:
         for target in targets:
             if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
                 poi_regexp = ["W.*_ieta_.*"]
+            elif any(target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]):
+                poi_regexp = ["W.*_ipt_.*"]
             else:
                 poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in  [2, 3, 7, 16] ]
 
@@ -348,7 +386,7 @@ for fit in fits:
             varopt = " --zrange 'template' --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
 
         for target in targetsPtEta:
-            if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
+            if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym", "ptxsec", "ptxsecnorm", "ptasym"]):
                 continue
             tmpcommand = command + " {vopt} --target {t}  ".format(vopt=varopt, t=target)                      
             if not skipImpactsEtaPt:
@@ -369,3 +407,6 @@ print ""
 ##
 #python w-helicity-13TeV/diffNuisances.py --infile cards/diffXsec_el_2018_12_18_onlyBkg_pt2GeV_last3GeV_eta0p2From2p0/fit/data/fitresults_123456789_Data_allSyst_bbb1_cxs1.root --type hessian --pois ".*FakesEta.*" --outdir plots/diffXsec/diffNuisances/diffXsec_el_2018_12_18_onlyBkg_pt2GeV_last3GeV_eta0p2From2p0/Data_allSyst_bbb1_cxs1/ -a --format html
 
+
+##
+# python w-helicity-13TeV/compareMuElDiffXsec.py --input-muon plots/diffXsecAnalysis_new/muon/diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/plotDiffXsecChargeAsymmetry/hessian_Data_finalFixes_bbb1_cxs1/plotDiffXsecChargeAsymmetry.root --input-electron plots/diffXsecAnalysis_new/electron/diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/plotDiffXsecChargeAsymmetry/hessian_Data_finalFixes_bbb1_cxs1/plotDiffXsecChargeAsymmetry.root --input-combination plots/diffXsecAnalysis_new/lepton/muElCombination/plotDiffXsecChargeAsymmetry/hessian_Data_combinedLep_finalFixes_bbb1_cxs1/plotDiffXsecChargeAsymmetry.root -o plots/diffXsecAnalysis_new/comparisons/test/ -b cards/muElCombination/binningPtEta.txt

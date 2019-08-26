@@ -8,7 +8,7 @@ class util:
         self.cmssw_version = os.environ['CMSSW_VERSION']
         self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
-    def checkHistInFile(h, hname, fname, message=""):
+    def checkHistInFile(self, h, hname, fname, message=""):
         if not h:
             print "Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname)
             quit()
@@ -340,13 +340,15 @@ class util:
 
 #######################
 
-    def getTheorybandDiffXsecFast(self):
+    def getTheoryHistDiffXsecFast(self, xsecWithWptWeights=True, ptmin=-1.0):
 
         # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
 
-        print "Inside getTheorybandDiffXsecFast() ..."
+        print "Inside getTheoryHistDiffXsecFast() ..."
         # hardcoded for now
-        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_yields.root"
+        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_noWpt_yields.root"
+        if xsecWithWptWeights:
+            infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields.root"
         histo_file = ROOT.TFile(infile, 'READ')            
 
         htheory = {}
@@ -361,51 +363,63 @@ class util:
         htheory_1Deta_asym = {}
         htheory_1Dpt_asym = {}
 
+        print "ABSOLUTE XSEC"
         for charge in ["plus", "minus"]:
  
             nomi = "gen_ptl1_absetal1_dressed_binAna_W{ch}_mu".format(ch=charge)
-            hnomi = histo_file.Get(nomi)
-            checkHistInFile(hnomi, nomi, infile, message="in getTheorybandDiffXsecFast()")
+            hnomi = histo_file.Get(nomi + "_central")
+            self.checkHistInFile(hnomi, nomi + "_central", infile, message="in getTheoryHistDiffXsecFast()")
             hnomi.SetDirectory(0)
 
             for ipdf in range(1,61):
                 name = "pdf{ip}".format(ip=ipdf)
                 pdfvar = nomi + '_{n}'.format(n=name)
                 htheory[(charge,name)] = histo_file.Get(pdfvar)
-                checkHistInFile(htheory[(charge,name)], pdfvar, infile, message="in getTheorybandDiffXsecFast()")
+                self.checkHistInFile(htheory[(charge,name)], pdfvar, infile, message="in getTheoryHistDiffXsecFast()")
                 htheory[(charge,name)].SetDirectory(0)
 
-            for idir in ["Up", "Down"]:
+            for idir in ["Up", "Dn"]:  # should have been Down, but the histogram migt have Dn
                 for qcdType in ["muF", "muR", "muRmuF"]:
                     name = "{qt}{d}".format(qt=qcdType,d=idir)
                     qcdvar = nomi + '_{n}'.format(n=name)
                     htheory[(charge,name)] = histo_file.Get(qcdvar)
-                    checkHistInFile(htheory[(charge,name)], qcdvar, infile, message="in getTheorybandDiffXsecFast()")
-                    htheory[(charge,name)]
+                    self.checkHistInFile(htheory[(charge,name)], qcdvar, infile, message="in getTheoryHistDiffXsecFast()")
+                    htheory[(charge,name)].SetDirectory(0)
 
                 name = "alphaS{d}".format(d=idir)
                 alphaSvar = nomi + '_{n}'.format(n=name)
                 htheory[(charge,name)] = histo_file.Get(alphaSvar)
-                checkHistInFile(htheory[(charge,name)], alphaSvar, infile, message="in getTheorybandDiffXsecFast()")
-                htheory[(charge,name)]
+                self.checkHistInFile(htheory[(charge,name)], alphaSvar, infile, message="in getTheoryHistDiffXsecFast()")
+                htheory[(charge,name)].SetDirectory(0)
 
             htheory[(charge,"nominal")] = hnomi
 
         # key has both plus and minus charges
+        print "NORMALIZED XSEC"
         for key in htheory:
-            # projections
-            htheory_1Deta[key] = htheory[key].ProjectionX(htheory[key].GetName()+"_1Deta",1,htheory[key].GetNbinsY())
-            htheory_1Dpt[key] = htheory[key].ProjectionY(htheory[key].GetName()+"_1Dpt",1,htheory[key].GetNbinsX())             
             # this uses only the xsec in acceptance, |eta| in [0, 2.4], pT in [26, 56]
             # WARNING: for electrons I should restrict pt range to [30, 56], unless the fit uses also bkg processes to make the total xsec
+            ptminbin = 1
+            if float(ptmin) > 0:
+                ptminbin = htheory[key].GetYaxis().FindFixBin(float(ptmin) + 0.0001) # adding epsilon for safety
+            # projections
+            htheory_1Deta[key] = htheory[key].ProjectionX(htheory[key].GetName()+"_1Deta",ptminbin,htheory[key].GetNbinsY())
+            htheory_1Deta[key].SetDirectory(0)
+            htheory_1Dpt[key] = htheory[key].ProjectionY(htheory[key].GetName()+"_1Dpt",1,htheory[key].GetNbinsX())             
+            htheory_1Dpt[key].SetDirectory(0)
             htheory_xsecnorm[key] = htheory[key].Clone(htheory[key].GetName() + "_xsecnorm")
-            htheory_xsecnorm[key].Scale(1./htheory_xsecnorm[key].Integral()) 
-            htheory_1Deta_xsecnorm[key] = htheory[key].Clone(htheory_1Deta[key].GetName() + "_xsecnorm")
+            htheory_xsecnorm[key].SetDirectory(0)
+            htheory_xsecnorm[key].Scale(1./htheory_xsecnorm[key].Integral(1, htheory_xsecnorm[key].GetNbinsX(), 
+                                                                          ptminbin, htheory_xsecnorm[key].GetNbinsY())) 
+            htheory_1Deta_xsecnorm[key] = htheory_1Deta[key].Clone(htheory_1Deta[key].GetName() + "_xsecnorm")
+            htheory_1Deta_xsecnorm[key].SetDirectory(0)
             htheory_1Deta_xsecnorm[key].Scale(1./htheory_1Deta_xsecnorm[key].Integral()) 
-            htheory_1Dpt_xsecnorm[key] = htheory[key].Clone(htheory_1Dpt[key].GetName() + "_xsecnorm")
-            htheory_1Dpt_xsecnorm[key].Scale(1./htheory_1Dpt_xsecnorm[key].Integral()) 
+            htheory_1Dpt_xsecnorm[key] = htheory_1Dpt[key].Clone(htheory_1Dpt[key].GetName() + "_xsecnorm")
+            htheory_1Dpt_xsecnorm[key].SetDirectory(0)
+            htheory_1Dpt_xsecnorm[key].Scale(1./htheory_1Dpt_xsecnorm[key].Integral(ptminbin,htheory_1Dpt_xsecnorm[key].GetNbinsX())) 
 
         # now charge asymmetry
+        print "CHARGE AYMMETRY"
         htmp_num = htheory[("plus","nominal")].Clone("_tmp_helper_asym_num")
         htmp_den = htheory[("plus","nominal")].Clone("_tmp_helper_asym_den")
         htmp_num_1Deta = htheory_1Deta[("plus","nominal")].Clone("_tmp_helper_asym_num_1Deta")
@@ -415,29 +429,175 @@ class util:
         for key in htheory:
             # filter keys for plus charge
             if str(key[0]) == "minus": continue
-            # 2D
-            htheory_asym[key] = htheory[key].Clone(htheory[key].GetName() + "_asymm")
+            # 2D2C
+            keyAsym = ("all",key[1]) # to allow for homogeneous treatment as for the charged xsecs
+            htheory_asym[keyAsym] = htheory[key].Clone(htheory[key].GetName() + "_asymm")
+            htheory_asym[keyAsym].SetDirectory(0)
             htmp_num.Add(htheory[key], htheory[("minus",key[1])], 1.0, -1.0)
             htmp_den.Add(htheory[key], htheory[("minus",key[1])], 1.0,  1.0)
-            htheory_asym[key].Divide(htmp_num,htmp_den)
+            htheory_asym[keyAsym].Divide(htmp_num,htmp_den)
             # 1D eta
-            htheory_1Deta_asym[key] = htheory_1Deta[key].Clone(htheory_1Deta[key].GetName() + "_asymm")
+            htheory_1Deta_asym[keyAsym] = htheory_1Deta[key].Clone(htheory_1Deta[key].GetName() + "_asymm")
+            htheory_1Deta_asym[keyAsym].SetDirectory(0)
             htmp_num_1Deta.Add(htheory_1Deta[key], htheory_1Deta[("minus",key[1])], 1.0, -1.0)
             htmp_den_1Deta.Add(htheory_1Deta[key], htheory_1Deta[("minus",key[1])], 1.0,  1.0)
-            htheory_1Deta_asym[key].Divide(htmp_num_1Deta,htmp_den_1Deta)
+            htheory_1Deta_asym[keyAsym].Divide(htmp_num_1Deta,htmp_den_1Deta)
             # 1D pt
-            htheory_1Dpt_asym[key] = htheory_1Dpt[key].Clone(htheory_1Dpt[key].GetName() + "_asymm")
+            htheory_1Dpt_asym[keyAsym] = htheory_1Dpt[key].Clone(htheory_1Dpt[key].GetName() + "_asymm")
+            htheory_1Dpt_asym[keyAsym].SetDirectory(0)
             htmp_num_1Dpt.Add(htheory_1Dpt[key], htheory_1Dpt[("minus",key[1])], 1.0, -1.0)
             htmp_den_1Dpt.Add(htheory_1Dpt[key], htheory_1Dpt[("minus",key[1])], 1.0,  1.0)
-            htheory_1Dpt_asym[key].Divide(htmp_num_1Dpt,htmp_den_1Dpt)
+            htheory_1Dpt_asym[keyAsym].Divide(htmp_num_1Dpt,htmp_den_1Dpt)
 
         histo_file.Close()
         ret = { "xsec"     : [htheory, htheory_1Deta, htheory_1Dpt],
                 "xsecnorm" : [htheory_xsecnorm, htheory_1Deta_xsecnorm, htheory_1Dpt_xsecnorm],
-                "asym" : [htheory_asym, htheory_1Deta_asym, htheory_1Dpt_asym]}
+                "asym"     : [htheory_asym, htheory_1Deta_asym, htheory_1Dpt_asym],
+                "listkeys" : [key[1] for key in htheory]}
         return ret
 
 #######################
+
+    def getTheoryBandDiffXsec(self, hretTotTheory, hretPDF, theovars, hists, netabins, nptbins, charge="all"):
+        
+        # AlphaS and QCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+
+        # charge == all for asymmetry, plus or minus otherwise
+        hnomi = hists[(charge, "nominal")]
+
+        for ieta in range(netabins):
+            for ipt in range(nptbins):
+                pdfquadrsum = 0.0
+                envelopeQCD = 0.0     # muR, muF, muRmuF, with Up and Down
+                envelopeAlphaS = 0.0  # basically Up and Down
+                nomi = hnomi.GetBinContent(ieta+1, ipt+1)
+                #envelopeAlphaS = 0.0
+                #envelopeQCD = 0.0                
+                envelopeQCD_vals = [nomi]     # muR, muF, muRmuF, with Up and Down
+                envelopeAlphaS_vals = [nomi]  # basically Up and Down
+                for nuis in theovars:
+                    if nuis == "nominal": continue
+                    if "pdf" in nuis:
+                        tmpvar = hists[(charge,nuis)].GetBinContent(ieta+1,ipt+1) - nomi
+                        pdfquadrsum += tmpvar * tmpvar
+                    elif "alpha" in nuis:
+                        # 1.5 is because weight corresponds to 0.001, but should be 0.0015
+                        #tmpvar = hists[(charge,nuis)].GetBinContent(ieta+1,ipt+1) - nomi
+                        #envelopeAlphaS = max(abs(envelopeAlphaS), 1.5* abs(tmpvar))
+                        alt = hists[(charge,nuis)].GetBinContent(ieta+1, ipt+1)
+                        altscaled = nomi * math.exp( 1.5 * math.log(alt/nomi) )
+                        envelopeAlphaS_vals.append(altscaled)
+                    else:
+                        #tmpvar = hists[(charge,nuis)].GetBinContent(ieta+1,ipt+1) - nomi
+                        #envelopeQCD = max(abs(envelopeQCD), abs(tmpvar))
+                        envelopeQCD_vals.append(hists[(charge,nuis)].GetBinContent(ieta+1, ipt+1))
+
+                # pdfAndAlphaQuadSum = pdfquadrsum + envelopeAlphaS * envelopeAlphaS
+                # hretPDF.SetBinContent(ieta+1,ipt+1, hnomi.GetBinContent(ieta+1,ipt+1))
+                # hretTotTheory.SetBinContent(ieta+1,ipt+1, hnomi.GetBinContent(ieta+1,ipt+1))
+                # hretPDF.SetBinError(ieta+1,ipt+1, math.sqrt(pdfAndAlphaQuadSum))
+                # hretTotTheory.SetBinError(ieta+1,ipt+1, math.sqrt(pdfAndAlphaQuadSum + envelopeQCD * envelopeQCD))
+
+                # this graph will be used for the unrolled xsec, which is a TH1 drawn with bin width equal to 1
+                errX = 0.5
+                alphaSErrorHigh = abs(max(envelopeAlphaS_vals)-nomi)
+                alphaSErrorLow  = abs(min(envelopeAlphaS_vals)-nomi)
+                QCDErrorHigh    = abs(max(envelopeQCD_vals)-nomi)
+                QCDErrorLow     = abs(min(envelopeQCD_vals)-nomi)
+                pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh) 
+                pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow) 
+                totTheoryErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh + QCDErrorHigh * QCDErrorHigh)
+                totTheoryErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow + QCDErrorLow * QCDErrorLow)
+
+                ibin = ieta + ipt * netabins # from 0 to neta*npt-1
+                hretPDF.SetPoint(ibin, ibin+1, nomi)
+                hretPDF.SetPointError(ibin, errX, errX, pdfAlphaSErrorLow,  pdfAlphaSErrorHigh)
+                hretTotTheory.SetPoint(ibin, ibin+1, nomi)
+                hretTotTheory.SetPointError(ibin, errX, errX, totTheoryErrorLow, totTheoryErrorHigh)
+
+
+
+    def getTheoryBandDiffXsec1Dproj(self, hretTotTheory, hretPDF, theovars, hists, nvarbins, charge="all" ):
+        
+        # AlphaS and QCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+
+        hnomi = hists[(charge,"nominal")]
+        for ivar in range(nvarbins):
+            pdfquadrsum = 0.0
+            nomi = hnomi.GetBinContent(ivar+1)
+            envelopeQCD_vals = [nomi]     # muR, muF, muRmuF, with Up and Down
+            envelopeAlphaS_vals = [nomi]  # basically Up and Down
+            for nuis in theovars:
+                if nuis == "nominal": continue
+                if "pdf" in nuis:
+                    tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - nomi
+                    pdfquadrsum += tmpvar * tmpvar
+                elif "alpha" in nuis:
+                    # 1.5 is because weight corresponds to 0.001, but should be 0.0015
+                    alt = hists[(charge,nuis)].GetBinContent(ivar+1)
+                    altscaled = nomi * math.exp( 1.5 * math.log(alt/nomi) )
+                    envelopeAlphaS_vals.append(altscaled)
+                else:
+                    envelopeQCD_vals.append(hists[(charge,nuis)].GetBinContent(ivar+1))
+
+            errX = 0.5 * hnomi.GetBinWidth(ivar+1) # symmetric bins in x, error is just half the bin width
+            alphaSErrorHigh = abs(max(envelopeAlphaS_vals)-nomi)
+            alphaSErrorLow  = abs(min(envelopeAlphaS_vals)-nomi)
+            QCDErrorHigh    = abs(max(envelopeQCD_vals)-nomi)
+            QCDErrorLow     = abs(min(envelopeQCD_vals)-nomi)
+            pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh) 
+            pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow) 
+            totTheoryErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh + QCDErrorHigh * QCDErrorHigh)
+            totTheoryErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow + QCDErrorLow * QCDErrorLow)
+
+            hretPDF.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretPDF.SetPointError(ivar, errX, errX, pdfAlphaSErrorLow,  pdfAlphaSErrorHigh)
+            hretTotTheory.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretTotTheory.SetPointError(ivar, errX, errX, totTheoryErrorLow, totTheoryErrorHigh)
+
+
+    def checkTheoryBandDiffXsec1Dproj(self, hretPDF, hretAlpha, hretQCD, theovars, hists, nvarbins, charge="all" ):
+        
+        # hretAlpha, hretQCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+        # pdfs can stay as a TH1
+
+        # to test width of the bands
+        hnomi = hists[(charge,"nominal")]
+        for ivar in range(nvarbins):
+            pdfquadrsum = 0.0
+            nomi = hnomi.GetBinContent(ivar+1)
+            envelopeQCD_vals = [nomi]     # muR, muF, muRmuF, with Up and Down
+            envelopeAlphaS_vals = [nomi]  # basically Up and Down
+            for nuis in theovars:
+                if nuis == "nominal": continue
+                if "pdf" in nuis:
+                    tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - nomi
+                    pdfquadrsum += tmpvar * tmpvar
+                elif "alpha" in nuis:
+                    # 1.5 is because weight corresponds to 0.001, but should be 0.0015
+                    #tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - hnomi.GetBinContent(ivar+1)
+                    #envelopeAlphaS = max(abs(envelopeAlphaS), 1.5* abs(tmpvar))
+                    # if alphaHist is larger than nomi difference is positive and I add the variations time 1.5, otherwise
+                    # it is negative and I subtract
+                    alt = hists[(charge,nuis)].GetBinContent(ivar+1)
+                    altscaled = nomi * math.exp( 1.5 * math.log(alt/nomi) )
+                    envelopeAlphaS_vals.append(altscaled)
+                else:
+                    #tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - hnomi.GetBinContent(ivar+1)
+                    #envelopeQCD = max(abs(envelopeQCD), abs(tmpvar))
+                    envelopeQCD_vals.append(hists[(charge,nuis)].GetBinContent(ivar+1))
+
+            hretPDF.SetBinContent(ivar+1, nomi)
+            hretPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum))
+            errX = 0.5 * hnomi.GetBinWidth(ivar+1) # symmetric bins in x, error is just half the bin width
+            hretAlpha.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretAlpha.SetPointError(ivar, errX, errX, abs(min(envelopeAlphaS_vals)-nomi), abs(max(envelopeAlphaS_vals)-nomi))
+            hretQCD.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretQCD.SetPointError(ivar, errX, errX, abs(min(envelopeQCD_vals)-nomi), abs(max(envelopeQCD_vals)-nomi))
+            #hretAlpha.SetBinContent(ivar+1, hnomi.GetBinContent(ivar+1))
+            #hretAlpha.SetBinError(ivar+1, envelopeAlphaS)
+            #hretQCD.SetBinContent(ivar+1, hnomi.GetBinContent(ivar+1))
+            #hretQCD.SetBinError(ivar+1, envelopeQCD)
 
 
 #######################
@@ -479,7 +639,7 @@ class util:
      
         return -1
 
-    def getFromHessian(self, infile, keepGen=False):
+    def getFromHessian(self, infile, keepGen=False, params=[]):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
@@ -490,6 +650,10 @@ class util:
             if '_minos' in p.GetName(): continue
             if '_gen'   in p.GetName() and not keepGen: continue
             if '_In'    in p.GetName(): continue
+
+            if len(params):
+                match = [re.match(param,p.GetName()) for param in params]
+                if not any(match): continue
 
             if not p.GetName()+'_err' in lok and not keepGen: continue
 
