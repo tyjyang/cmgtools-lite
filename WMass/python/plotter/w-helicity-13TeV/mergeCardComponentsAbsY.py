@@ -8,6 +8,7 @@
 import ROOT
 import sys,os,re,json, copy, math
 from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
+from array import array
 import utilities
 utilities = utilities.util()
 
@@ -263,7 +264,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
         ## get the border bins in eta for the uncorrelated nuisances in eta
         if doPt or doEta or doUncorrChargeEta:
             deltaEtaUnc = 0.5001 if isMu else 0.2001
-            ## absolute eta borders:        
+            ## this is to add a large non closure overall in EB / EE separate (which adds to the +/-5% eta uncorrelated)
+            if not isMu and doUncorrChargeEta:
+                deltaEtaUnc = 1.5
+            ## absolute eta borders:
             etaBorders = etaBordersTmp if len(etaBordersTmp) else [round(deltaEtaUnc*(i+1),1) for i in xrange(int(max(etabins)/deltaEtaUnc))] #+[max(etabins)]
             ## construct positive and negative eta borders symmetrically
             etaBorders = [-1.*i for i in etaBorders[::-1]] + [0.] + etaBorders
@@ -749,6 +753,94 @@ def addZOutOfAccPrefireSyst(infile,outdir=None):
     outfile.Close()
     print 'done with the reweighting for the Z OutOfAcc prefire syst'
 
+def addSmoothLepScaleSyst(infile,regexp,isMu,outdir=None):
+
+    indir = outdir if outdir != None else options.inputdir
+    flav = 'mu' if isMu else 'el'
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+    outfile = ROOT.TFile(indir+'/SmoothScaleSyst_{flav}.root'.format(flav=flav), 'recreate')
+
+    ## scale systematics as a function of eta
+    etabins_mu = array('f',[0.0, 2.1, 2.4])
+
+    scaleSyst_mu = ROOT.TH1F('scaleSyst_mu','',len(etabins_mu)-1,etabins_mu)
+    scaleSyst_mu.SetBinContent(1,0.003)
+    scaleSyst_mu.SetBinContent(2,0.010)
+    
+    etabins_el = array('f',[0.0, 1.0, 1.479, 2.1, 2.5])
+    scaleSyst_el = ROOT.TH1F('scaleSyst_el','',len(etabins_el)-1,etabins_el)
+    scaleSyst_el.SetBinContent(1,0.003)
+    scaleSyst_el.SetBinContent(2,0.004)
+    scaleSyst_el.SetBinContent(3,0.007)
+    scaleSyst_el.SetBinContent(4,0.008)
+        
+    if isMu:
+        scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_mu)
+        etabins = etabins_mu
+    else:
+        scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_el)
+        etabins = etabins_el
+
+    
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+        process = tmp_name.split('_')[1]
+
+        ## now should be left with only the ones we are interested in
+        print 'reweighting lepscale syst of type for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+        n_ptbins = tmp_nominal_2d.GetNbinsY()
+
+        for systBin in xrange(len(etabins)-1):
+            etasyst = scaleSyst.GetXaxis().GetBinCenter(systBin+1)
+            for shift_dir in ['Up','Down']:
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{shiftdir}'.format(lep=flav,idx=systBin,shiftdir=shift_dir)
+                tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
+                tmp_scaledHisto.Reset()
+     
+                ## loop over all eta bins of the 2d histogram 
+                for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+                    eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+                    scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
+                    for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
+                        if abs(eta)>etabins[systBin]:
+                            ## assume uniform distribution within a bin
+                            pt      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                            pt_prev = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt-1)
+                            nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
+                            nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
+                            pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+                            pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
+
+                            from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
+                            to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
+
+                            tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val + from_prev - to_right)
+                        else:
+                            tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
+                    ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
+                    tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
+                ## re-roll the 2D to a 1D histo
+                tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
+                
+                outfile.cd()
+                tmp_scaledHisto_1d.Write()
+    outfile.Close()
+    print "done with the smooth lep scale variations"
+
+
 def writeChargeGroup(cardfile,signals,polarizations):
     maxiY = max([int(proc.split('_')[-1]) for proc in signals])
     for pol in polarizations:
@@ -885,6 +977,7 @@ if __name__ == "__main__":
     if len(options.excludeNuisances):
         excludeNuisances = options.excludeNuisances.split(",")
     excludeNuisances.append("CMS.*sig_lepeff")
+    excludeNuisances.append("CMS.*_(ele|mu)scale\d")
 
     for charge in charges:
     
@@ -1047,21 +1140,24 @@ if __name__ == "__main__":
             if 'el' in options.bin:
                 putEffSystHistos(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', doType='L1PrefireEle', isMu=False)
                 addZOutOfAccPrefireSyst(outfile+'.noErfPar')
-
+     
             print 'now putting the uncorrelated eta variations for fakes'
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
-
+     
             if 'mu' in options.bin:
                 putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
-
+     
             ## THESE ARE OUR LATEST RESOURCE AFTER GIVING UP WITH THESE BKGS
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='ptnorm')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='ptnorm')
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/ZOutOfAccPrefireSyst_el.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )                
+            addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', isMu= 'mu' in options.bin)
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            if 'el' in options.bin:
+                final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
             os.system(final_haddcmd)
 
         print "Now trying to get info on theory uncertainties..."
@@ -1079,7 +1175,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*OutOfAccPrefireSyst.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*(ele|mu)scale\d.*|.*fsr.*',name):
+                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*OutOfAccPrefireSyst.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*smooth(el|mu)scale\d.*|.*fsr.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -1199,6 +1295,8 @@ if __name__ == "__main__":
                 for pol in ['left','right']:
                     lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
                     combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
+        if 'el' in options.bin:
+            combinedCard.write('norm_fakes       lnN    ' + ' '.join([kpatt % ('1.2' if 'fakes' in x else '-') for x in realprocesses])+'\n')
     
         combinedCard = open(cardfile,'r')
         procs = []
@@ -1338,7 +1436,7 @@ if __name__ == "__main__":
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
-        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale\d.*',x),finalsystnames))+'\n')
+        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*smooth(el|mu)scale\d.*',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*EffSyst.*|.*OutOfAccPrefireSyst.*',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +

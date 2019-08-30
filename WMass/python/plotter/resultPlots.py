@@ -40,11 +40,10 @@ if __name__ == '__main__':
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        systs += ['CMS_We_elescale']
+        systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
+        systs += ['smoothmuscale{idx}'.format(idx=i) for i in range(0,2)]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
-        systs += ['CMS_Wmu_muscale0']
-        systs += ['CMS_Wmu_muscale1']
         systs += ['']
         nTnPUnc = 3 if muEl=='mu' else 4
         systs += ['TnPEffSyst{idx}{flav}'.format(idx=i,flav=muEl) for i in range(0,nTnPUnc)]

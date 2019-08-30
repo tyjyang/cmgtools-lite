@@ -830,3 +830,21 @@ class util:
             elif abseta<1.5:   syst = 0.004
             else:              syst = 0.014
         return syst
+
+    def getExclusiveBinnedSyst(self,th1):
+        th1_excl = th1.Clone(th1.GetName()+'_exclusive')
+        
+        for ibin in range(1,th1.GetNbinsX()+1):
+            tmp_val_sq = math.pow(th1.GetBinContent(ibin),2)
+            for inner_bin in range(1,ibin):
+                tmp_val_sq = tmp_val_sq - math.pow(th1_excl.GetBinContent(inner_bin),2)
+                if tmp_val_sq<0:
+                    print "WARNING! getExclusiveBinnedSyst cropping syst at 0. "
+                    tmp_val_sq = 0
+                    break
+            th1_excl.SetBinContent(ibin,math.sqrt(tmp_val_sq))
+        return th1_excl
+
+                                              
+
+
