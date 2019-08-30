@@ -514,7 +514,7 @@ if __name__ == "__main__":
                 # march2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
                 h2_backrolled_1 = dressed2D(copy.deepcopy(h1_unrolled),binning,p,titles[i],binshift,nMaskedCha=options.nMaskedChannel)
                 if options.reverseUnrolling:
-                    h1_unrolled = reverseUnroll2Dto1D(h2_backrolled_1,newname=h1_unrolled.GetName()+'_'+reverse)
+                    h1_unrolled = reverseUnroll2Dto1D(h2_backrolled_1,newname=keyplot+charge+'_'+reverse)
                 bkg_and_data[keyplot] = h2_backrolled_1;  bkg_and_data_unrolled[keyplot] = h1_unrolled
                 bkg_and_data[keyplot].SetDirectory(None); bkg_and_data_unrolled[keyplot].SetDirectory(None)
                 if prepost=='prefit' and p!='obs':
@@ -524,6 +524,7 @@ if __name__ == "__main__":
                         ratios_unrolled[keyratio] = bkg_and_data_unrolled[postfitkey].Clone(bkg_and_data_unrolled[postfitkey].GetName()+'_ratio')
                         ratios_unrolled[keyratio].SetDirectory(None)
                         ratios_unrolled[keyratio].Divide(bkg_and_data_unrolled[keyplot])
+                bkg_and_data_unrolled[keyplot].Write()
                 if not options.no2Dplot:
                     h2_backrolled_1.Draw('colz')
                     h2_backrolled_1.Write(str(p))
@@ -590,7 +591,7 @@ if __name__ == "__main__":
             if options.reverseUnrolling:
                 hdata_unrolled = reverseUnroll2Dto1D(hdata_backrolled_1,newname=hdata_unrolled.GetName()+'_'+reverse)
             hdata_unrolled.SetDirectory(None)
-            htot_unrolled  = hdata_unrolled.Clone('unrolled_{ch}_full'.format(ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
+            htot_unrolled  = hdata_unrolled.Clone('unrolled_{sfx}_{ch}_full'.format(sfx=prepost,ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
             htot_unrolled.SetDirectory(None)
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
             leg_unrolled = prepareLegend(legWidth=0.10)
