@@ -753,7 +753,7 @@ def addZOutOfAccPrefireSyst(infile,outdir=None):
     outfile.Close()
     print 'done with the reweighting for the Z OutOfAcc prefire syst'
 
-def addSmoothLepScaleSyst(infile,regexp,isMu,outdir=None):
+def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
 
     indir = outdir if outdir != None else options.inputdir
     flav = 'mu' if isMu else 'el'
@@ -764,7 +764,7 @@ def addSmoothLepScaleSyst(infile,regexp,isMu,outdir=None):
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
 
     tmp_infile = ROOT.TFile(infile, 'read')
-    outfile = ROOT.TFile(indir+'/SmoothScaleSyst_{flav}.root'.format(flav=flav), 'recreate')
+    outfile = ROOT.TFile(indir+'/SmoothScaleSyst_{flav}_{ch}.root'.format(flav=flav,ch=charge), 'recreate')
 
     ## scale systematics as a function of eta
     etabins_mu = array('f',[0.0, 2.1, 2.4])
@@ -803,40 +803,43 @@ def addSmoothLepScaleSyst(infile,regexp,isMu,outdir=None):
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
         n_ptbins = tmp_nominal_2d.GetNbinsY()
 
+        nsyst=0
         for systBin in xrange(len(etabins)-1):
             etasyst = scaleSyst.GetXaxis().GetBinCenter(systBin+1)
-            for shift_dir in ['Up','Down']:
-                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{shiftdir}'.format(lep=flav,idx=systBin,shiftdir=shift_dir)
-                tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
-                tmp_scaledHisto.Reset()
+            for etasdide in [-1,1]:
+                for shift_dir in ['Up','Down']:
+                    outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{shiftdir}'.format(lep=flav,idx=nsyst,ch=charge,shiftdir=shift_dir)
+                    tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
+                    tmp_scaledHisto.Reset()
+         
+                    ## loop over all eta bins of the 2d histogram 
+                    for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+                        eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+                        scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
+                        for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
+                            if abs(eta)>etabins[systBin] and etasdide*eta>0:
+                                ## assume uniform distribution within a bin
+                                pt      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                                pt_prev = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt-1)
+                                nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
+                                nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
+                                pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+                                pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
      
-                ## loop over all eta bins of the 2d histogram 
-                for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
-                    eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
-                    scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
-                    for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
-                        if abs(eta)>etabins[systBin]:
-                            ## assume uniform distribution within a bin
-                            pt      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
-                            pt_prev = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt-1)
-                            nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
-                            nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
-                            pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
-                            pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
-
-                            from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
-                            to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
-
-                            tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val + from_prev - to_right)
-                        else:
-                            tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
-                    ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
-                    tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
-                ## re-roll the 2D to a 1D histo
-                tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
-                
-                outfile.cd()
-                tmp_scaledHisto_1d.Write()
+                                from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
+                                to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
+     
+                                tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val + from_prev - to_right)
+                            else:
+                                tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
+                        ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
+                        tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
+                    ## re-roll the 2D to a 1D histo
+                    tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
+                    
+                    outfile.cd()
+                    tmp_scaledHisto_1d.Write()
+                nsyst += 1
     outfile.Close()
     print "done with the smooth lep scale variations"
 
@@ -1154,11 +1157,11 @@ if __name__ == "__main__":
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='ptnorm')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='ptnorm')
-            addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', isMu= 'mu' in options.bin)
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
-            if 'el' in options.bin:
-                final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
-            os.system(final_haddcmd)
+        addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
+        final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+        if 'el' in options.bin:
+            final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
+        os.system(final_haddcmd)
 
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
@@ -1436,7 +1439,7 @@ if __name__ == "__main__":
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
-        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('CMS.*smooth(el|mu)scale\d.*',x),finalsystnames))+'\n')
+        combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('.*smooth(el|mu)scale\d.*',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*EffSyst.*|.*OutOfAccPrefireSyst.*',x),finalsystnames))+'\n')
         combinedCard.write('\nFakes group = '+' '.join(filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),finalsystnames) +
