@@ -5,11 +5,11 @@ import ROOT, os, sys, re, array
 dryrun=0
 doMuons=1
 skipUnpack=1
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0   # disabled if fitting each charge (see below)
-skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
-flavourCombinationOutdir = "muElCombination"
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1   # disabled if fitting each charge (see below)
+skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+flavourCombinationOutdir = "muElCombination_30Aug2019"
 
 # REMEMBER TO ACTIVATE AGAIN THE FSR SYMMETRIZATION 
 #
@@ -24,11 +24,12 @@ if fitSingleCharge:
 #
 useXsecWptWeights = 1  
 allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
-distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background
+distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 uncorrelateNuisancesByCharge = ".*CMS_Wmu_muscale.*" # use regular expression, otherwise keep ""
+uncorrelatePtscaleByEtaside = 1
 # note that there is always a part of the uncertainty that is charge-uncorrelated
 freezePOIs = False
 skipFitData = False
@@ -102,6 +103,10 @@ if len(uncorrelateNuisancesByCharge):
     optionsForRootMerger += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)
     optionsForCardMaker  += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)
 
+if uncorrelatePtscaleByEtaside:
+    optionsForRootMerger += " --uncorrelate-ptscale-by-etaside "
+    optionsForCardMaker  += " --uncorrelate-ptscale-by-etaside "
+
 if useBinUncEffStat:
     optionsForRootMerger += " --useBinUncEffStat "
     optionsForCardMaker  += " --useBinUncEffStat "
@@ -124,8 +129,8 @@ postfixCardMaker = "_symFSRptScalemW"
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "finalFixes_symFSRptScalemW_ptScaleUncorrCharge"
-else      : postfixCardMakerMerger = "finalFixes_sigBkgInAcc_symFSRptScalemW"
+if doMuons: postfixCardMakerMerger = "finalFixes_symFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
+else      : postfixCardMakerMerger = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  
     optionsForCardMakerMerger += " --freezePOIs "
@@ -138,7 +143,7 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_finalFixes_elePt01Bkg_bkgNotInGroupOrMaskedChan_scaleXsecPt01by2 --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 #================================
 
@@ -148,9 +153,11 @@ if uncorrelateFakesNuisancesByCharge:
 
 flavour = "mu" if doMuons else "el"
 # when creating cards for mu-el combination, all signal bins must be treated in the same way as for muons, so as signal
-optionsForCardMaker = optionsForCardMaker  + (" --pt-range-bkg 25.9 30.1  " if not allPtBinsSignal else "") #--eta-range-bkg 1.39 1.61 "
+ptRangeBkg = " --pt-range-bkg 25.9 30.1  " if not allPtBinsSignal else ""
+optionsForCardMaker = optionsForCardMaker  + ptRangeBkg #--eta-range-bkg 1.39 1.61 "
 if distinguishNameSigAsBkg:
-    optionsForCardMaker = optionsForCardMaker  + " --distinguish-name-sig-as-bkg "
+    optionsForRootMerger = optionsForRootMerger + " --distinguish-name-sig-as-bkg " + ptRangeBkg
+    optionsForCardMaker  = optionsForCardMaker  + " --distinguish-name-sig-as-bkg "
 
 print ""
 

@@ -19,7 +19,7 @@ skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 1
+allPtBinsSignal = 0
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -36,18 +36,18 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
 if doMuElComb:
     allPtBinsSignal = 1
-    folder = "muElCombination"
+    folder = "muElCombination_allSig"
     skipTemplate = 1
 
 if plotSingleCharge and doMuElComb:
@@ -69,12 +69,12 @@ if plotSingleCharge and doMuElComb:
 #postfix = "combinedLep"
 #postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_scaleEffStatEE_symFSR"
 #postfix = "finalFixes_symFSRptScalemW"
-postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW"
-postfix = "finalFixes_symFSRptScalemW_ptScaleUncorrCharge"
-#postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_testFakesPtV2"
+#postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW"
+#postfix = "finalFixes_symFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
+postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 if doMuElComb:
     #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
-    postfix = "combinedLep_finalFixes_elePt01Bkg_bkgNotInGroupOrMaskedChan_scaleXsecPt01by2"
+    postfix = "combinedLep_allSig_symFSRmWptScale_ptScaleUncorrEta_SciPyMin"
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
 

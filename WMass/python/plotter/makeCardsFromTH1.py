@@ -1,4 +1,4 @@
- #!/usr/bin/env python                                                                                                     
+#!/usr/bin/env python                                                                                                     
  
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
@@ -37,9 +37,14 @@ def combFlavours(options):
     
     print "-"*30
     print "Creating links to binning files"
+    thisdir = os.environ["PWD"]
+    outd = os.path.abspath(options.outdir)
+    # move to folder where links should be created (could use options of ln, but this is safer)
+    os.system("cd {d}".format(d=outd))
     os.system("ln -sv {target}/binningPtEta.txt binningPtEta.txt".format(target=options.indirMu))
-    os.system("ln -sv {target}/binningPtEta_mu.txt binningPtEta.txt".format(target=options.indirMu))
-    os.system("ln -sv {target}/binningPtEta_el.txt binningPtEta.txt".format(target=options.indirEl))
+    os.system("ln -sv {target}/binningPtEta.txt binningPtEta_mu.txt".format(target=options.indirMu))
+    os.system("ln -sv {target}/binningPtEta.txt binningPtEta_el.txt".format(target=options.indirEl))
+    os.system("cd {d}".format(d=thisdir))
     print "-"*30
 
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
@@ -72,31 +77,6 @@ def combFlavours(options):
                                                     mu=inFileXsecbin[("Wmu",charge)], el=inFileXsecbin[("Wel",charge)])
             print haddCmd
             os.system(haddCmd)
-
-        # create shapes file in output folder, merging those for mu and e
-        # or equivalently taking those for muons and doubleing the bin content (mu and e have the same content)
-        # print "Creating combined xsec file for charge {ch}".format(ch=charge)
-        # this is super-slow
-        # inFileXsec = os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_shapes_xsec.root'.format(ch=charge)
-        # tfmu = ROOT.TFile.Open(inFileXsec,"READ")
-        # if not tfmu or not tfmu.IsOpen():
-        #     raise RuntimeError('Unable to open file {fn}'.format(fn=inFileXsec))       
-        # comb_xsec_histfile_name = 'Wlep_{ch}_shapes_xsec.root'.format(ch=charge)
-        # tflep = ROOT.TFile(options.outdir + '/' + comb_xsec_histfile_name, 'recreate')
-        # nKeys = tfmu.GetNkeys()
-        # nCopiedKeys = 0
-        # for ikey,e in enumerate(tfmu.GetListOfKeys()):
-        #     name = e.GetName()
-        #     obj  = e.ReadObj()
-        #     if not obj:
-        #         raise RuntimeError('Unable to read object {n}'.format(n=name))
-        #     newobj = obj.Clone(name)
-        #     for ibin in range(0,newobj.GetNbinsX()+2): newobj.SetBinContent(ibin,2.*newobj.GetBinContent(ibin))
-        #     newobj.Write(name)
-        #     nCopiedKeys += 1
-        # print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=inFileXsec)
-        # tflep.Close()
-        # tfmu.Close()
 
         # now we can merge using as masked channels only those for muons, but we have to change the shapes file for it
         maskedChannels = ['InAcc'] 
@@ -346,6 +326,7 @@ parser.add_option(       '--useBinUncEffStat', dest='useBinUncEffStat' , default
 parser.add_option(       '--useBinEtaPtUncorrUncEffStat', dest='useBinEtaPtUncorrUncEffStat' , default=False, action='store_true', help='Will use uncertainty on signal made shifting trigger SF by their uncertainties (alternative to ErfPar.*EffStat nuisances (which should be disabled)')
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
 parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
+parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
 parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit (it works for flavor combination only)')
 parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
 parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
@@ -475,6 +456,7 @@ if len(options.keepNuisances):
 
 # consider some signal bins as background
 etaBinIsBackground = []  # will store a bool to assess whether the given ieta index is considered as background
+hasEtaRangeBkg = False
 for bin in range(genBins.Neta):
     etaBinIsBackground.append(False)
 etaRangesBkg = options.eta_range_bkg
@@ -492,6 +474,7 @@ else:
 
 # consider some signal bins as background
 ptBinIsBackground = []  # will store a bool to assess whether the given ipt index is considered as background
+hasPtRangeBkg = False
 for bin in range(genBins.Npt):
     ptBinIsBackground.append(False)
 ptRangesBkg = options.pt_range_bkg
@@ -853,7 +836,13 @@ if options.wzPtScaleSystShape:
         wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
         if re.match(options.uncorrelateNuisancesByCharge,wExpPtScaleSysts[-1]):
             wExpPtScaleSysts[-1] = wExpPtScaleSysts[-1] + charge
-    for isyst,syst in enumerate(wExpPtScaleSysts):    
+        if options.uncorrelatePtScaleByEtaSide:
+            tmpname = wExpPtScaleSysts[-1] 
+            wExpPtScaleSysts[-1] = tmpname + "etasideP"
+            wExpPtScaleSysts.append(tmpname + "etasideM")        
+    for syst in wExpPtScaleSysts:    
+        isyst_vec = [ int(i) for i in re.findall(r'\d+', syst) ]
+        isyst = isyst_vec[0]
         procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
         tmp_procsForPtScaleSystShape = []
         for proc in procsForPtScaleSystShape:

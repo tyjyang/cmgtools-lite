@@ -11,6 +11,7 @@ from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_from_process_name
+from w_helicity_13TeV.make_diff_xsec_cards import get_ipt_from_process_name
 
 from w_helicity_13TeV.templateRolling import roll1Dto2D, dressed2D
 from w_helicity_13TeV.rollingFunctions import unroll2Dto1D
@@ -44,6 +45,20 @@ def makeAlternateFromSymmetricRatio(alt, nomi, binning):
     for ib in range(1, nomi.GetNbinsX()+1):
         alt.SetBinContent(ib, ratio1D.GetBinContent(ib) * nomi.GetBinContent(ib))
 
+
+def uncorrelateHistByEtaSide(hnomi, haltEtaPlus, haltEtaMinus, neta, npt):
+    # to make it faster and avoid creating TH2, exploit the fact that hnomi and halt are unrolled along eta 
+    #so eta distribution at each pt bin, also, neta is an even number
+    netaHalf = neta/2
+    #h2nomi = ROOT.TH2F("h2nomi_tmp","",neta,array('d',recoBins.etaBins),npt,array('d',recoBins.ptBins))
+    #h2alt =  ROOT.TH2F("h2alt_tmp", "",neta,array('d',recoBins.etaBins),npt,array('d',recoBins.ptBins))
+    for ieta in range(neta):
+        for ipt in range(npt):
+            globalbin = ieta + ipt * neta + 1
+            if ieta < netaHalf: 
+                haltEtaPlus.SetBinContent(globalbin, hnomi.GetBinContent(globalbin))
+            else: 
+                haltEtaMinus.SetBinContent(globalbin, hnomi.GetBinContent(globalbin))
 
 def putTestEffSystHistosDiffXsec(infile,regexp,charge, outdir=None, isMu=True, suffix=""):
 
@@ -717,8 +732,12 @@ parser.add_option(       "--test-eff-syst", dest="testEffSyst",   action="store_
 parser.add_option(       "--useBinUncEffStat", dest="useBinUncEffStat",   action="store_true", default=False, help="Add some more nuisances representing eff stat with SF shifted by their uncertainty (for tests)");
 parser.add_option(       "--useBinEtaPtUncorrUncEffStat", dest="useBinEtaPtUncorrUncEffStat",   action="store_true", default=False, help="Add some more nuisances representing eff stat with SF shifted by their uncertainty (for tests)");
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
+parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
 parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
 parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="string", default='', help="Regular expression matching systematics whose histograms should be obtained by making the ratio with nominal symmetric in eta");
+parser.add_option(       '--distinguish-name-sig-as-bkg', dest='distinguishNameSigAsBkg' , default=False, action='store_true', help='Use different name (hardcoded for now) to identify name of signal processes that are treated as background. Mainly for first pt bins of electrons when combining with muons, so to keep treating them as background in the combination (requires another option to specify the bins)')
+parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+#parser.add_option("--pt-bins-name-change", dest="ptBinsNameChange", type="string", default='0,1', help="Comma separated list of pt bins for which the process name should be changed");
 (options, args) = parser.parse_args()
     
 # manage output folder
@@ -750,7 +769,6 @@ if options.useBinEtaPtUncorrUncEffStat and options.useBinUncEffStat:
     print "Warning: useBinUncEffStat and useBinEtaPtUncorrUncEffStat are incompatible. Use only one of them"
     quit()
 
-
 # define ultimate output file
 shapename = ""
 if options.name == "":
@@ -766,6 +784,26 @@ print ""
 etaPtBinningVec = getDiffXsecBinning(options.indirSig+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
 recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
 recoBinning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+
+etaPtBinningVecGen = getDiffXsecBinning(options.indirSig+'/binningPtEta.txt', "gen")  
+genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])      
+# consider some signal bins as background                                        
+ptBinIsBackground = []  # will store a bool to assess whether the given ipt index is considered as background   
+hasPtRangeBkg = False
+for bin in range(genBins.Npt):
+    ptBinIsBackground.append(False)
+ptRangesBkg = options.pt_range_bkg
+if len(ptRangesBkg):
+    hasPtRangeBkg = True
+    print "Signal bins with gen pt in the following ranges will be considered as background processes"
+    print options.pt_range_bkg
+    for index in range(genBins.Npt):
+        for pair in ptRangesBkg:
+        #print pair                          
+            if genBins.ptBins[index] >= pair[0] and genBins.ptBins[index+1] <= pair[1]:
+                ptBinIsBackground[index] = True
+else:
+    hasPtRangeBkg = False
 
 ## prepare the relevant files. First merge Z with correct charge
 zMatch = "^Z_{fl}_{ch}.*".format(fl=flavour,ch=charge)
@@ -1187,16 +1225,18 @@ if options.symSystRatio:
         os.system(mvcmd)
 
 print ""
-## uncorrelate QCD scales by charge
+## uncorrelate QCD scales and other possible nuisances by charge (add plus/minus as postfix to histograms' name)
+# use the loop to do other things as well
 regexp_uncorrCharge = options.uncorrelateNuisancesByCharge
 if options.uncorrelateQCDscalesByCharge:
     if len(regexp_uncorrCharge):
         regexp_uncorrCharge += "|.*mu(R|F)\d+"
     else:
         regexp_uncorrCharge = ".*mu(R|F)\d+"
-if len(regexp_uncorrCharge):
+if len(regexp_uncorrCharge) or options.distinguishNameSigAsBkg:
     # loop on final merged file, look for muRXX or muFXX and add charge    
     print "Now I will uncorrelate between charges nuisances matching '{regexp}'".format(regexp=regexp_uncorrCharge)
+    print "I will also do other work with histograms according to options"
     shapenameQCDuncorr = shapename.replace("_shapes","_shapes_QCDscalesChargeUncorr")
     #print "I will then copy it back into the original after uncorrelating QCD scales between charges" 
     tfno = ROOT.TFile.Open(shapename,"READ")
@@ -1215,9 +1255,15 @@ if len(regexp_uncorrCharge):
             if not obj:
                 raise RuntimeError('Unable to read object {n}'.format(n=name))
             newname = name
-            if re.match(regexp_uncorrCharge,name):
-                if name.endswith('Up'): newname = name.replace('Up','{ch}Up'.format(ch=charge))
-                elif name.endswith('Down'): newname = name.replace('Down','{ch}Down'.format(ch=charge))
+            if options.distinguishNameSigAsBkg and hasPtRangeBkg:                
+                # here change name from _lep_ to _el_ if needed
+                if re.match("x_W{ch}.*_ipt_".format(ch=charge),name):
+                    ipt = get_ipt_from_process_name(name)
+                    if ptBinIsBackground[ipt]:
+                        newname = newname.replace("_lep_","_{lep}_".format(lep=flavour)
+            if len(regexp_uncorrCharge) and re.match(regexp_uncorrCharge,newname):
+                if newname.endswith('Up'): newname = newname.replace('Up','{ch}Up'.format(ch=charge))
+                elif newname.endswith('Down'): newname = newname.replace('Down','{ch}Down'.format(ch=charge))
             newobj = obj.Clone(newname)
             newobj.Write(newname)        
             nCopiedKeys += 1
@@ -1232,7 +1278,64 @@ if len(regexp_uncorrCharge):
     if not options.dryrun:
         os.system(mvcmd)
 
+print ""
+if options.uncorrelatePtScaleByEtaSide:
+    print "Now I will uncorrelated PtScales by eta side"
+    shapenamePtScaleEtaSideuncorr = shapename.replace("_shapes","_shapes_PtScaleEtaSideUncorr")
+    #print "I will then copy it back into the original after uncorrelating QCD scales between charges" 
+    tfno = ROOT.TFile.Open(shapename,"READ")
+    if not tfno or not tfno.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=shapename))
+    if not options.dryrun:
+        # open output file
+        of = ROOT.TFile(shapenamePtScaleEtaSideuncorr,'recreate')
+        if not of or not of.IsOpen():
+            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenamePtScaleEtaSideuncorr))
+        nKeys = tfno.GetNkeys()
+        nCopiedKeys = 0
+        for ikey,e in enumerate(tfno.GetListOfKeys()):
+            name = e.GetName()
+            obj  = e.ReadObj()
+            if not obj:
+                raise RuntimeError('Unable to read object {n}'.format(n=name))
+            newname = name
+            if re.match(".*CMS_W.*scale.*",name):
+                pass
+                # roll to 2D, fill other side as nominal, then clone and change name. Repeat for each side
+                nominalName = newname.split("_CMS_W")[0]
+                hnomi = tfno.Get(nominalName)
+                if not hnomi:
+                    raise RuntimeError('Unable to retrieve nominal histogram named {fn}'.format(fn=nominalName))
+                if   newname.endswith('Up'):   newname = newname.replace('Up','etaSIDEUp')
+                elif newname.endswith('Down'): newname = newname.replace('Down','etaSIDEDown')
+                hetaPos = obj.Clone(newname.replace("SIDE","sideP"))
+                hetaNeg = obj.Clone(newname.replace("SIDE","sideM"))
+                uncorrelateHistByEtaSide(hnomi, hetaPos, hetaNeg, recoBins.Neta, recoBins.Npt)
+                hetaPos.Write(hetaPos.GetName())
+                hetaNeg.Write(hetaNeg.GetName())    
+                nCopiedKeys += 2
+            else:
+                newobj = obj.Clone(newname)
+                newobj.Write(newname)        
+                nCopiedKeys += 1
+            sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
+            sys.stdout.flush()
+        print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
+        of.Close()
+        tfno.Close()
+    #print "Moving {od} into {odnew}".format(od=shapenamePtScaleEtaSideuncorr,odnew=shapename)
+    mvcmd = "mv {od} {odnew}".format(od=shapenamePtScaleEtaSideuncorr,odnew=shapename)
+    print mvcmd
+    if not options.dryrun:
+        os.system(mvcmd)
+
 
 print ""
 print "-"*20
 print ""
+
+
+
+
+# can also use
+# python changeNameSignalProcess.py -i cards/diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/ -o cards/diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/ --pt-bins-name-change "0,1" -r "_lep_" "_el_" -f el -c plus; python changeNameSignalProcess.py -i cards/diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/ -o cards/diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/ --pt-bins-name-change "0,1" -r "_lep_" "_el_" -f el -c minus

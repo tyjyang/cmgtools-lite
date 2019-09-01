@@ -173,9 +173,11 @@ if __name__ == "__main__":
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
     allsysts = qcdsyst + pdfsyst + ["mW", "lepeff", "fsr"] # might add others
     if channel == "el":
-        allsysts.extend(["elescale%d" % i for i in range(4)])
+        #allsysts.extend(["elescale%d" % i for i in range(4)])
+        allsysts.extend(["elescale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]])
     else:
-        allsysts.extend(["muscale%d" % i for i in range(2)])
+        #allsysts.extend(["muscale%d" % i for i in range(2)])
+        allsysts.extend(["muscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
         allsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
     allsystsUpDn = []
     for x in allsysts:
@@ -236,6 +238,7 @@ if __name__ == "__main__":
                 hSigInclusive_syst = {}
                 if not options.skipSyst:
                     for systvar in allsystsUpDn:
+                        if any(ch in systvar for ch in charges) and charge not in systvar: continue
                         #print "Syst: ", systvar
                         sysName  = inclSigName  + "_" + systvar
                         sysTitle = inclSigTitle + "_" + systvar
@@ -326,6 +329,7 @@ if __name__ == "__main__":
 
                         if not options.skipSyst:
                             for systvar in allsystsUpDn:
+                                if any(ch in systvar for ch in charges) and charge not in systvar: continue
                                 print "systvar = %s: integral = %.1f" % (systvar, hSigInclusivePol_syst[systvar].Integral())
                                 print "Inclusive template: integral = %.1f" % hSigInclusive[pol].Integral()
                                 hSigInclusive_syst[systvar].Add(hSigInclusivePol_syst[systvar])
@@ -355,6 +359,7 @@ if __name__ == "__main__":
                                         "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
+                            if any(ch in systvar for ch in charges) and charge not in systvar: continue                        
                             hSigInclusive_syst[systvar].Divide(hSigInclusiveTot)
                             if options.syst_ratio_range == "template":
                                 zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusive_syst[systvar],excludeMin=0.0),
@@ -377,6 +382,7 @@ if __name__ == "__main__":
                 hSigInclusive_syst = {}
                 if not options.skipSyst:
                     for systvar in allsystsUpDn:
+                        if any(ch in systvar for ch in charges) and charge not in systvar: continue
                         #print "Syst: ", systvar
                         sysName  = inclSigName  + "_" + systvar
                         sysTitle = inclSigTitle + "_" + systvar
@@ -461,6 +467,7 @@ if __name__ == "__main__":
                                         "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
+                            if any(ch in systvar for ch in charges) and charge not in systvar: continue
                             #print "systvar = %s: integral = %.1f" % (systvar, hSigInclusive_syst[systvar].Integral())
                             #print "Inclusive template: integral = %.1f" % hSigInclusive.Integral()
                             hSigInclusive_syst[systvar].Divide(hSigInclusive)
@@ -496,13 +503,15 @@ if __name__ == "__main__":
             zsysts = []
             tausysts = []
             if channel == "el":
-                zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                #zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                zsysts = ["CMS_We_elescale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]]   
                 zsysts.extend(["elTestEffSyst%d" % i for i in range(4)])                
                 zsysts.append("CMS_We_sig_lepeff")
                 #tausysts = ["CMS_We_elescale%d" % i for i in range(4)]
                 #tausysts.extend(["elTestEffSyst%d" % i for i in range(4)])
             else:
-                zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                #zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                zsysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
                 zsysts.append("CMS_Wmu_sig_lepeff")
                 #tausysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
@@ -560,6 +569,9 @@ if __name__ == "__main__":
                             title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
                             name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
                             h1_1_fs = infile.Get('x_{p}'.format(p=name_fs))                            
+                            if not h1_1_fs:
+                                print "Error: histogram x_%s not found. Abort" % name_fs
+                                quit()
                             h2_backrolled_1_fs = dressed2D(h1_1_fs,binning,name_fs,title_fs)
                             if options.normWidth: 
                                 h2_backrolled_1_fs.Scale(1.,"width")
