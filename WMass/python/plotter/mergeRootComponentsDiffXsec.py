@@ -45,6 +45,44 @@ def makeAlternateFromSymmetricRatio(alt, nomi, binning):
     for ib in range(1, nomi.GetNbinsX()+1):
         alt.SetBinContent(ib, ratio1D.GetBinContent(ib) * nomi.GetBinContent(ib))
 
+def makeAlternateFromSymmetricRatioV2(alt, nomi, binning):
+
+    # make ratio of alt and nomi after symmetrizing a copy of num and den versus eta
+    #
+    # here we compute the ratio from the average of num and den in symmetric bins
+    # i.e, we do ratio = (a+a')/(b+b'), where x and x' are bin contents at opposite eta
+    # this is different than doing 0.5 * (a/b + a'/b'), i.e. the average of the ratios
+    # if the nominal histogram is already very eta symmetric, then they are equivalent
+    #print "Symmetrizing ratio of {a} and {n}".format(a=alt.GetName(), n=nomi.GetName())
+    if alt.GetNbinsX() != nomi.GetNbinsX():
+        print "Error in makeAlternateFromSymmetricRatioV2: alt has %d bins, nomi has %d. Abort" % (alt.GetNbinsX(), nomi.GetNbinsX())
+        quit()
+    altsym = alt.Clone(alt.GetName()+"_sym1D")
+    nomisym = nomi.Clone(nomi.GetName()+"_sym1D")
+    nEta = binning[0]
+    nPt = binning[2]
+    if nomi.GetNbinsX() != (nEta*nPt):
+        print "Error in makeAlternateFromSymmetricRatioV2: nPt*nEta incompatible with number of bins of histogram. Abort"
+        quit()
+
+    # this assumes alt and nomi are unrolled so to have consecutive eta distributions at constant pt
+    for ieta in range(1,nEta+1):
+        for ipt in range(1,nPt+1):
+            bin1D = (ipt-1) * nEta + ieta
+            bin1Dsym = (ipt-1) * nEta + (1 + nEta - ieta) # i.e. for 48 eta bins take average of bin 1 and 48
+            contentInThisEta = nomi.GetBinContent(bin1D)  
+            contentInSymmetricEta = nomi.GetBinContent(bin1Dsym)  
+            # skip multiplication by 0.5 to get average, it will cancel in the ratio
+            nomisym.SetBinContent(bin1D, (contentInThisEta+contentInSymmetricEta))
+            contentInThisEta = alt.GetBinContent(bin1D)  
+            contentInSymmetricEta = alt.GetBinContent(bin1Dsym)  
+            # skip multiplication by 0.5 to get average, it will cancel in the ratio
+            altsym.SetBinContent(bin1D, (contentInThisEta+contentInSymmetricEta))
+
+    ratio1D = altsym.Clone(altsym.GetName()+"_ratio1D")
+    ratio1D.Divide(nomisym)
+    # finally redefine the alt histogram, multiplying nomi by symmetrized ratio
+    alt.Multiply(ratio1D,nomi)
 
 def uncorrelateHistByEtaSide(hnomi, haltEtaPlus, haltEtaMinus, neta, npt):
     # to make it faster and avoid creating TH2, exploit the fact that hnomi and halt are unrolled along eta 
@@ -1175,6 +1213,7 @@ if options.testEffSyst:
 
 # test: symmetrize ratio of some systs over nominal, and redefine the alternate as nominal times symmetrized ratio 
 # symmetrizing the ratio of some alternate histograms with nominal versus eta
+match_symSystRatio = re.compile(options.symSystRatio)
 if options.symSystRatio:
     print "Now I will symmetrize versus eta the ratio of some alternate histograms with nominal"
     shapenameWithSymSyst = shapename.replace("_shapes","_shapes_WithSymSyst")
@@ -1193,9 +1232,9 @@ if options.symSystRatio:
             obj  = e.ReadObj()
             if not obj:
                 raise RuntimeError('Unable to read object {n}'.format(n=name))
-            if re.match(options.symSystRatio,name) and any(x in name for x in ["Up","Down"]):
+            if match_symSystRatio.match(name) and any(x in name for x in ["Up","Down"]):
                 thisAlternate = obj.Clone(name+"_TMP_SYMMETRIZED")
-                thisAlternate.SetDirectory(0)
+                #thisAlternate.SetDirectory(0)
                 thisNominalName = ""
                 # remove last token, with syst name (WARNING, might not work for some systs)
                 if "_CMS_W" in name:
@@ -1207,14 +1246,17 @@ if options.symSystRatio:
                     print "Error when symmetrizing nuisances versus eta. I couldn't find nominal histogram %s. Abort" % thisNominalName
                     quit()
                 else:
-                    makeAlternateFromSymmetricRatio(thisAlternate, thisNominal, binning=recoBinning)
+                    makeAlternateFromSymmetricRatioV2(thisAlternate, thisNominal, binning=recoBinning)
                     thisAlternate.Write(name)                
             else:
                 newobj = obj.Clone(name+"_CLONE")
                 newobj.Write(name)
             nCopiedKeys += 1
-            sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
-            sys.stdout.flush()    
+            #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
+            #sys.stdout.flush()    
+            if (ikey+1) % 100 == 0:                                      
+                sys.stdout.write('Key {0:.2%}     \r'.format(float(ikey+1)/nKeys))
+                sys.stdout.flush()
         print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
         of.Close()
         tfno.Close()
@@ -1233,6 +1275,8 @@ if options.uncorrelateQCDscalesByCharge:
         regexp_uncorrCharge += "|.*mu(R|F)\d+"
     else:
         regexp_uncorrCharge = ".*mu(R|F)\d+"
+match_ipt = re.compile("x_W{ch}.*_ipt_".format(ch=charge))
+match_regexp_uncorrCharge = re.compile(regexp_uncorrCharge)
 if len(regexp_uncorrCharge) or options.distinguishNameSigAsBkg:
     # loop on final merged file, look for muRXX or muFXX and add charge    
     print "Now I will uncorrelate between charges nuisances matching '{regexp}'".format(regexp=regexp_uncorrCharge)
@@ -1257,18 +1301,21 @@ if len(regexp_uncorrCharge) or options.distinguishNameSigAsBkg:
             newname = name
             if options.distinguishNameSigAsBkg and hasPtRangeBkg:                
                 # here change name from _lep_ to _el_ if needed
-                if re.match("x_W{ch}.*_ipt_".format(ch=charge),name):
-                    ipt = get_ipt_from_process_name(name)
+                if match_ipt.match(newname):
+                    ipt = get_ipt_from_process_name(newname)
                     if ptBinIsBackground[ipt]:
-                        newname = newname.replace("_lep_","_{lep}_".format(lep=flavour)
-            if len(regexp_uncorrCharge) and re.match(regexp_uncorrCharge,newname):
+                        newname = newname.replace("_lep_","_{lep}_".format(lep=flavour))
+            if len(regexp_uncorrCharge) and match_regexp_uncorrCharge.match(newname):
                 if newname.endswith('Up'): newname = newname.replace('Up','{ch}Up'.format(ch=charge))
                 elif newname.endswith('Down'): newname = newname.replace('Down','{ch}Down'.format(ch=charge))
             newobj = obj.Clone(newname)
             newobj.Write(newname)        
             nCopiedKeys += 1
-            sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
-            sys.stdout.flush()
+            #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
+            #sys.stdout.flush()
+            if (ikey+1) % 100 == 0:                                      
+                sys.stdout.write('Key {0:.2%}     \r'.format(float(ikey+1)/nKeys))
+                sys.stdout.flush()
         print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
         of.Close()
         tfno.Close()
@@ -1318,8 +1365,11 @@ if options.uncorrelatePtScaleByEtaSide:
                 newobj = obj.Clone(newname)
                 newobj.Write(newname)        
                 nCopiedKeys += 1
-            sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
-            sys.stdout.flush()
+            #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
+            #sys.stdout.flush()
+            if (ikey+1) % 100 == 0:                                      
+                sys.stdout.write('Key {0:.2%}     \r'.format(float(ikey+1)/nKeys))
+                sys.stdout.flush()
         print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
         of.Close()
         tfno.Close()

@@ -7,10 +7,14 @@ doMuons=1
 skipUnpack=1
 skipMergeRoot=1
 skipSingleCard=1
-skipMergeCard=1   # disabled if fitting each charge (see below)
+skipMergeCard=1  # disabled if fitting each charge (see below)
 skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
-flavourCombinationOutdir = "muElCombination_30Aug2019"
+flavourCombinationOutdir = "muElCombination_allSig"
 
+if not skipMergeCardFlavour:
+    if not skipMergeRoot or not skipSingleCard or not skipMergeCard:
+        print "Warning: skipMergeCardFlavour is deactivated, but also other options are. Please check."
+        quit()
 # REMEMBER TO ACTIVATE AGAIN THE FSR SYMMETRIZATION 
 #
 charges = ["plus", "minus"]
@@ -46,9 +50,9 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
-folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
+#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
 #folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_05August_smoothSF_fsrNormGenXsec.root"
 #th3file_el = "cards/" + folder_el + "wel_24July2019_testCoarserPt.root"
@@ -129,8 +133,8 @@ postfixCardMaker = "_symFSRptScalemW"
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "finalFixes_symFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
-else      : postfixCardMakerMerger = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
+if doMuons: postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
+else      : postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrEtaSide"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  
     optionsForCardMakerMerger += " --freezePOIs "
@@ -143,7 +147,7 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 #================================
 
