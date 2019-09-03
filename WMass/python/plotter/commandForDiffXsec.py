@@ -3,13 +3,13 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-doMuons=1
+doMuons=0
 skipUnpack=1
-skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1  # disabled if fitting each charge (see below)
-skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
-flavourCombinationOutdir = "muElCombination_allSig"
+skipMergeRoot=0
+skipSingleCard=0
+skipMergeCard=0  # disabled if fitting each charge (see below)
+skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+flavourCombinationOutdir = "muElCombination_1Sept2019"
 
 if not skipMergeCardFlavour:
     if not skipMergeRoot or not skipSingleCard or not skipMergeCard:
@@ -27,7 +27,7 @@ if fitSingleCharge:
     skipMergeCardFlavour = 1
 #
 useXsecWptWeights = 1  
-allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
+allPtBinsSignal = 0   # usually 1 for muons or combination, 0 for electrons
 distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
@@ -50,8 +50,8 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
-#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep "/" at the end
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
 #folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_05August_smoothSF_fsrNormGenXsec.root"
@@ -103,6 +103,8 @@ optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z 
 optionsForCardMaker += " --exclude-nuisances '{expr}' ".format(expr=excludeNuisRegexp) 
 optionsForCardMaker += binnedSystOpt 
 
+#optionsForCardMaker += " --wAllXsecLnN 0.05 "
+
 if len(uncorrelateNuisancesByCharge):
     optionsForRootMerger += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)
     optionsForCardMaker  += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)
@@ -147,7 +149,7 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu_LnN0p05onW --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 #================================
 

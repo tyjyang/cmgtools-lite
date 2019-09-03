@@ -4,14 +4,14 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
-skipTemplate = 0
-skipDiffNuis = 1
+skipPlot = 0
+skipTemplate = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
@@ -74,7 +74,7 @@ postfix = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 if doMuElComb:
     #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
-    postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu"
+    postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu_LnN0p05onW"
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
 

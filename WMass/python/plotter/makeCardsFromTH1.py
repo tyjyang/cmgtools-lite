@@ -85,7 +85,7 @@ def combFlavours(options):
             haddCmd = "hadd -f {comb} {mu} {el}".format(comb=comb_xsec_histfile_name[charge], 
                                                     mu=inFileXsecbin[("Wmu",charge)], el=inFileXsecbin[("Wel",charge)])
             print haddCmd
-            os.system(haddCmd)
+            if not options.skipHaddXsec: os.system(haddCmd)
 
         # now we can merge using as masked channels only those for muons, but we have to change the shapes file for it
         maskedChannels = ['InAcc'] 
@@ -338,6 +338,7 @@ parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQ
 parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
 parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
 parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit (it works for flavor combination only)')
+parser.add_option(       '--skip-hadd-xsec', dest='skipHaddXsec' , default=False, action='store_true', help='For flavour combination, do not hadd root files with xsec')
 parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
 parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
 parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
@@ -677,7 +678,7 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
 
 # norm unc on W processes, regardless whether thery are treated as background or signal
 if options.wallLnN > 0.0:
-    Wxsec   = "{0:.3f}".format(1.0 + options.wLnN)    #"1.038"  # 3.8%
+    Wxsec   = "{0:.3f}".format(1.0 + options.wallLnN)    #"1.038"  # 3.8%
     if not isExcludedNuisance(excludeNuisances, "CMS_Wall", keepNuisances): 
         allSystForGroups.append("CMS_Wall")
         card.write(('%-16s lnN' % "CMS_Wall") + ' '.join([kpatt % (Wxsec if signalMatch in p else "-") for p in allprocesses]) + "\n")
