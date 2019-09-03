@@ -1,7 +1,7 @@
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep'
-fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/sprungli_grandcru/fitsout_2019-07-15/'
-fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_grandcru/fitsout_2019-07-15/'
-fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_grandcru/fitsout_2019-07-15/'
+fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/sprungli_crusauvage/fitsout_2019-07-24/'
+fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/sprungli_crusauvage/fitsout_2019-07-18/'
+fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_crusauvage/fitsout_2019-07-23/'
 
 ### FLOATING POIS ###
 both_floatingPOIs_hessian_bbb1_syst1_asimov    = fitsdir+   '/fitresults_123456789_poim1_exp1_bbb1.root'
@@ -16,8 +16,10 @@ both_floatingPOIs_hessian_bbb1_syst1_data_mu = fitsdir_mu+'/fitresults_123456789
 both_fixedPOIs_hessian_bbb1_syst1_asimov = fitsdir+'/fitresults_123456789_poim0_exp1_bbb1.root'
 both_fixedPOIs_hessian_bbb1_syst1_data   = fitsdir+'/fitresults_123456789_poim0_exp0_bbb1.root'
 
-xsecs_plus  = cardsdir+'/Wlep_plus_shapes_xsec.root'
-xsecs_minus = cardsdir+'/Wlep_minus_shapes_xsec.root'
+# nominal for the fit, but will be shown as   a line
+alt_xsecs_plus  = cardsdir+'/Wlep_plus_shapes_xsec.root'
+alt_xsecs_minus = cardsdir+'/Wlep_minus_shapes_xsec.root'
 
-alt_xsecs_plus  = cardsdir+'/Wlep_plus_shapes_xsec_baremc.root'
-alt_xsecs_minus = cardsdir+'/Wlep_minus_shapes_xsec_baremc.root'
+# nominal with the band is the bare MC @NLO prediction
+xsecs_plus  = cardsdir+'/Wlep_plus_shapes_xsec_baremc.root'
+xsecs_minus = cardsdir+'/Wlep_minus_shapes_xsec_baremc.root'

@@ -283,6 +283,7 @@ if __name__ == "__main__":
     # sort by charge if needed     
     # I think it is useful that different charges are separated in the matrix, it is easier to read it 
     params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
+    params = sorted(params, key = lambda x: 0 if "right" in x else -1 if "left" in x else -1)
     print "sorted params = ", params
 
     ch = 1200
@@ -300,9 +301,9 @@ if __name__ == "__main__":
 
 
     clm = 0.15
-    crm = 0.11
+    crm = 0.15
     cbm = 0.15
-    ctm = 0.1
+    ctm = 0.07
     if options.margin:
         clm,crm,ctm,cbm = (float(x) for x in options.margin.split(','))
     c.SetLeftMargin(clm)
@@ -312,7 +313,17 @@ if __name__ == "__main__":
 
     ## make the new, smaller TH2F correlation matrix
     nbins = len(params)
-    th2_sub = ROOT.TH2F('sub_corr_matrix', 'small correlation matrix', nbins, 0., nbins, nbins, 0., nbins)
+    th2_sub = ROOT.TH2F('sub_corr_matrix', '', nbins, 0., nbins, nbins, 0., nbins)
+
+    if 'Wplus' in options.params and 'pmaskedexpnorm' in options.params:
+        th2_sub.SetTitle('correlations of W^{+} processes')
+    if 'Wminus' in options.params and 'pmaskedexpnorm' in options.params:
+        th2_sub.SetTitle('correlations of W^{-} processes')
+    if 'pdf':
+        th2_sub.SetTitle('correlations of PDF nuisance parameters')
+        th2_sub.GetXaxis().SetLabelSize(0.025)
+        th2_sub.GetYaxis().SetLabelSize(0.025)
+
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
     

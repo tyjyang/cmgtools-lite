@@ -254,6 +254,7 @@ if __name__ == "__main__":
                             ratio.SetBinContent(ib, ratio.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
                         h2_backrolled_1 = dressed2D(ratio,binning,title2D)
                         hmax = 0.05 if 'muF' in syst else 0.04
+                        if 'Prefire' in syst: hmax = 0.40 # yes, not 0.04
                         if 'effstat' in syst: hmax = 0.005
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         ratios[key] = h2_backrolled_1
