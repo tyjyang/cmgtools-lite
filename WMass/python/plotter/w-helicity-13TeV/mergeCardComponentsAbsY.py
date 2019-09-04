@@ -753,7 +753,7 @@ def addZOutOfAccPrefireSyst(infile,outdir=None):
     print 'done with the reweighting for the Z OutOfAcc prefire syst'
 
 
-def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
+def addSmoothLepScaleSyst(infile,regexp,charge,isMu,alternateShapeOnly=False,outdir=None):
 
     indir = outdir if outdir != None else options.inputdir
     flav = 'mu' if isMu else 'el'
@@ -810,7 +810,7 @@ def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
                 for shift_dir in ['Up','Down']:
                     outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{shiftdir}'.format(lep=flav,idx=nsyst,ch=charge,shiftdir=shift_dir)
                     tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
-         
+
                     ## loop over all eta bins of the 2d histogram 
                     for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
                         eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
@@ -835,6 +835,8 @@ def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
                         tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
                     ## re-roll the 2D to a 1D histo
                     tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
+                    if alternateShapeOnly:
+                        tmp_scaledHisto_1d.Scale(tmp_nominal.Integral()/tmp_scaledHisto_1d.Integral())
                     
                     outfile.cd()
                     tmp_scaledHisto_1d.Write()
@@ -1147,21 +1149,21 @@ if __name__ == "__main__":
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptslope', uncorrelateCharges=options.uncorrelateFakesByCharge)
             putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu= 'mu' in options.bin, doType = 'ptnorm', uncorrelateCharges=options.uncorrelateFakesByCharge )
-     
+         
             if 'mu' in options.bin:
                 putUncorrelatedFakes(outfile+'.noErfPar', 'x_data_fakes', charge, isMu=True, doType = 'etacharge', uncorrelateCharges=options.uncorrelateFakesByCharge )
-     
+         
             ## THESE ARE OUR LATEST RESOURCE AFTER GIVING UP WITH THESE BKGS
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='ptnorm')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='ptnorm')
 
-            addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
+            addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin,alternateShapeOnly=False)
             final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             if 'el' in options.bin:
                 final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
-                os.system(final_haddcmd)
+            os.system(final_haddcmd)
 
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
@@ -1298,8 +1300,8 @@ if __name__ == "__main__":
                 for pol in ['left','right']:
                     lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
                     combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
-        if 'el' in options.bin:
-            combinedCard.write('norm_fakes       lnN    ' + ' '.join([kpatt % ('1.2' if 'fakes' in x else '-') for x in realprocesses])+'\n')
+        # if 'el' in options.bin:
+        #     combinedCard.write('norm_fakes       lnN    ' + ' '.join([kpatt % ('1.2' if 'fakes' in x else '-') for x in realprocesses])+'\n')
     
         combinedCard = open(cardfile,'r')
         procs = []
