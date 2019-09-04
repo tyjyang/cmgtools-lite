@@ -215,7 +215,7 @@ if __name__ == "__main__":
                                     if histo_pdfi_iy: histo_pdfi.Add(histo_pdfi_iy)
                             title2D = 'W{ch} {pol} : pdf {ip}'.format(ip=ip,pol=pol,ch=chs)
                             key = 'syst_W{ch}_{pol}_pdf{ip}'.format(ch=charge,pol=pol,ip=ip)
-                            if options.singleRap: key += '_ybin{iy}'.format(iy=options.singleRap)
+                            if options.singleRap: key += '_Ybin_{iy}'.format(iy=options.singleRap)
                         else:
                             histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                                     if histo_syst_iy: histo_syst.Add(histo_syst_iy)
                             title2D = 'W{ch} {pol} : variation={syst}'.format(pol=pol,ch=chs,syst=syst)
                             key = 'syst_W{ch}_{pol}_{syst}'.format(ch=charge,pol=pol,syst=syst)
-                            if options.singleRap: key += '_ybin{iy}'.format(iy=options.singleRap)
+                            if options.singleRap: key += '_Ybin_{iy}'.format(iy=options.singleRap)
                     else:
                         hname = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsyst)
                         print "Lookiig for shape ",hname
