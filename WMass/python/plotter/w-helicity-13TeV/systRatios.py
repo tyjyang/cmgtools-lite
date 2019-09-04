@@ -137,6 +137,7 @@ if __name__ == "__main__":
     parser.add_option(     '--projections', dest='projections', default=False, action='store_true', help='make the 1D ratios on the X and Y projections')
     parser.add_option('-r','--syst-ratio-range', dest='systRatioRange', default='', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template\'s min and max values are used (they will be different for each template). With "templateSym", the range is set symmetrically using max(abs(minz),maxz).') 
     parser.add_option('-p','--processes', dest='processes', default='', type='string', help='Comma-separated list of processes to consider (if empty, all processes are used). It overrides --skip-signal')
+    parser.add_option(     '--singleRap', dest='singleRap', default=None,type='string', help='Do ratios for a signle rapidity bin')
     (options, args) = parser.parse_args()
     channel = args[1]
 
@@ -167,6 +168,7 @@ if __name__ == "__main__":
 
         bkgs = ['data_fakes','Flips','DiBosons','Top','TauDecaysW','Z']
         #bkgs = []#['data_fakes'] # other than W_{L,R}
+        if options.singleRap: bkgs = []
         wlr = ['W{ch}_{p}_Ybin_0'.format(ch=charge,p=pol) for pol in ['left','right', 'long'] ]
         procs= bkgs if options.skipSignal else wlr+bkgs
         if len(options.processes):
@@ -190,9 +192,12 @@ if __name__ == "__main__":
             if 'W{ch}'.format(ch=charge) in proc:
                 pol = proc.split('_')[1]
                 cp = charge+'_'+pol
-                histo_central = infile.Get('x_W{ch}_{pol}_Ybin_0'.format(ch=charge,pol=pol))
-                for iy in xrange(1,nY[cp]+1):
-                    histo_central.Add(infile.Get('x_W{ch}_{pol}_Ybin_{i}'.format(ch=charge,pol=pol,i=iy)))
+                if options.singleRap:
+                    histo_central = infile.Get('x_W{ch}_{pol}_Ybin_{i}'.format(ch=charge,pol=pol,i=options.singleRap))
+                else:
+                    histo_central = infile.Get('x_W{ch}_{pol}_Ybin_0'.format(ch=charge,pol=pol))
+                    for iy in xrange(1,nY[cp]+1):
+                        histo_central.Add(infile.Get('x_W{ch}_{pol}_Ybin_{i}'.format(ch=charge,pol=pol,i=iy)))
             else:
                 histo_central = infile.Get('x_%s'%proc)
             # systematic templates
@@ -201,12 +206,16 @@ if __name__ == "__main__":
                     if not re.match('W{ch}|Z'.format(ch=charge),proc): continue # only W and Z have PDF variations
                     for ip in xrange(1,nPDF+1):
                         if 'W{ch}'.format(ch=charge) in proc:
-                            histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Up'.format(ch=charge,pol=pol,ip=ip))
-                            for iy in xrange(1,nY[cp]+1):
-                                histo_pdfi_iy = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=iy,ip=ip))
-                                if histo_pdfi_iy: histo_pdfi.Add(histo_pdfi_iy)
+                            if options.singleRap:
+                                histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=options.singleRap,ip=ip))
+                            else:
+                                histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Up'.format(ch=charge,pol=pol,ip=ip))
+                                for iy in xrange(1,nY[cp]+1):
+                                    histo_pdfi_iy = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=iy,ip=ip))
+                                    if histo_pdfi_iy: histo_pdfi.Add(histo_pdfi_iy)
                             title2D = 'W{ch} {pol} : pdf {ip}'.format(ip=ip,pol=pol,ch=chs)
                             key = 'syst_W{ch}_{pol}_pdf{ip}'.format(ch=charge,pol=pol,ip=ip)
+                            if options.singleRap: key += '_ybin{iy}'.format(iy=options.singleRap)
                         else:
                             histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
@@ -229,14 +238,19 @@ if __name__ == "__main__":
                     if 'W{ch}'.format(ch=charge) in proc:
                         for pol in [proc.split('_')[1]]:#'right', 'left']:
                             cp = charge+'_'+pol
-                            hname = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsyst)
+                            if options.singleRap:
+                                hname = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=options.singleRap,syst=fullsyst)
+                            else:
+                                hname = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsyst)
                             histo_syst = infile.Get(hname) if hname in keylist else None
-                            for iy in xrange(1,nY[cp]+1):
-                                hname_iy = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsyst)
-                                histo_syst_iy = infile.Get(hname_iy) if hname in keylist else None
-                                if histo_syst_iy: histo_syst.Add(histo_syst_iy)
+                            if not options.singleRap:
+                                for iy in xrange(1,nY[cp]+1):
+                                    hname_iy = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsyst)
+                                    histo_syst_iy = infile.Get(hname_iy) if hname in keylist else None
+                                    if histo_syst_iy: histo_syst.Add(histo_syst_iy)
                             title2D = 'W{ch} {pol} : variation={syst}'.format(pol=pol,ch=chs,syst=syst)
                             key = 'syst_W{ch}_{pol}_{syst}'.format(ch=charge,pol=pol,syst=syst)
+                            if options.singleRap: key += '_ybin{iy}'.format(iy=options.singleRap)
                     else:
                         hname = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsyst)
                         print "Lookiig for shape ",hname
@@ -256,6 +270,7 @@ if __name__ == "__main__":
                         hmax = 0.05 if 'muF' in syst else 0.04
                         if 'Prefire' in syst: hmax = 0.40 # yes, not 0.04
                         if 'effstat' in syst: hmax = 0.005
+                        if options.singleRap: hmax = 0.10
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         ratios[key] = h2_backrolled_1
                         if not histo_central.GetEntries() == histo_syst.GetEntries():
@@ -296,6 +311,6 @@ if __name__ == "__main__":
 
     if len(errors):
         print '=== WARNING === WARNING === WARNING ==='
-        print 'ERRORS FOUND IN THESE SYSTEAMTICS'
+        print 'ERRORS FOUND IN THESE SYSTEMATICS'
         for err in errors:
             print err
