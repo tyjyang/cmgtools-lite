@@ -620,6 +620,10 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
 
     tmp_infile = ROOT.TFile(infile, 'read')
 
+    ## get the binned correlated efficiency systematic
+    pdgId = 13 if flav=='mu' else 11 
+    syst_tnp = utilities.getExclusiveBinnedSyst(utilities.getEffSyst(pdgId))
+
     elel1tf = ROOT.TFile.Open("/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/l1EG_eff.root")
     l1hist = elel1tf.Get("l1EG_eff")
 
@@ -645,7 +649,7 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
 
         if doType=='TnP':
-            etabins = [0,1,1.5,2.4] if isMu else [0.,1,1.479,2,2.5]
+            etabins = [0,1,1.5,2.4] if isMu else [0.,1.,1.479,2.,2.5]
         elif doType=='L1PrefireEle':
             etabins = [-2.5,  -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5]
         ## make 1 uncorrelated nuisance per syst bin
@@ -661,6 +665,7 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
             
             etasyst_loweredge = etabins[isyst]
             etasyst_upperedge = etabins[isyst+1]
+            etasyst = 0.5*(etasyst_loweredge+etasyst_upperedge)
 
             ## loop over all eta bins of the 2d histogram
             for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
@@ -669,23 +674,17 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
                 for ipt in range(1,tmp_scaledHisto_up.GetNbinsY()+1):
                     scaling = 0
                     ## TnP are on absEta, L1PrefireEle depend on the endcap side
-                    if (doType=='TnP' and etasyst_loweredge<=abs(eta)) or (doType=='L1PrefireEle' and etasyst_loweredge<=eta<etasyst_upperedge):
-                        ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
-                        if doType=='L1PrefireEle':
-                            ## now get the content of the variation histogram!
-                            sf,tmp_scale = utilities.getL1SF(ybincenter,eta,l1hist)
-                            ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
-                            if process=='Z':
-                                tmp_scale *= math.sqrt(2)
-                        elif doType=='TnP':
-                            pdgId = 13 if flav=='mu' else 11
-                            tmp_scale_2 = math.pow(utilities.getEffSyst(ybincenter,etasyst_loweredge,pdgId),2)
-                            #print "eta = ", eta, " isyst = ",isyst,  " etasyst_loweredge = ", etasyst_loweredge, " tmp_scale_2 = ",math.sqrt(tmp_scale_2)
-                            for innersyst in range(isyst):
-                                tmp_scale_2 -= math.pow(utilities.getEffSyst(ybincenter,etabins[innersyst],pdgId),2)
-                                #print " subtracting bin ",etabins[innersyst]," which has ",utilities.getEffSyst(ybincenter,etabins[innersyst],pdgId)
-                            tmp_scale = math.sqrt(tmp_scale_2)
-                        scaling = tmp_scale
+                    #if (doType=='TnP' and etasyst_loweredge<=abs(eta)) or (doType=='L1PrefireEle' and etasyst_loweredge<=eta<etasyst_upperedge):
+                    ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
+                    if doType=='L1PrefireEle' and etasyst_loweredge<=eta<etasyst_upperedge:
+                        ## now get the content of the variation histogram!
+                        sf,scaling = utilities.getL1SF(ybincenter,eta,l1hist)
+                        ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
+                        if process=='Z':
+                            scaling *= math.sqrt(2)
+                    elif doType=='TnP' and etasyst_loweredge<=abs(eta): 
+                    #elif doType=='TnP' and ((etasyst<0 and eta<etasyst_upperedge) or (etasyst>0 and eta>etasyst_loweredge)):
+                        scaling = syst_tnp.GetBinContent(syst_tnp.GetXaxis().FindFixBin(abs(eta)))
                     ## scale up and down with what we got from the histo
                     tmp_bincontent = tmp_scaledHisto_up.GetBinContent(ieta, ipt)
                     tmp_bincontent_up = tmp_bincontent*(1.+scaling)
@@ -753,6 +752,7 @@ def addZOutOfAccPrefireSyst(infile,outdir=None):
     outfile.Close()
     print 'done with the reweighting for the Z OutOfAcc prefire syst'
 
+
 def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
 
     indir = outdir if outdir != None else options.inputdir
@@ -810,12 +810,11 @@ def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
                 for shift_dir in ['Up','Down']:
                     outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{shiftdir}'.format(lep=flav,idx=nsyst,ch=charge,shiftdir=shift_dir)
                     tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
-                    tmp_scaledHisto.Reset()
          
                     ## loop over all eta bins of the 2d histogram 
                     for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
                         eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
-                        scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
+                        scale_syst = (1.0 if shift_dir=='Up' else -1.0) * scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
                         for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
                             if abs(eta)>etabins[systBin] and etasdide*eta>0:
                                 ## assume uniform distribution within a bin
@@ -828,8 +827,8 @@ def addSmoothLepScaleSyst(infile,regexp,charge,isMu,outdir=None):
      
                                 from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
                                 to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
-     
-                                tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val + from_prev - to_right)
+
+                                tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_right))
                             else:
                                 tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
                         ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
@@ -1157,11 +1156,12 @@ if __name__ == "__main__":
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_Z', charge, 'Z', isMu= 'mu' in options.bin, doType='ptnorm')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='etacharge')
             #putUncorrelatedBkgNorm(outfile+'.noErfPar', 'x_TauDecaysW', charge, 'TauDecaysW', isMu= 'mu' in options.bin, doType='ptnorm')
-        addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
-        final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
-        if 'el' in options.bin:
-            final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
-        os.system(final_haddcmd)
+
+            addSmoothLepScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge, isMu= 'mu' in options.bin)
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+            if 'el' in options.bin:
+                final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
+                os.system(final_haddcmd)
 
         print "Now trying to get info on theory uncertainties..."
         theosyst = {}
