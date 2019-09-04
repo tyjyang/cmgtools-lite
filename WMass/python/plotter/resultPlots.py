@@ -31,24 +31,32 @@ if __name__ == '__main__':
     ## plot syst ratios
     ## ================================
     if options.make in ['all', 'syst']:
+        print 'first make the nominal templates'
+        tmp_outdir = options.outdir+'/templates2D/'
+        os.system('mkdir -p {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        cmd = 'python w-helicity-13TeV/make2DTemplates.py --outdir {od} {d} {ch}'.format(od=tmp_outdir,d=results['cardsdir'], ch=muEl) 
+        os.system(cmd)
+
         print 'running systRatios for a few things'
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs = []
-        systs += ['pdf', 'alphaS', 'mW', 'fsr']
+        systs += ['pdf', 'alphaS']
+        systs += ['mW', 'fsr']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
-        systs += ['smoothmuscale{idx}'.format(idx=i) for i in range(0,2)]
+        systs += ['smoothelscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,8) for charge in charges]
+        systs += ['smoothmuscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,4) for charge in charges]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['']
-        nTnPUnc = 3 if muEl=='mu' else 4
+        nTnPUnc = 3 if muEl=='mu' else 2
         systs += ['TnPEffSyst{idx}{flav}'.format(idx=i,flav=muEl) for i in range(0,nTnPUnc)]
-        systs += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
-        systs += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
+        ysts += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
+        ysts += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
         systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
@@ -63,6 +71,13 @@ if __name__ == '__main__':
             cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
+            print 'running systRatios for a few single rapidity  bins (0,8,9)'
+            os.system('mkdir -p {od}/singleRapidity'.format(od=tmp_outdir))
+            os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}/singleRapidity'.format(od=tmp_outdir))
+            for rapBin in [0,8,9]:
+                cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od}/singleRapidity -s {p} --singleRap {iy} {d} {ch}'.format(od=tmp_outdir, p=nuis, iy=rapBin, d=results['cardsdir'], ch=muEl)
+                print "Now running: ",cmd
+                os.system(cmd)
 
     ## plot correlation matrices
     ## ================================

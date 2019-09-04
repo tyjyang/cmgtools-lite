@@ -818,18 +818,22 @@ class util:
         ret = ( histo.GetBinContent(etabin,ptbin), histo.GetBinError(etabin,ptbin) )
         return ret
 
-    def getEffSyst(self,pt,eta,pdgId):
-        abseta = abs(eta)
+    def getEffSyst(self,pdgId):
         if abs(pdgId)==11:
-            if abseta<1:       syst = 0.006
-            elif abseta<1.479: syst = 0.008
-            elif abseta<2:     syst = 0.013
-            else:              syst = 0.019
+            etabins_el = array.array('f',[0.0, 1.0, 1.479, 2.0, 2.2, 2.5])
+            h1d = ROOT.TH1F('effsysth','',len(etabins_el)-1,etabins_el)
+            h1d.SetBinContent(1, 0.006)
+            h1d.SetBinContent(2, 0.008)
+            h1d.SetBinContent(3, 0.013)
+            h1d.SetBinContent(4, 0.016)
+            h1d.SetBinContent(5, 0.019)
         elif abs(pdgId)==13:
-            if abseta<1:       syst = 0.002
-            elif abseta<1.5:   syst = 0.004
-            else:              syst = 0.014
-        return syst
+            etabins_mu = array.array('f',[0.0, 1.0, 1.5, 2.4])
+            h1d = ROOT.TH1F('effsysth','',len(etabins_mu)-1,etabins_mu)
+            h1d.SetBinContent(1, 0.002)
+            h1d.SetBinContent(2, 0.004)
+            h1d.SetBinContent(3, 0.014)
+        return h1d
 
     def getExclusiveBinnedSyst(self,th1):
         th1_excl = th1.Clone(th1.GetName()+'_exclusive')
