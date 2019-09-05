@@ -9,7 +9,8 @@ CMS_lumi_13TeV           : W.*|TauDecaysW|Z|Top|DiBosons : .* : 1.025
 # lepton efficiencies (the shape one, called sig_lepeff, is applied to Z as well)
 # ==================================================================
 CMS_Wmu_sig_lepeff                 : W.*|Z : .*                        : lepeff : templates
-CMS_Wmu_bkg_lepeff                 : TauDecaysW|Top|DiBosons :     .* : 1.01
+#CMS_Wmu_bkg_lepeff                 : TauDecaysW|Top|DiBosons :     .* : 1.01
+CMS_Wmu_bkg_lepeff                 : Top|DiBosons :     .* : 1.01
 
 CMS_Wmu_lepVeto      : Z                            : .* : 1.02
 
@@ -42,8 +43,8 @@ CMS_Wmu_FRmu_slope         : data_fakes  : .* : FRmu_slope       : templatesShap
 # ==================================================================
 #CMS_Wmu_muscale     : W.*|Z                          : .* : muscale   : templates
 # mu scale uncorrelated: 1 variation 0.3% in all eta range, 1 variation 1.0% only for |eta| > 2.1
-CMS_Wmu_muscale0     : W.*|Z                          : .* : muscale0   : templates
-CMS_Wmu_muscale1     : W.*|Z                          : .* : muscale1   : templates
+CMS_Wmu_muscale0     : W.*|Z|TauDecaysW               : .* : muscale0   : templates
+CMS_Wmu_muscale1     : W.*|Z|TauDecaysW               : .* : muscale1   : templates
 
 
 # recoil uncertainty

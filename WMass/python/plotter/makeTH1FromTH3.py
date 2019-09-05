@@ -22,6 +22,8 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import mirrorShape
 ## python makeTH1FromTH3.py cards/diffXsec_mu_2018_11_24_group10_onlyBkg/wmass_varhists_mu_withScale.root -o cards/diffXsec_mu_2018_11_24_group10_onlyBkg/ -f mu -c plus --binfile cards/diffXsec_mu_2018_11_24_group10_onlyBkg/binningPtEta.txt
 
 def makeAlternateFromSymmetricRatio(alt, nomi, binning):
+    # old function, now done in mergeRootComponentsDiffXsec.py (see makeAlternateFromSymmetricRatioV2)
+
     # make ratio of alt and nomi, roll inot TH2 (pt-eta), symmetrize this ratio versus eta and then unroll again
     #
     # should I return the new alt or is it enough to modify the argument to really change it outside the function?

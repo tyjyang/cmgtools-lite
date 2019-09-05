@@ -4,7 +4,7 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
+doMuElComb = 0
 dryrun = 0
 skipData = 0
 onlyData = 1
@@ -19,7 +19,7 @@ skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 1
+allPtBinsSignal = 0
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -36,19 +36,26 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
+
+flavour = "el" if "_el_" in folder else "mu"
+lepton = "electron" if flavour == "el"  else "muon"
 if doMuElComb:
     allPtBinsSignal = 1
-    folder = "muElCombination_1Sept2019"
+    folder = "muElCombination_allSig"
     skipTemplate = 1
+    flavour = "lep"
+    lepton = "lepton"
+
+
 
 if plotSingleCharge and doMuElComb:
     print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
@@ -70,11 +77,19 @@ if plotSingleCharge and doMuElComb:
 #postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_scaleEffStatEE_symFSR"
 #postfix = "finalFixes_symFSRptScalemW"
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW"
-postfix = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
+#postfix = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
+#postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSide"
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
+
+if flavour == "el":
+    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSide"
+else:
+    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSide"
+
 if doMuElComb:
     #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
-    postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu_LnN0p05onW"
+    postfix = "combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMu"
+               
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
 
@@ -82,17 +97,12 @@ postfix += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
 
-flavour = "el" if "_el_" in folder else "mu"
-lepton = "electron" if flavour == "el"  else "muon"
-if doMuElComb:
-    flavour = "lep"
-    lepton = "lepton"
 
 fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (not allPtBinsSignal) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (not allPtBinsSignal) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffSyst.*|.*scale0.*|.*scale1.*|.*scale2.*|.*scale3.*|.*lepeff.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffSyst.*|.*smooth.*scale0.*|.*smooth.*scale1.*|.*smooth.*scale2.*|.*smooth.*scale3.*|.*lepeff.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 
@@ -106,7 +116,7 @@ diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr",
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      "CMS_.*|.*TestEffSyst.*|mW|fsr", 
+                      "CMS_.*|.*smooth.*|.*TestEffSyst.*|mW|fsr", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]
@@ -126,7 +136,7 @@ correlationNuisRegexp = {# "allPDF"           : "pdf.*",
                          # "muRmuF"           : "^muRmuF[1-9]+", 
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+mu.*",
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+el.*", 
-                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|mW|fsr",
+                         "CMSsyst"          : "CMS_.*|.*smooth.*|.*TestEffSyst.*|mW|fsr",
                          # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
                          # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
                          # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
@@ -202,7 +212,7 @@ for charge in ["plus","minus"]:
     command = "python w-helicity-13TeV/templateRolling.py"
     command += " cards/{fd} -o plots/diffXsecAnalysis_new/{lep}/{fd}/templateRolling/{pfx}/ -c {fl}".format(fd=folder, lep=lepton, fl=flavour, pfx=postfix)
     command += " --plot-binned-signal -a diffXsec -C {ch} --pt-range '{ptmin},{ptmax}' ".format(ch=charge, ptmin=ptMinTemplate, ptmax=ptMaxTemplate)
-    command += " {opt} ".format(opt=optTemplate)
+    command += "  {opt} ".format(opt=optTemplate)
     if not skipTemplate:
         print ""
         print command

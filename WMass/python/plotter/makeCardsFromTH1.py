@@ -337,11 +337,13 @@ parser.add_option(       '--useBinEtaPtUncorrUncEffStat', dest='useBinEtaPtUncor
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
 parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
 parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
+parser.add_option(       '--uncorrelate-ptscale-by-charge', dest='uncorrelatePtScaleByCharge' , default=False, action='store_true', help='Uncorrelate momentum scales by charge')
 parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit (it works for flavor combination only)')
 parser.add_option(       '--skip-hadd-xsec', dest='skipHaddXsec' , default=False, action='store_true', help='For flavour combination, do not hadd root files with xsec')
 parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
 parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
 parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
+parser.add_option(       '--use-smooth-ptscale', dest='useSmoothPtScales' , default=False, action='store_true', help='Use smooth pt scales instead of native ones')
 (options, args) = parser.parse_args()
 
 print ""
@@ -821,6 +823,22 @@ if not isExcludedNuisance(excludeNuisances, "mW", keepNuisances):
     allSystForGroups.append("mW")
     card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
 
+if flavour == "el":
+    # prefiring binning for nuisances = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4], 
+    # but exclude syst for bin [-1.5,1.5], so 6 nuisances numbered from 0 to 5
+    L1PrefireEleEffSyst_nuis = ["L1PrefireEleEffSyst{ieta}{fl}".format(ieta=ieta,fl=flavour) for ieta in range(6)]
+    for syst in L1PrefireEleEffSyst_nuis:
+        if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
+            allSystForGroups.append(syst)
+            card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZandTau) else "-") for p in allprocesses]) +"\n")
+    # now for Z out-of-acceptance
+    # to be continued
+    OutOfAccPrefireSyst_nuis = ["OutOfAccPrefireSyst%d%s" % (i,flavour) for i in range(2)]
+    for syst in OutOfAccPrefireSyst_nuis:
+        if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
+            allSystForGroups.append(syst)
+            card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if p == "Z" else "-") for p in allprocesses]) +"\n")
+
 # signal W only for now (might add it to Z and Tau later)
 if not isExcludedNuisance(excludeNuisances, "fsr", keepNuisances):
     allSystForGroups.append("fsr")
@@ -847,13 +865,18 @@ for syst in wExpSysts:
     allSystForGroups.append(syst)
     card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZ) else "-") for p in allprocesses]) +"\n")
 
+    
+
 # hardcoded: see MCA or other files
 wExpPtScaleSysts = []
 if options.wzPtScaleSystShape:
     edgesForPtScale = [float(x) for x in options.wzPtScaleSystShape.split(",")]
     for nl in range(len(edgesForPtScale)):
-        wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
-        if re.match(options.uncorrelateNuisancesByCharge,wExpPtScaleSysts[-1]):
+        if options.useSmoothPtScales:
+            wExpPtScaleSysts.append("smooth{lep}scale{n}".format(lep=flavour, n=nl))
+        else:
+            wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
+        if options.uncorrelatePtScaleByCharge:
             wExpPtScaleSysts[-1] = wExpPtScaleSysts[-1] + charge
         if options.uncorrelatePtScaleByEtaSide:
             tmpname = wExpPtScaleSysts[-1] 
@@ -862,7 +885,7 @@ if options.wzPtScaleSystShape:
     for syst in wExpPtScaleSysts:    
         isyst_vec = [ int(i) for i in re.findall(r'\d+', syst) ]
         isyst = isyst_vec[0]
-        procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
+        procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)]        
         tmp_procsForPtScaleSystShape = []
         for proc in procsForPtScaleSystShape:
             if re.match(".*W.*_ieta_.*", proc):
@@ -889,7 +912,7 @@ if options.wzTestEffSystShape:
     for isyst in range(len(edges)):
         syst = "%sTestEffSyst%d" % ("el" if flavour == "el" else "mu", isyst)
         # for signal, need to filter out processes which do not have this nuisance, based on ieta
-        procsForTestEffSystShape = [x for x in allprocesses if any(p in x for p in WandZ)]        
+        procsForTestEffSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)]        
         tmp_procsForTestEffSystShape = []
         for proc in procsForTestEffSystShape:
             if re.match(".*W.*_ieta_.*", proc):
@@ -1004,7 +1027,7 @@ if options.doSystematics:
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
     card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr',x),allSystForGroups)) + "\n\n")
-    card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('CMS.*(ele|mu)scale',x),allSystForGroups)) + "\n\n")
+    card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('(smooth|CMS_W).*scale\d+',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
@@ -1012,6 +1035,8 @@ if options.doSystematics:
     card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
     card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")
     card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*',x),allSystForGroups)) + " \n\n")
+    if flavour == "el":
+        card.write("L1Prefire group = "    + ' '.join(filter(lambda x: re.match('.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*',x),allSystForGroups)) + " \n\n")
     card.write("\n")
 card.write("\n")
 

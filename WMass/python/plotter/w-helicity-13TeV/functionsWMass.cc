@@ -169,7 +169,7 @@ TFile *_file_fsrWeights_simple = NULL;
 TH1F * fsrWeights_el = NULL;
 TH1F * fsrWeights_mu = NULL;
 
-float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToSameGenArea = true, float dresseta = 0) {
+float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToSameGenArea = false, float dresseta = 0) {
 
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
@@ -230,7 +230,7 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
 TFile *_file_dyptWeights = NULL;
 TH1F *amcnlody = NULL; 
 
-float dyptWeight(float pt2l, int isZ) {
+float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false) {
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
@@ -244,10 +244,10 @@ float dyptWeight(float pt2l, int isZ) {
   // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec in acceptance)
   // when using pt range 26-56 instead of 26-45, there is an additional factor 0.987, so the actual number would be 0.946 
   
-  // when suing only 0.958 I see that total gen-xsec no-Wpt over with-Wpt is 1.0138013 for W+ and 1.0144267 for W-
+  // when using only 0.958 I see that total gen-xsec no-Wpt over with-Wpt is 1.0138013 for W+ and 1.0144267 for W-
   // let's take only 1.014 without distinguishing charges
-  //float scaleW = 0.9714120;  //1.014 * 0.958 
-  float scaleToMCaNLO = isZ ? 1. : 0.958;
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
+  float scaleW = scaleNormWToGenXsecBeforeCuts ? 0.9714120 : 0.958;  //1.014 * 0.958 
   float scaleToMCaNLO = isZ ? 1. : scaleW;
   // plots are MC/data
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);

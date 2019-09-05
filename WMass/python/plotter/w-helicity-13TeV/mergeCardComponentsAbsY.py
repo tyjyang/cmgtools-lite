@@ -615,7 +615,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
+def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir
@@ -656,14 +656,25 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
             etabins = [0,1,1.5,2.4] if isMu else [0.,1,1.479,2,2.5]
         elif doType=='L1PrefireEle':
             etabins = [-2.5,  -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5]
+            if not isHelicity:
+                # 2D xsec has a different and coarser binning
+                # btw, for now this function is only used for L1 prefire when doing 2D xsec
+                # the rest is done in mergeRootComponentsDiffXsec.py 
+                # should need also to account for L1 prefire changing a lot vs eta at high eta,
+                # but uncertainty is flatter, so one can just get the xsec bin centers and look a the L1 bin
+                etabins = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4]
+        else:
+            print "Error in putEffSystHistos(). Unknown value for doType argument. Abort"
+            quit()
+
         ## make 1 uncorrelated nuisance per syst bin
         nsyst=0
         for isyst in range(len(etabins)-1):
             ## for the L1 prefire, do not add a systematic for the barrel
             if doType=='L1PrefireEle' and isyst==len(etabins)/2-1: continue
 
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{p}EffSyst{eta}{flav}2DROLLED'.format(p=doType,eta=nsyst,flav=flav)
-        
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{p}EffSyst{eta}{flav}2DROLLED'.format(p=doType,eta=nsyst,flav=flav)                
+
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
             

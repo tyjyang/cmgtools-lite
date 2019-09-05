@@ -821,7 +821,7 @@ void fillHistograms(const string& treedir = "./",
     // add weight for zpt (we use it on W as well)
     // if we used the loop to run on Z, we should use GenLepDressed_pt[1],GenLepDressed_phi[1] instead of GenPromptNu_pt[0],GenPromptNu_phi[0]
     // note that we should always use Dressed lepton (I assume GenLep points to that and not to PreFsr variables, although the difference is generally small)
-    wgt *= dyptWeight(pt_2(*GenLep_pt,*GenLep_phi,*GenPromptNu_pt,*GenPromptNu_phi),0);
+    wgt *= dyptWeight(pt_2(*GenLep_pt,*GenLep_phi,*GenPromptNu_pt,*GenPromptNu_phi),0, true);
     // try to put common factor together
     wgt *= (wjets_NLO_wgt_partial * *genWeight * puw2016_nTrueInt_36fb(*nTrueInt));
 
