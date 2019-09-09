@@ -402,6 +402,7 @@ if __name__ == "__main__":
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins were put in OutAcc channel in the fit. With format 14,15 ')
     parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.5'       , type='float', help='Max value for rapidity range')
+    parser.add_option(      '--hessianFromToy', default=0       , type=int, help='get entry from toy file to be hessian like')
     (options, args) = parser.parse_args()
 
 
@@ -426,7 +427,7 @@ if __name__ == "__main__":
     elif options.type == 'scans':
         valuesAndErrors = utilities.getFromScans(options.infile)
     elif options.type == 'hessian':
-        valuesAndErrors = utilities.getFromHessian(options.infile)
+        valuesAndErrors = utilities.getFromHessian(options.infile, takeEntry=options.hessianFromToy)
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
