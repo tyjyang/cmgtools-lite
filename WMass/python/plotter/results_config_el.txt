@@ -15,13 +15,15 @@ both_fixedPOIs_hessian_bbb1_syst1_asimov    = basedir+'/fitresults_123456789_poi
 
 ###both_floatingPOIs_toys              = basedir+'/toys/fitresults_both_floatingPOIs_toys.root'
 
+# nominal for the fit, but will be shown as   a line
+alt_xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
+alt_xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
+
+# nominal with the band is the bare MC @NLO prediction
+xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec_baremc.root'
+xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec_baremc.root'
+
 shapes_files = cardsdir+'/Wel_shapes.root'
-
-xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec.root'
-xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec.root'
-
-alt_xsecs_plus  = cardsdir+'/Wel_plus_shapes_xsec_baremc.root'
-alt_xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec_baremc.root'
 
 postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
 postfit_bbb1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'

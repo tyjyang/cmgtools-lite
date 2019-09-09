@@ -31,39 +31,53 @@ if __name__ == '__main__':
     ## plot syst ratios
     ## ================================
     if options.make in ['all', 'syst']:
+        print 'first make the nominal templates'
+        tmp_outdir = options.outdir+'/templates2D/'
+        os.system('mkdir -p {od}'.format(od=tmp_outdir))
+        os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
+        cmd = 'python w-helicity-13TeV/make2DTemplates.py --outdir {od} {d} {ch}'.format(od=tmp_outdir,d=results['cardsdir'], ch=muEl) 
+        os.system(cmd)
+
         print 'running systRatios for a few things'
         tmp_outdir = options.outdir+'/systRatios/'
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs = []
-        systs += ['pdf', 'alphaS', 'mW', 'fsr']
+        systs += ['pdf', 'alphaS']
+        systs += ['mW', 'fsr']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
-        #systs += [','.join(['muR'   +str(i) for i in range(1,11)])]
-        #systs += [','.join(['muF'   +str(i) for i in range(1,11)])]
-        #systs += [','.join(['muRmuF'+str(i) for i in range(1,11)])]
-        systs += ['CMS_We_sig_lepeff','CMS_We_elescale']
+        systs += ['smoothelscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,8) for charge in charges]
+        systs += ['smoothmuscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,4) for charge in charges]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
-        systs += ['CMS_Wmu_muscale0']
-        systs += ['CMS_Wmu_muscale1']
+        systs += ['']
+        nTnPUnc = 3 if muEl=='mu' else 2
+        systs += ['TnPEffSyst{idx}{flav}'.format(idx=i,flav=muEl) for i in range(0,nTnPUnc)]
+        ysts += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
+        ysts += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
-        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
-        systs += [','.join(['ZEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1)])]
-        
         tmp_systs = []
         for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
             tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
         systs += [','.join(tmp_systs)]
 
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --projections --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
+            print 'running systRatios for a few single rapidity  bins (0,8,9)'
+            os.system('mkdir -p {od}/singleRapidity'.format(od=tmp_outdir))
+            os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}/singleRapidity'.format(od=tmp_outdir))
+            for rapBin in [0,8,9]:
+                cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od}/singleRapidity -s {p} --singleRap {iy} {d} {ch}'.format(od=tmp_outdir, p=nuis, iy=rapBin, d=results['cardsdir'], ch=muEl)
+                print "Now running: ",cmd
+                os.system(cmd)
 
     ## plot correlation matrices
     ## ================================
@@ -75,7 +89,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW']
+                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW,fsr']
                 if 'floatingPOIs' in tmp_file:
                     #nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                     nuisancesAndPOIs += ['W{charge}_right.*pmaskedexpnorm,W{charge}_left.*pmaskedexpnorm'.format(charge=charge) for charge in ['plus','minus'] ]
@@ -96,7 +110,7 @@ if __name__ == '__main__':
                 fitflavor = os.path.splitext(os.path.basename(options.config.split('_')[-1]))[0]
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
                 normstr = [' ', ' --normxsec ']
-                if options.make=='rapcomp' and sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
+                if options.make in ['rapcomp','all'] and sum(tmp_file+'_'+lepflav in results.keys() for lepflav in ['el','mu'])==2:
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
@@ -144,9 +158,11 @@ if __name__ == '__main__':
             tmp_outdir = options.outdir+'/postFitPlots/'
             os.system('mkdir -p {od}'.format(od=tmp_outdir))
             os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
-            cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
-            cmd += ' {inf} {cd} --outdir {od} --suffix {suf} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''))
-            os.system(cmd)
+            for reverse in ['',' --reverseUnrolling ']:
+                print "NOW RUNNING WITH REVERSE UNROLLING OPTION: ",reverse
+                cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
+                cmd += ' {inf} {cd} --outdir {od} --suffix {suf} {rev} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''), rev=reverse)
+                os.system(cmd)
             for charge in ['plus','minus']:
                 cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
                 os.system(cmdpull)
@@ -159,8 +175,8 @@ if __name__ == '__main__':
         poisGroups = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
         singleNuisGroups = ['CMS.*','pdf.*','mu.*','ErfPar0.*','ErfPar1.*','ErfPar2.*']
         #targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec', 'A0', 'A4']
-        targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec']
-        POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'A0': '.*a0', 'A4': '.*a4'}
+        targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec','unpolxsecnorm','A0','A4']
+        POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'unpolxsecnorm': '.*sumxsecnorm', 'A0': '.*a0', 'A4': '.*a4'}
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
@@ -201,7 +217,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_', 'ErfPar']
+                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_,fsr', 'ErfPar']
                 nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:

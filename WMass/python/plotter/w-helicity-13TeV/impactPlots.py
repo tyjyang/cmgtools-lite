@@ -157,17 +157,18 @@ if __name__ == "__main__":
     valuesAndErrors = utilities.getFromHessian(args[0])
 
     group = 'group_' if len(options.nuisgroups) else ''
-    if   options.target=='xsec':       target = 'pmaskedexp'
-    elif options.target=='xsecnorm':   target = 'pmaskedexpnorm'
-    elif options.target=='unpolxsec':  target = 'sumpois'
-    elif options.target=='asym':       target = 'chargepois'
-    elif options.target=='unpolasym':  target = 'chargemetapois'
+    if   options.target=='xsec':           target = 'pmaskedexp'
+    elif options.target=='xsecnorm':       target = 'pmaskedexpnorm'
+    elif options.target=='unpolxsec':      target = 'sumpois'
+    elif options.target=='unpolxsecnorm':  target = 'sumpoisnorm'
+    elif options.target=='asym':           target = 'chargepois'
+    elif options.target=='unpolasym':      target = 'chargemetapois'
     elif options.target=='A0' or options.target=='A4': target = 'polpois'
-    elif options.target=='etaptasym':  target = 'chargepois'
-    elif options.target=='etaxsec':    target = 'sumpois'
-    elif options.target=='etaxsecnorm':target = 'sumpoisnorm'
-    elif options.target=='etaasym':    target = 'chargemetapois'
-    else:                              target = 'mu'
+    elif options.target=='etaptasym':      target = 'chargepois'
+    elif options.target=='etaxsec':        target = 'sumpois'
+    elif options.target=='etaxsecnorm':    target = 'sumpoisnorm'
+    elif options.target=='etaasym':        target = 'chargemetapois'
+    else:                                  target = 'mu'
 
     # patch for diff.xsec, because I usually pass pois as regular expressions matching the charge
     if any(options.target == x for x in ['etaasym','etaptasym']):
@@ -268,6 +269,7 @@ if __name__ == "__main__":
                       "xsec":      "cross section",
                       "xsecnorm":  "normalized cross section",
                       "unpolxsec": "unpolarized cross section",
+                      "unpolxsecnorm": "unpolarized normalized cross section",
                       "asym":      "charge asymmetry",
                       "unpolasym": "unpolarized charge asymmetry",
                       "A0":        "A0",

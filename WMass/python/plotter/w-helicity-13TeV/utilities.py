@@ -81,7 +81,9 @@ class util:
         histo_file.Close()
         return histos
 
-    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1, polarizations = ['left','right','long'], excludeYbins = []):
+    def getXSecFromShapes(self, ybins, charge, infile, ip, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], generator='fewz3p1'):
+        ## the xsec used in the templates is FEWZ 3.1
+        rescale = self.wxsec(generator)[0]/self.wxsec('fewz3p1')[0]
         values = {}
         if not infile:
             for pol in polarizations: 
@@ -104,13 +106,15 @@ class util:
                 if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
                 histo = histo_file.Get(name)
-                val = histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
+                val = rescale*histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()
         return values
 
-    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], doAlphaS=False):
+    def getQCDScaleEnvelope(self, ybins, charge, infile, nchannels=1, polarizations = ['left','right','long'], excludeYbins = [], doAlphaS=False, generator='mcatnlo'):
+        ## the xsec used in the templates is FEWZ 3.1
+        rescale = self.wxsec(generator)[0]/self.wxsec('fewz3p1')[0]
         values = {}
         histo_file = ROOT.TFile(infile, 'READ')
         for pol in polarizations:
@@ -127,6 +131,7 @@ class util:
                     histo_systs = histo_file.Get(binname+'_'+s)
                     envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
                     if doAlphaS: envelope = 1.5*envelope # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) 
+                    envelope = rescale*envelope
                 xsecs.append(float(envelope))
             values[pol] = xsecs
         histo_file.Close()
@@ -792,4 +797,60 @@ class util:
         t_fitres = fitresults.Get('fitresults')
         channel = 'el' if 'ErfPar0EffStat1elminus' in t_fitres.GetListOfBranches() else 'mu'
         return channel
+
+    def wxsec(self,generator='mcatnlo'):
+        # FEWZ3.1 comes from https://twiki.cern.ch/twiki/bin/viewauth/CMS/StandardModelCrossSectionsat13TeV
+        # 770.9  pb is the PDF uncertainty
+        # +165.7 -88.2 is the QCD scales uncertainty
+        # for the native mcatnlo 110 pb is added in quadrature since it is the stat error on the partial sample (JB recomputed it -cf mail of 8/8/2019)
+        xsec = {'fewz3p1': (3*20508.9,math.hypot(165.7,770.9),math.hypot(88.2,770.9)),
+                'mcatnlo': (60400,    math.hypot(110,math.hypot(165.7,770.9)),math.hypot(110,math.hypot(88.2,770.9)))}
+        if generator not in xsec:
+            print "ERROR! Generator ",generator," unknown. Returning 0 xsec"
+            return (0,-1,-1)
+        return xsec[generator]
+
+    def getL1SF(self,pt,eta,histo):
+        ret = (0,0)
+        if not histo: 
+            print "The ", histo, " is not present in the file ",rfile
+            return ret
+        etabin = max(1, min(histo.GetNbinsX(), histo.GetXaxis().FindFixBin(eta)))
+        ptbin  = max(1, min(histo.GetNbinsY(), histo.GetYaxis().FindFixBin(pt)))
+        ret = ( histo.GetBinContent(etabin,ptbin), histo.GetBinError(etabin,ptbin) )
+        return ret
+
+    def getEffSyst(self,pdgId):
+        if abs(pdgId)==11:
+            etabins_el = array.array('f',[0.0, 1.0, 1.479, 2.0, 2.2, 2.5])
+            h1d = ROOT.TH1F('effsysth','',len(etabins_el)-1,etabins_el)
+            h1d.SetBinContent(1, 0.006)
+            h1d.SetBinContent(2, 0.008)
+            h1d.SetBinContent(3, 0.013)
+            h1d.SetBinContent(4, 0.016)
+            h1d.SetBinContent(5, 0.019)
+        elif abs(pdgId)==13:
+            etabins_mu = array.array('f',[0.0, 1.0, 1.5, 2.4])
+            h1d = ROOT.TH1F('effsysth','',len(etabins_mu)-1,etabins_mu)
+            h1d.SetBinContent(1, 0.002)
+            h1d.SetBinContent(2, 0.004)
+            h1d.SetBinContent(3, 0.014)
+        return h1d
+
+    def getExclusiveBinnedSyst(self,th1):
+        th1_excl = th1.Clone(th1.GetName()+'_exclusive')
+        
+        for ibin in range(1,th1.GetNbinsX()+1):
+            tmp_val_sq = math.pow(th1.GetBinContent(ibin),2)
+            for inner_bin in range(1,ibin):
+                tmp_val_sq = tmp_val_sq - math.pow(th1_excl.GetBinContent(inner_bin),2)
+                if tmp_val_sq<0:
+                    print "WARNING! getExclusiveBinnedSyst cropping syst at 0. "
+                    tmp_val_sq = 0
+                    break
+            th1_excl.SetBinContent(ibin,math.sqrt(tmp_val_sq))
+        return th1_excl
+
+                                              
+
 
