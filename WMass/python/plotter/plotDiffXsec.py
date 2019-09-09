@@ -12,14 +12,14 @@ onlyData = 1
 skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 0
-skipPostfit = 1  # only for Data
+skipPostfit = 0  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 0
+allPtBinsSignal = 1
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -36,12 +36,12 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
@@ -51,6 +51,7 @@ lepton = "electron" if flavour == "el"  else "muon"
 if doMuElComb:
     allPtBinsSignal = 1
     folder = "muElCombination_allSig"
+    #folder = "muElCombination_1Sept2019"
     skipTemplate = 1
     flavour = "lep"
     lepton = "lepton"
@@ -82,13 +83,14 @@ if plotSingleCharge and doMuElComb:
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 
 if flavour == "el":
-    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSide"
+    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSideExtremePtFromOld2BinsForOut"
 else:
-    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSide"
+    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
 
 if doMuElComb:
     #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
-    postfix = "combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMu"
+    postfix = "combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
+    #postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld"
                
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
@@ -110,13 +112,14 @@ ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
 diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr", 
-                      #"muR.*|muF.*", 
+                      "muR.*|muF.*", 
                       #"Fakes(Eta|Pt).*[0-9]+mu.*", 
-                      #"Fakes(Eta|Pt).*[0-9]+el.*", 
+                      #"Fakes(Eta|Pt).*[0-9]+el.*",
+                      "Fakes(Eta|Pt).*[0-9]+(mu|el).*", 
                       #"ErfPar0EffStat.*", 
                       #"ErfPar1EffStat.*", 
                       #"ErfPar2EffStat.*", 
-                      "CMS_.*|.*smooth.*|.*TestEffSyst.*|mW|fsr", 
+                      "CMS_.*|.*smooth.*scale.*|.*TestEffSyst.*|mW|fsr|L1Prefire.*|OutOfAccPrefire.*", 
                       #"Wplus.*_ieta_.*_mu",     
                       #"Wminus.*_ieta_.*_mu"
                       ]

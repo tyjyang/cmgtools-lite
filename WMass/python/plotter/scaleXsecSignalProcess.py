@@ -79,7 +79,7 @@ for ikey,e in enumerate(tfno.GetListOfKeys()):
     nCopiedKeys += 1
     #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
     #sys.stdout.flush()
-    if (ikey+1) % 1000 == 0:
+    if (ikey+1) % 100 == 0:
         sys.stdout.write('Key {0:.2%}     \r'.format(float(ikey+1)/nKeys))
         sys.stdout.flush()
 print "Copied {n}/{tot} from {fn} to {fo}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=infile,fo=outfile)

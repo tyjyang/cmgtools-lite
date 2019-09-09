@@ -702,7 +702,7 @@ float ptScaleUncorr(float pt, float eta, int pdgid, int iPtVar, bool isUp = true
     //muons
     if      (iPtVar == 0)  ptsyst = 0.003; //0.3%
     else if (iPtVar == 1) {
-      if (abseta >= 2.1) ptsyst = 0.01; // 0.1%
+      if (abseta >= 2.1) ptsyst = 0.01; // 1.0%
     }
 
   } else {

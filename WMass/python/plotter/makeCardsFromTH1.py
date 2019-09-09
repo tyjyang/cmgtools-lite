@@ -303,7 +303,7 @@ parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', defau
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
-parser.add_option(       '--wAllXsecLnN'   , dest='wallLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all W processes (might be 0.05), mainly for tests')
+parser.add_option(       '--wAllXsecLnN'   , dest='wallLnN'        , default="", type='string', help='Log-normal constraint to be added to all W processes (might be 0.05), mainly for tests. It is a string to allow passing xDown/xUp forasymmetric LnN (in this case pass xDown first)')
 parser.add_option(       '--tauChargeLnN'   , dest='tauChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to tau for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--fakesChargeLnN' , dest='fakesChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to fakes for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
@@ -679,11 +679,16 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
 
 
 # norm unc on W processes, regardless whether thery are treated as background or signal
-if options.wallLnN > 0.0:
-    Wxsec   = "{0:.3f}".format(1.0 + options.wallLnN)    #"1.038"  # 3.8%
+if len(options.wallLnN):
+    Wxsec = ""
+    if "/" in options.wallLnN:
+        Wxsec =  "{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[0]))
+        Wxsec += "/{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[1]))
+    else:
+        Wxsec   = "{0:.3f}".format(1.0 + float(options.wallLnN))    #"1.038"  # 3.8%
     if not isExcludedNuisance(excludeNuisances, "CMS_Wall", keepNuisances): 
         allSystForGroups.append("CMS_Wall")
-        card.write(('%-16s lnN' % "CMS_Wall") + ' '.join([kpatt % (Wxsec if signalMatch in p else "-") for p in allprocesses]) + "\n")
+        card.write(('%-16s lnN' % "CMS_Wall") + ' '.join([kpatt % (Wxsec if signalMatch in p or p == "TauDecaysW" else "-") for p in allprocesses]) + "\n")
 
 if options.tauChargeLnN > 0.0:
     syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")

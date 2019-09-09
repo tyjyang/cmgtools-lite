@@ -7,7 +7,7 @@ doMuons=0
 skipUnpack=1
 skipMergeRoot=0
 skipSingleCard=0
-skipMergeCard=0  # disabled if fitting each charge (see below)
+skipMergeCard=0 # disabled if fitting each charge (see below)
 skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 #flavourCombinationOutdir = "muElCombination_1Sept2019"
 flavourCombinationOutdir = "muElCombination_allSig"
@@ -27,9 +27,17 @@ if fitSingleCharge:
     skipMergeCard = 1
     skipMergeCardFlavour = 1
 #
+#
+# manage usage of pt scales
 useSmoothPtScales = 0 # new smooth pt scales defined in mergeRootComponentsDiffXsec.py with addSmoothLepScaleSyst
+addSmoothPtScalesWithStandardOnExtremePtBins = 1  # use option --add-smooth-ptscale-extremePtFromStandard for merger
+# previous option requires useSmoothPtScales to be set to 0: basically this options add the smooth pt scales in the file, but still produces the old ones in the merger. Then, in the fits, it uses the new smooth ones
+if addSmoothPtScalesWithStandardOnExtremePtBins and useSmoothPtScales:
+    print "Warning: conflicting flags addSmoothPtScalesWithStandardOnExtremePtBins and useSmoothPtScales. Abort"
+    quit()
+
 useXsecWptWeights = 1  
-allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
+allPtBinsSignal = 0   # usually 1 for muons or combination, 0 for electrons
 distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
@@ -89,7 +97,7 @@ th3file = th3file_mu if doMuons else th3file_el
 #================================
 # some more things are set below
 excludeNuisRegexp = "CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff"
-if useSmoothPtScales:
+if useSmoothPtScales or addSmoothPtScalesWithStandardOnExtremePtBins:
     excludeNuisRegexp += ",.*CMS_W.*scale.*"
 if useBinUncEffStat: 
     excludeNuisRegexp = excludeNuisRegexp + "{comma}".format(comma="," if len(excludeNuisRegexp) else "") + ".*ErfPar\d+EffStat.*,.*BinEtaPtUncorrUncEffStat.*"
@@ -98,7 +106,7 @@ elif useBinEtaPtUncorrUncEffStat:
 else:
     excludeNuisRegexp = excludeNuisRegexp + "{comma}".format(comma="," if len(excludeNuisRegexp) else "") + ".*Bin.*UncEffStat.*"
 
-# pt scales are uncorrelated vs eta side. Is the symetrization necessary?
+# pt scales are uncorrelated vs eta side. Is the symetrization necessary? Maybe not if they are the smoothed ones
 nuisToSymmetrizeVsEta = ".*fsr.*|.*mW.*"
 if useSmoothPtScales:
     pass
@@ -114,7 +122,8 @@ optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z 
 optionsForCardMaker += " --exclude-nuisances '{expr}' ".format(expr=excludeNuisRegexp) 
 optionsForCardMaker += binnedSystOpt 
 
-#optionsForCardMaker += " --wAllXsecLnN 0.05 "
+optionsForCardMaker += " --wAllXsecLnN '0.05/0.03' "  # justified from first principles, because our decorrelation scheme for the qcd scales otherwise reduces the overall xsec uncertainty unreasonably
+
 
 if len(uncorrelateNuisancesByCharge):
     optionsForRootMerger += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)
@@ -123,6 +132,10 @@ if len(uncorrelateNuisancesByCharge):
 if useSmoothPtScales:
     optionsForRootMerger += " --use-smooth-ptscale "
     optionsForCardMaker  += " --use-smooth-ptscale "
+if addSmoothPtScalesWithStandardOnExtremePtBins:
+    optionsForRootMerger += " --add-smooth-ptscale-extremePtFromStandard " # here do not use --use-smooth-ptscale
+    optionsForCardMaker  += " --use-smooth-ptscale " # note that here the smooth pt scales should be used in the datacard
+
 
 if uncorrelatePtScalesByCharge:
     optionsForRootMerger += " --uncorrelate-ptscale-by-charge "
@@ -153,8 +166,8 @@ postfixCardMaker = "_symFSRptScalemW"
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSide"
-else      : postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSide"
+if doMuons: postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
+else      : postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  
     optionsForCardMakerMerger += " --freezePOIs "
@@ -167,8 +180,9 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-#optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_ptScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMu --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+#optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld --sig-out-bkg --skip-hadd-xsec "
+#--no-text2hdf5 --no-combinetf " # " --useSciPyMinimizer " # " --skip-hadd-xsec --just-fit " 
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 #================================
 

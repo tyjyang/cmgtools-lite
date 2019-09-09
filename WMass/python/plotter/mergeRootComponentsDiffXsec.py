@@ -24,133 +24,135 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import putUncorrelatedFakes
 from w_helicity_13TeV.mergeCardComponentsAbsY import putEffSystHistos # for electron L1-prefire uncertainty
 from w_helicity_13TeV.mergeCardComponentsAbsY import addZOutOfAccPrefireSyst # for ele L1-prefire uncertainty on Z
 
+from addSmoothPtScaleToShape import addSmoothLepScaleSyst
+
 # experimental function for momentum scales
-def addSmoothLepScaleSyst(infile,regexp,charge, isMu, outdir=None, 
-                          uncorrelateByCharge=False,
-                          uncorrelateByEtaSide=False):
+# def addSmoothLepScaleSyst(infile,regexp,charge, isMu, outdir=None, 
+#                           uncorrelateByCharge=False,
+#                           uncorrelateByEtaSide=False):
 
-    indir = outdir if outdir != None else options.inputdir
-    flav = 'mu' if isMu else 'el'
+#     indir = outdir if outdir != None else options.inputdir
+#     flav = 'mu' if isMu else 'el'
 
-    # get eta-pt binning for reco 
-    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
-    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
-    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+#     # get eta-pt binning for reco 
+#     etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+#     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+#     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
 
-    tmp_infile = ROOT.TFile(infile, 'read')
-    outfile = ROOT.TFile(indir+'/SmoothScaleSyst_{flav}_{ch}.root'.format(flav=flav,ch=charge), 'recreate')
+#     tmp_infile = ROOT.TFile(infile, 'read')
+#     outfile = ROOT.TFile(indir+'/SmoothScaleSyst_{flav}_{ch}.root'.format(flav=flav,ch=charge), 'recreate')
 
-    ## scale systematics as a function of eta
-    etabins_mu = array('f',[0.0, 2.1, 2.4])
+#     ## scale systematics as a function of eta
+#     etabins_mu = array('f',[0.0, 2.1, 2.4])
 
-    scaleSyst_mu = ROOT.TH1F('scaleSyst_mu','',len(etabins_mu)-1,etabins_mu)
-    scaleSyst_mu.SetBinContent(1,0.003)
-    scaleSyst_mu.SetBinContent(2,0.010)
+#     scaleSyst_mu = ROOT.TH1F('scaleSyst_mu','',len(etabins_mu)-1,etabins_mu)
+#     scaleSyst_mu.SetBinContent(1,0.003)
+#     scaleSyst_mu.SetBinContent(2,0.010)
     
-    etabins_el = array('f',[0.0, 1.0, 1.5, 2.1, 2.4])
-    scaleSyst_el = ROOT.TH1F('scaleSyst_el','',len(etabins_el)-1,etabins_el)
-    scaleSyst_el.SetBinContent(1,0.003)
-    scaleSyst_el.SetBinContent(2,0.005)
-    scaleSyst_el.SetBinContent(3,0.008)
-    scaleSyst_el.SetBinContent(4,0.01)
+#     etabins_el = array('f',[0.0, 1.0, 1.5, 2.1, 2.4])
+#     scaleSyst_el = ROOT.TH1F('scaleSyst_el','',len(etabins_el)-1,etabins_el)
+#     scaleSyst_el.SetBinContent(1,0.003)
+#     scaleSyst_el.SetBinContent(2,0.005)
+#     scaleSyst_el.SetBinContent(3,0.008)
+#     scaleSyst_el.SetBinContent(4,0.01)
         
-    if isMu:
-        scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_mu)
-        etabins = etabins_mu
-    else:
-        scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_el)
-        etabins = etabins_el
+#     if isMu:
+#         scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_mu)
+#         etabins = etabins_mu
+#     else:
+#         scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_el)
+#         etabins = etabins_el
 
     
-    for k in tmp_infile.GetListOfKeys():
-        tmp_name = k.GetName()
-        ## don't reweight any histos that don't match the regexp
-        if not re.match(regexp, tmp_name): continue
-        ## don't reweight any histos that are already variations of something else
-        if 'Up' in tmp_name or 'Down' in tmp_name: continue
-        process = tmp_name.split('_')[1]
+#     for k in tmp_infile.GetListOfKeys():
+#         tmp_name = k.GetName()
+#         ## don't reweight any histos that don't match the regexp
+#         if not re.match(regexp, tmp_name): continue
+#         ## don't reweight any histos that are already variations of something else
+#         if 'Up' in tmp_name or 'Down' in tmp_name: continue
+#         process = tmp_name.split('_')[1]
 
-        ## now should be left with only the ones we are interested in
-        print 'reweighting smooth lepscale syst for process', tmp_name
+#         ## now should be left with only the ones we are interested in
+#         print 'reweighting smooth lepscale syst for process', tmp_name
         
-        tmp_nominal = tmp_infile.Get(tmp_name)
-        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
-        n_ptbins = tmp_nominal_2d.GetNbinsY()
+#         tmp_nominal = tmp_infile.Get(tmp_name)
+#         tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+#         n_ptbins = tmp_nominal_2d.GetNbinsY()
 
-        etasides = [-1, 1] if uncorrelateByEtaSide else [1]
+#         etasides = [-1, 1] if uncorrelateByEtaSide else [1]
 
-        for side in etasides:
-            sideTag = "" if not uncorrelateByEtaSide else "etaside{s}".format(s="P" if side > 0 else "M")
-            for systBin in xrange(len(etabins)-1):
-                etasyst = scaleSyst.GetXaxis().GetBinCenter(systBin+1)
-                for shift_dir in ['Up','Down']:
-                    outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{st}{shiftdir}'.format(lep=flav,idx=systBin,shiftdir=shift_dir,ch=charge if uncorrelateByCharge else "",st=sideTag)
-                    tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
-                    tmp_scaledHisto.Reset()
+#         for side in etasides:
+#             sideTag = "" if not uncorrelateByEtaSide else "etaside{s}".format(s="P" if side > 0 else "M")
+#             for systBin in xrange(len(etabins)-1):
+#                 etasyst = scaleSyst.GetXaxis().GetBinCenter(systBin+1)
+#                 for shift_dir in ['Up','Down']:
+#                     outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{st}{shiftdir}'.format(lep=flav,idx=systBin,shiftdir=shift_dir,ch=charge if uncorrelateByCharge else "",st=sideTag)
+#                     tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
+#                     tmp_scaledHisto.Reset()
 
-                    ## loop over all eta bins of the 2d histogram 
-                    for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
-                        eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
-                        scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
-                        for ipt in range(1,tmp_nominal_2d.GetNbinsY()+1):                            
-                            if abs(eta)>etabins[systBin]:
-                                if (uncorrelateByEtaSide and eta*float(side) < 0):
-                                    # we want to uncorrelate, but this eta is the other side
-                                    tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
-                                else:
-                                    ## assume uniform distribution within a bin
-                                    if shift_dir == "Up":
-                                        if ipt == 1: continue
-                                        # assuming 1% scale variations and a bin with pt in [25, 26] GeV 
-                                        # (and previous bin from 24 to 25), only the events in the previous bin 
-                                        # for which (1+0.01)*pt' > 25 will move to the bin in [25, 26], so this pt' 
-                                        # is 25/1.01=24.7525 GeV, which corresponds to a fraction of events in 
-                                        # previous bin of 24.75%
-                                        # so, if ptl is the low-pt edge, and x is the scale variation (scaleSyst_mu/el)
-                                        # we can write DeltaN_low = |ptl - ptl/(1+x)|/binWidth_low * binContent_low =
-                                        # = x/(1+x) *ptl/binWidth_low * binContent_low
-                                        pt      = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
-                                        pt_prev = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
-                                        nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
-                                        nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
-                                        pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
-                                        pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
-                                        factor = scale_syst / (1.0 + scale_syst)
-                                        from_prev = factor * (pt_prev / pt_width_prev) * max(0,nominal_val_prev)
-                                        to_right  = factor * (pt      / pt_width     ) * max(0,nominal_val)
-                                        tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_right))
-                                    else:
-                                        if ipt == tmp_nominal_2d.GetNbinsY(): continue
-                                        # same logic as before, but now (1-0.01)*pt' < 25 --> pt'< 25.2525 
-                                        pt     = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
-                                        pt_seq = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
-                                        nominal_val     = tmp_nominal_2d.GetBinContent(ieta,ipt)
-                                        nominal_val_seq = tmp_nominal_2d.GetBinContent(ieta,ipt+1)
-                                        pt_width     = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
-                                        pt_width_seq = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt+1)
-                                        factor = scale_syst / (1.0 - scale_syst)
-                                        from_seq = factor * (pt_seq / pt_width_seq) * max(0,nominal_val_seq)
-                                        to_left  = factor * (pt     / pt_width    ) * max(0,nominal_val)
-                                        tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_seq - to_left))
-                            else:
-                                tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
-                        ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
-                        if shift_dir == "Up":
-                            factor_bin2 = tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2) if tmp_nominal_2d.GetBinContent(ieta,2) else 0
-                            tmp_scaledHisto.SetBinContent(ieta,1,factor_bin2 *tmp_nominal_2d.GetBinContent(ieta,1))
-                        else:
-                            binLastMinus1 = tmp_nominal_2d.GetNbinsY() - 1
-                            factor_binLastMinus1 = tmp_scaledHisto.GetBinContent(ieta,binLastMinus1)/tmp_nominal_2d.GetBinContent(ieta,binLastMinus1) if tmp_nominal_2d.GetBinContent(ieta,binLastMinus1) else 0
-                            tmp_scaledHisto.SetBinContent(ieta,tmp_nominal_2d.GetNbinsY(),factor_binLastMinus1 *tmp_nominal_2d.GetBinContent(ieta,tmp_nominal_2d.GetNbinsY()))
+#                     ## loop over all eta bins of the 2d histogram 
+#                     for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+#                         eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+#                         scale_syst = scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
+#                         for ipt in range(1,tmp_nominal_2d.GetNbinsY()+1):                            
+#                             if abs(eta)>etabins[systBin]:
+#                                 if (uncorrelateByEtaSide and eta*float(side) < 0):
+#                                     # we want to uncorrelate, but this eta is the other side
+#                                     tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
+#                                 else:
+#                                     ## assume uniform distribution within a bin
+#                                     if shift_dir == "Up":
+#                                         if ipt == 1: continue
+#                                         # assuming 1% scale variations and a bin with pt in [25, 26] GeV 
+#                                         # (and previous bin from 24 to 25), only the events in the previous bin 
+#                                         # for which (1+0.01)*pt' > 25 will move to the bin in [25, 26], so this pt' 
+#                                         # is 25/1.01=24.7525 GeV, which corresponds to a fraction of events in 
+#                                         # previous bin of 24.75%
+#                                         # so, if ptl is the low-pt edge, and x is the scale variation (scaleSyst_mu/el)
+#                                         # we can write DeltaN_low = |ptl - ptl/(1+x)|/binWidth_low * binContent_low =
+#                                         # = x/(1+x) *ptl/binWidth_low * binContent_low
+#                                         pt      = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
+#                                         pt_prev = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
+#                                         nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
+#                                         nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
+#                                         pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+#                                         pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
+#                                         factor = scale_syst / (1.0 + scale_syst)
+#                                         from_prev = factor * (pt_prev / pt_width_prev) * max(0,nominal_val_prev)
+#                                         to_right  = factor * (pt      / pt_width     ) * max(0,nominal_val)
+#                                         tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_right))
+#                                     else:
+#                                         if ipt == tmp_nominal_2d.GetNbinsY(): continue
+#                                         # same logic as before, but now (1-0.01)*pt' < 25 --> pt'< 25.2525 
+#                                         pt     = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
+#                                         pt_seq = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
+#                                         nominal_val     = tmp_nominal_2d.GetBinContent(ieta,ipt)
+#                                         nominal_val_seq = tmp_nominal_2d.GetBinContent(ieta,ipt+1)
+#                                         pt_width     = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+#                                         pt_width_seq = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt+1)
+#                                         factor = scale_syst / (1.0 - scale_syst)
+#                                         from_seq = factor * (pt_seq / pt_width_seq) * max(0,nominal_val_seq)
+#                                         to_left  = factor * (pt     / pt_width    ) * max(0,nominal_val)
+#                                         tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_seq - to_left))
+#                             else:
+#                                 tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
+#                         ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
+#                         if shift_dir == "Up":
+#                             factor_bin2 = tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2) if tmp_nominal_2d.GetBinContent(ieta,2) else 0
+#                             tmp_scaledHisto.SetBinContent(ieta,1,factor_bin2 *tmp_nominal_2d.GetBinContent(ieta,1))
+#                         else:
+#                             binLastMinus1 = tmp_nominal_2d.GetNbinsY() - 1
+#                             factor_binLastMinus1 = tmp_scaledHisto.GetBinContent(ieta,binLastMinus1)/tmp_nominal_2d.GetBinContent(ieta,binLastMinus1) if tmp_nominal_2d.GetBinContent(ieta,binLastMinus1) else 0
+#                             tmp_scaledHisto.SetBinContent(ieta,tmp_nominal_2d.GetNbinsY(),factor_binLastMinus1 *tmp_nominal_2d.GetBinContent(ieta,tmp_nominal_2d.GetNbinsY()))
 
-                    ## re-roll the 2D to a 1D histo
-                    tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''), cropNegativeBins=False)
+#                     ## re-roll the 2D to a 1D histo
+#                     tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''), cropNegativeBins=False)
 
-                    outfile.cd()
-                    tmp_scaledHisto_1d.Write()
-        # end loop on sides
-    outfile.Close()
-    print "done with the smooth lep scale variations"
+#                     outfile.cd()
+#                     tmp_scaledHisto_1d.Write()
+#         # end loop on sides
+#     outfile.Close()
+#     print "done with the smooth lep scale variations"
 
 
 def makeAlternateFromSymmetricRatio(alt, nomi, binning):
@@ -912,6 +914,7 @@ parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateN
 parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="string", default='', help="Regular expression matching systematics whose histograms should be obtained by making the ratio with nominal symmetric in eta");
 parser.add_option(       '--distinguish-name-sig-as-bkg', dest='distinguishNameSigAsBkg' , default=False, action='store_true', help='Use different name (hardcoded for now) to identify name of signal processes that are treated as background. Mainly for first pt bins of electrons when combining with muons, so to keep treating them as background in the combination (requires another option to specify the bins)')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
+parser.add_option(       '--add-smooth-ptscale-extremePtFromStandard', dest='addSmoothPtScalesWithStandardOnExtremePtBins' , default=False, action='store_true', help='Add smooth pt scales along with native ones. The code behaves as if the old ones are used, but also add the smooth ones with the extreme pt bins being copied from the standard ones. It requires not using --use-smooth-ptscale')
 #parser.add_option("--pt-bins-name-change", dest="ptBinsNameChange", type="string", default='0,1', help="Comma separated list of pt bins for which the process name should be changed");
 (options, args) = parser.parse_args()
     
@@ -1141,11 +1144,17 @@ if not options.dryrun:
         #    if any(x in name for x in ["muR", "muF", "muRmuF"]): continue
         newname = name
         if "x_TauDecaysW_wtau_" in name: newname = newname.replace("x_TauDecaysW_wtau_","x_TauDecaysW_")        
-        if re.match(".*(mu|ele)scale.*",newname) and not re.match(".*CMS_W(mu|e)_(mu|ele)scale.*",newname):
-            if flavour == "el": 
-                newname = newname.replace("elescale", "CMS_We_elescale")
-            else: 
-                newname = newname.replace("muscale", "CMS_Wmu_muscale")
+        # patch for bad name due to syst missing in systEnv (but not mca) when running jobs
+        # it happened in the muon channel only
+        # should not be needed anymore now, but keep the lines for future reference
+        # if not options.useSmoothPtScales:
+        #     if re.match(".*(mu|ele)scale.*",newname) and not re.match(".*CMS_W(mu|e)_(mu|ele)scale.*",newname):
+        #         if re.match(".*_(Up|Dn|Down)",newname): 
+        #             newname = newname.replace("_Up","Up").replace("_Dn","Dn").replace("_Down","Down") 
+        #         if flavour == "el": 
+        #             newname = newname.replace("elescale", "CMS_We_elescale")
+        #         else: 
+        #             newname = newname.replace("muscale", "CMS_Wmu_muscale")
         if name == "x_TauDecaysW": taunominal = obj.Clone(name)
         if "_pdf" in name:
             taupdf.append(obj.Clone(newname))
@@ -1381,38 +1390,6 @@ if flavour == "el":
 # end of prefiring
 ####################
 
-# now smooth momentum scales, obtained with addSmoothLepScaleSyst()
-# nuis names smooth{lep}scale{idx}: lep=mu/el, idx goes from 0 to N-1, N=2(4) for mu(el)
-if options.useSmoothPtScales:
-    print "Now adding smooth pt scales"
-    if options.uncorrelatePtScaleByCharge:
-        print "pt scales will be uncorrelated between charges"
-    if options.uncorrelatePtScaleByEtaSide:
-        print "pt scales will be uncorrelated between eta sides"
-    fileSmoothPtScales = "{od}SmoothScaleSyst_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)
-    shapenameNoSmoothPtScales = shapename.replace("_shapes","_shapes_noSmoothPtScales")
-    print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoSmoothPtScales)
-    if not options.dryrun: 
-        os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoSmoothPtScales))
-        addSmoothLepScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge,
-                              isMu=True if flavour=="mu" else False,  
-                              outdir=outdir, 
-                              uncorrelateByCharge=options.uncorrelatePtScaleByCharge,
-                              uncorrelateByEtaSide=options.uncorrelatePtScaleByEtaSide)
-    cmdMergeWithSmoothPtScales = "hadd -f -k -O {of} {shapeNoSmoothPtScales} {onlySmoothPtScales}".format(of=shapename, shapeNoSmoothPtScales=shapenameNoSmoothPtScales, onlySmoothPtScales=fileSmoothPtScales)
-
-    print "Now finally merging smooth(mu|el)scaleYY systematics into {of} ...".format(of=shapename)
-    print cmdMergeWithSmoothPtScales
-    rmcmd = "rm {shapeNoSmoothPtScales}".format(shapeNoSmoothPtScales=shapenameNoSmoothPtScales)
-    print rmcmd
-    if not options.dryrun: 
-        os.system(cmdMergeWithSmoothPtScales)
-        os.system(rmcmd)
-    print ""
-    print "Wrote again root file in %s" % shapename
-    print ""
-
-
 # test: symmetrize ratio of some systs over nominal, and redefine the alternate as nominal times symmetrized ratio 
 # symmetrizing the ratio of some alternate histograms with nominal versus eta
 if options.symSystRatio:
@@ -1596,6 +1573,42 @@ if options.uncorrelatePtScaleByEtaSide and not options.useSmoothPtScales:
 print ""
 print "-"*20
 print ""
+
+
+# now smooth momentum scales, obtained with addSmoothLepScaleSyst()
+# nuis names smooth{lep}scale{idx}: lep=mu/el, idx goes from 0 to N-1, N=2(4) for mu(el)
+# these are added on top of the unsmoothed ones (the standard ones).
+# one can choose to define the extreme pt bins from the standard ones (this algorithm do not work for those bins)
+# that's why we keep this step as the last one (we already need all the standard momentum scales)
+if options.useSmoothPtScales or options.addSmoothPtScalesWithStandardOnExtremePtBins:
+    print "Now adding smooth pt scales"
+    if options.uncorrelatePtScaleByCharge:
+        print "pt scales will be uncorrelated between charges"
+    if options.uncorrelatePtScaleByEtaSide:
+        print "pt scales will be uncorrelated between eta sides"
+    fileSmoothPtScales = "{od}SmoothScaleSyst_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)
+    shapenameNoSmoothPtScales = shapename.replace("_shapes","_shapes_noSmoothPtScales")
+    print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoSmoothPtScales)
+    if not options.dryrun: 
+        os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoSmoothPtScales))
+        addSmoothLepScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge,
+                              isMu=True if flavour=="mu" else False,  
+                              outdir=outdir, 
+                              uncorrelateByCharge=options.uncorrelatePtScaleByCharge,
+                              uncorrelateByEtaSide=options.uncorrelatePtScaleByEtaSide,
+                              getExtremePtBinsFromOldScale=True if options.addSmoothPtScalesWithStandardOnExtremePtBins else False)
+    cmdMergeWithSmoothPtScales = "hadd -f -k -O {of} {shapeNoSmoothPtScales} {onlySmoothPtScales}".format(of=shapename, shapeNoSmoothPtScales=shapenameNoSmoothPtScales, onlySmoothPtScales=fileSmoothPtScales)
+
+    print "Now finally merging smooth(mu|el)scaleYY systematics into {of} ...".format(of=shapename)
+    print cmdMergeWithSmoothPtScales
+    rmcmd = "rm {shapeNoSmoothPtScales}".format(shapeNoSmoothPtScales=shapenameNoSmoothPtScales)
+    print rmcmd
+    if not options.dryrun: 
+        os.system(cmdMergeWithSmoothPtScales)
+        os.system(rmcmd)
+    print ""
+    print "Wrote again root file in %s" % shapename
+    print ""
 
 
 
