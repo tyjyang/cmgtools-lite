@@ -1290,7 +1290,7 @@ if __name__ == "__main__":
             if isExcludedNuisance(excludeNuisances, sys): continue
             systscale = '1.0' if sys!='alphaS' else '0.67' # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) => variations correspond to 0.67sigma
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            combinedCard.write('%-15s   shape %s\n' % (sys,(" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
+            combinedCard.write('%-15s   shape%s %s\n' % (sys,'NoProfile' if re.match('smooth(mu|el)scale.*|fsr',sys) else '', (" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
 
         cardlines = [line.rstrip('\n') for line in open(cardfile,'r')]
