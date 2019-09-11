@@ -292,11 +292,15 @@ class util:
      
         return -1
 
-    def getFromHessian(self, infile, keepGen=False):
+    def getFromHessian(self, infile, keepGen=False, takeEntry=0):
         _dict = {}
         
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')
+        if tree.GetEntries() > 1:
+            print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
+            print 'will take the first entry by default. unless specified otherwise'
+            ##sys.exit()
         lok  = tree.GetListOfLeaves()
         for p in lok:
             if '_err'   in p.GetName(): continue
@@ -306,10 +310,8 @@ class util:
 
             if not p.GetName()+'_err' in lok and not keepGen: continue
 
-            if tree.GetEntries() > 1:
-                print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
-                sys.exit()
-            for ev in tree:
+            for iev,ev in enumerate(tree):
+                if not iev == takeEntry: continue ## this should work... i guess.
                 mean = getattr(ev, p.GetName())
                 err  = getattr(ev, p.GetName()+'_err') if hasattr(ev, p.GetName()+'_err') else 0
 
