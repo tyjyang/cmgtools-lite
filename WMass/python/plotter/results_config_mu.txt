@@ -1,4 +1,4 @@
-basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/sprungli_crusauvage/fitsout_2019-07-23/'
+basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/opium/fitsout_2019-09-11/'
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_mu/'
 
 dirWithToyFits = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/'
