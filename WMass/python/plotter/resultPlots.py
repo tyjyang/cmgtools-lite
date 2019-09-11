@@ -53,10 +53,10 @@ if __name__ == '__main__':
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['']
-        nTnPUnc = 3 if muEl=='mu' else 2
+        nTnPUnc = 3 if muEl=='mu' else 4
         systs += ['TnPEffSyst{idx}{flav}'.format(idx=i,flav=muEl) for i in range(0,nTnPUnc)]
-        ysts += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
-        ysts += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
+        systs += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
+        systs += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
         systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
@@ -75,7 +75,7 @@ if __name__ == '__main__':
             os.system('mkdir -p {od}/singleRapidity'.format(od=tmp_outdir))
             os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}/singleRapidity'.format(od=tmp_outdir))
             for rapBin in [0,8,9]:
-                cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od}/singleRapidity -s {p} --singleRap {iy} {d} {ch}'.format(od=tmp_outdir, p=nuis, iy=rapBin, d=results['cardsdir'], ch=muEl)
+                cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od}/singleRapidity -s {p} {d} {ch} --singleRap {iy}'.format(od=tmp_outdir, p=nuis, iy=rapBin, d=results['cardsdir'], ch=muEl)
                 print "Now running: ",cmd
                 os.system(cmd)
 

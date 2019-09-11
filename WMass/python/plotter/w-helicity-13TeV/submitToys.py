@@ -49,7 +49,6 @@ Error      = {ed}/$(ProcId).error
 getenv      = True
 next_job_start_delay = 1
 environment = "LS_SUBCWD={here}"
-request_memory = 4000
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor),ed=os.path.abspath(errdir),
            rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
@@ -126,8 +125,9 @@ if __name__ == "__main__":
         tmp_file = open(job_file_name, 'w')
 
         tmp_filecont = jobstring_tf
-        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --nThreads {nthr} '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1,nthr=options.nThreads)        
+        cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1)        
         if fixPOIs: cmd += ' --POIMode none '
+        else:  cmd += ' --doSmoothnessTest '
         if options.binByBinStat : 
             cmd += ' --binByBinStat '
             if options.correlateXsecStat: cmd += ' --correlateXsecStat '  # make sense only with --binByBinStat
