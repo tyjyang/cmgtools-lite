@@ -30,6 +30,7 @@ def dressed2D(h1d,binning,name,title=''):
     h2_backrolled_1 .GetXaxis().SetTitle('lepton #eta')
     h2_backrolled_1 .GetYaxis().SetTitle('lepton p_{T} (GeV)')
     h2_backrolled_1 .GetZaxis().SetRangeUser(0.01*h2_backrolled_1.GetMaximum(),1.1*h2_backrolled_1.GetMaximum())
+    #h2_backrolled_1 .GetZaxis().SetRangeUser(0,1.1*h2_backrolled_1.GetMaximum())
     return h2_backrolled_1
 
 def unroll2Dto1D(h,newname='',cropNegativeBins=True):
@@ -58,8 +59,8 @@ def reverseUnroll2Dto1D(h,newname='',cropNegativeBins=True):
     h2swap = ROOT.TH2D(h.GetName()+'_swapped','',
                        h.GetNbinsY(),h.GetYaxis().GetBinLowEdge(1),h.GetYaxis().GetBinUpEdge(h.GetNbinsY()),
                        h.GetNbinsX(),h.GetXaxis().GetBinLowEdge(1),h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
-    for ieta in range(h.GetNbinsX()):
-        for ipt in range(h.GetNbinsY()):
+    for ieta in range(1,h.GetNbinsX()+1):
+        for ipt in range(1,h.GetNbinsY()+1):
             h2swap.SetBinContent(ipt,ieta,h.GetBinContent(ieta,ipt))
             h2swap.SetBinError(ipt,ieta,h.GetBinError(ieta,ipt))
     return unroll2Dto1D(h2swap,newname,cropNegativeBins)

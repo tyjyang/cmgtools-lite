@@ -20,6 +20,7 @@ if channel not in ['mu','el','lep']:
     sys.exit()
 
 pois = [('poim1',''),('poim0',' --POIMode none ')]
+#pois = [('poim0',' --POIMode none ')]
 expected = [('exp1',' -t -1 '),('exp0',' -t 0 ')]
 #BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
 BBBs = [('bbb1',' --binByBinStat --correlateXsecStat ')]
@@ -59,12 +60,13 @@ for itoy in range(options.toys) if options.toys else range(1):
     for ipm,POImode in pois:
         card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if ipm=='poim1' else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
         doImpacts = ' --doImpacts ' if ipm=='poim1' else ''
+        smoothnessTest = ' --doSmoothnessTest ' if ipm=='poim1' else ''
         regularize = ' --doRegularization --regularizationUseLog --regularizationTau {tau} '.format(tau=taureg) if ipm=='poim1' and options.regularize else ''
         for iexp,exp in expected:
             saveHist = ' --saveHists --computeHistErrors '
             for ibbb,bbb in BBBs:
                 pfx = '--postfix {ipm}_{iexp}_{ibbb}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize)
+                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} {st} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest)
                 if options.useSciPy: 
                     cmd += ' --useSciPyMinimizer '
                 if options.toys:

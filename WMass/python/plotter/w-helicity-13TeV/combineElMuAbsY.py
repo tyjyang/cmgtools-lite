@@ -8,7 +8,7 @@ parser.add_option("--cmu", dest="cardsMu",  type="string", default="cards_mu", h
 
 outdir = args[0]
 
-suff = ['','_withXsecMask']
+suff = ['_withXsecMask','']
 #maskedChannels = ['InAcc','OutAcc']
 maskedChannels = ['InAcc'] # if the Y bins 10,11 are treated as bkg, then should not be masked channels
 inputdirs = {'el': options.cardsEl, 'mu': options.cardsMu}
