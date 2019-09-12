@@ -17,17 +17,18 @@ utilities = utilities.util()
 def niceSystName(label):
     if 'lepScale' in label: niceName = 'lepton scale'
     elif 'OtherBkg' in label: niceName = 'other bkg'
-    elif 'pdfs' in label: niceName = 'PDF'
+    elif 'pdfs' in label: niceName = 'PDFs #oplus #alpha_{S}'
     elif 'binByBinStat' in label: niceName = 'MC statistics'
     elif 'EffStat' in label: niceName = 'efficiency stat.'
     elif 'Fakes' in label: niceName = 'fakes'
     elif 'OtherExp' in label: niceName = 'other experimental'
     elif 'lumi' in label: niceName = 'luminosity'
-    elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}, #alpha_{S}'
+    elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}'
     elif 'QEDTheo' in label: niceName = 'FSR'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total'
     elif 'EffSyst' in label: niceName = 'efficiency syst.'
+    elif 'L1Prefire' in label: niceName = 'L1 prefire'
     else: niceName = label
     return niceName
 
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         pois_regexps = list(options.pois.split(','))
     
     hessfile = ROOT.TFile(args[0],'read')
-    valuesAndErrors = utilities.getFromHessian(args[0])
+    valuesAndErrors = utilities.getFromHessian(args[0], params = pois_regexps)
 
     group = 'group_' if len(options.nuisgroups) else ''
     if   options.target=='xsec':           target = 'pmaskedexp'
@@ -376,7 +377,7 @@ if __name__ == "__main__":
                     h = ROOT.TH1D(charge+'_'+pol+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
                     summaries[(charge,pol,nuisgroup)] = h
                     summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
-                    if nuisgroup in ["QCDTheo"]:
+                    if nuisgroup in ["QCDTheo","L1Prefire"]:
                         summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
                         summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
                         ing2 += 1
@@ -450,6 +451,7 @@ if __name__ == "__main__":
                     elif ng=='stat'        : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle); summaries[(charge,pol,ng)].SetMarkerColor(ROOT.kBlack); summaries[(charge,pol,ng)].SetLineColor(ROOT.kBlack);
                     elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
                     elif ng=='QEDTheo'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
+                    elif ng=='L1Prefire'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
                     else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                     leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
                     # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
@@ -503,7 +505,7 @@ if __name__ == "__main__":
                 #print "Last bin right edge: " + str(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
                 summaries[(charge,nuisgroup)] = h
                 summaries[(charge,nuisgroup)].SetMarkerSize(2)
-                if nuisgroup in ["QEDTheo"]:
+                if nuisgroup in ["QEDTheo","L1Prefire"]:
                     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
                     summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
                     ing2 += 1
@@ -642,6 +644,8 @@ if __name__ == "__main__":
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullSquare)
                 elif ng=='QEDTheo'  : 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
+                elif ng=='L1Prefire'  : 
+                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
                 else: 
                     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                 leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
