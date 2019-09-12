@@ -51,7 +51,8 @@ def normalizeTH1unrolledSingleChargebyBinWidth(h1, h2, unrollAlongX=True):
 
 
 
-def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
+def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2, 
+              isComb=False, isMuPlot=True, nRecoBins=0):
     if len(binning) == 4:
         n1 = binning[0]; bins1 = array('d', binning[1])
         n2 = binning[2]; bins2 = array('d', binning[3])
@@ -60,9 +61,15 @@ def dressed2D(h1d,binning,name,title='',shift=0,nCharges=2,nMaskedCha=2):
         n1 = binning[0]; min1 = binning[1]; max1 = binning[2]
         n2 = binning[3]; min2 = binning[4]; max2 = binning[5]
         h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
-    h1d_shifted = singleChargeUnrolled(h1d,shift,nCharges,nMaskedCha)
+    h1d_shifted = singleChargeUnrolled(h1d,shift,nCharges,nMaskedCha, 
+                                       isComb=isComb, isMuPlot=isMuPlot, nRecoBins=nRecoBins)
     h2_backrolled_1 = roll1Dto2D(h1d_shifted, h2_1 )
     return h2_backrolled_1
+
+# the expproc histograms have the unrolled histograms for both charges (if the charge-combined fit was made) and flavours (if the flavour combined fit was made)
+# the order is charge plus, charge minus for charge combination
+# if the flavour combinations was made, each charge sector is in turn divided in muons-electrons
+# at the end, there are N bins where N is the number of charges in the fit times number of masked channels for each charge
 
 def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
     # guess from a signal with charge defined name
@@ -76,14 +83,23 @@ def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
         ret = {'plus': 0, 'minus': nbins}
     return ret
 
-def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2, name="shift"):
+# isComb = isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins = nRecoBins
+def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2, name="shift", isComb=False, isMuPlot=True,  nRecoBins=0):
     extrabins = 0 if 'obs' in h1d.GetName() else nCharges*nMaskedCha
     nbins = int((h1d.GetNbinsX()-extrabins)/2)
+    shiftFlavour = 0
+    if isComb:        
+        if isMuPlot:
+            nbins = nRecoBins        
+            shiftFlavour = 0
+        else:
+            shiftFlavour = nbins - nRecoBins # here nRecoBins is the number for electrons, so shiftFlavour is the number of muon bins
+            nbins = nRecoBins # only now we update nbins to the actual number of electro bins
     h1d_shifted = ROOT.TH1D(name,'',nbins,0,nbins)
     #h1d_shifted.SetBins(nbins,0.5,float(nbins)+0.5)
     for b in xrange(1,nbins+1):
-        h1d_shifted.SetBinContent(b,h1d.GetBinContent(b+shift))
-        h1d_shifted.SetBinError(b,h1d.GetBinError(b+shift))
+        h1d_shifted.SetBinContent(b,h1d.GetBinContent(b+shift+shiftFlavour))
+        h1d_shifted.SetBinError(b,h1d.GetBinError(b+shift+shiftFlavour))
     return h1d_shifted
 
 def prepareLegend(legWidth=0.50,textSize=0.035,nColumns=3):
@@ -262,7 +278,9 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot-signal-bin', dest="no2DplotSignalBin", default=True, action='store_true', help="Do not plot templates for each signal bin");
     parser.add_option('-n','--norm-width', dest="normWidth", default=False, action='store_true', help="Normalize histograms by bin area");
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
-
+    parser.add_option('--plot-flavour-from-combination', dest="plotFlavourFromComb", default='', type='string', help="For flavour combination only, specify which flavour to plot: mu or el");
+    #parser.add_option('--n-reco-bins', dest='nRecoBins', default=0, type='int', help='Number of reco bins for the flavour being plotted (only for combined fit)')
+    #parser.add_option("--pt-bins-name-change", dest="ptBinsNameChange", type="string", default='0,1', help="Comma separated list of pt bins for which the process name should be changed");
     (options, args) = parser.parse_args()
     if len(args) < 2:
         parser.print_usage()
@@ -271,20 +289,41 @@ if __name__ == "__main__":
 
     setTDRStyle()
 
+    isComb = False
+    channelCombToPlot = ""
+    if options.plotFlavourFromComb:
+        if options.plotFlavourFromComb not in ["mu","el"]:
+            print "Error: option --plot-flavour-from-combination need 'mu' or 'el' as argument. Abort"
+            quit()
+        isComb = True
+        channelCombToPlot = options.plotFlavourFromComb
+
     nCharges = 2; 
     nMaskedChanPerCharge = options.nMaskedChannel    
 
-    etaPtBinningFile = args[1]+"/binningPtEta.txt"
+    binningfile = "binningPtEta.txt"
+    if isComb:
+        if channelCombToPlot == "mu": 
+            binningfile = "binningPtEta_mu.txt"
+        else:
+            binningfile = "binningPtEta_el.txt"
+    etaPtBinningFile = args[1]+"/" + binningfile
+        
+    print "binning file: %s " % etaPtBinningFile 
     # get eta-pt binning for both reco and gen
     etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "reco")
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
     genEtaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
     genBins  = templateBinning(genEtaPtBinningVec[0],genEtaPtBinningVec[1])
 
+    nRecoBins = recoBins.NTotBins
+
     #following array is used to call function dressed2D()
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
 
     outname = options.outdir
+    if isComb: 
+        outname = outname + "/" + channelCombToPlot + "/"
     if not os.path.exists(outname):
         os.system("mkdir -p "+outname)
     if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/e/emanuele/public/index.php "+outname)
@@ -298,7 +337,9 @@ if __name__ == "__main__":
     infile = ROOT.TFile(args[0], 'read')
     #channel = 'mu' if any(['_mu_postfit' in k.GetName() for k in infile.GetListOfKeys()]) else 'el'
     channel = 'mu' if "diffXsec_mu_" in args[1] else 'el'
-    print "From the list of histograms it seems that you are plotting results for channel ",channel
+    if isComb:
+        channel = channelCombToPlot
+    print "It seems that you are plotting results for channel ",channel
 
     full_outfileName = '{odir}/plots_{sfx}.root'.format(odir=outname,sfx=options.suffix)
     outfile = ROOT.TFile(full_outfileName, 'recreate')
@@ -308,6 +349,10 @@ if __name__ == "__main__":
 
     colors = {'Wplus_lep'  : ROOT.kRed+2,
               'Wminus_lep' : ROOT.kRed+1,
+              'Wplus_el'   : ROOT.kRed+2,
+              'Wminus_el'  : ROOT.kRed+1,
+              'Wplus_mu'   : ROOT.kRed+2,
+              'Wminus_mu'  : ROOT.kRed+1,
               'outliers'   : ROOT.kOrange+2,
               'Top'        : ROOT.kGreen+2,  
               'DiBosons'   : ROOT.kViolet+2, 
@@ -378,8 +423,17 @@ if __name__ == "__main__":
                 #    genkey = 'outliers'
 
                 chs = '+' if charge == 'plus' else '-' 
+                # note: for electrons, if some bins were treated as background (e.g. those below pt = 30 GeV), we will also have
+                # expproc_W{ch}_el_* histograms, while expproc_W{ch}_lep_* will only contain muons, so we need to check for that
+                h1_1 = None
                 hname = "expproc_W{chfl}_{gk}".format(chfl=chfl, gk=genkeyplot)
-                h1_1 = infile.Get(hname)
+                if channel == "el":
+                    hname_testEl = hname.replace("_lep_","_{ch}_".format(ch=channel))
+                    h1_1 = infile.Get(hname_testEl)
+                    if not h1_1:
+                        h1_1 = infile.Get(hname)
+                else:
+                    h1_1 = infile.Get(hname)
                 if not h1_1:
                     print "Error: could not retrieve histogram '{hn}'. Exit".format(hn=hname)
                     quit()
@@ -401,8 +455,10 @@ if __name__ == "__main__":
                                                                                                                   ptmin=genBins.ptBins[ptbin],
                                                                                                                   ptmax=genBins.ptBins[ptbin+1],
                                                                                                                   chs=chs)
-                h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift,nCharges=2,nMaskedCha=nMaskedChanPerCharge)
-                h1_unrolled = singleChargeUnrolled(h1_1,binshift, nMaskedCha=nMaskedChanPerCharge,name="unroll_"+name2D)
+                h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D,binshift,nCharges=2,nMaskedCha=nMaskedChanPerCharge,
+                                            isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
+                h1_unrolled = singleChargeUnrolled(h1_1,binshift, nMaskedCha=nMaskedChanPerCharge,name="unroll_"+name2D, 
+                                                   isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
                 if options.normWidth:
                     #normalizeTH2byBinWidth(h2_backrolled_1)
                     normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
@@ -460,20 +516,21 @@ if __name__ == "__main__":
             titles=["out", "charge flips","Drell-Yan","Top","di-bosons","W#rightarrow#tau#nu","QCD","data"]
             procsAndTitles = dict(zip(procs,titles))
             for i,p in enumerate(procs):
+                if channel == "mu" and p == "Flips":
+                    continue # muons don't have Flips components
                 keyplot = p if 'obs' in p else p+'_'+prepost
                 if chfl not in keyplot:
                     keyplot = chfl + "_" + keyplot
                 hname = "expproc_{p}_{sfx}".format(p=p,sfx=prepost) if 'obs' not in p else "obs"
                 h1_1 = infile.Get(hname)
                 if not h1_1: 
-                    if channel == "mu" and p == "Flips":
-                        continue # muons don't have Flips components
-                    else:
-                        print "Error: could not retrieve histogram '{hn}'. Exit".format(hn=hname)
-                        quit()
+                    print "Error: could not retrieve histogram '{hn}'. Exit".format(hn=hname)
+                    quit()
                 pname = p+"_"+prepost if 'obs' not in p else "obs"
-                h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=nMaskedChanPerCharge,name="unroll_"+pname)
-                h2_backrolled_1 = dressed2D(h1_1,binning,pname,titles[i],binshift,nMaskedCha=nMaskedChanPerCharge)
+                h1_unrolled =  singleChargeUnrolled(h1_1,binshift,nMaskedCha=nMaskedChanPerCharge,name="unroll_"+pname,
+                                                    isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
+                h2_backrolled_1 = dressed2D(h1_1,binning,pname,titles[i],binshift,nMaskedCha=nMaskedChanPerCharge,
+                                            isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
                 if options.normWidth:
                     #normalizeTH2byBinWidth(h2_backrolled_1)
                     normalizeTH1unrolledSingleChargebyBinWidth(h1_unrolled,h2_backrolled_1,True)
@@ -513,8 +570,10 @@ if __name__ == "__main__":
             # this has the uncertainty propagated with the full covariance matrix
             h1_expfull = infile.Get('expfull_{sfx}'.format(sfx=prepost))
             expfullName2D = 'expfull_{ch}_{sfx}'.format(ch=charge,sfx=prepost)
-            h2_expfull_backrolled = dressed2D(h1_expfull,binning,expfullName2D,expfullName2D,binshift, nMaskedCha=nMaskedChanPerCharge)
-            h1_expfull_unrolled = singleChargeUnrolled(h1_expfull, binshift, nMaskedCha=nMaskedChanPerCharge, name="unroll_"+expfullName2D)
+            h2_expfull_backrolled = dressed2D(h1_expfull,binning,expfullName2D,expfullName2D,binshift, nMaskedCha=nMaskedChanPerCharge,
+                                              isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
+            h1_expfull_unrolled = singleChargeUnrolled(h1_expfull, binshift, nMaskedCha=nMaskedChanPerCharge, name="unroll_"+expfullName2D,
+                                                       isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
             # can normalize the unrolled, not the 2D
             if options.normWidth:
                 #normalizeTH2byBinWidth(h2_expfull_backrolled)
@@ -560,7 +619,9 @@ if __name__ == "__main__":
                                    1, passCanvas=cnarrow,hErrStack=hexpfull,lumi=35.9, )
             
             # now the unrolled, assign names to run monsterPull.py on them
-            hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge, name='unrolled_{ch}_data'.format(ch=charge)).Clone('unrolled_{ch}_data'.format(ch=charge))
+            hdata_unrolled = singleChargeUnrolled(infile.Get('obs'),binshift,nCharges,nMaskedChanPerCharge, 
+                                                  name='unrolled_{ch}_data'.format(ch=charge),
+                                                  isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins).Clone('unrolled_{ch}_data'.format(ch=charge))
             if options.normWidth:
                 normalizeTH1unrolledSingleChargebyBinWidth(hdata_unrolled,h2_expfull_backrolled,True)            
             hdata_unrolled.SetDirectory(None)

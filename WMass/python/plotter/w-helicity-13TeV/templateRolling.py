@@ -61,6 +61,7 @@ def roll1Dto2D(h1d, histo):
         xbin = (i - 1) % histo.GetNbinsX() + 1  
         ybin = (i - 1) / histo.GetNbinsX() + 1
         histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
+        histo.SetBinError(xbin,ybin,h1d.GetBinError(i)) 
     return histo
 
 def dressed2D(h1d,binning,name,title=''):
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     parser.add_option('-b','--etaPtbinning', dest='etaPtbinning', default='binningPtEta.txt', type='string', help='eta-pt binning for templates. Use -b <name> to read binning from file <name>. It is supposed to be inside the folder passed with args[0] ')
     parser.add_option('--yb','--YWbinning', dest='YWbinning', default='binningYW.txt', type='string', help='YW binning for Y rapidity (works with option -a "helicity"). It is supposed to be inside the folder passed with args[0] ')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
+    parser.add_option(     '--outliers-with-background', dest="outWithBkg", default=False, action='store_true', help="Do not sum outliers to other signal bins, but plot is with backgrounds");
     parser.add_option(     '--has-inclusive-signal', dest="hasInclusiveSignal", default=False, action='store_true', help="Use this option if the file already contains the inclusive signal template and you want to plot it as well (obsolete, it refers to the days when I was manually adding inclusive signal to shapes.root file");
     parser.add_option(     '--plot-binned-signal', dest="plotBinnedSignal", default=False, action='store_true', help="Use this option to plot the binned signal templates otherwise only backgrounds are drawn (should specify with option --analysis if this is a file for rapidity/helicity or differential cross section");
     parser.add_option('-a','--analysis', dest='analysis', default='diffXsec', type='string', help='Which analysis the shapes file belongs to: helicity or diffXsec (default)')
@@ -172,9 +174,13 @@ if __name__ == "__main__":
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
     allsysts = qcdsyst + pdfsyst + ["mW", "lepeff", "fsr"] # might add others
     if channel == "el":
-        allsysts.extend(["elescale%d" % i for i in range(4)])
+        #allsysts.extend(["elescale%d" % i for i in range(4)])
+        allsysts.extend(["smoothelscale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]])
+        allsysts.extend(["elTestEffSyst%d" % i for i in range(4)])
     else:
-        allsysts.extend(["muscale%d" % i for i in range(2)])
+        #allsysts.extend(["muscale%d" % i for i in range(2)])
+        allsysts.extend(["smoothmuscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
+        #allsysts.extend(["muscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
         allsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
     allsystsUpDn = []
     for x in allsysts:
@@ -235,6 +241,7 @@ if __name__ == "__main__":
                 hSigInclusive_syst = {}
                 if not options.skipSyst:
                     for systvar in allsystsUpDn:
+                        if any(ch in systvar for ch in charges) and charge not in systvar: continue
                         #print "Syst: ", systvar
                         sysName  = inclSigName  + "_" + systvar
                         sysTitle = inclSigTitle + "_" + systvar
@@ -325,6 +332,7 @@ if __name__ == "__main__":
 
                         if not options.skipSyst:
                             for systvar in allsystsUpDn:
+                                if any(ch in systvar for ch in charges) and charge not in systvar: continue
                                 print "systvar = %s: integral = %.1f" % (systvar, hSigInclusivePol_syst[systvar].Integral())
                                 print "Inclusive template: integral = %.1f" % hSigInclusive[pol].Integral()
                                 hSigInclusive_syst[systvar].Add(hSigInclusivePol_syst[systvar])
@@ -354,9 +362,10 @@ if __name__ == "__main__":
                                         "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
+                            if any(ch in systvar for ch in charges) and charge not in systvar: continue                        
                             hSigInclusive_syst[systvar].Divide(hSigInclusiveTot)
                             if options.syst_ratio_range == "template":
-                                zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusive_syst[systvar],excludeMin=0.0),
+                                zaxisTitle = "variation / nominal::%.5f,%.5f" % (getMinimumTH(hSigInclusive_syst[systvar],excludeMin=0.0)*0.999,
                                                                                  getMaximumTH(hSigInclusive_syst[systvar]))
                             else:
                                 ratiomin = options.syst_ratio_range.split(',')[0]
@@ -376,6 +385,7 @@ if __name__ == "__main__":
                 hSigInclusive_syst = {}
                 if not options.skipSyst:
                     for systvar in allsystsUpDn:
+                        if any(ch in systvar for ch in charges) and charge not in systvar: continue
                         #print "Syst: ", systvar
                         sysName  = inclSigName  + "_" + systvar
                         sysTitle = inclSigTitle + "_" + systvar
@@ -389,8 +399,9 @@ if __name__ == "__main__":
                     # example of name in shapes.root: x_Wplus_mu_outliers_Wplus_mu_outliers_group_37
                     # group might actually not appear in name
                     signalMatch = "{ch}_lep_".format(ch=charge)                      
+                    elsignalMatch = "{ch}_el_".format(ch=charge)                      
 
-                    if obj.InheritsFrom("TH1") and signalMatch in name:
+                    if obj.InheritsFrom("TH1") and (signalMatch in name or elsignalMatch in name):
 
                         notSystProcess = False
                         # if options.noGroupInName:
@@ -404,6 +415,7 @@ if __name__ == "__main__":
                         if notSystProcess:
 
                             if "outliers" in name:
+                                if options.outWithBkg: continue
                                 drawThisBin = True
                                 name2D = 'W{ch}_{flav}_outliers'.format(ch=charge,flav=channel)
                                 title2D = 'W{chs}: |#eta| > {etamax}   p_{{T}} #notin [{ptmin:3g},{ptmax:.3g})'.format(etamax=genBins.etaBins[-1],
@@ -449,7 +461,12 @@ if __name__ == "__main__":
                                 hSigInclusive_syst[systvar].Add(h2_backrolled_1)
                                 #print "systvar = %s: adding %s   integral = %.1f" % (systvar, h2_backrolled_1.GetName(),hSigInclusive_syst[systvar].Integral())
                             
+                print "-"*30
                 hSigInclusive.Write()
+                for sigKey in hSigInclusive_syst: 
+                    hSigInclusive_syst[sigKey].Write()
+                    print "Writing %s and %s" % (hSigInclusive.GetName(),hSigInclusive_syst[sigKey].GetName())
+                print "-"*30
                 if not options.noplot:
                     zaxisTitle = "Events::%.1f,%.1f" % (options.zaxisMin, hSigInclusive.GetMaximum())
                     if options.normWidth: 
@@ -460,6 +477,7 @@ if __name__ == "__main__":
                                         "ForceTitle",outname,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
                     if not options.skipSyst:
                         for systvar in allsystsUpDn:
+                            if any(ch in systvar for ch in charges) and charge not in systvar: continue
                             #print "systvar = %s: integral = %.1f" % (systvar, hSigInclusive_syst[systvar].Integral())
                             #print "Inclusive template: integral = %.1f" % hSigInclusive.Integral()
                             hSigInclusive_syst[systvar].Divide(hSigInclusive)
@@ -481,12 +499,19 @@ if __name__ == "__main__":
             # do backgrounds and, if requested, inclusive signal
             print ""
             print "Data + Backgrounds" + (" and inclusive signal" if options.hasInclusiveSignal else "")
-            procs=["data_obs", "Flips","Z","Top","DiBosons","TauDecaysW","data_fakes"]
-            titles=["data", "charge flips","DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
+            procs=["data_obs", "Z","Top","DiBosons","TauDecaysW","data_fakes"]
+            titles=["data", "DY","Top","di-bosons","W#rightarrow#tau#nu","QCD"]
+            if True: # if options.outWithBkg:
+                procs.append("W{ch}_lep_outliers".format(ch=charge))
+                signalTitle = "W^{%s}#rightarrow%s#nu outliers" % (chs, "e" if channel == "el" else "#mu")
+                titles.append(signalTitle)
             if options.hasInclusiveSignal: 
                 procs.append("W{ch}_{flav}".format(ch=charge,flav=channel))
                 signalTitle = "W^{%s}#rightarrow%s#nu" % (chs, "e" if channel == "el" else "#mu")
                 titles.append(signalTitle)
+            if channel == "el":
+                procs.append("Flips")
+                titles.append("charge flips")
 
             #fakesysts = ["CMS_We_FRe_slope", "CMS_We_FRe_continuous"] if channel == "el" else ["CMS_Wmu_FRmu_slope", "CMS_Wmu_FRmu_continuous"]
             fakesysts = ["CMS_We_FRe_slope"] if channel == "el" else ["CMS_Wmu_FRmu_slope"]
@@ -494,21 +519,32 @@ if __name__ == "__main__":
             #     fakesysts.append("FakesEtaUncorrelated%d" % i)
             zsysts = []
             tausysts = []
+            outlierssyst = []
             if channel == "el":
-                zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                #zsysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                zsysts = ["smoothelscale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]]   
                 zsysts.extend(["elTestEffSyst%d" % i for i in range(4)])                
                 zsysts.append("CMS_We_sig_lepeff")
-                #tausysts = ["CMS_We_elescale%d" % i for i in range(4)]
+                tausysts = ["smoothelscale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]]
+                outlierssysts = ["smoothelscale%detaside%s" % (i,s) for i in range(4) for s in ["P","M"]]
                 #tausysts.extend(["elTestEffSyst%d" % i for i in range(4)])
             else:
-                zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                #zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                zsysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #zsysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
-                zsysts.append("CMS_Wmu_sig_lepeff")
-                #tausysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
+                #zsysts.append("CMS_Wmu_sig_lepeff")
+                tausysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #tausysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                outlierssysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #outlierssysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 #tausysts.extend(["muTestEffSyst%d" % i for i in range(3)])
+            outlierssysts.extend(["fsr","mW"])
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
-                if not h1_1: continue # muons don't have Flips components
+                if not h1_1: 
+                    print "Error: could not get histogram x_{p}".format(p=p)
+                    quit()
                 h2_backrolled_1 = dressed2D(h1_1,binning,p,titles[i])
                 if options.normWidth: 
                     h2_backrolled_1.Scale(1.,"width")
@@ -547,25 +583,37 @@ if __name__ == "__main__":
                                                 "ForceTitle",outnameSyst,1,1,False,False,False,1,passCanvas=canvas,palette=options.palette)
 
                 # draw fakes systematics
-                if "Z" in p or "TauDecaysW" in p:
+                #if "Z" in p or "TauDecaysW" in p or ("outliers" in p and options.outWithBkg):
+                if any(x in p for x in ["Z", "TauDecaysW", "outliers"]):
                     # 4 systs for now (2 Up and 2 Down)
-                    if "Z" in p: procsysts = zsysts                    
-                    else: procsysts = tausysts
+                    if "Z" in p: 
+                        procsysts = zsysts                    
+                    elif "TauDecaysW" in p: 
+                        procsysts = tausysts
+                    else: 
+                        procsysts = outlierssysts
 
                     for fs in procsysts:
-                        if "Z" in p: print "Z process: syst = %s" % fs
-                        else: print "TauDecaysW process: syst = %s" % fs
+                        if "Z" in p: 
+                            print "Z process: syst = %s" % fs
+                        elif "TauDecaysW" in p:
+                            print "TauDecaysW process: syst = %s" % fs
+                        else:
+                            print "Outliers process: syst = %s" % fs
                         for idir in ["Up", "Down"]:
                             title_fs = '{t} {f}{i}'.format(t=titles[i],f=fs,i=idir)
                             name_fs = '{p}_{f}{i}'.format(p=p,f=fs,i=idir)
                             h1_1_fs = infile.Get('x_{p}'.format(p=name_fs))                            
+                            if not h1_1_fs:
+                                print "Error: histogram x_%s not found. Abort" % name_fs
+                                quit()
                             h2_backrolled_1_fs = dressed2D(h1_1_fs,binning,name_fs,title_fs)
                             if options.normWidth: 
                                 h2_backrolled_1_fs.Scale(1.,"width")
                             h2_backrolled_1_fs.Write(name_fs)
                             h2_backrolled_1_fs.Divide(h2_backrolled_1)
                             zmin = getMinimumTH(h2_backrolled_1_fs,excludeMin=0.0)
-                            zmax = getMaximumTH(h2_backrolled_1_fs)
+                            zmax = getMaximumTH(h2_backrolled_1_fs, excludeMax=3.0)
                             if abs(zmin - zmax) < 0.0001: 
                                 zmin -= 0.0001
                                 zmax += 0.0001

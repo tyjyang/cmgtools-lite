@@ -274,9 +274,11 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins = [1]
             ## now get the actual bin number of the border bins
 
+            print "putUncorrelatedFakes: etaBorders = %s" % ",".join(str(x) for x in etaBorders)
             for i in etaBorders:
                 borderBins.append(next(x[0] for x in enumerate(etabins) if x[1] > i))
             borderBins += [len(etabins)]
+            print "putUncorrelatedFakes: borderBins = %s" % ",".join(str(x) for x in borderBins)
 
             if doUncorrChargeEta:
                 chargeAsymSyst = 0.02 if isMu else 0.01
@@ -302,14 +304,18 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             print 'this is ptbins', ptbins
             #ptBorders = [26, 32, 38, 45, 50, 56] if isMu else [30, 35, 40, 45, 50, 56]  # last pt bin for 2D xsec might be 56 or 55, now I am using 56
             ptBorders = [26, 29, 32, 35, 38, 41, 45] if isMu else [30, 35, 40, 45]                
+            if not isHelicity:
+                #ptBorders = [26, 30, 33, 36, 39, 42, 45] if isMu else [30, 33, 36, 39, 42, 45] 
+                #ptBorders = [26, 30, 33, 36, 39, 42, 45] if isMu else [30, 36, 40.5, 45] 
+                ptBorders = [26, 33, 36, 40.5, 45] if isMu else [30, 36, 40.5, 45] 
             if isMu and recoBins.ptBins[0] > 29.9:
                 # just for tests on 2D xsec, where pT >= 30
-                ptBorders = [30, 32, 35, 38, 41, 45]
+                ptBorders = [30, 33, 36, 39, 42, 45]
             # now a tuning for 2D xsec binning, for which I have some pt bins after 45
             if ptbins[-1] > ptBorders[-1]:
                 if ptBorders[-1] not in ptbins:  # in case I use different binning here
                     minPtDiff = 999
-                    iptMin
+                    iptMin = 0
                     for ipt,ptval in enumerate(ptbins):
                         if ptval > 45 and abs(ptval - 45) < minPtDiff:
                             minPtDiff = abs(ptval - 45)
@@ -323,6 +329,10 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             borderBins.append(len(ptbins))
 
             scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
+            if not isHelicity:
+                #scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.10, 0.05, 0.05, 0.20, 0.20]
+                #scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
+                scalings = [0.30, 0.25, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
             if isMu and recoBins.ptBins[0] > 29.9:
                 scalings = [0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30]
 
@@ -473,7 +483,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
+def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir
@@ -518,14 +528,25 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True):
             etabins = [0,1,1.5,2.4] if isMu else [0.,1.,1.479,2.,2.5]
         elif doType=='L1PrefireEle':
             etabins = [-2.5,  -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5]
+            if not isHelicity:
+                # 2D xsec has a different and coarser binning
+                # btw, for now this function is only used for L1 prefire when doing 2D xsec
+                # the rest is done in mergeRootComponentsDiffXsec.py 
+                # should need also to account for L1 prefire changing a lot vs eta at high eta,
+                # but uncertainty is flatter, so one can just get the xsec bin centers and look a the L1 bin
+                etabins = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4]
+        else:
+            print "Error in putEffSystHistos(). Unknown value for doType argument. Abort"
+            quit()
+
         ## make 1 uncorrelated nuisance per syst bin
         nsyst=0
         for isyst in range(len(etabins)-1):
             ## for the L1 prefire, do not add a systematic for the barrel
             if doType=='L1PrefireEle' and isyst==len(etabins)/2-1: continue
 
-            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{p}EffSyst{eta}{flav}2DROLLED'.format(p=doType,eta=nsyst,flav=flav)
-        
+            outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_{p}EffSyst{eta}{flav}2DROLLED'.format(p=doType,eta=nsyst,flav=flav)                
+
             tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
             tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
             
