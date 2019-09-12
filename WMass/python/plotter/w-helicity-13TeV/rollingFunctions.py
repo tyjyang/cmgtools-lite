@@ -3,10 +3,15 @@ from array import array
 
 def roll1Dto2D(h1d, histo):  #,h2dname):#,plotfile,options):
     for i in xrange(1,h1d.GetNbinsX()+1):
-        xbin = i % histo.GetNbinsX()
-        if not xbin: xbin = xbin+histo.GetNbinsX()
-        ybin = i / histo.GetNbinsX() + (1 if i%histo.GetNbinsX() else 0)
-        val = h1d.GetBinContent(i)
+        # xbin = i % histo.GetNbinsX()
+        # if not xbin: xbin = xbin+histo.GetNbinsX()
+        # ybin = i / histo.GetNbinsX() + (1 if i%histo.GetNbinsX() else 0)
+        #
+        # the following looks simpler to me, but the outcome is exactly the same
+        xbin = (i - 1) % histo.GetNbinsX() + 1
+        ybin = (i - 1) / histo.GetNbinsX() + 1
+        #
+        #val = h1d.GetBinContent(i)
         histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
         histo.SetBinError(xbin,ybin,h1d.GetBinError(i))
     return histo

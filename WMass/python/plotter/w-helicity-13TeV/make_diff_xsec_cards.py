@@ -131,7 +131,7 @@ def getDiffXsecBinning(inputBins, whichBins="reco"):
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
-    if inputBins.startswith("file=") or "binningPtEta.txt" in inputBins:
+    if inputBins.startswith("file=") or re.match(".*binningPtEta.*.txt",inputBins):
         etaPtbinningFile = inputBins.replace("file=","")
         with open(etaPtbinningFile) as f:
             content = f.readlines()
@@ -446,6 +446,7 @@ if __name__ == "__main__":
     parser.add_option("--usePickle", dest="usePickle", action="store_true", default=False, help="Read Sum Weights from Pickle file (needed only if using old samples that did not have the histogram inside). By default, the histogram is used"); 
     parser.add_option("--maxJobs-condor", dest="maxJobsCondorFile", type="int", default='3000', help="Maximum number of jobs per condor file");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=["W","TauDecaysW","Z"], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
+    parser.add_option("--skip-syst-jobs", dest="skipSystJobs", action="store_true", default=False, help="Skip running jobs for syst (useful to retrieve only nominal one for tau and Z and run locally). Cannot just skip option --syst, because otherwise tau and Z are made with other backgrounds");
     (options, args) = parser.parse_args()
 
     if len(sys.argv) < 6:
@@ -601,7 +602,7 @@ if __name__ == "__main__":
                         if options.queue and not os.path.exists(outdir+"/jobs"): os.mkdir(outdir+"/jobs")
 
                         dcname = "W_{channel}{syst}_{ch}".format(channel=options.channel,syst=var,ch=charge)
-                        zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                        zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0,1)'
                         fullWeight = (options.weightExpr+'*'+zptWeight) if 'W' in options.procsToPtReweight else options.weightExpr
                         BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --asimov --od "+outdir + recoChargeCut
                         if options.queue:
@@ -741,7 +742,7 @@ if __name__ == "__main__":
 
                     # end of -> if ibin == loopBins:
                     ####################
-                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0,1)'
                     fullWeight = (options.weightExpr+'*'+zptWeight) if 'W' in options.procsToPtReweight else options.weightExpr
                     BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + selectedSigProcess + recoChargeCut
                     if options.queue:
@@ -805,6 +806,7 @@ if __name__ == "__main__":
                     IARGS = ARGS
                     #IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                 else: 
+                    if options.skipSystJobs: continue
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
                     print "Running the DY with systematic: ",var
@@ -851,6 +853,7 @@ if __name__ == "__main__":
                     os.system(copyMCAcommand)
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir,syst=var))
                 else: 
+                    if options.skipSystJobs: continue
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
                     print "Running the WTAU with systematic: ",var
@@ -859,7 +862,7 @@ if __name__ == "__main__":
                 xpsel=' --xp "[^TauDecaysW]*" --asimov '
                 syst = '' if ivar==0 else var
                 dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
-                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0,1)'
                 fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + out_subdir + xpsel + chcut
                 if options.queue:

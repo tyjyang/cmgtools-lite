@@ -19,7 +19,7 @@ from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 
 #from mergeCardComponentsAbsY import getXsecs    # for now it is reimplemented here
 # in my case here, the histograms already have the cross section in pb, no need to divide by lumi
-def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True):  
+def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True, hasBinAnalysis=True):  
 
     #print "Inside getXsecs_etaPt"
     # etaPtBins is a list of 4 things: Netabins, etabins, Nptbins,ptbins
@@ -36,6 +36,7 @@ def getXsecs_etaPt(processes, systs, etaPtBins, infile, usePreFSR = True):
         # check if gen eta binning starts from negative value (probably we will stick to |eta|, but just in case)
         etavar = "absetal1_preFSR" if (float(etabins[0]) >= 0.0) else "etal1_preFSR" 
         if not usePreFSR: etavar = etavar.replace("preFSR","dressed")
+        if hasBinAnalysis: etavar += "_binAna"
         cen_name = 'gen_ptl1_'+etavar+'_W'+charge+'_mu_central' 
         cen_hist = histo_file.Get(cen_name)  # this is a TH2
         useEleXsec = False
