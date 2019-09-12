@@ -306,7 +306,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             ptBorders = [26, 29, 32, 35, 38, 41, 45] if isMu else [30, 35, 40, 45]                
             if not isHelicity:
                 #ptBorders = [26, 30, 33, 36, 39, 42, 45] if isMu else [30, 33, 36, 39, 42, 45] 
-                ptBorders = [26, 30, 33, 36, 39, 42, 45] if isMu else [30, 36, 40.5, 45] 
+                #ptBorders = [26, 30, 33, 36, 39, 42, 45] if isMu else [30, 36, 40.5, 45] 
+                ptBorders = [26, 33, 36, 40.5, 45] if isMu else [30, 36, 40.5, 45] 
             if isMu and recoBins.ptBins[0] > 29.9:
                 # just for tests on 2D xsec, where pT >= 30
                 ptBorders = [30, 33, 36, 39, 42, 45]
@@ -330,7 +331,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
             scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
             if not isHelicity:
                 #scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.10, 0.05, 0.05, 0.20, 0.20]
-                scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
+                #scalings = [0.30, 0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
+                scalings = [0.30, 0.25, 0.25, 0.15, 0.25, 0.30] if isMu else [0.10, 0.10, 0.05, 0.20, 0.20]
             if isMu and recoBins.ptBins[0] > 29.9:
                 scalings = [0.30, 0.25, 0.25, 0.15, 0.15, 0.25, 0.30]
 
