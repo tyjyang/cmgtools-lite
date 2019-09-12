@@ -4,7 +4,7 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 dryrun = 0
 skipData = 0
 onlyData = 1
@@ -15,7 +15,7 @@ skipDiffNuis = 0
 skipPostfit = 0  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -36,12 +36,12 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
@@ -83,14 +83,13 @@ if plotSingleCharge and doMuElComb:
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 
 if flavour == "el":
-    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSideExtremePtFromOld2BinsForOut"
+    postfix = "grappa"
 else:
-    postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
+    postfix = "grappa"
 
 if doMuElComb:
-    #postfix = "combinedLep_finalFixes_sigBkgInAcc_scaleXsecPt01by2"
-    postfix = "combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
-    #postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld"
+    postfix = "combinedLep_allSig_grappa" # _testNewFakesPtUncorr"
+    #postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
                
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
@@ -190,6 +189,8 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #impacts_nuis = ["muTestEffSyst0","muTestEffSyst1","muTestEffSyst2"] 
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
+if flavour == "el" or doMuElComb:
+    groupnames += ',L1Prefire'
 #groupnamesEtaPt = groupnames
 #groupnamesEtaPt = "EffStat,Fakes,binByBinStat,stat"
 groupnamesEtaPt = "EffSyst"

@@ -303,7 +303,7 @@ parser.add_option(      '--unbinned-QCDscale-W', dest='unbinnedQCDscaleW', defau
 parser.add_option(      '--unbinned-QCDscale-Z', dest='unbinnedQCDscaleZ', default=False, action='store_true', help='Assign muR, muF and muRmuF to Z')
 parser.add_option(      '--no-EffStat-Z', dest='noEffStatZ', default=False, action='store_true', help='If True, abort EffStat nuisances on Z')
 parser.add_option(       '--wXsecLnN'   , dest='wLnN'        , default=0.0, type='float', help='Log-normal constraint to be added to all the fixed W processes or considered as background (might be 0.038)')
-parser.add_option(       '--wAllXsecLnN'   , dest='wallLnN'        , default="", type='string', help='Log-normal constraint to be added to all W processes (might be 0.05), mainly for tests. It is a string to allow passing xDown/xUp forasymmetric LnN (in this case pass xDown first)')
+parser.add_option(       '--wAllXsecLnN'   , dest='wallLnN'        , default="", type='string', help='Log-normal constraint to be added to all W processes (might be 0.05), mainly for tests. It is a string to allow passing xDown/xUp forasymmetric LnN (in this case pass xDown first). THIS IS ADDED TO MASKED CHANNEL AS WELL')
 parser.add_option(       '--tauChargeLnN'   , dest='tauChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to tau for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--fakesChargeLnN' , dest='fakesChargeLnN' , default=0.0, type='float', help='Log-normal constraint to be added to fakes for each charge (e.g. 0.05 for 5%)')
 parser.add_option(       '--sig-out-bkg', dest='sig_out_bkg' , default=False, action='store_true', help='Will treat signal bins corresponding to outliers as background processes')
@@ -679,16 +679,16 @@ if options.wLnN > 0.0 and (hasPtRangeBkg or hasEtaRangeBkg or options.sig_out_bk
 
 
 # norm unc on W processes, regardless whether thery are treated as background or signal
+WallLnNxsec = ""
 if len(options.wallLnN):
-    Wxsec = ""
     if "/" in options.wallLnN:
-        Wxsec =  "{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[0]))
-        Wxsec += "/{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[1]))
+        WallLnNxsec =  "{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[0]))
+        WallLnNxsec += "/{0:.3f}".format(1.0 + float(options.wallLnN.split('/')[1]))
     else:
-        Wxsec   = "{0:.3f}".format(1.0 + float(options.wallLnN))    #"1.038"  # 3.8%
-    if not isExcludedNuisance(excludeNuisances, "CMS_Wall", keepNuisances): 
-        allSystForGroups.append("CMS_Wall")
-        card.write(('%-16s lnN' % "CMS_Wall") + ' '.join([kpatt % (Wxsec if signalMatch in p or p == "TauDecaysW" else "-") for p in allprocesses]) + "\n")
+        WallLnNxsec   = "{0:.3f}".format(1.0 + float(options.wallLnN))    #"1.038"  # 3.8%
+    if not isExcludedNuisance(excludeNuisances, "qcdTheo_Wall_LnN", keepNuisances): 
+        allSystForGroups.append("qcdTheo_Wall_LnN")
+        card.write(('%-16s lnN' % "qcdTheo_Wall_LnN") + ' '.join([kpatt % (WallLnNxsec if signalMatch in p or p == "TauDecaysW" else "-") for p in allprocesses]) + "\n")
 
 if options.tauChargeLnN > 0.0:
     syst = "CMS_Tau" + ("Plus" if charge == "plus" else "Minus")
@@ -744,15 +744,31 @@ if nFakesPtSlopeUncorrelated:
         allSystForGroups.append(syst)
         card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if "fakes" in p else "-") for p in allprocesses]) +"\n")        
 
-ffile = options.indir + "FakesPtNormUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+# take this one from global file, the partial one might not be updated
+# ffile = options.indir + "FakesPtNormUncorrelated_{fl}_{ch}.root".format(ch=charge, fl=flavour)
+# nFakesPtNormUncorrelated = 0
+# ff = ROOT.TFile.Open(ffile,"READ")
+# if not ff or not ff.IsOpen():
+#     raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
+# else:
+#     # count number of histograms and divide by 2 (there are up and down variations)
+#     nFakesPtNormUncorrelated = ff.GetNkeys()/2
+# ff.Close()
+ffile = options.indir + "W{fl}_{ch}_shapes.root".format(ch=charge, fl=flavour)
 nFakesPtNormUncorrelated = 0
 ff = ROOT.TFile.Open(ffile,"READ")
 if not ff or not ff.IsOpen():
     raise RuntimeError('Unable to open file {fn}'.format(fn=ffile))
 else:
     # count number of histograms and divide by 2 (there are up and down variations)
-    nFakesPtNormUncorrelated = ff.GetNkeys()/2
+    nFakesPtNormUncorrelated = 0
+    for key in ff.GetListOfKeys():
+        if "FakesPtNormUncorrelated" in key.GetName():
+            nFakesPtNormUncorrelated += 1
+    nFakesPtNormUncorrelated = nFakesPtNormUncorrelated/2
 ff.Close()
+
+
 if nFakesPtNormUncorrelated:
     for i in range(1,nFakesPtNormUncorrelated+1):
         syst = "FakesPtNormUncorrelated{d}{flch}".format(d=i, flch=postfixForFlavourAndCharge)
@@ -1029,8 +1045,8 @@ card.write("\n")
 if options.doSystematics:
     if not isExcludedNuisance(excludeNuisances, "CMS_lumi_13TeV", keepNuisances): card.write("luminosity group = CMS_lumi_13TeV\n\n")
     #if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
-    card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*',x),allSystForGroups)) + "\n\n")
-    card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),allSystForGroups)) + "\n\n")
+    card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*|alphaS',x),allSystForGroups)) + "\n\n")
+    card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN',x),allSystForGroups)) + "\n\n")
     card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr',x),allSystForGroups)) + "\n\n")
     card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('(smooth|CMS_W).*scale\d+',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
@@ -1217,6 +1233,10 @@ for maskChan in maskedChannels:
     for sys in sortedTheoSystkeys: # this is only theoretical systs
         if isExcludedNuisance(excludeNuisances, sys, keepNuisances): continue
         tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+    if len(options.wallLnN):
+        if not isExcludedNuisance(excludeNuisances, "qcdTheo_Wall_LnN", keepNuisances): 
+            tmp_xsec_dc.write('%-15s      lnN %s\n' % ("qcdTheo_Wall_LnN",(" ".join([WallLnNxsec if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+
     tmp_xsec_dc.close()
 
 

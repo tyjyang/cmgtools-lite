@@ -3,12 +3,12 @@
 import ROOT, os, sys, re, array
 
 dryrun=0
-doMuons=0
+doMuons=1
 skipUnpack=1
-skipMergeRoot=0
-skipSingleCard=0
-skipMergeCard=0 # disabled if fitting each charge (see below)
-skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+skipMergeRoot=1
+skipSingleCard=1
+skipMergeCard=1 # disabled if fitting each charge (see below)
+skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 #flavourCombinationOutdir = "muElCombination_1Sept2019"
 flavourCombinationOutdir = "muElCombination_allSig"
 
@@ -37,7 +37,7 @@ if addSmoothPtScalesWithStandardOnExtremePtBins and useSmoothPtScales:
     quit()
 
 useXsecWptWeights = 1  
-allPtBinsSignal = 0   # usually 1 for muons or combination, 0 for electrons
+allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
 distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
@@ -61,8 +61,8 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/" # keep "/" at the end
 #folder_el = "diffXsec_el_2019_06_21_zptReweight_allPtBinsAsSignal/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
-#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep final "/"
-folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep final "/"
+#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
 #folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
 th3file_el = "cards/" + folder_el + "wel_05August_smoothSF_fsrNormGenXsec.root"
@@ -122,7 +122,7 @@ optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z 
 optionsForCardMaker += " --exclude-nuisances '{expr}' ".format(expr=excludeNuisRegexp) 
 optionsForCardMaker += binnedSystOpt 
 
-optionsForCardMaker += " --wAllXsecLnN '0.05/0.03' "  # justified from first principles, because our decorrelation scheme for the qcd scales otherwise reduces the overall xsec uncertainty unreasonably
+#optionsForCardMaker += " --wAllXsecLnN '0.05/0.03' "  # justified from first principles, because our decorrelation scheme for the qcd scales otherwise reduces the overall xsec uncertainty unreasonably
 
 
 if len(uncorrelateNuisancesByCharge):
@@ -166,8 +166,8 @@ postfixCardMaker = "_symFSRptScalemW"
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrChargeAndEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
-else      : postfixCardMakerMerger = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSideExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
+if doMuons: postfixCardMakerMerger = "grappa"
+else      : postfixCardMakerMerger = "grappa"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 if freezePOIs:  
     optionsForCardMakerMerger += " --freezePOIs "
@@ -180,9 +180,9 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
 
-#optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld --sig-out-bkg --skip-hadd-xsec "
+#optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg --skip-hadd-xsec "
 #--no-text2hdf5 --no-combinetf " # " --useSciPyMinimizer " # " --skip-hadd-xsec --just-fit " 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_grappa --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 #================================
 

@@ -1525,7 +1525,7 @@ if __name__ == "__main__":
                                                                                              etatext=etaRangeText) 
 
                 drawCheckTheoryBand(hDiffXsecPDFonly_1Dpt[charge], hDiffXsecAlphaonly_1Dpt[charge], hDiffXsecQCDonly_1Dpt[charge],
-                                    xaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_pt_abs_{ch}_{fl}".format(ch=charge,fl=channel),
+                                    yaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_pt_abs_{ch}_{fl}".format(ch=charge,fl=channel),
                                     outname,draw_both0_noLog1_onlyLog2=1,lumi=options.lumiInt,moreTextLatex=theoryText)
 
                 additionalText = additionalTextBackup
