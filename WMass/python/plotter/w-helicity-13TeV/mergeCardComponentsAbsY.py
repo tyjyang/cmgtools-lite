@@ -639,12 +639,13 @@ def addSmoothLepScaleSyst(infile,regexp,charge,isMu,alternateShapeOnly=False,out
     scaleSyst_mu.SetBinContent(1,0.003)
     scaleSyst_mu.SetBinContent(2,0.010)
     
+    ## numbers from Table 6 of AN-17-340 (average bins 30-45 GeV)
     etabins_el = array('f',[0.0, 1.0, 1.479, 2.1, 2.5])
     scaleSyst_el = ROOT.TH1F('scaleSyst_el','',len(etabins_el)-1,etabins_el)
-    scaleSyst_el.SetBinContent(1,0.003)
-    scaleSyst_el.SetBinContent(2,0.004)
-    scaleSyst_el.SetBinContent(3,0.007)
-    scaleSyst_el.SetBinContent(4,0.008)
+    scaleSyst_el.SetBinContent(1,3.0e-4)
+    scaleSyst_el.SetBinContent(2,7.0e-4)
+    scaleSyst_el.SetBinContent(3,2.0e-3)
+    scaleSyst_el.SetBinContent(4,2.5e-3)
         
     if isMu:
         scaleSyst = utilities.getExclusiveBinnedSyst(scaleSyst_mu)
