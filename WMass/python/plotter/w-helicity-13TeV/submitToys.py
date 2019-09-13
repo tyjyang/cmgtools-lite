@@ -54,6 +54,8 @@ environment = "LS_SUBCWD={here}"
            rt=int(options.runtime*3600), here=os.environ['PWD'] ) )
     if os.environ['USER'] in ['mdunser', 'psilva']:
         condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+    if options.nThreads:
+        condor_file.write('request_cpus = {nt} \n\n'.format(nt=options.nThreads))
     for sf in srcFiles:
         condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
     condor_file.close()
@@ -65,9 +67,9 @@ import ROOT, random, array, os, sys
 if __name__ == "__main__":
     
     from optparse import OptionParser
-    parser = OptionParser(usage='%prog workspace ntoys [prefix] [options] ')
+    parser = OptionParser(usage='%prog file.hdf5 ntoys [prefix] [options] ')
     parser.add_option('-n'  , '--ntoy-per-job'  , dest='nTj'           , type=int           , default=None , help='split jobs with ntoys per batch job')
-    parser.add_option('-t'  , '--threads'       , dest='nThreads'      , type=int           , default=1    , help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
+    parser.add_option('-t'  , '--threads'       , dest='nThreads'      , type=int           , default=None , help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
     parser.add_option(        '--dry-run'       , dest='dryRun'        , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option('-r'  , '--runtime'       , default=8            , type=int                          , help='New runtime for condor resubmission in hours. default None: will take the original one.');
     parser.add_option(        '--bbb'           , dest='binByBin'      , action='store_true', default=False, help='Use the bin by bin uncertainties to incorporate the templates MC stat');
@@ -132,6 +134,8 @@ if __name__ == "__main__":
             cmd += ' --binByBinStat '
             if options.correlateXsecStat: cmd += ' --correlateXsecStat '  # make sense only with --binByBinStat
         if options.binByBin: cmd += ' --binByBinStat --correlateXsecStat '
+        if options.nThreads: 
+            cmd += ' --nThreads {nt}'.format(nt=options.nThreads) 
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
         tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
         tmp_filecont = tmp_filecont.replace('OUTDIR', absopath+'/')
