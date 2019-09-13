@@ -4,18 +4,18 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
-dryrun = 0
+doMuElComb = 0
+dryrun = 1
 skipData = 0
 onlyData = 1
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 0
-skipPostfit = 0  # only for Data
+skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -36,12 +36,12 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
 #folder = "diffXsec_el_2019_06_21_zptReweight_fixEffStat/"
-folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
+#folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
