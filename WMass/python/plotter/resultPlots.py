@@ -49,7 +49,7 @@ if __name__ == '__main__':
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
         systs += ['smoothelscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,8) for charge in charges]
-        systs += ['smoothmuscale{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,4) for charge in charges]
+        systs += ['smoothmuscaleStat{idx}{ch}'.format(idx=i,ch=charge) for i in range(0,8) for charge in charges] + ['smoothmuscaleSyst{idx}{ch}'.format(idx=i,ch=charge) for i in range(2,6) for charge in charges]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['']

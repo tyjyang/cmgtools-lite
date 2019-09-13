@@ -1208,6 +1208,16 @@ class util:
             th1_excl.SetBinContent(ibin,math.sqrt(tmp_val_sq))
         return th1_excl
 
-                                              
+    def getRochesterUncertainty(self,charge,eta,pt,syst_histo):
+        etabin = max(1, min(syst_histo.GetNbinsX(), syst_histo.GetXaxis().FindFixBin(eta)))
+        ptbin  = max(1, min(syst_histo.GetNbinsY(), syst_histo.GetYaxis().FindFixBin(pt)))
+        ## the syst 3 is the only one with a pt-shape, so maintain it
+        ret = 0 
+        if syst_histo.GetName().endswith('_3'):
+            ret = syst_histo.GetBinContent(etabin,ptbin)
+        else: ## average along pt
+            ret = sum([syst_histo.GetBinContent(etabin,ipt) for ipt in range(1,syst_histo.GetNbinsY()+1)])/float(syst_histo.GetNbinsY())
+        return ret
+
 
 

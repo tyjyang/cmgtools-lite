@@ -11,6 +11,7 @@ parser.add_option(      '--regularize', default=False,  dest="regularize", actio
 parser.add_option(      '--useSciPy',   default=False, action='store_true',  help='use the slower SciPy minimizer (should be not necessary any more)');
 parser.add_option('-s', '--suffix',     default='', type="string", help='use suffix for the output dir');
 parser.add_option(      '--toys',       default=0,  type=int, help='run that number of toys, randomly generated');
+parser.add_option('-t', '--threads',    default=None,  type=int, dest='nThreads', help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
 (options, args) = parser.parse_args()
 
 cardsdir = os.path.abspath(args[0])
@@ -49,6 +50,8 @@ srcfiles = []
 # taureg = 600 if channel=='el' else 932.5 ## values for useExp
 taureg = 600 if channel=='el' else 950
 
+threads_opt = ' --nThreads {nt}'.format(nt=options.nThreads) if options.nThreads else ''
+
 for itoy in range(options.toys) if options.toys else range(1):
     if options.toys:
         irand = random.randint(1,1e9)
@@ -66,7 +69,7 @@ for itoy in range(options.toys) if options.toys else range(1):
             saveHist = ' --saveHists --computeHistErrors '
             for ibbb,bbb in BBBs:
                 pfx = '--postfix {ipm}_{iexp}_{ibbb}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} {st} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest)
+                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} {st} {to} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest, to=threads_opt)
                 if options.useSciPy: 
                     cmd += ' --useSciPyMinimizer '
                 if options.toys:
