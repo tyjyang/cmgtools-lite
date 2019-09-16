@@ -1,17 +1,22 @@
-# USAGE: python runAllMerges.py cards_el el
 import os,sys
 
-cardsdir = sys.argv[1]
-channel = sys.argv[2]
-if channel not in ['mu','el']:
-    print "Channel must be either mu or el. Exiting."
-    sys.exit()
+if __name__ == "__main__":
+    from optparse import OptionParser
+    parser = OptionParser(usage='%prog -c <channel> [-m]')
+    parser.add_option("-c", "--channel",   dest="channel",  type="string",  default="el",        help="channel (el,mu). Assumes cards dir = cards_<channel>")
+    parser.add_option('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')    
+    (options, args) = parser.parse_args()
 
-fps = ['',' --fp ']
-charges = [' -C plus,minus', '--comb' ]
+    mergeroot = ' -m ' if options.mergeRoot else ''
+    basecmd = 'python mergeCardComponentsAbsY.py -b W{channel} -C plus,minus -i cards_{channel}'.format(channel=options.channel)
+    
+    cmds = [basecmd + mergeroot,
+            basecmd + ' --comb ',
+            basecmd + ' --fp ',
+            basecmd + ' --fp --comb '
+            ]
+    
+    for c in cmds:
+        print "Executing now ",c," ..."
+        os.system(c)
 
-for fp in fps:
-    for ch in charges:
-        cmd = './mergeCardComponentsAbsY.py -b W{channel} {ch} -i {cdir} {fp}'.format(channel=channel,cdir=cardsdir,ch=ch,fp=fp)
-        print cmd
-        os.system(cmd)
