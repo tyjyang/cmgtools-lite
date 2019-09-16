@@ -20,7 +20,7 @@ if channel not in ['mu','el','lep']:
     print "Channel must be either mu or el or lep (el-mu combination). Exiting."
     sys.exit()
 
-pois = [('poim1',''),('poim0',' --POIMode none ')]
+pois = [('poim1','')]#,('poim0',' --POIMode none ')]
 #pois = [('poim0',' --POIMode none ')]
 expected = [('exp1',' -t -1 '),('exp0',' -t 0 ')]
 #BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
