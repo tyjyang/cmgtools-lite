@@ -683,43 +683,42 @@ def addSmoothElectronScaleSyst(infile,regexp,charge,alternateShapeOnly=False,out
         nsyst=0
         for systBin in xrange(len(etabins)-1):
             etasyst = scaleSyst.GetXaxis().GetBinCenter(systBin+1)
-            for etasdide in [-1,1]:
-                for shift_dir in ['Up','Down']:
-                    outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{shiftdir}'.format(lep=flav,idx=nsyst,ch=charge,shiftdir=shift_dir)
-                    tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
+            for shift_dir in ['Up','Down']:
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{shiftdir}'.format(lep=flav,idx=nsyst,shiftdir=shift_dir)
+                tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
 
-                    ## loop over all eta bins of the 2d histogram 
-                    for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
-                        eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
-                        scale_syst = (1.0 if shift_dir=='Up' else -1.0) * scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
-                        systRegion = abs(eta)>etabins[systBin] and etasdide*eta>0
-                        for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
-                            if systRegion:
-                                ## assume uniform distribution within a bin
-                                pt      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
-                                pt_prev = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt-1)
-                                nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
-                                nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
-                                pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
-                                pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
-     
-                                from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
-                                to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
-
-                                tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_right))
-                            else:
-                                tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
-                        ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
+                ## loop over all eta bins of the 2d histogram 
+                for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+                    eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+                    scale_syst = (1.0 if shift_dir=='Up' else -1.0) * scaleSyst.GetBinContent(scaleSyst.GetXaxis().FindFixBin(etasyst))
+                    systRegion = abs(eta)>etabins[systBin]
+                    for ipt in range(2,tmp_nominal_2d.GetNbinsY()+1):
                         if systRegion:
-                            tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
-                    ## re-roll the 2D to a 1D histo
-                    tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
-                    if alternateShapeOnly:
-                        tmp_scaledHisto_1d.Scale(tmp_nominal.Integral()/tmp_scaledHisto_1d.Integral())
-                    
-                    outfile.cd()
-                    tmp_scaledHisto_1d.Write()
-                nsyst += 1
+                            ## assume uniform distribution within a bin
+                            pt      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                            pt_prev = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt-1)
+                            nominal_val      = tmp_nominal_2d.GetBinContent(ieta,ipt)
+                            nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
+                            pt_width      = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+                            pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
+     
+                            from_prev = scale_syst * pt_prev / pt_width_prev * max(0,nominal_val_prev)
+                            to_right  = scale_syst * pt      / pt_width      * max(0,nominal_val)
+
+                            tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_right))
+                        else:
+                            tmp_scaledHisto.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt))
+                    ## since in the first bin we cannot foresee 2-neighbors migrations, let's assume same syst of bin i+1
+                    if systRegion:
+                        tmp_scaledHisto.SetBinContent(ieta,1,tmp_scaledHisto.GetBinContent(ieta,2)/tmp_nominal_2d.GetBinContent(ieta,2)*tmp_nominal_2d.GetBinContent(ieta,1) if tmp_nominal_2d.GetBinContent(ieta,2) else 0)
+                ## re-roll the 2D to a 1D histo
+                tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
+                if alternateShapeOnly:
+                    tmp_scaledHisto_1d.Scale(tmp_nominal.Integral()/tmp_scaledHisto_1d.Integral())
+                
+                outfile.cd()
+                tmp_scaledHisto_1d.Write()
+            nsyst += 1
     outfile.Close()
     print "done with the smooth lep scale variations"
 
@@ -766,7 +765,7 @@ def addSmoothMuonScaleSyst(infile,regexp,charge,alternateShapeOnly=False,outdir=
 
         for syst,hist in systsAndHists:
             for shift_dir in ['Up','Down']:
-                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{ch}{shiftdir}'.format(lep=flav,idx=syst,ch=charge,shiftdir=shift_dir)
+                outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{shiftdir}'.format(lep=flav,idx=syst,shiftdir=shift_dir)
                 tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
 
                 ## loop over all eta bins of the 2d histogram 
@@ -892,7 +891,6 @@ if __name__ == "__main__":
     parser.add_option(       '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
     parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='when combining charges, skip running text2hdf5.py at the end')
     parser.add_option(       '--rescaleWBackToMCaNLO'   , dest='rescaleWBackToMCaNLO', default=False, action='store_true', help='Rescale the W process back to pure MC@NLO. NOT TO BE USED IF THE RESCALING WAS DONE AT THE WPT REWEIGHTING LEVEL ! ')
-    parser.add_option(       '--profileLepScales', dest='profileLepScales', default=False, action='store_true', help='Profile the muon/electron scale systematics (default=NoProfile)')
     (options, args) = parser.parse_args()
     
     if options.combineCharges:
@@ -1386,8 +1384,9 @@ if __name__ == "__main__":
         for sys,procs in allsyst.iteritems():
             if isExcludedNuisance(excludeNuisances, sys): continue
             systscale = '1.0' if sys!='alphaS' else '0.67' # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) => variations correspond to 0.67sigma
+            # NOMINAL: profile muon scales, not electron scales. For both channels, DO NOT profile FSR
+            rgxp = 'fsr' if 'mu' in options.bin else 'smooth(mu|el)scale.*|fsr'
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            rgxp = 'fsr' if options.profileLepScales else 'smooth(mu|el)scale.*|fsr'
             combinedCard.write('%-15s   shape%s %s\n' % (sys,'NoProfile' if re.match(rgxp,sys) else '', (" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
 
