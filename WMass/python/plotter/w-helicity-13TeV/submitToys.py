@@ -119,7 +119,7 @@ if __name__ == "__main__":
         tmp_filecont = jobstring_tf
         cmd = 'combinetf.py -t {n} --seed {j}{jn} {dc} --binByBinStat --correlateXsecStat '.format(n=int(options.nTj),dc=os.path.abspath(workspace),j=j*int(options.nTj)+1,jn=(j+1)*int(options.nTj)+1)        
         if fixPOIs: cmd += ' --POIMode none '
-        else:  cmd += ' --doSmoothnessTest '
+        else:  cmd += ' --doSmoothnessTest --allowNegativePOI '
         if options.nThreads: 
             cmd += ' --nThreads {nt}'.format(nt=options.nThreads) 
         tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
