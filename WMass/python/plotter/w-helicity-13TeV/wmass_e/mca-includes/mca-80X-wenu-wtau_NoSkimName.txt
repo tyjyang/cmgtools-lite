@@ -2,3 +2,15 @@ TauDecaysW  : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_d
 
 #TauDecaysW  : TauDecaysW_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FillColor=ROOT.kPink   ,  Label="W\#rightarrow\#tau\#nu", NormSystematic=0.038
 
+TauDecaysW_elescale0_Up   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale0Up_xsec.txt" , SkipMe=True
+TauDecaysW_elescale0_Dn   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale0Dn_xsec.txt" , SkipMe=True
+
+TauDecaysW_elescale1_Up   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale1Up_xsec.txt" , SkipMe=True
+TauDecaysW_elescale1_Dn   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale1Dn_xsec.txt" , SkipMe=True
+
+TauDecaysW_elescale2_Up   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale2Up_xsec.txt" , SkipMe=True
+TauDecaysW_elescale2_Dn   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale2Dn_xsec.txt" , SkipMe=True
+
+TauDecaysW_elescale3_Up   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale3Up_xsec.txt" , SkipMe=True
+TauDecaysW_elescale3_Dn   : NoSkim_WJetsToLNu_* : 3.*20508.9    : genw_decayId != 12 && genw_decayId != 14 ; FakeRate="w-helicity-13TeV/wmass_e/fr-includes/lepScaleUncorr/doSyst_muscale3Dn_xsec.txt" , SkipMe=True
+

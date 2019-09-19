@@ -11,6 +11,7 @@ parser.add_option(      '--regularize', default=False,  dest="regularize", actio
 parser.add_option(      '--useSciPy',   default=False, action='store_true',  help='use the slower SciPy minimizer (should be not necessary any more)');
 parser.add_option('-s', '--suffix',     default='', type="string", help='use suffix for the output dir');
 parser.add_option(      '--toys',       default=0,  type=int, help='run that number of toys, randomly generated');
+parser.add_option('-t', '--threads',    default=None,  type=int, dest='nThreads', help='use nThreads in the fit (suggested 2 for single charge, 1 for combination)')
 (options, args) = parser.parse_args()
 
 cardsdir = os.path.abspath(args[0])
@@ -19,7 +20,8 @@ if channel not in ['mu','el','lep']:
     print "Channel must be either mu or el or lep (el-mu combination). Exiting."
     sys.exit()
 
-pois = [('poim1',''),('poim0',' --POIMode none ')]
+pois = [('poim1','')]#,('poim0',' --POIMode none ')]
+#pois = [('poim0',' --POIMode none ')]
 expected = [('exp1',' -t -1 '),('exp0',' -t 0 ')]
 #BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
 BBBs = [('bbb1',' --binByBinStat --correlateXsecStat ')]
@@ -48,6 +50,8 @@ srcfiles = []
 # taureg = 600 if channel=='el' else 932.5 ## values for useExp
 taureg = 600 if channel=='el' else 950
 
+threads_opt = ' --nThreads {nt}'.format(nt=options.nThreads) if options.nThreads else ''
+
 for itoy in range(options.toys) if options.toys else range(1):
     if options.toys:
         irand = random.randint(1,1e9)
@@ -59,12 +63,13 @@ for itoy in range(options.toys) if options.toys else range(1):
     for ipm,POImode in pois:
         card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if ipm=='poim1' else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
         doImpacts = ' --doImpacts ' if ipm=='poim1' else ''
+        smoothnessTest = ' --doSmoothnessTest --doh5Output --allowNegativePOI ' if ipm=='poim1' else ''
         regularize = ' --doRegularization --regularizationUseLog --regularizationTau {tau} '.format(tau=taureg) if ipm=='poim1' and options.regularize else ''
         for iexp,exp in expected:
             saveHist = ' --saveHists --computeHistErrors '
             for ibbb,bbb in BBBs:
                 pfx = '--postfix {ipm}_{iexp}_{ibbb}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize)
+                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} {st} {to} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest, to=threads_opt)
                 if options.useSciPy: 
                     cmd += ' --useSciPyMinimizer '
                 if options.toys:

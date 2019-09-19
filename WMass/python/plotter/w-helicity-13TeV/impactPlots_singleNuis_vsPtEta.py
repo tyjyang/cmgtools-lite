@@ -206,8 +206,8 @@ if __name__ == "__main__":
     c.SetTicky(1)
 
     ## make the TH2F (eta on X and pT on Y)
-    etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")                                                                                                    
-    genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])                                                                                                     
+    etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen") 
+    genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])  
 
     for n in nuis:
 
@@ -215,7 +215,7 @@ if __name__ == "__main__":
         for charge in charges:
 
             th2_sub = ROOT.TH2F('sub_imp_matrix_%s_%s' % (charge, n), 
-                                'nuisance: %s' % niceSystName(nuisance[n]), 
+                                'nuisance: %s' % niceSystName(nuisance[n] if options.nuisgroups else n), 
                                 genBins.Neta, array("d",genBins.etaBins), genBins.Npt, array("d",genBins.ptBins))
             #th2_sub.GetXaxis().SetTickLength(0.)
             #th2_sub.GetYaxis().SetTickLength(0.)
@@ -231,11 +231,11 @@ if __name__ == "__main__":
             th2_sub.GetYaxis().SetTitleOffset(1.1) 
 
             poiName_target = {"mu":        "signal strength",
-                              "xsec":      "cross section",
+                              "xsec":      "absolute cross section",
                               "xsecnorm":  "normalized cross section",
                               "asym":   "charge asymmetry",
                               }
-            th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
+            th2_sub.GetZaxis().SetTitle("impact for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
             th2_sub.GetZaxis().SetTitleOffset(1.4)
             th2_sub.GetZaxis().SetTitleSize(0.05)
             th2_sub.GetZaxis().SetLabelSize(0.04)                                                                                                                               
@@ -257,7 +257,11 @@ if __name__ == "__main__":
             else :
                 th2_sub.GetZaxis().SetRangeUser(-rmax,rmax)
             if options.zrange:
-                rmin,rmax = (float(x) for x in options.zrange.split(','))
+                if options.zrange == "template":
+                    rmin = th2_sub.GetBinContent(th2_sub.GetMinimumBin())
+                    rmax = th2_sub.GetBinContent(th2_sub.GetMaximumBin())
+                else:
+                    rmin,rmax = (float(x) for x in options.zrange.split(','))
                 th2_sub.GetZaxis().SetRangeUser(rmin,rmax)
             if options.absolute: 
                 ROOT.gStyle.SetPaintTextFormat('1.3f')
@@ -271,7 +275,7 @@ if __name__ == "__main__":
             if options.parNameCanvas: 
                 cname = options.parNameCanvas
             else:
-                nuisName = ('NuisGroup'+n) if len(options.nuisgroups) else n
+                nuisName = ('NuisGroup'+n) if len(options.nuisgroups) else n.replace(".*","") # remove wildcards for single nuisances
                 cname = "{nn}_vs_EtaPt".format(nn=nuisName)
 
             suff = '' if not options.suffix else '_'+options.suffix

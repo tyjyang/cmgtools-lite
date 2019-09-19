@@ -202,8 +202,12 @@ class lep2016SFProducer(Module):
         self.el_f = {"trigger_barrel"  : "etaptSmooth_electrons_trigger_30_55_onlyErf.root",
                      "trigger_endcap"  : "electrons_trigger_endcap0p1.root",
                      "reco"            : "electrons_reco_pt30to45.root",
-                     "full_ID_barrel"  : "etaptSmooth_electrons_fullID_V2_pt25to55.root",
-                     "full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root",
+                     # old, obsolete and even wrong files for ID (bad smoothing in EB, no smoothing in EE  with 0.1 eta granularity)
+                     #"full_ID_barrel"  : "etaptSmooth_electrons_fullID_V2_pt25to55.root",
+                     #"full_ID_endcap"  : "electrons_fullID_V2_endcap0p1.root",
+                     # new, good files for ID
+                     "full_ID_barrel"  : "TnPstuff/electron/elFullID_V2_granular/smoothEfficiency_electrons_fullID_V2_granular.root",
+                     "full_ID_endcap"  : "TnPstuff/electron/elFullID_V2_endcap0p1/smoothEfficiency_electrons_fulID_V2_endcap0p1.root",
                      "l1prefire"       : "l1EG_eff.root",
                      }
         self.filePath = "%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/" % os.environ['CMSSW_BASE']
@@ -220,8 +224,10 @@ class lep2016SFProducer(Module):
         self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"scaleFactor")#Graph2D_from_scaleFactor_smoothedByGraph")
         self.sf1_manager_el_e = scaleFactorManager(self.el_f["trigger_endcap"],      self.filePath,"scaleFactor")#EGamma_SF2D")
         self.sf2_manager_el   = scaleFactorManager(self.el_f["reco"],                self.filePath,"EGamma_SF2D")
-        self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
-        self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"EGamma_SF2D")
+        #self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
+        #self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"EGamma_SF2D")
+        self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"scaleFactor")
+        self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"scaleFactor")
         self.sf4_manager_el   = scaleFactorManager(self.el_f["l1prefire"],           self.filePath,"l1EG_eff")
 
         # load histograms

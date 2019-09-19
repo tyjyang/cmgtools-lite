@@ -67,7 +67,7 @@ echo "#-----------------------------------------------------"
 
     thiscommand="${command} "
     echo "${thiscommand}"
-    echo "${thiscommand}" | bash
+    #echo "${thiscommand}" | bash
     echo ""
         
 echo "#-----------------------------------------------------"

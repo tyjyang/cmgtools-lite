@@ -9,7 +9,7 @@ parser.add_option("--statOnly", action='store_true', default=False, help="produc
 
 outdir = args[0]
 
-suff = ['','_withXsecMask']
+suff = ['_withXsecMask','']
 #maskedChannels = ['InAcc','OutAcc']
 maskedChannels = ['InAcc'] # if the Y bins 10,11 are treated as bkg, then should not be masked channels
 inputdirs = {'el': options.cardsEl, 'mu': options.cardsMu}
