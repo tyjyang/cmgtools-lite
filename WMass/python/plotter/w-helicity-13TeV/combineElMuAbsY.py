@@ -30,7 +30,7 @@ for s in suff:
     if freezePOI:
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{dcfile}'.format(dcfile=dc) for dc in datacards])+' > '+combinedCard
         os.system(ccCmd)
-        txt2hdf5Cmd = 'text2hdf5.py '+combinedCard
+        txt2hdf5Cmd = 'text2hdf5.py --clipSystVariations 1.3 '+combinedCard
     else:
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{dcfile}'.format(dcfile=dc) for dc in datacards])+' --xc .*_xsec_.* xsecs_plus_InAcc={cmu}/Wmu_plus_xsec_InAcc_card.txt xsecs_minus_InAcc={cmu}/Wmu_minus_xsec_InAcc_card.txt > '.format(cmu=options.cardsMu) + combinedCard
         ## here running the combine cards command first
@@ -51,7 +51,7 @@ for s in suff:
                 os.system(haddCmd)
                 os.system('sed -i "s|{origpath}|{newpath}|g" {card} '.format(origpath=rfile,newpath=newpath,card=combinedCard))
         maskchan = [' --maskedChan xsecs_{ch}_InAcc'.format(ch=ch) for ch in ['plus','minus']]
-        txt2hdf5Cmd = 'text2hdf5.py {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        txt2hdf5Cmd = 'text2hdf5.py {maskch} --X-allow-no-background --clipSystVariations 1.3 {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
     ## here making the TF meta file
     print txt2hdf5Cmd+'\n\n'
     os.system(txt2hdf5Cmd)
