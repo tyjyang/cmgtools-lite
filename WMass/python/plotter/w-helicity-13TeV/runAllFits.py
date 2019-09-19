@@ -63,7 +63,7 @@ for itoy in range(options.toys) if options.toys else range(1):
     for ipm,POImode in pois:
         card = cardsdir+"/W{chan}_card_withXsecMask.hdf5".format(chan=channel) if ipm=='poim1' else cardsdir+'/W{chan}_card.hdf5'.format(chan=channel)
         doImpacts = ' --doImpacts ' if ipm=='poim1' else ''
-        smoothnessTest = ' --doSmoothnessTest ' if ipm=='poim1' else ''
+        smoothnessTest = ' --doSmoothnessTest --doh5Output --allowNegativePOI ' if ipm=='poim1' else ''
         regularize = ' --doRegularization --regularizationUseLog --regularizationTau {tau} '.format(tau=taureg) if ipm=='poim1' and options.regularize else ''
         for iexp,exp in expected:
             saveHist = ' --saveHists --computeHistErrors '

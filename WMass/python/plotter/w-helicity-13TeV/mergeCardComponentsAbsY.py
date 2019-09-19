@@ -141,6 +141,17 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAl
         mirror.Scale(nominal.Integral()/mirror.Integral())
     return (alternate,mirror)
 
+def cropHighSysts(h_nom,h_syst,maxSyst=0.05):
+    for i in xrange(h_nom.GetNbinsX()):
+        nom  = h_nom.GetBinContent(i+1)
+        syst = h_syst.GetBinContent(i+1)
+        if nom==0: 
+            h_syst.SetBinContent(i+1, 0)
+        elif syst/nom > 1 + maxSyst: 
+            h_syst.SetBinContent(i+1, nom*(1+maxSyst))
+        elif syst/nom < 1 - maxSyst:
+            h_syst.SetBinContent(i+1, nom*(1-maxSyst))
+
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
     datacards=[]; channels=[]
@@ -715,7 +726,7 @@ def addSmoothElectronScaleSyst(infile,regexp,charge,alternateShapeOnly=False,out
                 tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
                 if alternateShapeOnly:
                     tmp_scaledHisto_1d.Scale(tmp_nominal.Integral()/tmp_scaledHisto_1d.Integral())
-                
+                cropHighSysts(tmp_nominal,tmp_scaledHisto_1d,maxSyst=0.05)
                 outfile.cd()
                 tmp_scaledHisto_1d.Write()
             nsyst += 1
@@ -796,7 +807,7 @@ def addSmoothMuonScaleSyst(infile,regexp,charge,alternateShapeOnly=False,outdir=
                 tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''))
                 if alternateShapeOnly:
                     tmp_scaledHisto_1d.Scale(tmp_nominal.Integral()/tmp_scaledHisto_1d.Integral())
-                
+                cropHighSysts(tmp_nominal,tmp_scaledHisto_1d,maxSyst=0.05)                
                 outfile.cd()
                 tmp_scaledHisto_1d.Write()
     outfile.Close()
