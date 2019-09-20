@@ -20,5 +20,5 @@ xsecs_minus = cardsdir+'/Wel_minus_shapes_xsec_baremc.root'
 
 shapes_files = cardsdir+'/Wel_shapes.root'
 
-postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
+postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1_profexp0.root'
 
