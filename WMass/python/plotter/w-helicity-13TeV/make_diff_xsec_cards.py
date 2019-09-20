@@ -961,7 +961,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
+#requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
            rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )

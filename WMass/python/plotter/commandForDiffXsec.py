@@ -4,11 +4,11 @@ import ROOT, os, sys, re, array
 
 dryrun=0
 doMuons=1
-skipUnpack=1
+skipUnpack=0
 skipMergeRoot=1
 skipSingleCard=1
 skipMergeCard=1 # disabled if fitting each charge (see below)
-skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 #flavourCombinationOutdir = "muElCombination_1Sept2019"
 flavourCombinationOutdir = "muElCombination_allSig"
 
@@ -29,6 +29,7 @@ if fitSingleCharge:
 #
 #
 # manage usage of pt scales
+useNativeMCatNLOxsecW = 1 # use 60400 pb as xsec for W and Tau, instead of 3*20508.9 (signal should already be made with that, so it is done on tau scaling histograms in the merger, and in the fit the proper xsec file is chosen)
 useSmoothPtScales = 0 # new smooth pt scales defined in mergeRootComponentsDiffXsec.py with addSmoothLepScaleSyst
 addSmoothPtScalesWithStandardOnExtremePtBins = 1  # use option --add-smooth-ptscale-extremePtFromStandard for merger
 # previous option requires useSmoothPtScales to be set to 0: basically this options add the smooth pt scales in the file, but still produces the old ones in the merger. Then, in the fits, it uses the new smooth ones
@@ -78,18 +79,14 @@ th3file_el = "cards/" + folder_el + "wel_05August_smoothSF_fsrNormGenXsec.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_23June2019_zptReweight_ptReco30.root"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUnc/" # keep "/" at the end
-folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
-#folder_mu = "diffXsec_mu_2019_07_12_noSyst_onlyEtaMinus/"
+#folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/" # keep "/" at the end
+folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_06_17_zptReweight/" # keep "/" at the end
 #folder_mu = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
-#th3file_mu = "cards/" + folder_mu + "wmu_15June2019_zptReweight.root"
-#th3file_mu = "cards/" + folder_mu + "wmu_07July2019_zptReweight_unfixedFSRcharge_EffStatOnlyStatUnc.root"
-#th3file_mu = "cards/" + folder_mu + "wmu_22July2019_integratedFSR.root"
-th3file_mu = "cards/" + folder_mu + "wmu_05August_smoothSF_fsrNormGenXsec.root"
+#th3file_mu = "cards/" + folder_mu + "wmu_05August_smoothSF_fsrNormGenXsec.root"
+th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #th3file_mu = "cards/" + folder_mu + "wmu_02August_testBinnedSFandUnc.root"
-#th3file_mu = "cards/" + folder_mu + "wmu_04July2019_zptReweight_unfixedFSRcharge_testBinUncEffStat.root"
-#th3file_mu = "cards/" + folder_mu + "wmu_12July2019_onlyRecoEtaMinus.root"
 
 folder = folder_mu if doMuons else folder_el
 th3file = th3file_mu if doMuons else th3file_el
@@ -124,6 +121,9 @@ optionsForCardMaker += binnedSystOpt
 
 #optionsForCardMaker += " --wAllXsecLnN '0.05/0.03' "  # justified from first principles, because our decorrelation scheme for the qcd scales otherwise reduces the overall xsec uncertainty unreasonably
 
+if useNativeMCatNLOxsecW:
+    optionsForRootMerger += " --use-native-MCatNLO-xsec "
+    optionsForCardMaker  += " --use-native-MCatNLO-xsec "
 
 if len(uncorrelateNuisancesByCharge):
     optionsForRootMerger += " --uncorrelate-nuisances-by-charge '{expr}' ".format(expr=uncorrelateNuisancesByCharge)

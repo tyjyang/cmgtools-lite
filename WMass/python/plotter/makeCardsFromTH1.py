@@ -344,6 +344,7 @@ parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, 
 parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
 parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
 parser.add_option(       '--use-smooth-ptscale', dest='useSmoothPtScales' , default=False, action='store_true', help='Use smooth pt scales instead of native ones')
+parser.add_option(       '--use-native-MCatNLO-xsec'  , dest='useNativeMCatNLOxsecW', default=False, action='store_true', help='Use native MC@NLO xsec for W and tau (actually, just scale W, signal should already have it)')
 (options, args) = parser.parse_args()
 
 print ""
@@ -1192,7 +1193,9 @@ xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsE
 #     xsecfile = xsecfile.replace("_dressed_","_preFSR_")
 if options.useXsecWithWptWeights:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields.root"
-    
+
+if useNativeMCatNLOxsecW:
+    xsecfile = xsecfile.replace(".root", "_nativeMCatNLOxsec.root")
 
 hists = getXsecs_etaPt(tmp_sigprocs,
                        [i for i in sortedTheoSystkeys], 

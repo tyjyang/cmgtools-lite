@@ -250,6 +250,7 @@ float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false
   float scaleW = scaleNormWToGenXsecBeforeCuts ? 0.9714120 : 0.958;  //1.014 * 0.958 
   float scaleToMCaNLO = isZ ? 1. : scaleW;
   // plots are MC/data
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
 

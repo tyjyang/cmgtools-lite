@@ -664,7 +664,9 @@ void fillHistograms(const string& treedir = "./",
   
   Double_t intLumiPb = 1000.0 * intLumi;
   Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
-  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / sumWgt;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+  //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / sumWgt;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+  // use native MC@NLO xsec, not fewz3.1
+  Double_t wjets_NLO_wgt_partial = intLumiPb * 60400.0 / sumWgt;  // WJetsToLNu_, just to speed up, for electro
 
   //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 7.97011396982e+11;  // test with WJetsToLNu_ext2v5_part1 in pccmsrm
   

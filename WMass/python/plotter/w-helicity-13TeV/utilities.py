@@ -348,13 +348,16 @@ class util:
 
     def getTheoryHistDiffXsecFast(self, xsecWithWptWeights=True, ptmin=-1.0):
 
+        # using native MC@NLO xsec (60400 pb instead of (3*20508.9)pb from fewz3.1)
+        # to use fewz3.1, remove "_nativeMCatNLOxsec" from file name
+
         # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
 
         print "Inside getTheoryHistDiffXsecFast() ..."
         # hardcoded for now
-        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_noWpt_yields.root"
+        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_noWpt_yields_nativeMCatNLOxsec.root"
         if xsecWithWptWeights:
-            infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields.root"
+            infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields_nativeMCatNLOxsec.root"
         histo_file = ROOT.TFile(infile, 'READ')            
 
         htheory = {}

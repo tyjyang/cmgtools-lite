@@ -915,6 +915,7 @@ parser.add_option(      "--symmetrize-syst-ratio",  dest="symSystRatio", type="s
 parser.add_option(       '--distinguish-name-sig-as-bkg', dest='distinguishNameSigAsBkg' , default=False, action='store_true', help='Use different name (hardcoded for now) to identify name of signal processes that are treated as background. Mainly for first pt bins of electrons when combining with muons, so to keep treating them as background in the combination (requires another option to specify the bins)')
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--add-smooth-ptscale-extremePtFromStandard', dest='addSmoothPtScalesWithStandardOnExtremePtBins' , default=False, action='store_true', help='Add smooth pt scales along with native ones. The code behaves as if the old ones are used, but also add the smooth ones with the extreme pt bins being copied from the standard ones. It requires not using --use-smooth-ptscale')
+parser.add_option(       '--use-native-MCatNLO-xsec'  , dest='useNativeMCatNLOxsecW', default=False, action='store_true', help='Use native MC@NLO xsec for W and tau (actually, just scale W, signal should already have it)')
 #parser.add_option("--pt-bins-name-change", dest="ptBinsNameChange", type="string", default='0,1', help="Comma separated list of pt bins for which the process name should be changed");
 (options, args) = parser.parse_args()
     
@@ -1114,7 +1115,7 @@ if not options.dryrun: os.system(cmdMerge)
 
 print "Remove x_data_obs from Tau, and replace 'x_TauDecaysW_wtau_' with 'x_TauDecaysW_'"
 print "Also changing Dn to Down"
-print "Also fixing (mu|ele)scale postfit to CMS_W(mu|e)_(mu|ele)scale"
+#print "Also fixing (mu|ele)scale postfit to CMS_W(mu|e)_(mu|ele)scale"
 #if not options.useQCDsystForZ:
 #    print "Will reject the QCD scales variations on Z (muR, muF, muRmuF)"
 nTaucopied = 0
@@ -1161,6 +1162,11 @@ if not options.dryrun:
             continue
         if newname.endswith("Dn"): newname = newname.replace("Dn","Down")
         newobj = obj.Clone(newname)
+        if useNativeMCatNLOxsecW:
+            # 60400./(3*20508.9)  first one is MC@NLO, second one is fewz3.1 
+            # also add factor 1.014 for normalization to gen-xsec after Wpt reweighting (this is needed
+            # because I copied the old files made with old norm factor)
+            newobj.Scale(0.981688 * 1.014) 
         newobj.Write(newname)
         nTaucopied += 1
 
