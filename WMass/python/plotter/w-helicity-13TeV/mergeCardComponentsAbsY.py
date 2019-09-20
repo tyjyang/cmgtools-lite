@@ -172,10 +172,10 @@ def combCharges(options):
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{channel}={dcfile}'.format(channel=channels[i],dcfile=datacards[i]) for i,c in enumerate(channels)])+' > '+combinedCard
         if options.freezePOIs:
             # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-            txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=combinedCard,sp="--sparse" if options.sparse else "")
+            txt2hdf5Cmd = 'text2hdf5.py {sp} {cf} --clipSystVariations {varmax}'.format(cf=combinedCard,sp="--sparse" if options.sparse else "",varmax=1.3)
         else:
             maskchan = [' --maskedChan {bin}_{charge}_xsec_{mc}'.format(bin=options.bin,charge=ch,mc=mc) for ch in ['plus','minus'] for mc in maskedChannels]
-            txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard,sp="--sparse" if options.sparse else "")
+            txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf} --clipSystVariations {varmax}'.format(maskch=' '.join(maskchan),cf=combinedCard,sp="--sparse" if options.sparse else "",varmax=1.3)
             
         if len(options.postfix):
             txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
@@ -652,6 +652,90 @@ def addZOutOfAccPrefireSyst(infile,outdir=None):
     print 'done with the reweighting for the Z OutOfAcc prefire syst'
 
 
+def addSmoothFSRSyst(infile,regexp,charge,outdir=None,isMu=True,debug=False):
+    indir = outdir if outdir != None else options.inputdir
+    flav = 'mu' if isMu else 'el'
+
+    # get eta-pt binning for reco 
+    etaPtBinningVec = getDiffXsecBinning(indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+
+    tmp_infile = ROOT.TFile(infile, 'read')
+    outfile = ROOT.TFile(indir+'/SmoothFSRSyst_{flav}_{ch}.root'.format(flav=flav,ch=charge), 'recreate')
+    
+    for k in tmp_infile.GetListOfKeys():
+        tmp_name = k.GetName()
+        ## don't reweight any histos that don't match the regexp
+        if not re.match(regexp, tmp_name): continue
+        ## don't reweight any histos that are already variations of something else
+        if 'Up' in tmp_name or 'Down' in tmp_name: continue
+        process = tmp_name.split('_')[1]
+
+        ## now should be left with only the ones we are interested in
+        print 'smoothing FSR syst for process', tmp_name
+        
+        tmp_nominal = tmp_infile.Get(tmp_name)
+        tmp_nominal_2d = dressed2D(tmp_nominal,binning, tmp_name+'backrolled')
+
+        n_ptbins  = tmp_nominal_2d.GetNbinsY()
+        n_etabins = tmp_nominal_2d.GetNbinsX()
+
+        tmp_nominal_projPt = tmp_nominal_2d.ProjectionY(tmp_name+'_projPt',1,n_etabins,'e')
+
+        tmp_nominal_up = tmp_infile.Get(tmp_name+'_fsrUp')
+        tmp_nominal_up_2d = dressed2D(tmp_nominal_up,binning, tmp_nominal_up.GetName()+'backrolled')
+        tmp_nominal_up_projPt = tmp_nominal_up_2d.ProjectionY(tmp_nominal_up.GetName()+'_projPt',1,n_etabins,'e')
+        
+        tmp_nominal_dn = tmp_infile.Get(tmp_name+'_fsrDown')
+        tmp_nominal_dn_2d = dressed2D(tmp_nominal_dn,binning, tmp_nominal_dn.GetName()+'backrolled')
+        tmp_nominal_dn_projPt = tmp_nominal_dn_2d.ProjectionY(tmp_nominal_dn.GetName()+'_projPt',1,n_etabins,'e')
+
+        tmp_nominal_up_projPt.Divide(tmp_nominal_projPt)
+        tmp_nominal_dn_projPt.Divide(tmp_nominal_projPt)
+
+        if debug:
+            c = ROOT.TCanvas('cfit','',600,600)
+            tmp_nominal_up_projPt.SetLineColor(ROOT.kRed)
+            tmp_nominal_dn_projPt.SetLineColor(ROOT.kBlue)
+            tmp_nominal_up_projPt.Draw()
+            tmp_nominal_dn_projPt.Draw("same")
+
+        fitopt = 'S' if debug else 'SQ'
+        fr_up = tmp_nominal_up_projPt.Fit('pol1',fitopt)
+        pars_up = [fr_up.Parameter(i) for i in range(2)]
+
+        fr_dn = tmp_nominal_dn_projPt.Fit('pol1',fitopt)
+        pars_dn = [fr_dn.Parameter(i) for i in range(2)]
+
+        if debug:
+            c.SaveAs("fsr_syst_proj_%s.png" % tmp_name)
+
+        ## create the new syst histogram with the pol1 results
+        outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smoothfsr'
+        tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
+        tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
+
+        ## loop over all eta bins of the 2d histogram 
+        for ieta in range(1,n_etabins+1):
+            for ipt in range(1,n_ptbins+1):
+                pt = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                smooth_syst_up = pars_up[0] + pars_up[1]*pt
+                smooth_syst_dn = pars_dn[0] + pars_dn[1]*pt
+                tmp_scaledHisto_up.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt)*smooth_syst_up)
+                tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_nominal_2d.GetBinContent(ieta,ipt)*smooth_syst_dn)
+
+        ## re-roll the 2D to a 1D histo
+        tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
+        tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+
+        outfile.cd()
+        tmp_scaledHisto_up_1d.Write()
+        tmp_scaledHisto_dn_1d.Write()
+    outfile.Close()
+    print 'done with the smoothing for the FSR systematic'
+
+
 def addSmoothElectronScaleSyst(infile,regexp,charge,alternateShapeOnly=False,outdir=None):
 
     indir = outdir if outdir != None else options.inputdir
@@ -951,6 +1035,7 @@ if __name__ == "__main__":
         excludeNuisances = options.excludeNuisances.split(",")
     excludeNuisances.append("CMS.*sig_lepeff")
     excludeNuisances.append("CMS.*_(ele|mu)scale\d")
+    excludeNuisances.append("fsr")
 
     for charge in charges:
     
@@ -1126,7 +1211,10 @@ if __name__ == "__main__":
                 addSmoothMuonScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge)
             else:
                 addSmoothElectronScaleSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*|.*Z.*|.*TauDecaysW.*)', charge)
-            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
+
+            addSmoothFSRSyst(outfile+'.noErfPar', '(.*Wminus.*|.*Wplus.*)',charge,outdir=None,isMu= 'mu' in options.bin,debug=False)
+
+            final_haddcmd = 'hadd -f {of} {indir}/ErfParEffStat_{flav}_{ch}.root {indir}/*Uncorrelated_{flav}_{ch}.root {indir}/*EffSyst_{flav}.root {indir}/SmoothScaleSyst_{flav}_{ch}.root {indir}/SmoothFSRSyst_{flav}_{ch}.root {of}.noErfPar '.format(of=outfile, ch=charge, indir=options.inputdir, flav=options.bin.replace('W','') )
             if 'el' in options.bin:
                 final_haddcmd += options.inputdir + '/ZOutOfAccPrefireSyst_el.root'
             os.system(final_haddcmd)
@@ -1146,7 +1234,7 @@ if __name__ == "__main__":
                     if re.match('.*_muR\d+|.*_muF\d+',name) and name.startswith('x_Z_'): continue # patch: these are the wpT binned systematics that are filled by makeShapeCards but with 0 content
                     if syst not in theosyst: theosyst[syst] = [binWsyst]
                     else: theosyst[syst].append(binWsyst)
-                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*OutOfAccPrefireSyst.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*smooth(el|mu)scale\S+|.*fsr.*',name):
+                if re.match('.*EffSyst.*|.*ErfPar\dEffStat.*|.*OutOfAccPrefireSyst.*|.*(Fakes|Z|TauDecaysW).*Uncorrelated.*|.*smooth(el|mu)scale\S+|.*smoothfsr.*',name):
                     if syst not in expsyst: expsyst[syst] = [binWsyst]
                     else: expsyst[syst].append(binWsyst)
         if len(theosyst): print "Found a bunch of theoretical shape systematics: ",theosyst.keys()
@@ -1395,10 +1483,8 @@ if __name__ == "__main__":
         for sys,procs in allsyst.iteritems():
             if isExcludedNuisance(excludeNuisances, sys): continue
             systscale = '1.0' if sys!='alphaS' else '0.67' # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) => variations correspond to 0.67sigma
-            # NOMINAL: profile muon scales, not electron scales. For both channels, DO NOT profile FSR
-            rgxp = 'fsr' if 'mu' in options.bin else 'smooth(mu|el)scale.*|fsr'
             # there should be 2 occurrences of the same proc in procs (Up/Down). This check should be useless if all the syst jobs are DONE
-            combinedCard.write('%-15s   shape%s %s\n' % (sys,'NoProfile' if re.match(rgxp,sys) else '', (" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
+            combinedCard.write('%-15s   shape%s %s\n' % (sys,'NoProfile' if re.match('smoothelscale.*',sys) else '', (" ".join([systscale if p in procs and procs.count(p)==2 else '  -  ' for p,r in ProcsAndRates]))) )
         combinedCard.close() 
 
         cardlines = [line.rstrip('\n') for line in open(cardfile,'r')]
@@ -1408,7 +1494,7 @@ if __name__ == "__main__":
         combinedCard.write('\nluminosity group = CMS_lumi_13TeV\n')
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
         combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
-        combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('fsr',x),finalsystnames))+'\n')
+        combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('smoothfsr',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('.*smooth(el|mu)scale\S+',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 
         combinedCard.write('\nEffSyst group = '+' '.join(filter(lambda x: re.match('.*EffSyst.*|.*OutOfAccPrefireSyst.*',x),finalsystnames))+'\n')
@@ -1513,10 +1599,10 @@ if __name__ == "__main__":
             txt2wsCmd_noXsec = 'text2workspace.py {cf} -o {ws} --X-no-check-norm -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose {pos} '.format(cf=cardfile, ws=ws, pos=multisig)
             if options.freezePOIs:
                 # doesn't make sense to have the xsec masked channel if you freeze the rates (POIs) -- and doesn't work either
-                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf}'.format(cf=cardfile,sp="--sparse" if options.sparse else "")
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {cf} --clipSystVariations {varmax}'.format(cf=cardfile,sp="--sparse" if options.sparse else "",varmax=1.3)
             else:
                 mcstr = '--maskedChan '+' --maskedChan '.join([k for k,val in maskedChannelsCards.iteritems()])
-                txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf}'.format(maskch=mcstr,cf=cardfile_xsec,sp="--sparse" if options.sparse else "")
+                txt2hdf5Cmd = 'text2hdf5.py {sp} {maskch} --X-allow-no-background {cf} --clipSystVariations {varmax}'.format(maskch=mcstr,cf=cardfile_xsec,sp="--sparse" if options.sparse else "",varmax=1.3)
             #combineCmd = 'combine {ws} -M MultiDimFit    -t -1 -m 999 --saveFitResult --keepFailures --cminInitialHesse 1 --cminFinalHesse 1 --cminPreFit 1       --redefineSignalPOIs {pois} --floatOtherPOIs=0 -v 9'.format(ws=ws, pois=','.join(['r_'+p for p in signals]))
             # combineCmd = 'combine {ws} -M MultiDimFit -t -1 -m 999 --saveFitResult {minOpts} --redefineSignalPOIs {pois} -v 9 --setParameters mask_{xc}=1 '.format(ws=newws, pois=','.join(['r_'+p for p in signals]),minOpts=minimizerOpts, xc=chname_xsec)
         ## here running the combine cards command first
