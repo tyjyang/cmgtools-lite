@@ -134,6 +134,7 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option(     '--skip-signal', dest="skipSignal", default=False, action='store_true', help="Skip signal processes");
     parser.add_option('-u','--unrolled', dest='unrolled', default=False, action='store_true', help='make the 1D ratios on the unrolled plot for all the listed systematics')
+    parser.add_option('-a','--checkAsymmetry', dest='checkAsymmetry', default=False, action='store_true', help='also make the plots for Up/Down asymmetry')
     parser.add_option(     '--projections', dest='projections', default=False, action='store_true', help='make the 1D ratios on the X and Y projections')
     parser.add_option('-r','--syst-ratio-range', dest='systRatioRange', default='', type='string', help='Comma separated pair of floats used to define the range for the syst/nomi ratio. If "template" is passed, the template\'s min and max values are used (they will be different for each template). With "templateSym", the range is set symmetrically using max(abs(minz),maxz).') 
     parser.add_option('-p','--processes', dest='processes', default='', type='string', help='Comma-separated list of processes to consider (if empty, all processes are used). It overrides --skip-signal')
@@ -185,6 +186,7 @@ if __name__ == "__main__":
 
 
         ratios={}
+        ratios_asymmetry={}
         for proc in procs:
             print "Making syst plots for process : ",proc," ..."
             pol = 'none'
@@ -207,55 +209,93 @@ if __name__ == "__main__":
                     for ip in xrange(1,nPDF+1):
                         if 'W{ch}'.format(ch=charge) in proc:
                             if options.singleRap:
-                                histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=options.singleRap,ip=ip))
+                                histo_pdfi    = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'  .format(ch=charge,pol=pol,iy=options.singleRap,ip=ip))
+                                histo_pdfanti = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Down'.format(ch=charge,pol=pol,iy=options.singleRap,ip=ip))
                             else:
-                                histo_pdfi = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Up'.format(ch=charge,pol=pol,ip=ip))
+                                histo_pdfi    = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Up'  .format(ch=charge,pol=pol,ip=ip))
+                                histo_pdfanti = infile.Get('x_W{ch}_{pol}_Ybin_0_pdf{ip}Down'.format(ch=charge,pol=pol,ip=ip))
                                 for iy in xrange(1,nY[cp]+1):
-                                    histo_pdfi_iy = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'.format(ch=charge,pol=pol,iy=iy,ip=ip))
-                                    if histo_pdfi_iy: histo_pdfi.Add(histo_pdfi_iy)
+                                    histo_pdfi_iy    = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Up'  .format(ch=charge,pol=pol,iy=iy,ip=ip))
+                                    histo_pdfanti_iy = infile.Get('x_W{ch}_{pol}_Ybin_{iy}_pdf{ip}Down'.format(ch=charge,pol=pol,iy=iy,ip=ip))
+                                    if histo_pdfi_iy   : histo_pdfi   .Add(histo_pdfi_iy   )
+                                    if histo_pdfanti_iy: histo_pdfanti.Add(histo_pdfanti_iy)
                             title2D = 'W{ch} {pol} : pdf {ip}'.format(ip=ip,pol=pol,ch=chs)
                             key = 'syst_W{ch}_{pol}_pdf{ip}'.format(ch=charge,pol=pol,ip=ip)
                             if options.singleRap: key += '_Ybin_{iy}'.format(iy=options.singleRap)
                         else:
-                            histo_pdfi = infile.Get('x_{proc}_pdf{ip}Up'.format(proc=proc,ip=ip))
+                            histo_pdfi    = infile.Get('x_{proc}_pdf{ip}Up'  .format(proc=proc,ip=ip))
+                            histo_pdfanti = infile.Get('x_{proc}_pdf{ip}Down'.format(proc=proc,ip=ip))
                             title2D = 'Z : pdf {ip}'.format(ip=ip)
                             key = 'syst_{proc}_{ch}_pdf{ip}'.format(proc=proc,ch=charge,ip=ip)
                         if not histo_central.GetEntries() == histo_pdfi.GetEntries() or histo_pdfi.Integral() == 0.:
-                            print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
+                            print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES FOR UP VARIATION'
                             print 'this just happened for {ch} and {pol} and pdf {syst}'.format(ch=charge, pol=pol, syst=ip)
                             errors.append('{ch}_{pol}_pdf{syst}'.format(ch=charge, pol=pol, syst=ip))
+                        ## if not histo_central.GetEntries() == histo_pdfanti.GetEntries() or histo_pdfanti.Integral() == 0.:
+                        ##     print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES FOR DOWN VARIATION'
+                        ##     print 'this just happened for {ch} and {pol} and pdf {syst}'.format(ch=charge, pol=pol, syst=ip)
+                        ##     errors.append('{ch}_{pol}_pdf{syst}'.format(ch=charge, pol=pol, syst=ip))
                         ratio_pdfi = copy.deepcopy(histo_pdfi)
                         ratio_pdfi.Divide(histo_central)
+                        ratio_pdfanti = copy.deepcopy(histo_pdfanti)
+                        ratio_pdfanti.Divide(histo_central)
+                        ratio_asymmetry = copy.deepcopy(histo_pdfanti)
                         for ib in xrange(1, ratio_pdfi.GetNbinsX()+1):
                             ##ratio_pdfi.SetBinContent(ib, abs(1.-ratio_pdfi.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
-                            ratio_pdfi.SetBinContent(ib, ratio_pdfi.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
+                            ratio_pdfi   .SetBinContent(ib, ratio_pdfi   .GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
+                            ratio_pdfanti.SetBinContent(ib, ratio_pdfanti.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0) ## has the same number of bins so fine
+
+                            tmp_ratio      = ratio_pdfi   .GetBinContent(ib)
+                            tmp_ratio_anti = ratio_pdfanti.GetBinContent(ib)
+
+                            isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
+                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                             
+                            ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
+
+
                         h2_backrolled_1 = dressed2D(ratio_pdfi,binning,title2D)
                         h2_backrolled_1.GetZaxis().SetRangeUser(-0.02,0.02)
                         ratios[key] = h2_backrolled_1
+
+                        h2_backrolled_asymmetry_1 = dressed2D(ratio_asymmetry,binning,'asym '+title2D)
+                        h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0., 1.)
+                        ratios_asymmetry[key] = h2_backrolled_asymmetry_1
                 else:
                     histo_syst = None
                     fullsyst = syst if any(sfx in syst for sfx in ['Up','Down']) else syst+"Up"
+                    fullsystanti = fullsyst.replace('Up','Down') if 'Up' in fullsyst else fullsyst.replace('Down','Up')
+                    print 'this is fullsyst', fullsyst
+                    print 'this is fullsystanti', fullsystanti
                     if 'W{ch}'.format(ch=charge) in proc:
                         for pol in [proc.split('_')[1]]:#'right', 'left']:
                             cp = charge+'_'+pol
                             if options.singleRap:
-                                hname = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=options.singleRap,syst=fullsyst)
+                                hname     = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=options.singleRap,syst=fullsyst)
+                                hnameanti = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=options.singleRap,syst=fullsystanti)
                             else:
-                                hname = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsyst)
-                            histo_syst = infile.Get(hname) if hname in keylist else None
+                                hname     = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsyst)
+                                hnameanti = 'x_W{ch}_{pol}_Ybin_0_{syst}'.format(ch=charge,pol=pol,syst=fullsystanti)
+                            histo_syst      = infile.Get(hname) if hname in keylist else None
+                            histo_syst_anti = infile.Get(hnameanti) if hnameanti in keylist else None
                             if not options.singleRap:
                                 for iy in xrange(1,nY[cp]+1):
-                                    hname_iy = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsyst)
+                                    hname_iy     = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsyst)
                                     histo_syst_iy = infile.Get(hname_iy) if hname in keylist else None
+                                    hname_anti_iy = 'x_W{ch}_{pol}_Ybin_{iy}_{syst}'.format(ch=charge,pol=pol,iy=iy,syst=fullsystanti)
+                                    histo_syst_anti_iy = infile.Get(hname_anti_iy) if hnameanti in keylist else None
                                     if histo_syst_iy: histo_syst.Add(histo_syst_iy)
+                                    if histo_syst_anti_iy: histo_syst_anti.Add(histo_syst_anti_iy)
                             title2D = 'W{ch} {pol} : variation={syst}'.format(pol=pol,ch=chs,syst=syst)
                             key = 'syst_W{ch}_{pol}_{syst}'.format(ch=charge,pol=pol,syst=syst)
                             if options.singleRap: key += '_Ybin_{iy}'.format(iy=options.singleRap)
                     else:
-                        hname = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsyst)
-                        print "Lookiig for shape ",hname
+                        hname     = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsyst)
+                        hnameanti = 'x_{proc}_{syst}'.format(proc=proc,syst=fullsystanti)
+                        print "Looking for shape ",hname
                         if hname in fulllist:
-                            histo_syst = infile.Get(hname)
+                            histo_syst      = infile.Get(hname)
+                            histo_syst_anti = infile.Get(hnameanti)
                         title2D = '{proc} : variation={syst}'.format(proc=proc,syst=syst)
                         key = 'syst_{proc}_{ch}_{syst}'.format(proc=proc,ch=charge,syst=syst)
                     if histo_syst:
@@ -263,10 +303,24 @@ if __name__ == "__main__":
                         myvar  = copy.deepcopy(histo_central)
                         ratio = copy.deepcopy(histo_syst)
                         ratio.Divide(histo_central)
+                        ratioanti = copy.deepcopy(histo_syst_anti)
+                        ratioanti.Divide(histo_central)
+                        ratio_asymmetry = copy.deepcopy(histo_syst)
                         for ib in xrange(1, ratio.GetNbinsX()+1):
                             ##ratio.SetBinContent(ib, abs(1.-ratio.GetBinContent(ib) if histo_central.GetBinContent(ib)>0 else 0))
-                            ratio.SetBinContent(ib, ratio.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
+                            ratio    .SetBinContent(ib, ratio    .GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
+                            ratioanti.SetBinContent(ib, ratioanti.GetBinContent(ib)-1. if histo_central.GetBinContent(ib)>0 else 0)
+
+                            tmp_ratio      = ratio.GetBinContent(ib)
+                            tmp_ratio_anti = ratioanti.GetBinContent(ib)
+
+                            isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
+                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                             
+                            ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
+
                         h2_backrolled_1 = dressed2D(ratio,binning,title2D)
+                        h2_backrolled_asymmetry_1 = dressed2D(ratio_asymmetry,binning,title2D)
                         hmax = 0.05 if 'muF' in syst else 0.04
                         if 'Prefire'  in syst: hmax = 0.40 # yes, not 0.04
                         if 'effstat'  in syst: hmax = 0.005
@@ -275,13 +329,21 @@ if __name__ == "__main__":
                         if 'smoothel' in syst: hmax = 0.04
                         if options.singleRap: hmax = 0.10
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
+                        h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0.,1.)
                         ratios[key] = h2_backrolled_1
+                        ratios_asymmetry[key] = h2_backrolled_asymmetry_1
                         if not histo_central.GetEntries() == histo_syst.GetEntries():
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
                             print 'this just happened for {ch} and {pol} and systematic {syst}'.format(ch=charge, pol=pol, syst=fullsyst)
                             print 'nentries of central:', histo_central.GetEntries()
                             print 'nentries of syst:   ', histo_syst.GetEntries()
                             errors.append('{ch}_{pol}_{syst}'.format(ch=charge, pol=pol, syst=fullsyst))
+                        if not histo_central.GetEntries() == histo_syst_anti.GetEntries():
+                            print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
+                            print 'this just happened for {ch} and {pol} and systematic {syst}'.format(ch=charge, pol=pol, syst=fullsystanti)
+                            print 'nentries of central:', histo_central.GetEntries()
+                            print 'nentries of syst:   ', histo_syst_anti.GetEntries()
+                            errors.append('{ch}_{pol}_{syst}'.format(ch=charge, pol=pol, syst=fullsystanti))
 
         if len(ratios):
             if not options.no2Dplot:
@@ -299,6 +361,12 @@ if __name__ == "__main__":
                     r.Draw('colz')
                     for ext in ['pdf', 'png']:
                         canv.SaveAs('{odir}/{name}.{ext}'.format(odir=outname,name=k,ext=ext))
+
+                    ## plot the asymmetry ratios too
+                    if options.checkAsymmetry:
+                        ratios_asymmetry[k].Draw('colz')
+                        for ext in ['pdf', 'png']:
+                            canv.SaveAs('{odir}/asymmetry_{name}.{ext}'.format(odir=outname,name=k,ext=ext))
 
             systNames = options.systematics.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
             ## protection for too long filenames
