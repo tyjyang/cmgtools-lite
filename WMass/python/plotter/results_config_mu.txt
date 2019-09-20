@@ -1,17 +1,12 @@
-basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/opium/fitsout_2019-09-11/'
+basedir  = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/grappa-aromatica/fitsout_2019-09-20/'
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_mu/'
 
 dirWithToyFits = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/'
 
-both_floatingPOIs_hessian_bbb1_syst1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
-both_floatingPOIs_hessian_bbb1_syst1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'
-both_fixedPOIs_hessian_bbb1_syst1_data      = basedir+'/fitresults_123456789_poim0_exp0_bbb1.root'
-both_fixedPOIs_hessian_bbb1_syst1_asimov    = basedir+'/fitresults_123456789_poim0_exp1_bbb1.root'
-
-#both_floatingPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb0.root'
-#both_floatingPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb0.root'
-#both_fixedPOIs_hessian_bbb0_syst1_data   = basedir+'/fitresults_123456789_poim0_exp0_bbb0.root'
-#both_fixedPOIs_hessian_bbb0_syst1_asimov = basedir+'/fitresults_123456789_poim0_exp1_bbb0.root'
+both_floatingPOIs_hessian_bbb1_syst1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1_profexp0.root'
+both_floatingPOIs_hessian_bbb1_syst1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1_profexp0.root'
+both_fixedPOIs_hessian_bbb1_syst1_data      = basedir+'/fitresults_123456789_poim0_exp0_bbb1_profexp0.root'
+both_fixedPOIs_hessian_bbb1_syst1_asimov    = basedir+'/fitresults_123456789_poim0_exp1_bbb1_profexp0.root'
 
 ###both_floatingPOIs_toys              = basedir+'/toys/fitresults_both_floatingPOIs_toys.root'
 
@@ -25,6 +20,5 @@ alt_xsecs_minus = cardsdir+'/Wmu_minus_shapes_xsec.root'
 xsecs_plus  = cardsdir+'/Wmu_plus_shapes_xsec_baremc.root'
 xsecs_minus = cardsdir+'/Wmu_minus_shapes_xsec_baremc.root'
 
-postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1.root'
-postfit_bbb1_asimov = basedir+'/fitresults_123456789_poim1_exp1_bbb1.root'
+postfit_bbb1_data   = basedir+'/fitresults_123456789_poim1_exp0_bbb1_profexp0.root'
 
