@@ -186,6 +186,7 @@ if __name__ == "__main__":
 
 
         ratios={}
+        ratios_down={}
         ratios_asymmetry={}
         for proc in procs:
             print "Making syst plots for process : ",proc," ..."
@@ -256,7 +257,10 @@ if __name__ == "__main__":
 
                         h2_backrolled_1 = dressed2D(ratio_pdfi,binning,title2D)
                         h2_backrolled_1.GetZaxis().SetRangeUser(-0.02,0.02)
-                        ratios[key] = h2_backrolled_1
+                        h2_backrolled_down_1 = dressed2D(ratio_pdfanti,binning,title2D)
+                        h2_backrolled_down_1.GetZaxis().SetRangeUser(-0.02,0.02)
+                        ratios     [key] = h2_backrolled_1
+                        ratios_down[key] = h2_backrolled_down_1
 
                         h2_backrolled_asymmetry_1 = dressed2D(ratio_asymmetry,binning,'asym '+title2D)
                         h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0., 1.)
@@ -332,6 +336,12 @@ if __name__ == "__main__":
                         h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0.,1.)
                         ratios[key] = h2_backrolled_1
                         ratios_asymmetry[key] = h2_backrolled_asymmetry_1
+
+                        h2_backrolled_down_1 = dressed2D(ratioanti,binning,title2D)
+                        h2_backrolled_down_1.GetZaxis().SetRangeUser(-hmax,hmax)
+                        ratios_down[key] = h2_backrolled_down_1
+
+
                         if not histo_central.GetEntries() == histo_syst.GetEntries():
                             print 'WARNING/ERROR: THE CENTRAL HISTO AND PDF HISTO DO NOT HAVE THE SAME NUMBER OF ENTRIES'
                             print 'this just happened for {ch} and {pol} and systematic {syst}'.format(ch=charge, pol=pol, syst=fullsyst)
@@ -347,7 +357,12 @@ if __name__ == "__main__":
 
         if len(ratios):
             if not options.no2Dplot:
-                canv = ROOT.TCanvas("c2","c2",600,600)
+                if options.checkAsymmetry:
+                    canv = ROOT.TCanvas("c2","c2",1800,600)
+                    canv.Divide(3,1)
+                else:
+                    canv = ROOT.TCanvas("c2","c2",1200,600)
+                    canv.Divide(2,1)
                 for k,r in ratios.iteritems():
                     if len(options.systRatioRange):
                         if options.systRatioRange == "template":
@@ -358,15 +373,18 @@ if __name__ == "__main__":
                         else:
                             (minz,maxz) = options.systRatioRange.split(',')
                             r.GetZaxis().SetRangeUser(float(minz),float(maxz))                            
+                    canv.cd(1)
+                    r.SetTitle('Up variation '+k.split('_')[-1])
                     r.Draw('colz')
+                    canv.cd(2)
+                    ratios_down[k].SetTitle('Down variation '+k.split('_')[-1])
+                    ratios_down[k].Draw('colz')
+                    if options.checkAsymmetry:
+                        canv.cd(3)
+                        ratios_asymmetry[k].SetTitle('asymmetry check')
+                        ratios_asymmetry[k].Draw('colz')
                     for ext in ['pdf', 'png']:
                         canv.SaveAs('{odir}/{name}.{ext}'.format(odir=outname,name=k,ext=ext))
-
-                    ## plot the asymmetry ratios too
-                    if options.checkAsymmetry:
-                        ratios_asymmetry[k].Draw('colz')
-                        for ext in ['pdf', 'png']:
-                            canv.SaveAs('{odir}/asymmetry_{name}.{ext}'.format(odir=outname,name=k,ext=ext))
 
             systNames = options.systematics.replace(',','AND').replace('.','').replace('*','').replace('$','').replace('^','').replace('|','').replace('[','').replace(']','')
             ## protection for too long filenames
