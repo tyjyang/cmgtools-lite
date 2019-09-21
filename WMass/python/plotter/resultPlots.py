@@ -64,12 +64,11 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         tmp_systs = []
-        for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
-            tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
+        for p,s,n,c in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11), ['plus','minus']):
+            tmp_systs.append('{p}{s}{n}{c}'.format(p=p,s=s,n=n,c=c))
         systs += [','.join(tmp_systs)]
-
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled -a --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
             # print 'running systRatios for a few single rapidity  bins (0,8,9)'
