@@ -20,11 +20,13 @@ if channel not in ['mu','el','lep']:
     print "Channel must be either mu or el or lep (el-mu combination). Exiting."
     sys.exit()
 
-pois = [('poim1','')]#,('poim0',' --POIMode none ')]
+pois = [('poim1',''),('poim0',' --POIMode none ')]
 #pois = [('poim0',' --POIMode none ')]
 expected = [('exp1',' -t -1 '),('exp0',' -t 0 ')]
 #BBBs = [('bbb1',' --binByBinStat --correlateXsecStat '),('bbb0','')]
 BBBs = [('bbb1',' --binByBinStat --correlateXsecStat ')]
+# mu-only channel has everything profiled. Still elescale profiled
+profexp = [('profexp0',''),('profexp1',' --useExpNonProfiledErrs ')] if channel!='mu' else [('profexp0','')]
 
 date = datetime.date.today().isoformat()
 absopath  = os.path.abspath('fitsout_'+date)
@@ -58,6 +60,7 @@ for itoy in range(options.toys) if options.toys else range(1):
         expected = [('toy'+str(irand),' -t 1 ')]
         pois = [('poim1','')]
         BBBs = [('bbb1',' --binByBinStat --correlateXsecStat ')]
+        profexp = [('profexp0','')]
         seed = irand
 
     for ipm,POImode in pois:
@@ -68,28 +71,29 @@ for itoy in range(options.toys) if options.toys else range(1):
         for iexp,exp in expected:
             saveHist = ' --saveHists --computeHistErrors '
             for ibbb,bbb in BBBs:
-                pfx = '--postfix {ipm}_{iexp}_{ibbb}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-                cmd = 'combinetf.py {poimode} {exp} {bbb} {saveh} {imp} {pfx} {card} {reg} {st} {to} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest, to=threads_opt)
-                if options.useSciPy: 
-                    cmd += ' --useSciPyMinimizer '
-                if options.toys:
-                    cmd += ' --seed {irand} '.format(irand=irand)
-                if options.queue:
-                    job_file_name = jobdir+'jobfit_{ipm}_{iexp}_{ibbb}.sh'.format(ipm=ipm, iexp=iexp, ibbb=ibbb)
-                    log_file_name = job_file_name.replace('.sh','.log')
-                    tmp_file = open(job_file_name, 'w')
-                    tmp_filecont = jobstring_tf
-                    tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
-                    tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
-                    tmp_filecont = tmp_filecont.replace('OUTDIR', absopath)
-                    tmp_file.write(tmp_filecont)
-                    tmp_file.close()
-                    srcfiles.append(job_file_name)
-                else:
-                    print "running ",cmd
-                    os.system(cmd)
-                    os.system('mv fitresults_123456789.root fitresults_{ipm}_{iexp}_{ibbb}.root'.format(ipm=ipm, iexp=iexp, ibbb=ibbb))
-                    print "fit done. Moving to the next one."
+                for ipe,profExpErr in profexp:
+                    pfx = '--postfix {ipm}_{iexp}_{ibbb}_{ipe}'.format(ipm=ipm, iexp=iexp, ibbb=ibbb, ipe=ipe)
+                    cmd = 'combinetf.py {poimode} {exp} {bbb} {profExpErr} {saveh} {imp} {pfx} {card} {reg} {st} {to} --fitverbose 9'.format(poimode=POImode, exp=exp, bbb=bbb, profExpErr=profExpErr, saveh=saveHist, imp=doImpacts, pfx=pfx, card=card, reg=regularize, st=smoothnessTest, to=threads_opt)
+                    if options.useSciPy: 
+                        cmd += ' --useSciPyMinimizer '
+                    if options.toys:
+                        cmd += ' --seed {irand} '.format(irand=irand)
+                    if options.queue:
+                        job_file_name = jobdir+'jobfit_{ipm}_{iexp}_{ibbb}_{ipe}.sh'.format(ipm=ipm, iexp=iexp, ibbb=ibbb, ipe=ipe)
+                        log_file_name = job_file_name.replace('.sh','.log')
+                        tmp_file = open(job_file_name, 'w')
+                        tmp_filecont = jobstring_tf
+                        tmp_filecont = tmp_filecont.replace('COMBINESTRING', cmd)
+                        tmp_filecont = tmp_filecont.replace('CMSSWBASE', os.environ['CMSSW_BASE']+'/src/')
+                        tmp_filecont = tmp_filecont.replace('OUTDIR', absopath)
+                        tmp_file.write(tmp_filecont)
+                        tmp_file.close()
+                        srcfiles.append(job_file_name)
+                    else:
+                        print "running ",cmd
+                        os.system(cmd)
+                        os.system('mv fitresults_123456789.root fitresults_{ipm}_{iexp}_{ibbb}_{ipe}.root'.format(ipm=ipm, iexp=iexp, ibbb=ibbb, ipe=ipe))
+                        print "fit done. Moving to the next one."
                 
 if options.queue:
     cf = makeCondorFile(jobdir,srcfiles,options, logdir, errdir, outdirCondor)

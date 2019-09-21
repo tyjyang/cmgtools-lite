@@ -45,7 +45,7 @@ if __name__ == '__main__':
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         systs = []
         systs += ['pdf', 'alphaS']
-        systs += ['mW', 'fsr']
+        systs += ['mW', 'smoothfsr']
         systs += ['muR'   +str(i) for i in range(1,11)]
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
