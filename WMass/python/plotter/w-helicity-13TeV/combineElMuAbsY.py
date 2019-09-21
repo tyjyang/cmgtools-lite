@@ -4,6 +4,7 @@ from optparse import OptionParser
 parser = OptionParser(usage="%prog [options] cardsdir")
 parser.add_option("--cel", dest="cardsEl",  type="string", default="cards_el", help="Directory with electron cards");
 parser.add_option("--cmu", dest="cardsMu",  type="string", default="cards_mu", help="Directory with muon cards");
+parser.add_option("--statOnly", action='store_true', default=False, help="produce with stat only (-S 0)");
 (options, args) = parser.parse_args()
 
 outdir = args[0]
@@ -30,7 +31,10 @@ for s in suff:
     if freezePOI:
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{dcfile}'.format(dcfile=dc) for dc in datacards])+' > '+combinedCard
         os.system(ccCmd)
+
         txt2hdf5Cmd = 'text2hdf5.py --clipSystVariations 1.3 '+combinedCard
+        if options.statOnly:
+            txt2hdf5Cmd += ' -S 0 '
     else:
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{dcfile}'.format(dcfile=dc) for dc in datacards])+' --xc .*_xsec_.* xsecs_plus_InAcc={cmu}/Wmu_plus_xsec_InAcc_card.txt xsecs_minus_InAcc={cmu}/Wmu_minus_xsec_InAcc_card.txt > '.format(cmu=options.cardsMu) + combinedCard
         ## here running the combine cards command first
@@ -52,6 +56,8 @@ for s in suff:
                 os.system('sed -i "s|{origpath}|{newpath}|g" {card} '.format(origpath=rfile,newpath=newpath,card=combinedCard))
         maskchan = [' --maskedChan xsecs_{ch}_InAcc'.format(ch=ch) for ch in ['plus','minus']]
         txt2hdf5Cmd = 'text2hdf5.py {maskch} --X-allow-no-background --clipSystVariations 1.3 {cf}'.format(maskch=' '.join(maskchan),cf=combinedCard)
+        if options.statOnly:
+            txt2hdf5Cmd += ' -S 0 '
     ## here making the TF meta file
     print txt2hdf5Cmd+'\n\n'
     os.system(txt2hdf5Cmd)
