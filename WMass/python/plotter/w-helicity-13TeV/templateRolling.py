@@ -179,7 +179,9 @@ if __name__ == "__main__":
         allsysts.extend(["elTestEffSyst%d" % i for i in range(4)])
     else:
         #allsysts.extend(["muscale%d" % i for i in range(2)])
-        allsysts.extend(["smoothmuscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
+        #allsysts.extend(["smoothmuscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
+        allsysts.extend(["smoothmuscaleStat%d" % i for i in range(51,53)])
+        allsysts.extend(["smoothmuscaleSyst%d" % i for i in range(2,6)])
         #allsysts.extend(["muscale%d%setaside%s" % (i,ch,s) for i in range(2) for ch in charges for s in ["P","M"]])
         allsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
     allsystsUpDn = []
@@ -530,13 +532,20 @@ if __name__ == "__main__":
                 #tausysts.extend(["elTestEffSyst%d" % i for i in range(4)])
             else:
                 #zsysts = ["CMS_Wmu_muscale%d" % i for i in range(2)]
-                zsysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #zsysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                zsysts = ["smoothmuscaleStat%d" % i for i in range(51,53)]
+                zsysts.extend(["smoothmuscaleSyst%d" % i for i in range(2,6)])
                 #zsysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 zsysts.extend(["muTestEffSyst%d" % i for i in range(3)])
                 #zsysts.append("CMS_Wmu_sig_lepeff")
-                tausysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #tausysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                tausysts = ["smoothmuscaleStat%d" % i for i in range(51,53)]
+                tausysts.extend(["smoothmuscaleSyst%d" % i for i in range(2,6)])
                 #tausysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
-                outlierssysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                #outlierssysts = ["smoothmuscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
+                outlierssysts = ["smoothmuscaleStat%d" % i for i in range(51,53)]
+                outlierssysts.extend(["smoothmuscaleSyst%d" % i for i in range(2,6)])
+
                 #outlierssysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 #tausysts.extend(["muTestEffSyst%d" % i for i in range(3)])
             outlierssysts.extend(["fsr","mW"])

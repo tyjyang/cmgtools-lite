@@ -160,6 +160,8 @@ def combFlavours(options):
                 combineCmd += " --doImpacts  "
         if options.useSciPyMinimizer:
             combineCmd += " --useSciPyMinimizer "
+        if options.useExpNonProfiledErrs:
+            combineCmd += " --useExpNonProfiledErrs "
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
         if not os.path.exists(fitdir_data):
@@ -249,6 +251,8 @@ def prepareChargeFit(options, charges=["plus"]):
                 combineCmd += " --doImpacts  "
         if options.useSciPyMinimizer:
             combineCmd += " --useSciPyMinimizer "
+        if options.useExpNonProfiledErrs:
+            combineCmd += " --useExpNonProfiledErrs "
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.outdir))
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.outdir))
         if not os.path.exists(fitdir_data):
@@ -345,6 +349,9 @@ parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=Fal
 parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
 parser.add_option(       '--use-smooth-ptscale', dest='useSmoothPtScales' , default=False, action='store_true', help='Use smooth pt scales instead of native ones')
 parser.add_option(       '--use-native-MCatNLO-xsec'  , dest='useNativeMCatNLOxsecW', default=False, action='store_true', help='Use native MC@NLO xsec for W and tau (actually, just scale W, signal should already have it)')
+parser.add_option(       '--use-analytic-smooth-pt-scales'  , dest='useAnalyticSmoothPtScales', default=False, action='store_true', help='Use smooth pt scales made with analytic method (using special histograms with larger pt acceptance for the first and last pt bins). For muons, this uses the actual uncertainties for the Rochester corrections')
+parser.add_option(       '--no-profile-pt-scales'  , dest='noProfilePtScales', default=False, action='store_true', help='Do not profile pt scales')
+parser.add_option(       '--useExpNonProfiledErrs'  , dest='useExpNonProfiledErrs', default=False, action='store_true', help='Activate same option of combinetf.py, taking uncertainty from expected for non-profiled uncertainties')
 (options, args) = parser.parse_args()
 
 print ""
@@ -891,36 +898,48 @@ for syst in wExpSysts:
 
 # hardcoded: see MCA or other files
 wExpPtScaleSysts = []
-if options.wzPtScaleSystShape:
-    edgesForPtScale = [float(x) for x in options.wzPtScaleSystShape.split(",")]
-    for nl in range(len(edgesForPtScale)):
-        if options.useSmoothPtScales:
-            wExpPtScaleSysts.append("smooth{lep}scale{n}".format(lep=flavour, n=nl))
-        else:
-            wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
-        if options.uncorrelatePtScaleByCharge:
-            wExpPtScaleSysts[-1] = wExpPtScaleSysts[-1] + charge
-        if options.uncorrelatePtScaleByEtaSide:
-            tmpname = wExpPtScaleSysts[-1] 
-            wExpPtScaleSysts[-1] = tmpname + "etasideP"
-            wExpPtScaleSysts.append(tmpname + "etasideM")        
+if options.useAnalyticSmoothPtScales and flavour == "mu":
+    for i in range(99):
+        wExpPtScaleSysts.append("smooth{lep}scaleStat{n}".format(lep=flavour, n=i))
+    for i in range(2,6):
+        wExpPtScaleSysts.append("smooth{lep}scaleSyst{n}".format(lep=flavour, n=i))
     for syst in wExpPtScaleSysts:    
-        isyst_vec = [ int(i) for i in re.findall(r'\d+', syst) ]
-        isyst = isyst_vec[0]
         procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)]        
-        tmp_procsForPtScaleSystShape = []
-        for proc in procsForPtScaleSystShape:
-            if re.match(".*W.*_ieta_.*", proc):
-                igeneta,igenpt = get_ieta_ipt_from_process_name(proc)
-                geneta = genBins.etaBins[igeneta]
-                if geneta >= edgesForPtScale[isyst]: tmp_procsForPtScaleSystShape.append(proc)
-            else:
-                tmp_procsForPtScaleSystShape.append(proc)
-        procsForPtScaleSystShape = tmp_procsForPtScaleSystShape
-
         if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
-        card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
+        card.write(('%-16s %s' % (syst,"shapeNoProfile" if options.noProfilePtScales else "shape")) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
+else:
+    if options.wzPtScaleSystShape:
+        edgesForPtScale = [float(x) for x in options.wzPtScaleSystShape.split(",")]
+        for nl in range(len(edgesForPtScale)):
+            if options.useSmoothPtScales:
+                wExpPtScaleSysts.append("smooth{lep}scale{n}".format(lep=flavour, n=nl))
+            else:
+                wExpPtScaleSysts.append("CMS_W{l}_{lep}scale{n}".format(l="e" if flavour == "el" else "mu", lep="ele" if flavour == "el" else "mu", n=nl))
+            if options.uncorrelatePtScaleByCharge:
+                wExpPtScaleSysts[-1] = wExpPtScaleSysts[-1] + charge
+            if options.uncorrelatePtScaleByEtaSide:
+                tmpname = wExpPtScaleSysts[-1] 
+                wExpPtScaleSysts[-1] = tmpname + "etasideP"
+                wExpPtScaleSysts.append(tmpname + "etasideM")        
+        for syst in wExpPtScaleSysts:    
+            isyst_vec = [ int(i) for i in re.findall(r'\d+', syst) ]
+            isyst = isyst_vec[0]
+            procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)]        
+            tmp_procsForPtScaleSystShape = []
+            for proc in procsForPtScaleSystShape:
+                if re.match(".*W.*_ieta_.*", proc):
+                    igeneta,igenpt = get_ieta_ipt_from_process_name(proc)
+                    geneta = genBins.etaBins[igeneta]
+                    if geneta >= edgesForPtScale[isyst]: tmp_procsForPtScaleSystShape.append(proc)
+                else:
+                    tmp_procsForPtScaleSystShape.append(proc)
+            procsForPtScaleSystShape = tmp_procsForPtScaleSystShape
+
+            if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
+            allSystForGroups.append(syst)
+            card.write(('%-16s %s' % (syst,"shapeNoProfile" if options.noProfilePtScales else "shape")) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
+    
 
 if options.wzTestEffSystLnN:
     syst = "CMS_W%s_sig_testEffSyst" % ("e" if flavour == "el" else "mu")
@@ -1049,7 +1068,7 @@ if options.doSystematics:
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*|alphaS',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN',x),allSystForGroups)) + "\n\n")
     card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr',x),allSystForGroups)) + "\n\n")
-    card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('(smooth|CMS_W).*scale\d+',x),allSystForGroups)) + "\n\n")
+    card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scale.*',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
@@ -1194,7 +1213,7 @@ xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsE
 if options.useXsecWithWptWeights:
     xsecfile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields.root"
 
-if useNativeMCatNLOxsecW:
+if options.useNativeMCatNLOxsecW:
     xsecfile = xsecfile.replace(".root", "_nativeMCatNLOxsec.root")
 
 hists = getXsecs_etaPt(tmp_sigprocs,

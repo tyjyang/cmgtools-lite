@@ -4,6 +4,7 @@
 import re, sys, os, os.path, ROOT, copy, math
 from array import array
 #import numpy as np
+import root_numpy
 
 from w_helicity_13TeV.utilities import util
 utilities = util()
@@ -25,7 +26,8 @@ from w_helicity_13TeV.mergeCardComponentsAbsY import putEffSystHistos # for elec
 from w_helicity_13TeV.mergeCardComponentsAbsY import addZOutOfAccPrefireSyst # for ele L1-prefire uncertainty on Z
 
 from addSmoothPtScaleToShape import addSmoothLepScaleSyst
-
+from addSmoothPtScaleToShape import addSmoothMuonScaleSyst # use this one for muons, with Rochester corrections
+from addSmoothPtScaleToShape import addSmoothElectronScaleSyst
 # experimental function for momentum scales
 # def addSmoothLepScaleSyst(infile,regexp,charge, isMu, outdir=None, 
 #                           uncorrelateByCharge=False,
@@ -916,6 +918,7 @@ parser.add_option(       '--distinguish-name-sig-as-bkg', dest='distinguishNameS
 parser.add_option(       '--pt-range-bkg', dest='pt_range_bkg', action="append", type="float", nargs=2, default=[], help='Will treat signal templates with gen level pt in this range as background in the datacard. Takes two float as arguments (increasing order) and can specify multiple times. They should match bin edges and a bin is not considered as background if at least one edge is outside this range')
 parser.add_option(       '--add-smooth-ptscale-extremePtFromStandard', dest='addSmoothPtScalesWithStandardOnExtremePtBins' , default=False, action='store_true', help='Add smooth pt scales along with native ones. The code behaves as if the old ones are used, but also add the smooth ones with the extreme pt bins being copied from the standard ones. It requires not using --use-smooth-ptscale')
 parser.add_option(       '--use-native-MCatNLO-xsec'  , dest='useNativeMCatNLOxsecW', default=False, action='store_true', help='Use native MC@NLO xsec for W and tau (actually, just scale W, signal should already have it)')
+parser.add_option(       '--use-analytic-smooth-pt-scales'  , dest='useAnalyticSmoothPtScales', default=False, action='store_true', help='Use smooth pt scales made with analytic method (using special histograms with larger pt acceptance for the first and last pt bins). For muons, this uses the actual uncertainties for the Rochester corrections')
 #parser.add_option("--pt-bins-name-change", dest="ptBinsNameChange", type="string", default='0,1', help="Comma separated list of pt bins for which the process name should be changed");
 (options, args) = parser.parse_args()
     
@@ -1162,7 +1165,7 @@ if not options.dryrun:
             continue
         if newname.endswith("Dn"): newname = newname.replace("Dn","Down")
         newobj = obj.Clone(newname)
-        if useNativeMCatNLOxsecW:
+        if options.useNativeMCatNLOxsecW:
             # 60400./(3*20508.9)  first one is MC@NLO, second one is fewz3.1 
             # also add factor 1.014 for normalization to gen-xsec after Wpt reweighting (this is needed
             # because I copied the old files made with old norm factor)
@@ -1401,23 +1404,23 @@ if flavour == "el":
 if options.symSystRatio:
     match_symSystRatio = re.compile(options.symSystRatio)
     print "Now I will symmetrize versus eta the ratio of some alternate histograms with nominal"
-    shapenameWithSymSyst = shapename.replace("_shapes","_shapes_WithSymSyst")
+    shapenameOnlySymSyst = shapename.replace("_shapes","_shapes_OnlySymSyst")
     tfno = ROOT.TFile.Open(shapename,"READ")
     if not tfno or not tfno.IsOpen():
         raise RuntimeError('Unable to open file {fn}'.format(fn=shapename))
     if not options.dryrun:
         # open output file
-        of = ROOT.TFile(shapenameWithSymSyst,'recreate')
+        of = ROOT.TFile(shapenameOnlySymSyst,'recreate')
         if not of or not of.IsOpen():
-            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameWithSymSyst))
+            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameOnlySymSyst))
         nKeys = tfno.GetNkeys()
         nCopiedKeys = 0
         for ikey,e in enumerate(tfno.GetListOfKeys()):
             name = e.GetName()
-            obj  = e.ReadObj()
-            if not obj:
-                raise RuntimeError('Unable to read object {n}'.format(n=name))
             if match_symSystRatio.match(name) and any(x in name for x in ["Up","Down"]):
+                obj  = e.ReadObj()
+                if not obj:
+                    raise RuntimeError('Unable to read object {n}'.format(n=name))
                 thisAlternate = obj.Clone(name+"_TMP_SYMMETRIZED")
                 #thisAlternate.SetDirectory(0)
                 thisNominalName = ""
@@ -1433,10 +1436,11 @@ if options.symSystRatio:
                 else:
                     makeAlternateFromSymmetricRatioV2(thisAlternate, thisNominal, binning=recoBinning)
                     thisAlternate.Write(name)                
-            else:
-                newobj = obj.Clone(name+"_CLONE")
-                newobj.Write(name)
-            nCopiedKeys += 1
+                nCopiedKeys += 1
+            #else:
+            #    newobj = obj.Clone(name+"_CLONE")
+            #    newobj.Write(name)
+            # nCopiedKeys += 1
             #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
             #sys.stdout.flush()    
             if (ikey+1) % 100 == 0:                                      
@@ -1445,13 +1449,46 @@ if options.symSystRatio:
         print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
         of.Close()
         tfno.Close()
-    #print "Moving {od} into {odnew}".format(od=shapenameWithSymSyst,odnew=shapename)
+    #print "Moving {od} into {odnew}".format(od=shapenameOnlySymSyst,odnew=shapename)
+
+    # copy shapename into a new version which will be updated
+    print "Now copying shapes into a backup file before overwriting some keys with symmetrized histograms"
+    shapenameWithSymSyst = shapename.replace("_shapes","_shapes_WithSymSyst")
+    cpcmd = "cp {od} {odnew}".format(odnew=shapenameWithSymSyst,od=shapename)
+    print cpcmd
+    if not options.dryrun:
+        os.system(cpcmd)
+    # now open shapenameWithSymSyst and overwrite keys which we just redefined
+    tfno = ROOT.TFile.Open(shapenameOnlySymSyst,"READ")
+    if not tfno or not tfno.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameOnlySymSyst))
+    if not options.dryrun:
+        # open output file
+        of = ROOT.TFile(shapenameWithSymSyst,'UPDATE')
+        if not of or not of.IsOpen():
+            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameWithSymSyst))
+        nKeys = tfno.GetNkeys()
+        nCopiedKeys = 0
+        of.cd()
+        for ikey,e in enumerate(tfno.GetListOfKeys()):
+            name = e.GetName()
+            obj  = e.ReadObj()
+            if not obj:
+                raise RuntimeError('Unable to read object {n}'.format(n=name))
+            obj.Write(name,ROOT.TObject.kOverwrite)
+            nCopiedKeys += 1
+        print "Overwrote {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapenameOnlySymSyst)
+        of.Close()
+        tfno.Close()
+
+    print "Now overwriting original file with backup including also symmetrized keys"
     mvcmd = "mv {od} {odnew}".format(od=shapenameWithSymSyst,odnew=shapename)
     print mvcmd
     if not options.dryrun:
         os.system(mvcmd)
 
 print ""
+
 
 ## uncorrelate QCD scales and other possible nuisances by charge (add plus/minus as postfix to histograms' name)
 # use the loop to do other things as well
@@ -1461,7 +1498,8 @@ if options.uncorrelateQCDscalesByCharge:
         regexp_uncorrCharge += "|.*mu(R|F)\d+"
     else:
         regexp_uncorrCharge = ".*mu(R|F)\d+"
-if options.uncorrelatePtScaleByCharge and not options.useSmoothPtScales:
+# skip this part when using options.useAnalyticSmoothPtScales, because the old pt scales are no longer needed
+if not options.useAnalyticSmoothPtScales and (options.uncorrelatePtScaleByCharge and not options.useSmoothPtScales):
     if len(regexp_uncorrCharge):
         regexp_uncorrCharge += "|.*CMS_W.*scale\d+"
     else:
@@ -1522,28 +1560,31 @@ splitTag = "_CMS_W"
 #if options.useSmoothPtScales:
 #    regexp_ptscale = ".*smooth.*scale\d+.*"
 #    splitTag = "_smooth"
-if options.uncorrelatePtScaleByEtaSide and not options.useSmoothPtScales:
+#
+# skip this part when using options.useAnalyticSmoothPtScales, because it no longer needs the old ptscales
+#
+if not options.useAnalyticSmoothPtScales and (options.uncorrelatePtScaleByEtaSide and not options.useSmoothPtScales):
     # if options.useSmoothPtScales is True this part was already managed in addSmoothLepScaleSyst
     print "Now I will uncorrelated PtScales by eta side"
-    shapenamePtScaleEtaSideuncorr = shapename.replace("_shapes","_shapes_PtScaleEtaSideUncorr")
+    shapenameOnlyPtScaleEtaSideuncorr = shapename.replace("_shapes","_shapes_OnlyPtScaleEtaSideUncorr")
     #print "I will then copy it back into the original after uncorrelating QCD scales between charges" 
     tfno = ROOT.TFile.Open(shapename,"READ")
     if not tfno or not tfno.IsOpen():
         raise RuntimeError('Unable to open file {fn}'.format(fn=shapename))
     if not options.dryrun:
         # open output file
-        of = ROOT.TFile(shapenamePtScaleEtaSideuncorr,'recreate')
+        of = ROOT.TFile(shapenameOnlyPtScaleEtaSideuncorr,'recreate')
         if not of or not of.IsOpen():
-            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenamePtScaleEtaSideuncorr))
+            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameOnlyPtScaleEtaSideuncorr))
         nKeys = tfno.GetNkeys()
         nCopiedKeys = 0
         for ikey,e in enumerate(tfno.GetListOfKeys()):
             name = e.GetName()
-            obj  = e.ReadObj()
-            if not obj:
-                raise RuntimeError('Unable to read object {n}'.format(n=name))
             newname = name
             if re.match(regexp_ptscale,name):                
+                obj  = e.ReadObj()
+                if not obj:
+                    raise RuntimeError('Unable to read object {n}'.format(n=name))
                 # roll to 2D, fill other side as nominal, then clone and change name. Repeat for each side
                 nominalName = newname.split(splitTag)[0]
                 hnomi = tfno.Get(nominalName)
@@ -1557,10 +1598,10 @@ if options.uncorrelatePtScaleByEtaSide and not options.useSmoothPtScales:
                 hetaPos.Write(hetaPos.GetName())
                 hetaNeg.Write(hetaNeg.GetName())    
                 nCopiedKeys += 2
-            else:
-                newobj = obj.Clone(newname)
-                newobj.Write(newname)        
-                nCopiedKeys += 1
+            #else:
+            #    newobj = obj.Clone(newname)
+            #    newobj.Write(newname)        
+            #    nCopiedKeys += 1
             #sys.stdout.write('Key {num}/{tot}   \r'.format(num=ikey+1,tot=nKeys))
             #sys.stdout.flush()
             if (ikey+1) % 100 == 0:                                      
@@ -1569,8 +1610,40 @@ if options.uncorrelatePtScaleByEtaSide and not options.useSmoothPtScales:
         print "Copied {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapename)
         of.Close()
         tfno.Close()
-    #print "Moving {od} into {odnew}".format(od=shapenamePtScaleEtaSideuncorr,odnew=shapename)
-    mvcmd = "mv {od} {odnew}".format(od=shapenamePtScaleEtaSideuncorr,odnew=shapename)
+
+    # copy shapename into a new version which will be updated
+    print "Now copying shapes into a backup file before overwriting some keys with scale histograms"
+    shapenameWithUncorrScale = shapename.replace("_shapes","_shapes_WithUncorrScale")
+    cpcmd = "cp {od} {odnew}".format(odnew=shapenameWithUncorrScale,od=shapename)
+    print cpcmd
+    if not options.dryrun:
+        os.system(cpcmd)
+    # now open shapenameWithUncorrScale and overwrite keys which we just redefined
+    tfno = ROOT.TFile.Open(shapenameOnlyPtScaleEtaSideuncorr,"READ")
+    if not tfno or not tfno.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameOnlyPtScaleEtaSideuncorr))
+    if not options.dryrun:
+        # open output file
+        of = ROOT.TFile(shapenameWithUncorrScale,'UPDATE')
+        if not of or not of.IsOpen():
+            raise RuntimeError('Unable to open file {fn}'.format(fn=shapenameWithUncorrScale))
+        nKeys = tfno.GetNkeys()
+        nCopiedKeys = 0
+        of.cd()
+        for ikey,e in enumerate(tfno.GetListOfKeys()):
+            name = e.GetName()
+            obj  = e.ReadObj()
+            if not obj:
+                raise RuntimeError('Unable to read object {n}'.format(n=name))
+            obj.Write(name,ROOT.TObject.kOverwrite)
+            nCopiedKeys += 1
+        print "Overwrote {n}/{tot} from {fn}".format(n=str(nCopiedKeys),tot=str(nKeys),fn=shapenameOnlyPtScaleEtaSideuncorr)
+        of.Close()
+        tfno.Close()
+
+    print "Now overwriting original file with backup including also new uncorrelated scales keys"
+    #print "Moving {od} into {odnew}".format(od=shapenameWithUncorrScale,odnew=shapename)
+    mvcmd = "mv {od} {odnew}".format(od=shapenameWithUncorrScale,odnew=shapename)
     print mvcmd
     if not options.dryrun:
         os.system(mvcmd)
@@ -1586,7 +1659,7 @@ print ""
 # these are added on top of the unsmoothed ones (the standard ones).
 # one can choose to define the extreme pt bins from the standard ones (this algorithm do not work for those bins)
 # that's why we keep this step as the last one (we already need all the standard momentum scales)
-if options.useSmoothPtScales or options.addSmoothPtScalesWithStandardOnExtremePtBins:
+if not options.useAnalyticSmoothPtScales and (options.useSmoothPtScales or options.addSmoothPtScalesWithStandardOnExtremePtBins):
     print "Now adding smooth pt scales"
     if options.uncorrelatePtScaleByCharge:
         print "pt scales will be uncorrelated between charges"
@@ -1606,6 +1679,43 @@ if options.useSmoothPtScales or options.addSmoothPtScalesWithStandardOnExtremePt
     cmdMergeWithSmoothPtScales = "hadd -f -k -O {of} {shapeNoSmoothPtScales} {onlySmoothPtScales}".format(of=shapename, shapeNoSmoothPtScales=shapenameNoSmoothPtScales, onlySmoothPtScales=fileSmoothPtScales)
 
     print "Now finally merging smooth(mu|el)scaleYY systematics into {of} ...".format(of=shapename)
+    print cmdMergeWithSmoothPtScales
+    rmcmd = "rm {shapeNoSmoothPtScales}".format(shapeNoSmoothPtScales=shapenameNoSmoothPtScales)
+    print rmcmd
+    if not options.dryrun: 
+        os.system(cmdMergeWithSmoothPtScales)
+        os.system(rmcmd)
+    print ""
+    print "Wrote again root file in %s" % shapename
+    print ""
+
+
+
+# these are the ultimate momentum scales, made using only the analytic smoothing 
+# they only need access to additional nominal histograms made with extended pt acceptance
+# for muons, use Rochester corrections
+if options.useAnalyticSmoothPtScales:
+    print "Now adding smooth pt scales (made moving events based on analytic pt-dependent shift)"
+    print "pt scales will be uncorrelated between charges"
+    fileSmoothPtScales = ""
+    if flavour=="mu":
+        fileSmoothPtScales = "{od}SmoothScaleSystRochester_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge)  
+    else:
+        fileSmoothPtScales = "{od}SmoothScaleSystClosure_{fl}_{ch}.root".format(od=outdir, fl=flavour, ch=options.charge) 
+    shapenameNoSmoothPtScales = shapename.replace("_shapes","_shapes_noSmoothPtScales")
+    print "Copying {od} into {odnew}".format(od=shapename,odnew=shapenameNoSmoothPtScales)
+    if not options.dryrun: 
+        os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoSmoothPtScales))
+        if flavour=="mu":
+            addSmoothMuonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, outdir=outdir)
+        else:
+            addSmoothElectronScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, outdir=outdir,
+                                       uncorrelateByCharge=options.uncorrelatePtScaleByCharge,
+                                       uncorrelateByEtaSide=options.uncorrelatePtScaleByEtaSide)
+
+    cmdMergeWithSmoothPtScales = "hadd -f -k -O {of} {shapeNoSmoothPtScales} {onlySmoothPtScales}".format(of=shapename, shapeNoSmoothPtScales=shapenameNoSmoothPtScales, onlySmoothPtScales=fileSmoothPtScales)
+
+    print "Now finally merging smooth(mu|el)scale(Stat|Syst)YY systematics into {of} ...".format(of=shapename)
     print cmdMergeWithSmoothPtScales
     rmcmd = "rm {shapeNoSmoothPtScales}".format(shapeNoSmoothPtScales=shapenameNoSmoothPtScales)
     print rmcmd

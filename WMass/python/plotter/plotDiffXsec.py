@@ -5,21 +5,21 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 doMuElComb = 0
-dryrun = 1
+dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 0
-skipPostfit = 1  # only for Data
+skipPostfit = 0  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 1
+allPtBinsSignal = 0
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -36,7 +36,7 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_05_09_recoEta0p1_recoPt1_genEta0p2from1p3_last2p1to2p4_genPt2/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight/"
 #folder = "diffXsec_el_2019_06_21_zptReweight/"
-folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
+#folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlyStatUncDataMC/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_fixFSRcharge/"
 #folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_unfixedFSRcharge_testBinUncEffStat/"
 #folder = "diffXsec_mu_2019_07_12_noSyst/"
@@ -45,12 +45,14 @@ folder = "diffXsec_mu_2019_06_17_zptReweight_chargeUncorrQCDscales_EffStatOnlySt
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
+#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
 if doMuElComb:
     allPtBinsSignal = 1
-    folder = "muElCombination_allSig"
+    folder = "muElCombination_allSig_nativeMCatNLOxsec"
     #folder = "muElCombination_1Sept2019"
     skipTemplate = 1
     flavour = "lep"
@@ -83,12 +85,12 @@ if plotSingleCharge and doMuElComb:
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 
 if flavour == "el":
-    postfix = "grappa"
+    postfix = "nativeMCatNLOxsecW_noProfilePtScales_oldSmoothUncorrScale"
 else:
-    postfix = "grappa"
+    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert"
 
 if doMuElComb:
-    postfix = "combinedLep_allSig_grappa" # _testNewFakesPtUncorr"
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileEleScale" # _testNewFakesPtUncorr"
     #postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
                
 if plotSingleCharge:
@@ -103,7 +105,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (not allPtBinsSignal) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (not allPtBinsSignal) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*TestEffSyst.*|.*smooth.*scale0.*|.*smooth.*scale1.*|.*smooth.*scale2.*|.*smooth.*scale3.*|.*lepeff.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*smooth.*scaleSyst.*|.*smooth.*scaleStat.*|.*smooth.*scale.*side.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 
