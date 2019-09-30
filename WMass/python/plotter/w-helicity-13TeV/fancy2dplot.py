@@ -81,7 +81,7 @@ for ih,hist in enumerate(hists):
     hist.Draw('box same' if ih else 'box')
     
 lat.DrawLatex(marginL, 0.92, '#bf{CMS} #it{Simulation}')
-#lat.DrawLatex(0.73, 0.92, '36 fb^{-1} (13 TeV)')
+lat.DrawLatex(0.86, 0.92, '13 TeV')
 
 leg.Draw('same')
     
