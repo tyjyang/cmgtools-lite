@@ -7,6 +7,10 @@ from array import array
 #from CMGTools.TTHAnalysis.plotter.histoWithNuisances import *
 #from CMGTools.WMass.plotter.mcPlots import doShadedUncertainty
 
+# to manage binning reading from file
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
+
 import utilities
 utilities = utilities.util()
 
@@ -165,7 +169,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] shapesdir channel")
     parser.add_option('-o','--outdir', dest='outdir', default='.', type='string', help='output directory to save the matrix')
     parser.add_option(     '--noplot', dest="noplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_option('-s','--save', dest='outfile_templates', default='templates_2D', type='string', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
+    parser.add_option('-s','--save', dest='outfile_templates', type=str, default='templates_2D', help='pass name of output file to save 2D histograms (charge is automatically appended before extension). No need to specify extension, .root is automatically addedx')
     parser.add_option(     '--fitres', dest='fitresult', default=None, type='string', help='if given, uses the contents of fitresults to scale the templates to post-fit result')
     groupJobs=5 # used in make_helicity_cards.py
 
@@ -179,6 +183,12 @@ if __name__ == "__main__":
     ybinfile = open(ybinfile, 'r')
     ybins = eval(ybinfile.read())
     ybinfile.close()
+
+    etaPtBinningVec = getDiffXsecBinning(args[0]+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
+    recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
+    binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
+    etabins = recoBins.etaBins
+    ptbins  = recoBins.ptBins
     
     if options.fitresult:
         print "Scaling the templates to the post-fit results in: ",options.fitresult
@@ -223,20 +233,24 @@ if __name__ == "__main__":
                 line = ybin%groupJobs
                 
 
-                jobsdir = args[0]+'/jobs/'
-                jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
-                tmp_jobfile = open(jobsdir+jobfile_name, 'r')
-                lineno = (-groupJobs+line)*2 + 1 # white lines
-                if ybin==nYbins-1: lineno = -1 # not general hack!!!
-                tmp_line = tmp_jobfile.readlines()[lineno].split()
-                ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
-                ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
+                ## this no longer needed after also saving the reco binning in a file
+                ## jobsdir = args[0]+'/jobs/'
+                ## jobfile_name = 'W{ch}_{pol}_{flav}_Ybin_{b}.sh'.format(ch=charge,pol=pol,flav=channel,b=jobind)
+                ## tmp_jobfile = open(jobsdir+jobfile_name, 'r')
+                ## lineno = (-groupJobs+line)*2 + 1 # white lines
+                ## if ybin==nYbins-1: lineno = -1 # not general hack!!!
+                ## tmp_line = tmp_jobfile.readlines()[lineno].split()
+                ## ymin = list(i for i in tmp_line if '(genw_y)>' in i)[0].replace('\'','').split('>')[-1]
+                ## ymax = list(i for i in tmp_line if '(genw_y)<' in i)[0].replace('\'','').split('<')[-1]
+                ## binning = getbinning(tmp_line)
+
+                ymin = ybins[charge+'_'+pol][ybin]
+                ymax = ybins[charge+'_'+pol][ybin+1]
                 
-                binning = getbinning(tmp_line)
 
                 chs = '+' if charge == 'plus' else '-' 
-                h1_1 = infile.Get('x_W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin))
-                name2D = 'W{ch}_{pol}_W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
+                h1_1 = infile.Get('x_W{ch}_{pol}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin))
+                name2D = 'W{ch}_{pol}_{flav}_Ybin_{ybin}'.format(ch=charge,pol=pol,flav=channel,ybin=ybin)
                 title2D = 'W{ch} {pol} : |Y_{{W}}| #in [{ymin},{ymax}]'.format(ymin=ymin,ymax=ymax,pol=pol,ybin=ybin,ch=chs)
                 h2_backrolled_1 = dressed2D(h1_1,binning,name2D,title2D)
                 if options.fitresult:
