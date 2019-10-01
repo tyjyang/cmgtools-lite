@@ -50,6 +50,7 @@ if __name__ == '__main__':
         systs += ['muF'   +str(i) for i in range(1,11)]
         systs += ['muRmuF'+str(i) for i in range(1,11)]
         systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
+        systs += ['smoothelscaleStat{idx}'.format(idx=i) for i in range(0,98)] + ['smoothelscaleSyst{idx}pt{ipt}'.format(idx=i,ipt=j) for i in range(2) for j in range(2)]
         systs += ['smoothmuscaleStat{idx}'.format(idx=i) for i in range(0,99)] + ['smoothmuscaleSyst{idx}'.format(idx=i) for i in range(2,6)]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
