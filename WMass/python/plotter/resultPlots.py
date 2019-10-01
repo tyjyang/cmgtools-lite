@@ -225,3 +225,4 @@ if __name__ == '__main__':
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)
+        os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
