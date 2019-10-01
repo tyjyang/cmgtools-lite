@@ -270,9 +270,9 @@ if __name__ == "__main__":
                         hmax = 0.05 if 'muF' in syst else 0.04
                         if 'Prefire'  in syst: hmax = 0.40 # yes, not 0.04
                         if 'effstat'  in syst: hmax = 0.005
-                        if 'smoothmuscaleStat' in syst: hmax = 0.0001
-                        if 'smoothmuscaleSyst' in syst: hmax = 0.005
-                        if 'smoothel' in syst: hmax = 0.04
+                        if re.match('smooth(mu|el)scaleStat',syst): hmax = 0.0004
+                        if re.match('smoothmuscaleSyst',syst): hmax = 0.005
+                        if re.match('smoothelscaleSyst',syst): hmax = 0.03
                         if options.singleRap: hmax = 0.10
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         ratios[key] = h2_backrolled_1
