@@ -220,8 +220,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doEta    = doType == 'eta'
     doPtNorm = doType == 'ptnorm'
     doUncorrChargeEta = doType == 'etacharge'
-    if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
     if flav=='el' and isHelicity: doUncorrChargeEta = False # overwrite everything for ele
+    if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
 
     typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:

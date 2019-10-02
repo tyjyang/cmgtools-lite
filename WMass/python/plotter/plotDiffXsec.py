@@ -4,22 +4,22 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
-dryrun = 0
+doMuElComb = 1
+dryrun = 1
 skipData = 0
 onlyData = 1
 
 skipPlot = 0
 skipTemplate = 1
-skipDiffNuis = 0
-skipPostfit = 0  # only for Data
+skipDiffNuis = 1
+skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 0
+allPtBinsSignal = 1
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -45,8 +45,9 @@ seed = 123456789
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
-#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
-folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+#folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+#folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 
 flavour = "el" if "_el_" in folder else "mu"
 lepton = "electron" if flavour == "el"  else "muon"
@@ -85,7 +86,8 @@ if plotSingleCharge and doMuElComb:
 #postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
 
 if flavour == "el":
-    postfix = "nativeMCatNLOxsecW_noProfilePtScales_oldSmoothUncorrScale"
+    #postfix = "nativeMCatNLOxsecW_noProfilePtScales_useExpNonProfiledErrs_oldSmoothUncorrScale"
+    postfix = "nativeMCatNLOxsecW_profilePtScales_oldSmoothUncorrScale_FRnorm30"
 else:
     postfix = "nativeMCatNLOxsecW_RochesterCorrUncert"
 

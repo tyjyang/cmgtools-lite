@@ -710,6 +710,11 @@ if options.fakesChargeLnN > 0.0:
         allSystForGroups.append(syst)
         card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.0+options.fakesChargeLnN) if p == "data_fakes"  else "-") for p in allprocesses]) + "\n")
 
+# syst = "FakesNorm_" + flavour
+# if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
+#     allSystForGroups.append(syst)
+#     card.write(('%-16s lnN' % syst) + ' '.join([kpatt % (str(1.3) if p == "data_fakes"  else "-") for p in allprocesses]) + "\n")
+
 
 ###########
 ####### Nuisances for fakes
@@ -1071,7 +1076,7 @@ if options.doSystematics:
     card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scale.*',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")
-    card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
+    card.write("Fakes group = "      + ' '.join(filter(lambda x: re.match('FakesNorm.*|.*FR.*(norm|lnN|continuous)',x),allSystForGroups) +
                                                 filter(lambda x: re.match('Fakes.*Uncorrelated.*',x),allSystForGroups)) + "\n\n")
     card.write("OtherBkg group = "   + ' '.join(filter(lambda x: re.match('CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg',x),allSystForGroups)) + " \n\n")
     card.write("OtherExp group = "   + ' '.join(filter(lambda x: re.match('CMS.*lepVeto|CMS.*bkg_lepeff',x),allSystForGroups)) + " \n\n")

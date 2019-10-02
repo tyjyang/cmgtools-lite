@@ -5,6 +5,7 @@ ROOT.gROOT.SetBatch(True)
 
 dryrun = 0
 doMuons = 0
+hasReweightedWZpt = 1
 
 if doMuons:
 
@@ -22,9 +23,9 @@ if doMuons:
 
 else:
 
-    inputFolder = "fr_15_04_2019_eta_pt_granular_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt40_Zveto_newSkim"
+    inputFolder = "fr_30_09_2019_eta_pt_granular_mT40_35p9fb_signedEta_jetPt30_nativeMCatNLOxsec_reweightWZpt"
     inputFullPath = "www/wmass/13TeV/fake-rate/test/testFRv8/" + inputFolder + "/el/comb/"
-    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/FR_fitPol2_jetPt40/"
+    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/jetPt30_nativeMCatNLOxsec_reweightWZpt_latestSF/"
     outfileTag = outputFolder.split('/')[-2]
     histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular"
     isMuon = "false"
@@ -37,8 +38,8 @@ else:
 # work in progress 
 
 options = '"{i}","{o}","{f}",'.format(i=inputFullPath, o=outputFolder, f=outfileTag)
-options += '"{h}",{ism}, {smewk}, {save}, "{etabin}", {qcd}'.format(h=histPrefix, ism=isMuon, smewk=showMergedEWK, 
-                                                                    save=saveToFile, etabin=etaBinBoundariesList, qcd=noDrawQCD)
+options += '"{h}",{ism}, {smewk}, {save}, "{etabin}", {qcd}, {zwpt}'.format(h=histPrefix, ism=isMuon, smewk=showMergedEWK, 
+                                                                            save=saveToFile, etabin=etaBinBoundariesList, qcd=noDrawQCD, zwpt="true" if hasReweightedWZpt else "false")
 
 cmd = "root -l -b -q 'makeFakeRateGraphPlotsAndSmoothing.C++({opt})' ".format(opt=options)
 print "-"*30

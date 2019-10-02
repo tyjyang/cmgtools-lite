@@ -2,8 +2,8 @@
 
 import ROOT, os, sys, re, array
 
-dryrun=1
-doMuons=0
+dryrun=0
+doMuons=1
 skipUnpack=1
 skipMergeRoot=1
 skipSingleCard=0
@@ -39,10 +39,10 @@ addSmoothPtScalesWithStandardOnExtremePtBins = 1  # use option --add-smooth-ptsc
 useAnalyticSmoothPtScales = 1 if doMuons else 0 # suggested option: it disables the other ones for the pt scales (for muons, the Rochester corrections are used)
 # for electrons, old functions behave better
 
-profileEleScales = 0
-useExpNonProfiledErrs = 1 # for now only works for ele when not profiling scales, ineffective if profiling everything
+profileEleScales = 1
+useExpNonProfiledErrs = 0 # for now only works for ele when not profiling scales, ineffective if profiling everything
 useXsecWptWeights = 1 
-allPtBinsSignal = 0   # usually 1 for muons or combination, 0 for electrons
+allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
 distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
@@ -69,12 +69,14 @@ if not skipMergeCardFlavour:
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep final "/"
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57/"
 folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
 #folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
 #th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_recoPt29to57_nativeMCatNLOxsec.root"
 th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+#th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_testPrefirePtLess35.root"
 #th3file_el = "cards/" + folder_el + "wel_24July2019_testCoarserPt.root"
 #folder_el = "diffXsec_el_2019_07_28_testPt2GeV/"
 #th3file_el = "cards/" + folder_el + "wel_28July2019_testPt2GeV.root"
@@ -189,12 +191,14 @@ if nuisToSymmetrizeVsEta:
 ### --uncorrelate-fakes-by-charge   
 # --fakesChargeLnN 0.03 --tauChargeLnN 0.03
 
+optionsForCardMaker += " --wXsecLnN 0.3 "
+
 postfixCardMaker = "_symFSRptScalemW" # for single-charge fit in single flavor
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert"
-else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_noProfilePtScales_useExpNonProfiledErrs_oldSmoothUncorrScale"
+if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_outLnN30"
+else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_oldSmoothUncorrScale_FRnorm30"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 
 if freezePOIs:  
@@ -207,17 +211,17 @@ if skipFitAsimov:
     optionsForCardMakerMerger += " --skip-fit-asimov "
     optionsForCardMaker       += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
-if flavour == "el" and not profileEleScales:
-    optionsForCardMaker  += " --no-profile-pt-scales "
-    if useExpNonProfiledErrs:
-        optionsForCardMaker       += " --useExpNonProfiledErrs "
-        optionsForCardMakerMerger += " --useExpNonProfiledErrs "
 
 #optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg --skip-hadd-xsec "
 #--no-text2hdf5 --no-combinetf " # " --useSciPyMinimizer " # " --skip-hadd-xsec --just-fit " 
 optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_nativeMCatNLOxsec_profileEleScale --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
-
+if flavour == "el" and not profileEleScales:
+    optionsForCardMaker  += " --no-profile-pt-scales "
+    if useExpNonProfiledErrs:
+        optionsForCardMaker       += " --useExpNonProfiledErrs "
+        optionsForCardMakerMerger += " --useExpNonProfiledErrs "
+        optionsForCardMakerMergerFlavour += " --useExpNonProfiledErrs "
 #================================
 
 if uncorrelateFakesNuisancesByCharge:

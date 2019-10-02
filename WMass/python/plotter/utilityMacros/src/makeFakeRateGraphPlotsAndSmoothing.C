@@ -3,7 +3,7 @@
 // see https://root.cern.ch/doc/master/classTGraphPainter.html
 // for Graph painting options in root
 
-const static int smoothPolinDegree = 2; 
+const static int smoothPolinDegree = 1; 
 const static Double_t xMaxFitFakeRateData = (smoothPolinDegree == 1) ? 48 : 60; // for muons, can set it to at least 55
 const static Bool_t drawPol1NarrowRange = (smoothPolinDegree == 1 and xMaxFitFakeRateData > 48) ? true : false;  // set first argument as false not to draw the fit in narrow range (only for pol1) 
 const static Bool_t smoothPromptRateAlwaysPol1 = true;  // for FR might use pol2 to smooth, but for PR always use pol1 (it is mainly linear, pol2 might fit fluctuations)
@@ -605,7 +605,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 			  const Bool_t showMergedWZ = true,   // overriden if showMergedEWK=true, else it draws W and Z together
 			  const Bool_t showTopVV = true, // to show Top+DiBoson with W and Z (or W+Z). Overriden if showMergedEWK=true
 			  const Double_t subtrEWK_nSigma = 1,
-			  const Bool_t isMuon = false
+			  const Bool_t isMuon = false,
+			  const Bool_t hasReweightedWZpt = false
 		  ) 
 {
 
@@ -674,7 +675,10 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   createPlotDirAndCopyPhp(outDir);
   adjustSettings_CMS_lumi(outDir);
 
-  vector<string> processes = {"data", "data_sub", "QCD", "W", "Z", "DiBosons", "Top"};
+  vector<string> processes = {"data", "data_sub", "QCD", 
+			      hasReweightedWZpt ? "Wpt" : "W", 
+			      hasReweightedWZpt ? "Zpt" : "Z",
+			      "DiBosons", "Top"};
 
   vector<TH1*> hpass;
   vector<TH1*> hntot;
@@ -1266,6 +1270,7 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 					//const TString& etaBinBoundariesList = "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4",
 					const TString& etaBinBoundariesList = "-2.4,-2.2,-2.05,-1.9,-1.75,-1.6,-1.45,-1.3,-1.15,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.15,1.3,1.45,1.6,1.75,1.9,2.05,2.2,2.4",
 					const Bool_t noDrawQCD = false,
+					const Bool_t hasReweightedWZpt = false,
 					const Double_t inputLuminosity = 35.9, // -1 in case luminosity should not be printed
 					const Bool_t scan_vs_eta = true, // see below
 					const Bool_t hasSignedEta = true, // see below
@@ -1393,7 +1398,8 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 			 showMergedWZ,
 			 showTopVV,
 			 subtrEWK_nSigma,
-			 isMuon
+			 isMuon,
+			 hasReweightedWZpt
 			 ); 
 
   }
