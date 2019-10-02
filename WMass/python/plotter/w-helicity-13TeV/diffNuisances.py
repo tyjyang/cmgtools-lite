@@ -436,7 +436,7 @@ if __name__ == "__main__":
             hist_fit_1d_e.SetLineWidth(2)
             hist_fit_1d_e.Scale(scale)
             hist_fit_1d_e.Draw("hist same")
-            lat.DrawLatex(0.10, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.10, 0.92, '#bf{CMS}') #it{Preliminary}')
             lat.DrawLatex(0.61 , 0.92, '35.9 fb^{-1} (13 TeV)')
             ## draw an axis on the right side
             axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(),ROOT.gPad.GetUymin(), ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),0,rightmax,510,"+L")
@@ -450,8 +450,8 @@ if __name__ == "__main__":
             leg1.SetFillStyle(0)
             leg1.SetTextSize(0.04)
             leg1.AddEntry(hist_fit_1d  , 'pulls', 'l')
-            leg1.AddEntry(ff, '#splitline{{fit to pulls}}{{#scale[0.5]{{(#hat{{#mu}} = {mu:.2f}, #sigma = {si:.2f} }} }}'.format(mu=ff.GetParameter(1), si=ff.GetParameter(2)), 'l')
-            leg1.AddEntry(hist_fit_1d_e, '#splitline{{constraints}}{{ #scale[0.5]{{(mean = {a:.2f} }} }}'.format(a=hist_fit_1d_e.GetMean()), 'pl')
+            leg1.AddEntry(ff, '#splitline{{fit to pulls}}{{#scale[0.5]{{(#hat{{#mu}} = {mu:.2f}, #sigma = {si:.2f}) }} }}'.format(mu=ff.GetParameter(1), si=ff.GetParameter(2)), 'l')
+            leg1.AddEntry(hist_fit_1d_e, '#splitline{{constraints}}{{ #scale[0.5]{{(mean = {a:.2f}) }} }}'.format(a=hist_fit_1d_e.GetMean()), 'pl')
             leg1.Draw('same')
 
             ##hist_fit_1d.GetYaxis().SetRangeUser(0., nbins/2.)

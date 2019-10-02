@@ -80,7 +80,7 @@ if __name__ == "__main__":
     ROOT.gStyle.SetOptStat(0)
     dummyh = ROOT.TH1F('dummyh','',npars,x[0],x[-1])
     dummyh.GetYaxis().SetRangeUser(-maxz,maxz)
-    dummyh.GetXaxis().SetRangeUser(-0.5,npars+1.5)
+    dummyh.GetXaxis().SetRangeUser(-1.5,npars+1.5)
     dummyh.GetXaxis().LabelsOption('v')
     dummyh.GetYaxis().SetTitle('#theta - #theta^{0}')
     dummyh.GetYaxis().CenterTitle()
