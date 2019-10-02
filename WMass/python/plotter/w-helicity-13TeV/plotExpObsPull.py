@@ -1,5 +1,5 @@
 # usage: python plotExpObsPull.py --exp nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_data.latex 
-import ROOT, random, os, sys
+import ROOT, random, os, sys, re
 from array import array
 
 ROOT.gROOT.SetBatch()
@@ -15,6 +15,18 @@ def getParams(infile):
         params.append((key,pull[0],pull[1]))
     return params
 
+def niceNameQCDScales(name):
+    pol = 'L' if name.startswith('left') else 'R' if name.startswith('right') else '0'
+    charge = '+' if name.endswith('plus') else '-'
+    nuis = name.replace('left','').replace('right','').replace('long','').replace('plus','').replace('minus','')
+    nuis = nuis.replace('R','_{R}').replace('F','_{F}')
+    nuis = nuis.replace('mu','#mu')
+    m = re.match('(\D+)(\d+)',nuis)
+    nuis = m.group(1)
+    index = m.group(2)
+    niceName = 'W^{{{charge}}}_{{{pol}}} {nuis}^{{{index}}}'.format(charge=charge,pol=pol,nuis=nuis,index=index)
+    return niceName
+    
 if __name__ == "__main__":
 
     from optparse import OptionParser
@@ -64,23 +76,34 @@ if __name__ == "__main__":
     #leg.SetFillStyle(0)
     leg.SetFillColor(0)
     leg.SetBorderSize(0)
-    
+
+    ROOT.gStyle.SetOptStat(0)
+    dummyh = ROOT.TH1F('dummyh','',npars,x[0],x[-1])
+    dummyh.GetYaxis().SetRangeUser(-maxz,maxz)
+    dummyh.GetXaxis().SetRangeUser(-1.5,npars+1.5)
+    dummyh.GetXaxis().LabelsOption('v')
+    dummyh.GetYaxis().SetTitle('#theta - #theta^{0}')
+    dummyh.GetYaxis().CenterTitle()
+    dummyh.GetXaxis().SetTitleFont(42)
+    dummyh.GetXaxis().SetTitleSize(0.05)
+    dummyh.GetXaxis().SetLabelFont(42)
+    dummyh.GetYaxis().SetTitleFont(42)
+    dummyh.GetYaxis().SetTitleSize(0.07)
+    dummyh.GetYaxis().SetTitleOffset(0.5)
+    dummyh.GetYaxis().SetLabelFont(42)
+    if 'pdf' in name:
+        dummyh.GetXaxis().SetTitle('PDF Hessian index')
+    else:
+        for i in range(npars):
+            dummyh.GetXaxis().SetBinLabel(i+1,niceNameQCDScales(exp_pulls[i][0]))
+    dummyh.Draw()
+
     # prefit (trivial, all 1)
     gr_prefit = ROOT.TGraphErrors(npars,x,zero,exone,one)
     gr_prefit.SetTitle('')
-    gr_prefit.GetYaxis().SetRangeUser(-maxz,maxz)
-    gr_prefit.GetXaxis().SetRangeUser(-0.5,npars+1.5)
     gr_prefit.SetFillColor(ROOT.kAzure+6)
     gr_prefit.SetMarkerColor(ROOT.kAzure+6)
-    gr_prefit.GetXaxis().SetTitle('PDF Hessian index')
-    gr_prefit.GetYaxis().SetTitle('pull')
-    gr_prefit.GetXaxis().SetTitleFont(42)
-    gr_prefit.GetXaxis().SetTitleSize(0.05)
-    gr_prefit.GetXaxis().SetLabelFont(42)
-    gr_prefit.GetYaxis().SetTitleFont(42)
-    gr_prefit.GetYaxis().SetTitleSize(0.05)
-    gr_prefit.GetYaxis().SetLabelFont(42)
-    gr_prefit.Draw('A P2')
+    gr_prefit.Draw('P2')
     leg.AddEntry(gr_prefit,'pre-fit','f')
     
     gr_prefit.GetXaxis().SetNdivisions(npars)

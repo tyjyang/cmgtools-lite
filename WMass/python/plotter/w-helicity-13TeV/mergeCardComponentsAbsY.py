@@ -1423,7 +1423,7 @@ if __name__ == "__main__":
         combinedCard = open(cardfile,'a+')        
         combinedCard.write('\nluminosity group = CMS_lumi_13TeV\n')
         combinedCard.write('\npdfs group    = '+' '.join(filter(lambda x: re.match('pdf.*',x),finalsystnames))+'\n')
-        combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('muR.*|muF.*|alphaS',x),finalsystnames))+'\n')
+        combinedCard.write('\nQCDTheo group    = '+' '.join(filter(lambda x: re.match('.*muR.*|.*muF.*|alphaS',x),finalsystnames))+'\n')
         combinedCard.write('\nQEDTheo group    = '+' '.join(filter(lambda x: re.match('smoothfsr',x),finalsystnames))+'\n')
         combinedCard.write('\nlepScale group = '+' '.join(filter(lambda x: re.match('.*smooth(el|mu)scale\S+',x),finalsystnames))+'\n')
         combinedCard.write('\nEffStat group = '+' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),finalsystnames))+'\n') 

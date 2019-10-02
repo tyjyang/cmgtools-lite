@@ -339,7 +339,7 @@ def plotValues(values,charge,channel,options):
             isubpad+=1
 
     c2.cd()
-    lat.DrawLatex(0.2, 0.95, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
@@ -506,7 +506,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
         subpadLegends["comp_lep"].Draw('same')
 
     c2.cd()
-    lat.DrawLatex(0.2, 0.95, '#bf{CMS} #it{Preliminary}')
+    lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
