@@ -250,7 +250,10 @@ if __name__ == "__main__":
                             tmp_ratio_anti = ratio_pdfanti.GetBinContent(ib)
 
                             isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
-                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                            if tmp_ratio_anti==0 or tmp_ratio==0: 
+                                doubleRatio = 0
+                            else:
+                                doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
                              
                             ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
 
@@ -319,7 +322,10 @@ if __name__ == "__main__":
                             tmp_ratio_anti = ratioanti.GetBinContent(ib)
 
                             isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
-                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                            if tmp_ratio_anti==0 or tmp_ratio==0: 
+                                doubleRatio = 0
+                            else:
+                                doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
                              
                             ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
 
