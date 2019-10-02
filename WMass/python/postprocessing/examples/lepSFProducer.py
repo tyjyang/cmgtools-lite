@@ -143,7 +143,9 @@ class scaleFactorManager:
             self.fname = newfname
         if newhname:
             self.hname = newhname
+        print 'opening file', self.fname
         tf = ROOT.TFile.Open(self.fname)
+        print 'getting histo', self.hname
         self.hist = tf.Get(self.hname)
         self.hist.SetDirectory(0)
         tf.Close()
@@ -219,8 +221,8 @@ class lep2016SFProducer(Module):
         #self.sf3_manager_mu = scaleFactorManager(self.mu_f["idiso"],         self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
 
         # create electron scale factor manager        
-        self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"scaleFactor")
-        self.sf1_manager_el_e = scaleFactorManager(self.el_f["trigger_endcap"],      self.filePath,"scaleFactor")
+        self.sf1_manager_el_b = scaleFactorManager(self.el_f["trigger_barrel"],      self.filePath,"scaleFactor")#Graph2D_from_scaleFactor_smoothedByGraph")
+        self.sf1_manager_el_e = scaleFactorManager(self.el_f["trigger_endcap"],      self.filePath,"scaleFactor")#EGamma_SF2D")
         self.sf2_manager_el   = scaleFactorManager(self.el_f["reco"],                self.filePath,"EGamma_SF2D")
         #self.sf3_manager_el_b = scaleFactorManager(self.el_f["full_ID_barrel"],      self.filePath,"Graph2D_from_scaleFactor_smoothedByGraph")
         #self.sf3_manager_el_e = scaleFactorManager(self.el_f["full_ID_endcap"],      self.filePath,"EGamma_SF2D")

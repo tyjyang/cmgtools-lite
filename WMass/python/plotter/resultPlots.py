@@ -46,10 +46,11 @@ if __name__ == '__main__':
         systs = []
         systs += ['pdf', 'alphaS']
         systs += ['mW', 'smoothfsr']
-        systs += ['muR'   +str(i) for i in range(1,11)]
-        systs += ['muF'   +str(i) for i in range(1,11)]
-        systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += ['{pol}muR{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
+        systs += ['{pol}muF{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
+        systs += ['{pol}muRmuF{i}{charge}'.format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
         systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
+        systs += ['smoothelscaleStat{idx}'.format(idx=i) for i in range(0,98)] + ['smoothelscaleSyst{idx}pt{ipt}'.format(idx=i,ipt=j) for i in range(2) for j in range(2)]
         systs += ['smoothmuscaleStat{idx}'.format(idx=i) for i in range(0,99)] + ['smoothmuscaleSyst{idx}'.format(idx=i) for i in range(2,6)]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
@@ -64,12 +65,11 @@ if __name__ == '__main__':
         systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
         systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
         tmp_systs = []
-        for p,s,n in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11)):
-            tmp_systs.append('{p}{s}{n}'.format(p=p,s=s,n=n))
+        for p,s,n,c in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11), ['plus','minus']):
+            tmp_systs.append('{p}{s}{n}{c}'.format(p=p,s=s,n=n,c=c))
         systs += [','.join(tmp_systs)]
-
         for nuis in systs:
-            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
+            cmd = 'python w-helicity-13TeV/systRatios.py --unrolled -a --outdir {od} -s {p} {d} {ch}'.format(od=tmp_outdir, p=nuis, d=results['cardsdir'], ch=muEl)
             print "Running: ",cmd
             os.system(cmd)
             # print 'running systRatios for a few single rapidity  bins (0,8,9)'
@@ -225,3 +225,4 @@ if __name__ == '__main__':
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)
+        os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
