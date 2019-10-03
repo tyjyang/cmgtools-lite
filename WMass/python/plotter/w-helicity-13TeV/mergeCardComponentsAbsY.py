@@ -755,7 +755,7 @@ def addSmoothLeptonScaleSyst(infile,regexp,charge,isMu,alternateShapeOnly=False,
     binning_histo = muscale_syst_f.Get('stathis_eig_plus_0')
     ## convert histograms to arrays to get it faster
     maxstats = 99 if isMu else 97
-    systrange = [2,6] if isMu else [0,1]
+    systrange = [2,5] if isMu else [0,1]
     stathists = [root_numpy.hist2array(muscale_syst_f.Get('stathis_eig_{ch}_{istat}'.format(ch=charge,istat=idx))) for idx in range(maxstats)]
     systhists = [root_numpy.hist2array(muscale_syst_f.Get('systhist_{ch}_{isyst}'.format(ch=charge,isyst=idx))) for idx in range(systrange[0],systrange[1]+1)]
 

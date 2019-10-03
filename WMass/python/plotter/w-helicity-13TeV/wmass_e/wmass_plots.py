@@ -2,7 +2,9 @@
 # may use as: cat w-helicity-13TeV/wmass_e/zee_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/testZskim {} > runplots.sh
 # may use as: cat w-helicity-13TeV/wmass_e/wgen_catlist.txt | xargs -i python w-helicity-13TeV/wmass_e/wmass_plots.py plots/gen {} > runplots.sh
 
-# to submit a subset of the plots in the plots.txt on condor may do:
+# to submit a subset of the plots in the plots.txt on condor may do (e.g. the gen no sel for the postfit reweighting):
+# python w-helicity-13TeV/wmass_e/wmass_plots.py plots/gen/wpt wgen_nosel_qcdpostfit_langavulin w-helicity-13TeV/wmass_e/wenu_plot_list.txt --dry-run -r 4
+
 
 import sys,re,os,datetime
 sys.path.insert(0,os.path.abspath(os.getcwd()+"/w-helicity-13TeV"))
