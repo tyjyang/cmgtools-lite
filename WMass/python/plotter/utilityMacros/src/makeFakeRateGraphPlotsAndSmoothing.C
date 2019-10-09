@@ -658,6 +658,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   TGraphAsymmErrors* fr_data_subScaledDownEWKMC = nullptr;
   TGraphAsymmErrors* fr_w = nullptr;
   TGraphAsymmErrors* fr_z = nullptr;
+  TGraphAsymmErrors* fr_wpt = nullptr; // reweighted zpt
+  TGraphAsymmErrors* fr_zpt = nullptr; // reweighted zpt
   TGraphAsymmErrors* fr_vv = nullptr;
   TGraphAsymmErrors* fr_top = nullptr;
   TGraphAsymmErrors* fr_qcd = nullptr;
@@ -968,7 +970,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     if (processes[j] == "QCD") {
       hpass.back() = hpass.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
       hntot.back() = hntot.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
-    } else if (processes[j] == "W" || processes[j] == "Z") {
+    } else if (processes[j] == "W" || processes[j] == "Z" || processes[j] == "Wpt" || processes[j] == "Zpt") {
       hpass_ewk_scaledUp->Add(hpass.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);   
       hntot_ewk_scaledUp->Add(hntot.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);  
       hpass_ewk_scaledDown->Add(hpass.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);   
@@ -1006,7 +1008,15 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 
       fr_w = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
+    } else if (processes[j] == "Wpt") {
+
+      fr_w = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
     } else if (processes[j] == "Z") {
+
+      fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
+    } else if (processes[j] == "Zpt") {
 
       fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
@@ -1336,6 +1346,8 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
   // might want to use an eta-dependent factor for W
   scaleFactor["W"] = 0.038;
   scaleFactor["Z"] = 0.04;
+  scaleFactor["Wpt"] = 0.038;
+  scaleFactor["Zpt"] = 0.04;
   scaleFactor["Top"] = 0.09;
   scaleFactor["DiBosons"] = 0.05;
   //scaleFactor["QCD"] = 0.9;

@@ -142,15 +142,15 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAl
     return (alternate,mirror)
 
 def cropHighSysts(h_nom,h_syst,maxSyst=0.05):
-    for i in xrange(h_nom.GetNbinsX()):
-        nom  = h_nom.GetBinContent(i+1)
-        syst = h_syst.GetBinContent(i+1)
+    for i in xrange(1,1+h_nom.GetNbinsX()):
+        nom  = h_nom.GetBinContent(i)
+        syst = h_syst.GetBinContent(i)
         if nom==0: 
-            h_syst.SetBinContent(i+1, 0)
-        elif syst/nom > 1 + maxSyst: 
-            h_syst.SetBinContent(i+1, nom*(1+maxSyst))
-        elif syst/nom < 1 - maxSyst:
-            h_syst.SetBinContent(i+1, nom*(1-maxSyst))
+            h_syst.SetBinContent(i, 0)
+        elif syst/nom > (1 + maxSyst): 
+            h_syst.SetBinContent(i, nom*(1+maxSyst))
+        elif syst/nom < (1 - maxSyst):
+            h_syst.SetBinContent(i, nom*(1-maxSyst))
 
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
@@ -495,7 +495,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True):
+def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True, silentCrop=False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir
@@ -577,7 +577,17 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHeli
                     ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
                     if doType=='L1PrefireEle' and etasyst_loweredge<=eta<etasyst_upperedge:
                         ## now get the content of the variation histogram!
-                        sf,scaling = utilities.getL1SF(ybincenter,eta,l1hist)
+                        # be conservative, use eta with larger absvalue inside bin
+                        # for 2D xsec last bin goes from 2.1 to 2.4, but prefire at eta=2.25 << prefire at eta=2.3999!
+                        etapass = eta
+                        if not isHelicity:
+                            if etapass < 0: 
+                                # add epsilon to stay inside bin (just in case)
+                                etapass = etasyst_loweredge + 0.0001 
+                            else: 
+                                # subtract epsilon to stay inside bin (just in case)
+                                etapass = etasyst_upperedge - 0.0001
+                        sf,scaling = utilities.getL1SF(ybincenter,etapass,l1hist)
                         ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
                         if process=='Z':
                             scaling *= math.sqrt(2)
@@ -592,8 +602,8 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHeli
                     tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
      
             ## re-roll the 2D to a 1D histo
-            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
-            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''), silent=silentCrop)
+            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''), silent=silentCrop)
 
             outfile.cd()
             tmp_scaledHisto_up_1d.Write()
@@ -755,7 +765,7 @@ def addSmoothLeptonScaleSyst(infile,regexp,charge,isMu,alternateShapeOnly=False,
     binning_histo = muscale_syst_f.Get('stathis_eig_plus_0')
     ## convert histograms to arrays to get it faster
     maxstats = 99 if isMu else 97
-    systrange = [2,6] if isMu else [0,1]
+    systrange = [2,5] if isMu else [0,1]
     stathists = [root_numpy.hist2array(muscale_syst_f.Get('stathis_eig_{ch}_{istat}'.format(ch=charge,istat=idx))) for idx in range(maxstats)]
     systhists = [root_numpy.hist2array(muscale_syst_f.Get('systhist_{ch}_{isyst}'.format(ch=charge,isyst=idx))) for idx in range(systrange[0],systrange[1]+1)]
 

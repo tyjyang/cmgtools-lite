@@ -6,7 +6,7 @@ dryrun=0
 doMuons=1
 skipUnpack=1
 skipMergeRoot=1
-skipSingleCard=0
+skipSingleCard=1
 skipMergeCard=0 # disabled if fitting each charge (see below)
 skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 #flavourCombinationOutdir = "muElCombination_1Sept2019"
@@ -36,9 +36,12 @@ useNativeMCatNLOxsecW = 1 # use 60400 pb as xsec for W and Tau, instead of 3*205
 useSmoothPtScales = 0 # new smooth pt scales defined in mergeRootComponentsDiffXsec.py with addSmoothLepScaleSyst
 addSmoothPtScalesWithStandardOnExtremePtBins = 1  # use option --add-smooth-ptscale-extremePtFromStandard for merger
 # previous option requires useSmoothPtScales to be set to 0: basically this options add the smooth pt scales in the file, but still produces the old ones in the merger. Then, in the fits, it uses the new smooth ones
-useAnalyticSmoothPtScales = 1 if doMuons else 0 # suggested option: it disables the other ones for the pt scales (for muons, the Rochester corrections are used)
+useAnalyticSmoothPtScales = 1 #if doMuons else 0 # suggested option: it disables the other ones for the pt scales (for muons, the Rochester corrections are used)
 # for electrons, old functions behave better
 
+clipSystVariations = 1.3  # use <=0 not to use it. To clip at XX% pass 1+XX
+clipSystVariationsSignal = 1.15
+uncorrelateFSRbyFlavour = 1
 profileEleScales = 1
 useExpNonProfiledErrs = 0 # for now only works for ele when not profiling scales, ineffective if profiling everything
 useXsecWptWeights = 1 
@@ -49,9 +52,9 @@ useBinEtaPtUncorrUncEffStat = False
 uncorrelateFakesNuisancesByCharge = False # need to rerun the MergeRoot when changing this one
 uncorrelatePtScalesByCharge = False if useAnalyticSmoothPtScales else True if doMuons else False
 uncorrelateNuisancesByCharge = ""  # use regular expression, otherwise keep ""
-uncorrelatePtscaleByEtaside = 0 if (useAnalyticSmoothPtScales and doMuons) else 1
+uncorrelatePtscaleByEtaside = 0 if useAnalyticSmoothPtScales else 1
 # note that there is always a part of the uncertainty that is charge-uncorrelated
-freezePOIs = False
+freezePOIs = True  # no need dedicated postfix, added automatically to the one given below
 skipFitData = False
 skipFitAsimov = False
 
@@ -68,9 +71,9 @@ if not skipMergeCardFlavour:
 #th3file_el = "cards/" + folder_el + "wel_13July2019_fixEffStat.root"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/" # keep final "/"
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57/"
-folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
-#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
+folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
 #folder_el = "diffXsec_el_2019_07_24_testCoarserPt/" # keep "/" at the end
@@ -129,12 +132,13 @@ else:
 
 optionsForRootMerger = " --uncorrelate-QCDscales-by-charge --test-eff-syst --etaBordersForFakesUncorr " + ("0.5,1.0,1.5,2.1 " if doMuons else "0.5,1.0,1.5,2.1 ")
 #binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' --WZ-ptScaleSyst-shape '0.0,2.1' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.5,2.1' --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
-binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.5,2.1' "
+binnedSystOpt = " --WZ-testEffSyst-shape '0.0,1.0,1.5' " if doMuons else " --WZ-testEffSyst-shape '0.0,1.0,1.5,1.9,2.1' "
 
-if doMuons and not useAnalyticSmoothPtScales:
-    binnedSystOpt += " --WZ-ptScaleSyst-shape '0.0,2.1' "
-else:
-    binnedSystOpt += " --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
+if not useAnalyticSmoothPtScales:
+    if doMuons:
+        binnedSystOpt += " --WZ-ptScaleSyst-shape '0.0,2.1' "
+    else:
+        binnedSystOpt += " --WZ-ptScaleSyst-shape '0.0,1.0,1.5,2.1' "
 
 
 optionsForCardMaker = " --uncorrelate-QCDscales-by-charge --unbinned-QCDscale-Z --sig-out-bkg  "
@@ -157,7 +161,8 @@ if useAnalyticSmoothPtScales:
     if flavour == "mu":
         optionsForCardMaker  += " --use-analytic-smooth-pt-scales " 
     else:
-        optionsForCardMaker  += " --use-smooth-ptscale " 
+        optionsForCardMaker  += " --use-analytic-smooth-pt-scales " 
+        #optionsForCardMaker  += " --use-smooth-ptscale " 
 else:
     if useSmoothPtScales:
         optionsForRootMerger += " --use-smooth-ptscale "
@@ -186,6 +191,10 @@ if useXsecWptWeights:
 if nuisToSymmetrizeVsEta:
     optionsForRootMerger += " --symmetrize-syst-ratio '{regexp}' ".format(regexp=nuisToSymmetrizeVsEta)
 
+if uncorrelateFSRbyFlavour:
+    optionsForRootMerger += " --uncorrelate-fsr-by-flavour"
+    optionsForCardMaker  += " --uncorrelate-fsr-by-flavour"
+
 #--WZ-testEffSyst-LnN 0.012" 
 # --wXsecLnN 0.038 # exclude ptslope for fakes, we use that one uncorrelated versus eta 
 ### --uncorrelate-fakes-by-charge   
@@ -197,13 +206,10 @@ postfixCardMaker = "_symFSRptScalemW" # for single-charge fit in single flavor
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_outLnN30"
-else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_oldSmoothUncorrScale_FRnorm30"
+if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
+else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 
-if freezePOIs:  
-    optionsForCardMakerMerger += " --freezePOIs "
-    optionsForCardMaker       += " --freezePOIs "
 if skipFitData: 
     optionsForCardMakerMerger += " --skip-fit-data "
     optionsForCardMaker       += " --skip-fit-data "
@@ -214,7 +220,7 @@ if skipFitAsimov:
 
 #optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg --skip-hadd-xsec "
 #--no-text2hdf5 --no-combinetf " # " --useSciPyMinimizer " # " --skip-hadd-xsec --just-fit " 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_nativeMCatNLOxsec_profileEleScale --sig-out-bkg  "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15 --sig-out-bkg "#--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 if flavour == "el" and not profileEleScales:
     optionsForCardMaker  += " --no-profile-pt-scales "
@@ -234,6 +240,19 @@ optionsForCardMaker = optionsForCardMaker  + ptRangeBkg #--eta-range-bkg 1.39 1.
 if distinguishNameSigAsBkg:
     optionsForRootMerger = optionsForRootMerger + " --distinguish-name-sig-as-bkg " + ptRangeBkg
     optionsForCardMaker  = optionsForCardMaker  + " --distinguish-name-sig-as-bkg "
+
+if freezePOIs:  
+    optionsForCardMakerMerger += " --freezePOIs "
+    optionsForCardMaker       += " --freezePOIs "
+    optionsForCardMakerMergerFlavour += " --freezePOIs "
+
+if clipSystVariationsSignal > 0:
+    optionsForCardMaker       += (" --clipSystVariationsSignal " + str(clipSystVariationsSignal))
+    optionsForCardMakerMergerFlavour += (" --clipSystVariationsSignal " + str(clipSystVariationsSignal))
+if clipSystVariations > 0:
+    optionsForCardMaker       += (" --clipSystVariations " + str(clipSystVariations))
+    optionsForCardMakerMergerFlavour += (" --clipSystVariations " + str(clipSystVariations))
+    
 
 print ""
 

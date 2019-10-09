@@ -1213,3 +1213,4 @@ class util:
     def getRochesterUncertainty(self,charge,etabin,ptbin,syst_histo,averagept):
         ## the syst 3 is the only one with a pt-shape, so maintain it
         return np.mean(syst_histo, axis=1)[etabin] if averagept else syst_histo[etabin,ptbin]
+

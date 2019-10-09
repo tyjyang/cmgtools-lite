@@ -33,7 +33,7 @@ def dressed2D(h1d,binning,name,title=''):
     #h2_backrolled_1 .GetZaxis().SetRangeUser(0,1.1*h2_backrolled_1.GetMaximum())
     return h2_backrolled_1
 
-def unroll2Dto1D(h,newname='',cropNegativeBins=True):
+def unroll2Dto1D(h,newname='',cropNegativeBins=True, silent=False):
     nbins = h.GetNbinsX() * h.GetNbinsY()
     goodname = h.GetName()
     h.SetName(goodname+"_oldbinning")
@@ -48,7 +48,8 @@ def unroll2Dto1D(h,newname='',cropNegativeBins=True):
     if cropNegativeBins:
         for bin in range(1,nbins+1):
             if newh.GetBinContent(bin)<0:
-                print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
+                if not silent:
+                    print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
                 newh.SetBinContent(bin,0)
     newh.SetLineWidth(h.GetLineWidth())
     newh.SetLineStyle(h.GetLineStyle())

@@ -10,6 +10,8 @@ from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
 from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from w_helicity_13TeV.make_diff_xsec_cards import etaIsOutsideFilledRangeDiffXsec
+from w_helicity_13TeV.make_diff_xsec_cards import ptIsOutsideFilledRangeDiffXsec
 
 from w_helicity_13TeV.mergeCardComponentsDiffXsec import getXsecs_etaPt
 
@@ -90,12 +92,13 @@ def combFlavours(options):
         # now we can merge using as masked channels only those for muons, but we have to change the shapes file for it
         maskedChannels = ['InAcc'] 
         if len(options.eta_range_outAcc) or options.sig_out_outAcc: maskedChannels.append('OutAcc')
-        for mc in maskedChannels:
-            datacards.append(os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
-            channels.append('Wlep_{ch}_xsec_{maskchan}'.format(ch=charge,maskchan=mc))    
-            #for cbin in ['Wmu', 'Wel']:
-            #    datacards.append(os.path.abspath(indirLep[cbin])+'/W{cb}_{ch}_xsec_{maskchan}_card.txt'.format(cb=cbin,ch=charge,maskchan=mc))
-            #    channels.append('W{cb}_{ch}_xsec_{maskchan}'.format(cb=cbin,ch=charge,maskchan=mc))    
+        if not options.freezePOIs:
+            for mc in maskedChannels:
+                datacards.append(os.path.abspath(indirLep['Wmu'])+'/Wmu_{ch}_xsec_{maskchan}_card.txt'.format(ch=charge,maskchan=mc))
+                channels.append('Wlep_{ch}_xsec_{maskchan}'.format(ch=charge,maskchan=mc))    
+                #for cbin in ['Wmu', 'Wel']:
+                #    datacards.append(os.path.abspath(indirLep[cbin])+'/W{cb}_{ch}_xsec_{maskchan}_card.txt'.format(cb=cbin,ch=charge,maskchan=mc))
+                #    channels.append('W{cb}_{ch}_xsec_{maskchan}'.format(cb=cbin,ch=charge,maskchan=mc))    
 
     print "="*20
     print "Looking for these cards"
@@ -140,6 +143,10 @@ def combFlavours(options):
             txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")
         if len(options.postfix):
             txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
+        if options.clipSystVariations > 0.0:
+            txt2hdf5Cmd = txt2hdf5Cmd + " --clipSystVariations " + str(options.clipSystVariations)
+        if options.clipSystVariationsSignal > 0.0:
+            txt2hdf5Cmd = txt2hdf5Cmd + " --clipSystVariationsSignal " + str(options.clipSystVariationsSignal)
         print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
@@ -152,7 +159,7 @@ def combFlavours(options):
 
         bbboptions = " --binByBinStat  "
         if not options.noCorrelateXsecStat: bbboptions += "--correlateXsecStat "
-        combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
+        combineCmd = 'combinetf.py -t -1 {bbb} {metafile} --doh5Output '.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
         else:
@@ -231,6 +238,10 @@ def prepareChargeFit(options, charges=["plus"]):
             txt2hdf5Cmd = txt2hdf5Cmd.replace("text2hdf5.py ","text2hdf5.py -S 0 ")
         if len(options.postfix):
             txt2hdf5Cmd = txt2hdf5Cmd + " --postfix " + options.postfix
+        if options.clipSystVariations > 0.0:
+            txt2hdf5Cmd = txt2hdf5Cmd + " --clipSystVariations " + str(options.clipSystVariations)
+        if options.clipSystVariationsSignal > 0.0:
+            txt2hdf5Cmd = txt2hdf5Cmd + " --clipSystVariationsSignal " + str(options.clipSystVariationsSignal)
         print ""
         print "The following command makes the .hdf5 file used by combine"
         print txt2hdf5Cmd
@@ -243,7 +254,7 @@ def prepareChargeFit(options, charges=["plus"]):
 
         bbboptions = " --binByBinStat "
         if not options.noCorrelateXsecStat: bbboptions += "--correlateXsecStat "
-        combineCmd = 'combinetf.py -t -1 {bbb} {metafile}'.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
+        combineCmd = 'combinetf.py -t -1 {bbb} {metafile} --doh5Output '.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
         else:
@@ -269,7 +280,7 @@ def prepareChargeFit(options, charges=["plus"]):
         print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
         combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} --saveHists --computeHistErrors ".format(pf=fitPostfix, od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
-        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf=fitPostfix, od=fitdir_Asimov, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
+        combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od}  --saveHists --computeHistErrors  ".format(pf=fitPostfix, od=fitdir_Asimov,  b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print combineCmd_data
         if not options.skip_combinetf and not options.skipFitData:
             os.system(combineCmd_data)
@@ -341,6 +352,7 @@ parser.add_option(       '--useBinEtaPtUncorrUncEffStat', dest='useBinEtaPtUncor
 parser.add_option(       '--uncorrelate-QCDscales-by-charge', dest='uncorrelateQCDscalesByCharge' , default=False, action='store_true', help='Use charge-dependent QCD scales (on signal and tau)')
 parser.add_option(       '--uncorrelate-nuisances-by-charge', dest='uncorrelateNuisancesByCharge' , type="string", default='', help='Regular expression for nuisances to decorrelate between charges (note that some nuisances have dedicated options)')
 parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
+parser.add_option(       '--uncorrelate-fsr-by-flavour', dest='uncorrelateFSRbyFlavour' , default=False, action='store_true', help='Uncorrelate FSR by flavours')
 parser.add_option(       '--uncorrelate-ptscale-by-charge', dest='uncorrelatePtScaleByCharge' , default=False, action='store_true', help='Uncorrelate momentum scales by charge')
 parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit (it works for flavor combination only)')
 parser.add_option(       '--skip-hadd-xsec', dest='skipHaddXsec' , default=False, action='store_true', help='For flavour combination, do not hadd root files with xsec')
@@ -352,6 +364,8 @@ parser.add_option(       '--use-native-MCatNLO-xsec'  , dest='useNativeMCatNLOxs
 parser.add_option(       '--use-analytic-smooth-pt-scales'  , dest='useAnalyticSmoothPtScales', default=False, action='store_true', help='Use smooth pt scales made with analytic method (using special histograms with larger pt acceptance for the first and last pt bins). For muons, this uses the actual uncertainties for the Rochester corrections')
 parser.add_option(       '--no-profile-pt-scales'  , dest='noProfilePtScales', default=False, action='store_true', help='Do not profile pt scales')
 parser.add_option(       '--useExpNonProfiledErrs'  , dest='useExpNonProfiledErrs', default=False, action='store_true', help='Activate same option of combinetf.py, taking uncertainty from expected for non-profiled uncertainties')
+parser.add_option("", "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
+parser.add_option("", "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
 (options, args) = parser.parse_args()
 
 print ""
@@ -396,6 +410,9 @@ if outdir != "./":
     if not os.path.exists(outdir):
         print "Creating folder", outdir
         os.system("mkdir -p " + outdir)
+
+if options.freezePOIs:
+    options.postfix += "{us}fixedPOI".format(us="_" if len(options.postfix) else "") 
 
 charge = options.charge
 flavour = options.flavour
@@ -860,11 +877,12 @@ if not isExcludedNuisance(excludeNuisances, "mW", keepNuisances):
 if flavour == "el":
     # prefiring binning for nuisances = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4], 
     # but exclude syst for bin [-1.5,1.5], so 6 nuisances numbered from 0 to 5
+    pfBinCenter = [-2.25, -2.0, -1.7, 1.7, 2.0, 2.25]
     L1PrefireEleEffSyst_nuis = ["L1PrefireEleEffSyst{ieta}{fl}".format(ieta=ieta,fl=flavour) for ieta in range(6)]
-    for syst in L1PrefireEleEffSyst_nuis:
+    for isys,syst in enumerate(L1PrefireEleEffSyst_nuis):
         if not isExcludedNuisance(excludeNuisances, syst, keepNuisances): 
             allSystForGroups.append(syst)
-            card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if any(x in p for x in WandZandTau) else "-") for p in allprocesses]) +"\n")
+            card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if (any(x in p for x in WandZandTau) and not etaIsOutsideFilledRangeDiffXsec(p,pfBinCenter[isys],NetaNeighbours=1,genEtaBins=genBins.etaBins)) else "-") for p in allprocesses]) +"\n")
     # now for Z out-of-acceptance
     # to be continued
     OutOfAccPrefireSyst_nuis = ["OutOfAccPrefireSyst%d%s" % (i,flavour) for i in range(2)]
@@ -874,9 +892,12 @@ if flavour == "el":
             card.write(('%-16s shape' % syst) + " ".join([kpatt % ("1.0" if p == "Z" else "-") for p in allprocesses]) +"\n")
 
 # signal W only for now (might add it to Z and Tau later)
-if not isExcludedNuisance(excludeNuisances, "fsr", keepNuisances):
-    allSystForGroups.append("fsr")
-    card.write(('%-16s shape' % "fsr") + " ".join([kpatt % ("1.0" if any(x in p for x in [signalMatch]) else "-") for p in allprocesses]) +"\n")
+fsrSyst = "fsr"
+if options.uncorrelateFSRbyFlavour:
+    fsrSyst += "Mu" if flavour == "mu" else "El"
+if not isExcludedNuisance(excludeNuisances, fsrSyst, keepNuisances):
+    allSystForGroups.append(fsrSyst)
+    card.write(('%-16s shape' % fsrSyst) + " ".join([kpatt % ("1.0" if any(x in p for x in [signalMatch]) else "-") for p in allprocesses]) +"\n")
     # sortedTheoSystkeys.append("fsr")  # do not append to this list: for fsr we don't have a specific generator cross section, as fsr doesn't change it
 
 
@@ -903,13 +924,24 @@ for syst in wExpSysts:
 
 # hardcoded: see MCA or other files
 wExpPtScaleSysts = []
-if options.useAnalyticSmoothPtScales and flavour == "mu":
-    for i in range(99):
+if options.useAnalyticSmoothPtScales:
+    maxstats    = 99    if flavour == "mu" else 97
+    systRange   = [2,5] if flavour == "mu" else [0,1]
+    syst_ptbins = [""]  if flavour == "mu" else ["pt0", "pt1"]
+    for i in range(maxstats):
         wExpPtScaleSysts.append("smooth{lep}scaleStat{n}".format(lep=flavour, n=i))
-    for i in range(2,6):
-        wExpPtScaleSysts.append("smooth{lep}scaleSyst{n}".format(lep=flavour, n=i))
+    for i in range(systRange[0],systRange[1]+1):
+        for systipt in syst_ptbins:
+            wExpPtScaleSysts.append("smooth{lep}scaleSyst{n}{systipt}".format(lep=flavour, n=i, systipt=systipt))
     for syst in wExpPtScaleSysts:    
-        procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)]        
+        procsForPtScaleSystShape = []
+        if re.match("smooth.*scaleSyst.*pt.*",syst): 
+            ptval = 42.2 if "pt1" in syst else 41.8 # used to evaluate whether gen pt is one the correct side of the syst wrt 42 GeV (42 is the arbitrary threshold used to split syst in .*pt0 and .*pt1)
+            # we pass slightly lower or larger value to avoid issues when checking which bin the number belongs to
+            procsForPtScaleSystShape = [x for x in allprocesses if (any(p in x for p in WandZandTau) and not ptIsOutsideFilledRangeDiffXsec(x,ptval,NptNeighbours=2, genPtBins=genBins.ptBins))] 
+        else:
+            procsForPtScaleSystShape = [x for x in allprocesses if any(p in x for p in WandZandTau)] 
+
         if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
         card.write(('%-16s %s' % (syst,"shapeNoProfile" if options.noProfilePtScales else "shape")) + " ".join([kpatt % ("1.0" if any(x in p for x in procsForPtScaleSystShape) else "-") for p in allprocesses]) +"\n")
@@ -1072,7 +1104,7 @@ if options.doSystematics:
     #if not isExcludedNuisance(excludeNuisances, "mW"): card.write("wmass group = mW\n\n")
     card.write("pdfs group = "       + ' '.join(filter(lambda x: re.match('pdf.*|alphaS',x),allSystForGroups)) + "\n\n")
     card.write("QCDTheo group = "    + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN',x),allSystForGroups)) + "\n\n")
-    card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr',x),allSystForGroups)) + "\n\n")
+    card.write("QEDTheo group = "    + ' '.join(filter(lambda x: re.match('fsr.*',x),allSystForGroups)) + "\n\n")
     card.write("lepScale group = "   + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scale.*',x),allSystForGroups)) + "\n\n")
     #card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*ErfPar\dEffStat.*',x),allSystForGroups)) + "\n\n")
     card.write("EffStat group = "    + ' '.join(filter(lambda x: re.match('.*EffStat.*',x),allSystForGroups)) + "\n\n")

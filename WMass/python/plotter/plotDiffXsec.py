@@ -5,13 +5,13 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 doMuElComb = 1
-dryrun = 1
+dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
@@ -58,42 +58,16 @@ if doMuElComb:
     skipTemplate = 1
     flavour = "lep"
     lepton = "lepton"
-
-
-
-if plotSingleCharge and doMuElComb:
-    print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
-    quit()
-
-#postfix = "testEffSystUncorrEta_uncorrPtScale"
-#postfix = "testEffSystUncorrEta_uncorrPtScale_BinUncEffStat"
-#postfix = "testEffSystUncorrEta_uncorrPtScale_noCorrelateXsecStat"
-#postfix = "testEffSystUncorrEta_uncorrPtScale_test2"
-#postfix = "finalTest_EffStatNotScaled_EffSystAndScaleOnTau"
-#postfix = "finalTest_EffStatNotScaled"
-#postfix = "finalTest_EffStatNotScaled_noScipyMinimizer"
-#postfix = "zptReweight_uncorrQCDscales"
-#postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC"
-#postfix = "onlyEtaPlus_noSystButFSR"
-#postfix = "zptReweight_uncorrQCDscales_unfixedFSRcharge_testBinUncEffStat"
-#postfix = "zptReweight_uncorrQCDscales_fixedPOIs"
-#postfix = "combinedLep"
-#postfix = "zptReweight_uncorrQCDscales_fixEffStatOnlyStatUncDataMC_FinalFixes_newFSR_scaleEffStatEE_symFSR"
-#postfix = "finalFixes_symFSRptScalemW"
-#postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW"
-#postfix = "finalFixes_NEWsymFSRptScalemW_ptScaleUncorrChargeAndEtaSide"
-#postfix = "finalFixes_NEWsymFSRptScalemW_smoothPtScaleUncorrEtaSide"
-#postfix = "finalFixes_sigBkgInAcc_symFSRptScalemW_ptScaleUncorrEtaSide"
+    if plotSingleCharge:
+        print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
+        quit()
 
 if flavour == "el":
-    #postfix = "nativeMCatNLOxsecW_noProfilePtScales_useExpNonProfiledErrs_oldSmoothUncorrScale"
-    postfix = "nativeMCatNLOxsecW_profilePtScales_oldSmoothUncorrScale_FRnorm30"
+    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
 else:
-    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert"
-
+    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
 if doMuElComb:
-    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileEleScale" # _testNewFakesPtUncorr"
-    #postfix = "combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW"
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_fixedPOI" 
                
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
@@ -114,17 +88,17 @@ ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = [#"pdf.*|alphaS|mW|fsr", 
+diffNuisances_pois = ["pdf.*|alphaS", 
                       "muR.*|muF.*", 
-                      #"Fakes(Eta|Pt).*[0-9]+mu.*", 
-                      #"Fakes(Eta|Pt).*[0-9]+el.*",
+                      ##"Fakes(Eta|Pt).*[0-9]+mu.*", 
+                      ##"Fakes(Eta|Pt).*[0-9]+el.*",
                       "Fakes(Eta|Pt).*[0-9]+(mu|el).*", 
-                      #"ErfPar0EffStat.*", 
-                      #"ErfPar1EffStat.*", 
-                      #"ErfPar2EffStat.*", 
+                      ##"ErfPar0EffStat.*", 
+                      ##"ErfPar1EffStat.*", 
+                      ##"ErfPar2EffStat.*", 
                       "CMS_.*|.*smooth.*scale.*|.*TestEffSyst.*|mW|fsr|L1Prefire.*|OutOfAccPrefire.*", 
-                      #"Wplus.*_ieta_.*_mu",     
-                      #"Wminus.*_ieta_.*_mu"
+                      ##"Wplus.*_ieta_.*_mu",     
+                      ##"Wminus.*_ieta_.*_mu"
                       ]
 
 # this is appended to nuis below
