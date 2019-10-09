@@ -46,10 +46,11 @@ if __name__ == '__main__':
         systs = []
         systs += ['pdf', 'alphaS']
         systs += ['mW', 'smoothfsr']
-        systs += ['muR'   +str(i) for i in range(1,11)]
-        systs += ['muF'   +str(i) for i in range(1,11)]
-        systs += ['muRmuF'+str(i) for i in range(1,11)]
+        systs += ['{pol}muR{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
+        systs += ['{pol}muF{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
+        systs += ['{pol}muRmuF{i}{charge}'.format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
         systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
+        systs += ['smoothelscaleStat{idx}'.format(idx=i) for i in range(0,98)] + ['smoothelscaleSyst{idx}pt{ipt}'.format(idx=i,ipt=j) for i in range(2) for j in range(2)]
         systs += ['smoothmuscaleStat{idx}'.format(idx=i) for i in range(0,99)] + ['smoothmuscaleSyst{idx}'.format(idx=i) for i in range(2,6)]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
@@ -224,3 +225,7 @@ if __name__ == '__main__':
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)
+        ## these are the refinement plots for the paper
+        os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
+        for pol in ['left','right']:
+            os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(pol=pol,od=tmp_outdir))

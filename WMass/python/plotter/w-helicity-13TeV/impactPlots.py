@@ -458,7 +458,8 @@ if __name__ == "__main__":
                     for y in xrange(quadrsum.GetNbinsX()):
                         quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,pol,ng)].GetBinContent(y+1)))
                 quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack); quadrsum.SetLineStyle(ROOT.kDashed)
-                quadrsum.Draw('pl same')
+                ## this is only for debuggin purposes, do not show for the final plots
+                # quadrsum.Draw('pl same')
                 # now fill the real total error from the fit (with correct correlations)
                 for y in xrange(totalerr.GetNbinsX()):
                     if y in bkgYBins: continue
@@ -466,12 +467,13 @@ if __name__ == "__main__":
                     totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign=sign,pol=pol,bin=y)])
                 totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
                 totalerr.Draw('pl same')
-                leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
+                #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
                 leg.Draw('same')
-                lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+                #lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+                lat.DrawLatex(0.1, 0.92, '#bf{CMS}')
                 lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
-                for i in ['pdf', 'png']:
+                for i in ['pdf', 'png', '.C']:
                     suff = '' if not options.suffix else '_'+options.suffix
                     cs.SetLogy()
                     cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge,pol=pol))
@@ -663,7 +665,7 @@ if __name__ == "__main__":
             quadrsum.SetMarkerColor(ROOT.kBlack); 
             quadrsum.SetLineColor(ROOT.kBlack); 
             quadrsum.SetLineStyle(ROOT.kDashed)
-            quadrsum.Draw('pl same')
+            # quadrsum.Draw('pl same') 
             # now fill the real total error from the fit (with correct correlations)
             for y in xrange(totalerr.GetNbinsX()):
                 if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
@@ -678,7 +680,7 @@ if __name__ == "__main__":
             totalerr.SetMarkerColor(ROOT.kRed+1); 
             totalerr.SetLineColor(ROOT.kRed+1);
             totalerr.Draw('pl same')
-            leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
+            #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
             leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
             leg.Draw('same')
             lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')

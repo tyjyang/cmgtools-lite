@@ -250,7 +250,10 @@ if __name__ == "__main__":
                             tmp_ratio_anti = ratio_pdfanti.GetBinContent(ib)
 
                             isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
-                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                            if tmp_ratio_anti==0 or tmp_ratio==0: 
+                                doubleRatio = 0
+                            else:
+                                doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
                              
                             ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
 
@@ -319,7 +322,10 @@ if __name__ == "__main__":
                             tmp_ratio_anti = ratioanti.GetBinContent(ib)
 
                             isBad = (tmp_ratio-1.) * (tmp_ratio_anti-1.) > 0.
-                            doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
+                            if tmp_ratio_anti==0 or tmp_ratio==0: 
+                                doubleRatio = 0
+                            else:
+                                doubleRatio = isBad * (tmp_ratio/tmp_ratio_anti if abs(tmp_ratio_anti) > abs(tmp_ratio) else tmp_ratio_anti/tmp_ratio)
                              
                             ratio_asymmetry.SetBinContent(ib, -1.0 if not isBad else doubleRatio)
 
@@ -328,9 +334,9 @@ if __name__ == "__main__":
                         hmax = 0.05 if 'muF' in syst else 0.04
                         if 'Prefire'  in syst: hmax = 0.40 # yes, not 0.04
                         if 'effstat'  in syst: hmax = 0.005
-                        if 'smoothmuscaleStat' in syst: hmax = 0.0001
-                        if 'smoothmuscaleSyst' in syst: hmax = 0.005
-                        if 'smoothel' in syst: hmax = 0.04
+                        if re.match('smooth(mu|el)scaleStat',syst): hmax = 0.0004
+                        if re.match('smoothmuscaleSyst',syst): hmax = 0.005
+                        if re.match('smoothelscaleSyst',syst): hmax = 0.03
                         if options.singleRap: hmax = 0.10
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0.,1.)
