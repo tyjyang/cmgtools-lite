@@ -13,6 +13,10 @@ def getParams(infile):
         key = values[0]
         pull = [float(values[-3].rstrip(',')),float(values[-2].rstrip('}'))]
         params.append((key,pull[0],pull[1]))
+    if 'alphaS' in params[0][0]:
+        alphas = params[0]
+        del params[0]
+        params.append(alphas)
     return params
 
 def niceNameQCDScales(name):
@@ -26,7 +30,16 @@ def niceNameQCDScales(name):
     index = m.group(2)
     niceName = 'W^{{{charge}}}_{{{pol}}} {nuis}^{{{index}}}'.format(charge=charge,pol=pol,nuis=nuis,index=index)
     return niceName
-    
+
+def niceNamePDFs(name):
+    if 'pdf' in name:
+        ihess = name.split('pdf')[-1]
+        niceName = 'Hessian '+ihess
+    elif 'alphaS' in name:
+        niceName = '#alpha_{S}'
+    return niceName
+        
+
 if __name__ == "__main__":
 
     from optparse import OptionParser
@@ -44,7 +57,7 @@ if __name__ == "__main__":
     npars = len(exp_pulls)
     
     x = array('f',[i+1 for i in range(npars)])
-
+    
     zero   = array('f',[0 for i in range(npars)])
     one    = array('f',[1 for i in range(npars)])
     exone  = array('f', [0.4 for i in range(npars)])
@@ -78,7 +91,7 @@ if __name__ == "__main__":
     leg.SetBorderSize(0)
 
     ROOT.gStyle.SetOptStat(0)
-    dummyh = ROOT.TH1F('dummyh','',npars,x[0],x[-1])
+    dummyh = ROOT.TH1F('dummyh','',npars,x[0]-0.5,x[-1]+0.5)
     dummyh.GetYaxis().SetRangeUser(-maxz,maxz)
     dummyh.GetXaxis().SetRangeUser(-1.5,npars+1.5)
     dummyh.GetXaxis().LabelsOption('v')
@@ -92,7 +105,8 @@ if __name__ == "__main__":
     dummyh.GetYaxis().SetTitleOffset(0.5)
     dummyh.GetYaxis().SetLabelFont(42)
     if 'pdf' in name:
-        dummyh.GetXaxis().SetTitle('PDF Hessian index')
+        for i in range(npars):
+            dummyh.GetXaxis().SetBinLabel(i+1,niceNamePDFs(exp_pulls[i][0]))
     else:
         for i in range(npars):
             dummyh.GetXaxis().SetBinLabel(i+1,niceNameQCDScales(exp_pulls[i][0]))
@@ -106,7 +120,7 @@ if __name__ == "__main__":
     gr_prefit.Draw('P2')
     leg.AddEntry(gr_prefit,'pre-fit','f')
     
-    gr_prefit.GetXaxis().SetNdivisions(npars)
+    gr_prefit.GetXaxis().SetNdivisions(npars+1,ROOT.kFALSE)
     gr_prefit.GetYaxis().SetNdivisions(2*int(maxz))
     
     # expected 
