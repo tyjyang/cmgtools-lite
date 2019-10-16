@@ -220,7 +220,7 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_,fsr', 'ErfPar']
+                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf,alphaS', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_,fsr', 'ErfPar']
                 nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
@@ -228,6 +228,6 @@ if __name__ == '__main__':
                     os.system('{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t))
                     print '{cmd} --infile {inf} --suffix {suf} --type {t} '.format(cmd=diffNuisances_cmd, inf=results[tmp_file], suf=tmp_suffix, t=t)
         ## these are the refinement plots for the paper
-        os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdf_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
+        os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdfalphaS_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdfalphaS_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
         for pol in ['left','right']:
             os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(pol=pol,od=tmp_outdir))
