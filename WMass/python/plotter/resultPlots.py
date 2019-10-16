@@ -88,14 +88,16 @@ if __name__ == '__main__':
         os.system('mkdir -p {od}'.format(od=tmp_outdir))
         os.system('cp /afs/cern.ch/user/m/mdunser/public/index.php {od}'.format(od=tmp_outdir))
         for t in toysHessian:
-            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i]:
+            for tmp_file in [i for i in results.keys() if 'both_floatingPOIs_'+t in i or 'both_fixedPOIs_'+t in i]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['CMS_,W.*long', 'pdf', 'muR,muF,muRmuF,alphaS,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW,fsr']
+                nuisancesAndPOIs = ['pdf,alphaS', 'CMS_,W.*long', 'muR,muF,muRmuF,wpt', 'CMS_', 'ErfPar', 'CMS_,W.*left',  'CMS_,W.*right', 'CMS_,mW,fsr']
                 if 'floatingPOIs' in tmp_file:
                     #nuisancesAndPOIs += ['W{charge}_{pol}.*pmaskedexpnorm'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                     nuisancesAndPOIs += ['W{charge}_right.*pmaskedexpnorm,W{charge}_left.*pmaskedexpnorm'.format(charge=charge) for charge in ['plus','minus'] ]
                 for nuis in nuisancesAndPOIs:
                     cmd = 'python w-helicity-13TeV/subMatrix.py {inf} --outdir {od} --params {p} --type {t} --suffix {suf} '.format(od=tmp_outdir, t=t, p=nuis, inf=results[tmp_file], suf=tmp_suffix)
+                    if 'fixedPOIs' in tmp_file:
+                        cmd += ' -m channelnone '
                     print cmd
                     os.system(cmd)
 

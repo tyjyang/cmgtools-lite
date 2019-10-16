@@ -1056,6 +1056,9 @@ if __name__ == "__main__":
                                     if longBKG and re.match('(Wplus_long|Wminus_long)',p): newprocname = p
                                     newname = name.replace(p,newprocname)
                                     newprocname = cleanProcessName(newprocname); newname = cleanProcessName(newname)
+                                    ## ignore muscale systematics from the files.. hopefully.
+                                    if any(musyst in newname for musyst in ['muscale0', 'muscale1', 'elescale']):
+                                        continue
                                     if re.match('x_(Wplus|Wminus|TauDecaysW)_.*',newname) and options.rescaleWBackToMCaNLO:
                                         obj.Scale(W_MCANLO_over_DATA_fromZ)
                                     ### fix for a misnaming of the decorrelated QCD scales by charge. All have minus
