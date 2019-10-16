@@ -272,7 +272,7 @@ if __name__ == "__main__":
     params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
     params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
-    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 0)
+    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 100 if 'alphaS' in x else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
@@ -314,57 +314,74 @@ if __name__ == "__main__":
     ## make the new, smaller TH2F correlation matrix
     nbins = len(params)
     th2_sub = ROOT.TH2F('sub_corr_matrix', '', nbins, 0., nbins, nbins, 0., nbins)
+    th2_cov = ROOT.TH2F('sub_cov_matrix',  '', nbins, 0., nbins, nbins, 0., nbins)
 
     if 'Wplus' in options.params and 'pmaskedexpnorm' in options.params:
         th2_sub.SetTitle('correlations of W^{+} processes')
+        th2_cov.SetTitle('covariance of W^{+} processes')
     if 'Wminus' in options.params and 'pmaskedexpnorm' in options.params:
         th2_sub.SetTitle('correlations of W^{-} processes')
+        th2_cov.SetTitle('covariance of W^{-} processes')
     if 'pdf':
         th2_sub.SetTitle('correlations of PDF nuisance parameters')
         th2_sub.GetXaxis().SetLabelSize(0.025)
         th2_sub.GetYaxis().SetLabelSize(0.025)
+        th2_cov.SetTitle('covariance of PDF nuisance parameters')
+        th2_cov.GetXaxis().SetLabelSize(0.025)
+        th2_cov.GetYaxis().SetLabelSize(0.025)
 
     th2_sub.GetXaxis().SetTickLength(0.)
     th2_sub.GetYaxis().SetTickLength(0.)
+    th2_cov.GetXaxis().SetTickLength(0.)
+    th2_cov.GetYaxis().SetTickLength(0.)
     
     ## pretty nested loop. enumerate the tuples
     for i,x in enumerate(params):
         for j,y in enumerate(params):
             ## set it into the new sub-matrix
             th2_sub.SetBinContent(i+1, j+1, corr[(x,y)])
+            th2_cov.SetBinContent(i+1, j+1, cov [(x,y)])
             ## set the labels correctly
             new_x = niceName(x,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
             new_y = niceName(y,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
+            th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
+            th2_cov.GetYaxis().SetBinLabel(j+1, new_y)
 
     th2_sub.GetZaxis().SetRangeUser(-1, 1)
-    ROOT.gStyle.SetPaintTextFormat('1.2f')
-    if len(params)<30: th2_sub.Draw('colz text45')
-    else: th2_sub.Draw('colz')
+    
+    covMax = max(abs(th2_cov.GetMaximum()), abs(th2_cov.GetMinimum()))
+    th2_cov.GetZaxis().SetRangeUser(-1.*covMax, covMax)
 
-    if options.verticalLabelsX: th2_sub.LabelsOption("v","X")
-    if nbins >= 20: th2_sub.LabelsOption("v","X")
+    for im,tmp_mat in enumerate([th2_sub, th2_cov]):
 
-    if options.title: 
-        if options.title == "0":
-            th2_sub.SetTitle("")
-        else:
-            th2_sub.SetTitle(options.title)
+        ROOT.gStyle.SetPaintTextFormat('1.2f')
+        if len(params)<30: tmp_mat.Draw('colz text45')
+        else: tmp_mat.Draw('colz')
+
+        if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
+        if nbins >= 20: tmp_mat.LabelsOption("v","X")
+
+        if options.title: 
+            if options.title == "0":
+                tmp_mat.SetTitle("")
+            else:
+                tmp_mat.SetTitle(options.title)
 
 
-    if options.parNameCanvas: 
-        paramsName = options.parNameCanvas
-    else : 
-        paramsName = options.params.replace(',','AND')
-        for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
-            paramsName = paramsName.replace(x,'')
-        
-    if options.outdir:
-        for i in ['pdf', 'png']:
-            suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallCorrelation{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName))
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+        if options.parNameCanvas: 
+            paramsName = options.parNameCanvas
+        else : 
+            paramsName = options.params.replace(',','AND')
+            for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
+                paramsName = paramsName.replace(x,'')
+            
+        if options.outdir:
+            for i in ['pdf', 'png']:
+                suff = '' if not options.suffix else '_'+options.suffix
+                c.SaveAs(options.outdir+'/small{corcov}{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName,corcov='Correlation' if not im else 'Covariance'))
+            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
 
     if options.showMoreCorrelated:
