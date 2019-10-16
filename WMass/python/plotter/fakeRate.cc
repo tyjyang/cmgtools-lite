@@ -546,15 +546,10 @@ float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol,
     return 0;
   }
 
-  int digit = evt % 10;
-  if      (digit <  2              && pol != 0) return 0.;
-  else if (digit >= 2 && digit < 6 && pol != 1) return 0.;
-  else if (digit >= 6              && pol != 2) return 0.;
-
-  // float tmp_rand = helRand->Rndm();
-  // if      (tmp_rand <  0.2                   && pol != 0) return 0.;
-  // else if (tmp_rand >= 0.2 && tmp_rand < 0.6 && pol != 1) return 0.;
-  // else if (tmp_rand >= 0.6                   && pol != 2) return 0.;
+  // non orthogonal int digit = evt % 10;
+  // non orthogonal if      (digit <  2              && pol != 0) return 0.;
+  // non orthogonal else if (digit >= 2 && digit < 6 && pol != 1) return 0.;
+  // non orthogonal else if (digit >= 6              && pol != 2) return 0.;
 
 
   TH3 *hist_f0 = helicityFractions_0;
@@ -591,9 +586,12 @@ float helicityWeight(float yw, float ptw, float costheta, long int evt, int pol,
    //   std::cout << " this is fLTerm: " << fLTerm << std::endl;
    // }
 
-  if      (pol == 0) return 5.0*std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
-  else if (pol == 1) return 2.5*std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
-  else if (pol == 2) return 2.5*std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  // non orthogonal if      (pol == 0) return 5.0*std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  // non orthogonal else if (pol == 1) return 2.5*std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  // non orthogonal else if (pol == 2) return 2.5*std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  if      (pol == 0) return std::min( f0*f0Term/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  else if (pol == 1) return std::min( fL*fLTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
+  else if (pol == 2) return std::min( fR*fRTerm/(f0*f0Term+fL*fLTerm+fR*fRTerm), max_weight);
         
   std::cout << "something went wrong in the helicity reweighting" << std::endl;
   return -99999.;
