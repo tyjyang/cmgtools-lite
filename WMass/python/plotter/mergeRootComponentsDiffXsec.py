@@ -819,6 +819,7 @@ if outdir != "./":
         os.system("mkdir -p " + outdir)
 
 if options.flavour not in ["el", "mu"]:
+    print "-f %s" % options.flavour 
     print "Warning: you must specify a lepton flavour with option -f el|mu"
     quit()
 if options.charge not in ["plus", "minus"]:
@@ -1613,9 +1614,9 @@ if options.useAnalyticSmoothPtScales:
         os.system("cp {of} {ofnew}".format(of=shapename,ofnew=shapenameNoSmoothPtScales))
         if flavour=="mu":
             #addSmoothMuonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, outdir=outdir)
-            addSmoothLeptonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, 1, outdir=outdir, cropNegativeBin=True, maxSyst=0.05)
+            addSmoothLeptonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, 1, outdir=outdir, cropNegativeBin=True, maxSyst=0.0) # can try 0.10 instead of 0.05
         else:
-            addSmoothLeptonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, 0, outdir=outdir, cropNegativeBin=True, maxSyst=0.05)
+            addSmoothLeptonScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, 0, outdir=outdir, cropNegativeBin=True, maxSyst=0.0) # can try 0.10
             # addSmoothElectronScaleSyst(shapename, 'x_Z|x_W.*|x_TauDecaysW', options.charge, outdir=outdir,
             #                            uncorrelateByCharge=options.uncorrelatePtScaleByCharge,
             #                            uncorrelateByEtaSide=options.uncorrelatePtScaleByEtaSide)

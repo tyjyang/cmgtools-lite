@@ -153,17 +153,20 @@ else:
     ## variable binning in pt
     #ptbinning = '['+','.join(str(i) for i in range(26,48,2))+']'
     #
-    ptbinning = "[26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56]" #,47.5,50,52.5,55]"
+    #ptbinning = "[26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56]" #,47.5,50,52.5,55]"
+    ptbinning = "[26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45]" #,47.5,50,52.5,55]"
     #
     #ptbinning = "[26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56]" #,47.5,50,52.5,55]"
 
     # different gen binning
     binsEta = list(i*0.1 for i in range(1,14)) + list((1.3 + i*0.2) for i in range(1,5)) + [2.4]
-    posstring = ','.join( list(str(i) for i in binsEta) )+']'
+    #posstring = ','.join( list(str(i) for i in binsEta) )+']'
+    posstring = '2.4]'
 
     BINNING      = '\''+etabinning+'*'+ptbinning+'\''
     #ptbinning = "[26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56]" #,47.5,50,52.5,55]"
-    ptbinning = "[26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56]"
+    #ptbinning = "[26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56]"
+    ptbinning = "[26,45]"
     GENBINNING = "'[0.,"+posstring+"*"+ptbinning+"'"
     #WEIGHTSTRING=  ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '  # ok, SF4 is for e only, and SF3 is basically 1
     #WEIGHTSTRING=  ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)*prefireJetsWeight(LepGood1_eta)\' '  # this has charge dependent non-eta-smoothed SF for trigger, eta-smoothed for reco2sel

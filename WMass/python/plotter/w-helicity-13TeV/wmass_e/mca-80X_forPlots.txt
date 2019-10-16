@@ -22,6 +22,10 @@
 # QCD_bc : QCD_Pt_80to170_bcToE : xsec; FillColor=ROOT.kGray, Label="QCD_bc", NormSystematic=1.00
 
 W   : WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kRed+2, Label="W", NormSystematic=0.038
+
+Wpt   : WJetsToLNu_* :3.*20508.9 :genw_decayId==12                  ; FillColor=ROOT.kRed+2  , AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)", Label="W (Z pt)", NormSystematic=0.038
+
+
 W_elescale_Up   : WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kGreen+2, Label="ele scale Up", NormSystematic=0.038, FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleUp_xsec.txt"
 W_elescale_Dn   : WJetsToLNu_NLO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kGreen+2, Label="ele scale Dn", NormSystematic=0.038, FakeRate="w-helicity-13TeV/wmass_e/fr-includes/doSyst_lepScaleDn_xsec.txt"
 
@@ -38,6 +42,10 @@ Wincl   : WJetsToLNu_NLO* :  3.*20508.9 ; FillColor=ROOT.kRed+2, Label="W", Norm
 #W_LO   : WJetsToLNu_LO* :  3.*20508.9 : genw_decayId == 12 && LepGood1_mcMatchId*LepGood1_charge!=-24; FillColor=ROOT.kRed+2, Label="W (Madgraph)", NormSystematic=0.038
 
 data_fakes: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakeRate-frdata_smooth.txt", Label="Fakes (data)", FillColor=ROOT.kGray, NormSystematic=0.20
+
+data_fakes_Wpt: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-wpt.txt", Label="Fakes (W-pt)", FillColor=ROOT.kBlue, NormSystematic=0.20
+
+data_fakes_Wpt_pol2: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-wpt_FRpol2.txt", Label="Fakes (W-pt)", FillColor=ROOT.kGray, NormSystematic=0.20
 
 data_fakes_jetPt40: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-jetpt_syst.txt", Label="fakes (jetPt40)", FillColor=ROOT.kRed+2, NormSystematic=0.20
 
@@ -181,16 +189,16 @@ data: SingleElectron_07Aug17_Run2016*
 
 # data_fakes_awayJetPt45: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-jetpt_syst.txt", Label="Fakes (jetPt45)", FillColor=ROOT.kRed+2, NormSystematic=0.20
 
-# data_fakes_EWKUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKup.txt", Label="ewk Up", FillColor=ROOT.kBlack, NormSystematic=0.20
+#data_fakes_EWKUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKup.txt", Label="ewk Up", FillColor=ROOT.kBlack, NormSystematic=0.20
 
 # data_fakes_EWKDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKdown.txt", Label="ewk Dn", FillColor=ROOT.kBlue, NormSystematic=0.20
 
-# data_fakes_EWKUpSlopeDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKupSlopeDown.txt", Label="ewk Up\, slope Dn", FillColor=ROOT.kOrange+1, NormSystematic=0.20
+data_fakes_EWKUpSlopeDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKupSlopeDown.txt", Label="ewk Up\, slope Dn", FillColor=ROOT.kOrange+1, NormSystematic=0.20
 
 # data_fakes_EWKDnSlopeUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-EWKdownSlopeUp.txt", Label="ewk Dn\, slope Up", FillColor=ROOT.kViolet, NormSystematic=0.20
 
 
-# data_fakes_slopeUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", Label="slope Up", FillColor=ROOT.kGreen+2, NormSystematic=0.20
+data_fakes_slopeUp: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptup.txt", Label="slope Up", FillColor=ROOT.kGreen+2, NormSystematic=0.20
 
 # data_fakes_slopeDn: SingleElectron_07Aug17_Run2016* : 1 ; FakeRate="w-helicity-13TeV/wmass_e/fakerate-vars/fakeRate-frdata-e-ptdown.txt", Label="slope Dn", FillColor=ROOT.kRed+2, NormSystematic=0.20
 

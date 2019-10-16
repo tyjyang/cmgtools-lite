@@ -160,12 +160,24 @@ def addSmoothLeptonScaleSyst(infile, regexp, charge, isMu,
     else:
         extendedPtBins = [29.0] + [float(x) for x in recoBins.ptBins] + [57.0]
 
-    # it is 29-57 for electrons
-    binning_recoPt2Xto57 = [recoBins.Neta, recoBins.etaBins, len(extendedPtBins)-1, extendedPtBins]
     # now open file and get histograms
     # these are TH1 and should be rolled to TH2
-    file_nomi_recoPt25to57 = "cards/diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to57/nominalShape_{ch}_recoPt25to57.root".format(ch=charge)
-    file_nomi_recoPt29to57 = "cards/diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57/nominalShape_{ch}_recoPt29to57.root".format(ch=charge)
+    specialFolderTag = ""
+    if "_1sigBin_4fixedPOI" in infile:
+        specialFolderTag = "_1sigBin_4fixedPOI"
+    
+    file_nomi_recoPt25to57 = "cards/diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to57{sft}/nominalShape_{ch}_recoPt25to57.root".format(ch=charge,sft=specialFolderTag)
+    file_nomi_recoPt29to57 = "cards/diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57{sft}/nominalShape_{ch}_recoPt29to57.root".format(ch=charge,sft=specialFolderTag)
+
+    if "_1sigBin_4fixedPOI_ptMax45" in infile:
+        file_nomi_recoPt25to57 = "cards/diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to46p5_1sigBin_4fixedPOI/nominalShape_{ch}_recoPt25to46p5.root".format(ch=charge,sft=specialFolderTag)
+        file_nomi_recoPt29to57 = "cards/diffXsec_el_2019_09_22_onlyZandTau_recoPt29to46p5_1sigBin_4fixedPOI/nominalShape_{ch}_recoPt29to46p5.root".format(ch=charge,sft=specialFolderTag)
+        extendedPtBins[-1] = 46.5
+        
+
+    # it is 29-57 for electrons
+    binning_recoPt2Xto57 = [recoBins.Neta, recoBins.etaBins, len(extendedPtBins)-1, extendedPtBins]
+
     hist_nomi_recoPt2Xto57 = ROOT.TFile.Open(file_nomi_recoPt25to57 if isMu else file_nomi_recoPt29to57)
     nominalHists = {}
     for ikey,e in enumerate(hist_nomi_recoPt2Xto57.GetListOfKeys()):
@@ -307,14 +319,14 @@ def addSmoothLeptonScaleSyst(infile, regexp, charge, isMu,
                             
 
                         # the following is not needed if cropping bins
-                        if maxSyst == 0.0 and "outliers" in tmp_name and shift_dir == "Up":
-                            # ad hoc fix for second bin, which gets a very large ratio because the assumption
-                            # of flat event density is maximally wrong (would be the same for first bin but let's neglect that)
-                            nomiContent = tmp_nominal_2d.GetBinContent(ieta,2)
-                            ratioPt3 = 1.0
-                            if tmp_nominal_2d.GetBinContent(ieta,3) != 0:
-                                ratioPt3 = tmp_scaledHisto.GetBinContent(ieta,3)/tmp_nominal_2d.GetBinContent(ieta,3)
-                            tmp_scaledHisto.SetBinContent(ieta,2,ratioPt3*nomiContent)
+                        # if maxSyst == 0.0 and "outliers" in tmp_name and shift_dir == "Up":
+                        #     # ad hoc fix for second bin, which gets a very large ratio because the assumption
+                        #     # of flat event density is maximally wrong (would be the same for first bin but let's neglect that)
+                        #     nomiContent = tmp_nominal_2d.GetBinContent(ieta,2)
+                        #     ratioPt3 = 1.0
+                        #     if tmp_nominal_2d.GetBinContent(ieta,3) != 0:
+                        #         ratioPt3 = tmp_scaledHisto.GetBinContent(ieta,3)/tmp_nominal_2d.GetBinContent(ieta,3)
+                        #     tmp_scaledHisto.SetBinContent(ieta,2,ratioPt3*nomiContent)
 
                     ## re-roll the 2D to a 1D histo
                     tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''), cropNegativeBins=cropNegativeBin)

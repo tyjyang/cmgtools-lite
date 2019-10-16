@@ -172,7 +172,7 @@ if __name__ == "__main__":
         qcdsyst.append("muF%d" % i)
         qcdsyst.append("muRmuF%d" % i)
     pdfsyst = ["pdf%d" % i for i in range(1,61)]
-    allsysts = qcdsyst + pdfsyst + ["mW", "lepeff", "fsr"] # might add others
+    allsysts = qcdsyst + pdfsyst + ["mW", "lepeff", "fsr%s" % ("El" if channel == "el" else "Mu")] # might add others
     if channel == "el":
         #allsysts.extend(["elescale%d" % i for i in range(4)])
         allsysts.extend(["smoothelscaleSyst%dpt%s" % (i,j) for i in range(0,2) for j in range(0,2)])
@@ -552,7 +552,7 @@ if __name__ == "__main__":
 
                 #outlierssysts = ["CMS_Wmu_muscale%d%setaside%s" % (i,charge,s) for i in range(2) for s in ["P","M"]]
                 #tausysts.extend(["muTestEffSyst%d" % i for i in range(3)])
-            outlierssysts.extend(["fsr","mW"])
+            outlierssysts.extend(["fsr%s" % ("El" if channel == "el" else "Mu"),"mW"])
             for i,p in enumerate(procs):
                 h1_1 = infile.Get('x_{p}'.format(p=p))
                 if not h1_1: 

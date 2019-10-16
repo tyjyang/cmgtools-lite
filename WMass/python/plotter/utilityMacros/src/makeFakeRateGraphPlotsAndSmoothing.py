@@ -25,7 +25,7 @@ else:
 
     inputFolder = "fr_30_09_2019_eta_pt_granular_mT40_35p9fb_signedEta_jetPt30_nativeMCatNLOxsec_reweightWZpt"
     inputFullPath = "www/wmass/13TeV/fake-rate/test/testFRv8/" + inputFolder + "/el/comb/"
-    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/jetPt30_nativeMCatNLOxsec_reweightWZpt_latestSF/"
+    outputFolder = "www/wmass/13TeV/fake-rate/electron/FR_graphs_tests/jetPt30_nativeMCatNLOxsec_reweightWZpt_latestSF_fitFRpol2/"
     outfileTag = outputFolder.split('/')[-2]
     histPrefix = "fakeRateNumerator_el_vs_etal1_pt_granular"
     isMuon = "false"

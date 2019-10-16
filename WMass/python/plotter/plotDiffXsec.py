@@ -4,14 +4,15 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 1
-dryrun = 0
+doMuElComb = 0
+combineElePt01asBkg = 0
+dryrun = 1
 skipData = 0
 onlyData = 1
 
 skipPlot = 1
-skipTemplate = 1
-skipDiffNuis = 0
+skipTemplate = 0
+skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
@@ -45,7 +46,9 @@ seed = 123456789
 #folder = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_allPtBinsAsSignal/"
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
-folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
 #folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 #folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 
@@ -54,6 +57,8 @@ lepton = "electron" if flavour == "el"  else "muon"
 if doMuElComb:
     allPtBinsSignal = 1
     folder = "muElCombination_allSig_nativeMCatNLOxsec"
+    if combineElePt01asBkg:
+        folder = "muElCombination_elePt01bkg_nativeMCatNLOxsec"
     #folder = "muElCombination_1Sept2019"
     skipTemplate = 1
     flavour = "lep"
@@ -63,11 +68,13 @@ if doMuElComb:
         quit()
 
 if flavour == "el":
-    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
+    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15"
 else:
-    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_outLnN30_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15"
+    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45_fixedPOI"
 if doMuElComb:
-    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_fixedPOI" 
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_fixedPOI" 
+    if combineElePt01asBkg:
+        postfix = "combinedLep_elePt01bkg_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15"
                
 if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
@@ -81,7 +88,7 @@ fits = ["Asimov", "Data"]
 
 ptBinsSetting = " --pt-range-bkg 25.9 30.1 --pt-range '30,56' " if (not allPtBinsSignal) else ""  # " --eta-range-bkg 1.39 1.61 "
 ptMinForImpacts = " --pt-min-signal 30" if (not allPtBinsSignal) else ""
-optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*smooth.*scaleSyst.*|.*smooth.*scaleStat.*|.*smooth.*scale.*side.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
+optTemplate = " --norm-width --draw-selected-etaPt 2.05,35.0 --syst-ratio-range 'template' --palette 57 --do-signal-syst '.*smooth.*scaleSyst.*|.*smooth.*scaleStat.*|.*mW.*|.*fsr.*' "  # --draw-selected-etaPt 0.45,38 --zmin 10 # kLightTemperature=87
 ptMaxTemplate = "56"
 ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 
@@ -108,28 +115,29 @@ diffNuisances_pois = ["pdf.*|alphaS",
 correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*Wplus_.*_ieta_6_ipt_8_.*"
                         }
 
-correlationNuisRegexp = {# "allPDF"           : "pdf.*", 
-                         "somePDFandAlphaS" : "^pdf([1-9]|1[0-9]|20)$,alphaS", 
+correlationNuisRegexp = {"allPDF"           : "pdf.*,alphaS", 
+                         "someTheory"       : "^pdf([1-9]|1[0-9]|20)$,alphaS,fsr.*,mW", 
                          "QCDscales"        : "muR.*|muF.*", 
                          # "muR"              : "^muR[1-9]+", 
                          # "muF"              : "^muF[1-9]+", 
                          # "muRmuF"           : "^muRmuF[1-9]+", 
-                         "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+mu.*",
-                         "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+el.*", 
-                         "CMSsyst"          : "CMS_.*|.*smooth.*|.*TestEffSyst.*|mW|fsr",
+                         "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+.*",
+                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|smooth.*scaleSyst.*",
+                         "pTscales"         : ".*smooth.*scale.*",
                          # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
                          # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
                          # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
                          }
 
-correlationMatrixTitle = {"allPDF"           : "all PDFs", 
-                          "somePDFandAlphaS" : "some PDFs + #alpha_{S}", 
+correlationMatrixTitle = {"allPDF"           : "all PDFs + #alpha_{S}", 
+                          "someTheory"       : "some PDFs + #alpha_{S} + fsr + m_{W}", 
                           "QCDscales"        : "all QCD scales", 
                           "muR"              : "#mu_{R} QCD scales", 
                           "muF"              : "#mu_{F} QCD scales", 
                           "muRmuF"           : "#mu_{R}#mu_{F} QCD scales", 
                           "FakesEtaPtUncorr" : "fakes #eta normalizations and p_{T} slopes", 
                           "CMSsyst"          : "some experimental systematics",
+                          "pTscales"          : "p_{T} scales",
                           "ErfPar0EffStat"   : "signal efficiency (uncorr. par 0)",
                           "ErfPar1EffStat"   : "signal efficiency (uncorr. par 1)",
                           "ErfPar2EffStat"   : "signal efficiency (uncorr. par 2)"
@@ -228,6 +236,8 @@ for fit in fits:
     command += " --lumi-norm 35900.0  -n --palette -1 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
     if plotSingleCharge:
         command += " -C {ch}".format(ch=singleChargeToPlot)
+    if combineElePt01asBkg:
+        command += " --combineElePt01asBkg "
     if useXsecWptWeights:
         command += " --use-xsec-wpt "
     if forceAllptbinsTheoryband:
@@ -294,7 +304,7 @@ for fit in fits:
     ## ADD CORRELATION
     command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
-    command += " --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
+    command += " --matrix-type channelpmaskedexp  --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
     for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
             tmpcommand = command + " --params '{nuis},{poi}' ".format(nuis=correlationNuisRegexp[nuisRegexp],poi=correlationSigRegexp[poiRegexp])
@@ -313,7 +323,7 @@ for fit in fits:
         command += " --nContours 51 --type hessian --suffix  {fit} --matrix-type {mt} --margin 0.18,0.11,0.08,0.22".format(fit=fit, mt=matrixType)
         command += " --etaptbinfile cards/{fd}/binningPtEta.txt --canvasSize '1200,1000' ".format(fd=folder)
         for poiRegexp in [".*Wplus_.*ieta.*", ".*Wplus_.*ipt.*", ".*Wminus_.*ieta.*", ".*Wminus_.*ipt.*"]:            
-            tmpcommand = command + " --params '{poi},fsr,mW,.*scale.*,.*EffSyst.*,CMS_.*' ".format(poi=poiRegexp)
+            tmpcommand = command + " --params '{poi},fsr.*,mW,smooth.*scaleSyst.*,.*EffSyst.*,CMS_.*' ".format(poi=poiRegexp)
             title = "correlation matrix: {whichXsec} {var}-integrated cross section for W^{{{chs}}}".format(whichXsec="normalized" if "norm" in matrixType else "absolute",
                                                                                                             var="p_{T}" if "ieta" in poiRegexp else "|#eta|", 
                                                                                                             chs="+" if "plus" in poiRegexp else "-")
