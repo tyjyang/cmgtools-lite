@@ -15,6 +15,14 @@ ROOT.gROOT.SetBatch(True)
 import utilities
 utilities = utilities.util()
 
+def scaleTH2inRange(h2, nPtMinToScale=1, scale=0.5):
+    nPt  = h2.GetNbinsY()
+    nEta = h2.GetNbinsX()
+    for ieta in range(1,nEta+1):
+        for ipt in range(nPtMinToScale,nPt+1):
+            h2.SetBinContent(ieta,ipt, scale*h2.GetBinContent(ieta,ipt))
+            h2.SetBinError(ieta,ipt, scale*h2.GetBinError(ieta,ipt))
+
 
 def writeHistoIntoFile(h,f, name="", verbose=True):
     f.cd()
@@ -131,6 +139,7 @@ if __name__ == "__main__":
     parser.add_option(     '--blind-data', dest='blindData' , default=False , action='store_true',   help='If True, data is substituded with hessian (it requires passing the file with option --expected-toyfile')
     parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
     parser.add_option(       '--force-allptbins-theoryband', dest='forceAllPtBinsTheoryBand' , default=False, action='store_true', help='Use all pt bins for theory band, even if some of them were treated as background')
+    parser.add_option(      '--combineElePt01asBkg', dest='combineElePt01asBkg', default=False, action='store_true', help='If True, flavour combination is made by keeping some electron bins as background (input to be managed slightly diffferently)')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -344,12 +353,20 @@ if __name__ == "__main__":
     hDiffXsecQCDonly_1Deta = {}
     hDiffXsecQCDonly_1Dpt = {}
 
+    hDiffXsecNormPDFonly_1Deta = {}
+    hDiffXsecNormPDFonly_1Dpt = {}
+    hDiffXsecNormAlphaonly_1Deta = {}
+    hDiffXsecNormAlphaonly_1Dpt = {}
+    hDiffXsecNormQCDonly_1Deta = {}
+    hDiffXsecNormQCDonly_1Dpt = {}
+
     ptminTheoryHist = options.ptRange.split(",")[0] if options.ptRange != "template" else -1.0
     if options.forceAllPtBinsTheoryBand: ptminTheoryHist = -1.0
     print "Now retrieving all the theory variations, to make the theory bands later on"
     histDict = utilities.getTheoryHistDiffXsecFast(options.useXsecWithWptWeights, 
                                                    ptmin=ptminTheoryHist)
     print "DONE, all the histograms for the theory bands were taken"
+
     # sanity check
     # print "="*30
     # print histDict["listkeys"]
@@ -679,6 +696,13 @@ if __name__ == "__main__":
         hDiffXsecPDFonly_1Dpt[charge] = ROOT.TH1F("hDiffXsec_{lep}_{ch}_PDFonly_1Dpt".format(lep=lepton,ch=charge),
                                                   "cross section PDFonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
                                                   genBins.Npt, array('d',genBins.ptBins))
+
+        hDiffXsecNormPDFonly_1Deta[charge] = ROOT.TH1F("hDiffXsecNorm_{lep}_{ch}_PDFonly_1Deta".format(lep=lepton,ch=charge),
+                                                   "cross section PDFonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                   genBins.Neta, array('d',genBins.etaBins))
+        hDiffXsecNormPDFonly_1Dpt[charge] = ROOT.TH1F("hDiffXsecNorm_{lep}_{ch}_PDFonly_1Dpt".format(lep=lepton,ch=charge),
+                                                  "cross section PDFonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
+                                                  genBins.Npt, array('d',genBins.ptBins))
         # hDiffXsecAlphaonly_1Deta[charge] = ROOT.TH1F("hDiffXsec_{lep}_{ch}_Alphaonly_1Deta".format(lep=lepton,ch=charge),
         #                                              "cross section Alphaonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))),
         #                                              genBins.Neta, array('d',genBins.etaBins))
@@ -707,6 +731,22 @@ if __name__ == "__main__":
         hDiffXsecQCDonly_1Dpt[charge] = ROOT.TGraphAsymmErrors(genBins.Npt)
         hDiffXsecQCDonly_1Dpt[charge].SetName("hDiffXsec_{lep}_{ch}_QCDonly_1Dpt".format(lep=lepton,ch=charge))
         hDiffXsecQCDonly_1Dpt[charge].SetTitle("cross section QCDonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))))
+
+        hDiffXsecNormAlphaonly_1Deta[charge] = ROOT.TGraphAsymmErrors(genBins.Neta)
+        hDiffXsecNormAlphaonly_1Deta[charge].SetName("hDiffXsecNorm_{lep}_{ch}_Alphaonly_1Deta".format(lep=lepton,ch=charge))
+        hDiffXsecNormAlphaonly_1Deta[charge].SetTitle("cross section Alphaonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))))
+
+        hDiffXsecNormQCDonly_1Deta[charge] = ROOT.TGraphAsymmErrors(genBins.Neta)
+        hDiffXsecNormQCDonly_1Deta[charge].SetName("hDiffXsecNorm_{lep}_{ch}_QCDonly_1Deta".format(lep=lepton,ch=charge))
+        hDiffXsecNormQCDonly_1Deta[charge].SetTitle("cross section QCDonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))))
+
+        hDiffXsecNormAlphaonly_1Dpt[charge] = ROOT.TGraphAsymmErrors(genBins.Npt)
+        hDiffXsecNormAlphaonly_1Dpt[charge].SetName("hDiffXsecNorm_{lep}_{ch}_Alphaonly_1Dpt".format(lep=lepton,ch=charge))
+        hDiffXsecNormAlphaonly_1Dpt[charge].SetTitle("cross section Alphaonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))))
+
+        hDiffXsecNormQCDonly_1Dpt[charge] = ROOT.TGraphAsymmErrors(genBins.Npt)
+        hDiffXsecNormQCDonly_1Dpt[charge].SetName("hDiffXsecNorm_{lep}_{ch}_QCDonly_1Dpt".format(lep=lepton,ch=charge))
+        hDiffXsecNormQCDonly_1Dpt[charge].SetTitle("cross section QCDonly: {Wch}".format(Wch=Wchannel.replace('W','W{chs}'.format(chs=chargeSign))))
 
 
         hMu.SetDirectory(tfOut)
@@ -747,6 +787,11 @@ if __name__ == "__main__":
                                                 histDict["listkeys"], histDict["xsec"][1], genBins.Neta, charge=charge)
         utilities.checkTheoryBandDiffXsec1Dproj(hDiffXsecPDFonly_1Dpt[charge], hDiffXsecAlphaonly_1Dpt[charge], hDiffXsecQCDonly_1Dpt[charge],
                                                 histDict["listkeys"], histDict["xsec"][2], genBins.Npt, charge=charge)
+
+        utilities.checkTheoryBandDiffXsec1Dproj(hDiffXsecNormPDFonly_1Deta[charge], hDiffXsecNormAlphaonly_1Deta[charge], hDiffXsecNormQCDonly_1Deta[charge],
+                                                histDict["listkeys"], histDict["xsecnorm"][1], genBins.Neta, charge=charge)
+        utilities.checkTheoryBandDiffXsec1Dproj(hDiffXsecNormPDFonly_1Dpt[charge], hDiffXsecNormAlphaonly_1Dpt[charge], hDiffXsecNormQCDonly_1Dpt[charge],
+                                                histDict["listkeys"], histDict["xsecnorm"][2], genBins.Npt, charge=charge)
         
         print "Make theory bands for absolute cross section and charge %s" % charge
         utilities.getTheoryBandDiffXsec(hDiffXsecTotTheory[charge], hDiffXsecPDF[charge], histDict["listkeys"], histDict["xsec"][0], 
@@ -926,8 +971,17 @@ if __name__ == "__main__":
             #hDiffXsecTotTheory_1Dpt[charge].Scale(scaleFactor)
 
         if isMuElComb:
-            hDiffXsec.Scale(0.5)
-            hDiffXsecErr.Scale(0.5)
+            if options.combineElePt01asBkg:
+                # 3 is the first bin to scale (skip first 2)
+                scaleTH2inRange(hDiffXsec,nPtMinToScale=3,scale=0.5) 
+                scaleTH2inRange(hDiffXsecErr,nPtMinToScale=3,scale=0.5) 
+                scaleTH2inRange(hDiffXsecNorm,nPtMinToScale=3,scale=0.5)
+                scaleTH2inRange(hDiffXsecNormErr,nPtMinToScale=3,scale=0.5)
+                hDiffXsecNorm_1Deta.Scale(0.5) 
+                hDiffXsecNorm_1Dpt.Scale(0.5) 
+            else:
+                hDiffXsec.Scale(0.5)
+                hDiffXsecErr.Scale(0.5)                
             #hDiffXsecNorm.Scale(0.5)
             #hDiffXsecNormErr.Scale(0.5)
             hDiffXsec_1Deta.Scale(0.5)
@@ -1357,7 +1411,13 @@ if __name__ == "__main__":
                     hDiffXsec_1Dpt_exp.Scale(scaleFactor)
 
                 if isMuElComb:
-                    hDiffXsec_exp.Scale(0.5)
+                    if options.combineElePt01asBkg:
+                        scaleTH2inRange(hDiffXsec_exp,nPtMinToScale=3,scale=0.5) 
+                        scaleTH2inRange(hDiffXsecNorm_exp,nPtMinToScale=3,scale=0.5) 
+                        hDiffXsecNorm_1Deta_exp.Scale(0.5)
+                        hDiffXsecNorm_1Dpt_exp.Scale(0.5)
+                    else:
+                        hDiffXsec_exp.Scale(0.5)
                     hDiffXsec_1Deta_exp.Scale(0.5)
                     hDiffXsec_1Dpt_exp.Scale(0.5)
                     #hDiffXsecNorm_exp.Scale(0.5)
@@ -1498,6 +1558,9 @@ if __name__ == "__main__":
                 drawCheckTheoryBand(hDiffXsecPDFonly_1Deta[charge], hDiffXsecAlphaonly_1Deta[charge], hDiffXsecQCDonly_1Deta[charge],
                                     xaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_eta_abs_{ch}_{fl}".format(ch=charge,fl=channel),
                                     outname,draw_both0_noLog1_onlyLog2=1,lumi=options.lumiInt,moreTextLatex=theoryText)
+                drawCheckTheoryBand(hDiffXsecNormPDFonly_1Deta[charge], hDiffXsecNormAlphaonly_1Deta[charge], hDiffXsecNormQCDonly_1Deta[charge],
+                                    xaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_eta_norm_{ch}_{fl}".format(ch=charge,fl=channel),
+                                    outname,draw_both0_noLog1_onlyLog2=1,lumi=options.lumiInt,moreTextLatex=theoryText)
 
                 legendCoords = "0.65,0.85,0.75,0.85" 
                 texCoord = "0.2,0.5"
@@ -1526,6 +1589,10 @@ if __name__ == "__main__":
 
                 drawCheckTheoryBand(hDiffXsecPDFonly_1Dpt[charge], hDiffXsecAlphaonly_1Dpt[charge], hDiffXsecQCDonly_1Dpt[charge],
                                     yaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_pt_abs_{ch}_{fl}".format(ch=charge,fl=channel),
+                                    outname,draw_both0_noLog1_onlyLog2=1,lumi=options.lumiInt,moreTextLatex=theoryText)
+
+                drawCheckTheoryBand(hDiffXsecNormPDFonly_1Dpt[charge], hDiffXsecNormAlphaonly_1Dpt[charge], hDiffXsecNormQCDonly_1Dpt[charge],
+                                    yaxisTitle,"rel. unc.::0.94,1.06", "theoryBands_pt_norm_{ch}_{fl}".format(ch=charge,fl=channel),
                                     outname,draw_both0_noLog1_onlyLog2=1,lumi=options.lumiInt,moreTextLatex=theoryText)
 
                 additionalText = additionalTextBackup

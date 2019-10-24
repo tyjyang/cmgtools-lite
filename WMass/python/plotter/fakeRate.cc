@@ -254,8 +254,11 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
     }    
     if (iFR == 7)     
       _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1_jetPt40.root",cmssw_base_path.c_str()),"read");
+    else if (iFR == 12)
+      _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_wpt_FRpol2.root",cmssw_base_path.c_str()),"read");
     else
       _file_EleFR_pt_eta_fitPol2 = new TFile(Form("%s/src/CMGTools/WMass/data/fakerate/frAndPrSmoothed_el_frPol2_prPol1.root",cmssw_base_path.c_str()),"read");
+
     _histo_EleFR_pt_eta_fitPol2_data_nomi = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data");  // histo with smoothed FR values and uncertainties (stat.only)
     _histo_EleFR_pt_eta_fitPol2_data_ewkUp = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledUpEWKMC"); // no uncertainty stored
     _histo_EleFR_pt_eta_fitPol2_data_ewkDn = (TH2D*) _file_EleFR_pt_eta_fitPol2->Get("fr_pt_eta_data_subScaledDownEWKMC"); // no uncertainty stored
@@ -347,7 +350,7 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   float fr = p0    + p1   *lpt + p2   *lpt*lpt; 
   float pr = p0_pr + p1_pr*lpt + p2_pr*lpt*lpt;
 
-  if (fid == 11 && lpt > 48) {
+  if (fid == 11 && lpt > 48 and (nFRfitParam <= 2)) {
     Int_t ptbin_tmp = std::max(1, std::min(_histo_EleFR_pt_eta_fitPol2_data_nomi->GetXaxis()->FindFixBin(lpt), _histo_EleFR_pt_eta_fitPol2_data_nomi->GetNbinsX()));
     Int_t etabin_tmp = std::max(1, std::min(_histo_EleFR_pt_eta_fitPol2_data_nomi->GetYaxis()->FindFixBin(leta), _histo_EleFR_pt_eta_fitPol2_data_nomi->GetNbinsY()));
     if (iFR==3 || iFR==10) {

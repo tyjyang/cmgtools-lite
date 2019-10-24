@@ -1,5 +1,5 @@
 import ROOT
-import os, sys
+import os, sys, re
 import subprocess as sp
 
 # usage: python skimFTrees.py BIGTREE_DIR FTREE_DIR outdir
@@ -30,6 +30,11 @@ def _runIt(args,options,excludeProcesses=[]):
 
     for dset in dsets:
         if options.component and dset!=options.component: continue
+        if options.matchComponent and re.match(options.matchComponent,dset):
+            print "Component {n} matched filter".format(n=dset)
+        else:
+            print "Skipping {n}: doesn't match filter".format(n=dset)
+            continue
         print "Skimming friend for component %s..." % dset
         skipMe = False
         for p in procsToExclude:
@@ -72,6 +77,7 @@ if __name__ == "__main__":
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
     parser.add_option("--pretend",     dest="pretend", default=False, action="store_true",  help="Pretend to skim, don't actually do it") 
     parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimFTrees", help="Name assigned to jobs");
+    parser.add_option("--match-component", dest="matchComponent",   type="string", default="", help="Pass regular expression to match component names (particularly useful for friends when running in local");
     (options, args) = parser.parse_args()
     if len(args)<3:
         print "Usage: program <BIGTREE_DIR> <FTREE_DIR> <outdir>"

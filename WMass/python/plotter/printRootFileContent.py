@@ -13,6 +13,7 @@ parser.add_option('-s', '--silent'  ,       dest='silent',         default=False
 parser.add_option('-i', '--inherith',       dest='inherit',        default='', type='string', help='Filter output based on whether the object class inheriths from this (e.g. -i TH1 will match all root histogram objects)')  
 parser.add_option('-r', '--regexp',         dest='regexp',         default='', type='string', help='Filter output passing a regular expression to be matched in the object name')
 parser.add_option(      '--print-min-negative', dest='printMinNegative', default=False, action='store_true', help='If true, print also minimum bin content when negative (only for histograms)')
+parser.add_option(      '--print-integral-cap-negative', dest='printIntegralCapNegative', default=False, action='store_true', help='If true, print integral when capping negative bin to 0 (print also ratio with actual integral')
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -27,7 +28,9 @@ nNegativeBin = 0
 if not options.silent:
     print "-"*50
     if options.output_format == "all":    
-        print "{: <10} {: <20}    {y} ".format("Class","name",y="integral(histogram only)")
+        print "{: <10} {: <20}    {y}    {txt} ".format("Class","name",
+                                                        y="integral(TH only)",
+                                                        txt="integral(nonNeg)/integral" if options.printIntegralCapNegative else "")
     elif options.output_format == "name":
         print "name"
     print "-"*50
@@ -40,16 +43,25 @@ for k in tf.GetListOfKeys() :
     if len(options.className) and obj.ClassName() != options.className: continue
     if len(options.inherit) and not obj.InheritsFrom(options.inherit): continue
     nRead += 1
-    integral = obj.Integral() if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")) else -1
+    integral = -1
+    integralOnlyNonNegativeBin = 0.0
+    minBinContent = 1
+    if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")):
+        integral = obj.Integral() 
+        minBinContent = obj.GetBinContent(obj.GetMinimumBin())
+        if options.printIntegralCapNegative:
+            for ibin in range(1,obj.GetNbinsX()+1):
+                integralOnlyNonNegativeBin += max(0.0,obj.GetBinContent(ibin))
+
     if integral == 0.0: nNullIntegral += 1
-    minBinContent = obj.GetBinContent(obj.GetMinimumBin()) if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")) else 1
     if minBinContent < 0: nNegativeBin += 1
     if not options.silent:
         if options.output_format == "all":
             #print "%s   %s   %s" % (obj.ClassName(), name, str(integral) if integral >= 0 else "")
-            print "{: <10} {: <20}    {y}    {m} ".format(obj.ClassName(), name, 
-                                                          y=str(integral) if integral >= 0 else "",
-                                                          m=str(minBinContent) if (options.printMinNegative and minBinContent < 0) else "")
+            print "{: <10} {: <20}    {y}    {r}    {m} ".format(obj.ClassName(), name, 
+                                                                 y=str(integral) if integral >= 0 else "",
+                                                                 r=str(integralOnlyNonNegativeBin/integral) if options.printIntegralCapNegative else "",
+                                                                 m=str(minBinContent) if (options.printMinNegative and minBinContent < 0) else "")
         elif options.output_format == "name":
             print "%s" % name
 

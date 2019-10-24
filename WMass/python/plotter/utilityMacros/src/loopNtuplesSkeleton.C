@@ -88,13 +88,18 @@ void fillHistograms(const string& treedir = "./",
   // 					    1.2,1.4,1.6,1.8,2.0, 2.2, 2.4};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56};
   //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46};
-  vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> ptBinEdgesTemplateMu = {25,26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
-  vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4}; // ,2.1,2.2,2.3,2.4};
+  //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4}; // ,2.1,2.2,2.3,2.4};
+  vector<Double_t> genEtaBinEdgesTemplateMu = {0.0,2.4}; // ,2.1,2.2,2.3,2.4};
+
   //vector<Double_t> genEtaBinEdgesTemplateMu = {0,0.2,0.4,0.6,0.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.4}; // ,2.1,2.2,2.3,2.4};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47.5,50,52.5,55};
-  vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,31.5,33,34.5,36,37.5,39.0,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genPtBinEdgesTemplateMu = {26,56};
+  vector<Double_t> genPtBinEdgesTemplateMu = {26,45};
   //vector<Double_t> genPtBinEdgesTemplateMu = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   
   // electron
@@ -120,13 +125,18 @@ void fillHistograms(const string& treedir = "./",
   vector<Double_t> etaBinEdgesTemplateEl = {-2.4,-2.1,-1.9,-1.7,-1.566,-1.5,-1.4442,-1.3,-1.2,-1.1,-1.0,-0.9,
   					    -0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,
   					    1.4442,1.5,1.566,1.7,1.9,2.1,2.4};
-  vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> ptBinEdgesTemplateEl = {29,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56,57};
+  vector<Double_t> ptBinEdgesTemplateEl = {29,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5};
+  //vector<Double_t> ptBinEdgesTemplateEl = {30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45};
   //vector<Double_t> ptBinEdgesTemplateEl = {30,33,36,39,42,45,48,51,54,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   //vector<Double_t> ptBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
   //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4};
-  vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
-  vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  //vector<Double_t> genEtaBinEdgesTemplateEl = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.7,1.9,2.1,2.4};
+  //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,31.5,33,34.5,36,37.5,39,40.5,42,43.5,45,46.5,48,50,52,54,56};
+  vector<Double_t> genEtaBinEdgesTemplateEl = {0.0,2.4};
+  //vector<Double_t> genPtBinEdgesTemplateEl = {26,56};
+  vector<Double_t> genPtBinEdgesTemplateEl = {26,45};
   //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,33,36,39,42,45,48,51,54,56};
   //vector<Double_t> genPtBinEdgesTemplateEl = {26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56};
   
@@ -664,7 +674,9 @@ void fillHistograms(const string& treedir = "./",
   
   Double_t intLumiPb = 1000.0 * intLumi;
   Double_t intLumiPbXsecZ = intLumiPb * 2008.4 * 3.; // for Z the xsec in the ntuples is no more valid, it changed
-  Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / sumWgt;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+  //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / sumWgt;  // WJetsToLNu_, just to speed up, for electrons and muons (same number)
+  // use native MC@NLO xsec, not fewz3.1
+  Double_t wjets_NLO_wgt_partial = intLumiPb * 60400.0 / sumWgt;  // WJetsToLNu_, just to speed up, for electro
 
   //Double_t wjets_NLO_wgt_partial = intLumiPb * (3. * 20508.9) / 7.97011396982e+11;  // test with WJetsToLNu_ext2v5_part1 in pccmsrm
   

@@ -142,15 +142,15 @@ def mirrorShape(nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAl
     return (alternate,mirror)
 
 def cropHighSysts(h_nom,h_syst,maxSyst=0.05):
-    for i in xrange(h_nom.GetNbinsX()):
-        nom  = h_nom.GetBinContent(i+1)
-        syst = h_syst.GetBinContent(i+1)
+    for i in xrange(1,1+h_nom.GetNbinsX()):
+        nom  = h_nom.GetBinContent(i)
+        syst = h_syst.GetBinContent(i)
         if nom==0: 
-            h_syst.SetBinContent(i+1, 0)
-        elif syst/nom > 1 + maxSyst: 
-            h_syst.SetBinContent(i+1, nom*(1+maxSyst))
-        elif syst/nom < 1 - maxSyst:
-            h_syst.SetBinContent(i+1, nom*(1-maxSyst))
+            h_syst.SetBinContent(i, 0)
+        elif syst/nom > (1 + maxSyst): 
+            h_syst.SetBinContent(i, nom*(1+maxSyst))
+        elif syst/nom < (1 - maxSyst):
+            h_syst.SetBinContent(i, nom*(1-maxSyst))
 
 def combCharges(options):
     suffix = 'card' if options.freezePOIs else 'card_withXsecMask'
@@ -220,8 +220,8 @@ def putUncorrelatedFakes(infile,regexp,charge, outdir=None, isMu=True, etaBorder
     doEta    = doType == 'eta'
     doPtNorm = doType == 'ptnorm'
     doUncorrChargeEta = doType == 'etacharge'
-    if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
     if flav=='el' and isHelicity: doUncorrChargeEta = False # overwrite everything for ele
+    if doUncorrChargeEta: uncorrelateCharges = True  # just in case one forgets
 
     typeName = 'PtSlope' if doPt else 'Eta' if doEta else 'PtNorm' if doPtNorm else 'EtaCharge' if doUncorrChargeEta else ''
     if not typeName:
@@ -495,7 +495,7 @@ def putEffStatHistos(infile,regexp,charge, outdir=None, isMu=True):
     outfile.Close()
     print 'done with the many reweightings for the erfpar effstat'
 
-def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True):
+def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHelicity=True, silentCrop=False):
 
     # for differential cross section I don't use the same option for inputs, so I pass it from outside
     indir = outdir if outdir != None else options.inputdir
@@ -577,7 +577,17 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHeli
                     ybincenter = tmp_scaledHisto_up.GetYaxis().GetBinCenter(ipt)
                     if doType=='L1PrefireEle' and etasyst_loweredge<=eta<etasyst_upperedge:
                         ## now get the content of the variation histogram!
-                        sf,scaling = utilities.getL1SF(ybincenter,eta,l1hist)
+                        # be conservative, use eta with larger absvalue inside bin
+                        # for 2D xsec last bin goes from 2.1 to 2.4, but prefire at eta=2.25 << prefire at eta=2.3999!
+                        etapass = eta
+                        if not isHelicity:
+                            if etapass < 0: 
+                                # add epsilon to stay inside bin (just in case)
+                                etapass = etasyst_loweredge + 0.0001 
+                            else: 
+                                # subtract epsilon to stay inside bin (just in case)
+                                etapass = etasyst_upperedge - 0.0001
+                        sf,scaling = utilities.getL1SF(ybincenter,etapass,l1hist)
                         ## scale Z->electrons by sqrt(2) due to the second electron (assumes 100% correlation in eta, which is not fully true, attempt before reweighting by gen eta)
                         if process=='Z':
                             scaling *= math.sqrt(2)
@@ -592,8 +602,8 @@ def putEffSystHistos(infile,regexp, doType='TnP', outdir=None, isMu=True, isHeli
                     tmp_scaledHisto_dn.SetBinContent(ieta, ipt, tmp_bincontent_dn)
      
             ## re-roll the 2D to a 1D histo
-            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''))
-            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''))
+            tmp_scaledHisto_up_1d = unroll2Dto1D(tmp_scaledHisto_up, newname=tmp_scaledHisto_up.GetName().replace('2DROLLED',''), silent=silentCrop)
+            tmp_scaledHisto_dn_1d = unroll2Dto1D(tmp_scaledHisto_dn, newname=tmp_scaledHisto_dn.GetName().replace('2DROLLED',''), silent=silentCrop)
 
             outfile.cd()
             tmp_scaledHisto_up_1d.Write()

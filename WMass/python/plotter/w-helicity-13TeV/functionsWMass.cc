@@ -250,6 +250,7 @@ float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false
   float scaleW = scaleNormWToGenXsecBeforeCuts ? 0.9714120 : 0.958;  //1.014 * 0.958 
   float scaleToMCaNLO = isZ ? 1. : scaleW;
   // plots are MC/data
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
 
@@ -512,6 +513,7 @@ float eleSF_Clustering(float pt, float eta) {
 float eleSF_L1Eff(float pt, float eta, bool geterr=false) {
   float sf;
   if (fabs(eta)<1.479 || pt<35) {
+    //if (fabs(eta)<1.479) {
     sf = geterr ? 0.0 : 1.0;
   }
   else sf = _get_electronSF_anyStep(pt,eta,4,geterr);

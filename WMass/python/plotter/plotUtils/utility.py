@@ -2313,6 +2313,19 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     #    # case in which rebinFactorX is a list of bin edges
     #    else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
 
+    # colorBandpart = {"line" : ROOT.kRed,
+    #                  "fill" : ROOT.kRed-9}
+    # colorBandTot = {"line" : ROOT.kGreen,
+    #                 "fill" : ROOT.kGreen-9}
+    # colorBandPart = {"line" : ROOT.kCyan+2,
+    #                  "fill" : ROOT.kCyan}
+    # colorBandTot = {"line" : ROOT.kOrange+2,
+    #                 "fill" : ROOT.kOrange}
+    colorBandPart = {"line" : ROOT.kCyan+2,
+                     "fill" : ROOT.kCyan-7}
+    colorBandTot = {"line" : ROOT.kOrange+7,
+                    "fill" : ROOT.kOrange-3}
+
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
@@ -2386,16 +2399,16 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     #h1err = h1.Clone("h1err")
     #h1err.SetFillColor(ROOT.kRed+2)
     h2.SetFillStyle(1001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
-    h2.SetLineColor(ROOT.kRed)  # kGreen+2
-    h2.SetFillColor(ROOT.kRed-9)    # kGreen
+    h2.SetLineColor(colorBandTot["line"])  # kGreen+2
+    h2.SetFillColor(colorBandTot["fill"])    # kGreen
     h2.SetLineWidth(1)
     h2.Draw("2 SAME")
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
-        h3.SetFillColor(ROOT.kGreen-9)
-        h3.SetLineColor(ROOT.kGreen)
-        h3.SetFillStyle(1001)  # 3001, 3144 , 3244, 3003
+        h3.SetFillColor(colorBandPart["fill"])
+        h3.SetLineColor(colorBandPart["line"])
+        h3.SetFillStyle(1001)  # 1001, 3001, 3144 , 3244, 3003
         #h3.SetFillStyle(3244)  # 3144 , 3244, 3003
         h3.Draw("2 SAME")
         #for i in range(1,1+h3.GetNbinsX()):
@@ -2595,8 +2608,9 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                 ratio.SetFillStyle(1001)  # make it solid again
                 ratio.SetLineColor(ROOT.kGray+3)
             else:
-                ratio.SetFillColor(ROOT.kRed-9) # kGreen+1
+                ratio.SetFillColor(colorBandPart["fill"]) # kGreen+1
                 ratio.SetFillStyle(1001)  # 1001 to make it solid again
+                #ratio.SetLineColor(colorBandTot["line"]) # kGreen+2                       
                 ratio.SetLineColor(ROOT.kRed) # kGreen+2                       
                 ratio.SetLineWidth(1) # make it smaller when it is drawn on top of something
         else:
@@ -2608,8 +2622,8 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         if histMCpartialUnc != None:
             h3ratio = h3.Clone("h3ratio")
             h3ratio.SetFillStyle(1001) # 
-            h3ratio.SetFillColor(ROOT.kGreen-9)  # kRed-4
-            h3ratio.SetLineColor(ROOT.kGreen)  # kRed-4
+            h3ratio.SetFillColor(colorBandPart["fill"])  # kRed-4
+            h3ratio.SetLineColor(colorBandPart["line"])  # kRed-4
             if h3ratio.InheritsFrom("TH1"):
                 if useDifferenceInLowerPanel:
                     h3ratio.Add(den_noerr,-1.0)

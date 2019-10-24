@@ -75,7 +75,7 @@ def get_ieta_ipt_from_process_name(name):
         quit()
     tokens = name.split('_')
     for i,tkn in enumerate(tokens):
-        #print "%d %s" % (i, tkn)                                                                                                                        
+        #print "%d %s" % (i, tkn)                                                             
         if tkn == "ieta": ieta = int(tokens[i + 1])
         if tkn == "ipt":  ipt  = int(tokens[i + 1])
     return ieta,ipt
@@ -151,6 +151,34 @@ def getDiffXsecBinning(inputBins, whichBins="reco"):
     binning = [etabinning, ptbinning] 
     #print binning
     return binning
+
+def etaIsOutsideFilledRangeDiffXsec(procname, etareco, NetaNeighbours=1, genEtaBins=[]):
+    # NetaNeighbours will make match not just the central eta bins, but also NetaNeighbours bins around it
+    if re.match(".*W.*_ieta_.*",procname) and len(genEtaBins) > 0 :
+        genetabin = get_ieta_from_process_name(procname)
+        # check range including first neighbours as well                          
+        # careful: genetabin goes from 0 to N(genBins)-1                          
+        if abs(etareco) < genEtaBins[max(0,genetabin-NetaNeighbours)] or abs(etareco) >= genEtaBins[min(len(genEtaBins)-1,genetabin+1+NetaNeighbours)]:
+            return 1
+        else:
+            return 0
+    else:
+        # if not a signal bin, return 0 (any bin is ok)
+        return 0
+
+def ptIsOutsideFilledRangeDiffXsec(procname, ptreco, NptNeighbours=2, genPtBins=[]):
+    # NetaNeighbours will make match not just the central eta bins, but also NetaNeighbours bins around it
+    if re.match(".*W.*_ipt_.*",procname) and len(genPtBins) > 0 :
+        genptbin = get_ipt_from_process_name(procname)
+        # check range including first neighbours as well                          
+        # careful: genetabin goes from 0 to N(genBins)-1                          
+        if abs(ptreco) < genPtBins[max(0,genptbin-NptNeighbours)] or abs(ptreco) >= genPtBins[min(len(genPtBins)-1,genptbin+1+NptNeighbours)]:
+            return 1
+        else:
+            return 0
+    else:
+        # if not a signal bin, return 0 (any bin is ok)
+        return 0
 
 
 def wptBinsScales(i):
@@ -961,7 +989,7 @@ getenv      = True
 environment = "LS_SUBCWD={here}"
 next_job_start_delay = 1
 request_memory = 4000
-requirements = (OpSysAndVer =?= "SLCern6")
+#requirements = (OpSysAndVer =?= "SLCern6")
 +MaxRuntime = {rt}\n
 '''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir),
            rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )

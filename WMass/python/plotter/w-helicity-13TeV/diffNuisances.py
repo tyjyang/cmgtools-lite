@@ -42,15 +42,20 @@ if __name__ == "__main__":
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
+    parser.add_option(      '--expected-infile'        , dest='expInfile'     , default=''        , type='string', help='file with the fitresult for expected, to plot together with observed')
     parser.add_option('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type='float', help='Bottom margin for the canvas')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
     parser.add_option(      "--y-title",      dest="ytitle",  default="S+B fit #theta",   type="string",  help="Title for Y axis")
     parser.add_option('-R', "--rank-nuisances-by", dest="rankNuisancesBy",  default="",   type="string",  help="Accept pull|sigma: will rank nuisances based on either sigma or absolute value of pull. It is devised to work with --pois '.*', but of course you can further filter nuisances and/or pois")
     parser.add_option('-N','--show-N' , dest='showN',    default=0, type=int, help='To be used with -R: it shows only the N nuisances ranked. If not positive, no limit is used')    
     parser.add_option(     '--lower-limit-pull' , dest='lowerLimitPull', default=-1.0, type='float', help='To be used with -R. Take only nuisances with pull above this value (in absolute value). If negative, use no limit')    
-    parser.add_option(     '--upper-limit-sigma' , dest='upperLimitSigma', default=-1.0, type='float', help='To be used with -R. Take only nuisances with postfit sigma above below this value . If negative, use no limit')    
+    parser.add_option(     '--upper-limit-sigma' , dest='upperLimitSigma', default=-1.0, type='float', help='To be used with -R. Take only nuisances with postfit sigma below this value . If negative, use no limit')    
     (options, args) = parser.parse_args()
     infile = options.infile
+    infile_exp = options.expInfile
+    plotObsWithExp = False
+    if len(infile_exp):
+        plotObsWithExp = True
 
     os.system('mkdir -p {od}'.format(od=options.outdir))
     os.system('cp ~emanuele/public/index.php {od}'.format(od=options.outdir))
@@ -65,11 +70,17 @@ if __name__ == "__main__":
 
     if   options.type == 'toys':
         valuesAndErrorsAll = utilities.getFromToys(infile,keepGen=True,params=pois_regexps)
+        if plotObsWithExp:
+            valuesAndErrorsAll_exp = utilities.getFromHessian(infile_exp,keepGen=True, params=pois_regexps)
     elif options.type == 'hessian':
         valuesAndErrorsAll = utilities.getFromHessian(infile,keepGen=True, params=pois_regexps)
+        if plotObsWithExp:
+            valuesAndErrorsAll_exp = utilities.getFromHessian(infile_exp,keepGen=True, params=pois_regexps)
     else:
         print 'ERROR: none of your types is supported. specify either "toys", "scans", or "hessian"'
         sys.exit()
+
+
 
     print 'looking for regexp match', pois_regexps    
     valuesAndErrors = {}
