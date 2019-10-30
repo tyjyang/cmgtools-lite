@@ -6,12 +6,12 @@ import ROOT, os, sys, re, array
 
 doMuElComb = 0
 combineElePt01asBkg = 0
-dryrun = 1
+dryrun = 0
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
-skipTemplate = 0
+skipPlot = 0
+skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
@@ -20,7 +20,7 @@ skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 1
+allPtBinsSignal = 0
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -47,9 +47,9 @@ seed = 123456789
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
-folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
-#folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 #folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 
 flavour = "el" if "_el_" in folder else "mu"
