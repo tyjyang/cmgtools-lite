@@ -1,2 +1,0 @@
-alwaystrue : 1
-wel        : abs(genw_decayId) == 12

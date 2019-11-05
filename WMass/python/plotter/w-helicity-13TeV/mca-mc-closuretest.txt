@@ -1,1 +1,0 @@
-W   : WJets :  37509.0 : LepGood1_mcMatchId==0; FillColor=ROOT.kRed+2, Label="W"
