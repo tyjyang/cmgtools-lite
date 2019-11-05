@@ -217,8 +217,10 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf,alphaS', 'mW,smoothfsr,CMS_lumi_13TeV', 'ErfPar']
+                nuisancesAndPOIs = []
+                nuisancesAndPOIs += ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf,alphaS', 'mW,smoothfsr,CMS_lumi_13TeV', 'ErfPar']
                 nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
+                nuisancesAndPOIs += ['norm_W']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
@@ -229,5 +231,5 @@ if __name__ == '__main__':
         for pol in ['left','right']:
             os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(pol=pol,od=tmp_outdir))
         ## these are to check the compatibility of common uncertainties between the channels
-        for group in ['mWsmoothfsrCMSlumi13TeV','pdfalphaS','mWsmoothfsrCMSlumi13TeV'] + ['{pol}mu'.format(pol=pol) for pol in 'left','right','long']:
+        for group in ['normW','mWsmoothfsrCMSlumi13TeV','pdfalphaS','mWsmoothfsrCMSlumi13TeV'] + ['{pol}mu'.format(pol=pol) for pol in 'left','right','long']:
             os.system('python w-helicity-13TeV/compareNuisancesComb.py --el {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_el.latex --mu {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_mu.latex --lep {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(gr=group,od=tmp_outdir))
