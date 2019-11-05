@@ -229,5 +229,5 @@ if __name__ == '__main__':
         for pol in ['left','right']:
             os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(pol=pol,od=tmp_outdir))
         ## these are to check the compatibility of common uncertainties between the channels
-        for group in ['mWsmoothfsrCMSlumi13TeV']: # ['pdfalphaS','mWsmoothfsrCMSlumi13TeV'] + ['{pol}mu'.format(pol=pol) for pol in 'left','right','long']:
+        for group in ['mWsmoothfsrCMSlumi13TeV','pdfalphaS','mWsmoothfsrCMSlumi13TeV'] + ['{pol}mu'.format(pol=pol) for pol in 'left','right','long']:
             os.system('python w-helicity-13TeV/compareNuisancesComb.py --el {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_el.latex --mu {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_mu.latex --lep {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(gr=group,od=tmp_outdir))
