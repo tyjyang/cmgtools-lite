@@ -48,7 +48,7 @@ float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {
 
   if (!helicityFractionsSimple_0 || !helicityFractionsSimple_L || !helicityFractionsSimple_R) {
-    _file_helicityFractionsSimple = new TFile("w-helicity-13TeV/fractionReweighting/fractions.root","read");
+    _file_helicityFractionsSimple = new TFile("w-mass-13TeV/fractionReweighting/fractions.root","read");
     helicityFractionsSimple_0 = (TH2F*)(_file_helicityFractionsSimple->Get("fraction0_plus_sym"));
     helicityFractionsSimple_L = (TH2F*)(_file_helicityFractionsSimple->Get("fractionL_plus_sym"));
     helicityFractionsSimple_R = (TH2F*)(_file_helicityFractionsSimple->Get("fractionR_plus_sym"));
@@ -132,7 +132,7 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   if (abs(pdgId)==11) {
 
     if (!ratio_FSRoverNoFSR_etaPt_el) {
-      _file_ratio_FSRoverNoFSR_etaPt_el = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_electron_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      _file_ratio_FSRoverNoFSR_etaPt_el = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/FSR_atGenLevel_electron_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
       ratio_FSRoverNoFSR_etaPt_el = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_el->Get("ratio__Wzpt_el__Wfsr_el");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_el;
@@ -141,7 +141,7 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   } else if (abs(pdgId)==13) {
 
      if (!ratio_FSRoverNoFSR_etaPt_mu) {
-      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
       ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_mu;
@@ -177,7 +177,7 @@ float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToS
   }
   
   if (!fsrWeights_el || !fsrWeights_mu) {
-    _file_fsrWeights_simple = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/photos_rwgt_integrated.root",_cmssw_base_.c_str()),"read");
+    _file_fsrWeights_simple = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/photos_rwgt_integrated.root",_cmssw_base_.c_str()),"read");
     fsrWeights_el  = (TH1F*)(_file_fsrWeights_simple->Get("w_e_h_lptBareOverDressed_ratio"));
     fsrWeights_mu  = (TH1F*)(_file_fsrWeights_simple->Get("w_mu_h_lptBareOverDressed_ratio"));
   }
@@ -209,7 +209,7 @@ float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   if (!fsrWeights_elplus || !fsrWeights_elminus || !fsrWeights_muplus || !fsrWeights_muminus) {
-    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
+    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
     fsrWeights_elplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_e"));
     fsrWeights_elminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_e"));
     fsrWeights_muplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
@@ -236,7 +236,7 @@ float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   if (!amcnlody) {
-    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
+    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
@@ -269,7 +269,7 @@ float postfitQCDWeight(float pt2l, int pol, int charge) {
   }
   TH1F* hist_scales = NULL;
   if (!_file_postfitWeights) {
-    _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts.root",_cmssw_base_.c_str()));
+    _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/postfit_wgts.root",_cmssw_base_.c_str()));
     hist_scales_0plus  = (TH1F*)(_file_postfitWeights->Get("weights_longplus"));
     hist_scales_Lplus  = (TH1F*)(_file_postfitWeights->Get("weights_leftplus"));
     hist_scales_Rplus  = (TH1F*)(_file_postfitWeights->Get("weights_rightplus"));
