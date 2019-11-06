@@ -15,9 +15,9 @@ def doLegend(histos,labels,styles,corner="TR",textSize=0.035,legWidth=0.18,legBo
     elif corner == "BR":
         (x1,y1,x2,y2) = (.85-legWidth, .33 + textSize*max(nentries-3,0), .90, .15)
     elif corner == "BC":
-        (x1,y1,x2,y2) = (.5, .2 + textSize*max(nentries-3,0), .5+legWidth, .35)
+        (x1,y1,x2,y2) = (.5, .33 + textSize*max(nentries-3,0), .5+legWidth, .35)
     elif corner == "BL":
-        (x1,y1,x2,y2) = (.2, .2 + textSize*max(nentries-3,0), .2+legWidth, .35)
+        (x1,y1,x2,y2) = (.2, .33 + textSize*max(nentries-3,0), .33+legWidth, .35)
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(nColumns)
     leg.SetFillColor(0)
@@ -37,13 +37,17 @@ def doLegend(histos,labels,styles,corner="TR",textSize=0.035,legWidth=0.18,legBo
     return leg
 
 def setRootStyle(th2=False):
-    ROOT.gStyle.SetPadTopMargin(0.10)
-    ROOT.gStyle.SetPadBottomMargin(0.18)
+    ROOT.gStyle.SetPadTopMargin(0.0)
+    ROOT.gStyle.SetPadBottomMargin(0.0)
     ROOT.gStyle.SetPadLeftMargin(0.18)
     if th2:
         ROOT.gStyle.SetPadLeftMargin(0.16)                        
     ROOT.gStyle.SetTitleXOffset(1.5)
     ROOT.gStyle.SetTitleYOffset(1.1)
+
+def kappaPtW(pt):
+    offset = 0.044; slope = 0.005
+    return offset + slope*math.sqrt(pt)
 
 def wptPostFitRatios(options):
     maindir = '/eos/home-e/emanuele/www/Analysis/WMass/13TeV/plots/gen/wpt/'
@@ -53,15 +57,16 @@ def wptPostFitRatios(options):
     
     setRootStyle()
     ROOT.gStyle.SetOptStat(0)
-    ROOT.gStyle.SetHatchesLineWidth(2) 
-    ## should propagate better the error instead of taking a flat envelope
-    kappa = 0.015
+    ROOT.gStyle.SetHatchesLineWidth(1) 
+    ROOT.gStyle.SetHatchesSpacing(0.5)
 
     def makeRatio(hprefit,hpostfit,color):
         hpostfit.Scale(hprefit.Integral()/hpostfit.Integral())
         ratio = copy.deepcopy(hpostfit.Clone(hpostfit.GetName()+'_ratio'))
         ratio.Divide(hprefit)
         for b in xrange(ratio.GetNbinsX()):
+            pt = ratio.GetXaxis().GetBinCenter(b+1)
+            kappa = kappaPtW(pt)
             err_ratio = math.hypot(kappa,ratio.GetBinError(b+1))
             ratio.SetBinError(b+1,err_ratio)
             if ratio.GetBinContent(b+1)!=0:
@@ -77,10 +82,9 @@ def wptPostFitRatios(options):
         ratio.GetYaxis().SetTitle('postfit / prefit')
         ratio.GetXaxis().SetTitleOffset(1.5)
         ratio.SetTitle('')
-        ratio.GetYaxis().SetRangeUser(0.9,1.1)
+        ratio.GetYaxis().SetRangeUser(0.8,1.2)
         
         for h in [hpostfit,hprefit]:
-            h.GetYaxis().SetTitle('Normalized events (a.u.)')
             h.SetTitle('')
             h.SetMarkerSize(0)
             h.SetLineWidth(2)
@@ -95,7 +99,7 @@ def wptPostFitRatios(options):
             ratio.GetXaxis().SetTitle('Y_{W}')
         return ratio
 
-    for var in ['wpt','wy']:
+    for var in ['wpt']: #['wpt','wy']:
         plots_unpol = {}
         c = ROOT.TCanvas('c','',1200,1200)
         charges = ['plus','minus']
@@ -105,7 +109,7 @@ def wptPostFitRatios(options):
             else: c.SetLogx(0)
             rfiles = {}
             rfiles['prefit']  = ROOT.TFile.Open('{d}/wgen_nosel/w{charge}_{var}.root'.format(d=maindir,charge=charge,var=var))
-            rfiles['postfit'] = ROOT.TFile.Open('{d}/wgen_nosel_qcdpostfit_langavulin/w{charge}_{var}.root'.format(d=maindir,charge=charge,var=var))
+            rfiles['postfit'] = ROOT.TFile.Open('{d}/wgen_nosel_qcdpostfit_barolo_fitel/w{charge}_{var}.root'.format(d=maindir,charge=charge,var=var))
             histos = []; labels = []; styles = []
             for i,pol in enumerate(POLARIZATIONS):
                 prefit  = rfiles['prefit'] .Get('w{charge}_{var}_W{charge}_{pol}'.format(charge=charge,var=var,pol=pol))
@@ -142,9 +146,9 @@ def wptPostFitRatios(options):
         ## now plot the unpolarized W PT/Y on top and ratio in the bottom pad
         lMargin = 0.12
         rMargin = 0.05
-        bMargin = 0.15
-        tMargin = 0.05
-        padTop = ROOT.TPad('padTop','',0.,0.3,1,0.95)
+        bMargin = 0.30
+        tMargin = 0.07
+        padTop = ROOT.TPad('padTop','',0.,0.4,1,0.98)
         padTop.SetLeftMargin(lMargin)
         padTop.SetRightMargin(rMargin)
         padTop.SetTopMargin(tMargin)
@@ -154,7 +158,7 @@ def wptPostFitRatios(options):
         padTop.SetBorderSize(0);
         padTop.Draw()
 
-        padBottom = ROOT.TPad('padBottom','',0.,0.05,1,0.3)
+        padBottom = ROOT.TPad('padBottom','',0.,0.02,1,0.4)
         padBottom.SetLeftMargin(lMargin)
         padBottom.SetRightMargin(rMargin)
         padBottom.SetTopMargin(0)
@@ -171,48 +175,66 @@ def wptPostFitRatios(options):
             minus = plots_unpol['{var}_wminus_{stage}'.format(var=var,stage=stage)]
             chratio = minus.Integral()/plus.Integral()
             plus.Scale(1./(1+chratio)/plus.Integral()) ; minus.Scale(chratio/(1+chratio)/minus.Integral())
-        prefit2 = {}
+        graphs = {}
+        ratios = []
         for i,charge in enumerate(charges):
             padTop.cd()
             prefit  = plots_unpol['{var}_w{charge}_prefit' .format(var=var,charge=charge)]
             postfit = plots_unpol['{var}_w{charge}_postfit'.format(var=var,charge=charge)]
             ratio   = plots_unpol['{var}_w{charge}_ratio'.format(var=var,charge=charge)]
             
-            postfit.GetYaxis().SetLabelFont(42)
-            postfit.GetYaxis().SetLabelSize(0.05)
-            postfit.GetYaxis().SetLabelOffset(0.01)
-            postfit.GetYaxis().SetTitleSize(0.05)
-            postfit.GetYaxis().SetTitleOffset(1.2)
-            postfit.GetYaxis().SetNdivisions(505)
+            ## need a graph to make the legend filled with the band color. Crazy?
+            prefit_gr  = ROOT.TGraphErrors(prefit.GetNbinsX()-1)
+            postfit_gr = ROOT.TGraphErrors(postfit.GetNbinsX()-1)
+            prefit_gr.SetName(prefit.GetName()+'_gr')
+            postfit_gr.SetName(postfit.GetName()+'_gr')
+            for b in range(prefit.GetNbinsX()-1): # exclude the last point with all overflows
+                prefit_gr.SetPoint(b,prefit.GetBinCenter(b+1),prefit.GetBinContent(b+1))
+                prefit_gr.SetPointError(b,prefit.GetBinCenter(b+1),prefit.GetBinError(b+1))
+                postfit_gr.SetPoint(b,postfit.GetBinCenter(b+1),postfit.GetBinContent(b+1))
+                postfit_gr.SetPointError(b,postfit.GetBinCenter(b+1),postfit.GetBinError(b+1))
+
+            prefit_gr.GetYaxis().SetLabelFont(42)
+            prefit_gr.GetYaxis().SetLabelSize(0.05)
+            prefit_gr.GetYaxis().SetLabelOffset(0.01)
+            prefit_gr.GetYaxis().SetTitleSize(0.05)
+            prefit_gr.GetYaxis().SetTitleOffset(1.2)
+            prefit_gr.GetYaxis().SetNdivisions(505)
 
             ratio.GetYaxis().SetLabelFont(42)
-            ratio.GetYaxis().SetLabelSize(0.05*0.65/0.25)
+            ratio.GetYaxis().SetLabelSize(0.05*0.55/0.4)
             ratio.GetYaxis().SetLabelOffset(0.01)
-            ratio.GetYaxis().SetTitleSize(0.05*0.65/0.25)
+            ratio.GetYaxis().SetTitleSize(0.05*0.55/0.4)
             ratio.GetYaxis().SetTitleOffset(0.5)
             ratio.GetYaxis().SetNdivisions(505)
 
             ratio.GetXaxis().SetLabelFont(42)
-            ratio.GetXaxis().SetLabelSize(0.08*1./0.65)
-            ratio.GetXaxis().SetTitleSize(0.08*1./0.65)
+            ratio.GetXaxis().SetLabelSize(0.05*1./0.55)
+            ratio.GetXaxis().SetTitleSize(0.05*1./0.55)
             ratio.GetXaxis().SetTitleOffset(1)
 
-            prefit.SetLineColor(chargecol[charge])
-            prefit.SetFillColor(0)
-            postfit.SetLineColor(chargecol[charge]+2)
-            postfit.SetFillColor(chargecol[charge]+2)
-            postfit.Draw('E3' if i==0 else 'E3 same')
-            prefit.Draw('hist same')
-            prefit2[charge] = copy.deepcopy(prefit)
-            prefit2[charge].SetLineWidth(2)
-            prefit2[charge].SetFillColor(chargecol[charge])
-            prefit2[charge].SetFillStyle(3001)
-            prefit2[charge].Draw('E3 same')
+            prefit_gr.GetYaxis().SetTitle('Normalized events (a.u.)')
+            if 'wpt' in var: prefit_gr.GetXaxis().SetRangeUser(0,99)
+            prefit_gr.SetLineColor(chargecol[charge])
+            prefit_gr.SetFillColorAlpha(chargecol[charge],0.8)
+            prefit_gr.SetFillStyle(3335)
+            prefit_gr.SetFillColor(ROOT.kBlack)
+            postfit_gr.SetLineColor(chargecol[charge]+2)
+            postfit_gr.SetFillColorAlpha(chargecol[charge]+2,0.8)
+
+            graphs['{var}_w{charge}_postfit'.format(var=var,charge=charge)] = copy.deepcopy(postfit_gr)
+            graphs['{var}_w{charge}_prefit'.format(var=var,charge=charge)] = copy.deepcopy(prefit_gr)
+            graphs['{var}_w{charge}_postfit'.format(var=var,charge=charge)].SetTitle('')
+            graphs['{var}_w{charge}_prefit'.format(var=var,charge=charge)].SetTitle('')
+
+            graphs['{var}_w{charge}_prefit'.format(var=var,charge=charge)].Draw('A E3' if i==0 else 'E3') ##
+            graphs['{var}_w{charge}_postfit'.format(var=var,charge=charge)].Draw('E3') ##
 
             padBottom.cd()
             ratio.SetMarkerColor(chargecol[charge])
             ratio.SetFillColorAlpha(chargecol[charge],0.20) 
             ratio.Draw('E3' if i==0 else 'E3 same')
+            ratios.append(ratio)
 
         padBottom.cd()
         line = ROOT.TLine()
@@ -220,16 +242,22 @@ def wptPostFitRatios(options):
         line.SetLineStyle(3)
         line.SetLineColor(ROOT.kBlack)
 
-        #one = ROOT.TH1F('one','',1,ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-        #one.SetBinContent(1,1);  one.SetBinError(1,kappa)
-        #one.SetFillStyle(3005)
-        #one.SetFillColor(ROOT.kBlack)
-        #one.Draw('pe same')
+        one = copy.deepcopy(ratio.Clone('one'))
+        for b in range(one.GetNbinsX()):
+            one.SetBinContent(b+1,1)
+        #one.SetFillColorAlpha(ROOT.kGray+2,0.2)
+        one.SetFillColor(ROOT.kBlack)
+        one.SetFillStyle(3335)
+        one.SetMarkerSize(0)
+        one.SetMarkerColor(0)
+        one.Draw('E3 same')
+        legendRatio = doLegend(ratios+[one],['W^{{{sign}}}'.format(sign=signs[ch]) for ch in charges]+['prefit'],['f' for i in range(3)],corner='BL',legWidth=0.70,textSize=0.070,nColumns=3)
+        legendRatio.Draw()
 
         padTop.cd()
-        legendPrePost = doLegend([plots_unpol['{var}_w{charge}_{prepost}'.format(var=var,charge=ch,prepost=step)] for ch in charges for step in ['prefit','postfit']],
+        legendPrePost = doLegend([graphs['{var}_w{charge}_{prepost}'.format(var=var,charge=ch,prepost=step)] for ch in charges for step in ['prefit','postfit']],
                                  ['W^{{{sign}}}_{{{prepost}}}'.format(sign=signs[ch],prepost=step) for ch in charges for step in ['prefit','postfit']], 
-                                 ['l' if i%2 else 'fl' for i in range(4)],corner='TR',nColumns=2)
+                                 ['f' for i in range(4)],corner='TR',legWidth=0.30,nColumns=2)
         legendPrePost.Draw()
 
         lat = ROOT.TLatex(); lat.SetNDC()
@@ -239,7 +267,7 @@ def wptPostFitRatios(options):
         lat.DrawLatex(0.72,    1-tMargin+0.02, '35.9 fb^{-1} (13 TeV)')
 
 
-        for ext in ['pdf','png']:
+        for ext in ['pdf','png','C']:
             c.Print('{pdir}/{var}_postOverPrefit_unpol.{ext}'.format(pdir=options.printDir,var=var,pol=pol,ext=ext))
         c.Close()
 
