@@ -114,7 +114,7 @@ if __name__ == '__main__':
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
+                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf}  --longBkg --nolong '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
                     if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
                         cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
                     for norm in normstr:
@@ -123,7 +123,7 @@ if __name__ == '__main__':
                 # do the single plots for both the single channels and the combined (w/o the el-mu comparison)
                 cmd  = 'python w-helicity-13TeV/plotYW.py '
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg --nolong '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                 if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
                     cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
                 for norm in normstr:
