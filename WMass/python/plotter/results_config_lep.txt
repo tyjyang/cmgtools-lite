@@ -1,7 +1,7 @@
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep'
-fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/langavulin/'
-fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/langavulin/fitsout_2019-10-01/'
-fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/langavulin/fitsout_2019-10-01/'
+fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/barolo-decfsr/fitsout_2019-11-08/'
+fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/barolo-decfsr/fitsout_2019-11-08/'
+fitsdir_mu = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/barolo-decfsr/fitsout_2019-11-08/'
 
 ### FLOATING POIS ###
 both_floatingPOIs_hessian_bbb1_syst1_asimov     = fitsdir+   '/fitresults_123456789_poim1_exp1_bbb1.root'
