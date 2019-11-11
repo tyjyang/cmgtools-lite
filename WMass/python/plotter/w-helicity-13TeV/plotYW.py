@@ -155,7 +155,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         c2.GetPad(0).SetTicky(1)
 
         skipLong = False
-        if options.nolong or options.longBkg: skipLong = True
+        if options.nolong: skipLong = True
         doAltExp = (len(values['left'].altval)>0)
 
         ch = '#plus' if charge == 'plus' else '#minus'
@@ -275,7 +275,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
-        for ext in ['png', 'pdf']:
+        for ext in ['png', 'pdf', 'root']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
 
@@ -392,7 +392,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
             line.Draw("Lsame");
 
-        for ext in ['png', 'pdf']:
+        for ext in ['png', 'pdf', 'root']:
             c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
 
@@ -462,8 +462,6 @@ if __name__ == "__main__":
     bkgYBins = []
     if options.ybinsBkg:
         bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
-    if options.longBkg:
-        options.nolong = True
 
     outAccYBins = []
     if options.ybinsOutAcc:
@@ -621,16 +619,20 @@ if __name__ == "__main__":
                 parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
 
                 scale = 1.
+                if options.longBkg:
+                    suffix = 'pmaskedexp' if pol!='long' else 'sumxsec'
+                else: 
+                    suffix = 'pmaskedexp'
                 if options.normxsec:
                     if   options.type == 'toys': 
                         xsec_fit = utilities.getNormalizedXsecFromToys(ybins,charge,pol,channel,iy,options.infile,MAXYFORNORM)
                     elif options.type == 'hessian':
-                        xsec_fit = [x for x in valuesAndErrors[parname+'_pmaskedexpnorm']]
+                        xsec_fit = [x for x in valuesAndErrors['{par}_{sfx}norm'.format(par=parname,sfx=suffix)]]
                     else:
                         print "--normxsec not implemented yet for scans."
                         sys.exit()
                 else:
-                    xsec_fit = [x/float(nChan) for x in valuesAndErrors[parname+'_pmaskedexp']]
+                    xsec_fit = [x/float(nChan) for x in valuesAndErrors['{par}_{sfx}'.format(par=parname,sfx=suffix)]]
                     scale = LUMINOSITY
 
                 if options.normxsec:
