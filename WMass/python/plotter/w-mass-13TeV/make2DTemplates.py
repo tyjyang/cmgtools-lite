@@ -52,3 +52,13 @@ if __name__ == "__main__":
             testhisto_unrolled.GetZaxis().SetRangeUser(0., 1.1*testhisto_unrolled.GetMaximum())
             c.SaveAs(options.outdir+'/simpleTemplate_'+testhistoname+'.pdf')
             c.SaveAs(options.outdir+'/simpleTemplate_'+testhistoname+'.png')
+
+            projX = testhisto_unrolled.ProjectionX(testhistoname+'_projETA')
+            projX.Draw()
+            c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.pdf')
+            c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.png')
+
+            projY = testhisto_unrolled.ProjectionY(testhistoname+'_projPT')
+            projY.Draw()
+            c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.pdf')
+            c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.png')
