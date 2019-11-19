@@ -4,6 +4,15 @@ from rollingFunctions import roll1Dto2D,dressed2D
 
 ROOT.gROOT.SetBatch()
 
+colors = [2,3,4,6,7,8,9,46,ROOT.kOrange,ROOT.kViolet]
+
+def histoStyle(histo,ind):
+    histo.SetMarkerStyle(20)
+    histo.SetMarkerSize(0.9)
+    histo.SetMarkerColor(ROOT.kBlack)
+    histo.SetLineWidth (2)
+    histo.SetLineColor (colors[ind])
+
 
 c = ROOT.TCanvas()
 ROOT.gStyle.SetOptStat(0)
@@ -25,7 +34,7 @@ if __name__ == "__main__":
         shapefile = ROOT.TFile('{ind}/Wmu_{ch}_shapes.root'.format(ind=options.indir,ch=charge),'read')
         
         pols = ['a{p}'.format(p=i) for i in ['c']+range(8)]
-        for pol in pols:
+        for ip,pol in enumerate(pols):
             
             testhistoname = 'x_W{ch}_{pol}'.format(ch=charge,pol=pol)
             
@@ -54,11 +63,15 @@ if __name__ == "__main__":
             c.SaveAs(options.outdir+'/simpleTemplate_'+testhistoname+'.png')
 
             projX = testhisto_unrolled.ProjectionX(testhistoname+'_projETA')
-            projX.Draw()
+            histoStyle(projX,ip)
+            projX.GetYaxis().SetRangeUser(0., 1.1*projX.GetMaximum())
+            projX.Draw('pe')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.pdf')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.png')
 
             projY = testhisto_unrolled.ProjectionY(testhistoname+'_projPT')
-            projY.Draw()
+            histoStyle(projY,ip)
+            projY.GetYaxis().SetRangeUser(0., 1.1*projY.GetMaximum())
+            projY.Draw('pe')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.pdf')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.png')
