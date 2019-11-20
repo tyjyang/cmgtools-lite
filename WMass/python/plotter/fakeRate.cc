@@ -662,9 +662,10 @@ float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
 
   float weight = 0.;
 
-  float normterm = 3./(16.*TMath::Pi())*(fc*fcTerm + f0*f0Term + f1*f1Term + f2*f2Term + f3*f3Term + f4*f4Term + f5*f5Term + f6*f6Term + f7*f7Term);
+  // float normterm = 3./(16.*TMath::Pi())*(fc*fcTerm + f0*f0Term + f1*f1Term + f2*f2Term + f3*f3Term + f4*f4Term + f5*f5Term + f6*f6Term + f7*f7Term);
+  float normterm = (fcTerm + f0*f0Term + f1*f1Term + f2*f2Term + f3*f3Term + f4*f4Term + f5*f5Term + f6*f6Term + f7*f7Term);
 
-  if      (pol == -1) return fc*fcTerm/(normterm);
+  if      (pol == -1) return    fcTerm/(normterm);
   else if (pol ==  0) return f0*f0Term/(normterm);
   else if (pol ==  1) return f1*f1Term/(normterm);
   else if (pol ==  2) return f2*f2Term/(normterm);

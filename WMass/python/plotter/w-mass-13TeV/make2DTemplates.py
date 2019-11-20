@@ -12,11 +12,30 @@ def histoStyle(histo,ind):
     histo.SetMarkerColor(ROOT.kBlack)
     histo.SetLineWidth (2)
     histo.SetLineColor (colors[ind])
+    histo.GetXaxis().SetLabelSize(0.045)
+    histo.GetYaxis().SetLabelSize(0.045)
+    histo.GetXaxis().SetTitleSize(0.050)
+    histo.GetYaxis().SetTitleSize(0.045)
 
 
-c = ROOT.TCanvas()
+c = ROOT.TCanvas('foobar','',1200,900)
+c.SetTopMargin    (0.07)
+c.SetLeftMargin   (0.10)
+c.SetRightMargin  (0.14)
+c.SetBottomMargin (0.14)
+#pad = ROOT.TPad('foo', '', 0.0,0.0,0.9,0.9)
 ROOT.gStyle.SetOptStat(0)
 ROOT.gROOT.SetBatch()
+#c.Draw()
+
+ROOT.gStyle.SetPalette(ROOT.kThermometer)#LightTemperature)
+
+lat = ROOT.TLatex()
+lat.SetNDC()
+lat.SetTextSize(0.045)
+lat.SetTextFont(42)
+#lat.SetFillColor(ROOT.kWhite)
+
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -39,6 +58,9 @@ if __name__ == "__main__":
             testhistoname = 'x_W{ch}_{pol}'.format(ch=charge,pol=pol)
             
             testhisto = shapefile.Get(testhistoname)
+
+            integral = testhisto.Integral()
+            niceint = '{a:.2f} M events'.format(a=integral/1e6)
             
             binninPtEtaFile = open('{ind}/binningPtEta.txt'.format(ind=options.indir),'r')
             bins = binninPtEtaFile.readlines()[1].split()[1]
@@ -47,16 +69,18 @@ if __name__ == "__main__":
             nbinseta = len(etabins)-1
             nbinspt  = len( ptbins)-1
             binning = [nbinseta, etabins, nbinspt, ptbins]
-            # get eta-pt binning for both reco 
-
-            ## etaPtBinningVec = getDiffXsecBinning(options.indir+'/binningPtEta.txt', "reco")  # this get two vectors with eta and pt binning
-            ## recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
-            ## binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
             
             testhisto_unrolled =  dressed2D(testhisto,binning,'backrolled_testhisto')
             c.cd()
-            #histo.SetTitle(testhistoname)
+
+
+            histoStyle(testhisto_unrolled,0)
             testhisto_unrolled.Draw('colz')
+
+            text = 'W {ch}: {p} - {i}'.format(ch=charge,p=pol if not 'ac' in pol else 'unpolarized',i=niceint)
+
+            lat.SetTextAlign(11)
+            lat.DrawLatex(0.10, 0.94, text)
 
             testhisto_unrolled.GetZaxis().SetRangeUser(0., 1.1*testhisto_unrolled.GetMaximum())
             c.SaveAs(options.outdir+'/simpleTemplate_'+testhistoname+'.pdf')
@@ -66,6 +90,9 @@ if __name__ == "__main__":
             histoStyle(projX,ip)
             projX.GetYaxis().SetRangeUser(0., 1.1*projX.GetMaximum())
             projX.Draw('pe')
+            lat.SetTextAlign(21)
+            lat.DrawLatex(0.50, 0.94, text)
+
             c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.pdf')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projX.GetName()+'.png')
 
@@ -73,5 +100,7 @@ if __name__ == "__main__":
             histoStyle(projY,ip)
             projY.GetYaxis().SetRangeUser(0., 1.1*projY.GetMaximum())
             projY.Draw('pe')
+            lat.DrawLatex(0.50, 0.94, text)
+
             c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.pdf')
             c.SaveAs(options.outdir+'/simpleTemplate_'+projY.GetName()+'.png')

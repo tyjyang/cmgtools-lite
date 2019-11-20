@@ -172,8 +172,8 @@ term_a4    = '{cost}'                                                  .format (
 term_a5    = 'TMath::Sin(TMath::ACos({cost}))^2 * TMath::Sin(2.*{phi})'.format (cost=var_cos,phi=var_phi)
 term_a6    = 'TMath::Sin(2.*TMath::ACos({cost})) * TMath::Sin({phi})'  .format (cost=var_cos,phi=var_phi)
 term_a7    = 'TMath::Sin(TMath::ACos({cost})) * TMath::Sin({phi})'     .format (cost=var_cos,phi=var_phi)
-allterms  = {'const': term_const, 'a0': term_a0, 'a1': term_a1, 'a2': term_a2, 'a3': term_a3, 'a4': term_a4, 'a5': term_a5, 'a6': term_a6, 'a7': term_a7}
-prefactor = {'const': [1., 0.] , 'a0': [10./3., 2./3.], 'a1': [5., 0.], 'a2': [10., 0.], 'a3': [4., 0.], 'a4': [4., 0.], 'a5': [5., 0.], 'a6': [5., 0.], 'a7': [4., 0.]}
+allterms  = {'const': term_const, 'a0': term_a0        , 'a1': term_a1 , 'a2': term_a2  , 'a3': term_a3 , 'a4': term_a4 , 'a5': term_a5 , 'a6': term_a6 , 'a7': term_a7}
+prefactor = {'const': [1., 0.]  , 'a0': [10./3., 2./3.], 'a1': [5., 0.], 'a2': [10., 0.], 'a3': [4., 0.], 'a4': [4., 0.], 'a5': [5., 0.], 'a6': [5., 0.], 'a7': [4., 0.]}
 
 arg_nbins =  50
 arg_bins = array('d', [2*i/float(arg_nbins)-1 for i in range(arg_nbins+1)])
