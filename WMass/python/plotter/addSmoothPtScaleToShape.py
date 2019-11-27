@@ -212,7 +212,6 @@ def addSmoothLeptonScaleSyst(infile, regexp, charge, isMu,
     systsAndHists = zip(allsysts,allhists)
     ##//////////////////////////
 
-    
     for k in tmp_infile.GetListOfKeys():
         tmp_name = k.GetName()
         ## don't reweight any histos that don't match the regexp
@@ -230,111 +229,130 @@ def addSmoothLeptonScaleSyst(infile, regexp, charge, isMu,
         n_ptbins = tmp_nominal_2d.GetNbinsY()
 
         for syst,hist in systsAndHists:
-            if re.match('Syst',syst):
-                syst_ptbins = [('',0,1000)] if isMu else [('pt0',0,42),('pt1',42,1000)]
+            if re.match('Syst',syst):                
+                #syst_ptbins = [('',0,1000)] if isMu else [('pt0',0,42),('pt1',42,1000)]
+                syst_ptbins = [('',0,1000)]
+                if isMu:
+                    syst_etabins = [('etaside1M',-2.4,-2.1),('etaside0M',-2.1,0),('etaside0P',0,2.1),('etaside1P',2.1,2.4)] 
+                else:
+                    # for 2D xsec the range goes up to 2.4, unlike for the helicity measurement
+                    syst_etabins = [('etaside3M',-2.4,-2.1),('etaside2M',-2.1,-1.5),('etaside1M',-1.5,-1),('etaside0M',-1,0),('etaside0P',0,1),('etaside1P',1,1.5),('etaside2P',1.5,2.1),('etaside3P',2.1,2.4)]
             else:
                 syst_ptbins = [('',0,1000)]
+                syst_etabins = [('',-10,10)]
             for systipt in syst_ptbins:
-                for shift_dir in ['Up','Down']:
-                    outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{systipt}{shiftdir}'.format(lep=flav,idx=syst,systipt=systipt[0],shiftdir=shift_dir)
-                    tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
-                    tmp_scaledHisto.Reset()
-
-                    ## loop over all eta bins of the 2d histogram 
-                    ## for signal, can just do a single eta bin and its neighbors (the rest is empty)
-                    for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
-                        eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
-                        if etaIsOutsideFilledRangeDiffXsec(tmp_name,eta,
-                                                           NetaNeighbours=1,
-                                                           genEtaBins=genBins.etaBins):
+                for systieta in syst_etabins:
+                    # for syst, when syst_etabins has more than 1 item, check if signal bin matches
+                    if len(syst_etabins) > 1 and "_ieta_" in tmp_name: 
+                        #print "===== check ====="
+                        gen_ieta = get_ieta_from_process_name(tmp_name)
+                        maxEtaAbs = max(abs(systieta[1]),abs(systieta[2]))
+                        minEtaAbs = min(abs(systieta[1]),abs(systieta[2]))
+                        centerGenEta = 0.5 * (genBins.etaBins[gen_ieta] + genBins.etaBins[gen_ieta+1])
+                        if centerGenEta < minEtaAbs or centerGenEta > maxEtaAbs:
                             continue
-                        # if re.match(".*W.*_ieta_.*",tmp_name):
-                        #     genetabin = get_ieta_from_process_name(tmp_name)
-                        #     # check range including first neighbours as well
-                        #     # careful: genetabin goes from 0 to N(genBins)-1
-                        #     if abs(eta) < genBins.etaBins[max(0,genetabin-1)] or abs(eta) >= genBins.etaBins[min(genBins.Neta,genetabin+2)]:
-                        #         continue
-                        # try to save some time for muons, most histograms only need eta, not pt (average is made)
-                        etabin = max(1, min(binning_histo.GetNbinsX(), binning_histo.GetXaxis().FindFixBin(eta)))
-                        tmp_syst_ptscale = 0
-                        if isMu and syst!='Syst3': 
-                            tmp_syst_ptscale = utilities.getRochesterUncertainty(charge,etabin-1,0,hist,True)  
-                        for ipt in range(1,tmp_nominal_2d.GetNbinsY()+1):                            
-                            
-                            ptcenter      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
-                            ptbin  = max(1, min(binning_histo.GetNbinsY(), binning_histo.GetYaxis().FindFixBin(ptcenter)))
-                            # scale_syst is something close to 1: if larger, we move events from left to right
-                            # if lower, no event will move from left to right, but actually from right to left
-                            syst_ptscale = 1 # it can be seen as 1 + dx with dx > or < 0
-                            # the syst can be > or < 1, we define the variation based on the number in the histogram, and arbitrarily call Up the variation based on that.
-                            # then we artificially define as Down the variation defined as 1 - (var-1) = 2 -var
-                            # generally, the variation would be > 1 (which would mean scaling pt up
-                            # but in some regions inside acceptance it could be < 1 ( but we still call it up when creating the alternate histogram)
-                            #if (not isMu) or (isMu and syst == 'Syst3'): 
-                            nominal_val = tmp_nominal_2d.GetBinContent(ieta,ipt)
-                            pt_width    = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
 
-                            if systipt[1]<= ptcenter < systipt[2]:
-                                if not (isMu and syst!='Syst3'):
-                                    tmp_syst_ptscale = utilities.getRochesterUncertainty(charge,etabin-1,ptbin-1,hist,False)
-                                if shift_dir == "Up":
-                                    syst_ptscale = tmp_syst_ptscale 
-                                else:
-                                    syst_ptscale = 2. - tmp_syst_ptscale
+                    for shift_dir in ['Up','Down']:
+                        chargesyst = '' if ((isMu and syst=='Syst3') or re.match('Stat',syst)) else charge
+                        outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smooth{lep}scale{idx}{systieta}{systipt}{ch}{shiftdir}'.format(lep=flav,idx=syst,systieta=systieta[0],systipt=systipt[0],ch=chargesyst,shiftdir=shift_dir)
+                        tmp_scaledHisto = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d))
+                        tmp_scaledHisto.Reset()
 
-                                if syst_ptscale > 1:                            
-                                    scale_syst = syst_ptscale - 1. 
-                                    pt      = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
-                                    pt_prev = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
-                                    if ipt == 1:
-                                        # take first pt bin from histo with extended pt range
-                                        nameHisto = tmp_name if isMu else tmp_name.replace("_el_","_lep_")
-                                        nominal_val_prev = nominalHists[nameHisto].GetBinContent(ieta,1)
-                                        pt_width_prev    = nominalHists[nameHisto].GetYaxis().GetBinWidth(1)   
+                        ## loop over all eta bins of the 2d histogram 
+                        ## for signal, can just do a single eta bin and its neighbors (the rest is empty)
+                        for ieta in range(1,tmp_nominal_2d.GetNbinsX()+1):
+                            eta = tmp_nominal_2d.GetXaxis().GetBinCenter(ieta)
+                            if etaIsOutsideFilledRangeDiffXsec(tmp_name,eta,
+                                                               NetaNeighbours=1,
+                                                               genEtaBins=genBins.etaBins):
+                                continue
+                            # if re.match(".*W.*_ieta_.*",tmp_name):
+                            #     genetabin = get_ieta_from_process_name(tmp_name)
+                            #     # check range including first neighbours as well
+                            #     # careful: genetabin goes from 0 to N(genBins)-1
+                            #     if abs(eta) < genBins.etaBins[max(0,genetabin-1)] or abs(eta) >= genBins.etaBins[min(genBins.Neta,genetabin+2)]:
+                            #         continue
+                            # try to save some time for muons, most histograms only need eta, not pt (average is made)
+                            etabin = max(1, min(binning_histo.GetNbinsX(), binning_histo.GetXaxis().FindFixBin(eta)))
+                            tmp_syst_ptscale = 0
+                            if isMu and syst!='Syst3': 
+                                tmp_syst_ptscale = utilities.getRochesterUncertainty(charge,etabin-1,0,hist,True)  
+                            for ipt in range(1,tmp_nominal_2d.GetNbinsY()+1):                            
+
+                                ptcenter      = tmp_nominal_2d.GetYaxis().GetBinCenter(ipt)
+                                ptbin  = max(1, min(binning_histo.GetNbinsY(), binning_histo.GetYaxis().FindFixBin(ptcenter)))
+                                # scale_syst is something close to 1: if larger, we move events from left to right
+                                # if lower, no event will move from left to right, but actually from right to left
+                                syst_ptscale = 1 # it can be seen as 1 + dx with dx > or < 0
+                                # the syst can be > or < 1, we define the variation based on the number in the histogram, and arbitrarily call Up the variation based on that.
+                                # then we artificially define as Down the variation defined as 1 - (var-1) = 2 -var
+                                # generally, the variation would be > 1 (which would mean scaling pt up
+                                # but in some regions inside acceptance it could be < 1 ( but we still call it up when creating the alternate histogram)
+                                #if (not isMu) or (isMu and syst == 'Syst3'): 
+                                nominal_val = tmp_nominal_2d.GetBinContent(ieta,ipt)
+                                pt_width    = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt)
+
+                                if (systipt[1]<= ptcenter < systipt[2]) and (systieta[1]<= eta < systieta[2]):
+                                    if not (isMu and syst!='Syst3'):
+                                        tmp_syst_ptscale = utilities.getRochesterUncertainty(charge,etabin-1,ptbin-1,hist,False)
+                                    if shift_dir == "Up":
+                                        syst_ptscale = tmp_syst_ptscale 
                                     else:
-                                        nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
-                                        pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
-                                    factor = scale_syst / (1.0 + scale_syst)  # > 0
-                                    from_prev = factor * (pt_prev / pt_width_prev) * max(0,nominal_val_prev)
-                                    to_next   = factor * (pt      / pt_width     ) * max(0,nominal_val)
-                                    tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_next))
-                                else:
-                                    scale_syst = 1 - syst_ptscale # so scale_syst > 0 again
-                                    pt      = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
-                                    pt_next = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
-                                    if ipt == tmp_nominal_2d.GetNbinsY():
-                                        # histograms with extended pt range have 2 more pt bins
-                                        nameHisto = tmp_name if isMu else tmp_name.replace("_el_","_lep_")
-                                        nominal_val_next = nominalHists[nameHisto].GetBinContent(ieta,ipt+2)
-                                        pt_width_next    = nominalHists[nameHisto].GetYaxis().GetBinWidth(ipt+2)
+                                        syst_ptscale = 2. - tmp_syst_ptscale
+
+                                    if syst_ptscale > 1:                            
+                                        scale_syst = syst_ptscale - 1. 
+                                        pt      = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
+                                        pt_prev = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
+                                        if ipt == 1:
+                                            # take first pt bin from histo with extended pt range
+                                            nameHisto = tmp_name if isMu else tmp_name.replace("_el_","_lep_")
+                                            nominal_val_prev = nominalHists[nameHisto].GetBinContent(ieta,1)
+                                            pt_width_prev    = nominalHists[nameHisto].GetYaxis().GetBinWidth(1)   
+                                        else:
+                                            nominal_val_prev = tmp_nominal_2d.GetBinContent(ieta,ipt-1)
+                                            pt_width_prev = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt-1)
+                                        factor = scale_syst / (1.0 + scale_syst)  # > 0
+                                        from_prev = factor * (pt_prev / pt_width_prev) * max(0,nominal_val_prev)
+                                        to_next   = factor * (pt      / pt_width     ) * max(0,nominal_val)
+                                        tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_prev - to_next))
                                     else:
-                                        nominal_val_next = tmp_nominal_2d.GetBinContent(ieta,ipt+1)
-                                        pt_width_next    = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt+1)
-                                    factor = scale_syst / (1.0 - scale_syst)
-                                    from_next = factor * (pt_next / pt_width_next) * max(0,nominal_val_next)
-                                    to_prev   = factor * (pt      / pt_width     ) * max(0,nominal_val)
-                                    tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_next - to_prev))
-                            else:
-                                tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val)
-                            
+                                        scale_syst = 1 - syst_ptscale # so scale_syst > 0 again
+                                        pt      = tmp_nominal_2d.GetYaxis().GetBinLowEdge(ipt)
+                                        pt_next = tmp_nominal_2d.GetYaxis().GetBinUpEdge(ipt)
+                                        if ipt == tmp_nominal_2d.GetNbinsY():
+                                            # histograms with extended pt range have 2 more pt bins
+                                            nameHisto = tmp_name if isMu else tmp_name.replace("_el_","_lep_")
+                                            nominal_val_next = nominalHists[nameHisto].GetBinContent(ieta,ipt+2)
+                                            pt_width_next    = nominalHists[nameHisto].GetYaxis().GetBinWidth(ipt+2)
+                                        else:
+                                            nominal_val_next = tmp_nominal_2d.GetBinContent(ieta,ipt+1)
+                                            pt_width_next    = tmp_nominal_2d.GetYaxis().GetBinWidth(ipt+1)
+                                        factor = scale_syst / (1.0 - scale_syst)
+                                        from_next = factor * (pt_next / pt_width_next) * max(0,nominal_val_next)
+                                        to_prev   = factor * (pt      / pt_width     ) * max(0,nominal_val)
+                                        tmp_scaledHisto.SetBinContent(ieta,ipt,max(0,nominal_val + from_next - to_prev))
+                                else:
+                                    tmp_scaledHisto.SetBinContent(ieta,ipt,nominal_val)
 
-                        # the following is not needed if cropping bins
-                        # if maxSyst == 0.0 and "outliers" in tmp_name and shift_dir == "Up":
-                        #     # ad hoc fix for second bin, which gets a very large ratio because the assumption
-                        #     # of flat event density is maximally wrong (would be the same for first bin but let's neglect that)
-                        #     nomiContent = tmp_nominal_2d.GetBinContent(ieta,2)
-                        #     ratioPt3 = 1.0
-                        #     if tmp_nominal_2d.GetBinContent(ieta,3) != 0:
-                        #         ratioPt3 = tmp_scaledHisto.GetBinContent(ieta,3)/tmp_nominal_2d.GetBinContent(ieta,3)
-                        #     tmp_scaledHisto.SetBinContent(ieta,2,ratioPt3*nomiContent)
 
-                    ## re-roll the 2D to a 1D histo
-                    tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''), cropNegativeBins=cropNegativeBin)
-                    
-                    if abs(maxSyst) > 0.0:
-                        cropHighSysts(tmp_nominal,tmp_scaledHisto_1d,maxSyst=maxSyst)
-                    outfile.cd()
-                    tmp_scaledHisto_1d.Write()
+                            # the following is not needed if cropping bins
+                            # if maxSyst == 0.0 and "outliers" in tmp_name and shift_dir == "Up":
+                            #     # ad hoc fix for second bin, which gets a very large ratio because the assumption
+                            #     # of flat event density is maximally wrong (would be the same for first bin but let's neglect that)
+                            #     nomiContent = tmp_nominal_2d.GetBinContent(ieta,2)
+                            #     ratioPt3 = 1.0
+                            #     if tmp_nominal_2d.GetBinContent(ieta,3) != 0:
+                            #         ratioPt3 = tmp_scaledHisto.GetBinContent(ieta,3)/tmp_nominal_2d.GetBinContent(ieta,3)
+                            #     tmp_scaledHisto.SetBinContent(ieta,2,ratioPt3*nomiContent)
+
+                        ## re-roll the 2D to a 1D histo
+                        tmp_scaledHisto_1d = unroll2Dto1D(tmp_scaledHisto, newname=tmp_scaledHisto.GetName().replace('2DROLLED',''), cropNegativeBins=cropNegativeBin)
+
+                        if abs(maxSyst) > 0.0:
+                            cropHighSysts(tmp_nominal,tmp_scaledHisto_1d,maxSyst=maxSyst)
+                        outfile.cd()
+                        tmp_scaledHisto_1d.Write()
 
     outfile.Close()
     print "done with the smooth %s scale variations" % lepton
@@ -821,6 +839,7 @@ if __name__ == "__main__":
     parser.add_option(       '--uncorrelate-ptscale-by-etaside', dest='uncorrelatePtScaleByEtaSide' , default=False, action='store_true', help='Uncorrelate momentum scales by eta sides')
     parser.add_option(       '--uncorrelate-ptscale-by-charge', dest='uncorrelatePtScaleByCharge' , default=False, action='store_true', help='Uncorrelate momentum scales by charge')
     parser.add_option("--function",   dest="function", type="string", default="addSmoothLeptonScaleSyst", help="Specify function to use");
+    parser.add_option(       '--crop-negative-bin', dest='cropNegativeBin' , default=False, action='store_true', help='Crop negative bins in nominal and alternate')
     (options, args) = parser.parse_args()
 
     # if not len(options.indir):
@@ -870,8 +889,9 @@ if __name__ == "__main__":
 
     if options.function == "addSmoothLeptonScaleSyst":
         addSmoothLeptonScaleSyst(options.infile, options.processes, charge, isMu,
-                              outdir=outdir,
-                              alternateShapeOnly=False)        
+                                 outdir=outdir,
+                                 alternateShapeOnly=False,
+                                 cropNegativeBin=options.cropNegativeBin)        
     elif options.function == "addSmoothLeptonScaleSyst_algoHelicity":
         print "Using addSmoothLeptonScaleSyst_algoHelicity()"
         addSmoothLeptonScaleSyst_algoHelicity(options.infile, options.processes, charge, isMu,

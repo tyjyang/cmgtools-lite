@@ -58,7 +58,7 @@ def makeAlternateFromSymmetricRatio(alt, nomi, binning):
     for ib in range(1, nomi.GetNbinsX()+1):
         alt.SetBinContent(ib, ratio1D.GetBinContent(ib) * nomi.GetBinContent(ib))
 
-def makeAlternateFromSymmetricRatioV2(alt, nomi, binning, maxSyst=0.0):
+def makeAlternateFromSymmetricRatioV2(alt, nomi, binning, maxSyst=0.0, shapeOnly=False):
 
     # make ratio of alt and nomi after symmetrizing a copy of num and den versus eta
     #
@@ -107,6 +107,12 @@ def makeAlternateFromSymmetricRatioV2(alt, nomi, binning, maxSyst=0.0):
 
     # finally redefine the alt histogram, multiplying nomi by symmetrized ratio
     alt.Multiply(ratio1D,nomi)
+    if shapeOnly:
+        if alt.Integral():
+            alt.Scale(nomi.Integral()/alt.Integral())
+        else:
+            print "Error in makeAlternateFromSymmetricRatioV2: alt.Integral() == 0"
+            quit()
 
 def uncorrelateHistByEtaSide(hnomi, haltEtaPlus, haltEtaMinus, neta, npt):
     # to make it faster and avoid creating TH2, exploit the fact that hnomi and halt are unrolled along eta 
@@ -1338,7 +1344,7 @@ if options.symSystRatio:
                     print "Error when symmetrizing nuisances versus eta. I couldn't find nominal histogram %s. Abort" % thisNominalName
                     quit()
                 else:
-                    makeAlternateFromSymmetricRatioV2(thisAlternate, thisNominal, binning=recoBinning, maxSyst=0.05)
+                    makeAlternateFromSymmetricRatioV2(thisAlternate, thisNominal, binning=recoBinning, maxSyst=0.05,shapeOnly=True)
                     thisAlternate.Write(name)                
                 nCopiedKeys += 1
             #else:
@@ -1634,6 +1640,9 @@ if options.useAnalyticSmoothPtScales:
     print "Wrote again root file in %s" % shapename
     print ""
 
+print ""
+print "THE END"
+print ""
 
 
 

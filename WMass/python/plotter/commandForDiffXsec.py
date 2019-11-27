@@ -9,8 +9,8 @@ skipMergeRoot=1
 skipSingleCard=1
 skipMergeCard=1 # disabled if fitting each charge (see below)
 skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
-#flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
-flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
+flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
+#flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
 
 # exclude some nuisances
 # some more things are set below
@@ -71,7 +71,7 @@ uncorrelateQCDscalesByCharge = True
 uncorrelateNuisancesByCharge = ""  # use regular expression, otherwise keep ""
 uncorrelatePtscaleByEtaside = False if useAnalyticSmoothPtScales else True
 # note that there is always a part of the uncertainty that is charge-uncorrelated
-freezePOIs = True  # no need for dedicated postfix, added automatically to the one given below
+freezePOIs = False  # no need for dedicated postfix, added automatically to the one given below
 skipFitData = False
 skipFitAsimov = False
 
@@ -80,30 +80,30 @@ if not skipMergeCardFlavour:
 
 # el
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
-#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
+folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
 #folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
-#th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to46p5_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to46p5.root"
-folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI_ptMax45/"
-th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
+#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI_ptMax45/"
+#th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
 
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to57.root"
 
 
 # mu
-#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
-#th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
 #folder_mu = "diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to57_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt25to57.root"
-folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
-th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
+#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+#th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
 #folder_mu = "diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to46p5_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to46p5.root"
 
@@ -222,14 +222,18 @@ postfixCardMaker = "_symFSRptScalemW" # for single-charge fit in single flavor
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45"
-else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45"
+if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
+else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
+
+if noPtScalesOutliers:
+    postfixCardMakerMerger += "_noPtScalesOutliers"
+
 optionsForCardMakerMerger = " --postfix " + postfixCardMakerMerger + " --sig-out-bkg  " # --no-combinetf " #--useSciPyMinimizer  " 
 
 
 #optionsForCardMakerMergerFlavour = " --postfix combinedLep_elePt01Bkg_bkgNotInGroupOrMaskedChan_symFSRmWptScale_smoothPtScaleUncorrEtaMuElUncorrChargeMuExtremePtFromOld2BinsForOut_LnN0p03Up0p05DownOnAllW --sig-out-bkg --skip-hadd-xsec "
 #--no-text2hdf5 --no-combinetf " # " --useSciPyMinimizer " # " --skip-hadd-xsec --just-fit " 
-optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45 --sig-out-bkg " #--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
+optionsForCardMakerMergerFlavour = " --postfix combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly --sig-out-bkg " #--no-text2hdf5 --no-combinetf " # --useSciPyMinimizer "  
 
 if combineElePt01asBkg:
     optionsForCardMakerMergerFlavour = optionsForCardMakerMergerFlavour.replace("_allSig_","_elePt01bkg_")

@@ -1642,7 +1642,7 @@ def drawMuElComparison(hlep, hmu, hel,
     hlep.GetYaxis().SetRangeUser(ymin, ymax)    
     hlep.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: hlep.GetXaxis().SetRangeUser(xmin,xmax)
-    hlep.Draw("EP")
+    hlep.Draw("EP0")
     #hleperr = hlep.Clone("hleperr")
     #hleperr.SetFillColor(ROOT.kRed+2)
 
@@ -1661,13 +1661,13 @@ def drawMuElComparison(hlep, hmu, hel,
     hmu.SetMarkerColor(ROOT.kAzure+7)
     hmu.SetMarkerStyle(21)
     hmu.SetMarkerSize(1.2)
-    hmu.Draw("EP SAME")
+    hmu.Draw("E0P0 SAME0")
 
     hel.SetLineColor(ROOT.kRed-2)  # kRed+2
     hel.SetMarkerColor(ROOT.kRed-2)
     hel.SetMarkerStyle(22)
     hel.SetMarkerSize(1.2)
-    hel.Draw("EP SAME")
+    hel.Draw("E0P0 SAME0")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -1817,8 +1817,8 @@ def drawMuElComparison(hlep, hmu, hel,
         ratioel.SetMarkerSize(1.0)
         den.SetMarkerSize(0) 
         den.Draw("E2same")
-        ratiomu.Draw("EP same")
-        ratioel.Draw("EP same")
+        ratiomu.Draw("E0P0 same0")
+        ratioel.Draw("E0P0 same0")
         
  
         line = ROOT.TF1("horiz_line","1",den.GetXaxis().GetBinLowEdge(1),den.GetXaxis().GetBinLowEdge(den.GetNbinsX()+1))
@@ -2395,14 +2395,14 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     h1.GetYaxis().SetRangeUser(ymin, ymax)    
     h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
-    h1.Draw("EP")
+    h1.Draw("EP0")
     #h1err = h1.Clone("h1err")
     #h1err.SetFillColor(ROOT.kRed+2)
     h2.SetFillStyle(1001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
     h2.SetLineColor(colorBandTot["line"])  # kGreen+2
     h2.SetFillColor(colorBandTot["fill"])    # kGreen
     h2.SetLineWidth(1)
-    h2.Draw("2 SAME")
+    h2.Draw("E2 SAME")
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
@@ -2410,7 +2410,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         h3.SetLineColor(colorBandPart["line"])
         h3.SetFillStyle(1001)  # 1001, 3001, 3144 , 3244, 3003
         #h3.SetFillStyle(3244)  # 3144 , 3244, 3003
-        h3.Draw("2 SAME")
+        h3.Draw("E2 SAME")
         #for i in range(1,1+h3.GetNbinsX()):
         #    print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
     h2line = None
@@ -2422,7 +2422,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     h2line.SetFillColor(0)
     h2line.SetLineColor(h2.GetLineColor())
     h2line.Draw("HIST SAME")
-    h1.Draw("EP SAME")
+    h1.Draw("EP0 SAME")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -2681,9 +2681,9 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         #else: 
         #    ratio.Draw("EPsame")
         if invertRatio:
-            den.Draw("EPsame") 
+            den.Draw("E0P0same0") 
         else:
-            ratio.Draw("EPsame")
+            ratio.Draw("E0P0same0")
 
         x1leg2 = 0.15 if leftMargin > 0.1 else 0.07
         x2leg2 = 0.55 if leftMargin > 0.1 else 0.27

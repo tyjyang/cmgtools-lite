@@ -4,9 +4,9 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 combineElePt01asBkg = 0
-dryrun = 0
+dryrun = 1
 skipData = 0
 onlyData = 1
 
@@ -20,7 +20,7 @@ skipImpacts = 1
 skipImpactsEtaPt = 1
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
-allPtBinsSignal = 0
+allPtBinsSignal = 1
 forceAllptbinsTheoryband = 1 # for electrons when making xsec plots, to use all pt bins to make theory band
 #
 # some script allow to plot a single charge
@@ -68,11 +68,11 @@ if doMuElComb:
         quit()
 
 if flavour == "el":
-    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15"
+    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
 else:
-    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45_fixedPOI"
+    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
 if doMuElComb:
-    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_fixedPOI" 
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" 
     if combineElePt01asBkg:
         postfix = "combinedLep_elePt01bkg_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15"
                
