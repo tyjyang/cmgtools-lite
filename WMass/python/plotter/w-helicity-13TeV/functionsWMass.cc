@@ -268,14 +268,23 @@ TH1F *hist_scales_0minus = NULL;
 TH1F *hist_scales_Lminus = NULL;
 TH1F *hist_scales_Rminus = NULL;
 
-float postfitQCDWeight(float pt2l, int pol, int charge) {
+float postfitQCDWeight(float pt2l, int pol, int charge, int flav=0) {
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
   TH1F* hist_scales = NULL;
   if (!_file_postfitWeights) {
-    _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts.root",_cmssw_base_.c_str()));
+    if (flav==0)
+      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitlep.root",_cmssw_base_.c_str()));
+    else if (flav==13)
+      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitmu.root",_cmssw_base_.c_str()));
+    else if (flav==11)
+      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitel.root",_cmssw_base_.c_str()));
+    else {
+      std::cout << "ERROR! Unknown flavor: " << flav << " Returning 0 weight." << std::endl;
+      return 0;
+    }
     hist_scales_0plus  = (TH1F*)(_file_postfitWeights->Get("weights_longplus"));
     hist_scales_Lplus  = (TH1F*)(_file_postfitWeights->Get("weights_leftplus"));
     hist_scales_Rplus  = (TH1F*)(_file_postfitWeights->Get("weights_rightplus"));
