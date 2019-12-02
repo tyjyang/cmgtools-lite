@@ -44,6 +44,17 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
+float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
+
+    float retVal = -999.;
+
+    if (evt%2 ) retVal = ch1 > 0 ? val1 : val2; //odd event numbers 
+    else        retVal = ch1 > 0 ? val2 : val1; //even event numbers 
+
+    return retVal;
+
+}
+
 float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {
 
