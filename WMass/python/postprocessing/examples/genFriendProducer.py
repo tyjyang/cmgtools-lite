@@ -108,20 +108,20 @@ class GenQEDJetProducer(Module):
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.initReaders(inputTree) # initReaders must be called in beginFile
         self.out = wrappedOutputTree
-        self.out.branch("weightGen", "F")
-        self.out.branch("partonId1", "I")
-        self.out.branch("partonId2", "I")
-        self.out.branch("nGenLepDressed", "I")
-        self.out.branch("nGenPreFSR", "I")
-        self.out.branch("nGenLepBare", "I")
-        self.out.branch("nGenPromptNu", "I")
+        self.out.branch("weightGen"      , "F")
+        self.out.branch("partonId1"      , "I")
+        self.out.branch("partonId2"      , "I")
+        self.out.branch("nGenLepDressed" , "I")
+        self.out.branch("nGenPreFSR"     , "I")
+        self.out.branch("nGenLepBare"    , "I")
+        self.out.branch("nGenPromptNu"   , "I")
         for V in self.vars:
             self.out.branch("GenLepDressed_"+V, "F", lenVar="nGenLepDressed")
-            self.out.branch("GenLepPreFSR_"+V, "F", lenVar="nGenLepPreFSR")
-            self.out.branch("GenLepBare_"+V, "F", lenVar="nGenLepBare")
-            self.out.branch("GenPromptNu_"+V, "F", lenVar="nGenPromptNu")
+            self.out.branch("GenLepPreFSR_" +V, "F", lenVar="nGenLepPreFSR")
+            self.out.branch("GenLepBare_"   +V, "F", lenVar="nGenLepBare")
+            self.out.branch("GenPromptNu_"  +V, "F", lenVar="nGenPromptNu")
         for V in self.genwvars:
-            self.out.branch("genw_"+V, "F")
+            self.out.branch("genw_"   +V, "F")
             self.out.branch("prefsrw_"+V, "F")
         for N in range(1,self.nHessianWeights+1):
             self.out.branch("hessWgt"+str(N), "H")
@@ -155,22 +155,22 @@ class GenQEDJetProducer(Module):
     def qcdScaleWgtIdx(self,mur="0",muf="0"):
         # mapping from https://indico.cern.ch/event/459797/contribution/2/attachments/1181555/1800214/mcaod-Feb15-2016.pdf
         idx_map={}
-        idx_map[("0","0")]   = 0
-        idx_map[("0","Up")]  = 1
-        idx_map[("0","Dn")]  = 2
-        idx_map[("Up","0")]  = 3
+        idx_map[("0" ,"0" )] = 0
+        idx_map[("0" ,"Up")] = 1
+        idx_map[("0" ,"Dn")] = 2
+        idx_map[("Up","0" )] = 3
         idx_map[("Up","Up")] = 4
         idx_map[("Up","Dn")] = 5
-        idx_map[("Dn","0")]  = 6
+        idx_map[("Dn","0" )] = 6
         idx_map[("Dn","Up")] = 7
         idx_map[("Dn","Dn")] = 8
         if (mur,muf) not in idx_map: raise Exception('Scale variation muR={mur},muF={muf}'.format(mur=mur,muf=muf))
         return idx_map[(mur,muf)]
 
-    def bwWeight(self,genMass,imass):
+    def bwWeight(self,genMass,imass, isW):
         # default mass calculated from MG5 inputs
         # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 +/- 7.65e-06 (GeV)
-        (m0,gamma) = (80419.,2050.0) # MeV
+        (m0,gamma) = (80419.,2050.0) if isW else (91187.6, 2495.2) # MeV . the Z values are from the PDG, not from the MC production!!!
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - imass*imass,2) + pow(gamma*imass,2))
 
@@ -226,6 +226,8 @@ class GenQEDJetProducer(Module):
                 leptons[il][0] = leptons[il][0]+tmp_photon
                 break
 
+        ##print 'this is dressed leptons', leptons
+
         return leptons
     
     def getPreFSRLepton(self):
@@ -238,30 +240,29 @@ class GenQEDJetProducer(Module):
                 lepInds.append( (p, ip) )
 
         if len(lepInds) < 1:
-            return 0, 0
+            return []
 
-        lepInds.sort( key = lambda x: x[0].pt, reverse=True) ## sort by pT
+        retLeps = []
 
-        lep = lepInds[0][0]
-        ind = lepInds[0][1]
+        for (lep, ind) in lepInds:
+            finallep = lep
 
-        ## return hardest lepton by default
-        finallep = lep
+            ## see if there's a mother with same pdgId and lastBeforeFSR
+            while (self.genParts[int(lep.motherIndex)].pdgId == lep.pdgId):
+                if self.genParts[int(lep.motherIndex)].lastBeforeFSR:
+                    finallep = self.genParts[int(lep.motherIndex)]
+                    break
+                ind = int(lep.motherIndex)
+                lep = self.genParts[ind]
+                if lep.motherIndex < 0:
+                    break
 
-        ## see if there's a mother with same pdgId and lastBeforeFSR
-        while (self.genParts[int(lep.motherIndex)].pdgId == lep.pdgId):
-            if self.genParts[int(lep.motherIndex)].lastBeforeFSR:
-                finallep = self.genParts[int(lep.motherIndex)]
-                break
-            ind = int(lep.motherIndex)
-            lep = self.genParts[ind]
-            if lep.motherIndex < 0:
-                break
+            lepton = ROOT.TLorentzVector()
+            lepton.SetPtEtaPhiM(finallep.pt, finallep.eta, finallep.phi, finallep.mass)
 
-        lepton = ROOT.TLorentzVector()
-        lepton.SetPtEtaPhiM(finallep.pt, finallep.eta, finallep.phi, finallep.mass)
+            retLeps.append( (lepton, finallep.pdgId) )
 
-        return lepton, finallep.pdgId
+        return retLeps
 
     def getFSRPhotons(self, lepton, leptonPdgId, cone=10):
 
@@ -292,24 +293,26 @@ class GenQEDJetProducer(Module):
         self.genParts = Collection(event, 'GenPart')
 
         #this is a stupid check if variables are present. do this on the first gen particle
-        makeWs = False
+        makeBosons = False
         for ip,p in enumerate(self.genParts):
             if ip:
                 break
             if hasattr(p, 'isPromptFinalState'):
-                makeWs = True
+                makeBosons = True
             
 
         if event._tree._ttreereaderversion > self._ttreereaderversion: # do this check at every event, as other modules might have read further branches
             self.initReaders(event._tree)
 
         ## check if the proper Ws can be made
-        bareLeptonCollection                = self.getBareLeptons(strictlyPrompt=makeWs)
-        dressedLeptonCollection             = self.getDressedLeptons(bareLeptonCollection,strictlyPrompt=makeWs)
+        bareLeptonCollection                = self.getBareLeptons(strictlyPrompt=makeBosons)
+        dressedLeptonCollection             = self.getDressedLeptons(bareLeptonCollection,strictlyPrompt=makeBosons)
         dressedLepton, dressedLeptonPdgId   = dressedLeptonCollection[0] if len(dressedLeptonCollection) else (0,0)
         bareLepton,    bareLeptonPdgId      = bareLeptonCollection[0]    if len(bareLeptonCollection)    else (0,0)
-        (preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()     if makeWs else (0,0)
-        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()         if makeWs else (0,0)
+        #(preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()     if makeBosons else (0,0)
+        (neutrino     , neutrinoPdgId     ) = self.getNeutrino()         if makeBosons else (0,0)
+        ## new to work also for Z
+        preFSRLeptonsAndPdgIds = self.getPreFSRLepton() if makeBosons else []
 
         if hasattr(event,"genWeight"):
             self.out.fillBranch("weightGen", getattr(event, "genWeight"))
@@ -321,30 +324,30 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("partonId2", -999 )
 
         #always produce the dressed lepton collection
-        if len(dressedLeptonCollection)>0:
+        if len(dressedLeptonCollection):
+            self.out.fillBranch("nGenLepDressed", len(dressedLeptonCollection))
             retL={}
-            leptonsToTake = range(0,1 if makeWs else len(dressedLeptonCollection))
-            retL["pt"]    = [dressedLeptonCollection[i][0].Pt() for i in leptonsToTake ]
-            retL["eta"]   = [dressedLeptonCollection[i][0].Eta() for i in leptonsToTake ]
-            retL["phi"]   = [dressedLeptonCollection[i][0].Phi() for i in leptonsToTake ]
-            retL["mass"]  = [dressedLeptonCollection[i][0].M() if dressedLeptonCollection[i][0].M() >= 0. else 0. for i in leptonsToTake]
-            retL["pdgId"] = [dressedLeptonCollection[i][1] for i in leptonsToTake ]
+            #leptonsToTake = range(0,1 if makeBosons else len(dressedLeptonCollection))
+            retL["pt"]    = [leppy[0].Pt()  for leppy in dressedLeptonCollection ]
+            retL["eta"]   = [leppy[0].Eta() for leppy in dressedLeptonCollection ]
+            retL["phi"]   = [leppy[0].Phi() for leppy in dressedLeptonCollection ]
+            retL["pdgId"] = [leppy[1]       for leppy in dressedLeptonCollection ]
+            retL["mass"]  = [leppy[0].M() if leppy[0].M() >= 0. else 0. ]
 
             retL["fsrDR"] = []
             retL["fsrPt"] = []
-            for  i in leptonsToTake:
-                photonsFSR = self.getFSRPhotons(dressedLeptonCollection[i][0],dressedLeptonCollection[i][1])
-                retL["fsrDR"].append(photonsFSR[0].DeltaR(dressedLeptonCollection[i][0]) if len(photonsFSR)>0 else -1)
+            for  leppy in dressedLeptonCollection:
+                photonsFSR = self.getFSRPhotons(leppy[0],leppy[1])
+                retL["fsrDR"].append(photonsFSR[0].DeltaR(leppy[0]) if len(photonsFSR)>0 else -1)
                 retL["fsrPt"].append(photonsFSR[0].Pt() if len(photonsFSR)>0 else -1)
 
-            self.out.fillBranch("nGenLepDressed", leptonsToTake[-1])
             for V in self.vars:
                 self.out.fillBranch("GenLepDressed_"+V, retL[V])
 
         #always produce the bare lepton collection
         if len(bareLeptonCollection)>0:
             retB={}
-            leptonsToTake = range(0,1 if makeWs else len(bareLeptonCollection))
+            leptonsToTake = range(0,1 if makeBosons else len(bareLeptonCollection))
             retB["pt"]    = [bareLeptonCollection[i][0].Pt() for i in leptonsToTake ]
             retB["eta"]   = [bareLeptonCollection[i][0].Eta() for i in leptonsToTake ]
             retB["phi"]   = [bareLeptonCollection[i][0].Phi() for i in leptonsToTake ]
@@ -376,49 +379,83 @@ class GenQEDJetProducer(Module):
                 self.out.fillBranch("GenPromptNu_"+V, retN[V])
             #self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])            
 
-            if dressedLepton:
-                genw = dressedLepton + neutrino
-                self.out.fillBranch("genw_charge" , float(-1*np.sign(dressedLeptonPdgId)))
-                self.out.fillBranch("genw_pt"     , genw.Pt())
-                self.out.fillBranch("genw_y"      , genw.Rapidity())
-                self.out.fillBranch("genw_mass"   , genw.M())
-                kv = KinematicVars(self.beamEn)
+
+        if len(preFSRLeptonsAndPdgIds):
+            self.out.fillBranch("nGenLepPreFSR", len(preFSRLeptonsAndPdgIds))
+            retP={}
+            retP["pt"]    = [leppy[0].Pt()  for leppy in preFSRLeptonsAndPdgIds]
+            retP["eta"]   = [leppy[0].Eta() for leppy in preFSRLeptonsAndPdgIds]
+            retP["phi"]   = [leppy[0].Phi() for leppy in preFSRLeptonsAndPdgIds]
+            retP["pdgId"] = [leppy[1]       for leppy in preFSRLeptonsAndPdgIds]
+            retP["mass"]  = [leppy[0].M()   if leppy[0].M() >= 0. else 0. for leppy in preFSRLeptonsAndPdgIds]
+            retP["fsrDR"] = []
+            retP["fsrPt"] = []
+            for leppy in preFSRLeptonsAndPdgIds:
+                photonsFSR = self.getFSRPhotons(leppy[0],leppy[1])
+                retP["fsrDR"].append(photonsFSR[0].DeltaR(leppy[0]) if len(photonsFSR)>0 else -1 )
+                retP["fsrPt"].append(photonsFSR[0].Pt() if len(photonsFSR)>0 else -1 )
+        
+            for V in self.vars:
+                self.out.fillBranch("GenLepPreFSR_"+V, retP[V])
+
+
+        if len(preFSRLeptonsAndPdgIds) == 2 or (len(preFSRLeptonsAndPdgIds) == 1 and neutrino):
+
+            if len(preFSRLeptonsAndPdgIds) == 2: ## these are Zs
+                isWBoson = False
+                prefsrw = preFSRLeptonsAndPdgIds[0][0] + preFSRLeptonsAndPdgIds[1][0]
+                self.out.fillBranch("prefsrw_charge" , 0)
+                l1, l1pdg, l2 = preFSRLeptonsAndPdgIds[0][0], preFSRLeptonsAndPdgIds[0][1], preFSRLeptonsAndPdgIds[1][0]
                 # convention for phiCS: use l- direction for W-, use neutrino for W+
-                (lplus,lminus) = (neutrino,dressedLepton) if dressedLeptonPdgId<0 else (dressedLepton,neutrino)
-                self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
-                self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
-                self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
-                for imass in self.massWeights:
-                    self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass))
+                (lplus,lminus) = (l2,l1) if l1pdg<0 else (l1,l2)
+                self.out.fillBranch("prefsrw_decayId", abs(l1pdg))
 
-            if preFSRLepton:
-                retP={}
-                retP["pt"]    = [preFSRLepton.Pt()  ]
-                retP["eta"]   = [preFSRLepton.Eta() ]
-                retP["phi"]   = [preFSRLepton.Phi() ]
-                retP["mass"]  = [preFSRLepton.M()   if preFSRLepton.M() >= 0. else 0.]
-                retP["pdgId"] = [preFSRLeptonPdgId  ]
-                photonsFSR = self.getFSRPhotons(preFSRLepton,preFSRLeptonPdgId)
-                retP["fsrDR"] = [photonsFSR[0].DeltaR(preFSRLepton) if len(photonsFSR)>0 else -1 ]
-                retP["fsrPt"] = [photonsFSR[0].Pt() if len(photonsFSR)>0 else -1 ]
-
-                self.out.fillBranch("nGenLepPreFSR", 1)
-                for V in self.vars:
-                    self.out.fillBranch("GenLepPreFSR_"+V, retP[V])
-
-                prefsrw = preFSRLepton + neutrino
-                self.out.fillBranch("prefsrw_charge" , float(-1*np.sign(preFSRLeptonPdgId)))
-                self.out.fillBranch("prefsrw_pt"     , prefsrw.Pt())
-                self.out.fillBranch("prefsrw_y"      , prefsrw.Rapidity())
-                self.out.fillBranch("prefsrw_mass"   , prefsrw.M())
-                kv = KinematicVars(self.beamEn)
+            else: ## these are Ws
+                isWBoson = True
+                prefsrw = preFSRLeptonsAndPdgIds[0][0] + neutrino
+                self.out.fillBranch("prefsrw_charge" , float(-1*np.sign(preFSRLeptonsAndPdgIds[0][1])))
+                l1, l1pdg = preFSRLeptonsAndPdgIds[0][0], preFSRLeptonsAndPdgIds[0][1]
                 # convention for phiCS: use l- direction for W-, use neutrino for W+
-                (lplus,lminus) = (neutrino,preFSRLepton) if preFSRLeptonPdgId<0 else (preFSRLepton,neutrino)
-                self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
-                self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
+                (lplus,lminus) = (neutrino,l1) if l1pdg<0 else (l1,neutrino)
                 self.out.fillBranch("prefsrw_decayId", abs(neutrinoPdgId))
-                for imass in self.massWeights:
-                    self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass))
+
+            self.out.fillBranch("prefsrw_pt"     , prefsrw.Pt())
+            self.out.fillBranch("prefsrw_y"      , prefsrw.Rapidity())
+            self.out.fillBranch("prefsrw_mass"   , prefsrw.M())
+            kv = KinematicVars(self.beamEn)
+            self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
+            self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
+            for imass in self.massWeights:
+                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass,isW=isWBoson))
+
+        if len(dressedLeptonCollection) == 2 or (len(dressedLeptonCollection) == 1 and neutrino):
+            if len(dressedLeptonCollection) == 2: ## these are Zs
+                isWBoson = False
+                genw = dressedLeptonCollection[0][0] + dressedLeptonCollection[1][0]
+                self.out.fillBranch("genw_charge" , 0)
+                l1, l1pdg, l2 = dressedLeptonCollection[0][0], dressedLeptonCollection[0][1], dressedLeptonCollection[1][0]
+                # convention for phiCS: use l- direction for W-, use neutrino for W+
+                (lplus,lminus) = (l2,l1) if l1pdg<0 else (l1,l2)
+                self.out.fillBranch("genw_decayId", abs(l1pdg))
+
+            else: ## these are Ws
+                isWBoson = True
+                genw = dressedLeptonCollection[0][0] + neutrino
+                self.out.fillBranch("genw_charge" , float(-1*np.sign(dressedLeptonCollection[0][1])))
+                l1, l1pdg = dressedLeptonCollection[0][0], dressedLeptonCollection[0][1]
+                # convention for phiCS: use l- direction for W-, use neutrino for W+
+                (lplus,lminus) = (neutrino,l1) if l1pdg<0 else (l1,neutrino)
+                self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
+
+            self.out.fillBranch("genw_pt"     , genw.Pt())
+            self.out.fillBranch("genw_y"      , genw.Rapidity())
+            self.out.fillBranch("genw_mass"   , genw.M())
+            kv = KinematicVars(self.beamEn)
+            self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
+            self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
+            self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
+            for imass in self.massWeights:
+                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
 
             ## remove these variables to save space
             #self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
