@@ -94,7 +94,7 @@ class GenQEDJetProducer(Module):
         self.pdfWeightOffset = 9 #index of first mc replica weight (careful, this should not be the nominal weight, which is repeated in some mc samples).  The majority of run2 LO madgraph_aMC@NLO samples with 5fs matrix element and pdf would use index 10, corresponding to pdf set 263001, the first alternate mc replica for the nominal pdf set 263000 used for these samples
         self.nMCReplicasWeights = 100 #number of input weights (100 for NNPDF 3.0)
         self.nHessianWeights = 60 #number of output weights
-        self.massWeights = range(80300, 80505, 5) #masses in MeV
+        self.massWeights = range(-20,21) ## order them by integer range(80300, 80505, 5) #masses in MeV
         if "PDFWeightsHelper_cc.so" not in ROOT.gSystem.GetLibraries():
             ROOT.gROOT.ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include")
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/PDFWeightsHelper.cc+" % os.environ['CMSSW_BASE'])
@@ -112,7 +112,6 @@ class GenQEDJetProducer(Module):
         self.out.branch("partonId1"      , "I")
         self.out.branch("partonId2"      , "I")
         self.out.branch("nGenLepDressed" , "I")
-        self.out.branch("nGenPreFSR"     , "I")
         self.out.branch("nGenLepBare"    , "I")
         self.out.branch("nGenPromptNu"   , "I")
         for V in self.vars:
@@ -129,7 +128,7 @@ class GenQEDJetProducer(Module):
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
         for imass in self.massWeights:
-            self.out.branch("mass_{mass}".format(mass=imass), "F")
+            self.out.branch("mass_{mass}".format(mass='m'+imass if imass < 0 else 'p'+imass), "F")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 
@@ -167,10 +166,11 @@ class GenQEDJetProducer(Module):
         if (mur,muf) not in idx_map: raise Exception('Scale variation muR={mur},muF={muf}'.format(mur=mur,muf=muf))
         return idx_map[(mur,muf)]
 
-    def bwWeight(self,genMass,imass, isW):
+    def bwWeight(self,genMass,intmass, isW):
         # default mass calculated from MG5 inputs
         # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 +/- 7.65e-06 (GeV)
         (m0,gamma) = (80419.,2050.0) if isW else (91187.6, 2495.2) # MeV . the Z values are from the PDG, not from the MC production!!!
+        imass = m0 + intmass*5.
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - imass*imass,2) + pow(gamma*imass,2))
 
@@ -426,7 +426,7 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
             self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
             for imass in self.massWeights:
-                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass,isW=isWBoson))
+                self.out.fillBranch("mass_{mass}".format(mass='m'+imass if imass < 0 else 'p'+imass), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass,isW=isWBoson))
 
         if len(dressedLeptonCollection) == 2 or (len(dressedLeptonCollection) == 1 and neutrino):
             if len(dressedLeptonCollection) == 2: ## these are Zs
@@ -455,7 +455,7 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
             self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
             for imass in self.massWeights:
-                self.out.fillBranch("mass_{mass}".format(mass=imass), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
+                self.out.fillBranch("mass_{mass}".format(mass='m'+imass if imass < 0 else 'p'+imass), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
 
             ## remove these variables to save space
             #self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
@@ -475,7 +475,7 @@ class GenQEDJetProducer(Module):
                 self.out.fillBranch("genw_"+V   , -999)
                 self.out.fillBranch("prefsrw_"+V, -999)
             for imass in self.massWeights:
-                self.out.fillBranch("mass_{mass}".format(mass=imass), 1.)
+                self.out.fillBranch("mass_{mass}".format(mass='m'+imass if imass < 0 else 'p'+imass), 1.)
 
         if lhe_wgts:
             lheweights = [w.wgt for w in lhe_wgts]
