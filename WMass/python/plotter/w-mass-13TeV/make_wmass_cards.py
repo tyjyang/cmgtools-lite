@@ -137,6 +137,10 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                     inclqcdsysts.append(postfix)
 
             else: ## alphaS is left here. keep as is i guess
+                ## don't do mW here again
+                if "mW" in scale:
+                    continue
+                ## ---
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
                 inclqcdsysts.append(postfix)
