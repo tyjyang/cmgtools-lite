@@ -1,0 +1,25 @@
+## HOW TO RUN COMMANDS:
+
+make sure that all the booleans at the beginning of the run_wmass_cfg.py file
+are set according to your needs and dreams and wishes.
+
+test some events to **really** make sure:
+```
+ heppy <name> run_wmass_cfg.py -N 5000 
+```
+
+where <name> will be the name of the test output directory with the file and
+directory structure
+
+
+### then submit a production to the batch with condor:
+
+```
+heppy_batch.py run_wmass_cfg.py -o <localoutputdir> -r /store/cmst3/group/wmass/w-mass-13TeV/ntuples/WHATEVER -b 'run_condor_simple.sh -t 3000 ./batchScript.sh'
+```
+
+where <localoutputdir> is a directory which will have the structure and all the .url files
+and WHATEVER is a useful, clear, and complete description of what the production has saved.
+
+
+
