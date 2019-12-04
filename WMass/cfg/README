@@ -5,7 +5,7 @@ are set according to your needs and dreams and wishes.
 
 test some events to **really** make sure:
 ```
- heppy <name> run_wmass_cfg.py -N 5000 
+heppy <name> run_wmass_cfg.py -N 5000 
 ```
 
 where <name> will be the name of the test output directory with the file and
