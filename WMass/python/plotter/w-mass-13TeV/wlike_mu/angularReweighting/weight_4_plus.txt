@@ -1,0 +1,12 @@
+## don't need a cut change or anything really. just load the histogram
+## and call with polarisation == 4
+load-histo: angular_c : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : const_plus
+load-histo: angular_0 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a0_plus
+load-histo: angular_1 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a1_plus
+load-histo: angular_2 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a2_plus
+load-histo: angular_3 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a3_plus
+load-histo: angular_4 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a4_plus
+load-histo: angular_5 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a5_plus
+load-histo: angular_6 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a6_plus
+load-histo: angular_7 : w-mass-13TeV/fractionReweighting/allAngularHistos_preFSR.root : a7_plus
+weight: angularWeight(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,prefsrw_phics,4)

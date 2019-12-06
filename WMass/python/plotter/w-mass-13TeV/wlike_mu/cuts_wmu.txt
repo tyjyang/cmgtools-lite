@@ -1,0 +1,12 @@
+#
+alwaystrue : 1
+trigger    : (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0 )
+onelep     : nLepGood == 2
+mu         : abs(LepGood1_pdgId)==13 && abs(LepGood2_pdgId) == 13
+acceptPt   : LepGood1_calPt > 26. && LepGood2_calPt > 26.
+acceptEta  : abs(LepGood_eta) < 2.4
+muMediumId : LepGood1_mediumMuonId  > 0 && LepGood2_mediumMuonId > 0
+muTightIso : LepGood1_relIso04 < 0.15 && LepGood2_relIso04 < 0.15
+
+## don't have the mT cut here. i think we need to do that after at fill time
+## mtl1pf40   : wlike_mt(LepGood1_calPt,LepGood1_eta,LepGood1_phi,LepGoodmet_pt,met_phi) > 40.
