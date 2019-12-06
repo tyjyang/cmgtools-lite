@@ -78,7 +78,7 @@ if __name__ == '__main__':
         tmp_condor_filename = 'logs/condor_friends_{ds}_{d}.condor'.format(ds=ds,d=date)
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = friendsScript.sh
-use_x509userproxy = $ENV(X509_USER_PROXY)
+use_x509userproxy = true
 getenv      = True
 
 environment = "LS_SUBCWD={here}"

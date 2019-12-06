@@ -92,7 +92,7 @@ if __name__ == '__main__':
         tmp_condor_filename = 'condor_merge_{ds}_{d}.condor'.format(ds=ds,d=date)
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = mergeScript.sh
-use_x509userproxy = $ENV(X509_USER_PROXY)
+use_x509userproxy = true
 Log        = merge_{ds}.log
 Output     = merge_{ds}.out
 Error      = merge_{ds}.error
