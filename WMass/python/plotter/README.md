@@ -28,3 +28,9 @@ trees with all relevant gen-level variables for W and Z:
 ```
 /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_prefiring_muons_fullTrees/
 ```
+
+
+### resubmit friends
+```
+./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000
+```
