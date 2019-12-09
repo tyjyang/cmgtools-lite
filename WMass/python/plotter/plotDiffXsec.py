@@ -4,14 +4,14 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 combineElePt01asBkg = 0
 dryrun = 1
 skipData = 0
 onlyData = 1
 
-skipPlot = 1
-skipTemplate = 0
+skipPlot = 0
+skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
@@ -47,9 +47,9 @@ seed = 123456789
 #folder = "diffXsec_el_2019_07_28_testPt2GeV/"
 #folder = "diffXsec_mu_2019_08_02_testBinnedSFandUnc/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
-folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+#folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
-#folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 #folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 
 flavour = "el" if "_el_" in folder else "mu"
@@ -68,11 +68,11 @@ if doMuElComb:
         quit()
 
 if flavour == "el":
-    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15"
+    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
 else:
-    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_ptMax45_fixedPOI"
+    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
 if doMuElComb:
-    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_singleSignalBin_fixedPOI" 
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" 
     if combineElePt01asBkg:
         postfix = "combinedLep_elePt01bkg_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15"
                

@@ -1027,8 +1027,8 @@ if __name__ == "__main__":
         writeHistoIntoFile(hMuErr,tfOut)
 
         if options.fitData:
-            if charge == "plus": zmin,zmax = 30,130
-            else:                zmin,zmax = 10,110
+            if charge == "plus": zmin,zmax = 0,130
+            else:                zmin,zmax = 0,130
         else:
             if charge == "plus": zmin,zmax = 10,120
             else:                zmin,zmax = 10,100

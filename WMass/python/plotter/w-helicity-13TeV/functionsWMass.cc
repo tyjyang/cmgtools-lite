@@ -141,8 +141,11 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   } else if (abs(pdgId)==13) {
 
      if (!ratio_FSRoverNoFSR_etaPt_mu) {
-      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
-      ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
+       _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+       ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
+       // patch for test
+       //_file_ratio_FSRoverNoFSR_etaPt_mu = new TFile("/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/plots/distribution/FSR_atRecolevel_muon_FSRnormGenArea_reallyNoCut_plotGenLepNoSF_fsrNoGenNormCorr_forceMuInFSRfunc//test_plots.root","read");
+       //ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu_noGenNormCorr");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_mu;
     outlierWgt = 0.914322;
@@ -196,6 +199,9 @@ float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToS
 
 }
 
+float fsrPhotosWeightSimpleMu(float dresspt, float barept, bool normToSameGenArea = false, float dresseta = 0) {
+  return fsrPhotosWeightSimple(13, dresspt, barept, normToSameGenArea, dresseta);
+}
 
 TFile *_file_fsrWeights = NULL;
 TH3F * fsrWeights_elplus  = NULL;

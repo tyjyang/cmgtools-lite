@@ -10,6 +10,7 @@ from w_helicity_13TeV.make_diff_xsec_cards import getDiffXsecBinning
 from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
+from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_from_process_name
 from w_helicity_13TeV.make_diff_xsec_cards import etaIsOutsideFilledRangeDiffXsec
 from w_helicity_13TeV.make_diff_xsec_cards import ptIsOutsideFilledRangeDiffXsec
 
@@ -987,12 +988,20 @@ wExpPtScaleSysts = []
 if options.useAnalyticSmoothPtScales:
     maxstats    = 99    if flavour == "mu" else 97
     systRange   = [2,5] if flavour == "mu" else [0,1]
-    syst_ptbins = [""]  if flavour == "mu" else ["pt0", "pt1"]
+    #syst_ptbins = [""]  if flavour == "mu" else ["pt0", "pt1"]    
+    syst_ptbins = [""]  
+    syst_etabins = []
+    if flavour == "mu":
+        syst_etabins = [('etaside1M',-2.4,-2.1),('etaside0M',-2.1,0),('etaside0P',0,2.1),('etaside1P',2.1,2.4)]
+    else:
+        # for 2D xsec the range goes up to 2.4, unlike for the helicity measurement               
+        syst_etabins = [('etaside3M',-2.4,-2.1),('etaside2M',-2.1,-1.5),('etaside1M',-1.5,-1),('etaside0M',-1,0),('etaside0P',0,1),('etaside1P',1,1.5),('etaside2P',1.5,2.1),('etaside3P',2.1,2.4)]
     for i in range(maxstats):
         wExpPtScaleSysts.append("smooth{lep}scaleStat{n}".format(lep=flavour, n=i))
     for i in range(systRange[0],systRange[1]+1):
         for systipt in syst_ptbins:
-            wExpPtScaleSysts.append("smooth{lep}scaleSyst{n}{systipt}".format(lep=flavour, n=i, systipt=systipt))
+            for systieta in syst_etabins:
+                wExpPtScaleSysts.append("smooth{lep}scaleSyst{n}{systieta}{systipt}{ch}".format(lep=flavour, n=i, systieta=systieta[0], systipt=systipt,ch="" if (flavour == "mu" and i == 3) else charge))
     for syst in wExpPtScaleSysts:    
         procsForPtScaleSystShape = []
         if re.match("smooth.*scaleSyst.*pt.*",syst): 
@@ -1005,6 +1014,28 @@ if options.useAnalyticSmoothPtScales:
         if options.noPtScalesOutliers:
             procsForPtScaleSystShape_tmp = [x for x in procsForPtScaleSystShape if "outliers" not in x]
             procsForPtScaleSystShape = procsForPtScaleSystShape_tmp
+        # for syst vs eta, check signal bin, do not use nuisance on bins which would not be affected
+        if re.match("smooth.*scaleSyst.*etaside.*",syst):
+            # look for actual key etasideXXYY
+            for item in syst_etabins:
+                if re.match(".*{m}.*".format(m=item[0]),syst):
+                    # when key is found, get eta range and check if gen eta bins would be affected
+                    maxEtaAbs = max(abs(item[1]),abs(item[2]))
+                    minEtaAbs = min(abs(item[1]),abs(item[2]))
+                    procsForPtScaleSystShape_tmp = []
+                    for p in procsForPtScaleSystShape:
+                        if "_ieta_" in p:
+                            gen_ieta = get_ieta_from_process_name(p)
+                            centerGenEta = 0.5 * (genBins.etaBins[gen_ieta] + genBins.etaBins[gen_ieta+1])
+                            if centerGenEta < minEtaAbs or centerGenEta > maxEtaAbs:
+                                pass
+                            else:
+                                procsForPtScaleSystShape_tmp.append(p)
+                        else:
+                            procsForPtScaleSystShape_tmp.append(p)
+                    procsForPtScaleSystShape = procsForPtScaleSystShape_tmp
+                    # at this point might just exit the "for item in syst_etabins:" loop
+                    # because only one item is expected to match
 
         if isExcludedNuisance(excludeNuisances, syst, keepNuisances): continue
         allSystForGroups.append(syst)
