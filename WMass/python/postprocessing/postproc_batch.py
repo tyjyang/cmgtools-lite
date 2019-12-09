@@ -39,7 +39,7 @@ def writeCondorCfg(srcfile, flavour=None, maxRunTime=None):
         maxruntime = str(60 * int(maxRunTime))
     job_desc = """Universe = vanilla
 Executable = {scriptName}
-use_x509userproxy = $ENV(X509_USER_PROXY)
+use_x509userproxy = true
 Log        = {pid}.log
 Output     = {pid}.out
 Error      = {pid}.error
