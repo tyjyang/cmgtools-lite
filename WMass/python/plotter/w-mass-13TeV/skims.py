@@ -1,21 +1,10 @@
 #!/usr/bin/env python
 
-## ELECTRONS
-##============================================
-# DATA and BKG MC (SIGNAL REGION):
-#      python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-we-skim-bkg-data.txt w-helicity-13TeV/wmass_e/skimming/skim_wenu.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
-
-# DATA and BKG MC (FAKES COMPUTATION REGION)
-#      python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-we-skim-bkg-data.txt w-helicity-13TeV/wmass_e/skimming/skim_fr_el.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1fake_V6_TINY -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_fr.txt  --mo -q 8nh --log skim_logs
-
-# SIGNAL
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/signalCuts.txt /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/TREES_electrons_1l_2018_09_15/ /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_electrons_1l_V6_TINY_SIGNAL  -f w-helicity-13TeV/wmass_e/skimming/varsSkim_80X_helicity.txt --mo -q 8nh --log skim_logs
-
-### FRIEND TREES ###
-# then skim the friend trees, using the event lists saved from te previous step
-# this is enough fast to be done interactively in series for all the datasets
-# it's the same command as before, with --fo (--friend-only) option. Eventually may give a file with the list of variables to keep (as for the main trees)
-
+## WLIKE (2mu) skim:
+##============================================ 
+#       python  w-mass-13TeV/skims.py w-mass-13TeV/wlike_mu/skimming/mca-wlike.txt w-mass-13TeV/wlike_mu/skimming/skimCuts2mu.txt /afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1 /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1 -f w-mass-13TeV/wlike_mu/skimming/varsToKeep.txt --mo --pretend -q condor
+# to just check, remove the "-q condor" (but leave --pretend not to run interactively)
+##============================================ 
 
 ## MUONS
 ##============================================
@@ -32,20 +21,6 @@
 
 # add -q 8nh --log logs to run in batch 1 job/component (and --pretend to just check the command that will be run)
 
-# DY 2l skim:
-# first data:
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts2mu.txt /eos/cms/store/cmst3/user/mdunser/wMassTrees/2018-02-03-legacySingleMu/ /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-05-15_2muskim/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt
-#
-# then MC (including W?)
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-wmu-skim-bkg-data.txt w-helicity-13TeV/wmass_mu/skimming/skimCuts2mu.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3/ /eos/user/m/mdunser/w-helicity-13TeV/trees/TREES_2018-05-15_MC_2muskim/ -f w-helicity-13TeV/wmass_mu/skimming/varsToKeep.txt --mo
-# =============================================
-
-# DY 2l skim:
-# first data and MC backgrounds excluding W:
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims-zee.txt w-helicity-13TeV/wmass_e/zee.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7 -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt --mo
-# then W MC 
-#       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims-zee-wonly.txt w-helicity-13TeV/wmass_e/zee.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_NoSkim5 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7_W -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt --mo
-# then do the friends skim
 
 import os, subprocess, re
 

@@ -1,2 +1,0 @@
-alwaystrue : 1
-wtomu      : abs(prefsrw_decayId) == 14
