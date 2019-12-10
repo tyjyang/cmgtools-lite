@@ -2,8 +2,11 @@
 
 ## WLIKE (2mu) skim:
 ##============================================ 
-#       python  w-mass-13TeV/skims.py w-mass-13TeV/wlike_mu/skimming/mca-wlike.txt w-mass-13TeV/wlike_mu/skimming/skimCuts2mu.txt /afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1 /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1 -f w-mass-13TeV/wlike_mu/skimming/varsToKeep.txt --mo --pretend -q condor
+#       python  w-mass-13TeV/skims.py w-mass-13TeV/wlike_mu/skimming/mca-wlike.txt w-mass-13TeV/wlike_mu/skimming/skimCuts2mu.txt /afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1 /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1 -f w-mass-13TeV/wlike_mu/skimming/varsToKeep.txt --log <logdir> --mo --pretend -q condor
 # to just check, remove the "-q condor" (but leave --pretend not to run interactively)
+#
+# Then, do the friends. Same command as above, but remove the "-f <varsToKeep> --mo" and add "--fo". And then:
+# condor_submit <logdir>/condor_ftrees.condor
 ##============================================ 
 
 ## MUONS

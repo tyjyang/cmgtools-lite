@@ -30,11 +30,12 @@ def _runIt(args,options,excludeProcesses=[]):
 
     for dset in dsets:
         if options.component and dset!=options.component: continue
-        if options.matchComponent and re.match(options.matchComponent,dset):
-            print "Component {n} matched filter".format(n=dset)
-        else:
-            print "Skipping {n}: doesn't match filter".format(n=dset)
-            continue
+        if options.matchComponent: 
+            if re.match(options.matchComponent,dset):
+                print "Component {n} matched filter".format(n=dset)
+            else:
+                print "Skipping {n}: doesn't match filter".format(n=dset)
+                continue
         print "Skimming friend for component %s..." % dset
         skipMe = False
         for p in procsToExclude:
@@ -114,12 +115,12 @@ if __name__ == "__main__":
         condor_f = open(condor_fn,'w')
         condor_f.write('''Universe = vanilla
 Executable = {runner}
-use_x509userproxy = $ENV(X509_USER_PROXY)
+use_x509userproxy = true
 Log        = {ld}/$(ProcId).log
 Output     = {ld}/$(ProcId).out
 getenv      = True
 request_memory = 4000
-+MaxRuntime = 43200
++MaxRuntime = 7200
 +JobBatchName = "{name}"\n
 '''.format(runner=runner,ld=options.logdir,name=options.jobName))
         if os.environ['USER'] in ['mdunser', 'psilva']:
