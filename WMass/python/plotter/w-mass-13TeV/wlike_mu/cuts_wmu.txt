@@ -8,5 +8,4 @@ acceptEta  : abs(LepGood_eta) < 2.4
 muMediumId : LepGood1_mediumMuonId  > 0 && LepGood2_mediumMuonId > 0
 muTightIso : LepGood1_relIso04 < 0.15 && LepGood2_relIso04 < 0.15
 
-## don't have the mT cut here. i think we need to do that after at fill time
-## mtl1pf40   : wlike_mt(LepGood1_calPt,LepGood1_eta,LepGood1_phi,LepGoodmet_pt,met_phi) > 40.
+mtl1pf40   : mt_wlike(LepGood1_calPt,LepGood1_phi,LepGood1_charge,LepGood2_calPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt) > 40.

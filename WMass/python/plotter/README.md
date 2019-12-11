@@ -28,6 +28,11 @@ trees with all relevant gen-level variables for W and Z:
 ```
 /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_prefiring_muons_fullTrees/
 ```
+skims with ==2 loose mu (no iso) having all relevant gen-level variables for W and Z (and old trees for other backgrounds and data)
+```
+/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1
+/afs/cern.ch/work/e/emanuele/TREES/TREES_2LEP_wlike_mu_V1 (.url version)
+```
 
 ### making friends
 First to an interactive test with few events:
