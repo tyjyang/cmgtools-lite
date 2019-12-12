@@ -101,13 +101,17 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
 
         ## mW now doesn't just have Up and Down. make many
         if scale == "mW":
-            ## loop on all the masses we want. in MeV.
-            for mass in [80370, 80420, 80470]:
+            ## loop on all the masses we want. in index of 5 MeV variations each
+            masses  = ['mass_{m}'.format(m = j).replace('-','m') for j in range(-20,0)]
+            masses += ['mass_0']
+            masses += ['mass_p{m}'.format(m = j).replace('-','m') for j in range(1,21)]
+
+            for mass in masses:
                 postfix = "_{proc}_{syst}{mval}".format(proc=incl_mca.split('_')[1],syst=scale,mval=mass)
                 mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
 
                 ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
-                fstring = 'mass_'+str(mass)
+                fstring = str(mass)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
 
