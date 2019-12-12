@@ -39,6 +39,7 @@ qcdsysts=[] # array containing the QCD scale signal variations
 inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
 etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
 fsrsysts=[] # array containing (only) the PHOTOS/PYTHIA fsr reweighitng
+coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -119,7 +120,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 ## for the signal keep as is for the QCD scales
                 if signal:
                     for ipt in range(1,11): ## start from 1 to 10
-                        for coeff in signal_processes if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
+                        for coeff in coefficients if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
                             for pm in ['plus', 'minus']:
                                 ## have to redo the postfix for these
                                 postfix = "_{proc}_{coeff}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,coeff=coeff,ch=pm)
@@ -205,9 +206,11 @@ if __name__ == "__main__":
     parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
     parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
+    parser.add_option("--qed-syst", dest="addQEDSyst", action="store_true", default=False, help="Add QED scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
+    parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
     (options, args) = parser.parse_args()
     
     if not options.wvar in ['genw', 'prefsrw']:
@@ -217,11 +220,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 6:
         parser.print_usage()
         quit()
-    
-    signal_processes = ['ac'] + ['a'+str(i) for i in range(8)]
-
-    print 'these are signal processes', signal_processes
-    
+        
     FASTTEST=''
     #FASTTEST='--max-entries 1000 '
     T=options.path
@@ -267,7 +266,9 @@ if __name__ == "__main__":
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau',overrideDecorrelation=True)
-    writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
+    if options.addQEDSyst:
+        writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
+        writeFSRSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # DY + jets
     
     if len(pdfsysts+qcdsysts)>1:
         for proc in ['dy','wtau']:
@@ -287,18 +288,30 @@ if __name__ == "__main__":
         OPTIONS+=" --2d-binning-function unroll2Dto1D "
     
 
-    POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
-    NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "
+    if options.wlike:
+        POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
+        NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
+        SIGPROC='Z'
+        SIGSUFFIX='dy'
+    else:
+        POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
+        NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "        
+        SIGPROC='W'
+        SIGSUFFIX='sig'
+    antiSIGPROC = 'Z' if SIGPROC=='W' else 'W'
+
+    print 'these are angular coefficients ', coefficients
+
     fullJobList = set()
     if options.signalCards:
         print "MAKING SIGNAL PART!"
-        wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if 'sig' in x]
+        wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if SIGSUFFIX in x]
         ## loop on all the variations
         for ivar,var in enumerate(wsyst):
             ## loop on all the angular coefficients
-            for coeff in signal_processes:
+            for coeff in coefficients:
                 ## get the list of all other coefficients
-                anticoeff = [proc for proc in signal_processes if not proc==coeff]
+                anticoeff = [proc for proc in coefficients if not proc==coeff]
                 if any(i in var for i in anticoeff) and options.decorrelateSignalScales: continue ## this might work. but who knows...
                 ## loop on both charges
                 for charge in ['plus', 'minus']:
@@ -318,9 +331,10 @@ if __name__ == "__main__":
                     ycut = POSCUT if charge=='plus' else NEGCUT
                     ## exclude the anti charge and the anti coefficients
                     if antich in var: 
+                        print "skipping because ",antich," is in ",var
                         continue
-                    excl_anticoeff = ','.join('W'+charge+'_'+ac+'.*' for ac in anticoeff)
-                    xpsel=' --xp "W{antich}.*,{ahel},Flips,Z.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(antich=antich,ch=charge,ahel=excl_anticoeff)
+                    excl_anticoeff = ','.join(SIGPROC+charge+'_'+ac+'.*' for ac in anticoeff)
+                    xpsel=' --xp "{sig}{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
                     ## ---
 
                     ## make necessary directories
@@ -332,13 +346,13 @@ if __name__ == "__main__":
 
                     ## make specific names and such
                     syst = '' if ivar==0 else var
-                    dcname = "W{charge}_{coeff}_{channel}{syst}".format(charge=charge, coeff=coeff, channel=options.channel,syst=syst)
+                    dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
 
                     ## reweight the boson-pT here
-                    zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                    zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=0 if SIGPROC=='W' else 1)
 
                     ## construct the full weight to be applied
-                    fullWeight = options.weightExpr+'*'+zptWeight if 'W' in options.procsToPtReweight else options.weightExpr
+                    fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
                     BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
 
                     ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
@@ -364,16 +378,16 @@ if __name__ == "__main__":
                                     print(lin)
                     ## ---
     
-    ## this is for all the background cards, excluding the Z
+    ## this is for all the background cards, excluding the Z(W) for Wmass(Wlike)
     if options.bkgdataCards:
         print "MAKING BKG and DATA PART:\n"
         ## again loop on both charges
         for charge in ['plus','minus']:
-            ## remove W signal processes and others that aren't needed
-            xpsel=' --xp "W.*" '
+            ## remove W or Z signal processes and others that aren't needed
+            xpsel=' --xp "{sig}.*" '.format(sig=SIGPROC)
 
             if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-                xpsel+=' --xp "Z.*,TauDecaysW.*" '   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
+                xpsel+=' --xp "{antisig}.*,TauDecaysW.*" '.format(antisig=antiSIGPROC)   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
             ## ---
 
             ## now make the names of the cards etc
@@ -399,12 +413,13 @@ if __name__ == "__main__":
                             print(lin)
             ## ---
     
-    ## this is for background cards which include the Z samples
+    ## this is for background cards which include the Z(W) samples for Wmass (Wlike)
     if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
-        dysyst = ['_dy_nominal']+[x for x in pdfsysts+inclqcdsysts if 'dy' in x]
+        antiSIGSUFFIX = 'dy' if SIGPROC=='W' else 'sig'
+        antisig_syst = ['_'+antiSIGSUFFIX+'_nominal']+[x for x in pdfsysts+inclqcdsysts if antiSIGSUFFIX in x]
         
-        ## loop on the Z related systematics
-        for ivar,var in enumerate(dysyst):
+        ## loop on the Z(W) related systematics for Wmass (Wlike)
+        for ivar,var in enumerate(antisig_syst):
             ## loop on both charges
             for charge in ['plus','minus']:
                 antich = 'plus' if charge == 'minus' else 'minus'
@@ -420,17 +435,17 @@ if __name__ == "__main__":
                     print "Running the DY with systematic: ",var
 
                 ## ---
-                print "Making card for DY process with charge ", charge
+                print "Making card for ",antiSIGSUFFIX, " process with charge ", charge
                 chcut = POSCUT if charge=='plus' else NEGCUT
-                xpsel=' --xp "[^Z]*" --asimov '
+                xpsel=' --xp "[^{antisig}]*" --asimov '.format(antisig=antiSIGPROC)
                 syst = '' if ivar==0 else var
 
                 ## make names for the files and outputs
-                dcname = "Z_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                dcname = "{antisig}_{channel}_{charge}{syst}".format(antisig=antiSIGPROC,channel=options.channel, charge=charge,syst=syst)
 
                 ## construct the final weight. reweight also the DY to whatever new pT spectrum we want
-                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]),1)'
-                fullWeight = options.weightExpr+'*'+zptWeight if 'Z' in options.procsToPtReweight else options.weightExpr
+                zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=1 if SIGPROC=='W' else 0)
+                fullWeight = options.weightExpr+'*'+zptWeight if antiSIGPROC in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
 
@@ -575,7 +590,7 @@ if __name__ == "__main__":
         condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
     Executable = {de}
-    use_x509userproxy = $ENV(X509_USER_PROXY)
+    use_x509userproxy = true
     Log        = {jd}/$(ProcId).log
     Output     = {jd}/$(ProcId).out
     Error      = {jd}/$(ProcId).error

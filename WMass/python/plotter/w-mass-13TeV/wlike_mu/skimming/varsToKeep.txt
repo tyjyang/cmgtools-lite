@@ -140,3 +140,6 @@ LepGood_muonTrackType
 LepGood_chargeConsistency 
 LepGood_dr03TkSumPt 
 LepGood_trackIso 
+LepGood_matchedTrgObjMuPt
+LepGood_matchedTrgObjTkMuPt
+

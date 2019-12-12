@@ -2,15 +2,15 @@ import os
 from datetime import datetime
 
 PROG         = 'w-mass-13TeV/make_wmass_cards.py'
-BASECONFIG   = 'w-mass-13TeV/wmass_mu'
-MCA          = BASECONFIG+'/mca-wmu-mass.txt'
+BASECONFIG   = 'w-mass-13TeV/wlike_mu'
+MCA          = BASECONFIG+'/mca-wlike-mass.txt'
 CUTFILE      = BASECONFIG+'/cuts_wmu.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
 
 QUEUE        = '1nd'
-VAR          = '\'ptMuFull(LepGood1_calPt,LepGood1_eta):LepGood1_eta\''
+VAR          = '\'ptMuFull(returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
 
-TREEPATH     = '/afs/cern.ch/work/m/mdunser/public/wmassTrees/SKIMS_muons_latest/'
+TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/TREES_2LEP_wlike_mu_V1/'
 
 binningeta = [-2.4 + i*0.1 for i in range(49) ]
 binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
@@ -23,7 +23,7 @@ ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 ## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
 WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_selectionToTrigger(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0],LepGood_charge[0])*LepGood_SF2[0]*prefireJetsWeight(LepGood_eta[0])\' '
-OUTDIR       = 'wmass_%s' % datetime.now().strftime('%Y_%m_%d')
+OUTDIR       = 'wlike_%s' % datetime.now().strftime('%Y_%m_%d')
 
 components=[' -s ', ' -b ']
     
@@ -43,9 +43,10 @@ if __name__ == '__main__':
         cmd='python ' + ' '.join([PROG,MCA,CUTFILE,VAR,BINNING,SYSTFILE,OUTDIR,'-C mu']) + \
             (' -W %s ' % WEIGHTSTRING) + (' -P %s ' % TREEPATH) + (' -q %s ' % QUEUE) + c
         if options.dryRun: cmd += '  --dry-run '
-        if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
+        if options.addSyst: cmd += '  --pdf-syst --qcd-syst --qed-syst '
         if not options.genw: cmd += ' --wvar prefsrw '
         cmd += ' -g 2 '
         cmd += ' --decorrelateSignalScales '
-        cmd += ' --vpt-weight Z '#--vpt-weight W --vpt-weight TauDecaysW '
+        cmd += ' --vpt-weight Z --vpt-weight W --vpt-weight TauDecaysW '
+        cmd += ' --wlike '
         os.system(cmd)

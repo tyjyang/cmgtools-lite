@@ -28,9 +28,35 @@ trees with all relevant gen-level variables for W and Z:
 ```
 /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_prefiring_muons_fullTrees/
 ```
+skims with ==2 loose mu (no iso) having all relevant gen-level variables for W and Z (and old trees for other backgrounds and data)
+```
+/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1
+/afs/cern.ch/work/e/emanuele/TREES/TREES_2LEP_wlike_mu_V1 (.url version)
+```
 
+### making friends
+First to an interactive test with few events:
+```
+python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -d <dastasetName> -c 0 -N 20000
+```
+Then flood condor (4hrs / 250k events)
+```
+python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -N 250000  --submit  --runtime 240
+```
 
 ### resubmit friends
 ```
 ./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000
+```
+Then merge. First create a dir where to put the chunks. Make on the same filesystem where the chunks are to make the mv fast (no copy of the files)
+The scripts expects the directory "Chunks", so link it
+```
+mkdir <mainTreeDir>/friends_chunks
+ln -s <mainTreeDir>/friends_chunks Chunks
+./scripts/friendChunkAdd.sh -c <mainTreeDir>/friends
+```
+then if everything went ok you can safely remove the chunks in "<mainTreeDir>/friends_chunks".
+Then do a final check:
+```
+python scripts/checkMergedFriends.py <mainTreeDir>
 ```

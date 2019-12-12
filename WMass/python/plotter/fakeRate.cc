@@ -230,7 +230,7 @@ TH2D* _histo_EleFR_pt_eta_fitPol2_data_ewkDn = nullptr; // used to define a cons
 
 //===============================================================
 
-float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { //, int expected_pdgId=11) {
+float* _getFakeRate(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=0) {
 
   // formula for fake rate including effect of prompt rate
   //
@@ -368,11 +368,23 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   //else if (pr > 1.0) pr = 1.0;  // just in case
   if (pr > 1.0) pr = 1.0;  // just in case
 
+
+  static float rates[2];
+  rates[0] = pr;
+  rates[1] = fr;
+  return rates;
+}
+
+float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { //, int expected_pdgId=11) {
+
+  float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
+  float pr = rates[0];
+  float fr = rates[1];
+
   // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
   float FRnormWgt = 1.0; 
+  double feta = std::fabs(leta); int fid = abs(lpdgId);
   if(fid == 11){
-    //if      (iFR==5) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 1);
-    //else if (iFR==6) FRnormWgt = getFakeRatenormWeight(lpt, feta, fid, 2);
     if      (iFR==5) FRnormWgt = 1.05 + feta*0.06; // from 1.05 to 1.20
     else if (iFR==6) FRnormWgt = 0.95 - feta*0.06;
   }
@@ -411,6 +423,75 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
   return weight;
 
 }
+
+float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2) {
+
+  // hardcoded. It seems that we cannot exceed 8 arguments/function???
+  int iFR=0;
+  int iPR=0;
+
+  float* rates1 = _getFakeRate(lpt1,leta1,lpdgId1,iFR,iPR);
+  float pr1 = rates1[0];
+  float fr1 = rates1[1];
+
+  float* rates2 = _getFakeRate(lpt2,leta2,lpdgId2,iFR,iPR);
+  float pr2 = rates2[0];
+  float fr2 = rates2[1];
+
+  // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
+  float FRnormWgt1 = 1.0; 
+  float FRnormWgt2 = 1.0; 
+  // for muons vary continuosly in eta from 5% to 20% between eta = 0 and eta = 2.4
+  // only muons supported
+  if      (iFR==5) {
+    FRnormWgt1 = 1.05 + std::fabs(leta1)*0.0625;
+    FRnormWgt2 = 1.05 + std::fabs(leta2)*0.0625;
+  }
+  else if (iFR==6) {
+    FRnormWgt1 = 0.95 - std::fabs(leta1)*0.0625;
+    FRnormWgt2 = 0.95 - std::fabs(leta2)*0.0625;
+  }
+
+  float weight;
+
+  // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
+  // so in that case the weight can be safely set as 0, because those events are not used in the analysis
+  if (pr1 < fr1 || pr2 < fr2) {
+    //std::cout << "### Error in weight: FR > PR. Please check!" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  } else if (pr1 == fr1 || pr2 == fr2) {
+    //std::cout << "### Error in weight: division by 0. Please check" << std::endl;
+    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  }
+
+  float denom = (pr1-fr1)*(pr2-fr2);
+  if (passWP1 && passWP2) { // t11
+    weight  = (pr1-1)*(1-fr1)/denom; // pr=1 --> return 0 [contribution to Npf]
+    weight += (pr2-1)*(1-fr2)/denom; // pr=1 --> return 0 [contribution to Nfp]
+    weight += (1-pr1)*(1-pr2)/denom; // pr=1 --> return 0 [contribution to Nff]
+  } else if (!passWP2 && passWP1) { // t10
+    weight  = pr2*(1-fr1)/denom; // [contribution to Npf]
+    weight += fr2*(1-pr1)/denom; // [contribution to Npf]
+    weight -= pr2*(1-pr1)/denom; // [contribution to Nff]
+  } else if (!passWP1 && passWP2) { // t01
+    weight  = fr1*(1-pr2)/denom; // [contribution to Npf]
+    weight += pr1*(1-fr2)/denom; // [contribution to Npf]
+    weight -= pr1*(1-pr2)/denom; // [contribution to Nff]
+  } else {
+    weight  = -fr1*pr2/denom; // [contribution to Npf]
+    weight += -pr1*fr2/denom; // [contribution to Nfp] 
+    weight +=  pr1*pr2/denom; // [contribution to Nfp]     
+  }
+
+  // if (weight != weight)   std::cout << "weight is NaN" << std::endl;
+  // if (fabs(weight) > 10.) std::cout << "event with large weight: " << weight << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+
+  return weight;
+
+}
+
 
 //==============================
 
@@ -616,8 +697,12 @@ float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
   float ayw = std::abs(yw);
 
   if (std::abs(costheta) > 1.) {
-    std::cout << " found an event with weird cosTheta = " << costheta << std::endl;
-    std::cout << " setting event weight to 0" << std::endl;
+    // there are events with prefsrw_decayId=-999 where 
+    // there were not 2 dressedlep / 1lep+1nu that are skipped later by 
+    // the prefsrw_decayId requirement, but they still get into this function
+
+    // std::cout << " found an event with weird cosTheta = " << costheta << std::endl;
+    // std::cout << " setting event weight to 0" << std::endl;
     return 0;
   }
 
@@ -674,7 +759,7 @@ float angularWeight(float yw, float ptw, float costheta, float phi, int pol)
   else if (pol ==  5) return f5*f5Term/(normterm);
   else if (pol ==  6) return f6*f6Term/(normterm);
   else if (pol ==  7) return f7*f7Term/(normterm);
-        
+
   std::cout << "something went wrong in the angular coefficient reweighting" << std::endl;
   return -99999.;
 

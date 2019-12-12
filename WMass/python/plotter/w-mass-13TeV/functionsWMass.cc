@@ -55,6 +55,22 @@ float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
 
 }
 
+float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, float met, float phimet, ULong64_t evt) {
+  float ptL  = returnChargeVal(pt1,ch1,pt2,ch2,evt);
+  float phiL = returnChargeVal(phi1,ch1,phi2,ch2,evt);
+
+  float ptl   = returnChargeVal(pt1,ch2,pt2,ch1,evt);
+  float phil = returnChargeVal(phi1,ch2,phi2,ch1,evt);
+  TVector2 pl = TVector2();
+  pl.SetMagPhi(ptl,phil);
+
+  TVector2 metv = TVector2();
+  metv.SetMagPhi(met,phimet);
+  TVector2 met_wlike = pl+metv;
+
+  return std::sqrt(2*ptL*met_wlike.Mod()*(1-std::cos(phiL-met_wlike.Phi())));
+}
+
 float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {
 
@@ -595,7 +611,7 @@ float ptCorr(float pt, float eta, float phi, float r9, int run, int isData, ULon
 
   if(!isData) {
     if(!rng) rng = new TRandom3();
-    // use eventNumber as seed, otherwise each time the function is called for the same event, the smearer produce a different pt value
+    // use eventNumber as seed, otherwise each time the function is called for the same event, the smearer produce a different pt values
     // the better solution would be to have the corrected pt in the friend trees
     rng->SetSeed(eventNumber); // make it really random across different jobs    
   }
