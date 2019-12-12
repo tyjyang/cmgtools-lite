@@ -46,7 +46,7 @@ if __name__ == '__main__':
         if options.dryRun: cmd += '  --dry-run '
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst --qed-syst '
         if not options.genw: cmd += ' --wvar prefsrw '
-        cmd += ' -g 2 '
+        cmd += ' -g 30 '
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Z --vpt-weight W --vpt-weight TauDecaysW '
         cmd += ' --wlike '
