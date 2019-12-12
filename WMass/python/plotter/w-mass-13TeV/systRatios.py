@@ -331,13 +331,7 @@ if __name__ == "__main__":
 
                         h2_backrolled_1 = dressed2D(ratio,binning,title2D)
                         h2_backrolled_asymmetry_1 = dressed2D(ratio_asymmetry,binning,title2D)
-                        hmax = 0.05 if 'muF' in syst else 0.04
-                        if 'Prefire'  in syst: hmax = 0.40 # yes, not 0.04
-                        if 'effstat'  in syst: hmax = 0.005
-                        if re.match('smooth(mu|el)scaleStat',syst): hmax = 0.0004
-                        if re.match('smoothmuscaleSyst',syst): hmax = 0.005
-                        if re.match('smoothelscaleSyst',syst): hmax = 0.03
-                        if options.singleRap: hmax = 0.10
+                        hmax = min(0.1,h2_backrolled_1.GetMaximum())
                         h2_backrolled_1.GetZaxis().SetRangeUser(-hmax,hmax)
                         h2_backrolled_asymmetry_1.GetZaxis().SetRangeUser(0.,1.)
                         ratios[key] = h2_backrolled_1
