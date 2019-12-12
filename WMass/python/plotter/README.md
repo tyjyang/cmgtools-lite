@@ -22,6 +22,9 @@ submit the file though, so you have to do that. you can also change the grouping
 this step
 
 
+### directory with trees and stuff collected in a google sheet
+https://docs.google.com/spreadsheets/d/1IwG5qKOSV2PKMLKhl6_JQp1kgqXHvUkqSc5GUCGOtUs/edit#gid=719387465
+
 ### FOR W-LIKE:
 
 trees with all relevant gen-level variables for W and Z:

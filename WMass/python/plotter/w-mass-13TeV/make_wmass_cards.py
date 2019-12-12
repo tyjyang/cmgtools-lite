@@ -349,7 +349,7 @@ if __name__ == "__main__":
                     dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
 
                     ## reweight the boson-pT here
-                    zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=0 if SIGPROC=='W' else 1)
+                    zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
 
                     ## construct the full weight to be applied
                     fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
@@ -444,7 +444,7 @@ if __name__ == "__main__":
                 dcname = "{antisig}_{channel}_{charge}{syst}".format(antisig=antiSIGPROC,channel=options.channel, charge=charge,syst=syst)
 
                 ## construct the final weight. reweight also the DY to whatever new pT spectrum we want
-                zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=1 if SIGPROC=='W' else 0)
+                zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=1 if SIGPROC=='W' else 0)
                 fullWeight = options.weightExpr+'*'+zptWeight if antiSIGPROC in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
@@ -491,7 +491,7 @@ if __name__ == "__main__":
                 ## make names for files etc again
                 dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
                 ## construct full reweighting weight. boson-pT reweighting here again
-                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                zptWeight = 'dyptWeight({wvar}_pt,0)'.format(wvar=options.wvar)
                 fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
