@@ -101,13 +101,17 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
 
         ## mW now doesn't just have Up and Down. make many
         if scale == "mW":
-            ## loop on all the masses we want. in MeV.
-            for mass in [80370, 80420, 80470]:
+            ## loop on all the masses we want. in index of 5 MeV variations each
+            masses  = ['mass_{m}'.format(m = j).replace('-','m') for j in range(-20,0)]
+            masses += ['mass_0']
+            masses += ['mass_p{m}'.format(m = j).replace('-','m') for j in range(1,21)]
+
+            for mass in masses:
                 postfix = "_{proc}_{syst}{mval}".format(proc=incl_mca.split('_')[1],syst=scale,mval=mass)
                 mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
 
                 ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
-                fstring = 'mass_'+str(mass)
+                fstring = str(mass)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
 
@@ -349,7 +353,7 @@ if __name__ == "__main__":
                     dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
 
                     ## reweight the boson-pT here
-                    zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=0 if SIGPROC=='W' else 1)
+                    zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
 
                     ## construct the full weight to be applied
                     fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
@@ -444,7 +448,7 @@ if __name__ == "__main__":
                 dcname = "{antisig}_{channel}_{charge}{syst}".format(antisig=antiSIGPROC,channel=options.channel, charge=charge,syst=syst)
 
                 ## construct the final weight. reweight also the DY to whatever new pT spectrum we want
-                zptWeight = 'dyptWeight(pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),{isZ})'.format(isZ=1 if SIGPROC=='W' else 0)
+                zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=1 if SIGPROC=='W' else 0)
                 fullWeight = options.weightExpr+'*'+zptWeight if antiSIGPROC in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
@@ -491,7 +495,7 @@ if __name__ == "__main__":
                 ## make names for files etc again
                 dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
                 ## construct full reweighting weight. boson-pT reweighting here again
-                zptWeight = 'dyptWeight(pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]),0)'
+                zptWeight = 'dyptWeight({wvar}_pt,0)'.format(wvar=options.wvar)
                 fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---

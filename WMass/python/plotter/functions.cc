@@ -627,6 +627,64 @@ float tkmt_tkmetEleCorr(float tkmet_pt, float tkmet_phi, float lep_pt, float lep
 //==================================================
 
 
+bool valueInsideRange(float value, float low, float high) {
+
+  if (value > low and value < high) return true;
+  else                              return false;
+
+}
+
+//==================================================
+
+float varLepPlusFromPair(float var1, int pdgid1, float var2, int pdgid2) {
+  
+  // pdg ID > 0 for particles, i.e. negative leptons
+  // check that two leptons have opposite charge, return dummy value if not
+  if (pdgid1*pdgid2 > 0) return -9999.0;
+
+  if (pdgid1 > 0) return var2;
+  else            return var1;
+
+}
+
+//==================================================
+float varLepMinusFromPair(float var1, int pdgid1, float var2, int pdgid2) {
+  
+  // pdg ID > 0 for particles, i.e. negative leptons
+  // check that two leptons have opposite charge, return dummy value if not
+  if (pdgid1*pdgid2 > 0) return -9999.0;
+
+  if (pdgid1 > 0) return var1;
+  else            return var2;
+
+}
+
+//==================================================
+float varChargedLepFromPair(int requestedCharge, float var1, int pdgid1, float var2, int pdgid2) {
+  
+  // requestedCharge must be > 0 for positive charge and < 0 otherwise
+
+  // pdg ID > 0 for particles, i.e. negative leptons
+  // check that two leptons have opposite charge, return dummy value if not
+  if (pdgid1*pdgid2 > 0)   return -9999.0;
+  if (requestedCharge > 0) return (pdgid1 < 0) ? var1 : var2;
+  else                     return (pdgid1 > 0) ? var1 : var2;
+
+}
+
+//==================================================
+TRandom3 *randy_v2 = NULL;
+double randomVarFromPair(float var1, float var2) {
+  
+  // pdg ID > 0 for particles, i.e. negative leptons
+  // check that two leptons have opposite charge, return 0 if not
+  if (!randy_v2) randy_v2 = new TRandom3(0);
+  if (randy_v2->Rndm() > 0.5) return var1;
+  else                        return var2;
+
+}
+
+
 
 void functions() {}
 
