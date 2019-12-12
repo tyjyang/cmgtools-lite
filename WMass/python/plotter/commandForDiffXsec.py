@@ -9,8 +9,9 @@ skipMergeRoot=1
 skipSingleCard=1
 skipMergeCard=1 # disabled if fitting each charge (see below)
 skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
-flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
-#flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
+#flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
+#flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI"
+flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
 
 # exclude some nuisances
 # some more things are set below
@@ -71,7 +72,7 @@ uncorrelateQCDscalesByCharge = True
 uncorrelateNuisancesByCharge = ""  # use regular expression, otherwise keep ""
 uncorrelatePtscaleByEtaside = False if useAnalyticSmoothPtScales else True
 # note that there is always a part of the uncertainty that is charge-uncorrelated
-freezePOIs = False  # no need for dedicated postfix, added automatically to the one given below
+freezePOIs = True  # no need for dedicated postfix, added automatically to the one given below
 skipFitData = False
 skipFitAsimov = False
 
@@ -80,30 +81,28 @@ if not skipMergeCardFlavour:
 
 # el
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
-folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
-#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat/"
-#folder_el = "diffXsec_el_2019_07_20_latestScaleFactor_AllIn_IDwithMConlyStat_NEWPROCESSNAME/"
-th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
+#th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to46p5_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to46p5.root"
-#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI_ptMax45/"
-#th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
+folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI_ptMax45/"
+th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
 
 #folder_el = "diffXsec_el_2019_09_22_onlyZandTau_recoPt29to57_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to57.root"
 
 
 # mu
-folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
-th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+#th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
 #folder_mu = "diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to57_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt25to57.root"
-#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
-#th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
+folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_ptMax45.root"
 #folder_mu = "diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to46p5_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to46p5.root"
 
