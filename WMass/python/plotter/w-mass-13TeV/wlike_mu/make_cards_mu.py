@@ -10,7 +10,7 @@ SYSTFILE     = BASECONFIG+'/systsEnv.txt'
 QUEUE        = '1nd'
 VAR          = '\'ptMuFull(returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
 
-TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/TREES_2LEP_wlike_mu_V1/'
+TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V1/'
 
 binningeta = [-2.4 + i*0.1 for i in range(49) ]
 binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
@@ -22,7 +22,8 @@ ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 ## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_selectionToTrigger(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0],LepGood_charge[0])*LepGood_SF2[0]*prefireJetsWeight(LepGood_eta[0])\' '
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(LepGood_pdgId[1],LepGood_calPt[1],LepGood_eta[1])*prefireJetsWeight(LepGood_eta[0])*prefireJetsWeight(LepGood_eta[1])\' '
+
 OUTDIR       = 'wlike_%s' % datetime.now().strftime('%Y_%m_%d')
 
 components=[' -s ', ' -b ']
