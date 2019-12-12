@@ -84,7 +84,7 @@ def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='in
 
 ## this function here is pretty important to do all the theory systematics
 ## ---
-def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False,signal=True,overrideDecorrelation=False):
+def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False,ptBinned=True,overrideDecorrelation=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
 
@@ -115,41 +115,42 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 qcdsysts.append(postfix)
 
-        ## all the others as usual with an Up and Down variation
-        for idir in ['Up','Dn']:
-            postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
-            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-            if 'muR' in scale or 'muF' in scale:
-
-                ## for the signal keep as is for the QCD scales
-                if signal:
-                    for ipt in range(1,11): ## start from 1 to 10
-                        for coeff in coefficients if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
-                            for pm in ['plus', 'minus']:
-                                ## have to redo the postfix for these
-                                postfix = "_{proc}_{coeff}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,coeff=coeff,ch=pm)
-                                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                                ptcut = wptBinsScales(ipt)
-                                wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
-                                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                                qcdsysts.append(postfix)
-                else:
-                    ## for the Z only do the unnumbered ones
-                    postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
-                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                    wgtstr = 'qcd_{sc}{idir}'.format(sc=scale,idir=idir)
-                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+        else:
+            ## all the others as usual with an Up and Down variation
+            for idir in ['Up','Dn']:
+                postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
+                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                if 'muR' in scale or 'muF' in scale:
+    
+                    ## for the signal keep as is for the QCD scales
+                    if ptBinned:
+                        for ipt in range(1,11): ## start from 1 to 10
+                            for coeff in coefficients if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
+                                for pm in ['plus', 'minus']:
+                                    ## have to redo the postfix for these
+                                    postfix = "_{proc}_{coeff}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,coeff=coeff,ch=pm)
+                                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                                    ptcut = wptBinsScales(ipt)
+                                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                                    qcdsysts.append(postfix)
+                    else:
+                        ## for the Z only do the unnumbered ones
+                        postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
+                        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                        wgtstr = 'qcd_{sc}{idir}'.format(sc=scale,idir=idir)
+                        mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                        inclqcdsysts.append(postfix)
+    
+                else: ## alphaS is left here. keep as is i guess
+                    ## don't do mW here again
+                    if "mW" in scale:
+                        continue
+                    ## ---
+                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
+                    qcdsysts.append(postfix)
                     inclqcdsysts.append(postfix)
-
-            else: ## alphaS is left here. keep as is i guess
-                ## don't do mW here again
-                if "mW" in scale:
-                    continue
-                ## ---
-                mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
-                qcdsysts.append(postfix)
-                inclqcdsysts.append(postfix)
-
+    
     print "written ",syst," systematics relative to ",incl_mca
 
 def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
@@ -267,12 +268,22 @@ if __name__ == "__main__":
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+["mW"])  # ["wptSlope", "mW"] we can remove wpt-slope, saves few jobs
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_dy',signal=False)
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales,incl_mca='incl_wtau',overrideDecorrelation=True)
+        if options.wlike:
+            wmasses = []
+            zmasses = ["mW"]
+            ptBinnedScalesForW = False
+        else:
+            wmasses = ["mW"]
+            zmasses = []
+            ptBinnedScalesForW = True
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+wmasses,incl_mca='incl_sig' ,ptBinned=ptBinnedScalesForW)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+zmasses,incl_mca='incl_dy'  ,ptBinned=False)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_wtau',ptBinned=False,overrideDecorrelation=True)
     if options.addQEDSyst:
-        writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
-        writeFSRSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # DY + jets
+        if options.wlike:
+            writeFSRSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # DY + jets
+        else:
+            writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
     
     if len(pdfsysts+qcdsysts)>1:
         for proc in ['dy','wtau']:
@@ -309,7 +320,7 @@ if __name__ == "__main__":
     fullJobList = set()
     if options.signalCards:
         print "MAKING SIGNAL PART!"
-        wsyst = ['']+[x for x in pdfsysts+qcdsysts+etaeffsysts+fsrsysts if SIGSUFFIX in x]
+        wsyst = ['']+[x for x in pdfsysts+qcdsysts+inclqcdsysts+etaeffsysts+fsrsysts if SIGSUFFIX in x]
         ## loop on all the variations
         for ivar,var in enumerate(wsyst):
             ## loop on all the angular coefficients
@@ -420,8 +431,8 @@ if __name__ == "__main__":
     ## this is for background cards which include the Z(W) samples for Wmass (Wlike)
     if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
         antiSIGSUFFIX = 'dy' if SIGPROC=='W' else 'sig'
-        antisig_syst = ['_'+antiSIGSUFFIX+'_nominal']+[x for x in pdfsysts+inclqcdsysts if antiSIGSUFFIX in x]
-        
+        antisig_syst = ['_'+antiSIGSUFFIX+'_nominal']+[x for x in pdfsysts+inclqcdsysts if antiSIGSUFFIX in x] # for the Z in W mass the QCDscales are unbinned, for Wlike the W QCD scales are also unbinned => only need inclqcdsysts
+
         ## loop on the Z(W) related systematics for Wmass (Wlike)
         for ivar,var in enumerate(antisig_syst):
             ## loop on both charges
@@ -472,7 +483,7 @@ if __name__ == "__main__":
     
     ## repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
     if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
-        wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts if 'wtau' in x]
+        wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts+inclqcdsysts if 'wtau' in x] # for the W mass the QCD scales are binned, for Wlike they are unbinned, so need qcdsysts+inclqcdsysts to be general
         ## loop on systmatic variations
         for ivar,var in enumerate(wtausyst):
             ## loop on both charges
