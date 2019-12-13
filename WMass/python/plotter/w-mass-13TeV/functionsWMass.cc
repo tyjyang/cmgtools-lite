@@ -1248,4 +1248,26 @@ float _muonTriggerSF_2l_trigMatch(int requiredCharge, // pass positive or negati
 
 }
 
+
+bool triggerMatch(int requiredCharge, // pass positive or negative number, depending on what you want 
+		  float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+		  int pdgId1, int pdgId2  // used to decide which lepton has the required charge
+		  ) {
+
+  int pdgId = 0;
+  // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
+  // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
+  if (requiredCharge * pdgId1 < 0) {
+    // use lep 1
+    if (matchedTrgObjMuPt_l1 < 0.0) return 0;  // if no match to trigger, discard events
+    else                            return 1;
+  } else {
+    // use lep 2
+    pdgId = pdgId2;
+    if (matchedTrgObjMuPt_l2 < 0.0) return 0;  // if no match to trigger, discard events
+    else                            return 1;
+  }
+
+}
+
 #endif
