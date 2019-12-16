@@ -93,9 +93,9 @@ if __name__ == '__main__':
         tmp_condor = open(tmp_condor_filename,'w')
         tmp_condor.write('''Executable = mergeScript.sh
 use_x509userproxy = true
-Log        = merge_{ds}.log
-Output     = merge_{ds}.out
-Error      = merge_{ds}.error
+Log        = log_merge_{ds}_$(ProcId).log
+Output     = log_merge_{ds}_$(ProcId).out
+Error      = log_merge_{ds}_$(ProcId).error
 getenv      = True
 
 transfer_input_files  = fullMergeTrees.py

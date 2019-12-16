@@ -3,7 +3,6 @@
 incl_sig              : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt"
 incl_bkgmc            : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-bkgmc.txt"
 incl_dy               : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-dy.txt"
-incl_wtau             : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-wtau.txt"
 
 incl_datafakes        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
 
@@ -26,9 +25,6 @@ incl_data             : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-d
 # on 29/03/2019lep efficiency for Z was missing !!!!
 #Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Up", NormSystematic=0.04, SkipMe=True
 #Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Dn", NormSystematic=0.04, SkipMe=True
-
-# TauDecaysW_lepeff_Up   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Up", NormSystematic=0.04, SkipMe=True
-# TauDecaysW_lepeff_Dn   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Dn", NormSystematic=0.04, SkipMe=True
 
  
 ## # fake-lepton background systematics (shape systematics)

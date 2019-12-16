@@ -35,7 +35,7 @@ if __name__ == '__main__':
         cmd = 'python w-helicity-13TeV/make2DTemplates.py --outdir {od} {d} {ch}'.format(od=tmp_outdir,d=results['cardsdir'], ch=muEl) 
         os.system(cmd)
 
-    charges = ['minus']#['plus','minus']
+    charges = ['plus','minus']
     ## plot syst ratios
     ## ================================
     if options.make in ['all', 'syst']:
@@ -49,9 +49,8 @@ if __name__ == '__main__':
         systs += ['{pol}muR{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
         systs += ['{pol}muF{i}{charge}'   .format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
         systs += ['{pol}muRmuF{i}{charge}'.format(pol=pol,i=i,charge=charge) for i in range(1,11) for pol in ['left','right','long'] for charge in ['plus','minus']]
-        systs += ['smoothelscale{idx}'.format(idx=i) for i in range(0,4)]
-        systs += ['smoothelscaleStat{idx}'.format(idx=i) for i in range(0,98)] + ['smoothelscaleSyst{idx}pt{ipt}'.format(idx=i,ipt=j) for i in range(2) for j in range(2)]
-        systs += ['smoothmuscaleStat{idx}'.format(idx=i) for i in range(0,99)] + ['smoothmuscaleSyst{idx}'.format(idx=i) for i in range(2,6)]
+        systs += ['smoothelscaleStat{idx}'.format(idx=i) for i in range(0,98)] + ['smoothelscaleSyst{idx}eta{ieta}pt{ipt}{ch}'.format(idx=i,ieta=ieta,ipt=ipt,ch=charge) for i in range(2) for ieta in range(8) for ipt in range(2) for charge in ['plus','minus']] 
+        systs += ['smoothmuscaleStat{idx}'.format(idx=i) for i in range(0,99)] + ['smoothmuscaleSyst{idx}eta{ieta}{ch}'.format(idx=i,ieta=ieta,ch=charge) for i in range(2,6) for ieta in range(4) for charge in (['plus','minus'] if i!=3 else [''])]
         systs += ['CMS_Wmu_FR_norm']
         systs += ['CMS_Wmu_FRmu_slope']
         systs += ['']
@@ -117,7 +116,7 @@ if __name__ == '__main__':
                     print 'NOW plotting combined YW...'
                     cmd  = 'python w-helicity-13TeV/plotYWCompatibility.py '
                     cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
+                    cmd += ' --infile-lep {infl} --infile-mu {infmu} --infile-el {infel} --outdir {od} --suffix {suf}  --longBkg --nolong '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor+'_comp', infl=results[tmp_file],infmu=results[tmp_file+'_mu'],infel=results[tmp_file+'_el'])
                     if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
                         cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
                     for norm in normstr:
@@ -126,7 +125,7 @@ if __name__ == '__main__':
                 # do the single plots for both the single channels and the combined (w/o the el-mu comparison)
                 cmd  = 'python w-helicity-13TeV/plotYW.py '
                 cmd += ' -C plus,minus --xsecfiles {xp},{xm} -y {cd}/binningYW.txt '.format(xp=results['xsecs_plus'],xm=results['xsecs_minus'],cd=results['cardsdir'])
-                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
+                cmd += ' --infile {inf} --outdir {od} --type {t} --suffix {suf}  --longBkg --nolong '.format(od=tmp_outdir, t=t, suf=tmp_suffix+'_'+fitflavor, inf=results[tmp_file])
                 if 'alt_xsecs_plus' in results.keys() and 'alt_xsecs_minus' in results.keys(): 
                     cmd += ' --altxsecfiles {xp},{xm} '.format(xp=results['alt_xsecs_plus'],xm=results['alt_xsecs_minus'])
                 for norm in normstr:
@@ -220,8 +219,10 @@ if __name__ == '__main__':
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_(floating|fixed)POIs_{toyhess}'.format(toyhess=t),i)]:
                 tmp_suffix = '_'.join(tmp_file.split('_')[1:])
-                nuisancesAndPOIs = ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf,alphaS', 'muR,muF,muRmuF,alphaS,wpt,mW', 'CMS_,fsr', 'ErfPar']
+                nuisancesAndPOIs = []
+                nuisancesAndPOIs += ['.*', 'FakesPtNormUncorrelated', 'FakesPtSlopeUncorrelated', 'FakesEtaUncorrelated', 'ZEtaChargeUncorrelated', 'pdf,alphaS', 'mW,smoothfsr,CMS_lumi_13TeV', 'ErfPar']
                 nuisancesAndPOIs += ['longmu', 'leftmu', 'rightmu']
+                nuisancesAndPOIs += ['norm_W']
                 if 'floatingPOIs' in results[tmp_file]: nuisancesAndPOIs += ['W{charge}_{pol}.*_mu'.format(charge=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long'] ]
                 for nuis in nuisancesAndPOIs:
                     diffNuisances_cmd = 'python w-helicity-13TeV/diffNuisances.py --all --format "html,latex" --outdir {od} --pois {p}'.format(od=tmp_outdir, p=nuis)
@@ -231,3 +232,6 @@ if __name__ == '__main__':
         os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_pdfalphaS_fixedPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_pdfalphaS_fixedPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(od=tmp_outdir))
         for pol in ['left','right']:
             os.system('python w-helicity-13TeV/plotExpObsPull.py --exp {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_asimov.latex --obs {od}/nuisances_{pol}mu_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(pol=pol,od=tmp_outdir))
+        ## these are to check the compatibility of common uncertainties between the channels
+        for group in ['normW','mWsmoothfsrCMSlumi13TeV','pdfalphaS','mWsmoothfsrCMSlumi13TeV'] + ['{pol}mu'.format(pol=pol) for pol in 'left','right','long']:
+            os.system('python w-helicity-13TeV/compareNuisancesComb.py --el {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_el.latex --mu {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data_mu.latex --lep {od}/nuisances_{gr}_floatingPOIs_hessian_bbb1_syst1_data.latex --outdir {od}'.format(gr=group,od=tmp_outdir))

@@ -722,7 +722,7 @@ def addSmoothFSRSyst(infile,regexp,charge,outdir=None,isMu=True,debug=False):
             c.SaveAs("fsr_syst_proj_%s.png" % tmp_name)
 
         ## create the new syst histogram with the pol1 results
-        outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smoothfsr'
+        outname_2d = tmp_nominal_2d.GetName().replace('backrolled','')+'_smoothfsr'+flav
         tmp_scaledHisto_up = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Up'))
         tmp_scaledHisto_dn = copy.deepcopy(tmp_nominal_2d.Clone(outname_2d+'Down'))
 
@@ -881,6 +881,14 @@ def writeChargeMetaGroup(cardfile,signals):
      for y in xrange(maxiY+1):
           cardfile.write('W_Ybin_{y} chargeMetaGroup = Wplus_Ybin_{y} Wminus_Ybin_{y}\n'.format(y=y))
 
+# trick to store the longitudinal W postfit in the output tree
+def writeLongGroup(cardfile,signals):
+    maxiY = max([int(proc.split('_')[-1]) for proc in signals])
+    for charge in ['plus','minus']:
+        cardfile.write('\n')
+        for y in xrange(maxiY+1):
+            cardfile.write('W{charge}_long_Ybin_{y} sumGroup = W{charge}_long_Ybin_{y}\n'. format(charge=charge,y=y))
+
 def cleanProcessName(name):
     tokens = name.split('_')
     uniquet = reduce(lambda l, x: l+[x] if x not in l else l, tokens, [])
@@ -920,10 +928,10 @@ if __name__ == "__main__":
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins are out-of-acceptance. With format 14,15 ')
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
     parser.add_option(     '--ybinsBkgLnN', dest='ybinsBkgLnN', type='float', default=1.3, help='add a common lnN constraint to all the L,R components treated as bkg.')
-    parser.add_option(     '--longBkg'   , dest='longBkg' , default=False, action='store_true', help='Treat all bins for long as background. Different from --long-lnN, which would also assing an additional LnN uncertainty')
+    parser.add_option(     '--longSig'    , dest='longSig', default=False, action='store_true', help='Treat all bins for long as signal.')
     parser.add_option('-p','--POIs', dest='POIsToMinos', type='string', default=None, help='Decide which are the nuiscances for which to run MINOS (a.k.a. POIs). Default is all non fixed YBins. With format poi1,poi2 ')
     parser.add_option('--fp', '--freezePOIs'    , dest='freezePOIs'    , action='store_true'               , help='run tensorflow with --freezePOIs (for the pdf only fit)');
-    parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=1.3, help='add a common lnN constraint to all longitudinal components. I t activates --longBkg')
+    parser.add_option(        '--long-lnN', dest='longLnN', type='float', default=1.3, help='add a common lnN constraint to all longitudinal components. It de-activates --longSig')
     parser.add_option(     '--sf'    , dest='scaleFile'    , default='', type='string', help='path of file with the scaling/unfolding')
     parser.add_option(     '--xsecMaskedYields', dest='xsecMaskedYields', default=False, action='store_true', help='use the xsec in the masked channel, not the expected yield')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
@@ -970,10 +978,10 @@ if __name__ == "__main__":
     print bkgYBins
     print '---------------------------------'
     
-    if options.longLnN: options.longBkg = True
+    if options.longLnN: options.longSig = False
 
-    if options.longBkg:
-        print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATION AS BACKGROUND'
+    if options.longSig:
+        print 'I WILL TREAT ALL BINS FOR LONGITUDINAL POLARIZATION AS SIGNAL'
         print '---------------------------------'
 
     if options.rescaleWBackToMCaNLO:
@@ -1255,7 +1263,7 @@ if __name__ == "__main__":
                         pos = 1; neg =  0;
                         for i,proc in enumerate(realprocesses):
                             if 'left' in proc or 'right' in proc or ('long' in proc and not options.longLnN):
-                                if "long" in proc and options.longBkg:
+                                if "long" in proc and not options.longSig:
                                     procnames.append(proc)
                                     procids.append( str(pos)); 
                                     pos += 1
@@ -1299,10 +1307,11 @@ if __name__ == "__main__":
                 for ybin in xrange(len(ybins['long'])-1):
                     longW_proc = 'W{ch}_long_Ybin_{yb}'.format(ch=charge,yb=ybin)
                     combinedCard.write('norm_'+longW_proc+'       lnN    ' + ' '.join([kpatt % (options.longLnN if longW_proc in x else '-') for x in realprocesses])+'\n')
-            for ybfix in bkgYBins:
-                for pol in ['left','right']:
-                    lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
-                    combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
+            if options.ybinsBkgLnN:
+                for ybfix in bkgYBins:
+                    for pol in ['left','right']:
+                        lrW_proc = 'W{ch}_{pol}_Ybin_{yb}'.format(ch=charge,pol=pol,yb=ybfix)
+                        combinedCard.write('norm_'+lrW_proc+'       lnN    ' + ' '.join([kpatt % (options.ybinsBkgLnN if lrW_proc in x else '-') for x in realprocesses])+'\n')
         # if 'el' in options.bin:
         #     combinedCard.write('norm_fakes       lnN    ' + ' '.join([kpatt % ('1.2' if 'fakes' in x else '-') for x in realprocesses])+'\n')
     
@@ -1459,14 +1468,16 @@ if __name__ == "__main__":
         tmp_sigprocs = [p for p in realprocesses if 'Wminus' in p or 'Wplus' in p]
         polarizations = ['left','right','long']
         # regGroups don't allow background bins inside
-        polToRegularize = polarizations if not options.longBkg else ['left','right']
+        polToRegularize = polarizations if options.longSig else ['left','right']
         
         print '============================================================================='
         print 'I WILL NOW WRITE CHARGE GROUPS AND ALL THAT STUFF FOR THE FOLLOWING PROCESSES'
         print tmp_sigprocs
         print '============================================================================='
-        # in case long is missing, the sum groups will only sum WR and WL, while polGroup cannt be defined
+        # in case long is missing, the sum groups will only sum WR and WL, while polGroup cannot be defined
+        # also add one group / longitudinal component to save it in the output tree
         if not options.freezePOIs:
+            writeLongGroup(combinedCard,tmp_sigprocs)
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='polGroup')
             writePolGroup(combinedCard,tmp_sigprocs,polarizations,grouping='sumGroup')
             writeRegGroup(combinedCard,tmp_sigprocs,polToRegularize,grouping='regGroup',bkgYBins=bkgYBins)
