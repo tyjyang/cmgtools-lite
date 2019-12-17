@@ -1365,6 +1365,59 @@ float triggerSFforChargedLeptonMatchingTrigger(int requiredCharge, // pass posit
 
 }
 
+float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass positive or negative number, depending on what you want 
+						 bool matchTrigger_l1, bool matchTrigger_l2,
+						 int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
+						 float pt1, float pt2,
+						 float eta1, float eta2
+						 ) {
+
+  bool thisLepMatchesTrigger = false;
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+
+  bool otherLepMatchesTrigger = false;
+  int pdgId_other = 0;
+  float pt_other  = 0.0;
+  float eta_other = 0.0;
+  
+  // pdgID > 0 for negative leptons
+  if (requiredCharge * pdgid1 < 0) {
+    pdgId = pdgid1;
+    pt    = pt1;
+    eta   = eta1;    
+    thisLepMatchesTrigger = matchTrigger_l1;
+    pdgId_other = pdgid2;
+    pt_other    = pt2;
+    eta_other   = eta2;    
+    otherLepMatchesTrigger = matchTrigger_l2;
+  } else {
+    pdgId = pdgid2;
+    pt    = pt2;
+    eta   = eta2;
+    thisLepMatchesTrigger = matchTrigger_l2;
+    pdgId_other = pdgid1;
+    pt_other    = pt1;
+    eta_other   = eta1;    
+    otherLepMatchesTrigger = matchTrigger_l1;
+  }
+
+  // try using 1 if both lepton match trigger (efficiency for trigger in 2 lepton phase space is ~ 100%)
+  if (thisLepMatchesTrigger and otherLepMatchesTrigger) {
+    return 1;
+  } else {
+    if (thisLepMatchesTrigger)
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
+    else if (otherLepMatchesTrigger)
+      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1*requiredCharge);	 
+    else
+      return 0.0;  // this should not happen, but just in case
+  }
+
+}
+
+
 bool isOddEvent(ULong64_t evt) {
 
   return (evt%2) ? 1 : 0;       
