@@ -424,9 +424,35 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
 }
 
-float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2) {
+//--------------------------------
 
-  // hardcoded. It seems that we cannot exceed 8 arguments/function???
+float getSimpleFakeRateWeight_2l(float fr1, bool passWP1,
+				 float fr2, bool passWP2) 
+{
+
+  int nfail = (passWP1 == false) + (passWP2 == false);
+  switch (nfail) {
+  case 1: {
+    double fr = (passWP1) ? fr2 : fr1; // if n1 pass, n2 fails and I return its FR 
+    return fr/(1-fr);
+  }
+  case 2: {
+    return -fr1*fr2/((1-fr1)*(1-fr2));
+  }
+  default: return 0;
+  }
+}
+
+
+//==============================
+
+float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, bool addNppToFormula = false) {
+
+  // addNppToFormula should stay false, it represents the prompt lepton component, which is basically the Z
+  // see plots here: 
+  // http://mciprian.web.cern.ch/mciprian/wmass/13TeV/Wlike/TREE_4_WLIKE_MU/comparisons/chPlus_oddEvts_withPrefire_trigSFonlyZ__1ifBothLepMatchTrig_elseOnPlusLepIfMatchElseOther_addTkMuTrigger_testWlikeAnalysis_checkFRformula/
+  // where in red the FR formula includes that term, while the grey does not
+  //
   int iFR=0;
   int iPR=0;
 
@@ -452,7 +478,7 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
     FRnormWgt2 = 0.95 - std::fabs(leta2)*0.0625;
   }
 
-  float weight;
+  float weight = 0.0;
 
   // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
   // so in that case the weight can be safely set as 0, because those events are not used in the analysis
@@ -466,24 +492,35 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
     return 0;
   }
 
+
+  // Nfakes = p1*f2*Npf + f1*p2*Nfp + f1*f2*Nff
+  //
   float denom = (pr1-fr1)*(pr2-fr2);
+  
   if (passWP1 && passWP2) { // t11
-    weight  = (pr1-1)*(1-fr1)/denom; // pr=1 --> return 0 [contribution to Npf]
-    weight += (pr2-1)*(1-fr2)/denom; // pr=1 --> return 0 [contribution to Nfp]
-    weight += (1-pr1)*(1-pr2)/denom; // pr=1 --> return 0 [contribution to Nff]
+    if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
+    weight -= pr1*fr2 * (1.-pr2)*(1.-fr1); // pr=1 --> return 0 [contribution to Npf]
+    weight -= fr1*pr2 * (1.-pr1)*(1.-fr2); // pr=1 --> return 0 [contribution to Nfp]
+    weight += fr1*fr2 * (1.-pr1)*(1.-pr2); // pr=1 --> return 0 [contribution to Nff]
   } else if (!passWP2 && passWP1) { // t10
-    weight  = pr2*(1-fr1)/denom; // [contribution to Npf]
-    weight += fr2*(1-pr1)/denom; // [contribution to Npf]
-    weight -= pr2*(1-pr1)/denom; // [contribution to Nff]
+    if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
+    weight += pr1*fr2 * pr2*(1.-fr1); // [contribution to Npf]
+    weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Npf]
+    weight -= fr1*fr2 * pr2*(1.-pr1); // [contribution to Nff]    
   } else if (!passWP1 && passWP2) { // t01
-    weight  = fr1*(1-pr2)/denom; // [contribution to Npf]
-    weight += pr1*(1-fr2)/denom; // [contribution to Npf]
-    weight -= pr1*(1-pr2)/denom; // [contribution to Nff]
+    if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
+    weight += pr1*fr2 * fr1*(1.-pr2); // [contribution to Npf]
+    weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Npf]
+    weight -= fr1*fr2 * pr1*(1.-pr2); // [contribution to Nff]
   } else {
-    weight  = -fr1*pr2/denom; // [contribution to Npf]
-    weight += -pr1*fr2/denom; // [contribution to Nfp] 
-    weight +=  pr1*pr2/denom; // [contribution to Nfp]     
+    if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
+    weight -= pr1*fr2 * fr1*pr2; // [contribution to Npf]
+    weight -= fr1*pr2 * pr1*fr2; // [contribution to Nfp] 
+    weight += fr1*fr2 * pr1*pr2; // [contribution to Nfp]     
   }
+
+  weight = weight / denom;
+  //weight = getSimpleFakeRateWeight_2l(fr1, passWP1, fr2, passWP2);
 
   // if (weight != weight)   std::cout << "weight is NaN" << std::endl;
   // if (fabs(weight) > 10.) std::cout << "event with large weight: " << weight << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;

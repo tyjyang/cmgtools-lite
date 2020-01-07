@@ -16,9 +16,15 @@ class CheckOneFriend:
         self.ftree = friendTree
         self.skipFriend = skipFriend
     def check(self,verbose=0):
-        if not os.path.isfile(self.file): 
-            print "File %s does not exist!" % self.file
-            return False
+        if not os.path.isfile(self.file):             
+            urlfile = self.file+".url"
+            if os.path.isfile(urlfile):
+                with open(urlfile) as fp:
+                    for line in fp:
+                        self.file = line.strip()
+            else:
+                print "File %s does not exist!" % self.file
+                return False
         tf = ROOT.TFile.Open(self.file)
         if not tf:
             print "ERROR! Unable to open file %s" % (self.file)
@@ -38,8 +44,14 @@ class CheckOneFriend:
             return True
         else:
             if not os.path.isfile(self.friendfile): 
-                print "Friend file %s does not exist!" % self.friendfile
-                return False
+                urlfile = self.friendfile+".url"
+                if os.path.isfile(urlfile):
+                    with open(urlfile) as fp:
+                        for line in fp:
+                            self.friendfile = line.strip()
+                else:
+                    print "Friend file %s does not exist!" % self.friendfile
+                    return False
             ff = ROOT.TFile.Open(self.friendfile)
             if not ff:
                 print "ERROR! Unable to open file %s" % (self.friendfile)
