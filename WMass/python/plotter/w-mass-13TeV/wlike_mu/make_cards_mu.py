@@ -18,15 +18,13 @@ binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
 etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 
 ## variable binning in pt
-ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
+ptbinning = '['+','.join(str(i) for i in range(26,54))+']'  # for Wlike 46 is too low
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
 ## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
 WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(LepGood_pdgId[1],LepGood_calPt[1],LepGood_eta[1])*prefireJetsWeight(LepGood_eta[0])*prefireJetsWeight(LepGood_eta[1])\' '
 
 OUTDIR       = 'wlike_%s' % datetime.now().strftime('%Y_%m_%d')
-
-components=[' -s ', ' -b ']
     
 
 if __name__ == '__main__':
@@ -36,9 +34,27 @@ if __name__ == '__main__':
     parser.add_option('-d', '--dry-run', dest='dryRun' , action='store_true', default=False, help='Do not run the job, only print the command');
     parser.add_option("--syst"         , dest="addSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--genw"                         , action="store_true", default=False, help="use genw (dressed leptons) instead of prefsrw.");
+    parser.add_option("-r", "--run", dest="run", type="string", default="sb", help="Which components to run: s for signal, b for backgrounds or sb for both");
+    parser.add_option("-p", "--print-only", dest="printOnly",   action="store_true", default=False, help="Just print commands of this script, do not execute anything");
     (options, args) = parser.parse_args()
     
     if options.suffix: OUTDIR += ('_%s' % options.suffix)
+
+    components=[]
+    if "s" in options.run:
+        components.append(" -s ")
+    if "b" in options.run:
+        components.append(" -b ")
+
+    print ""
+    print "================================="
+    print "RECO BINNING (eta - pt)"
+    print "---------------------------------"
+    print BINNING
+    #print etabinning
+    #print ptbinning
+    print "================================="
+    print ""
 
     for c in components:
         cmd='python ' + ' '.join([PROG,MCA,CUTFILE,VAR,BINNING,SYSTFILE,OUTDIR,'-C mu']) + \
@@ -50,4 +66,11 @@ if __name__ == '__main__':
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Z --vpt-weight W --vpt-weight TauDecaysW '
         cmd += ' --wlike '
-        os.system(cmd)
+        if not options.printOnly:
+            os.system(cmd)
+        else:
+            print cmd
+            print ""
+        
+        print ""
+

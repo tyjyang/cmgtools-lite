@@ -1,6 +1,6 @@
 #include "../interface/utility.h"
 #include "../../functions.cc"
-#include "../../w-helicity-13TeV/functionsWMass.cc"
+#include "../../w-mass-13TeV/functionsWMass.cc"
 
 #define CHECK_EVERY_N 10000
 #define N_MAX_ENTRIES_PER_SAMPLE 0 // for tests, use number <= 0 to use all events in each sample

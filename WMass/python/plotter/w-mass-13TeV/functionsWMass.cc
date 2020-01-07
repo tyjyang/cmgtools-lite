@@ -130,6 +130,19 @@ float prefireJetsWeight(float eta){
     return 1.;
 }
 
+float prefireJetsWeight_2l(float eta1, float eta2) {
+
+  // fixing older implementation with 1-xx
+  // prefireJetsWeight returns the SF to be applied to MC, not the prefiring probability (which is basically 1-SF)
+  // the probability that at least one lepton induces prefiring is pTot = p1 + p2 - p1*p2
+  // so the SF to be used becomes 1 - pTot
+  float pf1 = 1. - prefireJetsWeight(eta1);
+  float pf2 = 1. - prefireJetsWeight(eta2);
+  return 1. - (pf1 + pf2 - pf1*pf2);
+
+}
+
+
 //-------------------
 
 TFile *_file_ratio_FSRoverNoFSR_etaPt_mu = NULL;
@@ -1254,6 +1267,188 @@ float _muonTriggerSF_2l_trigMatch(int requiredCharge, // pass positive or negati
   } 
 
   return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);
+
+}
+
+
+bool triggerMatch(int requiredCharge, // pass positive or negative number, depending on what you want 
+		  float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+		  int pdgId1, int pdgId2  // used to decide which lepton has the required charge
+		  ) {
+
+  int pdgId = 0;
+  // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
+  // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
+  if (requiredCharge * pdgId1 < 0) {
+    // use lep 1
+    if (matchedTrgObjMuPt_l1 < 0.0) return 0;  // if no match to trigger, discard events
+    else                            return 1;
+  } else {
+    // use lep 2
+    pdgId = pdgId2;
+    if (matchedTrgObjMuPt_l2 < 0.0) return 0;  // if no match to trigger, discard events
+    else                            return 1;
+  }
+
+}
+
+
+
+float triggerSFforChargedLepton(int requiredCharge, // pass positive or negative number, depending on what you want 
+				int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
+				float pt1, float pt2,
+				float eta1, float eta2
+				) {
+
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+  
+  // pdgID > 0 for negative leptons
+  if (requiredCharge * pdgid1 < 0) {
+    pdgId = pdgid1;
+    pt    = pt1;
+    eta   = eta1;
+  } else {
+    pdgId = pdgid2;
+    pt    = pt2;
+    eta   = eta2;
+  }
+
+  return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
+
+}
+
+float triggerSFforChargedLeptonMatchingTrigger(int requiredCharge, // pass positive or negative number, depending on what you want 
+					       float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+					       int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
+					       float pt1, float pt2,
+					       float eta1, float eta2
+					       ) {
+
+  float trigMatchPt = 0.0;
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+
+  float trigMatchPt_other = 0.0;
+  int pdgId_other = 0;
+  float pt_other  = 0.0;
+  float eta_other = 0.0;
+  
+  // pdgID > 0 for negative leptons
+  if (requiredCharge * pdgid1 < 0) {
+    pdgId = pdgid1;
+    pt    = pt1;
+    eta   = eta1;    
+    trigMatchPt = matchedTrgObjMuPt_l1;
+    pdgId_other = pdgid2;
+    pt_other    = pt2;
+    eta_other   = eta2;    
+    trigMatchPt_other = matchedTrgObjMuPt_l2;
+  } else {
+    pdgId = pdgid2;
+    trigMatchPt = matchedTrgObjMuPt_l2;
+    pt    = pt2;
+    eta   = eta2;
+    pdgId_other = pdgid1;
+    pt_other    = pt1;
+    eta_other   = eta1;    
+    trigMatchPt_other = matchedTrgObjMuPt_l1;
+  }
+
+  // try using 1 if both lepton match trigger (efficiency for trigger in 2 lepton phase space is ~ 100%)
+  if (trigMatchPt > 0.0 and trigMatchPt_other > 0.0) {
+    return 1;
+  } else {
+    if (trigMatchPt > 0.0)
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
+    else
+      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1*requiredCharge);	 
+  }
+
+}
+
+float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass positive or negative number, depending on what you want 
+						 bool matchTrigger_l1, bool matchTrigger_l2,
+						 int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
+						 float pt1, float pt2,
+						 float eta1, float eta2
+						 ) {
+
+  bool thisLepMatchesTrigger = false;
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+
+  bool otherLepMatchesTrigger = false;
+  int pdgId_other = 0;
+  float pt_other  = 0.0;
+  float eta_other = 0.0;
+  
+  // pdgID > 0 for negative leptons
+  if (requiredCharge * pdgid1 < 0) {
+    pdgId = pdgid1;
+    pt    = pt1;
+    eta   = eta1;    
+    thisLepMatchesTrigger = matchTrigger_l1;
+    pdgId_other = pdgid2;
+    pt_other    = pt2;
+    eta_other   = eta2;    
+    otherLepMatchesTrigger = matchTrigger_l2;
+  } else {
+    pdgId = pdgid2;
+    pt    = pt2;
+    eta   = eta2;
+    thisLepMatchesTrigger = matchTrigger_l2;
+    pdgId_other = pdgid1;
+    pt_other    = pt1;
+    eta_other   = eta1;    
+    otherLepMatchesTrigger = matchTrigger_l1;
+  }
+
+  // try using 1 if both lepton match trigger (efficiency for trigger in 2 lepton phase space is ~ 100%)
+  if (thisLepMatchesTrigger and otherLepMatchesTrigger) {
+    return 1;
+  } else {
+    if (thisLepMatchesTrigger)
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
+    else if (otherLepMatchesTrigger)
+      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1*requiredCharge);	 
+    else
+      return 0.0;  // this should not happen, but just in case
+  }
+
+}
+
+bool triggerMatchV2(int requiredCharge, // pass positive or negative number, depending on what you want 
+		    float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+		    float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
+		    int pdgId1, int pdgId2  // used to decide which lepton has the required charge
+		    ) {
+
+  // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
+  // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
+  if (requiredCharge * pdgId1 < 0) {
+    // use lep 1
+    return (matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) ? 1 : 0; 
+  } else {
+    // use lep 2
+    return (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2 > 0.0) ? 1 : 0; 
+  }
+
+}
+
+
+bool isOddEvent(ULong64_t evt) {
+
+  return (evt%2) ? 1 : 0;       
+
+}
+
+bool isEvenEvent(ULong64_t evt) {
+
+  return (evt%2) ? 0 : 1;       
 
 }
 
