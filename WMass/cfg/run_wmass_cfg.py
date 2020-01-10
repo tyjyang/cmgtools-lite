@@ -31,10 +31,11 @@ selectedEvents=getHeppyOption("selectEvents","")
 runOnSignal = True
 doTriggerMatching = True
 keepLHEweights = True
-signalZ = False
+signalZ = True
+runZlikeW = True
 diLeptonSkim = False
-useBasicRECOLeptons = False
-doRecoilVariables = True
+useBasicRECOLeptons = True
+doRecoilVariables = False
 
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
@@ -274,6 +275,7 @@ triggerFlagsAna.checkL1Prescale = False
 ## do some trigger matching for the trigger efficiency studies
 
 from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv2 import *
+from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv3 import *
 from CMGTools.RootTools.samples.samples_13TeV_DATA2016 import *
 from CMGTools.HToZZ4L.tools.configTools import printSummary, configureSplittingFromTime, cropToLumi, prescaleComponents, insertEventSelector, mergeExtensions
 from CMGTools.RootTools.samples.autoAAAconfig import *
@@ -286,6 +288,8 @@ tt_1l = [TTJets_SingleLeptonFromT,TTJets_SingleLeptonFromT_ext,TTJets_SingleLept
 w_jets = [WJetsToLNu_LO,WJetsToLNu_LO_ext,WJetsToLNu,WJetsToLNu_ext,WJetsToLNu_ext2v5] # W+jets
 z_jets = [DYJetsToLL_M50_LO_ext,DYJetsToLL_M50_LO_ext2,DYJetsToLL_M50] # Z+jets
 dibosons = [WW,WW_ext,WZ,WZ_ext,ZZ,ZZ_ext] # di-boson
+#tt_2l = [TTJets_DiLepton, TTJets_DiLepton_ext, TTLep_pow, TTLep_pow_ext]
+#tt_2l = [TTLep_pow, TTLep_pow_ext]
 
 samples_signal = w_jets
 samples_1prompt = single_t + tt_1l + z_jets + dibosons
@@ -298,6 +302,8 @@ if   runOnSignal and signalZ==False:
     selectedComponents = [WJetsToLNu_ext2v5]
 elif runOnSignal and signalZ:
     selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+
+selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
 for comp in selectedComponents:
     comp.splitFactor = len(comp.files)/2 #200
@@ -490,6 +496,13 @@ if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
     comp.splitFactor = 1
     comp.fineSplitFactor = 1
     selectedComponents = [ comp ]
+elif test == '1':
+    comp = selectedComponents[0]
+    comp.files = comp.files[:1]
+    print comp.files
+    comp.splitFactor = 1
+    comp.fineSplitFactor = 1
+    selectedComponents = [ comp ]
 elif test == '2':
     sel = getHeppyOption('sel','.*')
     for comp in selectedComponents[:]:
@@ -499,22 +512,6 @@ elif test == '2':
         comp.files = comp.files[:1]
         comp.splitFactor = 1
         comp.fineSplitFactor = 1
-elif test == '3':
-    selectedComponents = selectedComponents[:1]
-    for comp in selectedComponents:
-        comp.files = comp.files[:1]
-        comp.splitFactor = 1
-        comp.fineSplitFactor = 4
-elif test == '5':
-    for comp in selectedComponents:
-        comp.files = comp.files[:5]
-        comp.splitFactor = 1
-        comp.fineSplitFactor = 5
-elif test == '21':
-    for comp in selectedComponents:
-        comp.files = comp.files[:7]
-        comp.splitFactor = 1
-        comp.fineSplitFactor = 3
 elif test == '80X-MC':
     what = getHeppyOption("sample","DYLL")
     if what == "DYLL":
@@ -584,7 +581,7 @@ if not keepLHEweights:
     if lheWeightAna in sequence: sequence.remove(lheWeightAna)
     histoCounter.doLHE = False
 
-if runOnSignal and not signalZ:
+if runOnSignal and (not signalZ or runZlikeW):
     if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
     if triggerAna in sequence: sequence.remove(triggerAna)
     if genAna in sequence: genAna.saveAllInterestingGenParticles = True
