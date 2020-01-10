@@ -57,7 +57,7 @@ triggerFlagsAna = cfg.Analyzer(
 # Trigger match analyzer
 triggerMatchAnaEle = cfg.Analyzer(
     TriggerMatchAnalyzer, name="TriggerMatchAnalyzerEle",
-    instance_label='wmassEle',
+    label='wmassEle',
     processName = 'PAT',
     fallbackProcessName = 'RECO',
     unpackPathNames = True,
@@ -72,7 +72,7 @@ triggerMatchAnaEle = cfg.Analyzer(
 # Trigger match analyzer
 triggerMatchAnaMu = triggerMatchAnaEle.clone(
     name="TriggerMatchAnalyzerMu",
-    instance_label='wmassMu',
+    label='wmassMu',
     trgObjSelectors = [ lambda t : t.path('HLT_IsoMu24_v*',1,0) ],
     collMatchSelectors = [lambda l,t : abs(l.pdgId()) == 13 ],
     )
@@ -80,14 +80,14 @@ triggerMatchAnaMu = triggerMatchAnaEle.clone(
 # Trigger match analyzer
 triggerMatchAnaTkMu = triggerMatchAnaMu.clone(
     name="TriggerMatchAnalyzerTkMu",
-    instance_label='wmassTkMu',
+    label='wmassTkMu',
     trgObjSelectors = [ lambda t : t.path('HLT_IsoTkMu24_v*',1,0) ],
     )
 
 # Trigger match analyzer
 triggerMatchAnaMu50 = triggerMatchAnaMu.clone(
     name="TriggerMatchAnalyzerMu50",
-    instance_label='wmassMu50',
+    label='wmassMu50',
     trgObjSelectors = [ lambda t : t.path('HLT_Mu50_v*',1,0) ],
     )
 
