@@ -683,7 +683,8 @@ if __name__ == "__main__":
             #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
             leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
             leg.Draw('same')
-            lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+            #lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
+            lat.DrawLatex(0.1, 0.92, '#bf{CMS}')
             lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
             for i in ['pdf', 'png']:
                 suff = '' if not options.suffix else '_'+options.suffix
