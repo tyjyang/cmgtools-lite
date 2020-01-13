@@ -325,17 +325,16 @@ if runData != False: # and not isTest: # For running on data
     is50ns = False
     dataChunks = []
 
-    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
+    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt' # 36.295/fb
+    #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
     eras='BCDEFGH'
-    if runData in eras:
-        eras=runData    
     for era in eras:
         if era=='B':
-            processing = "Run2016B-07Aug17_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+            processing = "Run2016B-17Jul2018_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
         else:
-            processing = "Run2016%s-07Aug17-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
+            processing = "Run2016%s-17Jul2018-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
     
     DatasetsAndTriggers = []
     selectedComponents = [];
@@ -545,11 +544,11 @@ elif test == '80X-MC':
         if not getHeppyOption("single"): comp.fineSplitFactor = 4
     else: raise RuntimeError, "Unknown MC sample: %s" % what
 elif test == '80X-Data':
-    DoubleMuon = kreator.makeDataComponent("DoubleMuon_Run2016B_run274315", "/DoubleMuon/Run2016B-18Apr2017_ver2-v1/MINIAOD", "CMS", ".*root", run_range = (274315,274315), triggers = triggers_mumu)
+    SingleMuon = kreator.makeDataComponent("SingleMuon_Run2016B_run274315", "/SingleMuon/Run2016B-17Jul2018_ver2-v1/MINIAOD", "CMS", ".*root", run_range = (274315,274315), triggers = triggers_mumu)
     DoubleEG = kreator.makeDataComponent("DoubleEG_Run2016B_run274315", "/DoubleEG/Run2016B-18Apr2017_ver2-v1/MINIAOD", "CMS", ".*root", run_range = (274315,274315), triggers = triggers_ee)
-    DoubleMuon.files = [ 'root://xrootd-cms.infn.it//store/data/Run2016B/DoubleMuon/MINIAOD/18Apr2017_ver2-v1/100000/DA4A8A8A-7436-E711-BDB1-24BE05C6D731.root' ]
+    SingleMuon.files = [ 'root://xrootd-cms.infn.it//store/data/Run2016B/SingleMuon/MINIAOD/17Jul2018_ver2-v1/40000/2074FDEF-B28B-E811-AA79-141877410EC1.root' ]
     DoubleEG.files = [ 'root://xrootd-cms.infn.it//store/data/Run2016B/DoubleEG/MINIAOD/18Apr2017_ver2-v1/00000/689FEB7E-DE3E-E711-8815-001E67A41EA0.root' ]
-    selectedComponents = [ DoubleMuon, DoubleEG ]
+    selectedComponents = [ SingleMuon ] #, DoubleEG ]
     for comp in selectedComponents:
         comp.json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt'
         tmpfil = os.path.expandvars("/tmp/$USER/%s" % os.path.basename(comp.files[0]))
