@@ -687,10 +687,11 @@ def doStatTests(total,data,test,legendCorner):
 
 
 legend_ = None;
-def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None,nColumns=1):
+def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None,nColumns=1,allProcInLegend=False):
         if (corner == None): return
         total = sum([x.Integral() for x in pmap.itervalues()])
         sigEntries = []; bgEntries = []
+        cutoffTimesTotal = 0.0 if allProcInLegend else cutoff*total
         for p in mca.listSignals(allProcs=True):
             if mca.getProcessOption(p,'HideInLegend',False): continue
             if p in pmap and pmap[p].Integral() > (cutoff*total if cutoffSignals else 0): 
@@ -1075,19 +1076,21 @@ class PlotMaker:
                     total.GetZaxis().SetRangeUser(pspec.getOption('ZMin',1.0), pspec.getOption('ZMax',1.0))
                 #if options.yrange: 
                 #    total.GetYaxis().SetRangeUser(options.yrange[0], options.yrange[1])
-                legendCutoff = pspec.getOption('LegendCutoff', 1e-5 if c1.GetLogy() else 1e-2)
+                legendCutoff = pspec.getOption('LegendCutoff', 1e-5 if c1.GetLogy() else 1e-2)                
                 if plotmode == "norm": legendCutoff = 0 
                 if plotmode == "stack":
                     if options.noStackSig: mcStyle = ("L","F")
                     else:                  mcStyle = "F"
                 else: mcStyle = "L"
+                if options.allProcInLegend: legendCutoff = 0.0
                 doLegend(pmap,mca,corner=pspec.getOption('Legend','TR'),
-                                  cutoff=legendCutoff, mcStyle=mcStyle,
-                                  cutoffSignals=not(options.showSigShape or options.showIndivSigShapes or options.showSFitShape), 
-                                  textSize=( (0.045 if doRatio else 0.022) if options.legendFontSize <= 0 else options.legendFontSize ),
-                                  legWidth=options.legendWidth, legBorder=options.legendBorder, signalPlotScale=options.signalPlotScale,
-                                  header=self._options.legendHeader if self._options.legendHeader else pspec.getOption("LegendHeader", ""),
-                                  doWide=doWide, totalError=totalError,overrideLegCoord=self._options.setLegendCoordinates, nColumns=self._options.nColumnLegend)
+                         cutoff=legendCutoff, mcStyle=mcStyle,
+                         cutoffSignals=not(options.showSigShape or options.showIndivSigShapes or options.showSFitShape), 
+                         textSize=( (0.045 if doRatio else 0.022) if options.legendFontSize <= 0 else options.legendFontSize ),
+                         legWidth=options.legendWidth, legBorder=options.legendBorder, signalPlotScale=options.signalPlotScale,
+                         header=self._options.legendHeader if self._options.legendHeader else pspec.getOption("LegendHeader", ""),
+                         doWide=doWide, totalError=totalError,
+                         overrideLegCoord=self._options.setLegendCoordinates, nColumns=self._options.nColumnLegend)
                 if self._options.doOfficialCMS:
                     CMS_lumi.lumi_13TeV = "%.1f fb^{-1}" % self._options.lumi
                     CMS_lumi.extraText  = self._options.cmsprel
@@ -1369,6 +1372,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--n-column-legend", dest="nColumnLegend", type="int", default=1, help="Number of columns for legend (for monster plot, 3 is better)")
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
     parser.add_option("--palette", dest="palette", type="int", default=57, help="Set color palette (only for 2D histograms)")
+    parser.add_option("--allProcInLegend", dest="allProcInLegend", action="store_true", default=False, help="Put all processes in legend, regardless their integral.")
 
 
 if __name__ == "__main__":
