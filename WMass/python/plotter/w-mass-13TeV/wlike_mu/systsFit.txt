@@ -1,0 +1,12 @@
+pdfs        :    pdf.*         :   Z.*|W.*   : PDFS
+alphaS      :    alphaS        :   Z.*|W.*   : PDFS        :   0.67
+qcdScales   :    muR.*|muF.*   :   Z.*|W.*   : QCD
+fsr         :    fsr.*         :   Z.*       : QED
+muScale     :    muscale.*     :   Z.*       : MUSCALE
+efficiency  :    Eff.*         :   Z.*       : EFFICIENCY
+luminosity  :    lumi.*        :   .*        : OTHEREXP
+fakes       :    Fakes.*|.*FR.*        :   data_fakes        : OTHEREXP
+otherbkg    :    lepVeto.*     :   Z.*|W.*  :  OTHEREXP
+
+
+
