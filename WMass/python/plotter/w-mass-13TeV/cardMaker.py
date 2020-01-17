@@ -1,10 +1,8 @@
 #!/bin/env python
 
-import ROOT
-import sys,os,re,json, copy, math
+import ROOT, sys,os,re,json, copy, math, root_numpy, array
 from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
-from array import array
-import root_numpy
+import makeSystematicMultipliers as ms
 import utilities
 utilities = utilities.util()
 
@@ -15,11 +13,13 @@ class CardMaker:
         self.flavor = flavor
 
         ### import the right dictionary process - systematic list depending on wmass/wlike
+        #pathToImport = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/python/plotter/w-mass-13TeV/'
+        pathToImport = os.path.dirname(sys.argv[0])+'/'
         if self._options.wmass:
-            pathToImport = 'wmass_'+flavor
+            pathToImport += 'wmass_'+flavor
             self.boson = 'W'
         else:
-            pathToImport = 'wlike_'+flavor
+            pathToImport += 'wlike_'+flavor
             self.boson = 'Z'
         self.systematics  = self.getSystList()
         self.centralfiles = self.getCentralProcesses()
@@ -46,6 +46,44 @@ class CardMaker:
         systsCards = {self.boson: baseSysts + massPoints + otherSysts,
                       'Z' if self._options.wmass else 'W': baseSysts}
         return systsCards
+
+    def applySystematics(self, dictWithCentrals, systEnv): #process, syst_regexp, syst_file, outfile_name):
+        
+        f_systs = ROOT.TFile(options.inputdir+'/systematicMultipliers.root', 'READ')
+        systs_lok = f_systs.GetListOfKeys()
+    
+        allVars = []
+        dictProcSyst = {}
+
+        ## loop on all the systematics in the multipliers file
+        for syst in systs_lok:
+            systName = syst.GetName()
+            if '_2d' in systName: ## forget about the 2d histograms
+                continue
+            ## loop on all the systematics in the systFit.txt file
+            for dummy,(syst_regexp,proc_regexp,group,scale) in systEnv.items():
+                if re.match(syst_regexp, systName):
+                    tmp_syst = f_systs.Get(systName)
+                    if 'TH2' in tmp_syst.ClassName():
+                        continue
+                    ## loop on all the processes in the dictWithCentrals
+                    for (proc,cen),proc_hist in dictWithCentrals.items():
+                        if ('plus' in proc and 'minus' in systName) or ('minus' in proc and 'plus' in systName):
+                            continue
+                        if re.match(proc_regexp,proc):
+                            tmp_var  = copy.deepcopy(proc_hist.Clone(proc_hist.GetName()+'_'+systName))
+                            tmp_var.Multiply(tmp_syst)
+                            allVars.append(tmp_var)
+                            dictProcSyst[(proc, systName)] = None
+    
+        outfile = ROOT.TFile(options.inputdir+'/{f}_{ch}_shapes.root.multiplierSystematics'.format(f=self.flavor,ch=self.charge), 'RECREATE')
+        
+        for v in allVars:
+            v.Write()
+        outfile.Close()
+
+        return dictProcSyst
+
 
     def mirrorShape(self,nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=False):
         alternate.SetName("%sUp" % newname)
@@ -211,11 +249,19 @@ class CardMaker:
         for i,p in enumerate(allprocs):
             procindices[p[0]] = i
 
-
         ### build the systematics matrix matching the process name with the systematic name in the activeFitSysts.txt file
         appliedSystMatrix = {}
         systGroups = {}
         systEnv = self.activateSystMatrix(systematicsFile)
+
+        ## here apply all the systematics from the systFit in combination 
+        ## with the systematicMultipliers.root file
+        procAndCentralHistos = dict(filter(lambda x: x[0][1] == 'central', procAndHistos.items()))
+        newProcAndSysts = self.applySystematics(procAndCentralHistos, systEnv)
+
+        procAndHistos.update(newProcAndSysts)
+        ## done applying systematics from the multipliers file
+
         for (proc,syst),histo in procAndHistos.iteritems():
             ### skip the central histograms
             if syst=='central': continue
@@ -235,6 +281,9 @@ class CardMaker:
                         else:                       
                             if systName not in systGroups[group]: systGroups[group].append(systName)
 
+        if options.mergeRoot or options.remakeMultipliers:
+            os.system('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile))
+
         ### now write the datacard
         channel = '{boson}{charge}'.format(boson='W' if self._options.wmass else 'Z',charge=self.charge)
         datacard = open(self.cardfile,'w')
@@ -243,7 +292,7 @@ class CardMaker:
         datacard.write("jmax *\n")
         datacard.write("kmax *\n")
         datacard.write('##----------------------------------\n') 
-        datacard.write('shapes *  *  {shapes} x_$PROCESS x_$PROCESS_$SYSTEMATIC\nscre'.format(shapes=os.path.abspath(self.shapesfile)))
+        datacard.write('shapes *  *  {shapes} x_$PROCESS x_$PROCESS_$SYSTEMATIC\n'.format(shapes=os.path.abspath(self.shapesfile)))
         datacard.write('##----------------------------------\n')
         datacard.write('bin    {channel}'.format(channel=channel)+'\n')
         datacard.write('observation    {obsyield}\n'.format(obsyield=procAndHistos[('data_obs','central')].Integral()))
@@ -297,6 +346,43 @@ def combineCharges(options):
         hdf5name = hdf5name.replace('.hdf5','_%s.hdf5' % options.postfix)
         combineCmd = 'combinetf.py -t -1 --binByBinStat {hdf5file}'.format(hdf5file=hdf5name)
 
+
+def makeAllSystematicMultipliers(indir):
+    generic_systs = [ {'name': 'fakesPt1', 'pt': [[20,70]], 'eta': [[-2.4,-2.1]], 'size': [0.95] },
+                      {'name': 'fakesPt2', 'pt': [[20,70]], 'eta': [[-2.1,-1.5]], 'size': [0.98] },
+                      {'name': 'fakesPt3', 'pt': [[20,70]], 'eta': [[-1.5, 1.5]], 'size': [0.85] },
+                      {'name': 'fakesPt4', 'pt': [[20,70]], 'eta': [[ 1.5, 2.4]], 'size': [0.77] },
+                      {'name': 'lnN30'   , 'pt': [[20,70]], 'eta': [[-2.5, 2.5]], 'size': [1.30] },
+                      {'name': 'lumi'    , 'pt': [[20,70]], 'eta': [[-2.5, 2.5]], 'size': [1.025] } ]
+    
+    allHistos = []
+    
+    binningFile = indir+'/binningPtEta.txt'
+
+    ## first make the ones for fakes etc. defined from the generic_systs dictionary
+    ## ============================================================================
+    
+    for s in generic_systs:
+        allHistos += [ i for i in ms.makeGenericMultipliers(binningFile, s['name'], s['pt'], s['eta'], s['size'])]
+
+    ## then make the ones for the effStat parameters
+    ## =============================================
+    ## this needs files systEff_trgmu_{plus|minus}_mu.root in the directory given
+
+    effStatHistos = ms.makeEffStatMultipliers(binningFile, 
+                    '/afs/cern.ch/work/m/mdunser/public/cmssw/w-mass-13TeV/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/../postprocessing/data/leptonSF/new2016_madeSummer2018/')
+
+    allHistos += effStatHistos
+    
+    ## write it out into file called systematicMultipliers.root
+    outfile = ROOT.TFile(indir+'/systematicMultipliers.root', 'RECREATE')
+    for h in allHistos:
+        h.Write()
+    outfile.Close()
+
+## marc applySystematics('data_fakes', '.*fakesPt2|.*lnN30.*|.*EffStat1.*', 'testEffSyst.root', 'appliedSysts.root')
+
+
 if __name__ == "__main__":    
 
     from optparse import OptionParser
@@ -306,6 +392,7 @@ if __name__ == "__main__":
     parser.add_option('-f','--flavor', dest='flavor', default='mu', type='string', help='lepton flavor (mu,el)')
     parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
     parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
+    parser.add_option(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
     parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_option(     '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
     parser.add_option('--wmass', dest='wmass', action="store_true", default=False, help="Make cards for the wmass analysis. Default is wlike");
@@ -313,6 +400,12 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     
     charges = options.charge.split(',')
+
+    if options.remakeMultipliers:
+        print 'making all the systematic multipliers'
+        makeAllSystematicMultipliers(options.inputdir)
+        print 'done making all the systematic multipliers'
+    
 
     for charge in charges:
         cm = CardMaker(options,charge,options.flavor)
