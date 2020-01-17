@@ -36,7 +36,7 @@ def dressed2D(h1d,binning,name,title=''):
 def unroll2Dto1D(h,newname='',cropNegativeBins=True, silent=False):
     nbins = h.GetNbinsX() * h.GetNbinsY()
     goodname = h.GetName()
-    h.SetName(goodname+"_oldbinning")
+    h.SetName(goodname+"_2d")
     newh = ROOT.TH1D(goodname if not newname else newname,h.GetTitle(),nbins,0.5,nbins+0.5)
     newh.Sumw2()
     if 'TH2' not in h.ClassName(): raise RuntimeError, "Calling rebin2Dto1D on something that is not TH2"
