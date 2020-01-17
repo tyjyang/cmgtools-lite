@@ -28,7 +28,7 @@ class CardMaker:
         self.systFile = pathToImport+'/systsFit.txt'
 
     def getCentralProcesses(self):
-        acoeffs = ['ac'] #+['a{ic}'.format(ic=i) for i in range(8)]
+        acoeffs = ['ac']+['a{ic}'.format(ic=i) for i in range(8)]
         sig_proc          = ['{boson}{charge}_{ic}_{flav}'.format(charge=self.charge,ic=coeff,flav=self.flavor,boson=self.boson) for coeff in acoeffs]
         other_boson_procs = ['{otherboson}_{flav}_{charge}'.format(flav=self.flavor,charge=self.charge,otherboson='Z' if self._options.wmass else 'W')]
         otherprocs = ['bkg_and_data_{flav}_{charge}'.format(flav=self.flavor,charge=self.charge)] 
