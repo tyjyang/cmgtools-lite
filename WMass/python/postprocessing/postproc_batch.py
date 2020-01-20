@@ -20,7 +20,7 @@ from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
                    ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
-                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated"),
+                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamuca"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
                    ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
                    ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
