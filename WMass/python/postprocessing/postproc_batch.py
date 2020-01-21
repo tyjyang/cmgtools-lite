@@ -20,7 +20,7 @@ from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
                    ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
-                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamuca"),
+                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamucaCentral,kamucaSyst"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
                    ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
                    ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
@@ -248,6 +248,8 @@ if __name__ == "__main__":
                     print "Running on dataset = ",dataset
                     signal = any(x in dataset for x in options.signals.split(','))
                     if name=='genQEDJets' and not signal: continue
+                    ## the kamuca
+                    if name=='kamucaSyst' and 'SingleMuon' in dataset: continue
                     modules.append(getattr(obj,name)())
         if options.noOut:
             if len(modules) == 0: 
