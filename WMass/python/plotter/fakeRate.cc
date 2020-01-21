@@ -446,8 +446,16 @@ float getSimpleFakeRateWeight_2l(float fr1, bool passWP1,
 
 //==============================
 
-float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, int allFakes0_onlyNff1_onlyNpf2 = 0, bool addNppToFormula = false) {
+float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, int fakesFlag = 0) {
 
+  // fakesFlag:
+  // 0: all terms
+  // 1: only Nff
+  // 2: only Npf+Nfp
+  // 3: only Npf  // should be same as 4 when integrating, to be implemented
+  // 4: only Nfp  // should be same as 3 when integrating, to be implemented
+
+  //bool addNppToFormula = false; // keep for quick tests
   // addNppToFormula should stay false, it represents the prompt lepton component, which is basically the Z
   // see plots here: 
   // http://mciprian.web.cern.ch/mciprian/wmass/13TeV/Wlike/TREE_4_WLIKE_MU/comparisons/chPlus_oddEvts_withPrefire_trigSFonlyZ__1ifBothLepMatchTrig_elseOnPlusLepIfMatchElseOther_addTkMuTrigger_testWlikeAnalysis_checkFRformula/
@@ -455,6 +463,10 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   //
   int iFR=0;
   int iPR=0;
+  if (fakesFlag > 10) {
+    iFR = fakesFlag;
+    iPR = fakesFlag;
+  }
 
   float* rates1 = _getFakeRate(lpt1,leta1,lpdgId1,iFR,iPR);
   float pr1 = rates1[0];
@@ -499,45 +511,45 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   
   if (passWP1 && passWP2) { // t11
 
-    if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight -= pr1*fr2 * (1.-pr2)*(1.-fr1); // pr=1 --> return 0 [contribution to Npf]
       weight -= fr1*pr2 * (1.-pr1)*(1.-fr2); // pr=1 --> return 0 [contribution to Nfp]
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight += fr1*fr2 * (1.-pr1)*(1.-pr2); // pr=1 --> return 0 [contribution to Nff]
     }
 
   } else if (!passWP2 && passWP1) { // t10
 
-    if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight += pr1*fr2 * pr2*(1.-fr1); // [contribution to Npf]
-      weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Npf]
+      weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Nfp]
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight -= fr1*fr2 * pr2*(1.-pr1); // [contribution to Nff]    
     }
 
   } else if (!passWP1 && passWP2) { // t01
 
-    if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight += pr1*fr2 * fr1*(1.-pr2); // [contribution to Npf]
-      weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Npf]
+      weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Nfp]
     } 
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight -= fr1*fr2 * pr1*(1.-pr2); // [contribution to Nff]
     }
 
   } else {
 
-    if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight -= pr1*fr2 * fr1*pr2; // [contribution to Npf]
       weight -= fr1*pr2 * pr1*fr2; // [contribution to Nfp] 
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight += fr1*fr2 * pr1*pr2; // [contribution to Nfp]     
     }
 

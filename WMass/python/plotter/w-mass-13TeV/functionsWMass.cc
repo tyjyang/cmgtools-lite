@@ -1373,7 +1373,7 @@ float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass pos
 						 bool matchTrigger_l1, bool matchTrigger_l2,
 						 int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
 						 float pt1, float pt2,
-						 float eta1, float eta2
+						 float eta1, float eta2						 
 						 ) {
 
   bool thisLepMatchesTrigger = false;
@@ -1386,8 +1386,10 @@ float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass pos
   float pt_other  = 0.0;
   float eta_other = 0.0;
   
+  bool isSameSign = (pdgid1*pdgid2 > 0) ? true : false;
+  
   // pdgID > 0 for negative leptons
-  if (requiredCharge * pdgid1 < 0) {
+  if (isSameSign || requiredCharge * pdgid1 < 0) {
     pdgId = pdgid1;
     pt    = pt1;
     eta   = eta1;    
@@ -1411,10 +1413,13 @@ float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass pos
   if (thisLepMatchesTrigger and otherLepMatchesTrigger) {
     return 1;
   } else {
+    int sfCharge = thisLepMatchesTrigger ? requiredCharge : (-1*requiredCharge);
+    if (isSameSign) sfCharge = (pdgid1 > 0) ? -1 : 1; // for same sign uses the charge of the leading for the SF
+
     if (thisLepMatchesTrigger)
-      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, sfCharge);					
     else if (otherLepMatchesTrigger)
-      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1*requiredCharge);	 
+      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, sfCharge);	 
     else
       return 0.0;  // this should not happen, but just in case
   }

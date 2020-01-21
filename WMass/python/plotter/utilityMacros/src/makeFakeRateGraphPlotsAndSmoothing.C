@@ -6,7 +6,7 @@
 const static int smoothPolinDegree = 2; 
 const static Double_t xMaxFitFakeRateData = (smoothPolinDegree == 1) ? 48 : 60; // for muons, can set it to at least 55
 const static Bool_t drawPol1NarrowRange = (smoothPolinDegree == 1 and xMaxFitFakeRateData > 48) ? true : false;  // set first argument as false not to draw the fit in narrow range (only for pol1) 
-const static Bool_t smoothPromptRateAlwaysPol1 = true;  // for FR might use pol2 to smooth, but for PR always use pol1 (it is mainly linear, pol2 might fit fluctuations)
+const static Bool_t smoothPromptRateAlwaysPol1 = false;  // for FR might use pol2 to smooth, but for PR always use pol1 (it is mainly linear, pol2 might fit fluctuations)
 static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 30; // can use 32 for pol1 // for muons, the value is hardcoded to always be 26
 const static Bool_t excludePoints_Data = false;
 static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true

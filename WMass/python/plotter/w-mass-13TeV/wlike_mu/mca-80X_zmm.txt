@@ -40,6 +40,9 @@ Ztau  : DYJetsToLL_M50_part*    : 2008.4*3 :abs(GenLepDressed_pdgId[0]) != 13; F
 
 incl_datafakes        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
 #, FillStyle=3005
+incl_datafakes_v2        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_v2.txt", Label="Fakes (v2)", FillColor=ROOT.kGreen+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_v2'
+
+incl_datafakes_v3        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_v3.txt", Label="Fakes (v3)", FillColor=ROOT.kRed+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_v3'
 
 incl_datafakes_Nff        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_Nff.txt", Label="Fakes (Nff)", FillColor=ROOT.kAzure+1, FillStyle=3002, NormSystematic=0.30, PostFix='_fakes_Nff'
 
@@ -103,3 +106,6 @@ QCD_Mu5  : QCD_Pt300to470_Mu5*      : xsec       ; FillColor=ROOT.kBlue , Label=
 QCD_Mu5  : QCD_Pt470to600_Mu5_ext      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
 QCD_Mu5  : QCD_Pt600to800_Mu5      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
 QCD_Mu5  : QCD_Pt800to1000_Mu5_ext2      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+
+ssPromptVV  : WZ+WZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="WZ+ZZ", NormSystematic=0.05
+ssPromptVV  : ZZ+ZZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="WZ+ZZ", NormSystematic=0.05

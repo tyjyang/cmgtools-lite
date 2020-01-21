@@ -4,14 +4,14 @@ import time
 ROOT.gROOT.SetBatch(True)
 
 dryrun = 0
-doMuons = 0
-hasReweightedWZpt = 1
+doMuons = 1
+hasReweightedWZpt = 0
 
 if doMuons:
 
-    inputFolder = "fr_10_03_2019_eta_pt_finer_mT40_35p9fb_signedEta_subtrAllMC_L1EGprefire_jetPt30"
-    inputFullPath = "www/wmass/13TeV/fake-rate/test_mu/testFRv8/" + inputFolder + "/mu/comb/"
-    outputFolder = "www/wmass/13TeV/fake-rate/muon/FR_graphs_tests/fr_fitPol1_xMaxFit55_withLepSF"
+    inputFolder = "fr_19_01_2020_eta_pt_finer_mT40_35p9fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec"
+    inputFullPath = "www/wmass/13TeV/fake-rate/test_mu/testFR_wmass/" + inputFolder + "/mu/comb/"
+    outputFolder = "www/wmass/13TeV/fake-rate/muon/FR_graphs_tests/fr_fitPol2_xMaxFit60_nativeMCatNLOxsec_withLepSF/"
     outfileTag = outputFolder.split('/')[-2]
     histPrefix = "fakeRateNumerator_mu_vs_etal1mu_pt_finer"
     isMuon = "true"
