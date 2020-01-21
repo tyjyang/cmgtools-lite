@@ -103,7 +103,7 @@ class lepAwayJetProducer(Module):
 
 
 class KaMuCaProducer(Module):
-    def __init__(self,version='80X'):
+    def __init__(self,version='80X',syst=False):
         pathToInputs =  os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/python/postprocessing/data/leptonScale/mu/'
         self.MCfile = '{path}/MC_{ver}_13TeV.root'.format(path=pathToInputs,ver=version)
         self.DATAfile = self.MCfile.replace('MC','DATA')
@@ -112,9 +112,11 @@ class KaMuCaProducer(Module):
             print "rebuilding KalmanMuonCalibrator shared library"
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/KalmanMuonCalibrator.cc+" % os.environ['CMSSW_BASE'])
             print "done building ", version, " of the KaMuCa corrections."
+        self.version = version
+        self.syst = syst
     def beginJob(self):
         print 'begin job of KaMuCaProducer'
-        print 'initializing all the KaMuCa correction objects'
+        print 'initializing all the KaMuCa version ', self.version, ' correction objects. Systs = ',self.syst
         self._kamucaMC = ROOT.KalmanMuonCalibrator(self.MCfile)
         self._kamucaDATA = ROOT.KalmanMuonCalibrator(self.DATAfile)
         self._N = self._kamucaMC.getN()
@@ -122,50 +124,72 @@ class KaMuCaProducer(Module):
         pass
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
-        self.out.branch("LepGood_kalPt", "F", lenVar="nLepGood")
-        for N in range(self._N):
+        ## variations are only saved for the MC
+        if self.syst:
+            for N in range(self._N):
+                for idir in ['Up','Down']:
+                    self.out.branch("LepGood_kalPtErr{i}{idir}".format(i=N,idir=idir), "F", lenVar="nLepGood")
             for idir in ['Up','Down']:
-                self.out.branch("LepGood_kalPtErr{i}{idir}".format(i=N,idir=idir), "F", lenVar="nLepGood")
-        for idir in ['Up','Down']:
-            self.out.branch("LepGood_kalPtClosureErr{idir}".format(idir=idir), "F", lenVar="nLepGood")
+                self.out.branch("LepGood_kalPtClosureErr{idir}".format(idir=idir), "F", lenVar="nLepGood")
+        ## central corrected value is stored for both data and MC
+        else:
+            self.out.branch("LepGood_kalPt", "F", lenVar="nLepGood")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         leps = Collection(event, "LepGood")
-        kalPt = [] ## holds the central corrected pt 
-        kalPtUnc = {} ## holds the uncertainties (self._N keys)
-        for idir in ['Up','Down']:
-            for N in range(self._N):
-                kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)] = []
-            kalPtUnc['ClosureErr{idir}'.format(idir=idir)] = []
+        if self.syst:
+            kalPtUnc = {} ## holds the uncertainties (self._N keys)
+            for idir in ['Up','Down']:
+                for N in range(self._N):
+                    kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)] = []
+                kalPtUnc['ClosureErr{idir}'.format(idir=idir)] = []
+        else:
+            kalPt = [] ## holds the central corrected pt 
         for l in leps:
              l_ch, l_pt, l_eta, l_phi = l.charge, l.pt, l.eta, l.phi
              ## not implemented for electrons
              ## fill the array with -99 wasting a bit of space, but not too much, since the MC is mu-only and data is singleMu
              if abs(l.pdgId)==11:
-                 kalPt.append(-99)
-                 for N in range(self._N): 
-                     for idir in ['Up','Down']:
-                         kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)].append(-99)
-                 for idir in ['Up','Down']:
-                     kalPtUnc['ClosureErr{idir}'.format(idir=idir)].append(-99)
-             ## here the meaningful part on muons
-             else:
-                 kamuca = self._kamucaDATA if event.isData else self._kamucaMC
-                 kalPt.append(kamuca.getCorrectedPt(l_pt,l_eta,l_phi,l_ch))
-                 for idir in ['Up','Down']:
-                     nsigma = 1 if idir=='Up' else -1
+                 if self.syst:
                      for N in range(self._N): 
-                         kamuca.vary(N,nsigma)
-                         kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)].append(kamuca.getCorrectedPt(l_pt,l_eta,l_phi,l_ch))
-                     kamuca.reset()
-                     kamuca.varyClosure(nsigma)
-                     kalPtUnc['ClosureErr{idir}'.format(idir=idir)].append(kamuca.getCorrectedPt(l_pt,l_eta,l_phi,l_ch))
+                         for idir in ['Up','Down']:
+                             kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)].append(-99)
+                     for idir in ['Up','Down']:
+                         kalPtUnc['ClosureErr{idir}'.format(idir=idir)].append(-99)
+                 else:
+                     kalPt.append(-99)
 
-        self.out.fillBranch("LepGood_kalPt", kalPt)
-        for err,values in kalPtUnc.iteritems():
-            self.out.fillBranch("LepGood_kalPt{err}".format(err=err), values)
+             ## here the meaningful part on muons
+             ## for KaMuCa there is one cov matrix for data and one for MC. Here we assume that after the diagonalization they are back uncorrelated (since they are minimized on two independent datasets)
+             ## and we want to apply the variation on data-MC difference to MC only (as a nuisance in the fit )
+             ## so the ith variation is kalPt_MC_Vi = kalPt_MC + (deltaPt_MC_Vi - deltaPt_data_Vi)
+             else:
+                 centralPtMC   = self._kamucaMC.getCorrectedPt(l_pt,l_eta,l_phi,l_ch)
+                 centralPtDATA = self._kamucaDATA.getCorrectedPt(l_pt,l_eta,l_phi,l_ch)
+                 if self.syst:
+                     for idir in ['Up','Down']:
+                         nsigma = 1 if idir=='Up' else -1
+                         for N in range(self._N): 
+                             self._kamucaDATA.vary(N,nsigma)
+                             self._kamucaMC.vary(N,nsigma)
+                             deltaPtMC   = self._kamucaMC.getCorrectedPt(l_pt,l_eta,l_phi,l_ch) - centralPtMC
+                             deltaPtDATA = self._kamucaDATA.getCorrectedPt(l_pt,l_eta,l_phi,l_ch) - centralPtDATA
+                             kalPtUnc['Err{i}{idir}'.format(i=N,idir=idir)].append(centralPtMC + deltaPtMC - deltaPtDATA)
+                         self._kamucaMC.reset();             self._kamucaDATA.reset();
+                         self._kamucaMC.varyClosure(nsigma); self._kamucaDATA.varyClosure(nsigma)
+                         deltaPtMC   = self._kamucaMC.getCorrectedPt(l_pt,l_eta,l_phi,l_ch) - centralPtMC
+                         deltaPtDATA = self._kamucaDATA.getCorrectedPt(l_pt,l_eta,l_phi,l_ch) - centralPtDATA
+                         kalPtUnc['ClosureErr{idir}'.format(idir=idir)].append(centralPtMC + deltaPtMC - deltaPtDATA)
+                 else:
+                     kalPt.append(centralPtDATA if event.isData else centralPtMC)
+        if self.syst:
+            for err,values in kalPtUnc.iteritems():
+                self.out.fillBranch("LepGood_kalPt{err}".format(err=err), values)
+        else:
+            self.out.fillBranch("LepGood_kalPt", kalPt)            
+
         return True
 
 class lepCalibratedEnergyProducer(Module):
@@ -298,4 +322,5 @@ eleRelIsoEA = lambda : lepIsoEAProducer("%s/src/RecoEgamma/ElectronIdentificatio
 lepQCDAwayJet = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 2.4,
                                             pairSel =lambda lep, jet: deltaR(lep.eta,lep.phi, jet.eta, jet.phi) > 0.7)
 eleCalibrated = lambda : lepCalibratedEnergyProducer("CMGTools/WMass/python/postprocessing/data/leptonScale/el/Legacy2016_07Aug2017_FineEtaR9_ele")
-kamuca = lambda : KaMuCaProducer('80X')
+kamucaCentral = lambda : KaMuCaProducer(version='80X',syst=False)
+kamucaSyst    = lambda : KaMuCaProducer(version='80X',syst=True)
