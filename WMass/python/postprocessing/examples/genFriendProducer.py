@@ -239,6 +239,9 @@ class GenQEDJetProducer(Module):
                 lepInds.append( (p, ip) )
             if abs(p.pdgId) == 15       and p.fromHardProcessDecayed:
                 lepInds.append( (p, ip) )
+            ##if abs(p.pdgId) == 22:
+            ##    if p.motherIndex >=0:
+            ##        print 'photon with mother', self.genParts[int(p.motherIndex)].pdgId, 'and status', p.status
 
         if len(lepInds) < 1:
             return []
@@ -262,6 +265,22 @@ class GenQEDJetProducer(Module):
             lepton.SetPtEtaPhiM(finallep.pt, finallep.eta, finallep.phi, finallep.mass)
 
             retLeps.append( (lepton, finallep.pdgId) )
+
+        ## if len(retLeps) == 4:
+        ##     print '============'
+        ##     for (lep, ind) in lepInds:
+        ##         print 'this is pt {pt:4.2f} pdg id {pdg} motherpdgid {mid}'.format(pt=lep.pt,pdg= lep.pdgId, mid= self.genParts[int(lep.motherIndex)].pdgId)
+
+        ##     print 'below the original leptons'
+        ##     for ip,p in enumerate(self.genParts):
+        ##         if abs(p.pdgId) in [11, 13]:
+        ##             print 'pt {pt:4.2f} eta {eta:4.2f} phi {phi:4.2f} status {st}'.format(pt= p.pt, eta=p.eta, phi=p.phi, st=p.status)
+        ##             lepInds.append( (p, ip) )
+        ##     print '================='
+
+        ##     print 'invariant mass of the first two leptons:', (retLeps[0][0]+retLeps[1][0]).M()
+        ##     print 'invariant mass of the last  two leptons:', (retLeps[2][0]+retLeps[3][0]).M()
+            
 
         return retLeps
 
@@ -510,7 +529,7 @@ class GenQEDJetProducer(Module):
             ## i.e. running a template with pdf6 up will be pdfCentralWgt * hessWgt6,
             ## while the nominal template will be just pdfCentralWgt
             for N in range(1,self.nHessianWeights+1):
-                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N]/centralPDFWeight)
+                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N]/centralPDFWeight if centralPDFWeight else 0.)
 
             qcd0Wgt=lheweights[self.qcdScaleWgtIdx()]
             for ii,idir in enumerate(['Up','Dn']):
