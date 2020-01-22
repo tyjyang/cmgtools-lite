@@ -39,6 +39,7 @@ qcdsysts=[] # array containing the QCD scale signal variations
 inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
 etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
 fsrsysts=[] # array containing (only) the PHOTOS/PYTHIA fsr reweighitng
+kamucasysts=[] # array containing the kalman filter muon momentum scale systematics
 coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
@@ -194,6 +195,12 @@ def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
     print "written pdf syst configuration to ",SYSTFILEALL
     return SYSTFILEALL
 
+def addKaMuCaSysts():
+    for idir in ['Up','Down']:
+        for i in range(133):
+            kamucasysts.append('kalPtErr{i}{idir}'.format(i=i,idir=idir))
+        kamucasysts.append('kalPtClosureErr{idir}'.format(idir=idir))
+    print "Added muon momentum scale systematics"
 
 if __name__ == "__main__":
 
@@ -212,6 +219,7 @@ if __name__ == "__main__":
     parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qed-syst", dest="addQEDSyst", action="store_true", default=False, help="Add QED scale systematics to the signal (need incl_sig directive in the MCA file)");
+    parser.add_option("--kamuca-syst", dest="addKaMuCaSyst", action="store_true", default=False, help="Add Kalman Filter muon momentum scale correction systematics");
     parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
@@ -289,6 +297,9 @@ if __name__ == "__main__":
         for proc in ['dy','wtau']:
             if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
     
+    if options.addKaMuCaSyst:
+        addKaMuCaSysts()
+
     # not needed if we fit eta/pt. Will be needed if we fit another variable correlated with eta/pt
     # writeEfficiencyStatErrorSystsToMCA(MCA,outdir+"/mca",options.channel)
     
@@ -321,8 +332,10 @@ if __name__ == "__main__":
     if options.signalCards:
         print "MAKING SIGNAL PART!"
         wsyst = ['']+[x for x in pdfsysts+qcdsysts+inclqcdsysts+etaeffsysts+fsrsysts if SIGSUFFIX in x]
+        wsyst += kamucasysts
         ## loop on all the variations
         for ivar,var in enumerate(wsyst):
+            SYST_OPTION = ''
             ## loop on all the angular coefficients
             for coeff in coefficients:
                 ## get the list of all other coefficients
@@ -335,8 +348,12 @@ if __name__ == "__main__":
                     if ivar==0: 
                         IARGS = ARGS
                     else: 
-                        IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                        IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                        if 'kalPt' in var:
+                            IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
+                            SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
+                        else:
+                            IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                            IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
                         print "Running the systematic: ",var
                     ## ---
                     job_group =  [] ## group
@@ -361,14 +378,16 @@ if __name__ == "__main__":
 
                     ## make specific names and such
                     syst = '' if ivar==0 else var
+                    ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
+                    if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
                     dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
-
+                    
                     ## reweight the boson-pT here
                     zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
 
                     ## construct the full weight to be applied
                     fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
-                    BIN_OPTS=OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut
+                    BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
 
                     ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
                     ## do not do by pdf weight if pdfmatch:
