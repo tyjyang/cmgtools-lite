@@ -8,7 +8,9 @@ CUTFILE      = BASECONFIG+'/cuts_wmu.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
 
 QUEUE        = '1nd'
-VAR          = '\'ptMuFull(returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
+#VAR          = '\'ptMuFull(returnChargeVal(LepGood1_kalPt,LepGood1_charge,LepGood2_kalPt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
+
+VAR          = '\'returnChargeVal(LepGood1_pt,LepGood1_charge,LepGood2_pt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
 
 TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V1/'
 
@@ -21,8 +23,8 @@ etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 ptbinning = '['+','.join(str(i) for i in range(26,54))+']'  # for Wlike 46 is too low
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
-## do with histogram. sick of friends !! WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*LepGood_SF1[0]*LepGood_SF2[0]\' '
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],LepGood_calPt[0],LepGood_eta[0])*_get_muonSF_recoToSelection(LepGood_pdgId[1],LepGood_calPt[1],LepGood_eta[1])*prefireJetsWeight(LepGood_eta[0])*prefireJetsWeight(LepGood_eta[1])\' '
+## change _pt => _kalPt if the SFs are finally done binning in the KaMuCa muon pt
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_pt,LepGood2_eta)*prefireJetsWeight(LepGood1_eta)*prefireJetsWeight(LepGood2_eta)\' '
 
 OUTDIR       = 'wlike_%s' % datetime.now().strftime('%Y_%m_%d')
     
@@ -60,7 +62,7 @@ if __name__ == '__main__':
         cmd='python ' + ' '.join([PROG,MCA,CUTFILE,VAR,BINNING,SYSTFILE,OUTDIR,'-C mu']) + \
             (' -W %s ' % WEIGHTSTRING) + (' -P %s ' % TREEPATH) + (' -q %s ' % QUEUE) + c
         if options.dryRun: cmd += '  --dry-run '
-        if options.addSyst: cmd += '  --pdf-syst --qcd-syst --qed-syst '
+        if options.addSyst: cmd += '  --pdf-syst --qcd-syst --qed-syst --kamuca-syst '
         if not options.genw: cmd += ' --wvar prefsrw '
         cmd += ' -g 30 '
         cmd += ' --decorrelateSignalScales '
