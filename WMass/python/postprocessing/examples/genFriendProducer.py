@@ -108,7 +108,7 @@ class GenQEDJetProducer(Module):
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.initReaders(inputTree) # initReaders must be called in beginFile
         self.out = wrappedOutputTree
-        self.out.branch("weightGen"      , "F")
+        self.out.branch("pdfCentralWgt"  , "F")
         self.out.branch("partonId1"      , "I")
         self.out.branch("partonId2"      , "I")
         self.out.branch("nGenLepDressed" , "I")
@@ -123,7 +123,7 @@ class GenQEDJetProducer(Module):
             self.out.branch("genw_"   +V, "F")
             self.out.branch("prefsrw_"+V, "F")
         for N in range(1,self.nHessianWeights+1):
-            self.out.branch("hessWgt"+str(N), "H")
+            self.out.branch("hessWgt"+str(N), "F")
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
@@ -315,6 +315,15 @@ class GenQEDJetProducer(Module):
         ## new to work also for Z
         preFSRLeptonsAndPdgIds = self.getPreFSRLepton() if makeBosons else []
 
+        ## take the two hardest preFSR leptons if there are 4, which happens with photos
+        if len(preFSRLeptonsAndPdgIds) == 4:
+            preFSRLeptonsAndPdgIds = preFSRLeptonsAndPdgIds[:2]
+        ## same for the dressed leptons
+        if len(dressedLeptonCollection) == 4:
+            dressedLeptonCollection = dressedLeptonCollection[:2]
+        ## =================================
+
+
         #always produce the dressed lepton collection
         if len(dressedLeptonCollection):
             self.out.fillBranch("nGenLepDressed", len(dressedLeptonCollection))
@@ -370,7 +379,6 @@ class GenQEDJetProducer(Module):
             for V in self.vars:
                 self.out.fillBranch("GenPromptNu_"+V, retN[V])
             #self.out.fillBranch("GenPromptNu_pdgId", [pdgId for pdgId in nuPdgIds])            
-
 
         if len(preFSRLeptonsAndPdgIds):
             self.out.fillBranch("nGenLepPreFSR", len(preFSRLeptonsAndPdgIds))
@@ -446,7 +454,6 @@ class GenQEDJetProducer(Module):
             kv = KinematicVars(self.beamEn)
             self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
             self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
-            self.out.fillBranch("genw_decayId", abs(neutrinoPdgId))
             for imass in self.massWeights:
                 masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                 self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
@@ -499,8 +506,11 @@ class GenQEDJetProducer(Module):
             centralPDFIndex  = 423 ## for CMSW4
             centralPDFWeight = lheweights[centralPDFIndex] ## 423 for CMSW4
 
+            ## the PDF variations are saved as ratios w/r/t the nominal weight of the selected sample
+            ## i.e. running a template with pdf6 up will be pdfCentralWgt * hessWgt6,
+            ## while the nominal template will be just pdfCentralWgt
             for N in range(1,self.nHessianWeights+1):
-                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N])
+                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N]/centralPDFWeight)
 
             qcd0Wgt=lheweights[self.qcdScaleWgtIdx()]
             for ii,idir in enumerate(['Up','Dn']):
@@ -508,11 +518,11 @@ class GenQEDJetProducer(Module):
                 self.out.fillBranch("qcd_muF{idir}"   .format(idir=idir), lheweights[self.qcdScaleWgtIdx(muf=idir)]/qcd0Wgt)
                 self.out.fillBranch("qcd_muRmuF{idir}".format(idir=idir), lheweights[self.qcdScaleWgtIdx(mur=idir,muf=idir)]/qcd0Wgt) # only correlated variations are physical
                 
-                ## alphaS now different in new MC:
+                ## alphaS now different in new MC. CMSW4 does not have a alphaS variation, so taking the one of the nominal PDF set
                 self.out.fillBranch("qcd_alphaS{idir}".format(idir=idir), lheweights[110+ii] ) ## 110 is alphaS-up of nominal pdf set, 111 is alphaS-down of nominal pdf set
 
         ## save the central PDF weight that is either 1. or set in the previous block of code
-        self.out.fillBranch("pdfCentral", centralPDFWeight )
+        self.out.fillBranch("pdfCentralWgt", centralPDFWeight )
 
         return True
 
