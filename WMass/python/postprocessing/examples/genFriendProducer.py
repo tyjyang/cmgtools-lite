@@ -510,7 +510,7 @@ class GenQEDJetProducer(Module):
             ## i.e. running a template with pdf6 up will be pdfCentralWgt * hessWgt6,
             ## while the nominal template will be just pdfCentralWgt
             for N in range(1,self.nHessianWeights+1):
-                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N]/centralPDFWeight)
+                self.out.fillBranch("hessWgt"+str(N), lheweights[centralPDFIndex+N]/centralPDFWeight if centralPDFWeight else 0.)
 
             qcd0Wgt=lheweights[self.qcdScaleWgtIdx()]
             for ii,idir in enumerate(['Up','Dn']):
