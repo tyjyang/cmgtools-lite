@@ -446,7 +446,7 @@ float getSimpleFakeRateWeight_2l(float fr1, bool passWP1,
 
 //==============================
 
-float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, bool addNppToFormula = false) {
+float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, int allFakes0_onlyNff1_onlyNpf2 = 0, bool addNppToFormula = false) {
 
   // addNppToFormula should stay false, it represents the prompt lepton component, which is basically the Z
   // see plots here: 
@@ -498,25 +498,49 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   float denom = (pr1-fr1)*(pr2-fr2);
   
   if (passWP1 && passWP2) { // t11
+
     if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
-    weight -= pr1*fr2 * (1.-pr2)*(1.-fr1); // pr=1 --> return 0 [contribution to Npf]
-    weight -= fr1*pr2 * (1.-pr1)*(1.-fr2); // pr=1 --> return 0 [contribution to Nfp]
-    weight += fr1*fr2 * (1.-pr1)*(1.-pr2); // pr=1 --> return 0 [contribution to Nff]
+    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+      weight -= pr1*fr2 * (1.-pr2)*(1.-fr1); // pr=1 --> return 0 [contribution to Npf]
+      weight -= fr1*pr2 * (1.-pr1)*(1.-fr2); // pr=1 --> return 0 [contribution to Nfp]
+    }
+    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+      weight += fr1*fr2 * (1.-pr1)*(1.-pr2); // pr=1 --> return 0 [contribution to Nff]
+    }
+
   } else if (!passWP2 && passWP1) { // t10
+
     if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
-    weight += pr1*fr2 * pr2*(1.-fr1); // [contribution to Npf]
-    weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Npf]
-    weight -= fr1*fr2 * pr2*(1.-pr1); // [contribution to Nff]    
+    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+      weight += pr1*fr2 * pr2*(1.-fr1); // [contribution to Npf]
+      weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Npf]
+    }
+    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+      weight -= fr1*fr2 * pr2*(1.-pr1); // [contribution to Nff]    
+    }
+
   } else if (!passWP1 && passWP2) { // t01
+
     if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
-    weight += pr1*fr2 * fr1*(1.-pr2); // [contribution to Npf]
-    weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Npf]
-    weight -= fr1*fr2 * pr1*(1.-pr2); // [contribution to Nff]
+    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+      weight += pr1*fr2 * fr1*(1.-pr2); // [contribution to Npf]
+      weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Npf]
+    } 
+    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+      weight -= fr1*fr2 * pr1*(1.-pr2); // [contribution to Nff]
+    }
+
   } else {
+
     if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
-    weight -= pr1*fr2 * fr1*pr2; // [contribution to Npf]
-    weight -= fr1*pr2 * pr1*fr2; // [contribution to Nfp] 
-    weight += fr1*fr2 * pr1*pr2; // [contribution to Nfp]     
+    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+      weight -= pr1*fr2 * fr1*pr2; // [contribution to Npf]
+      weight -= fr1*pr2 * pr1*fr2; // [contribution to Nfp] 
+    }
+    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+      weight += fr1*fr2 * pr1*pr2; // [contribution to Nfp]     
+    }
+
   }
 
   weight = weight / denom;
