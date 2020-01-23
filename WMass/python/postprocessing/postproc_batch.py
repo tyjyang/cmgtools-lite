@@ -28,10 +28,16 @@ DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "
                    ##("CMGTools.WMass.postprocessing.examples.recoilTrainExtra","recoilTrainExtra"),
                    ]
 
-def writeCondorCfg(srcfile, flavour=None, maxRunTime=None):
-    #base=''.join(srcfile.split('.')[:-1])
-    base = os.path.splitext(srcfile)[0]
-    print "srcfile = ",srcfile,"  base = ",base
+def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None):
+
+    #if not os.path.isfile(logdir+'/dummy_exec.sh'):
+    dummy_exec = open(logdir+'/dummy_exec.sh','w') 
+    dummy_exec.write('#!/bin/bash\n')
+    dummy_exec.write('cd {here}\n'.format(here=os.environ['PWD']))
+    dummy_exec.write('eval `scramv1 runtime -sh` \n')
+    dummy_exec.write('python $*\n')
+    dummy_exec.close()
+
     maxruntime="-t" # time in minutes
     if maxRunTime:
         if flavour:
@@ -39,16 +45,16 @@ def writeCondorCfg(srcfile, flavour=None, maxRunTime=None):
             sys.exit(1)
         maxruntime = str(60 * int(maxRunTime))
     job_desc = """Universe = vanilla
-Executable = {scriptName}
+Executable = {ld}/dummy_exec.sh
 use_x509userproxy = true
-Log        = {pid}.log
-Output     = {pid}.out
-Error      = {pid}.error
+Log        = {ld}/{name}_$(ProcId).log
+Output     = {ld}/{name}_$(ProcId).out
+Error      = {ld}/{name}_$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-""".format(scriptName=srcfile,
-           pid=base,
+""".format(ld=logdir,
+           name=name,
            here=os.environ['PWD'])
     if flavour:
         job_desc += '+JobFlavour = "%s"\n' % flavour
@@ -56,11 +62,12 @@ request_memory = 4000
         job_desc += '+MaxRuntime = %s\n' % maxruntime
     if os.environ['USER'] in ['mdunser', 'psilva']:
         job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
-    job_desc += 'queue 1\n'
+    ##job_desc += 'queue 1\n'
 
-    jobdesc_file = base+'.condor'
+    jobdesc_file = logdir+'/'+name+'.condor'
     with open(jobdesc_file,'w') as outputfile:
         outputfile.write(job_desc)
+        outputfile.write('\n\n')
         outputfile.close()
     return jobdesc_file
 
@@ -196,36 +203,27 @@ if __name__ == "__main__":
             print "ERROR. Scheduler ",options.env," not implemented. Choose either 'lsf' or 'condor'."
             sys.exit(1)
 
-        basecmd = "{dir}/{runner} {dir} {cmssw} python {self} -N {chunkSize} -t {tree} --signals {signals} --moduleList {moduleList} {data} {output}".format(
-                    dir = os.getcwd(), runner=runner, cmssw = os.environ['CMSSW_BASE'], 
+        basecmd = " {self} -N {chunkSize} -t {tree} --signals {signals} --moduleList {moduleList} {data} {output}".format(
                     self=sys.argv[0], chunkSize=options.chunkSize, tree=options.tree, signals=options.signals, moduleList=options.moduleList, data=treedir, output=outdir)
 
         friendPost = ""
         if options.friend: 
             friendPost += " --friend " 
-        for (name,fin,sample_nevt,fout,data,range,chunk) in jobs:
-            if chunk != -1:
-                if options.logdir: 
-                    writelog = ""
-                    if options.env == "lxbatch":
-                        writelog = "-o {logdir}/{data}_{chunk}.out -e {logdir}/{data}_{chunk}.err".format(logdir=logdir, data=name, chunk=chunk)
-                if options.env == 'lxbatch':
-                    cmd = "{super} {writelog} {base} -d {data} -c {chunk} {post}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
-                elif options.env == 'condor':
-                    condor_exec="{logdir}/{data}_{chunk}.sh".format(logdir=logdir, data=name, chunk=chunk)
-                    os.system("echo '#!/bin/bash' > {condor_exec} ; echo {base} -d {data} -c {chunk} {post} >> {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, chunk=chunk, post=friendPost, condor_exec=condor_exec))
-                    condor_jobdesc = writeCondorCfg(condor_exec,maxRunTime=options.runtime)
-                    cmd = 'condor_submit ' + condor_jobdesc
+        cmds = []
+        for (name,fin,sample_nevt,fout,data,_range,chunk) in jobs:
+            if not chunk or chunk == -1:
+                condorSubFile = writeCondorCfg(logdir,name,maxRunTime=options.runtime)
+            #if chunk != -1:
+            if options.env == 'condor':
+                tmp_f = open(condorSubFile, 'a')
+                tmp_f.write('arguments = {base} -d {data} {chunk} {post} \n queue 1 \n\n'.format(base=basecmd, data=name, chunk='' if chunk == -1 else '-c '+str(chunk), post=friendPost))
+                tmp_f.close()
+                if chunk <= 0:
+                    cmds.append('condor_submit ' + condorSubFile)
             else:
-                if options.logdir: writelog = "-o {logdir}/{data}.out -e {logdir}/{data}.err".format(logdir=logdir, data=name)
-                if options.env == 'lxbatch':
-                    cmd = "echo \"{base} -d {data} {post}\" | {super} {writelog}".format(super=super, writelog=writelog, base=basecmd, data=name, chunk=chunk, post=friendPost)
-                elif options.env == 'condor':
-                    condor_exec="{logdir}/{data}.sh".format(logdir=logdir, data=name)
-                    os.system("echo '#!/bin/bash' > {condor_exec} ; echo {base} -d {data} {post} >> {condor_exec} ; chmod u+x {condor_exec}".format(base=basecmd, data=name, post=friendPost, condor_exec=condor_exec))
-                    condor_jobdesc = writeCondorCfg(condor_exec,maxRunTime=options.runtime)
-                    cmd = 'condor_submit ' + condor_jobdesc
-                print "{base} -d {data}".format(base=basecmd, data=name, chunk=chunk)
+                print 'option --env MUST be condor (which it is by default)'
+        for cmd in cmds:
+            print 'i will now run this if not --pretend'
             print cmd
             if not options.pretend:
                 os.system(cmd)
@@ -234,7 +232,7 @@ if __name__ == "__main__":
 
     maintimer = ROOT.TStopwatch()
     def _runIt(myargs):
-        (dataset,fin,sample_nevt,fout,data,range,chunk) = myargs
+        (dataset,fin,sample_nevt,fout,data,_range,chunk) = myargs
         modules = []
         for mod, names in imports: 
             import_module(mod)
@@ -256,9 +254,10 @@ if __name__ == "__main__":
             if len(modules) == 0: 
                 raise RuntimeError("Running with --noout and no modules does nothing!")
         ppargs=[fin]+args
-        p=PostProcessor(outdir,ppargs,options.cut,options.branchsel,modules,options.compression,options.friend,fout,options.json,options.noOut,options.justcount,range)
+        p=PostProcessor(outdir,ppargs,options.cut,options.branchsel,modules,options.compression,options.friend,fout,options.json,options.noOut,options.justcount,_range)
         p.run()
 
+    print 'this is jobs', jobs
     if options.jobs > 0:
         from multiprocessing import Pool
         pool = Pool(options.jobs)
