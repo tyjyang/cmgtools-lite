@@ -123,7 +123,7 @@ class GenQEDJetProducer(Module):
             self.out.branch("genw_"   +V, "F")
             self.out.branch("prefsrw_"+V, "F")
         for N in range(1,self.nHessianWeights+1):
-            self.out.branch("hessWgt"+str(N), "F")
+            self.out.branch("hessWgt"+str(N), "H")
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
