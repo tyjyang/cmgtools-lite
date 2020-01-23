@@ -38,6 +38,8 @@ class CardMaker:
         ### systematics that are applied to both W and Z
         baseSysts  = ['pdf{i}'.format(i=ipdf) for ipdf in range(1,61)]
         baseSysts += ['{qcdpar}{idir}'.format(qcdpar=par,idir=idir) for par in ['alphaS','muR','muF','muRmuF'] for idir in ['Up','Dn']]     
+        baseSysts += ['kalPtErr{i}{idir}'.format(i=istat,idir=idir) for istat in range(133) for idir in ['Up','Dn']]
+        baseSysts += ['kalPtClosureErr{idir}'.format(idir=idir) for idir in ['Up','Dn']]
         ### W/Z mass points
         massPoints = ['mWmass_0']+['mWmass_{sgn}{i}'.format(sgn=sgn,i=imass) for sgn in['m','p'] for imass in range(1,21)]
         ### other systematics
