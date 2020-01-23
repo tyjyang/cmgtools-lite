@@ -4,4 +4,4 @@ cut-change: LepGood2_relIso04 : -1.
 #
 load-histo: FR_mu : $DATA/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root : fakerates_smoothed_data_interpolated
 load-histo: PR_mu : $DATA/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root : promptrates_smoothed_data_interpolated
-weight: fakeRateWeight_promptRateCorr_2l_i_smoothed(LepGood1_kalPt,LepGood1_eta,LepGood1_pdgId,(LepGood1_relIso04<0.15),LepGood2_kalPt,LepGood2_eta,LepGood2_pdgId,(LepGood2_relIso04<0.15))
+weight: fakeRateWeight_promptRateCorr_2l_i_smoothed(LepGood1_calPt,LepGood1_eta,LepGood1_pdgId,(LepGood1_relIso04<0.15),LepGood2_calPt,LepGood2_eta,LepGood2_pdgId,(LepGood2_relIso04<0.15),1)

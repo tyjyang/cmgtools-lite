@@ -60,6 +60,7 @@ class CutsFile:
                 for ci in options.cutsToInvert:  self.invert(ci)
                 for ci in options.cutsToExclude: self.remove(ci)
                 for cr,cn,cv in options.cutsToReplace: self.replace(cr,cn,cv)
+                for vr,vn in options.varsToReplace: self.replaceCutVariable(vr,vn)
     def __str__(self):
         newstring = ""
         for cut in self._cuts:
@@ -127,3 +128,9 @@ class CutsFile:
         self._cuts = [ (cn.format(**paramMap), cv.format(**paramMap)) for (cn,cv) in self._cuts ]
     def cartesianProduct(self,other):
         return CutsFile( [ ("%s && %s" % (cn1,cn2), "(%s) && (%s)" % (cv1,cv2)) for (cn1,cv1) in self._cuts for (cn2,cv2) in other.cuts() ] )
+    def replaceCutVariable(self,oldvar,newvar):
+        for i,(cn,cv) in enumerate(self._cuts[:]):
+            if re.search(oldvar,cv):
+                newcut = cv.replace(oldvar,newvar)
+                self._cuts[i] = (cn, newcut)
+

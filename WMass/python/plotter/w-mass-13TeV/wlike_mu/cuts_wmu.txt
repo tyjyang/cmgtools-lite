@@ -3,9 +3,9 @@ alwaystrue : 1
 trigger    : (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0 )
 onelep     : nLepGood == 2
 mu         : LepGood1_pdgId * LepGood2_pdgId == -169
-acceptPt   : LepGood1_calPt > 26. && LepGood2_calPt > 26.
+acceptPt   : LepGood1_pt > 26. && LepGood2_pt > 26.
 acceptEta  : abs(LepGood_eta) < 2.4
 muMediumId : LepGood1_mediumMuonId  > 0 && LepGood2_mediumMuonId > 0
 muTightIso : LepGood1_relIso04 < 0.15 && LepGood2_relIso04 < 0.15
 
-mtl1pf40   : mt_wlike(LepGood1_calPt,LepGood1_phi,LepGood1_charge,LepGood2_calPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt) > 40.
+mtl1pf40   : mt_wlike(LepGood1_pt,LepGood1_phi,LepGood1_charge,LepGood2_pt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt) > 40.
