@@ -106,7 +106,8 @@ if __name__ == "__main__":
     if options.friend:
         if options.cut or options.json: raise RuntimeError("Can't apply JSON or cut selection when producing friends")
 
-    if len(args) != 2 or not os.path.isdir(args[0]):
+    if len(args) != 2:
+        #print 'this is args:', args
         parser.print_help()
         sys.exit(1)
     if len(options.chunks) != 0 and len(options.datasets) != 1:

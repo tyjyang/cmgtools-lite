@@ -14,15 +14,11 @@ def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None):
     dummy_exec.write('#!/bin/bash\n')
     dummy_exec.write('cd {here}\n'.format(here=os.environ['PWD']))
     dummy_exec.write('eval `scramv1 runtime -sh` \n')
+    dummy_exec.write('echo i will run the following command\n')
+    dummy_exec.write('echo python $*\n')
     dummy_exec.write('python $*\n')
     dummy_exec.close()
 
-    maxruntime="-t" # time in minutes
-    if maxRunTime:
-        if flavour:
-            print "Can't set both flavour and maxruntime"
-            sys.exit(1)
-        maxruntime = str(60 * int(maxRunTime))
     job_desc = """Universe = vanilla
 Executable = {ld}/dummy_exec.sh
 use_x509userproxy = true
@@ -32,7 +28,7 @@ Error      = {ld}/{name}_$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 4000
-+MaxRuntime = 7200 \n
++MaxRuntime = 15000 \n
 """.format(ld=logdir,
            name=name,
            here=os.environ['PWD'])
@@ -94,7 +90,8 @@ if __name__ == "__main__":
         f_condor.write('queue 1 \n\n')
     f_condor.close()
 
-    print 'run this on now:'
+    print 'NO JOB SUBMITTED YET. PLEASE RUN THE FOLLOWING'
+    print '=============================================='
     print 'condor_submit '+f_name
 
 
