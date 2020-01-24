@@ -259,7 +259,7 @@ if __name__ == "__main__":
         p.run()
 
     print 'this is jobs', jobs
-    if options.jobs > 0:
+    if options.jobs > 1:
         from multiprocessing import Pool
         pool = Pool(options.jobs)
         pool.map(_runIt, jobs) if options.jobs > 0 else [_runIt(j) for j in jobs]
