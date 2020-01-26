@@ -140,7 +140,7 @@ if __name__ == "__main__":
     parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
     parser.add_option(       '--force-allptbins-theoryband', dest='forceAllPtBinsTheoryBand' , default=False, action='store_true', help='Use all pt bins for theory band, even if some of them were treated as background')
     parser.add_option(      '--combineElePt01asBkg', dest='combineElePt01asBkg', default=False, action='store_true', help='If True, flavour combination is made by keeping some electron bins as background (input to be managed slightly diffferently)')
-    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=True, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
+    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()

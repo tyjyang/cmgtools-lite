@@ -84,6 +84,7 @@ if __name__ == "__main__":
     parser.add_option('-c', '--channel',     dest='channel',     default='',   type='string', help='Specify channel (el|mu) to make legend. It is no longer guessed from the name of POIs. If empty, generic "l" will be used in legends instead of (#mu|e)')
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
     parser.add_option(     '--longBkg'     , dest='longBkg'  , default=False         , action='store_true',   help='if True, longitudinal component was treated as background, so the POIs are missing. Manage inputs accordingly')
+    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -470,8 +471,7 @@ if __name__ == "__main__":
                 #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
                 leg.Draw('same')
-                #lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
-                lat.DrawLatex(0.1, 0.92, '#bf{CMS}')
+                lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
                 lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
                 for i in ['pdf', 'png', '.C']:
                     suff = '' if not options.suffix else '_'+options.suffix
@@ -683,8 +683,7 @@ if __name__ == "__main__":
             #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
             leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
             leg.Draw('same')
-            #lat.DrawLatex(0.1, 0.92, '#bf{CMS} #it{Preliminary}')
-            lat.DrawLatex(0.1, 0.92, '#bf{CMS}')
+            lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
             lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
             for i in ['pdf', 'png']:
                 suff = '' if not options.suffix else '_'+options.suffix

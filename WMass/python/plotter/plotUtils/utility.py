@@ -1668,7 +1668,7 @@ def drawMuElComparison(hlep, hmu, hel,
     hel.SetMarkerColor(ROOT.kRed-2)
     hel.SetMarkerStyle(22)
     hel.SetMarkerSize(1.2)
-    hel.Draw("E0P0 SAME0")
+    hel.Draw("EP SAME0")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 

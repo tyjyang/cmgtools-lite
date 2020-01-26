@@ -5,8 +5,10 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 doMuElComb = 1
+doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
-dryrun = 1
+dryrun = 0
+skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
 onlyData = 1
 
@@ -16,8 +18,10 @@ skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsEtaPt = 1
+skipMuElComparison = 0
+#outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
 allPtBinsSignal = 1
@@ -49,11 +53,24 @@ seed = 123456789
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
 #folder = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
-folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+#folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 #folder = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_testPrefirePtLess35/"
 
-flavour = "el" if "_el_" in folder else "mu"
+folder = ""
+folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+
+flavour = ""
+
+if doMuon:
+    folder = folder_mu
+    flavour = "mu"
+else:
+    folder = folder_el
+    flavour = "el"
+
 lepton = "electron" if flavour == "el"  else "muon"
+
 if doMuElComb:
     allPtBinsSignal = 1
     folder = "muElCombination_allSig_nativeMCatNLOxsec"
@@ -67,10 +84,13 @@ if doMuElComb:
         print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
         quit()
 
+postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
+postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
+
 if flavour == "el":
-    postfix = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
+    postfix = postfix_el
 else:
-    postfix = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
+    postfix = postfix_mu
 if doMuElComb:
     postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" 
     if combineElePt01asBkg:
@@ -80,6 +100,8 @@ if plotSingleCharge:
     postfix = "_symFSRptScalemW_singleCharge{ch}".format(ch=singleChargeToPlot)
 
 postfix += "_bbb1_cxs1"
+postfix_el += "_bbb1_cxs1"
+postfix_mu += "_bbb1_cxs1"
 #postfix += "_bbb1_cxs0"
 #postfix += "_bbb0"
 
@@ -240,6 +262,8 @@ for fit in fits:
         command += " --combineElePt01asBkg "
     if useXsecWptWeights:
         command += " --use-xsec-wpt "
+    if skipPreliminary:
+        command += " --skipPreliminary "
     if forceAllptbinsTheoryband:
         command += " --force-allptbins-theoryband "
     if fit == "Data":
@@ -349,6 +373,8 @@ for fit in fits:
     command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
     if flavour != "lep":
         command += " -c {fl}".format(fl=flavour)
+    if skipPreliminary:
+        command += " --skipPreliminary "
     for nuis in impacts_nuis:
         if nuis == "GROUP":
             varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)
@@ -372,6 +398,10 @@ for fit in fits:
                     if not dryrun:
                         os.system(tmpcommand)
 
+    print ""
+    print "="*30
+    print "IMPACTS VS PT-ETA"
+    print ""
     ## IMPACTS versus pT-eta
     command = "python w-helicity-13TeV/impactPlots_singleNuis_vsPtEta.py" 
     command += " cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
@@ -396,6 +426,27 @@ for fit in fits:
                 print tmpcommand
                 if not dryrun:
                     os.system(tmpcommand)
+
+                    
+    print ""
+    print "="*30
+    print "MU-EL-COMB COMPARISON"
+    print ""
+    ## comparison with muon/electron/combination
+    command = "python w-helicity-13TeV/compareMuElDiffXsec.py" 
+    command += " --input-muon plots/diffXsecAnalysis_new/muon/{fm}/plotDiffXsecChargeAsymmetry/hessian_{fit}_{pfm}/plotDiffXsecChargeAsymmetry.root".format(fm=folder_mu,fit=fit,pfm=postfix_mu) 
+    command += " --input-electron plots/diffXsecAnalysis_new/electron/{fe}/plotDiffXsecChargeAsymmetry/hessian_{fit}_{pfe}/plotDiffXsecChargeAsymmetry.root".format(fe=folder_el,fit=fit,pfe=postfix_el)
+    command += " --input-combination plots/diffXsecAnalysis_new/lepton/{fc}/plotDiffXsecChargeAsymmetry/hessian_{fit}_{pfc}/plotDiffXsecChargeAsymmetry.root".format(fc=folder,fit=fit,pfc=postfix)
+    command += " -o plots/diffXsecAnalysis_new/comparisons/{pfc}/".format(pfc=postfix)
+    command += " -b cards/{fc}/binningPtEta.txt".format(fc=folder)
+    if skipPreliminary:
+        command += " --skipPreliminary "
+ 
+    if doMuElComb and not skipMuElComparison:
+        print ""
+        print command
+        if not dryrun:
+            os.system(command)
 
 
 print ""

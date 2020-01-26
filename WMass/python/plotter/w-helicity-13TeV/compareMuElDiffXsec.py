@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_option('--input-combination', dest='inputCombination', default='', type='string', help='input root files with all histograms for combination')
     parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='output directory to save things')
     parser.add_option('-b','--binning', dest='binning', default='', type='string', help='File with binning')
+    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -152,13 +153,13 @@ if __name__ == "__main__":
             canvas = canvUnroll
             if "_eta" in name:
                 #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "cross section unrolled along |#eta|: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                xaxisTitle = "unrolled |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                 for ipt in range(0,genBins.Npt):
                     varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
             else:
                 #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "cross section unrolled along p_{T}: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                xaxisTitle = "unrolled p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                 for ieta in range(0,genBins.Neta):
                     varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
@@ -168,4 +169,4 @@ if __name__ == "__main__":
                            outname, labelRatioTmp="lep/comb.::0.8,1.2", legendCoords=legendCoords,
                            draw_both0_noLog1_onlyLog2=1, leftMargin=leftMargin, rightMargin=rightMargin, passCanvas=canvas, lumi=35.9,
                            drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, 
-                           moreTextLatex=additionalTextLatex, moreText=additionalText)
+                           moreTextLatex=additionalTextLatex, moreText=additionalText,skipPreliminary=options.skipPreliminary)
