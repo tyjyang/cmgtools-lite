@@ -316,11 +316,13 @@ if __name__ == "__main__":
     th2_sub = ROOT.TH2F('sub_corr_matrix', '', nbins, 0., nbins, nbins, 0., nbins)
 
     if 'Wplus' in options.params and 'pmaskedexpnorm' in options.params:
-        th2_sub.SetTitle('correlations of W^{+} processes')
+        pass
+        #th2_sub.SetTitle('correlations of W^{+} processes')
     if 'Wminus' in options.params and 'pmaskedexpnorm' in options.params:
-        th2_sub.SetTitle('correlations of W^{-} processes')
+        pass
+        #th2_sub.SetTitle('correlations of W^{-} processes')
     if 'pdf':
-        th2_sub.SetTitle('correlations of PDF nuisance parameters')
+        #th2_sub.SetTitle('correlations of PDF nuisance parameters')
         th2_sub.GetXaxis().SetLabelSize(0.025)
         th2_sub.GetYaxis().SetLabelSize(0.025)
 
@@ -351,8 +353,12 @@ if __name__ == "__main__":
             th2_sub.SetTitle("")
         else:
             th2_sub.SetTitle(options.title)
-
-
+    
+    lat = ROOT.TLatex()
+    lat.SetNDC(); lat.SetTextFont(42)
+    lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
+    lat.DrawLatex(0.57, 0.95, '35.9 fb^{-1} (13 TeV)')
+            
     if options.parNameCanvas: 
         paramsName = options.parNameCanvas
     else : 
