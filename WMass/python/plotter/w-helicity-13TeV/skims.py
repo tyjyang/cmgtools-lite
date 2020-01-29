@@ -47,7 +47,7 @@
 #       python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skims-zee-wonly.txt w-helicity-13TeV/wmass_e/zee.txt /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_NoSkim5 /eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_ZEESKIM_V7_W -f w-helicity-13TeV/wmass_e/varsSkim_80X.txt --mo
 # then do the friends skim
 
-import os, subprocess
+import os, subprocess, re
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -108,6 +108,9 @@ if __name__ == "__main__":
     
     cmdSkim = "python skimTrees.py "+" ".join(mcargs)+" " + outputDirSkims + OPTS + BATCH_OPTS
     cmdFSkimEv = " python skimFTrees.py "+outputDirSkims+" "+treeDir+"/friends/ "+outputDirFSkims+' -f tree_Friend -t "Friends" ' + DROPVARS + BATCH_OPTS
+    if options.matchComponent:
+        cmdSkim    += " --match-component '{reg}'".format(reg=options.matchComponent)
+        cmdFSkimEv += " --match-component '{reg}'".format(reg=options.matchComponent)
 
     if not options.friendOnly:
         print "Now skimming the main trees, keeping the following vars:\n",varsToKeep

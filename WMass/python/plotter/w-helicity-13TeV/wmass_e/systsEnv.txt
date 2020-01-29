@@ -6,7 +6,7 @@ CMS_lumi_13TeV          : W.*|Flips|TauDecaysW|Z|Top|DiBosons: .* : 1.025
 # ==================================================================
 # lepton efficiencies
 # ==================================================================
-CMS_We_sig_lepeff        : W.*|Z: .* : lepeff : templates
+#CMS_We_sig_lepeff        : W.*|Z: .* : lepeff : templates
 #CMS_We_bkg_lepeff        : TauDecaysW|Flips|Top|DiBosons: .* : 1.01
 CMS_We_bkg_lepeff        : Flips|Top|DiBosons: .* : 1.01
 CMS_We_lepVeto           : Z : .* : 1.03
@@ -25,10 +25,10 @@ CMS_Tau              : TauDecaysW                   : .* : 1.04
 # lepton scale
 # ==================================================================
 #CMS_We_elescale      :  W.*|Z: .* : elescale         : templates
-CMS_We_elescale0      :  W.*|Z|TauDecaysW: .* : elescale0         : templates
-CMS_We_elescale1      :  W.*|Z|TauDecaysW: .* : elescale1         : templates
-CMS_We_elescale2      :  W.*|Z|TauDecaysW: .* : elescale2         : templates
-CMS_We_elescale3      :  W.*|Z|TauDecaysW: .* : elescale3         : templates
+#CMS_We_elescale0      :  W.*|Z|TauDecaysW: .* : elescale0         : templates
+#CMS_We_elescale1      :  W.*|Z|TauDecaysW: .* : elescale1         : templates
+#CMS_We_elescale2      :  W.*|Z|TauDecaysW: .* : elescale2         : templates
+#CMS_We_elescale3      :  W.*|Z|TauDecaysW: .* : elescale3         : templates
 
 # ==================================================================
 # Fake rate uncertainties

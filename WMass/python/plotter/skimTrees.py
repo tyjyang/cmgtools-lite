@@ -6,6 +6,7 @@ from CMGTools.WMass.plotter.mcAnalysis import *
 import array
 import json
 import ROOT
+import re 
 
 class CheckEventVetoList:
     _store={}
@@ -131,6 +132,7 @@ def addSkimTreesOptions(parser):
     parser.add_option("-c", "--component", dest="component",   type="string", default=None, help="skim only this component");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
     parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="skimTrees", help="Name assigned to jobs");
+    parser.add_option("--match-component", dest="matchComponent",   type="string", default="", help="Pass regular expression to match component names (particularly useful for friends when running in local");
     
 
 if __name__ == "__main__":
@@ -182,7 +184,8 @@ if __name__ == "__main__":
             condor_f = open(condor_fn,'w')
             condor_f.write('''Universe = vanilla
 Executable = {runner}
-use_x509userproxy = $ENV(X509_USER_PROXY)
+use_x509userproxy = True
+x509userproxy = $ENV(X509_USER_PROXY)
 Log        = {ld}/{p}_$(ProcId).log
 Output     = {ld}/{p}_$(ProcId).out
 Error      = {ld}/{p}_$(ProcId).error
@@ -217,6 +220,12 @@ request_memory = 6000
         for tty in mca._allData[proc]:
             if not options.component: print "\t component %-40s" % tty.cname()
             if options.component and tty.cname()!=options.component: continue
+            if options.matchComponent:
+                if re.match(options.matchComponent,tty.cname()):
+                    print "Component {n} matched filter".format(n=tty.cname())
+                else:
+                    print "Skipping {n}: doesn't match filter".format(n=tty.cname())
+                    continue
             myoutpath = outdir+"/"+tty.cname()
             for path in options.path:
                 mysource = path+"/"+tty.cname()

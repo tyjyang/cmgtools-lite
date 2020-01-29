@@ -31,6 +31,7 @@ fiducial=" -A eleKin fiducial 'abs(LepGood1_eta)<=1.4442 || abs(LepGood1_eta)>=1
 json_L1_HLT27=" -A eleKin json 'isGoodRunLS(isData,run,lumi)' "
 ptMin=" -A eleKin ptMin 'ptElFull(LepGood1_calPt,LepGood1_eta) >= XX' "
 ptMax=" -A eleKin ptMax 'ptElFull(LepGood1_calPt,LepGood1_eta) <= XX' "
+etaMax=" -A eleKin etaMax 'abs(LepGood1_eta) <= XX' "
 mtMin=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) >= XX' "
 mtMax=" -A eleKin pfmt 'mt_2(met_pt,met_phi,${ptcorr},LepGood1_phi) <= XX' "
 WselFull=" ${mtMin/XX/40} ${ptMax/XX/45} ${fiducial} "
@@ -66,9 +67,9 @@ else
 fi
 
 #useHLTpt27="y" # already in selection txt file
-runCondor="y"
+runCondor="n"
 jobRunTime="86400"
-nameTag="_check_elescale_plus" 
+nameTag="_check_sigReg_fakesWpt_plus" 
 #nameTag="_varStudy"
 useLessMC="n"
 usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: use LepGood_pt (which is what would have been used if the scale factors where in a friend tree)
@@ -77,7 +78,7 @@ usePtCorrForScaleFactors="n" # y: use corrected pt for scale factor weight; n: u
 #etaBinBoundaries=("0.0" "1.479" "2.5")
 #etaBinBoundaries=("0.0" "0.2" "0.4" "0.6" "0.8" "1.0" "1.2" "1.4442" "1.566" "1.7" "1.9" "2.1" "2.3" "2.5")
 #etaBinBoundaries=("2.1" "2.3")
-etaBinBoundaries=("0.0" "2.5")
+etaBinBoundaries=("0.0" "2.4")
 useAllEta="n"
 #etaBinBoundaries=("0.0" "1.0" "1.479" "2.1" "2.5")
 #etaBinBoundaries=("0.0" "1.0")
@@ -118,7 +119,7 @@ excludeprocesses="Z_LO,W_LO" # decide whether to use NLO (amc@NLO) or LO (MadGra
 #selectplots="unrolled"
 #selectplots="ptl1_narrow,etal1_binFR,ptl1__etal1_binFR"
 #selectplots="ptl1large__etal1,ptl1_large,etal1_binFR"
-selectplots="ptl1_26to56,ptl1_26to56__etal1"
+selectplots="ptl1_30to56,ptl1_26to56__etal1,etal1_2p4"
 #selectplots="wminus_wpt,wminus_wy"
 #selectplots="nVert,rho"
 #selectplots="ptl1_wmass,pfmt_wmass"
@@ -143,11 +144,11 @@ maxentries=""  # all events if ""
 #scaleAllMCtoData=" --scaleBkgToData QCD --scaleBkgToData W --scaleBkgToData Z --scaleBkgToData Top --scaleBkgToData DiBosons " # does not seem to work as expected
 plottingMode="" # stack (default), nostack, norm (can leave "" for stack, otherwise " --plotmode <arg> ")
 
-ratioPlotDataOptions="--showRatio --maxRatioRange 0.8 1.2 --fixRatioRange "
+ratioPlotDataOptions="--showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --noLegendRatioPlot "
 #ratioPlotDataOptions="  "
 #ratioPlotDataOptions=" --plotmode norm --contentAxisTitle 'arbitrary units' "
 #ratioPlotDataOptions="--showRatio --maxRatioRange 0.75 1.25 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_jetPt40 --ratioYLabel 'jetpt40/nomi' --plotmode nostack " #--sp data_noJson --noStackSig --showIndivSigs"
-ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen W --ratioNums W_elescale_Up --ratioYLabel 'Var./Nomi.'"
+#ratioPlotDataOptions=" --plotmode nostack  --noLegendRatioPlot --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_Wpt,data_fakes_slopeUp,data_fakes_EWKUpSlopeDn --ratioYLabel 'Var./Nomi.'"
 #ratioPlotDataOptions=" --noLegendRatioPlot  --plotmode nostack --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange --ratioDen data_fakes --ratioNums data_fakes_slopeUp,data_fakes_pol1fitPt30to48,data_fakes_pol2 --ratioYLabel 'var/nomi' "
 #ratioPlotDataOptions=" --plotmode nostack --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange --ratioDen W --ratioNums W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn --ratioYLabel 'var/nomi' "
 ratioPlotDataOptions_MCclosureTest="--showRatio --maxRatioRange 0.0 2.0 --fixRatioRange --ratioDen QCD --ratioNums QCDandEWK_fullFR,QCD_fakes --ratioYLabel 'FR/QCD' "
@@ -265,12 +266,12 @@ skimTreeDir["WhelicitySignalRegion"]="TREE_4_XSEC_AFS"
 #skimTreeDir["WhelicitySignalRegion"]="TREES_DYELE_19Feb2019" 
 #skimTreeDir["WhelicitySignalRegion"]="signalSkim" 
 outputDir["WhelicitySignalRegion"]="full2016data_${today}"
-regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/56} ${FRnumSel} ${mtMin/XX/40} ${chargePlus}  " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
+regionCuts["WhelicitySignalRegion"]=" -X nJet30  ${fiducial} ${ptMax/XX/56} ${FRnumSel} ${mtMin/XX/40} ${etaMax/XX/2.4} ${chargePlus}  " # "${WselAllPt} ${WselFull}" "${mtMinSmear/XX/40}"
 qcdFromFR["WhelicitySignalRegion"]="y"
-#scaleMCdata["WhelicitySignalRegion"]=" -p data,W,data_fakes,Z,TauTopVVFlips --fitData " #--scaleSigToData --sp data_fakes " # " --fitData "
+scaleMCdata["WhelicitySignalRegion"]=" -p data,Wpt,data_fakes_Wpt_pol2,Zpt,TauTopVVFlips  " #--scaleSigToData --sp data_fakes " # " --fitData "
 #scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_slopeUp,data_fakes_slopeDn,data_fakes_EWKUp,data_fakes_EWKDn,data_fakes_EWKUpSlopeDn,data_fakes_EWKDnSlopeUp  "
 #scaleMCdata["WhelicitySignalRegion"]=" -p W,W_lepeff_Up,W_lepeff_Dn,W_elescale_Up,W_elescale_Dn  "
-scaleMCdata["WhelicitySignalRegion"]=" -p W,W_elescale_Up  "
+#scaleMCdata["WhelicitySignalRegion"]=" -p data_fakes,data_fakes_Wpt,data_fakes_slopeUp,data_fakes_EWKUpSlopeDn "
 #--noLegendRatioPlot --canvasSize 3000 750 --setTitleYoffset 0.3" #--scaleSigToData --sp data_fakes " # --pg 'EWK := Wincl,Z,Top,Dibosons'
 #
 # data_fakes,Z,TauDecaysW,Top,DiBosons,WFlips

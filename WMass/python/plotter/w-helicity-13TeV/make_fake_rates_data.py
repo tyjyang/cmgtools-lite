@@ -18,6 +18,7 @@ parser.add_option("--no-scaleFactors", dest="noScaleFactors", default=False, act
 parser.add_option("--useSignedEta", dest="useSignedEta", default=False, action='store_true', help="Make fake rate for eta bins distinguishing eta sign");
 parser.add_option("--makeTH3-eta-pt-passID", dest="makeTH3_eta_pt_passID", default=False, action='store_true', help="This option is special. It will make the following create only the TH3D histograms with |eta|, pt and passID. This will allow to compute the FR in any binning of pt and eta (using another macro). It overrides some other options");
 parser.add_option("--addOpts", dest="addOpts", default="", type='string', help="Options to pass some other options from outside to build the command");
+parser.add_option("--reweightZpt", dest="reweightZpt", default=False, action='store_true', help="Use W and Z with reweighted pT");
 (options, args) = parser.parse_args()
 
 useMuon = options.useMuon
@@ -32,6 +33,7 @@ usePickle = options.usePickle
 useSignedEta = options.useSignedEta
 addOpts = options.addOpts
 luminosity = options.lumi
+reweightZpt = options.reweightZpt
 
 print "# useFullData2016 = " + str(useFullData2016)
 
@@ -87,7 +89,8 @@ if useFullData2016:
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' 
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)" ' 
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
+    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_electronSF_TriggerAndID(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*LepGood1_SF2*eleSF_L1Eff(LepGood1_pt,LepGood1_eta)" ' # with L1 prefire 
 
 if useMuon:
     MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)*prefireJetsWeight(LepGood1_eta)" ' 
@@ -149,6 +152,7 @@ EWKSPLIT="-p 'W_fake,W,Z,data'"
 EWKEXCLUDE="--xp 'W_LO,Z_LO'"
 if addQCDMC:
     EWKSPLIT="-p 'QCD,W,Z,Top,DiBosons,data'"
+if reweightZpt: EWKSPLIT = EWKSPLIT.replace("W,Z,","W,Z,Wpt,Zpt,")
 
 MCEFF = "python " + plotterPath + "w-helicity-13TeV/dataFakeRate.py " + OPTIONS + " " + EWKSPLIT + " " + EWKEXCLUDE +" --groupBy cut " + plotterPath + "w-helicity-13TeV/make_fake_rates_sels.txt " + plotterPath + "w-helicity-13TeV/make_fake_rates_xvars.txt  "
 if addQCDMC:

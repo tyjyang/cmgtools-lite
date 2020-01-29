@@ -141,8 +141,11 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   } else if (abs(pdgId)==13) {
 
      if (!ratio_FSRoverNoFSR_etaPt_mu) {
-      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
-      ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
+       _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+       ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
+       // patch for test
+       //_file_ratio_FSRoverNoFSR_etaPt_mu = new TFile("/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/plots/distribution/FSR_atRecolevel_muon_FSRnormGenArea_reallyNoCut_plotGenLepNoSF_fsrNoGenNormCorr_forceMuInFSRfunc//test_plots.root","read");
+       //ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu_noGenNormCorr");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_mu;
     outlierWgt = 0.914322;
@@ -196,6 +199,9 @@ float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToS
 
 }
 
+float fsrPhotosWeightSimpleMu(float dresspt, float barept, bool normToSameGenArea = false, float dresseta = 0) {
+  return fsrPhotosWeightSimple(13, dresspt, barept, normToSameGenArea, dresseta);
+}
 
 TFile *_file_fsrWeights = NULL;
 TH3F * fsrWeights_elplus  = NULL;
@@ -250,6 +256,7 @@ float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false
   float scaleW = scaleNormWToGenXsecBeforeCuts ? 0.9714120 : 0.958;  //1.014 * 0.958 
   float scaleToMCaNLO = isZ ? 1. : scaleW;
   // plots are MC/data
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
 
@@ -521,6 +528,7 @@ float eleSF_Clustering(float pt, float eta) {
 float eleSF_L1Eff(float pt, float eta, bool geterr=false) {
   float sf;
   if (fabs(eta)<1.479 || pt<35) {
+    //if (fabs(eta)<1.479) {
     sf = geterr ? 0.0 : 1.0;
   }
   else sf = _get_electronSF_anyStep(pt,eta,4,geterr);
@@ -1197,5 +1205,34 @@ float lepSFRmuDn(int pdgId, float pt, float eta, int charge, float sf2) {
 
 }
 
+float _muonTriggerSF_2l_trigMatch(int requiredCharge, // pass positive or negative number, depending on what you want 
+				  float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+				  int pdgId1, int pdgId2,  // used to decide which lepton has the required charge
+				  float pt1, float pt2,
+				  float eta1, float eta2
+				  ) {
+
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+  // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
+  // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
+  if (requiredCharge * pdgId1 < 0) {
+    // use lep 1
+    pdgId = pdgId1;
+    pt    = pt1;
+    eta   = eta1;
+    if (matchedTrgObjMuPt_l1 < 0.0) return 0;  // if no match to trigger, discard events
+  } else {
+    // use lep 2
+    pdgId = pdgId2;
+    pt    = pt2;
+    eta   = eta2;
+    if (matchedTrgObjMuPt_l2 < 0.0) return 0;  // if no match to trigger, discard events
+  } 
+  
+  return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);
+
+}
 
 #endif

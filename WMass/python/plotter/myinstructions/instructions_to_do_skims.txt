@@ -38,11 +38,16 @@ python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31Jul
 # signal friends
 python w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31July2018.txt w-helicity-13TeV/wmass_e/skim_fr_el_new.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9_SIGNAL  -f w-helicity-13TeV/wmass_e/varsSkim_80X_fr_new_friends.txt --fo -q cmscaf1nd --log logs_friends_FRskim_01Nov2018 
 
+#
+python w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31July2018.txt w-helicity-13TeV/wmass_e/skim_fr_el_new.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_SIGNAL_1l_recoil_fullTrees/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9  -f w-helicity-13TeV/wmass_e/skimming/tests/varsSkim_80X_fr_new_sig_friends.txt --fo -q cmscaf1nd --log logs_friends_FRskim_09Oct2019 
+
 
 # other samples
 python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31July2018.txt w-helicity-13TeV/wmass_e/skim_fr_el_new.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_1LEP_80X_V3_MC /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9_dataAndBkg -f w-helicity-13TeV/wmass_e/varsSkim_80X_fr_new.txt --main-only -q cmscaf1nd --log logs_FRskim_01Nov2018_dataAndBkg  --pretend
 
 # other samples friends
+#maybe folder is TREES_1LEP_80X_V3_MC/actualTrees/
+#for dy use w-helicity-13TeV/wmass_e/varsSkim_80X_fr_new_dy_friends.txt
 python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_e/mca-80X-skimsFR_31July2018.txt w-helicity-13TeV/wmass_e/skim_fr_el_new.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/TREES_1LEP_80X_V3_MC /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9_dataAndBkg -f w-helicity-13TeV/wmass_e/varsSkim_80X_fr_new_friends.txt --fo -q cmscaf1nd --log logs_friends_FRskim_01Nov2018_dataAndBkg  --pretend
 
 

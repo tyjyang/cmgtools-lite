@@ -1555,6 +1555,7 @@ def drawMuElComparison(hlep, hmu, hel,
                        textForLines=[],                       
                        moreText="",
                        moreTextLatex="",
+                       skipPreliminary=True
                    ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -1642,7 +1643,7 @@ def drawMuElComparison(hlep, hmu, hel,
     hlep.GetYaxis().SetRangeUser(ymin, ymax)    
     hlep.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: hlep.GetXaxis().SetRangeUser(xmin,xmax)
-    hlep.Draw("EP")
+    hlep.Draw("EP0")
     #hleperr = hlep.Clone("hleperr")
     #hleperr.SetFillColor(ROOT.kRed+2)
 
@@ -1661,13 +1662,13 @@ def drawMuElComparison(hlep, hmu, hel,
     hmu.SetMarkerColor(ROOT.kAzure+7)
     hmu.SetMarkerStyle(21)
     hmu.SetMarkerSize(1.2)
-    hmu.Draw("EP SAME")
+    hmu.Draw("E0P0 SAME0")
 
     hel.SetLineColor(ROOT.kRed-2)  # kRed+2
     hel.SetMarkerColor(ROOT.kRed-2)
     hel.SetMarkerStyle(22)
     hel.SetMarkerSize(1.2)
-    hel.Draw("EP SAME")
+    hel.Draw("E0P0 SAME0")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -1760,16 +1761,16 @@ def drawMuElComparison(hlep, hmu, hel,
 
     setTDRStyle()
     if leftMargin > 0.1:
-        if lumi != None: CMS_lumi(canvas,lumi,True,False)
-        else:            CMS_lumi(canvas,"",True,False)
+        if lumi != None: CMS_lumi(canvas,lumi,True,skipPreliminary, offsetLumi=0.02)
+        else:            CMS_lumi(canvas,"",True,skipPreliminary)
     else:
         latCMS = ROOT.TLatex()
         latCMS.SetNDC();
         latCMS.SetTextFont(42)
         latCMS.SetTextSize(0.045)
-        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
-        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+        latCMS.DrawLatex(leftMargin, 0.95, '#bf{CMS}' + (' #it{Preliminary}' if not skipPreliminary else ''))
+        if lumi != None: latCMS.DrawLatex(0.85+(0.04-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90+(0.04-rightMargin), 0.95, '(13 TeV)' % lumi)
 
     if lowerPanelHeight:
         pad2.Draw()
@@ -1817,8 +1818,8 @@ def drawMuElComparison(hlep, hmu, hel,
         ratioel.SetMarkerSize(1.0)
         den.SetMarkerSize(0) 
         den.Draw("E2same")
-        ratiomu.Draw("EP same")
-        ratioel.Draw("EP same")
+        ratiomu.Draw("E0P0 same0")
+        ratioel.Draw("E0P0 same0")
         
  
         line = ROOT.TF1("horiz_line","1",den.GetXaxis().GetBinLowEdge(1),den.GetXaxis().GetBinLowEdge(den.GetNbinsX()+1))
@@ -2293,8 +2294,9 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                           histMCpartialUnc = None,
                           histMCpartialUncLegEntry = "",
                           useDifferenceInLowerPanel = False,
-                          noLegendLowerPanel = False,
-                          legendEntries = []
+                          noLegendLowerPanel = True,
+                          legendEntries = [],
+                          skipPreliminary = True
                       ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -2312,6 +2314,43 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     #    if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
     #    # case in which rebinFactorX is a list of bin edges
     #    else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+
+    # colorBandpart = {"line" : ROOT.kRed,
+    #                  "fill" : ROOT.kRed-9}
+    # colorBandTot = {"line" : ROOT.kGreen,
+    #                 "fill" : ROOT.kGreen-9}
+    # colorBandPart = {"line" : ROOT.kCyan+2,
+    #                  "fill" : ROOT.kCyan}
+    # colorBandTot = {"line" : ROOT.kOrange+2,
+    #                 "fill" : ROOT.kOrange}
+    # colorBandPart = {"line" : ROOT.kCyan+2,
+    #                  "fill" : ROOT.kCyan-9} # was -7
+    # colorBandTot = {"line" : ROOT.kOrange+7,
+    #                 "fill" : ROOT.kOrange+6} # try -3, -9, +1, -4, -2, +6
+    # colorBandPart = {"line" : ROOT.kAzure+7,
+    #                  "fill" : ROOT.kAzure+6} # try -9
+    # colorBandTot = {"line" : ROOT.kOrange+10,
+    #                 "fill" : ROOT.kOrange-9} # + 6 # try -3, -9, +1, -4, -2, +6
+
+    # colorBandPart = {"line" : ROOT.kAzure+7,
+    #                  "fill" : ROOT.kAzure+7} # try +6 and 50% transparent
+    # colorBandTot = {"line" : ROOT.kOrange+10,
+    #                 "fill" : ROOT.kOrange+7} # try kRed+1 with 50% transparent #  + 6 # try -3, -9, +1, -4, -2, +6
+    # fcalphaPart = 0.5
+    # fcalphaTot = 0.9
+    # fsPart = 1001
+    # fsTot = 1001
+
+    colorBandPart = {"line" : ROOT.kBlue,
+                     "fill" : ROOT.kAzure+7} # try +6 and 50% transparent
+    colorBandTot = {"line" : ROOT.kPink-6,
+                    "fill" : ROOT.kPink-6} # try kRed+1 with 50% transparent #  + 6 # try -3, -9, +1, -4, -2, +6
+    centralLineColor = colorBandPart["line"]
+    linewidth = 2 if leftMargin > 0.1 else 1
+    fcalphaPart = 0.6 # 0.5
+    fcalphaTot = 0.66 # 0.9
+    fsPart = 1001
+    fsTot = 1001
 
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
@@ -2382,22 +2421,30 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     h1.GetYaxis().SetRangeUser(ymin, ymax)    
     h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
-    h1.Draw("EP")
+    h1.Draw("EP0")
     #h1err = h1.Clone("h1err")
     #h1err.SetFillColor(ROOT.kRed+2)
-    h2.SetFillStyle(1001)  # 3001 is better than 3002 for pdf, while 3002 is perfect for png
-    h2.SetLineColor(ROOT.kRed)  # kGreen+2
-    h2.SetFillColor(ROOT.kRed-9)    # kGreen
-    h2.SetLineWidth(1)
-    h2.Draw("2 SAME")
+    h2.SetFillStyle(fsTot)  # 1001 for solid, 3001 is better than 3002 for pdf, while 3002 is perfect for png
+    h2.SetLineColor(colorBandTot["line"])  # kGreen+2
+    h2.SetFillColor(colorBandTot["fill"])    # kGreen
+    h2.SetFillColorAlpha(colorBandTot["fill"], fcalphaTot);
+    h2.SetLineWidth(linewidth)
+    h2.Draw("E2 SAME")
     h3 = None
     if histMCpartialUnc != None:
         h3 = histMCpartialUnc.Clone("histMCpartialUnc")
-        h3.SetFillColor(ROOT.kGreen-9)
-        h3.SetLineColor(ROOT.kGreen)
-        h3.SetFillStyle(1001)  # 3001, 3144 , 3244, 3003
+        h3dummyWhite = histMCpartialUnc.Clone("h3dummyWhite")
+        h3dummyWhite.SetFillColor(ROOT.kWhite)
+        h3dummyWhite.SetLineColor(ROOT.kWhite)
+        h3dummyWhite.SetFillStyle(1001)
+        h3dummyWhite.Draw("E2 SAME")
+        h3.SetFillColor(colorBandPart["fill"])
+        h3.SetLineColor(colorBandPart["line"])
+        h3.SetFillColorAlpha(colorBandPart["fill"], fcalphaPart);
+        h3.SetLineWidth(linewidth)
+        h3.SetFillStyle(fsPart)  # 1001, 3001, 3144 , 3244, 3003
         #h3.SetFillStyle(3244)  # 3144 , 3244, 3003
-        h3.Draw("2 SAME")
+        h3.Draw("E2 SAME")
         #for i in range(1,1+h3.GetNbinsX()):
         #    print "PDF band: bin %d  val +/- error = %.3f +/- %.3f" % (i, h3.GetBinContent(i),h3.GetBinError(i))
     h2line = None
@@ -2407,9 +2454,11 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         yval = h2.Eval(xval)
         h2line.SetBinContent(i,yval)
     h2line.SetFillColor(0)
-    h2line.SetLineColor(h2.GetLineColor())
+    #h2line.SetLineColor(h2.GetLineColor())
+    h2line.SetLineColor(centralLineColor)
+    h2line.SetLineWidth(linewidth)
     h2line.Draw("HIST SAME")
-    h1.Draw("EP SAME")
+    h1.Draw("EP0 SAME")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -2510,16 +2559,16 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
 
     setTDRStyle()
     if leftMargin > 0.1:
-        if lumi != None: CMS_lumi(canvas,lumi,True,False)
-        else:            CMS_lumi(canvas,"",True,False)
+        if lumi != None: CMS_lumi(canvas,lumi,True,skipPreliminary, offsetLumi=0.02)
+        else:            CMS_lumi(canvas,"",True,skipPreliminary)
     else:
         latCMS = ROOT.TLatex()
         latCMS.SetNDC();
         latCMS.SetTextFont(42)
         latCMS.SetTextSize(0.045)
-        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
-        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+        latCMS.DrawLatex(leftMargin, 0.95, '#bf{CMS}' + (' #it{Preliminary}' if not skipPreliminary else ''))
+        if lumi != None: latCMS.DrawLatex(0.85+(0.04-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90+(0.04-rightMargin), 0.95, '(13 TeV)' % lumi)
 
     if lowerPanelHeight:
         pad2.Draw()
@@ -2592,13 +2641,15 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         if invertRatio:
             if histMCpartialUnc == None:
                 ratio.SetFillColor(ROOT.kGray+1)
-                ratio.SetFillStyle(1001)  # make it solid again
+                ratio.SetFillStyle(fsPart)  # 1001 make it solid again
                 ratio.SetLineColor(ROOT.kGray+3)
-            else:
-                ratio.SetFillColor(ROOT.kRed-9) # kGreen+1
-                ratio.SetFillStyle(1001)  # 1001 to make it solid again
-                ratio.SetLineColor(ROOT.kRed) # kGreen+2                       
-                ratio.SetLineWidth(1) # make it smaller when it is drawn on top of something
+            else:                
+                ratio.SetFillColor(colorBandPart["fill"]) # kGreen+1
+                ratio.SetFillColorAlpha(colorBandPart["fill"], fcalphaPart);
+                ratio.SetFillStyle(fsPart)  # 1001 to make it solid again
+                #ratio.SetLineColor(colorBandTot["line"]) # kGreen+2                       
+                ratio.SetLineColor(centralLineColor) # kGreen+2                       
+                ratio.SetLineWidth(linewidth) # make it smaller when it is drawn on top of something
         else:
             if histMCpartialUnc == None:
                 den.SetFillColor(ROOT.kGray+1)
@@ -2607,12 +2658,18 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
 
         if histMCpartialUnc != None:
             h3ratio = h3.Clone("h3ratio")
-            h3ratio.SetFillStyle(1001) # 
-            h3ratio.SetFillColor(ROOT.kGreen-9)  # kRed-4
-            h3ratio.SetLineColor(ROOT.kGreen)  # kRed-4
+            h3ratio.SetFillStyle(fsPart) # 
+            h3ratio.SetFillColor(colorBandPart["fill"])  # kRed-4
+            h3ratio.SetLineColor(colorBandPart["line"])  # kRed-4
+            h3ratio.SetFillColorAlpha(colorBandPart["fill"], fcalphaPart);
+            h3ratiodummyWhite = h3.Clone("h3ratiodummyWhite")
+            h3ratiodummyWhite.SetFillColor(ROOT.kWhite)
+            h3ratiodummyWhite.SetLineColor(ROOT.kWhite)
+            h3ratiodummyWhite.SetFillStyle(1001)
             if h3ratio.InheritsFrom("TH1"):
                 if useDifferenceInLowerPanel:
                     h3ratio.Add(den_noerr,-1.0)
+                    
                 else:
                     h3ratio.Divide(den_noerr)
                 #h3ratio.SetFillStyle(3144) # 1001 for solid, 3144 instead of 3244, to have more dense hatches
@@ -2630,7 +2687,10 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                         h3ratio.SetPointEYhigh(i, h3ratio.GetErrorYhigh(i)/yval)
                         h3ratio.SetPointEYlow(i,  h3ratio.GetErrorYlow(i)/yval)
 
-
+            h3ratiodummyWhite = h3ratio.Clone("h3ratiodummyWhite")
+            h3ratiodummyWhite.SetFillColor(ROOT.kWhite)
+            h3ratiodummyWhite.SetLineColor(ROOT.kWhite)
+            h3ratiodummyWhite.SetFillStyle(1001)
 
         frame.Draw()        
         if invertRatio:
@@ -2645,11 +2705,13 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             #ratio.Draw("EPsame") # draw after red line, not now
 
         if histMCpartialUnc != None:
+            h3ratiodummyWhite.Draw("F2 same")
             h3ratio.Draw("F2 same")
         
         line = ROOT.TF1("horiz_line","0" if useDifferenceInLowerPanel else "1",
                         ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-        line.SetLineWidth(1)
+        line.SetLineWidth(linewidth)
+        line.SetLineColor(centralLineColor)
         line.Draw("Lsame")
         # if invertRatio:
         #     ratioline = ratio.Clone("ratioline")
@@ -2667,9 +2729,9 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         #else: 
         #    ratio.Draw("EPsame")
         if invertRatio:
-            den.Draw("EPsame") 
+            den.Draw("E0P0same0") 
         else:
-            ratio.Draw("EPsame")
+            ratio.Draw("E0P0same0")
 
         x1leg2 = 0.15 if leftMargin > 0.1 else 0.07
         x2leg2 = 0.55 if leftMargin > 0.1 else 0.27
