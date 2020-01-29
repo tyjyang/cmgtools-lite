@@ -124,14 +124,14 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
         ##ROOT.gStyle.SetPadBottomMargin(0.33)
         c1.cd()
     ## Draw absolute prediction in top frame
-    offset = 0.45 if veryWide else 0.62
+    offset = 0.5 if veryWide else 1.4
     htot.GetYaxis().SetTitleOffset(offset)
     htot.SetTitle('')
-    htot.GetYaxis().SetTitleOffset(1.35)
     htot.GetYaxis().SetTitleSize(0.05)
     htot.GetXaxis().SetLabelSize(0.04)
     htot.GetYaxis().SetLabelSize(0.04)
     htot.GetXaxis().SetTitleSize(0.05)
+    htot.GetYaxis().SetTickLength(0.01)
     htot.Draw("HIST")
     #htot.SetLabelOffset(9999.0);
     #htot.SetTitleOffset(9999.0);
@@ -145,10 +145,12 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
     if veryWide:
-        x1 = 0.09; x2 = 0.85
+        x1 = 0.09; x2 = 0.88
+        lat.SetTextSize(0.08)
     else:
-        x1 = 0.26; x2 = 0.60
-    lat.DrawLatex(x1, 0.92, '#bf{CMS}')# #it{Preliminary}')
+        x1 = 0.26; x2 = 0.65
+        lat.SetTextSize(0.04)
+    lat.DrawLatex(x1, 0.92, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(x2, 0.92, '35.9 fb^{-1} (13 TeV)')
     
 
@@ -181,7 +183,7 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
         rdata,rnorm,rline = doRatioHists(hdata, htot, maxRange=maxrange, fixRange=True, doWide=veryWide)
     c1.cd()
     outf_basename = '{odir}/{pfx}_{ch}_{flav}_PFMT40_absY_{sfx}.'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix)
-    for ext in ['pdf', 'png']:
+    for ext in ['pdf', 'png', 'root', 'C']:
         c1.SaveAs(outf_basename+ext)
     if outtext:
         ofo = open(outf_basename+'txt', 'w')
@@ -301,7 +303,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
     line.Draw("L")
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.94, '#bf{CMS}')# #it{Preliminary}')
+    lat.DrawLatex(0.15, 0.94, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
 
     # draw vertical lines to facilitate reading of plot
@@ -582,6 +584,7 @@ if __name__ == "__main__":
                 
                 hexpfull.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
                 hexpfull.GetYaxis().SetTitle('Events')
+                hexpfull.GetYaxis().CenterTitle()
              
                 plotOne(charge,channel,stack,hexpfull,hdata,leg,outname,'projection%s'%projection,suffix)
             
