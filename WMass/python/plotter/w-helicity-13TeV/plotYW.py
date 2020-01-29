@@ -13,7 +13,7 @@ import utilities
 utilities = utilities.util()
 
 REFMC = 'MC@NLO'
-PRELIMINARY = '' #'#it{Preliminary}'
+PRELIMINARY = '' # '#it{Preliminary}'
 
 class valueClass:
     def __init__(self, name):
@@ -209,10 +209,10 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             else:
                 if options.normxsec: 
                     #mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetTitle('d#sigma/dY_{W}/#sigma_{tot}')
+                    mg.GetYaxis().SetTitle('d#sigma / dY_{W} / #sigma_{tot}')
                     mg.GetYaxis().SetRangeUser(0.,0.8 if options.maxRapidity > 2.9 else 0.25)
                 else: 
-                    mg.GetYaxis().SetTitle('d#sigma/dY_{W} (pb)')
+                    mg.GetYaxis().SetTitle('d#sigma / dY_{W} (pb)')
                     mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
@@ -315,9 +315,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             titles = {'asymmetry': 'Charge asymmetry',
                       'a0': '|A_{0}|', 
                       'a4': '|A_{4}|',
-                      'sumxsec': '',
-                      #'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
-                      'sumxsecnorm': 'd#sigma/dY_{W}/#sigma_{tot}'}
+                      'sumxsec': 'd#sigma / d|Y_{W}| (pb)',
+                      'sumxsecnorm': 'd#sigma/dY_{W} / #sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
                       'a4': (-1,2),
