@@ -1,5 +1,6 @@
-Z           : DYJetsToLL_M50_ext2*                : 1921.8*3                                              ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
-Z           : DYJetsToLL_M50_part*                : 1921.8*3                                              ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+ZMuMu_py8    : ZJToMuMu_powhegMiNNLO_pythia8_testProd_part*                : 1921.8                                              ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+ZMuMu_py8photos    : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd_part*   : 1921.8                                              ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+
 
 W    : WJetsToLNu_* : 3.*20508.9  ; FillColor=ROOT.kGray+1   , Label="W"
 
@@ -10,6 +11,7 @@ Top         : T_tch_powheg_part*                  : xsec                        
 Top         : TBar_tch_powheg_part*               : xsec                                                  ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.04
 Top         : T_tWch_ext                          : xsec                                                  ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.06
 Top         : TBar_tWch_ext                       : xsec                                                  ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.06
+Top         : TTLep_pow_part*                     : xsec                                                  ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.06
 
 DiBosons    : WW+WW_ext                           : xsec                                                  ; FillColor=ROOT.kViolet+2, Label="DiBosons", NormSystematic=0.03
 DiBosons    : WZ+WZ_ext                           : xsec                                                  ; FillColor=ROOT.kViolet+2, Label="DiBosons", NormSystematic=0.05
