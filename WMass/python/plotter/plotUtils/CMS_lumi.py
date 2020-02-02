@@ -95,7 +95,8 @@ def CMS_lumi(pad = 0,
              skipPreliminary = True, 
              reduceSize = False, 
              offset = 0,
-             offsetLumi = 0):
+             offsetLumi = 0,
+             isSimulation=False):
 
     setTDRStyle()    
 
@@ -132,7 +133,7 @@ def CMS_lumi(pad = 0,
         latex2.SetTextAlign(11)    
         latex2.DrawLatex(lm+0.175+offset, 0.85, "CMS")
 
-    if not skipPreliminary:
+    if isSimulation or not skipPreliminary:
 
         if up:
             latex2.SetTextSize(0.65*pad.GetTopMargin())
@@ -140,7 +141,7 @@ def CMS_lumi(pad = 0,
             latex2.SetTextAlign(11)
             if reduceSize:
                 latex2.SetTextSize(0.5*pad.GetTopMargin())
-            latex2.DrawLatex(lm+0.25+offset, 0.95, "Preliminary")
+            latex2.DrawLatex(lm+0.25+offset, 0.95, "{sim}Preliminary".format(sim="Simulation " if isSimulation else ""))
       
         else:
             latex2.SetTextSize(0.6*pad.GetTopMargin())
@@ -149,6 +150,6 @@ def CMS_lumi(pad = 0,
             latex2.SetTextFont(52)
             latex2.SetTextAlign(11)    
             if reduceSize:
-                latex2.DrawLatex(lm+0.235+offset, 0.85, "Preliminary")
+                latex2.DrawLatex(lm+0.235+offset, 0.85, "{sim}Preliminary".format(sim="Simulation " if isSimulation else ""))
             else:
-                latex2.DrawLatex(lm+0.28+offset, 0.85, "Preliminary")
+                latex2.DrawLatex(lm+0.28+offset, 0.85, "{sim}Preliminary".format(sim="Simulation " if isSimulation else ""))

@@ -147,8 +147,7 @@ if __name__ == "__main__":
     if options.analysis == "diffXsec":
         etaPtBinningVec = getDiffXsecBinning(etaPtBinningFile, "gen")
         genBins  = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
-
-    print genBins.printBinAll()
+        print genBins.printBinAll()
 
     #following array is used to call function dressed2D()
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
