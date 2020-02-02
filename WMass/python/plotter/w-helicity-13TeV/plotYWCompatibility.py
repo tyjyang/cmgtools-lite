@@ -16,7 +16,7 @@ utilities = utilities.util()
 REFMC = 'MC@NLO'
 
 def makeCanvas():
-    c2 = ROOT.TCanvas('foo','', 1500, 3000)
+    c2 = ROOT.TCanvas('foo','', 2000, 3000)
     
     c2.Range(0,0,1,1);
     c2.SetFillColor(0);
@@ -43,6 +43,8 @@ def makePads(subpadsYLow,subpadsYUp):
         pad.SetTicky(1);
         pad.SetLeftMargin(0.2);
         pad.SetRightMargin(0.05);
+        pad.SetTopMargin(0.1);
+        pad.SetBottomMargin(0.1);
         pad.SetFrameFillStyle(0);
         pad.SetFrameBorderMode(0);
         pad.SetFrameFillStyle(0);
@@ -178,8 +180,8 @@ def plotValues(values,charge,channel,options):
     c2 = makeCanvas()
 
     ROOT.gStyle.SetHatchesLineWidth(2)
-    subpadsYLow = [0.5, 0.38, 0.26, 0.16, 0.06]
-    subpadsYUp = [0.99, 0.5, 0.38, 0.26, 0.16]
+    subpadsYLow = [0.53, 0.40, 0.27, 0.16, 0.06]
+    subpadsYUp =  [0.99, 0.50, 0.37, 0.27, 0.16]
     pads = makePads(subpadsYLow,subpadsYUp)
 
     skipLong = False
@@ -227,7 +229,7 @@ def plotValues(values,charge,channel,options):
             mg.GetYaxis().SetRangeUser(-0.1,0.4)
         else:
             if options.normxsec: 
-                mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
+                mg.GetYaxis().SetTitle('d#sigma / #sigma_{tot}^{fit} / d|Y_{W}|')
                 mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
             else: 
                 mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
@@ -264,6 +266,8 @@ def plotValues(values,charge,channel,options):
             ## x axis fiddling
             values[('lep',pol)].graph_fit_rel.GetXaxis().SetRangeUser(0., options.maxRapidity)
             values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
+            values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.0)
+            values[('lep',pol)].graph_fit_rel.GetXaxis().SetTitleSize(0.0)
             ## y axis fiddling
             values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleOffset(0.4)
             values[('lep',pol)].graph_fit_rel.GetYaxis().SetTitleSize(0.18)
@@ -353,8 +357,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
     ROOT.gStyle.SetHatchesLineWidth(2)
 
-    subpadsYLow = [0.5, 0.3, 0.1]
-    subpadsYUp = [0.99, 0.5, 0.3]
+    subpadsYLow = [0.52, 0.30, 0.08]
+    subpadsYUp =  [0.98, 0.50, 0.28]
     pads = makePads(subpadsYLow,subpadsYUp)
 
     flavors = ['mu','el','lep'];
@@ -397,20 +401,21 @@ def plotUnpolarizedValues(values,charge,channel,options):
         titles = {'asymmetry': 'Charge asymmetry',
                   'a0': '|A_{0}|', 
                   'a4': '|A_{4}|',
-                  'sumxsec': '#frac{d#sigma}{d|Y_{W}|}',
-                  'sumxsecnorm': '#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|'}
+                  'sumxsec': 'd#sigma / d|Y_{W}| (pb)',
+                  'sumxsecnorm': 'd#sigma / #sigma_{tot}^{fit} / d|Y_{W}|'}
         ranges = {'asymmetry': (-0.1,0.4),
                   'a0': (0.07,0.2),
                   'a4': (-1,2),
-                  'sumxsec': (1500,4500),
+                  'sumxsec': (1700,4500),
                   'sumxsecnorm': (0.1,0.5)}
         mg.GetYaxis().SetTitle(titles[valkey])
         mg.GetYaxis().SetRangeUser(ranges[valkey][0],ranges[valkey][1])
 
         mg.GetYaxis().SetTitleSize(0.06)
         mg.GetYaxis().SetLabelSize(0.04)
-        mg.GetYaxis().SetTitleOffset(1.2)
-    
+        mg.GetYaxis().SetTitleOffset(1.4)
+        mg.GetYaxis().CenterTitle()
+
         leg = makeFullLegendUnpol(values)
         leg.Draw('same')
     
@@ -421,33 +426,34 @@ def plotUnpolarizedValues(values,charge,channel,options):
     if sum(hasattr(values[flav],'mg') for flav in flavors)==3:
 
         c2.cd()
-        pads[1].Draw(); pads[1].cd(); ROOT.gPad.SetBottomMargin(0); ROOT.gPad.SetTopMargin(0)
-        ROOT.gPad.SetBottomMargin(0)
+        pads[1].Draw(); pads[1].cd(); # ROOT.gPad.SetBottomMargin(0); ROOT.gPad.SetTopMargin(0)
 
         if valkey=='asymmetry':
             yaxtitle = 'Theory-Data'
             yaxrange = (-0.2, 0.2)
-            yaxtitlesize = 0.18
+            yaxtitlesize = 0.15
         else:
             yaxtitle = 'Theory/Data'
-            yaxrange = (0.70, 1.30) if 'xsec' in valkey else (0.7,1.3) if valkey=='a0' else (-0.5, 2.5)
-            yaxtitlesize = 0.18
-        
+            yaxrange = (0.75, 1.25) if 'xsec' in valkey else (0.7,1.3) if valkey=='a0' else (-0.5, 2.5)
+            yaxtitlesize = 0.15
+
         values['lep'].graph_fit_rel.Draw("A2")
         values['lep'].graph_fit_rel.Draw("pe")
         values['lep'].graph_rel.Draw("2")
 
         ## x axis fiddling
         values['lep'].graph_fit_rel.GetXaxis().SetRangeUser(0., options.maxRapidity)
-        values['lep'].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
+        values['lep'].graph_fit_rel.GetXaxis().SetLabelSize(0)
+        values['lep'].graph_fit_rel.GetXaxis().SetTitleSize(0)
         ## y axis fiddling
-        values['lep'].graph_fit_rel.GetYaxis().SetTitleOffset(0.4)
+        values['lep'].graph_fit_rel.GetYaxis().SetTitleOffset(0.45)
         values['lep'].graph_fit_rel.GetYaxis().SetTitleSize(yaxtitlesize)
         values['lep'].graph_fit_rel.GetYaxis().SetLabelSize(0.12)
         values['lep'].graph_fit_rel.GetYaxis().SetTitle(yaxtitle)
         values['lep'].graph_fit_rel.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
         values['lep'].graph_fit_rel.GetYaxis().CenterTitle()
         values['lep'].graph_fit_rel.GetYaxis().SetDecimals()
+        values['lep'].graph_fit_rel.GetYaxis().SetNdivisions(505,ROOT.kFALSE)
 
         lines["horiz_line_comb"] = ROOT.TF1("horiz_line_comb","0" if charge=='asymmetry' else '1',0.0,3.0);
         lines["horiz_line_comb"].SetLineColor(ROOT.kRed);
@@ -463,8 +469,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
         # now the compatibility plots
         c2.cd()
-        pads[2].Draw(); pads[2].cd(); ROOT.gPad.SetTopMargin(0)
-        ROOT.gPad.SetBottomMargin(-0.3)
+        pads[2].Draw(); pads[2].cd(); #ROOT.gPad.SetTopMargin(0)        ROOT.gPad.SetBottomMargin(-0.3)
 
         if charge=='asymmetry':
             yaxtitle = 'A_{#mu}-A_{e}'
@@ -507,10 +512,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
     c2.cd()
     lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
-    lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.60, 0.95, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
-    for ext in ['png', 'pdf']:
+    for ext in ['png', 'pdf', 'C', 'root']:
         c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext))
 
 
