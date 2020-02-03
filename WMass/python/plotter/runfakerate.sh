@@ -15,7 +15,7 @@ lumi_2016BF="19.7"  # to be checked, but we will never use it probably
 ######################
 #--------------------------
 # choose the dataset to use (2016 B to F or 2016 B to H)
-reweightZpt="n" # use W and Z with reweighted pt
+reweightZpt="y" # use W and Z with reweighted pt
 useSignedEta="y" # distinguish bins of positive and negative rapidity (if passing binning with just positive values below, it will just skip the negative, so you are actually using half statistics)
 useMuon="y"
 charge=""  # "p", "n", or "" for positive, negative or both leptons
@@ -48,7 +48,7 @@ istest="y"
 today=`date +"%d_%m_%Y"`
 testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_jetPt30_nativeMCatNLOxsec_reweightWZpt"
 if [[ "${useMuon}" == "y" ]]; then
-    testdir="testFR_wmass/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec"
+    testdir="testFR_wmass/fr_${today}_eta_${ptDefinition}_mT20_${lumi/./p}fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec_reweightWZpt"
 fi
 
 ######################
@@ -70,7 +70,7 @@ addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,Le
 
 # no Z veto for muons
 if [[ "${useMuon}" == "y" ]]; then
-    addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "    
+    addOption=" -R mt pfmt20 'mt_2(met_pt,met_phi,ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 20' "    
 fi
 
 

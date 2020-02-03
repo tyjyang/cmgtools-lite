@@ -415,7 +415,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     ROOT.RooMsgService.instance().setGlobalKillBelow(gKill)
     
 
-def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True):
+def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06):
     numkeys = [ "data" ]
     if "data" not in pmap: 
         #print str(pmap)
@@ -529,7 +529,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity.GetXaxis().SetLabelOffset(0.007)
     unity.GetYaxis().SetNdivisions(505)
     unity.GetYaxis().SetTitleFont(42)
-    unity.GetYaxis().SetTitleSize(0.14)
+    unity.GetYaxis().SetTitleSize(ratioYLabelSize) # 0.14
     offset = 0.32 if doWide else 0.62
     unity.GetYaxis().SetTitleOffset(offset)
     if options.setTitleYoffset > 0: unity.GetYaxis().SetTitleOffset(offset * options.setTitleYoffset / 1.48)
@@ -540,7 +540,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity.GetYaxis().SetTitle(ylabel)
     total.GetXaxis().SetLabelOffset(999) ## send them away
     total.GetXaxis().SetTitleOffset(999) ## in outer space
-    total.GetYaxis().SetTitleSize(0.06)
+    total.GetYaxis().SetTitleSize(ratioYLabelSize)
     total.GetYaxis().SetTitleOffset(0.75 if doWide else 1.48)
     if options.setTitleYoffset > 0: total.GetYaxis().SetTitleOffset(options.setTitleYoffset)
     total.GetYaxis().SetLabelSize(0.05)
@@ -698,14 +698,14 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
                 lbl = mca.getProcessOption(p,'Label',p)
                 if signalPlotScale and signalPlotScale!=1: 
                     lbl=lbl+" x "+("%d"%signalPlotScale if floor(signalPlotScale)==signalPlotScale else "%.2f"%signalPlotScale)
-                myStyle = mcStyle if type(mcStyle) == str else mcStyle[0]
+                myStyle = mcStyle if type(mcStyle) == str else mcStyle[1] if any(re.match(x,p) for x in options.forceFillColorNostackMode.split("'")) else mcStyle[0]
                 sigEntries.append( (pmap[p],lbl,myStyle) )
         backgrounds = mca.listBackgrounds(allProcs=True)
         for p in backgrounds:
             if mca.getProcessOption(p,'HideInLegend',False): continue
             if p in pmap and pmap[p].Integral() >= cutoff*total: 
                 lbl = mca.getProcessOption(p,'Label',p)
-                myStyle = mcStyle if type(mcStyle) == str else mcStyle[1]
+                myStyle = mcStyle if type(mcStyle) == str else mcStyle[1] if any(re.match(x,p) for x in options.forceFillColorNostackMode.split("'")) else mcStyle[0]
                 bgEntries.append( (pmap[p],lbl,myStyle) )
         nentries = len(sigEntries) + len(bgEntries) + ('data' in pmap)
 
@@ -933,7 +933,10 @@ class PlotMaker:
                         else:
                             plot.SetLineColor(plot.GetFillColor())
                             plot.SetLineWidth(3)
-                            plot.SetFillStyle(0)
+                            if len(options.forceFillColorNostackMode) and any(re.match(x,p) for x in options.forceFillColorNostackMode.split(",")):
+                                pass
+                            else:
+                                plot.SetFillStyle(0)
                             if plotmode == "norm" and (plot.ClassName()[:2] == "TH"):
                                 ref = pmap['data'].Integral() if 'data' in pmap else 1.0
                                 if (plot.Integral()): plot.Scale(ref/plot.Integral())
@@ -1081,7 +1084,7 @@ class PlotMaker:
                 if plotmode == "stack":
                     if options.noStackSig: mcStyle = ("L","F")
                     else:                  mcStyle = "F"
-                else: mcStyle = "L"
+                else: mcStyle = ("L","F") if len(options.forceFillColorNostackMode) else "L"
                 if options.allProcInLegend: legendCutoff = 0.0
                 doLegend(pmap,mca,corner=pspec.getOption('Legend','TR'),
                          cutoff=legendCutoff, mcStyle=mcStyle,
@@ -1143,7 +1146,8 @@ class PlotMaker:
                                                             fitRatio=options.fitRatio, errorsOnRef=options.errorBandOnRatio, 
                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, 
                                                             doWide=doWide, showStatTotLegend=(False if options.noLegendRatioPlot else True),
-                                                            errorBarsOnRatio = options.errorBarsOnRatio)
+                                                            errorBarsOnRatio = options.errorBarsOnRatio,
+                                                            ratioYLabelSize = options.ratioYLabelSize)
                 if self._options.printPlots:
                     for ext in self._options.printPlots.split(","):
                         fdir = printDir;
@@ -1360,6 +1364,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--perBin", dest="perBin", action="store_true", default=False, help="Print the contents of every bin in another txt file");
     parser.add_option("--legendHeader", dest="legendHeader", type="string", default=None, help="Put a header to the legend")
     parser.add_option("--ratioOffset", dest="ratioOffset", type="float", default=0.0, help="Put an offset between ratio and main pad")
+    parser.add_option("--ratioYLabelSize", dest="ratioYLabelSize", type="float", default=0.14, help="Set size of title for y axis in ratio (note that it might require adjusting the offset")
     #parser.add_option("--yRangeOverMaxBinContent", dest="yRangeOverMaxBinContent", type="float", default=0.0, help="Used to set Y axis range as this times maximum bin content (does not include uncertainties, which is tipically good for histograms representing counts)")
     parser.add_option("--noCms", dest="doOfficialCMS", action="store_false", default=True, help="Use official tool to write CMS spam")
     parser.add_option("--cmsprel", dest="cmsprel", type="string", default="Preliminary", help="Additional text (Simulation, Preliminary, Internal)")
@@ -1373,6 +1378,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
     parser.add_option("--palette", dest="palette", type="int", default=57, help="Set color palette (only for 2D histograms)")
     parser.add_option("--allProcInLegend", dest="allProcInLegend", action="store_true", default=False, help="Put all processes in legend, regardless their integral.")
+    parser.add_option("--forceFillColorNostackMode", dest="forceFillColorNostackMode", type="string", default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
 
 
 if __name__ == "__main__":

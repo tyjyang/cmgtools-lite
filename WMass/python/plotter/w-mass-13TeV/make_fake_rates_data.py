@@ -71,25 +71,14 @@ if useSkim:
     #T="/eos/cms/store/group/dpg_ecal/comm_ecal/localreco/TREES_1LEP_80X_V3_FRELSKIM_V5/"
     T="/eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_FRELSKIM_V9/"
 if useMuon:
-    T="/afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1/"
+    #T="/afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1/"
+    T="/eos/cms/store/cmst3/group/wmass/mciprian/TREE_4_WMASS_skimMuonFR_21Jan2020/"
 objName='tree' # name of TTree object in Root file, passed to option --obj in tree2yield.py
-# if 'pccmsrm29' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/u2/emanuele')
-# elif 'lxplus' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/afs/cern.ch/work/e/emanuele/TREES/')
-# elif 'cmsrm-an' in os.environ['HOSTNAME']: T = T.replace('/data1/emanuele/wmass','/t3/users/dimarcoe/')
 print "# used trees from: ",T
 
-#datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp 'data_G,data_H' "
 ptcorr = "ptMuFull(LepGood1_calPt,LepGood1_eta)" if useMuon else "ptElFull(LepGood1_calPt,LepGood1_eta)"
-#ptForScaleFactors =  "LepGood_pt"  # or ptcorr
-#MCweightOption = ' -W "puw2016_nTrueInt_BF(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-#MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' # SF1 is trigger scale factor
 if useFullData2016:
     print "# Using full 2016 dataset"
-    #datasetOption = " --pg 'data := data_B,data_C,data_D,data_E,data_F,data_G,data_H' "
-    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,%s,LepGood1_eta,2)" ' % str(ptForScaleFactors)
-    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)*eleSF_GSFReco(LepGood1_pt,LepGood1_eta)*eleSF_FullID(LepGood1_pt,LepGood1_eta)*eleSF_Clustering(LepGood1_pt,LepGood1_eta)" ' 
-    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*eleSF_HLT(LepGood1_pt,LepGood1_eta)" ' 
-    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*lepSF(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,LepGood1_SF1,LepGood1_SF2,LepGood1_SF3)" ' # with L1 prefire 
     MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_electronSF_TriggerAndID(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*LepGood1_SF2*eleSF_L1Eff(LepGood1_pt,LepGood1_eta)" ' # with L1 prefire 
 
 if useMuon:
@@ -152,7 +141,7 @@ EWKSPLIT="-p 'W_fake,W,Z,data'"
 EWKEXCLUDE="--xp 'W_LO,Z_LO'"
 if addQCDMC:
     EWKSPLIT="-p 'QCD,W,Z,Top,DiBosons,data'"
-if reweightZpt: EWKSPLIT = EWKSPLIT.replace("W,Z,","W,Z,Wpt,Zpt,")
+if reweightZpt: EWKSPLIT = EWKSPLIT.replace("W,Z,","Wpt,Zpt,")
 
 MCEFF = "python " + plotterPath + "w-mass-13TeV/dataFakeRate.py " + OPTIONS + " " + EWKSPLIT + " " + EWKEXCLUDE +" --groupBy cut " + plotterPath + "w-mass-13TeV/make_fake_rates_sels.txt " + plotterPath + "w-mass-13TeV/make_fake_rates_xvars.txt  "
 if addQCDMC:

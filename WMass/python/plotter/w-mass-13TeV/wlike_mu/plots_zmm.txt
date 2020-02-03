@@ -58,6 +58,8 @@ miniRelIso: returnChargeVal(LepGood1_miniRelIso,LepGood1_charge,LepGood2_miniRel
 
 zmassLogy: mass_2(LepGood1_calPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_calPt,LepGood2_eta,LepGood2_phi,0.1057): 60,60,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False, Logy=True
 
+zmassFull: mass_2(LepGood1_calPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_calPt,LepGood2_eta,LepGood2_phi,0.1057): 60,0,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False
+
 
 pt__eta: returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,30,26,56 ; XTitle='charged muon #eta', YTitle='charged muon p_{T} [GeV]', Legend='TR'
 

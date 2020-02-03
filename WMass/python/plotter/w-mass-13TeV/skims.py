@@ -67,7 +67,9 @@ if __name__ == "__main__":
                 os.makedirs(outputDirFSkims)
         os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile))
         os.system('cp {sf} {od}'.format(od=outputDirSkims,sf=args[1])) ## this should work??
-    else: print "Make only the friend trees in dir ",outputDirFSkims
+    else: 
+        print "Make only the friend trees in dir ",outputDirFSkims
+        os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile)) ## this should work??
 
     OPTS = ' --obj tree -P '+treeDir+' --s2v -j 4 -F Friends "{P}/friends/tree_Friend_{cname}.root" '
     OPTS += ' --max-entries %d ' % options.maxEntries 

@@ -44,6 +44,11 @@ incl_datafakes_v2        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mc
 
 incl_datafakes_v3        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_v3.txt", Label="Fakes (v3)", FillColor=ROOT.kRed+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_v3'
 
+incl_datafakes_v4        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_pol2_withSF_Zpt.txt", Label="Fakes (v4)", FillColor=ROOT.kBlue, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_v4'
+
+incl_datafakes_v5        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_pol2_withSF_noZpt.txt", Label="Fakes (v5)", FillColor=ROOT.kOrange+7, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_v5'
+
+
 incl_datafakes_Nff        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_Nff.txt", Label="Fakes (Nff)", FillColor=ROOT.kAzure+1, FillStyle=3002, NormSystematic=0.30, PostFix='_fakes_Nff'
 
 incl_datafakes_Npf        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data_Npf.txt", Label="Fakes (Npf)/10", FillColor=ROOT.kRed+1, FillStyle=3002, NormSystematic=0.30, PostFix='_fakes_Npf', AddWeight="0.1"

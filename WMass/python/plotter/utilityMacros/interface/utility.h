@@ -1335,8 +1335,8 @@ void drawGraphCMS(vector<TGraph*> grList = {},
 		  const Double_t lumi = -1.0,
 		  const Bool_t drawRatioWithNominal = false,
 		  const string& ratioPadYaxisName = "X/first",
-		  const vector<Int_t> vecMCcolors = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2}
-		  ) 
+		  const vector<Int_t> vecMCcolors = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2},
+		  const string& etabinText = "") 
 
 {
 
@@ -1393,6 +1393,7 @@ void drawGraphCMS(vector<TGraph*> grList = {},
   leg.SetFillColor(0);
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
+  leg.SetNColumns(2);
 
   //Int_t colorList[] = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2};
 
@@ -1427,6 +1428,19 @@ void drawGraphCMS(vector<TGraph*> grList = {},
   if (lumi < 0) CMS_lumi(canvas,"",true,false);
   else CMS_lumi(canvas,Form("%.1f",lumi),true,false);
   setTDRStyle();
+
+  TLatex etabin;
+  etabin.SetTextSize(0.05);
+  etabin.SetTextFont(42);
+  etabin.SetTextColor(kBlack);
+  etabin.DrawLatex(0.15,0.2,etabinText.c_str());
+
+  TLegend legeta(0.12,0.15,0.6,0.25);
+  legeta.SetFillColor(0);
+  legeta.SetFillStyle(0);
+  legeta.SetBorderSize(0);
+  legeta.AddEntry("",etabinText.c_str(),"");
+  legeta.Draw("same");    
 
   canvas->RedrawAxis("sameaxis");
 
