@@ -140,7 +140,8 @@ if __name__ == "__main__":
     parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
     parser.add_option(       '--force-allptbins-theoryband', dest='forceAllPtBinsTheoryBand' , default=False, action='store_true', help='Use all pt bins for theory band, even if some of them were treated as background')
     parser.add_option(      '--combineElePt01asBkg', dest='combineElePt01asBkg', default=False, action='store_true', help='If True, flavour combination is made by keeping some electron bins as background (input to be managed slightly diffferently)')
-    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=True, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
+    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
+    parser.add_option('--n-split-unrolled-bins', dest='nSplitUnrolledBins', default='2', type='int', help='In how many parts the unrolled plots should be split into (e.g. 2 means two plots)')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -1179,7 +1180,7 @@ if __name__ == "__main__":
         xaxisTitle = "template global bin"
         vertLinesArg = ""
         # pass x1,y1,x2,y2
-        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, 
+        additionalText = "W^{{{chs}}} #rightarrow {lep}#nu::0.78,0.84,0.88,0.9".format(chs=" "+chargeSign, 
                                                                                      lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
 
         h1D_chargeAsym = {}
@@ -1230,7 +1231,7 @@ if __name__ == "__main__":
 
                 #xaxisTitle = xaxisTitle.replace("cross section", "charge asymmetry")
                 additionalTextBackup = additionalText
-                additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
+                additionalText = "W #rightarrow {lep}#nu::0.78,0.84,0.88,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
 
                 h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
                 h1D_chargeAsym[unrollAlongEta].SetDirectory(tfOut)
@@ -1469,12 +1470,12 @@ if __name__ == "__main__":
                     h1D_pmaskedexp_TotTheory[(unrollAlongEta,charge)] = getUnrolledGraph(hDiffXsecTotTheory[charge], genBins.Neta, genBins.Npt,
                                                                                          unrollAlongX=unrollAlongEta)
                     drawXsecAndTheoryband(h1D_pmaskedexp[(unrollAlongEta,charge)], h1D_pmaskedexp_TotTheory[(unrollAlongEta,charge)],
-                                          xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::0,220",
+                                          xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} [pb/GeV]::%.3f,200" % (0 if unrollAlongEta else 0.0),
                                           "unrolledXsec_{var}_abs_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
                                           outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,lumi=options.lumiInt,
                                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                                           leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio,
-                                          histMCpartialUnc=h1D_pmaskedexp_PDF[(unrollAlongEta,charge)],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary)
+                                          histMCpartialUnc=h1D_pmaskedexp_PDF[(unrollAlongEta,charge)],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary, nSplitUnrolledBins=options.nSplitUnrolledBins)
 
 
                     #h1D_pmaskedexp_norm_PDF[(unrollAlongEta,charge)] = getTH1fromTH2(hDiffXsecNormPDF[charge], h2Derr=None, unrollAlongX=unrollAlongEta)  
@@ -1489,12 +1490,12 @@ if __name__ == "__main__":
                     h1D_pmaskedexp_norm_TotTheory[(unrollAlongEta,charge)] = getUnrolledGraph(hDiffXsecNormTotTheory[charge], 
                                                                                               genBins.Neta, genBins.Npt, unrollAlongX=unrollAlongEta)
                     drawXsecAndTheoryband(h1D_pmaskedexp_norm[(unrollAlongEta,charge)], h1D_pmaskedexp_norm_TotTheory[(unrollAlongEta,charge)],
-                                          xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]",
+                                          xaxisTitle,"d^{2}#sigma/d|#eta|dp_{T} / #sigma_{tot} [1/GeV]::%s" % ("0.0,0.045" if unrollAlongEta else "0.0,0.045"),
                                           "unrolledXsec_{var}_norm_{ch}_{fl}_dataAndExp".format(var=unrollVar,ch=charge,fl=channel),
                                           outname,labelRatioTmp=labelRatioDataExp,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll, lumi=options.lumiInt,
                                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, moreText=additionalText,
                                           leftMargin=leftMargin, rightMargin=rightMargin, invertRatio=options.invertRatio,
-                                          histMCpartialUnc=h1D_pmaskedexp_norm_PDF[(unrollAlongEta,charge)],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary)
+                                          histMCpartialUnc=h1D_pmaskedexp_norm_PDF[(unrollAlongEta,charge)],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary,nSplitUnrolledBins=options.nSplitUnrolledBins)
 
 
                     # do also charge asymmetry (only once if running on both charges)
@@ -1502,7 +1503,7 @@ if __name__ == "__main__":
                         
                         additionalTextBackup = additionalText
                         # pass x1,y1,x2,y2
-                        additionalText = "W #rightarrow {lep}#nu::0.8,0.84,0.9,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
+                        additionalText = "W #rightarrow {lep}#nu::0.78,0.84,0.88,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
                         
                         labelRatioDataExp_asym = labelRatioDataExp
                         #labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
@@ -1519,12 +1520,12 @@ if __name__ == "__main__":
                                                                                     unrollAlongX=unrollAlongEta) 
                         drawXsecAndTheoryband(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_TotTheory[unrollAlongEta],
                                               xaxisTitle.replace("cross section", "charge asymmetry"),
-                                              "charge asymmetry::0,1.0", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
+                                              "charge asymmetry::0,0.65", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
                                               outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,
                                               lumi=options.lumiInt,drawVertLines=vertLinesArg, textForLines=varBinRanges, 
                                               lowerPanelHeight=0.35, moreText=additionalText,leftMargin=leftMargin, rightMargin=rightMargin, 
                                               invertRatio=options.invertRatio, useDifferenceInLowerPanel=True,
-                                              histMCpartialUnc=h1D_chargeAsym_PDF[unrollAlongEta],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary)
+                                              histMCpartialUnc=h1D_chargeAsym_PDF[unrollAlongEta],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary,nSplitUnrolledBins=options.nSplitUnrolledBins)
 
                         additionalText = additionalTextBackup
 
