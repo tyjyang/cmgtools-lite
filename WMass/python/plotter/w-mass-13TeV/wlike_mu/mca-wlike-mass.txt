@@ -1,10 +1,12 @@
 ## MAIN SAMPLES
 
-incl_sig              : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt"
+#incl_sig              : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt"
 incl_bkgmc            : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-bkgmc.txt"
 incl_dy               : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-dy.txt"
 
-incl_datafakes        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
+incl_datass           : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
+
+#incl_datafakes        : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
 
 ## DATA
 incl_data             : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt"
@@ -19,12 +21,12 @@ incl_data             : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-d
 # need to use correct scale factors for trigger and the rest. Pass prefiring as if it was SF3, otherwise the variation gets wrong (prefiring would be applied as another multiplicative factor after scaling the SF weights, while one wants to include it in the SF weight, and then vary it by a global uncertainty)
 # here we use these new functions lepSFRmuUp and lepSFRmuDn defined in functionsWMass.cc
 
-#incl_sig_lepeff_Up  : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
-#incl_sig_lepeff_Dn  : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
+#incl_sig_lepeff_Up  : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
+#incl_sig_lepeff_Dn  : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
 
 # on 29/03/2019lep efficiency for Z was missing !!!!
-#Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Up", NormSystematic=0.04, SkipMe=True
-#Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Dn", NormSystematic=0.04, SkipMe=True
+#Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Up", NormSystematic=0.04, SkipMe=True
+#Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Dn", NormSystematic=0.04, SkipMe=True
 
  
 ## # fake-lepton background systematics (shape systematics)

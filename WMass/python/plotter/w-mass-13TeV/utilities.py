@@ -2,6 +2,72 @@
 import ROOT, os, sys, re, array, math, json
 import numpy as np
 
+class templateBinning:
+    def __init__(self,etaBins=[],ptBins=[]):
+        self.etaBins = etaBins
+        self.ptBins = ptBins
+        self.Neta = len(etaBins)-1
+        self.Npt  = len(ptBins)-1
+        self.NTotBins = self.Neta * self.Npt
+
+    def printBin(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis"
+        print "eta bins: %s" % str(self.Neta)
+        print "pt  bins: %s" % str(self.Npt)
+        print ""
+
+    def printBinAll(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins
+        print "eta bins: %s" % str(self.Neta)
+        print "%s" % str(self.etaBins)
+        print "-"*20
+        print "pt  bins: %s" % str(self.Npt)
+        print "%s" % str(self.ptBins)
+        print "-"*20
+        print ""
+
+def getArrayParsingString(inputString, verbose=False, makeFloat=False):
+    # convert string [a,b,c,...] to list of a b c ...
+    tmp = inputString.replace('[','').replace(']','')
+    tmp = tmp.split(',')
+    if verbose:
+        print "Input:",inputString
+        print "Output:",tmp
+    if makeFloat:
+        ret = [float(x) for x in tmp]
+    else:
+        ret = tmp
+    return ret
+
+def getBinning(inputBins, whichBins="reco"):
+
+    # whichBins can be reco or gen
+    if whichBins not in ["reco", "gen"]:
+        print "Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        exit()
+
+    # case in which we are passing a file containing the binning and not directly the binning itself
+    if inputBins.startswith("file=") or re.match(".*binningPtEta.*.txt",inputBins):
+        etaPtbinningFile = inputBins.replace("file=","")
+        with open(etaPtbinningFile) as f:
+            content = f.readlines()
+        for x in content:
+            if str(x).startswith(whichBins):
+                tmpbinning = (x.split(whichBins+":")[1]).strip()
+            else:
+                continue
+        etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = tmpbinning.split('*')[1]
+    else:
+        etabinning = inputBins.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = inputBins.split('*')[1]
+    etabinning = list(float(i) for i in etabinning.replace('[','').replace(']','').split(','))
+    ptbinning  = list(float(i) for i in ptbinning .replace('[','').replace(']','').split(','))
+    binning = [etabinning, ptbinning] 
+    return binning
+
 class util:
 
     def __init__(self):

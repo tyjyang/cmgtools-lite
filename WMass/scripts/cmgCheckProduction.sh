@@ -29,7 +29,7 @@ MVDIR=$2
 # sometime I tried removing -z option because it induced "fake" zombie files in the output
 echo "# Check the trees..."
 #cmgListChunksToResub -t treeProducerWMass/tree.root -z -p $DIR > clean.sh
-cmgListChunksToResub -t treeProducerWMass/tree.root -p $DIR > clean.sh
+cmgListChunksToResub -t treeProducerWMass/tree.root.url -p $DIR > clean.sh
 echo "# Check the RLTInfo.root..."
 #cmgListChunksToResub -t JSONAnalyzer/RLTInfo.root -z $DIR >> clean.sh
 cmgListChunksToResub -t JSONAnalyzer/RLTInfo.root $DIR >> clean.sh

@@ -1,6 +1,6 @@
 etal1    : LepGood1_eta  : 50,-2.5,2.5; XTitle="#eta^{#mu}"
 analysisetal1    : LepGood1_eta  : [-2.4,-2.2,-2.05,-1.9,-1.75,-1.6,-1.45,-1.3,-1.15,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.15,1.3,1.45,1.6,1.75,1.9,2.05,2.2,2.4] ; XTitle="eta mu"
-ptl1     : LepGood1_calPt   : 50,20.,70.; XTitle="p_{T}^{#mu}"
+ptl1     : LepGood1_kalPt   : 50,20.,70.; XTitle="p_{T}^{#mu}"
 tkmet    : met_trkPt      : 50,0.,100; XTitle="tk ME_{T}"
 tkmetcoarse    : met_trkPt      : 30,0.,150; XTitle="tk ME_{T}"
 pfmet    : met_pt      : 50,0.,100; XTitle="pf ME_{T}"

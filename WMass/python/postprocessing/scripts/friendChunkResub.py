@@ -7,6 +7,42 @@
 
 import sys,os,re
 
+def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None):
+
+    #if not os.path.isfile(logdir+'/dummy_exec.sh'):
+    dummy_exec = open(logdir+'/dummy_exec.sh','w') 
+    dummy_exec.write('#!/bin/bash\n')
+    dummy_exec.write('cd {here}\n'.format(here=os.environ['PWD']))
+    dummy_exec.write('eval `scramv1 runtime -sh` \n')
+    dummy_exec.write('echo i will run the following command\n')
+    dummy_exec.write('echo python $*\n')
+    dummy_exec.write('python $*\n')
+    dummy_exec.close()
+
+    job_desc = """Universe = vanilla
+Executable = {ld}/dummy_exec.sh
+use_x509userproxy = true
+Log        = {ld}/{name}_$(ProcId).log
+Output     = {ld}/{name}_$(ProcId).out
+Error      = {ld}/{name}_$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 4000
++MaxRuntime = 15000 \n
+""".format(ld=logdir,
+           name=name,
+           here=os.environ['PWD'])
+    if os.environ['USER'] in ['mdunser', 'psilva']:
+        job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
+    ##job_desc += 'queue 1\n'
+
+    jobdesc_file = logdir+'/'+name+'.condor'
+    with open(jobdesc_file,'w') as outputfile:
+        outputfile.write(job_desc)
+        outputfile.write('\n\n')
+        outputfile.close()
+    return jobdesc_file
+
 if __name__ == "__main__":
     
     from optparse import OptionParser
@@ -34,6 +70,7 @@ if __name__ == "__main__":
 
     tmpfile = 'tmpcheck.txt' if len(args)<3 else args[2]
     txtfile=open(tmpfile,'r')
+    cmds = []
     for line in txtfile:
         l = line.rstrip()
         if l.startswith('#') or l.startswith('DONE'): continue
@@ -43,5 +80,18 @@ if __name__ == "__main__":
             dataset = '_'.join(tokens[0].split('_')[2:])
             chunk = tokens[1].split('chunk')[-1]
             #print "# resubmitting dataset = ",dataset," chunk ",chunk
-            cmd = "python postproc_batch.py {maintreedir} {frienddir} --friend --log friends_log -N {nevents} -q 8nh -d {dataset} -c {chunk} --submit".format(maintreedir=maindir,frienddir=fdir,nevents=options.chunkSize,dataset=dataset,chunk=chunk)
-            print cmd
+            cmd = "python postproc_batch.py {maintreedir} {frienddir} --friend -N {nevents} -d {dataset} -c {chunk} ".format(maintreedir=maindir,frienddir=fdir,nevents=options.chunkSize,dataset=dataset,chunk=chunk)
+            cmds.append(cmd)
+            #print cmd
+    f_name   = writeCondorCfg('friends_log', 'friendsResubmission')
+    f_condor = open(f_name, 'a')
+    for cmd in cmds:
+        f_condor.write(cmd.replace('python', 'arguments = ')+' \n')
+        f_condor.write('queue 1 \n\n')
+    f_condor.close()
+
+    print 'NO JOB SUBMITTED YET. PLEASE RUN THE FOLLOWING'
+    print '=============================================='
+    print 'condor_submit '+f_name
+
+
