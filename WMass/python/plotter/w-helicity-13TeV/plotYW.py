@@ -186,7 +186,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                 leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
                 leg.AddEntry(values['long'] .graph_fit , 'W_{0} (fit)', 'pl')
 
-            values['left'].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
+            values['left'].graph.SetTitle('W {ch}: y_{{W}}'.format(ch=ch))
                 
             mg = ROOT.TMultiGraph()
             mg.Add(values['left'] .graph,'E2'); #mg.Add(values['left'] .graph2,'E2')
@@ -209,15 +209,16 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             else:
                 if options.normxsec: 
                     #mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetTitle('d#sigma / dY_{W} / #sigma_{tot}')
+                    mg.GetYaxis().SetTitle('d#sigma / dy_{W} / #sigma_{tot}')
                     mg.GetYaxis().SetRangeUser(0.,0.8 if options.maxRapidity > 2.9 else 0.25)
                 else: 
-                    mg.GetYaxis().SetTitle('d#sigma / dY_{W} (pb)')
+                    mg.GetYaxis().SetTitle('d#sigma / dy_{W} (pb)')
                     mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(2.0)
             mg.GetYaxis().CenterTitle()
+            mg.GetYaxis().SetDecimals()
      
             leg.Draw('same')
      
@@ -268,13 +269,14 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
                     values[hel].mg.GetYaxis().SetNdivisions(4)
                     values[hel].mg.GetYaxis().CenterTitle()
+                    values[hel].mg.GetYaxis().SetDecimals()
             line.Draw("Lsame");
             c2.cd()
             lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.88, 0.03, '|y_{W}|')
         for ext in ['png', 'pdf', 'root']:
             c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
 
@@ -315,8 +317,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             titles = {'asymmetry': 'Charge asymmetry',
                       'a0': '|A_{0}|', 
                       'a4': '|A_{4}|',
-                      'sumxsec': 'd#sigma / d|Y_{W}| (pb)',
-                      'sumxsecnorm': 'd#sigma/dY_{W} / #sigma_{tot}'}
+                      'sumxsec': 'd#sigma / d|y_{W}| (pb)',
+                      'sumxsecnorm': 'd#sigma/dy_{W} / #sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
                       'a4': (-1,2),
@@ -329,6 +331,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetYaxis().SetLabelSize(0.04)
             mg.GetYaxis().SetTitleOffset(2.0)
             mg.GetYaxis().CenterTitle()
+            mg.GetYaxis().SetDecimals()
 
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
@@ -343,7 +346,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.88, 0.03, '|Y_{W}|')
+            lat.DrawLatex(0.88, 0.03, '|y_{W}|')
 
         ## now make the relative error plot:
         ## ======================================
@@ -388,6 +391,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
             values.mg.GetYaxis().SetNdivisions(5)
             values.mg.GetYaxis().CenterTitle()
+            values.mg.GetYaxis().SetDecimals()
 
             line.Draw("Lsame");
 

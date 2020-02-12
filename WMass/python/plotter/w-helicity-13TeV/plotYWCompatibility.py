@@ -164,7 +164,7 @@ def makeFullLegend(values):
 def makeFullLegendUnpol(values):
     doAltExp = (len(values['lep'].altval)>0)
     # expected values
-    leg = ROOT.TLegend(0.25, 0.60, 0.90, 0.85)
+    leg = ROOT.TLegend(0.25, 0.60, 0.50, 0.85)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.AddEntry(values['lep'] .graph    , REFMC, 'f')
@@ -206,7 +206,7 @@ def plotValues(values,charge,channel,options):
         c2.cd()
         pads[0].Draw(); pads[0].cd(); ROOT.gPad.SetBottomMargin(0);
 
-        values[('lep','left')].graph.SetTitle('W {ch}: Y_{{W}}'.format(ch=ch))
+        values[('lep','left')].graph.SetTitle('W {ch}: y_{{W}}'.format(ch=ch))
             
         mg = ROOT.TMultiGraph()
         mg.Add(values[('lep','left')] .graph,'P2')
@@ -222,17 +222,17 @@ def plotValues(values,charge,channel,options):
     
         mg.Draw('Pa')
         mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-        mg.GetXaxis().SetTitle('|Y_{W}|')
+        mg.GetXaxis().SetTitle('|y_{W}|')
         mg.GetXaxis().SetLabelSize(0)
         if charge=='asymmetry':
             mg.GetYaxis().SetTitle('Charge asymmetry')
             mg.GetYaxis().SetRangeUser(-0.1,0.4)
         else:
             if options.normxsec: 
-                mg.GetYaxis().SetTitle('d#sigma / #sigma_{tot}^{fit} / d|Y_{W}|')
+                mg.GetYaxis().SetTitle('d#sigma / #sigma_{tot}^{fit} / d|y_{W}|')
                 mg.GetYaxis().SetRangeUser(-0.05,0.8 if options.maxRapidity > 2.9 else 0.4)
             else: 
-                mg.GetYaxis().SetTitle('d#sigma (pb) / d|Y_{W}|')
+                mg.GetYaxis().SetTitle('d#sigma (pb) / d|y_{W}|')
                 mg.GetYaxis().SetRangeUser(-200,3500)
         mg.GetYaxis().SetTitleSize(0.05)
         mg.GetYaxis().SetLabelSize(0.04)
@@ -346,7 +346,7 @@ def plotValues(values,charge,channel,options):
     lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-    lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
+    lat.DrawLatex(0.85, 0.025, '|y_{W}|')
     for ext in ['png', 'pdf']:
         c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
 
@@ -395,14 +395,14 @@ def plotUnpolarizedValues(values,charge,channel,options):
         
         mg.Draw('Pa')
         mg.GetXaxis().SetRangeUser(0., options.maxRapidity) # max would be 6.
-        mg.GetXaxis().SetTitle('|Y_{W}|')
+        mg.GetXaxis().SetTitle('|y_{W}|')
         mg.GetXaxis().SetTitleOffset(5.5)
         mg.GetXaxis().SetLabelSize(0)
         titles = {'asymmetry': 'Charge asymmetry',
                   'a0': '|A_{0}|', 
                   'a4': '|A_{4}|',
-                  'sumxsec': 'd#sigma / d|Y_{W}| (pb)',
-                  'sumxsecnorm': 'd#sigma / #sigma_{tot}^{fit} / d|Y_{W}|'}
+                  'sumxsec': 'd#sigma / d|y_{W}| (pb)',
+                  'sumxsecnorm': 'd#sigma / #sigma_{tot}^{fit} / d|y_{W}|'}
         ranges = {'asymmetry': (-0.1,0.4),
                   'a0': (0.07,0.2),
                   'a4': (-1,2),
@@ -514,7 +514,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
     lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.60, 0.95, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-    lat.DrawLatex(0.85, 0.025, '|Y_{W}|')
+    lat.DrawLatex(0.85, 0.025, '|y_{W}|')
     for ext in ['png', 'pdf', 'C', 'root']:
         c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext))
 
