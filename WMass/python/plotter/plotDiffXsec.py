@@ -4,7 +4,7 @@ import ROOT, os, sys, re, array
 
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
-doMuElComb = 0
+doMuElComb = 1
 doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
 dryrun = 1
@@ -12,11 +12,12 @@ skipPreliminary = False # passed as an option to some scripts to print "Prelimin
 skipData = 0
 onlyData = 1
 
+skipInclusivePlot = 1
 skipPlot = 1
-skipTemplate = 0
+skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
-skipCorr = 1
+skipCorr = 0
 skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
@@ -84,15 +85,15 @@ if doMuElComb:
         print"Error: conflicting flags doMuElComb and plotSingleCharge. Abort"
         quit()
 
-postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly"
-postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly"
+postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly_addInclXsec"
+postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec"
 
 if flavour == "el":
     postfix = postfix_el
 else:
     postfix = postfix_mu
 if doMuElComb:
-    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" 
+    postfix = "combinedLep_allSig_nativeMCatNLOxsec_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly_addInclXsec" 
     if combineElePt01asBkg:
         postfix = "combinedLep_elePt01bkg_nativeMCatNLOxsec_profileLepScale_outLnN30_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15"
                
@@ -137,15 +138,15 @@ diffNuisances_pois = ["pdf.*|alphaS",
 correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*Wplus_.*_ieta_6_ipt_8_.*"
                         }
 
-correlationNuisRegexp = {"allPDF"           : "pdf.*,alphaS", 
-                         "someTheory"       : "^pdf([1-9]|1[0-9]|20)$,alphaS,fsr.*,mW", 
-                         "QCDscales"        : "muR.*|muF.*", 
+correlationNuisRegexp = {#"allPDF"           : "pdf.*,alphaS", 
+                         #"someTheory"       : "^pdf([1-9]|1[0-9]|20)$,alphaS,fsr.*,mW", 
+                         #"QCDscales"        : "muR.*|muF.*", 
                          # "muR"              : "^muR[1-9]+", 
                          # "muF"              : "^muF[1-9]+", 
                          # "muRmuF"           : "^muRmuF[1-9]+", 
                          "FakesEtaPtUncorr" : "Fakes(Eta|Pt).*[0-9]+.*",
-                         "CMSsyst"          : "CMS_.*|.*TestEffSyst.*|smooth.*scaleSyst.*",
-                         "pTscales"         : ".*smooth.*scale.*",
+                         #"CMSsyst"          : "CMS_.*|.*TestEffSyst.*|smooth.*scaleSyst.*",
+                         #"pTscales"         : ".*smooth.*scale.*",
                          # "ErfPar0EffStat"   : "ErfPar0EffStat.*",
                          # "ErfPar1EffStat"   : "ErfPar1EffStat.*",
                          # "ErfPar2EffStat"   : "ErfPar2EffStat.*"
@@ -247,6 +248,37 @@ for fit in fits:
 
     print ""
     print "="*30
+    print "INCLUSIVE CROSS SECTION AND CHARGE ASYMMETRY"
+    print ""
+
+    ## INCLUSIVE CROSS SECTION AND CHARGE ASYMMETRY
+    command = "python w-helicity-13TeV/plotInclusiveXsec.py"
+    command += " -i cards/{fd} -c {fl}".format(fd=folder, fl=flavour)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/plotInclusiveXsec/".format(lep=lepton,fd=folder)
+    command += " -t cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+    command += " --lumi-norm 35900.0 --hessian --suffix {fit}_{pf} {ptOpt}".format(fit=fit,pf=postfix, ptOpt=ptBinsSetting)
+    #if plotSingleCharge:
+    #    command += " -C {ch}".format(ch=singleChargeToPlot)
+    #if combineElePt01asBkg:
+    #    command += " --combineElePt01asBkg "
+    if useXsecWptWeights:
+        command += " --use-xsec-wpt "
+    if skipPreliminary:
+        command += " --skipPreliminary "
+    if forceAllptbinsTheoryband:
+        command += " --force-allptbins-theoryband "
+    if fit == "Data":
+        command += " --fit-data --expected-toyfile cards/{fd}/fit/hessian/fitresults_{s}_Asimov_{pf}.root".format(fd=folder,s=seed,pf=postfix)
+        # --invert-ratio
+    if not skipInclusivePlot:
+        print ""
+        print command
+        if not dryrun:
+            os.system(command)
+
+    ###########
+    print ""
+    print "="*30
     print "DIFFERENTIAL CROSS SECTION AND CHARGE ASYMMETRY"
     print ""
 
@@ -328,7 +360,7 @@ for fit in fits:
     ## ADD CORRELATION
     command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
     command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
-    command += " --matrix-type channelpmaskedexp  --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
+    command += " --matrix-type channelpmaskedexpnorm  --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
     for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
             tmpcommand = command + " --params '{nuis},{poi}' ".format(nuis=correlationNuisRegexp[nuisRegexp],poi=correlationSigRegexp[poiRegexp])

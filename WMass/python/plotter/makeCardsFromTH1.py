@@ -11,6 +11,7 @@ from w_helicity_13TeV.make_diff_xsec_cards import getArrayBinNumberFromValue
 from w_helicity_13TeV.make_diff_xsec_cards import templateBinning
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from w_helicity_13TeV.make_diff_xsec_cards import get_ieta_from_process_name
+from w_helicity_13TeV.make_diff_xsec_cards import get_ipt_from_process_name
 from w_helicity_13TeV.make_diff_xsec_cards import etaIsOutsideFilledRangeDiffXsec
 from w_helicity_13TeV.make_diff_xsec_cards import ptIsOutsideFilledRangeDiffXsec
 
@@ -1210,6 +1211,12 @@ if options.doSystematics:
     card.write("EffSyst group = "    + ' '.join(filter(lambda x: re.match('CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*',x),allSystForGroups)) + " \n\n")
     if flavour == "el":
         card.write("L1Prefire group = "    + ' '.join(filter(lambda x: re.match('.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*',x),allSystForGroups)) + " \n\n")
+    # all theory
+    card.write("allTheory group = "       + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN|pdf.*|alphaS|fsr.*',x),allSystForGroups)) + "\n\n")
+    # all exp (no lumi)
+    card.write("allExp group = "       + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scale.*|.*EffStat.*|FakesNorm.*|.*FR.*(norm|lnN|continuous)|Fakes.*Uncorrelated.*|CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg|CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*|.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*',x),allSystForGroups)) + "\n\n")
+    # all exp and theory (everything except lumi, and stat)
+    card.write("allTheoAndExp group = "       + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN|pdf.*|alphaS|fsr.*|.*(smooth|CMS_W).*scale.*|.*EffStat.*|FakesNorm.*|.*FR.*(norm|lnN|continuous)|Fakes.*Uncorrelated.*|CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg|CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*|.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst',x),allSystForGroups)) + "\n\n")
     card.write("\n")
 card.write("\n")
 
@@ -1291,13 +1298,48 @@ for ch in ["plus", "minus"]:
     card.write("\n")
 card.write("\n")
 
+# xsec inclusive in eta and pt within acceptance (fiducial cross section)
+for ch in ["plus", "minus"]:
+    if options.fitSingleCharge and not ch == charge: continue
+    # if not adding background bins
+    #procsIetaIpt = filter( lambda x: not ptBinIsBackground[get_ipt_from_process_name(x)], isInAccProc.keys() ) 
+    #procsIetaIpt = sorted(procsIetaIpt, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+    # adding also background processes
+    procsIetaIpt = sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+    newp = "W{ch}_lep".format(ch=ch)
+    tmpnames = [x.replace("plus","TMP").replace("minus","TMP") for x in procsIetaIpt]
+    card.write("{np} sumGroup = {bg}\n".format(np=newp, bg=' '.join(x.replace("TMP",ch) for x in tmpnames) )) 
+    card.write("\n")
+card.write("\n")
 
 # the following stuff can't work on the single charge fit: we write it here to facilitate the combination
 # if you want to run the fit to a single charge, don't add them
 if not options.fitSingleCharge:
 
+    # inclusive cross section
+    inclLine = "W_lep sumGroup = "
     for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
         # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
+        # might also exclude those signal bins treated as background
+        # depends on what I want as inclusive
+        tmpp = p.replace("plus","TMP").replace("minus","TMP")        
+        tmpline = "{p} {m} ".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))
+        inclLine += tmpline        
+    card.write(inclLine + "\n") 
+    card.write("\n")
+    card.write("\n")
+
+    # inclusive charge asymmetry (ratio to be added soon)
+    card.write("Wasym_lep chargeMetaGroup = Wplus_lep Wminus_lep\n")
+    card.write("\n")
+    card.write("\n")
+
+
+    for p in sorted(isInAccProc.keys(), key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0):
+        # outliers might fall here if it is defined as in-acceptance bin, but I doubt I would ever do it
+        # might also exclude those signal bins treated as background
+        # for electron only fit it doesn't change anything, just avoid writing useless stuff in the output
+        # but the fit code allows to have groups of background and signal processes, so let's keep them
         newp = p.replace("plus","").replace("minus","")        
         tmpp = p.replace("plus","TMP").replace("minus","TMP")        
         tmpline = "{p} {m}".format(p=tmpp.replace('TMP','plus'), m=tmpp.replace('TMP','minus'))

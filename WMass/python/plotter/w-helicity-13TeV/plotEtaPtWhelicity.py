@@ -28,6 +28,7 @@ if __name__ == "__main__":
     createPlotDirAndCopyPhp(outname)
 
     Whists = {}
+    labels = {}
     infile = ROOT.TFile(args[0], 'read')
     if not infile:
         print "Error: I couldn't open file " + args[0]
@@ -36,6 +37,7 @@ if __name__ == "__main__":
         for pol in ["left", "right", "long"]:
             key = "ptl1__etal1_W{ch}_{pol}".format(ch=charge,pol=pol)
             print key
+            labels[key] = "W^{{ {c}}}_{{ {pol}}}".format(c="+" if charge=="plus" else "-",pol=pol) 
             hdummy = infile.Get(key)
             if not hdummy:
                 print "Error, I couldn't get histogram " + key
@@ -63,8 +65,8 @@ if __name__ == "__main__":
         if zminval < zmin: zmin = zminval
         if zmaxval > zmax: zmax = zmaxval
 
-    xaxisTitle = "reconstructed muon p_{T} [GeV]"
-    yaxisTitle = "reconstructed muon #eta"
+    xaxisTitle = "reconstructed muon #eta"
+    yaxisTitle = "reconstructed muon p_{T} [GeV]"
     zaxisTitle = "Events"
 
     adjustSettings_CMS_lumi()
@@ -96,6 +98,12 @@ if __name__ == "__main__":
             text.SetTextFont(42)
             text.DrawLatex(0.16, 0.95, "#bf{CMS} #it{Simulation Preliminary}")
             text.DrawLatex(0.63, 0.95, "35.9 fb^{-1} (13 TeV)")
+            label = ROOT.TLatex()
+            label.SetNDC()
+            label.SetTextSize(0.09)  # 0.03
+            label.SetTextFont(42)
+            label.SetTextColor(ROOT.kGray)
+            label.DrawLatex(0.2, 0.82, "#bf{{{l}}}".format(l=labels[key]))
             outname_test = real_outname # + "test/"
             createPlotDirAndCopyPhp(outname_test)
             canvas.RedrawAxis("sameaxis")

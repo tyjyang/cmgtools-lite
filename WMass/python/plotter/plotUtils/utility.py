@@ -958,7 +958,7 @@ def drawDataAndMC(h1, h2,
         leg.AddEntry(h2,str(legendEntries[1]),"LF")        
     else:
         leg.AddEntry(h1,"measured","LPE")
-        leg.AddEntry(h2,"aMC@NLO","LF")
+        leg.AddEntry(h2,"MadGraph5_aMC@NLO","LF")
     if histMCpartialUnc != None:
         leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
@@ -2549,7 +2549,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             leg.AddEntry(h2_true,str(legendEntries[1]),"LF")        
         else:
             leg.AddEntry(h1_true,"measured","LPE")
-            leg.AddEntry(h2_true,"aMC@NLO","LF")
+            leg.AddEntry(h2_true,"MadGraph5_aMC@NLO","LF")
         if histMCpartialUnc_true != None:
             leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
         #leg.AddEntry(h1err,"Uncertainty","LF")
@@ -2575,8 +2575,9 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         bintext.SetTextFont(42)
         if len(textForLines_true):
             if nSplitUnrolledBins > 2:
-                bintext.SetTextAngle(10)
-            if nSplitUnrolledBins > 1:
+                pass
+                #bintext.SetTextAngle(10)
+            elif nSplitUnrolledBins > 1:
                 bintext.SetTextAngle(15)
             else:
                 bintext.SetTextAngle(45 if "#eta" in textForLines_true[0] else 30)

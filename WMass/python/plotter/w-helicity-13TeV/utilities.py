@@ -346,6 +346,156 @@ class util:
 
 #######################
 
+    def getTheoryInclusiveXsecFast(self, xsecWithWptWeights=True, ptmin=-1.0):
+
+        # using native MC@NLO xsec (60400 pb instead of (3*20508.9)pb from fewz3.1)
+        # to use fewz3.1, remove "_nativeMCatNLOxsec" from file name
+
+        # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
+
+        print "Inside getTheoryInclusiveXsecFast() ..."
+        # hardcoded for now
+        infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_noWpt_yields_nativeMCatNLOxsec.root"
+        if xsecWithWptWeights:
+            infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_mu_binningAnalysis_WptWeights_allQCDscales_yields_nativeMCatNLOxsec.root"
+        histo_file = ROOT.TFile(infile, 'READ')            
+
+        htheory = {}    # inclusive for each charge 
+        htheory_incl = {} # inclusive summing both charges
+        htheory_asym = {}
+
+        print "ABSOLUTE XSEC"
+        for charge in ["plus", "minus"]:
+ 
+            nomi = "gen_ptl1_absetal1_dressed_binAna_W{ch}_mu".format(ch=charge)
+            hnomi = histo_file.Get(nomi + "_central")
+            self.checkHistInFile(hnomi, nomi + "_central", infile, message="in getTheoryInclusiveXsecFast()")
+            hnomi.SetDirectory(0)
+            nbinsEta = hnomi.GetNbinsX()
+            nbinsPt  = hnomi.GetNbinsY()
+            ptminbin = 1
+            if float(ptmin) > 0:
+                ptminbin = hnomi.GetYaxis().FindFixBin(float(ptmin) + 0.0001) # adding epsilon for safety
+
+            for ipdf in range(1,61):
+                name = "pdf{ip}".format(ip=ipdf)
+                pdfvar = nomi + '_{n}'.format(n=name)
+                htmp = histo_file.Get(pdfvar)
+                self.checkHistInFile(htmp, pdfvar, infile, message="in getTheoryInclusiveXsecFast()")
+                htheory[(charge,name)] = htmp.Integral(1,nbinsEta,ptminbin,nbinsPt)
+
+            for idir in ["Up", "Dn"]:  # should have been Down, but the histogram migt have Dn
+                for qcdType in ["muF", "muR", "muRmuF"]:
+                    name = "{qt}{d}".format(qt=qcdType,d=idir)
+                    qcdvar = nomi + '_{n}'.format(n=name)
+                    htmp = histo_file.Get(qcdvar)
+                    self.checkHistInFile(htmp, qcdvar, infile, message="in getTheoryInclusiveXsecFast()")
+                    htheory[(charge,name)] = htmp.Integral(1,nbinsEta,ptminbin,nbinsPt)
+
+                name = "alphaS{d}".format(d=idir)
+                alphaSvar = nomi + '_{n}'.format(n=name)
+                htmp = histo_file.Get(alphaSvar)
+                self.checkHistInFile(htmp, alphaSvar, infile, message="in getTheoryInclusiveXsecFast()")
+                htheory[(charge,name)] = htmp.Integral(1,nbinsEta,ptminbin,nbinsPt)
+
+            htheory[(charge,"nominal")] = hnomi.Integral(1,nbinsEta,ptminbin,nbinsPt)
+
+        # might also have ratio +/-, to be implemented
+
+        # now inclusive summing charges
+        print "INCLUSIVE SUM CHARGE"
+        for key in htheory:
+            # filter keys for plus charge
+            if str(key[0]) == "minus": continue
+            # 2D
+            keyIncl = ("incl",key[1]) # to allow for homogeneous treatment as for the charged xsecs
+            sumVal  = (htheory[key] + htheory[("minus",key[1])])
+            htheory_incl[keyIncl] = sumVal
+
+        # now charge asymmetry
+        print "CHARGE AYMMETRY"
+        for key in htheory:
+            # filter keys for plus charge
+            if str(key[0]) == "minus": continue
+            # 2D
+            keyAsym = ("all",key[1]) # to allow for homogeneous treatment as for the charged xsecs
+            numVal = (htheory[key] - htheory[("minus",key[1])])
+            denVal = (htheory[key] + htheory[("minus",key[1])])
+            htheory_asym[keyAsym] = numVal / denVal
+
+        histo_file.Close()
+        ret = { "xsec"     : [htheory],     # inclusive for each charge
+                "xsecIncl" : [htheory_incl], # inclusive summing both charges
+                "asym"     : [htheory_asym],
+                "listkeys" : [key[1] for key in htheory if key[0] == "plus"]} # avoid double counting keys
+        return ret
+
+
+
+    def getTheoryBandInclusiveXsec(self, hretTotTheory, hretPDF, theovars, vals, charge="all", valOnXaxis=False):
+        
+        # AlphaS and QCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+
+        # charge == all for asymmetry, incl for sum of + and -, plus or minus otherwise
+        nomi = vals[(charge, "nominal")]
+
+        pdfquadrsum = 0.0
+        envelopeQCD = 0.0     # muR, muF, muRmuF, with Up and Down
+        envelopeAlphaS = 0.0  # basically Up and Down
+        #envelopeAlphaS = 0.0
+        #envelopeQCD = 0.0                
+        envelopeQCD_vals = [nomi]     # muR, muF, muRmuF, with Up and Down
+        envelopeAlphaS_vals = [nomi]  # basically Up and Down
+        for nuis in theovars:
+            if nuis == "nominal": continue
+            if "pdf" in nuis:
+                tmpvar = vals[(charge,nuis)] - nomi
+                pdfquadrsum += tmpvar * tmpvar
+            elif "alpha" in nuis:
+                # 1.5 is because weight corresponds to 0.001, but should be 0.0015
+                #tmpvar = vals[(charge,nuis)].GetBinContent(ieta+1,ipt+1) - nomi
+                #envelopeAlphaS = max(abs(envelopeAlphaS), 1.5* abs(tmpvar))
+                alt = vals[(charge,nuis)]
+                altscaled = nomi * math.exp( 1.5 * math.log(alt/nomi) )
+                envelopeAlphaS_vals.append(altscaled)
+            else:
+                #tmpvar = vals[(charge,nuis)].GetBinContent(ieta+1,ipt+1) - nomi
+                #envelopeQCD = max(abs(envelopeQCD), abs(tmpvar))
+                envelopeQCD_vals.append(vals[(charge,nuis)])
+
+        # pdfAndAlphaQuadSum = pdfquadrsum + envelopeAlphaS * envelopeAlphaS
+        # hretPDF.SetBinContent(ieta+1,ipt+1, hnomi.GetBinContent(ieta+1,ipt+1))
+        # hretTotTheory.SetBinContent(ieta+1,ipt+1, hnomi.GetBinContent(ieta+1,ipt+1))
+        # hretPDF.SetBinError(ieta+1,ipt+1, math.sqrt(pdfAndAlphaQuadSum))
+        # hretTotTheory.SetBinError(ieta+1,ipt+1, math.sqrt(pdfAndAlphaQuadSum + envelopeQCD * envelopeQCD))
+
+        # this graph will be used for the unrolled xsec, which is a TH1 drawn with bin width equal to 1
+        errX = 0.5
+        alphaSErrorHigh = abs(max(envelopeAlphaS_vals)-nomi)
+        alphaSErrorLow  = abs(min(envelopeAlphaS_vals)-nomi)
+        QCDErrorHigh    = abs(max(envelopeQCD_vals)-nomi)
+        QCDErrorLow     = abs(min(envelopeQCD_vals)-nomi)
+        pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh) 
+        pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow) 
+        totTheoryErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh + QCDErrorHigh * QCDErrorHigh)
+        totTheoryErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow + QCDErrorLow * QCDErrorLow)
+
+        ibin = 0
+        if valOnXaxis:
+            #print ">>>> nomi = %f" % nomi
+            hretPDF.SetPoint(ibin, nomi, ibin+1)
+            hretPDF.SetPointError(ibin, pdfAlphaSErrorLow,  pdfAlphaSErrorHigh, errX, errX)
+            hretTotTheory.SetPoint(ibin, nomi, ibin+1)
+            hretTotTheory.SetPointError(ibin, totTheoryErrorLow, totTheoryErrorHigh, errX, errX)
+        else:
+            #print "<<<< nomi = %f" % nomi
+            hretPDF.SetPoint(ibin, ibin+1, nomi)
+            hretPDF.SetPointError(ibin, errX, errX, pdfAlphaSErrorLow,  pdfAlphaSErrorHigh)
+            hretTotTheory.SetPoint(ibin, ibin+1, nomi)
+            hretTotTheory.SetPointError(ibin, errX, errX, totTheoryErrorLow, totTheoryErrorHigh)
+
+#######################
+
     def getTheoryHistDiffXsecFast(self, xsecWithWptWeights=True, ptmin=-1.0):
 
         # using native MC@NLO xsec (60400 pb instead of (3*20508.9)pb from fewz3.1)
@@ -438,7 +588,7 @@ class util:
         for key in htheory:
             # filter keys for plus charge
             if str(key[0]) == "minus": continue
-            # 2D2C
+            # 2D
             keyAsym = ("all",key[1]) # to allow for homogeneous treatment as for the charged xsecs
             htheory_asym[keyAsym] = htheory[key].Clone(htheory[key].GetName() + "_asymm")
             htheory_asym[keyAsym].SetDirectory(0)
@@ -462,7 +612,7 @@ class util:
         ret = { "xsec"     : [htheory, htheory_1Deta, htheory_1Dpt],
                 "xsecnorm" : [htheory_xsecnorm, htheory_1Deta_xsecnorm, htheory_1Dpt_xsecnorm],
                 "asym"     : [htheory_asym, htheory_1Deta_asym, htheory_1Dpt_asym],
-                "listkeys" : [key[1] for key in htheory]}
+                "listkeys" : [key[1] for key in htheory if key[0] == "plus"]} # avoid double counting keys
         return ret
 
 #######################
@@ -931,6 +1081,12 @@ class util:
         ret = self.getExprFromHessianFast('chargeAsym',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
 
+    def getInclusiveAsymmetryFromHessianFast(self, nHistBins=2000, minHist=0., maxHist=1.0, tree=None, getErr=False, getGen=False):
+        expr = "Wasym_lep_chargemetaasym"
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ret = self.getExprFromHessianFast('chargeInclAsym',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
 
     def getNormalizedDiffXsecFromHessianFast(self, charge, ieta, ipt, nHistBins=1000, minHist=0., maxHist=0.1, tree=None, getErr=False, getGen=False):
         expr = "W{c}_lep_ieta_{ieta}_ipt_{ipt}_pmaskedexpnorm".format(c=charge,ieta=ieta,ipt=ipt)
@@ -941,6 +1097,13 @@ class util:
 
     def getDiffXsecFromHessianFast(self, charge, ieta, ipt,  nHistBins=2000, minHist=0., maxHist=200., tree=None, getErr=False, getGen=False):
         expr = "W{c}_lep_ieta_{ieta}_ipt_{ipt}_pmaskedexp".format(c=charge,ieta=ieta,ipt=ipt)
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ret = self.getExprFromHessianFast('diffXsec',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
+    def getInclusiveXsecFromHessianFast(self, charge,  nHistBins=10000, minHist=0., maxHist=50000., tree=None, getErr=False, getGen=False):        
+        expr = "W{c}_lep_sumxsec".format(c=charge if charge != "incl" else "") # charge = "incl" is sum of + and -
         if getErr: expr += "_err"
         elif getGen: expr += "_gen"
         ret = self.getExprFromHessianFast('diffXsec',expr, nHistBins, minHist, maxHist, tree=tree)

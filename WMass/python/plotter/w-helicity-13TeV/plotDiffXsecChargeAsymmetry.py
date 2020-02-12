@@ -58,7 +58,7 @@ def normGraphByBinArea2D(gr, h):
             gr.SetPointEYhigh(ibin, yerrhigh/binarea)
             gr.SetPointEYlow(ibin, yerrlow/binarea)
 
-def scaleGraphByConstant1D(gr, c):
+def scaleGraphByConstant1D(gr, c, scaleX=False):
 
     xvals = gr.GetX()
     yvals = gr.GetY()
@@ -66,11 +66,18 @@ def scaleGraphByConstant1D(gr, c):
     for ib in range(len(xvals)):
         xval = xvals[ib]
         yval = yvals[ib]
-        yerrhigh = gr.GetErrorYhigh(ib)
-        yerrlow = gr.GetErrorYlow(ib)
-        gr.SetPoint(ib, xval, c * yval)
-        gr.SetPointEYhigh(ib, c * yerrhigh)
-        gr.SetPointEYlow(ib,  c * yerrlow)
+        if scaleX:
+            xerrhigh = gr.GetErrorXhigh(ib)
+            xerrlow = gr.GetErrorXlow(ib)
+            gr.SetPoint(      ib, c * xval, yval)
+            gr.SetPointEXhigh(ib, c * xerrhigh)
+            gr.SetPointEXlow( ib, c * xerrlow)
+        else:
+            yerrhigh = gr.GetErrorYhigh(ib)
+            yerrlow = gr.GetErrorYlow(ib)
+            gr.SetPoint(ib, xval, c * yval)
+            gr.SetPointEYhigh(ib, c * yerrhigh)
+            gr.SetPointEYlow(ib,  c * yerrlow)
 
 
 def getTH1fromTH2(h2D,h2Derr=None,unrollAlongX=True):  # unrollAlongX=True --> select rows, i.e. takes a stripe from x1 to xn at same y, then go to next stripe at next y
@@ -141,7 +148,7 @@ if __name__ == "__main__":
     parser.add_option(       '--force-allptbins-theoryband', dest='forceAllPtBinsTheoryBand' , default=False, action='store_true', help='Use all pt bins for theory band, even if some of them were treated as background')
     parser.add_option(      '--combineElePt01asBkg', dest='combineElePt01asBkg', default=False, action='store_true', help='If True, flavour combination is made by keeping some electron bins as background (input to be managed slightly diffferently)')
     parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
-    parser.add_option('--n-split-unrolled-bins', dest='nSplitUnrolledBins', default='2', type='int', help='In how many parts the unrolled plots should be split into (e.g. 2 means two plots)')
+    parser.add_option('--n-split-unrolled-bins', dest='nSplitUnrolledBins', default='3', type='int', help='In how many parts the unrolled plots should be split into (e.g. 2 means two plots)')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -183,14 +190,6 @@ if __name__ == "__main__":
         if not options.inputdir.endswith("/"): options.inputdir += "/"
         basedir = os.path.basename(os.path.normpath(options.inputdir))
         binfile = options.inputdir + "binningPtEta.txt"
-        if "_group" in basedir:
-            tokens = basedir.split("_")
-            for x in tokens:
-                if "group" in x:
-                    #ngroup = int("".join(str(s) for s in x if s.isdigit()))
-                    ngroup = int(x.split("group")[1])
-        else:
-            ngroup = 1 
     else:
         print "Error: you should specify an input folder containing all the cards using option -i <name>. Exit"
         quit()
@@ -372,9 +371,10 @@ if __name__ == "__main__":
     print "DONE, all the histograms for the theory bands were taken"
 
     # sanity check
-    # print "="*30
-    # print histDict["listkeys"]
-    # print "="*30
+    print "="*30
+    print histDict["listkeys"]
+    print "Found %d keys" % len(histDict["listkeys"])
+    print "="*30
     # print histDict["xsec"][1]
     # print "="*30
     # print histDict["xsecnorm"][1]
@@ -391,6 +391,7 @@ if __name__ == "__main__":
     # where listkeys is pdf1, pdf2, alphaSUp, muRUp, muFDown, ...
     # the rest are the lists of all theory histograms (and nominal) for 2D, and 1D projections, for xsec, xsecnorm and asym
     # they are dictionary with key (charge,theory_nuis), where theory_nuis is returned by listkeys, and charge is all for asym and plus/minus for the xsecs
+
     if hasBothCharges:
         print "Make theory bands for asymmetry"
         utilities.getTheoryBandDiffXsec(hChargeAsymTotTheory, hChargeAsymPDF, histDict["listkeys"], histDict["asym"][0], 

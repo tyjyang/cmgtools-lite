@@ -356,43 +356,16 @@ if __name__ == "__main__":
 
     for im,tmp_mat in enumerate([th2_sub, th2_cov]):
 
-<<<<<<< HEAD
-    if options.title: 
-        if options.title == "0":
-            th2_sub.SetTitle("")
-        else:
-            th2_sub.SetTitle(options.title)
-    
-    lat = ROOT.TLatex()
-    lat.SetNDC(); lat.SetTextFont(42)
-    lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
-    lat.DrawLatex(0.57, 0.95, '35.9 fb^{-1} (13 TeV)')
-            
-    if options.parNameCanvas: 
-        paramsName = options.parNameCanvas
-    else : 
-        paramsName = options.params.replace(',','AND')
-        for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
-            paramsName = paramsName.replace(x,'')
-        
-    if options.outdir:
-        for i in ['pdf', 'png']:
-            suff = '' if not options.suffix else '_'+options.suffix
-            c.SaveAs(options.outdir+'/smallCorrelation{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName))
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
-        ROOT.gStyle.SetPaintTextFormat('1.2f')
-        if len(params)<30: tmp_mat.Draw('colz text45')
-        else: tmp_mat.Draw('colz')
-
-        if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
-        if nbins >= 20: tmp_mat.LabelsOption("v","X")
-
         if options.title: 
             if options.title == "0":
-                tmp_mat.SetTitle("")
+                th2_sub.SetTitle("")
             else:
-                tmp_mat.SetTitle(options.title)
+                th2_sub.SetTitle(options.title)
 
+        lat = ROOT.TLatex()
+        lat.SetNDC(); lat.SetTextFont(42)
+        lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
+        lat.DrawLatex(0.57, 0.95, '35.9 fb^{-1} (13 TeV)')
 
         if options.parNameCanvas: 
             paramsName = options.parNameCanvas
@@ -400,12 +373,38 @@ if __name__ == "__main__":
             paramsName = options.params.replace(',','AND')
             for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
                 paramsName = paramsName.replace(x,'')
-            
+
         if options.outdir:
             for i in ['pdf', 'png']:
                 suff = '' if not options.suffix else '_'+options.suffix
-                c.SaveAs(options.outdir+'/small{corcov}{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName,corcov='Correlation' if not im else 'Covariance'))
+                c.SaveAs(options.outdir+'/smallCorrelation{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName))
             os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+            ROOT.gStyle.SetPaintTextFormat('1.2f')
+            if len(params)<30: tmp_mat.Draw('colz text45')
+            else: tmp_mat.Draw('colz')
+
+            if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
+            if nbins >= 20: tmp_mat.LabelsOption("v","X")
+
+            if options.title: 
+                if options.title == "0":
+                    tmp_mat.SetTitle("")
+                else:
+                    tmp_mat.SetTitle(options.title)
+
+
+            if options.parNameCanvas: 
+                paramsName = options.parNameCanvas
+            else : 
+                paramsName = options.params.replace(',','AND')
+                for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
+                    paramsName = paramsName.replace(x,'')
+
+            if options.outdir:
+                for i in ['pdf', 'png']:
+                    suff = '' if not options.suffix else '_'+options.suffix
+                    c.SaveAs(options.outdir+'/small{corcov}{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName,corcov='Correlation' if not im else 'Covariance'))
+                os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
 
     if options.showMoreCorrelated:
