@@ -209,10 +209,10 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             else:
                 if options.normxsec: 
                     #mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
-                    mg.GetYaxis().SetTitle('d#sigma / dy_{W} / #sigma_{tot}')
+                    mg.GetYaxis().SetTitle('d#sigma / d|y_{W}| / #sigma_{tot}')
                     mg.GetYaxis().SetRangeUser(0.,0.8 if options.maxRapidity > 2.9 else 0.25)
                 else: 
-                    mg.GetYaxis().SetTitle('d#sigma / dy_{W} (pb)')
+                    mg.GetYaxis().SetTitle('d#sigma / d|y_{W}| (pb)')
                     mg.GetYaxis().SetRangeUser(-200,3500)
             mg.GetYaxis().SetTitleSize(0.04)
             mg.GetYaxis().SetLabelSize(0.04)
@@ -318,7 +318,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
                       'a0': '|A_{0}|', 
                       'a4': '|A_{4}|',
                       'sumxsec': 'd#sigma / d|y_{W}| (pb)',
-                      'sumxsecnorm': 'd#sigma/dy_{W} / #sigma_{tot}'}
+                      'sumxsecnorm': 'd#sigma/d|y_{W}| / #sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
                       'a4': (-1,2),
