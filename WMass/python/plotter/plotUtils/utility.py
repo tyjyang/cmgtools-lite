@@ -958,7 +958,7 @@ def drawDataAndMC(h1, h2,
         leg.AddEntry(h2,str(legendEntries[1]),"LF")        
     else:
         leg.AddEntry(h1,"measured","LPE")
-        leg.AddEntry(h2,"aMC@NLO","LF")
+        leg.AddEntry(h2,"MadGraph5_aMC@NLO","LF")
     if histMCpartialUnc != None:
         leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
     #leg.AddEntry(h1err,"Uncertainty","LF")
@@ -2284,7 +2284,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                           labelRatioTmp="Data/pred.::0.5,1.5",
                           drawStatBox=False,
                           #legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
-                          legendCoords="0.15,0.65,0.85,0.9;3",  # for unrolled use 1 line # x1,x2,y1,y2
+                          legendCoords="0.20,0.65,0.86,0.93;3",  # for unrolled use 1 line # x1,x2,y1,y2
                           canvasSize="600,700",  # use X,Y to pass X and Y size     
                           lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                           passCanvas=None,
@@ -2363,7 +2363,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     fsPart = 1001
     fsTot = 1001
 
-    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
+    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.63
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -2400,6 +2400,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         histMCpartialUnc_true = None
         textForLines_true = []
         canvasName_true = ""
+        nbinsSplit = h1.GetNbinsX()
         if nSplitUnrolledBins == 1:
             h1_true = h1
             h2_true = h2
@@ -2455,7 +2456,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
 
 
         frame = h1_true.Clone("frame")
-        frame.GetXaxis().SetLabelSize(0.04)
+        frame.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
         frame.SetStats(0)
 
         h1_true.SetLineColor(ROOT.kBlack)
@@ -2485,10 +2486,12 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             h1_true.GetXaxis().SetTitleOffset(1.2)
             h1_true.GetXaxis().SetTitleSize(0.05)
             h1_true.GetXaxis().SetLabelSize(0.04)
+            h1_true.GetXaxis().SetLabelSize(0.05)
         h1_true.GetYaxis().SetTitle(yAxisName)
         h1_true.GetYaxis().SetTitleOffset(yAxisTitleOffset)
         h1_true.GetYaxis().SetTitleSize(0.05)
         h1_true.GetYaxis().SetLabelSize(0.04)
+        h1_true.GetYaxis().SetDecimals()
         h1_true.GetYaxis().SetRangeUser(ymin, ymax)    
         h1_true.GetYaxis().SetTickSize(0.01)
         if setXAxisRangeFromUser: h1_true.GetXaxis().SetRangeUser(xmin,xmax)
@@ -2537,8 +2540,15 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             #if histMCpartialUnc_true != None: nColumnsLeg = 3
         legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
         lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
-        if histMCpartialUnc_true != None:
-            ly2 = ly2 + 0.5 * (ly2 - ly1) # add one more row
+        if leftMargin > 0.1:
+            if histMCpartialUnc_true != None:
+                ly2 = ly2 + 0.5 * (ly2 - ly1) # add one more row (for unrolled everything is on the same line
+        else:
+            if len(moreText):
+                realtext = moreText.split("::")[0]
+                lx2 = lx2 + 0.333 * (lx2 - lx1) # increase length of legend
+                nColumnsLeg += 1
+
         leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
         #leg.SetFillColor(0)
         #leg.SetFillStyle(0)
@@ -2549,9 +2559,11 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             leg.AddEntry(h2_true,str(legendEntries[1]),"LF")        
         else:
             leg.AddEntry(h1_true,"measured","LPE")
-            leg.AddEntry(h2_true,"aMC@NLO","LF")
+            leg.AddEntry(h2_true,"MadGraph5_aMC@NLO","LF")
         if histMCpartialUnc_true != None:
             leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
+        if len(moreText):
+            leg.AddEntry(None,realtext+ "  ","")
         #leg.AddEntry(h1err,"Uncertainty","LF")
         leg.Draw("same")
         canvas.RedrawAxis("sameaxis")
@@ -2568,18 +2580,20 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         vertline.SetLineStyle(3) # 2 for denser hatches
         bintext = ROOT.TLatex()
         #bintext.SetNDC()
-        textsize = {1: 0.025,
+        textsize = {1: 0.038,
                     2: 0.04,
                     3: 0.05}
         bintext.SetTextSize(textsize[nSplitUnrolledBins])  # 0.03
         bintext.SetTextFont(42)
         if len(textForLines_true):
             if nSplitUnrolledBins > 2:
-                bintext.SetTextAngle(10)
-            if nSplitUnrolledBins > 1:
+                pass
+                #bintext.SetTextAngle(10)
+            elif nSplitUnrolledBins > 1:
                 bintext.SetTextAngle(15)
             else:
-                bintext.SetTextAngle(45 if "#eta" in textForLines_true[0] else 30)
+                #bintext.SetTextAngle(45 if "#eta" in textForLines_true[0] else 30)
+                bintext.SetTextAngle(18)
 
         if len(drawVertLines):
             #print "drawVertLines = " + drawVertLines
@@ -2596,7 +2610,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                 for i in range(0,len(textForLines_true)): # we need nptBins texts
                     #texoffset = 0.1 * (4 - (i%4))
                     #ytext = (1. + texoffset)*ymax/2.  
-                    ytext = 0.68*ymax  # was 0.6                
+                    ytext = 0.67*ymax  # was 0.6                
                     bintext.DrawLatex(globalbinOffset + etarange*i + etarange/sliceLabelOffset, 
                                       ytext, 
                                       textForLines_true[i])
@@ -2604,7 +2618,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         # redraw legend, or vertical lines appear on top of it
         leg.Draw("same")
 
-        if len(moreText):
+        if len(moreText) and leftMargin > 0.1:
             realtext = moreText.split("::")[0]
             x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
             if "::" in moreText:
@@ -2612,8 +2626,8 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
             for tx in realtext.split(";"):
                 pavetext.AddText(tx)
-            pavetext.SetFillColor(0)
-            pavetext.SetFillStyle(0)
+            pavetext.SetFillColor(ROOT.kWhite)
+            #pavetext.SetFillStyle(0)
             pavetext.SetBorderSize(0)
             pavetext.SetLineColor(0)
             pavetext.Draw("same")
@@ -2666,6 +2680,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
             frame.GetYaxis().SetTitleSize(0.05)
             frame.GetYaxis().SetLabelSize(0.04)
+            frame.GetYaxis().SetDecimals()
             frame.GetYaxis().CenterTitle()
             frame.GetXaxis().SetTitle(xAxisName)
             if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)

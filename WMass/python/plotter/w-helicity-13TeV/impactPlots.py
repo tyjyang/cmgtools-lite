@@ -20,7 +20,7 @@ def niceSystName(label):
     elif 'pdfs' in label: niceName = 'PDFs #oplus #alpha_{S}'
     elif 'binByBinStat' in label: niceName = 'MC statistics'
     elif 'EffStat' in label: niceName = 'efficiency stat.'
-    elif 'Fakes' in label: niceName = 'fakes'
+    elif 'Fakes' in label: niceName = 'QCD bkg.'
     elif 'OtherExp' in label: niceName = 'other experimental'
     elif 'lumi' in label: niceName = 'luminosity'
     elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}'
