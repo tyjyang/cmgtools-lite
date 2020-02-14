@@ -27,6 +27,13 @@ utilities = utilities.util()
 #def SetCorrMatrixPalette():
 #ROOT.gStyle.SetPalette()
 
+def lepInFakeSystForSort(name):
+    if re.match("Uncorrelated\d+mu",name): 
+        return 1
+    else:
+        return 2
+
+
 def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
 
     if '_Ybin' in name:
@@ -112,7 +119,7 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
         if len(pfx):
             leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
         tmpvar = ""
-        if "FakesEtaCharge" in name: tmpvar = "#eta-byCharge"
+        if "FakesEtaCharge" in name: tmpvar = "#eta-ch"
         elif "FakesEta" in name: tmpvar = "#eta"
         elif "FakesPtNorm" in name: tmpvar = "p_{T}-norm"
         elif "FakesPtSlope" in name: tmpvar = "p_{T}-slope"    
@@ -258,6 +265,7 @@ if __name__ == "__main__":
     # if using more helicity and Y bins, sort by hel,Ybin
     helSorted = { "left" : 1, "right" : 2, "long" : 3}
     chargeSorted = { "Wplus" : 1, "Wminus" : 2}
+    lepSorted = { "mu" : 1, "el" : 2}
 
     ## sort the floatParams. alphabetically, except for pdfs, which are sorted by number
     ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
@@ -277,8 +285,12 @@ if __name__ == "__main__":
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
     params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)            
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)            
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtUncorrelated' in x else 0)            
+    params = sorted(params, key= lambda x: lepInFakeSystForSort(x) if 'Fakes' in x else 0)   
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)    
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtNormUncorrelated' in x else 0)
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaChargeUncorrelated' in x else 0) 
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtSlopeUncorrelated' in x else 0)   
+      
 
     # sort by charge if needed     
     # I think it is useful that different charges are separated in the matrix, it is easier to read it 
@@ -322,7 +334,7 @@ if __name__ == "__main__":
     if 'Wminus' in options.params and 'pmaskedexpnorm' in options.params:
         pass
         #th2_sub.SetTitle('correlations of W^{-} processes')
-    if 'pdf':
+    if 'pdf' in options.params:
         #th2_sub.SetTitle('correlations of PDF nuisance parameters')
         th2_sub.GetXaxis().SetLabelSize(0.025)
         th2_sub.GetYaxis().SetLabelSize(0.025)
@@ -365,7 +377,7 @@ if __name__ == "__main__":
         lat = ROOT.TLatex()
         lat.SetNDC(); lat.SetTextFont(42)
         lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
-        lat.DrawLatex(0.57, 0.95, '35.9 fb^{-1} (13 TeV)')
+        lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
 
         if options.parNameCanvas: 
             paramsName = options.parNameCanvas

@@ -7,17 +7,17 @@ import ROOT, os, sys, re, array
 doMuElComb = 1
 doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
-dryrun = 1
-skipPreliminary = False # passed as an option to some scripts to print "Preliminary" in plot
+dryrun = 0
+skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
 onlyData = 1
 
 skipInclusivePlot = 1
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
-skipCorr = 0
+skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
@@ -135,8 +135,9 @@ diffNuisances_pois = ["pdf.*|alphaS",
 #correlationSigRegexp = {"Wplus_ieta6ipt6" : ".*Wplus.*_ieta_6_ipt_6_.*mu"  
 #                        }
 # need to specify which matrix, by default the one for mu is chosen and the bin label looks like Wplus_el_ieta_1_ipt_0_Wplus_el, without ending mu
-correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*Wplus_.*_ieta_6_ipt_8_.*"
-                        }
+#correlationSigRegexp = {"Wplus_ieta6ipt8" : ".*Wplus_.*_ieta_6_ipt_8_.*"
+#                        }
+correlationSigRegexp = {}
 
 correlationNuisRegexp = {#"allPDF"           : "pdf.*,alphaS", 
                          #"someTheory"       : "^pdf([1-9]|1[0-9]|20)$,alphaS,fsr.*,mW", 
@@ -197,9 +198,10 @@ targetsPtEta = [#"mu",
 impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, but they are few, so I will use --nuisgroups '.*'
 #impacts_nuis = ["muTestEffSyst0","muTestEffSyst1","muTestEffSyst2"] 
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
-groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
-if flavour == "el" or doMuElComb:
-    groupnames += ',L1Prefire'
+#groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
+groupnames = 'binByBinStat,stat,pdfs,QCDTheo,Fakes,EffStat,EffSyst,lepScale,QEDTheo'
+#if flavour == "el" or doMuElComb:
+#    groupnames += ',L1Prefire'
 #groupnamesEtaPt = groupnames
 #groupnamesEtaPt = "EffStat,Fakes,binByBinStat,stat"
 groupnamesEtaPt = "EffSyst"
@@ -358,14 +360,18 @@ for fit in fits:
     print ""
 
     ## ADD CORRELATION
-    command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
-    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}".format(lep=lepton,fd=folder, pf=postfix)
-    command += " --matrix-type channelpmaskedexpnorm  --nContours 51 --type hessian --suffix  {fit}".format(fit=fit)
-    for poiRegexp in correlationSigRegexp:
+    for matrixType in ["channelpmaskedexp", "channelpmaskedexpnorm"]:
+        command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+        command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix/{pf}/{mt}/".format(lep=lepton,fd=folder, pf=postfix,mt=matrixType)
+        command += " --matrix-type {mt}  --nContours 51 --type hessian --suffix  {fit}".format(fit=fit,mt=matrixType)
+        #for poiRegexp in correlationSigRegexp:
         for nuisRegexp in correlationNuisRegexp:
-            tmpcommand = command + " --params '{nuis},{poi}' ".format(nuis=correlationNuisRegexp[nuisRegexp],poi=correlationSigRegexp[poiRegexp])
-            title = "correlation matrix for {t}".format(t=correlationMatrixTitle[nuisRegexp])
-            tmpcommand += " --parNameCanvas {nuis}_{poi} --title '{t}' ".format(nuis=nuisRegexp, poi=poiRegexp, t=title)
+            #tmpcommand = command + " --params '{nuis},{poi}' ".format(nuis=correlationNuisRegexp[nuisRegexp],poi=correlationSigRegexp[poiRegexp])
+            #title = "correlation matrix for {t}".format(t=correlationMatrixTitle[nuisRegexp])
+            #tmpcommand += " --parNameCanvas {nuis}_{poi} --title '{t}' ".format(nuis=nuisRegexp, poi=poiRegexp, t=title)
+            tmpcommand = command + " --params '{nuis}' ".format(nuis=correlationNuisRegexp[nuisRegexp])
+            title = "0" # set to no title
+            tmpcommand += " --parNameCanvas {nuis} --title '{t}' ".format(nuis=nuisRegexp, t=title)
             if not skipCorr:
                 print ""
                 print tmpcommand
