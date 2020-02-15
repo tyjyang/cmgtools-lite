@@ -1570,6 +1570,8 @@ def drawMuElComparison(hlep, hmu, hel,
     # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
 
     # h1 is data, h2 in MC
+    
+    combColor = ROOT.kGray # ROOT.kYellow
 
     #if (rebinFactorX): 
     #    if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
@@ -1608,13 +1610,16 @@ def drawMuElComparison(hlep, hmu, hel,
 
 
     frame = hlep.Clone("frame")
-    frame.GetXaxis().SetLabelSize(0.04)
+    frame.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
     frame.SetStats(0)
 
-    hlep.SetLineColor(ROOT.kGreen-2) # kBlack
-    hlep.SetMarkerColor(ROOT.kGreen-2)
+    #hlep.SetLineColor(ROOT.kGreen+2) # kBlack
+    #hlep.SetMarkerColor(ROOT.kGreen+2)
+    hlep.SetLineColor(combColor+3) # kBlack
+    hlep.SetMarkerColor(combColor+3)
+    hlep.SetFillColor(combColor)
     hlep.SetMarkerStyle(20)
-    hlep.SetMarkerSize(1.2)
+    hlep.SetMarkerSize(1.3)
 
     #ymax = max(ymax, max(hlep.GetBinContent(i)+hlep.GetBinError(i) for i in range(1,hlep.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
@@ -1637,15 +1642,16 @@ def drawMuElComparison(hlep, hmu, hel,
         hlep.GetXaxis().SetTitle(xAxisName)
         hlep.GetXaxis().SetTitleOffset(1.2)
         hlep.GetXaxis().SetTitleSize(0.05)
-        hlep.GetXaxis().SetLabelSize(0.04)
+        hlep.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
     hlep.GetYaxis().SetTitle(yAxisName)
     hlep.GetYaxis().SetTitleOffset(yAxisTitleOffset)
     hlep.GetYaxis().SetTitleSize(0.05)
     hlep.GetYaxis().SetLabelSize(0.04)
+    hlep.GetYaxis().SetDecimals()
     hlep.GetYaxis().SetRangeUser(ymin, ymax)    
     hlep.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: hlep.GetXaxis().SetRangeUser(xmin,xmax)
-    hlep.Draw("EP0")
+    hlep.Draw("E2P0")
     #hleperr = hlep.Clone("hleperr")
     #hleperr.SetFillColor(ROOT.kRed+2)
 
@@ -1660,31 +1666,39 @@ def drawMuElComparison(hlep, hmu, hel,
     # hmuline.Draw("HIST SAME")
     # hlep.Draw("EP SAME")
 
-    hmu.SetLineColor(ROOT.kAzure+7) # kgreen+2
-    hmu.SetMarkerColor(ROOT.kAzure+7)
+    hmu.SetLineColor(ROOT.kBlue) # kgreen+2
+    hmu.SetMarkerColor(ROOT.kBlue+1)
     hmu.SetMarkerStyle(21)
-    hmu.SetMarkerSize(1.2)
-    hmu.Draw("E0P0 SAME0")
+    hmu.SetMarkerSize(1.3)
+    hmu.Draw("EX0P0 SAME0")
 
-    hel.SetLineColor(ROOT.kRed-2)  # kRed+2
-    hel.SetMarkerColor(ROOT.kRed-2)
-    hel.SetMarkerStyle(22)
-    hel.SetMarkerSize(1.2)
-    hel.Draw("EP SAME0")
+    hel.SetLineColor(ROOT.kRed+1)  # kRed+2
+    hel.SetMarkerColor(ROOT.kRed+2)
+    hel.SetMarkerStyle(21)
+    hel.SetMarkerSize(1.3)
+    hel.Draw("EX0P SAME0")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
         nColumnsLeg = int(legendCoords.split(";")[1])
     legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    if leftMargin < 0.1:
+        if len(moreText):
+            realtext = moreText.split("::")[0]
+            lx2 = lx2 + 0.333 * (lx2 - lx1) # increase length of legend
+            nColumnsLeg += 1
+
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
     #leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
-    leg.AddEntry(hlep,"combination","LPE")
+    leg.AddEntry(hlep,"combination","LFPE")
     leg.AddEntry(hmu,"muon","LPE")
     leg.AddEntry(hel,"electron","LPE")
+    if len(moreText):
+        leg.AddEntry(None,realtext,"")
     #leg.AddEntry(hleperr,"Uncertainty","LF")
     leg.Draw("same")
     canvas.RedrawAxis("sameaxis")
@@ -1701,10 +1715,10 @@ def drawMuElComparison(hlep, hmu, hel,
     vertline.SetLineStyle(3) # 2 for denser hatches
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
-    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextSize(0.038)  # 0.03
     bintext.SetTextFont(42)
     if len(textForLines):
-        bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+        bintext.SetTextAngle(18)
 
     if len(drawVertLines):
         #print "drawVertLines = " + drawVertLines
@@ -1719,13 +1733,13 @@ def drawMuElComparison(hlep, hmu, hel,
             for i in range(0,len(textForLines)): # we need nptBins texts
                 #texoffset = 0.1 * (4 - (i%4))
                 #ytext = (1. + texoffset)*ymax/2.  
-                ytext = 0.6*ymax                  
+                ytext = 0.67*ymax                  
                 bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
 
     # redraw legend, or vertical lines appear on top of it
     leg.Draw("same")
 
-    if len(moreText):
+    if len(moreText) and leftMargin > 0.1:
         realtext = moreText.split("::")[0]
         x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
         if "::" in moreText:
@@ -1782,6 +1796,7 @@ def drawMuElComparison(hlep, hmu, hel,
         if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
         #else:                          
         #frame.GetYaxis().SetRangeUser(0.5,1.5)
+        frame.GetYaxis().SetDecimals()
         frame.GetYaxis().SetNdivisions(5)
         frame.GetYaxis().SetTitle(yRatioAxisName)
         frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
@@ -1810,18 +1825,20 @@ def drawMuElComparison(hlep, hmu, hel,
         ratiomu.Divide(den_noerr)
         ratioel.Divide(den_noerr)
         den.Divide(den_noerr)
-        den.SetFillColor(ROOT.kGray)
-        den.SetFillStyle(1001)  # make it solid again
+        #den.SetFillColor(ROOT.kGray)
+        #den.SetLineColor(ROOT.kBlack)        
+        den.SetFillColor(combColor)
         den.SetLineColor(ROOT.kBlack)        
+        den.SetFillStyle(1001)  # make it solid again
         den.SetLineWidth(2)        
 
         frame.Draw()        
-        ratiomu.SetMarkerSize(1.0)
-        ratioel.SetMarkerSize(1.0)
+        ratiomu.SetMarkerSize(1.6)
+        ratioel.SetMarkerSize(1.6)
         den.SetMarkerSize(0) 
         den.Draw("E2same")
-        ratiomu.Draw("E0P0 same0")
-        ratioel.Draw("E0P0 same0")
+        ratiomu.Draw("EX0P0 same0")
+        ratioel.Draw("EX0P0 same0")
         
  
         line = ROOT.TF1("horiz_line","1",den.GetXaxis().GetBinLowEdge(1),den.GetXaxis().GetBinLowEdge(den.GetNbinsX()+1))
@@ -1837,16 +1854,16 @@ def drawMuElComparison(hlep, hmu, hel,
         #     ratio.Draw("EPsame")
 
         x1leg2 = 0.15 if leftMargin > 0.1 else 0.07
-        x2leg2 = 0.55 if leftMargin > 0.1 else 0.27
-        y1leg2 = 0.28 if leftMargin > 0.1 else 0.3
-        y2leg2 = 0.33 if leftMargin > 0.1 else 0.35
+        x2leg2 = 0.55 if leftMargin > 0.1 else 0.32
+        y1leg2 = 0.33 if leftMargin > 0.1 else 0.33
+        y2leg2 = 0.38 if leftMargin > 0.1 else 0.4
         leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
         #leg2 = ROOT.TLegend(0.07,0.30,0.27,0.35)
         leg2.SetFillColor(0)
         leg2.SetFillStyle(0)
         leg2.SetBorderSize(0)
         leg2.AddEntry(den,"combination","LF")
-        leg2.Draw("same")
+        #leg2.Draw("same")  # not sure I need to add this legend
         pad2.RedrawAxis("sameaxis")
 
 
@@ -2462,7 +2479,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         h1_true.SetLineColor(ROOT.kBlack)
         h1_true.SetMarkerColor(ROOT.kBlack)
         h1_true.SetMarkerStyle(20)
-        h1_true.SetMarkerSize(1)
+        h1_true.SetMarkerSize(1.2)
 
         #ymax = max(ymax, max(h1_true.GetBinContent(i)+h1_true.GetBinError(i) for i in range(1,h1_true.GetNbinsX()+1)))
         # if min and max were not set, set them based on histogram content
@@ -2792,12 +2809,12 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
 
             frame.Draw()        
             if invertRatio:
-                den.SetMarkerSize(0.85)
+                den.SetMarkerSize(0.95)
                 den.SetMarkerStyle(20) 
                 #den.Draw("EPsame")    # draw after red line, not now            
                 ratio.Draw("F2same")
             else:    
-                ratio.SetMarkerSize(0.85)
+                ratio.SetMarkerSize(0.95)
                 ratio.SetMarkerStyle(20) 
                 den.Draw("F2same")
                 #ratio.Draw("EPsame") # draw after red line, not now

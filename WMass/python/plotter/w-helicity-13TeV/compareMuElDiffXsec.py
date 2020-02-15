@@ -53,7 +53,7 @@ if __name__ == "__main__":
              "hDiffXsec_1Deta_LEPTON_minus",
              "hDiffXsec_LEPTON_plus_unrollTo1D_pt",
              "hDiffXsec_LEPTON_minus_unrollTo1D_pt",
-            "hDiffXsec_LEPTON_plus_unrollTo1D_eta",
+             "hDiffXsec_LEPTON_plus_unrollTo1D_eta",
              "hDiffXsec_LEPTON_minus_unrollTo1D_eta"] 
 
     fitTypes = ["muon", "electron", "lepton"]
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     canvas = 0
     canvUnroll = ROOT.TCanvas("canvUnroll","",4500,1500) # 3000,1500
-    canvas1D = ROOT.TCanvas("canvas1D","",800,800)
+    canvas1D = ROOT.TCanvas("canvas1D","",1000,1000)
 
     leftMargin = 0.15 
     rightMargin = 0.04
@@ -108,23 +108,23 @@ if __name__ == "__main__":
 
     for name in names:
         chargeSign = "+" if "plus" in name else "-" if "minus" in name else ""
-        xaxisTitle = 'gen lepton p_{T} [GeV]' if "1Dpt" in name else 'gen lepton |#eta|'
+        xaxisTitle = 'gen lepton p_{T} (GeV)' if "1Dpt" in name else 'gen lepton |#eta|'
         yaxisTitle = ""
         if "ChAsym" in name: yaxisTitle = "Asymmetry::0,0.25"
         elif "DiffXsec" in name:
-            yaxisTitle = "d#sigma / d%s " % "dp_{T}" if "1Dpt" in name else "|#eta|"
+            yaxisTitle = "d#sigma / d%s " % ("p_{T}" if "1Dpt" in name else "|#eta|")
             if "Norm" in name: yaxisTitle += " / #sigma_{tot}"
-            else             : yaxisTitle += " [pb/GeV]::0,340" if "1Dpt" in name else " [pb]"
+            else             : yaxisTitle += " (pb/GeV)::0,340" if "1Dpt" in name else " [pb]::1150,1900" if "minus" in name else " [pb]::1800,2400"
         cname = name
         canvas = canvas1D
         legendCoords = ""
         texCoord = ""
         if "1Dpt" in name:
-            legendCoords = "0.62,0.92,0.7,0.9"
-            texCoord = "0.2,0.5" if "plus" in name else "0.2,0.5" if "minus" in name else "0.2,0.5"
+            legendCoords = "0.6,0.92,0.72,0.92"
+            texCoord = "0.2,0.55" if "plus" in name else "0.2,0.55" if "minus" in name else "0.2,0.55"
         else:
-            texCoord = "0.2,0.8" if "plus" in name else "0.2,0.5" if "minus" in name else "0.2,0.8"
-            legendCoords = "0.62,0.92,0.4,0.6" if "ChAsym" in name else "0.62,0.92,0.7,0.9"
+            texCoord = "0.2,0.8" if "plus" in name else "0.2,0.55" if "minus" in name else "0.2,0.8"
+            legendCoords = "0.6,0.92,0.45,0.65" if "ChAsym" in name else "0.6,0.92,0.72,0.92"
 
         additionalText = ""
         additionalTextLatex = "W^{{{chs}}} #rightarrow l#nu;{vartext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
@@ -137,15 +137,15 @@ if __name__ == "__main__":
         if "unrollTo1D" in name:
             leftMargin =  0.06
             rightMargin = 0.02
-            legendCoords = "0.2,0.5,0.84,0.90;3"
+            legendCoords = "0.30,0.6,0.86,0.93;3"
             if "ChAsym" in name: 
                 yaxisTitle = "Asymmetry::0,0.25"
             elif "DiffXsec" in name:
                 yaxisTitle = "d^{2}#sigma / d|#eta|dp_{T}"
                 if "Norm" in name: 
-                    yaxisTitle += " / #sigma_{tot} [1/GeV]"
+                    yaxisTitle += " / #sigma_{tot} (1/GeV)"
                 else: 
-                    yaxisTitle += " [pb/GeV]::0,250"
+                    yaxisTitle += " (pb/GeV)::0,200"
 
             additionalText = "W^{{{chs}}} #rightarrow l#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign)
             additionalTextLatex = ""
@@ -156,17 +156,23 @@ if __name__ == "__main__":
                 xaxisTitle = "unrolled |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                 for ipt in range(0,genBins.Npt):
-                    varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
+                    #varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
+                    varBinRanges.append("#splitline{{[{ptmin:3g}, {ptmax:.3g}]}}{{GeV}}".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
             else:
                 #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
                 xaxisTitle = "unrolled p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                 for ieta in range(0,genBins.Neta):
-                    varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
+                    #varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
+                    varBinRanges.append("[{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
 
-
+        labelRatio = "lep/comb.::0.8,1.2"
+        ratioPanelSize = 0.4
+        if "unrollTo1D" in name:
+            labelRatio = "lep/comb.::0.8,1.2"
+            ratioPanelSize = 0.48
         drawMuElComparison(hLepton[name], hMuon[name], hElectron[name],xaxisTitle,yaxisTitle,cname,
-                           outname, labelRatioTmp="lep/comb.::0.8,1.2", legendCoords=legendCoords,
+                           outname, labelRatioTmp=labelRatio, legendCoords=legendCoords,
                            draw_both0_noLog1_onlyLog2=1, leftMargin=leftMargin, rightMargin=rightMargin, passCanvas=canvas, lumi=35.9,
-                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=0.35, 
+                           drawVertLines=vertLinesArg, textForLines=varBinRanges, lowerPanelHeight=ratioPanelSize, 
                            moreTextLatex=additionalTextLatex, moreText=additionalText,skipPreliminary=options.skipPreliminary)

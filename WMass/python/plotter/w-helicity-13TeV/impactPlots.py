@@ -47,13 +47,71 @@ def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(3)
     leg.SetFillColor(0)
-    leg.SetFillColorAlpha(0,0.6)
+    #leg.SetFillColorAlpha(0,0.6) # better not transparent, all lines should not stay behing legend
     leg.SetShadowColor(0)
     leg.SetLineColor(0)
     leg.SetBorderSize(0)
     leg.SetTextFont(42)
     leg.SetTextSize(textSize)
     return leg
+
+###
+# this is the original style-color map: if you want to change it, copy into a new version (there is already one below) and keep this one commented for future reference
+# groupPainter = {"luminosity"   : (ROOT.kFullSquare, ROOT.kBlue),
+#                 "stat"         : (ROOT.kFullCircle, ROOT.kBlack),
+#                 "binByBinStat" : (ROOT.kFullCircle, ROOT.kPink+7),
+#                 "QEDTheo"      : (ROOT.kOpenSquareDiagonal, ROOT.kMagenta+3),
+#                 "QCDTheo"      : (ROOT.kFullStar,   ROOT.kGray+2),
+#                 "L1Prefire"    : (ROOT.kFourSquaresPlus, ROOT.kRed+2),
+#                 "pdfs"         : (ROOT.kOpenStar,   ROOT.kViolet+5),
+#                 "lepScale"     : (ROOT.kFullTriangleUp,   ROOT.kRed),
+#                 "EffStat"      : (ROOT.kFullTriangleDown, ROOT.kGreen+2),
+#                 "EffSyst"      : (ROOT.kOpenSquare, ROOT.kMagenta+1),
+#                 "Fakes"        : (ROOT.kOpenDiamond,ROOT.kCyan+1),
+#                 "OtherBkg"     : (ROOT.kOpenTriangleUp,   ROOT.kOrange+7),
+#                 "OtherExp"     : (ROOT.kOpenTriangleDown, ROOT.kSpring+5),
+#                 "Total"        : (ROOT.kFullDoubleDiamond, ROOT.kRed+1)
+# }
+
+# dictionary for marker style, marker and line color, and marker size
+groupPainter = {"luminosity"   : [ROOT.kFullSquare, ROOT.kBlue, 2.5], # not to be shown
+                "stat"         : [ROOT.kFullCircle, ROOT.kBlack, 2.5],
+                "binByBinStat" : [ROOT.kFullCircle, ROOT.kPink+7, 2.5],
+                "QEDTheo"      : [ROOT.kOpenSquareDiagonal, ROOT.kMagenta+3, 2.5],  # not to be shown
+                "QCDTheo"      : [ROOT.kFullSquare,  ROOT.kOrange+7, 2.5],
+                "L1Prefire"    : [ROOT.kFourSquaresPlus, ROOT.kRed+2, 2.5],   # not to be shown
+                "pdfs"         : [ROOT.kOpenStar,   ROOT.kViolet+5, 2.5],
+                "lepScale"     : [ROOT.kFullTriangleUp,   ROOT.kRed, 2.5],   # not to be shown
+                "EffStat"      : [ROOT.kFullTriangleDown, ROOT.kGreen+2, 2.5],
+                "EffSyst"      : [ROOT.kOpenSquare, ROOT.kMagenta+1, 2.5],    # not to be shown
+                "Fakes"        : [ROOT.kOpenDiamond,ROOT.kAzure+1, 2.5],
+                "OtherBkg"     : [ROOT.kOpenTriangleUp,   ROOT.kOrange+7, 2.5],  # not to be shown
+                "OtherExp"     : [ROOT.kOpenTriangleDown, ROOT.kSpring+5, 2.5],  # not to be shown
+                "Total"        : [ROOT.kFullDoubleDiamond, ROOT.kRed+1, 4]
+}
+
+# dictionary to manage the y axis range for the 1D impacts vs eta, pt, or Yw (assumes options.absolute not set)
+# one might want to figure it out automatically based on the lines, though
+yAxisRange_target = {"mu":          [1.e-1, 50],
+                     "xsec":        [1.e-1, 50],
+                     "xsecnorm":    [1.e-1, 50],
+                     "unpolxsec":   [8.e-2,100.],
+                     "unpolxsecnorm": [1.e-1,50.],
+                     "asym":        [5.e-4,1.8],
+                     "unpolasym":   [5.e-4,1.],
+                     "A0":          [5.e-4,2.],
+                     "A4":          [5.e-4,2.],
+                     "etaptasym":   [1.e-1, 50],
+                     "etaasym":     [9.e-2, 15],
+                     "etaxsec":     [2.e-2, 100],
+                     "etaxsecnorm": [1.e-2, 8],
+                     "ptasym":      [1.e-1, 700],
+                     "ptxsec":      [4.e-2, 200],
+                     "ptxsecnorm":  [2.5e-2, 200],
+                 }
+
+###
+
 
 if __name__ == "__main__":
 
@@ -193,25 +251,27 @@ if __name__ == "__main__":
     pois = []; pois_indices = {}
     for ib in xrange(1,impMat.GetNbinsX()+1):
         for poi in pois_regexps:
-            if re.match(poi, impMat.GetXaxis().GetBinLabel(ib)):
+            thislabel = impMat.GetXaxis().GetBinLabel(ib)
+            if re.match(poi, thislabel):
                 if options.target=='etaasym':
-                    if re.match(".*chargemetaasym", impMat.GetXaxis().GetBinLabel(ib)):
-                        pois.append(impMat.GetXaxis().GetBinLabel(ib))
-                        pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+                    if re.match(".*chargemetaasym", thislabel):
+                        pois.append(thislabel)
+                        pois_indices[thislabel] = ib
                 elif options.target=='etaptasym':
-                    if re.match(".*chargeasym", impMat.GetXaxis().GetBinLabel(ib)):
-                        pois.append(impMat.GetXaxis().GetBinLabel(ib))
-                        pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+                    if re.match(".*chargeasym", thislabel):
+                        pois.append(thislabel)
+                        pois_indices[thislabel] = ib
                 else:
-                    pois.append(impMat.GetXaxis().GetBinLabel(ib))
-                    pois_indices[impMat.GetXaxis().GetBinLabel(ib)] = ib
+                    pois.append(thislabel)
+                    pois_indices[thislabel] = ib
 
 
     nuisances = []; nuisances_indices = []
     for ib in xrange(1,impMat.GetNbinsY()+1):
         for n in nuis_regexps:
-            if re.match(n, impMat.GetYaxis().GetBinLabel(ib)):
-                nuisances.append(impMat.GetYaxis().GetBinLabel(ib))
+            thislabel = impMat.GetYaxis().GetBinLabel(ib)
+            if re.match(n, thislabel):
+                nuisances.append(thislabel)
                 nuisances_indices.append(ib)
 
     mat = {}
@@ -284,6 +344,8 @@ if __name__ == "__main__":
                       "ptxsec":   "cross section",
                       "ptxsecnorm": "normalized cross section",
                       }
+
+
     th2_sub.GetZaxis().SetTitle("impact on POI for {p} {units}".format(units='' if options.absolute else '(%)', p=poiName_target[options.target]))
     th2_sub.GetZaxis().SetTitleOffset(1.2)
 
@@ -377,23 +439,26 @@ if __name__ == "__main__":
                     # I define a new integer counter that is not updated on certain conditions
                     h = ROOT.TH1D(charge+'_'+pol+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
                     summaries[(charge,pol,nuisgroup)] = h
-                    summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
-                    if nuisgroup in ["QCDTheo","L1Prefire"]:
-                        summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
-                        summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
-                        ing2 += 1
-                    else:
-                        summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
-                        summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
-                        ing += 1
+                    # the following is set later, no longer needed
+                    # summaries[(charge,pol,nuisgroup)].SetMarkerSize(2)
+                    # if nuisgroup in ["QCDTheo","L1Prefire"]:
+                    #     summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
+                    #     summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
+                    #     ing2 += 1
+                    # else:
+                    #     summaries[(charge,pol,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                    #     summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                    #     ing += 1
                     summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,2.41)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
                     if options.absolute:
-                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
+                        #summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
+                        # use values set above, they already assume that asymmetry, A4 and A0 will be shown absolute
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(yAxisRange_target[options.target][0],yAxisRange_target[options.target][1])
                         summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
                     else:
-                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-3,500.)
+                        summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(yAxisRange_target[options.target][0],yAxisRange_target[options.target][1])
                         summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitleSize(0.06)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetLabelSize(0.04)
@@ -429,7 +494,9 @@ if __name__ == "__main__":
         cs.SetBottomMargin(0.15)
         cs.SetTopMargin(0.1)
         cs.SetTicky(1)
-        cs.SetGridy()
+        # with log scale it draws lines on every line when the y axis has 3 or less orders of magnitude
+        # so, either we do not draw the grid at all, all we draw it by hand at 0.1, 1, 10 with TLine
+        #cs.SetGridy()  
         for charge in charges:
             for ipol,pol in enumerate(polarizations):
                 #leg = prepareLegend(xmin=0.5,legWidth=0.40,textSize=0.04)
@@ -438,7 +505,8 @@ if __name__ == "__main__":
                 else: sign='+' if charge is 'plus' else '-' 
                 # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
                 thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol=pol,chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-                header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+                #header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+                header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
                 leg.SetHeader(header)            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
@@ -448,12 +516,16 @@ if __name__ == "__main__":
                 for ing,ng in enumerate(groups):
                     drawopt = 'pl' if ing==0 else 'pl same'
                     summaries[(charge,pol,ng)].Draw(drawopt)
-                    if   ng=='binByBinStat': summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle)
-                    elif ng=='stat'        : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle); summaries[(charge,pol,ng)].SetMarkerColor(ROOT.kBlack); summaries[(charge,pol,ng)].SetLineColor(ROOT.kBlack);
-                    elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
-                    elif ng=='QEDTheo'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
-                    elif ng=='L1Prefire'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
-                    else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
+                    summaries[(charge,pol,ng)].SetMarkerStyle(groupPainter[ng][0])
+                    summaries[(charge,pol,ng)].SetMarkerColor(groupPainter[ng][1])
+                    summaries[(charge,pol,ng)].SetLineColor(groupPainter[ng][1])
+                    summaries[(charge,pol,ng)].SetMarkerSize(groupPainter[ng][2])
+                    # if   ng=='binByBinStat': summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle)
+                    # elif ng=='stat'        : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullCircle); summaries[(charge,pol,ng)].SetMarkerColor(ROOT.kBlack); summaries[(charge,pol,ng)].SetLineColor(ROOT.kBlack);
+                    # elif ng=='luminosity'  : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                    # elif ng=='QEDTheo'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
+                    # elif ng=='L1Prefire'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
+                    # else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                     leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
                     # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
                     for y in xrange(quadrsum.GetNbinsX()):
@@ -466,7 +538,10 @@ if __name__ == "__main__":
                     if y in bkgYBins: continue
                     if pol=='long' and options.longBkg: continue
                     totalerr.SetBinContent(y+1,fitErrors['W{sign} {pol} {bin}'.format(sign=sign,pol=pol,bin=y)])
-                totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); totalerr.SetMarkerSize(3); totalerr.SetMarkerColor(ROOT.kRed+1); totalerr.SetLineColor(ROOT.kRed+1);
+                totalerr.SetMarkerStyle(groupPainter["Total"][0]); 
+                totalerr.SetMarkerColor(groupPainter["Total"][1]); 
+                totalerr.SetLineColor(groupPainter["Total"][1]);
+                totalerr.SetMarkerSize(groupPainter["Total"][2]); 
                 totalerr.Draw('pl same')
                 #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
@@ -506,31 +581,31 @@ if __name__ == "__main__":
                     h = ROOT.TH1D(charge+'_'+nuisgroup,'',genBins.Neta,array('d',genBins.etaBins))
                 #print "Last bin right edge: " + str(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
                 summaries[(charge,nuisgroup)] = h
-                summaries[(charge,nuisgroup)].SetMarkerSize(2)
-                if nuisgroup in ["QEDTheo","L1Prefire"]:
-                    summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
-                    summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
-                    ing2 += 1
-                else:
-                    summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
-                    summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
-                    ing += 1
+                summaries[(charge,nuisgroup)].SetMarkerSize(groupPainter[nuisgroup][2])
                 summaries[(charge,nuisgroup)].SetLineWidth(2)
-                summaries[(charge,nuisgroup)].GetXaxis().SetRangeUser(0.,2.4)
-                summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
-                if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
-                    summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
+                # summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
+                # if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
+                #     summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
+                # summaries[(charge,nuisgroup)].GetXaxis().SetTitleSize(0.06)
+                # summaries[(charge,nuisgroup)].GetXaxis().SetLabelSize(0.04)
+                # summaries[(charge,nuisgroup)].GetYaxis().SetTitleSize(0.06)
+                # summaries[(charge,nuisgroup)].GetYaxis().SetLabelSize(0.04)
+                # summaries[(charge,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
+                # if nuisgroup in ["QEDTheo","L1Prefire"]:
+                #     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
+                #     summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
+                #     ing2 += 1
+                # else:
+                #     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
+                #     summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
+                #     ing += 1
                 if options.absolute:
                     summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Uncertainty')
                 else:
-                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(1.e-3,500.)
+                    summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(yAxisRange_target[options.target][0],
+                                                                          yAxisRange_target[options.target][1])
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
-                summaries[(charge,nuisgroup)].GetXaxis().SetTitleSize(0.06)
-                summaries[(charge,nuisgroup)].GetXaxis().SetLabelSize(0.04)
-                summaries[(charge,nuisgroup)].GetYaxis().SetTitleSize(0.06)
-                summaries[(charge,nuisgroup)].GetYaxis().SetLabelSize(0.04)
-                summaries[(charge,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
         for j,nuisgroup in enumerate(groups):
             for i in xrange(th2_sub.GetNbinsX()):
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
@@ -594,9 +669,9 @@ if __name__ == "__main__":
             ptmax = genBins.ptBins[theptbin+1]
             print "Plot for pt-bin %d: ptmin, ptmax = %.3g, %.3g " % (theptbin, ptmin, ptmax)
         ptRangeText = "p_{T}^{%s} #in [%.3g, %.3g] GeV" % (flavour, ptmin, ptmax)
-        etaRangeText = "| #eta^{%s} | #in [%.3g, %.3g]" % (flavour, etamin, etamax)
+        etaRangeText = "|#eta^{%s }| #in [%.3g, %.3g]" % (flavour, etamin, etamax)
         if etamin == 0.0:
-            etaRangeText = "| #eta^{%s} | < %.3g" % (flavour, etamax)            
+            etaRangeText = "|#eta^{%s }| < %.3g" % (flavour, etamax)            
         #print ptRangeText
         #for key in fitErrors:
         #    print "fitErrors: key = " + key
@@ -606,7 +681,9 @@ if __name__ == "__main__":
         cs.SetRightMargin(0.05)
         cs.SetBottomMargin(0.15)
         cs.SetTopMargin(0.1)
-        cs.SetGridy()
+        # with log scale it draws lines on every line when the y axis has 3 or less orders of magnitude
+        # so, either we do not draw the grid at all, all we draw it by hand at 0.1, 1, 10 with TLine
+        #cs.SetGridy()  
         cs.SetTicky(1)
         for charge in charges:
             leg = prepareLegendV2(textSize=0.04,xmin=0.12,xmax=0.94)
@@ -615,9 +692,10 @@ if __name__ == "__main__":
             else: 
                 sign='+' if charge is 'plus' else '-'
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
-            thischannel = "W^{{{chsign}}} #rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+            thischannel = "W^{{{chsign}}}#rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
             varRangeText = etaRangeText if any(options.target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]) else ptRangeText  
-            header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
+            #header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
+            header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
             leg.SetHeader(header)            
             leg.SetNColumns(4)
             lat = ROOT.TLatex()
@@ -629,27 +707,37 @@ if __name__ == "__main__":
                 drawopt = 'pl' if ing==0 else 'pl same'
                 summaries[(charge,ng)].Draw(drawopt)                
                 if ing == 0: 
+                    summaries[(charge,ng)].GetXaxis().SetTitleSize(0.06)
+                    summaries[(charge,ng)].GetXaxis().SetLabelSize(0.04)
+                    summaries[(charge,ng)].GetYaxis().SetTitleSize(0.06)
+                    summaries[(charge,ng)].GetYaxis().SetLabelSize(0.04)
+                    summaries[(charge,ng)].GetYaxis().SetTitleOffset(0.7)
                     if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
                         summaries[(charge,ng)].GetXaxis().SetRangeUser(ptmin,ptmax)
+                        summaries[(charge,ng)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
                     else:
                         summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
-                if   ng=='binByBinStat': 
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle)
-                elif ng=='stat':
-                    #print "bin  stat.uncertainty"
-                    #for ibin in range(1,summaries[(charge,ng)].GetNbinsX()+1):
-                    #    print "%s   %s" % (str(ibin-1),str(summaries[(charge,ng)].GetBinContent(ibin)))
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle); 
-                    summaries[(charge,ng)].SetMarkerColor(ROOT.kBlack); 
-                    summaries[(charge,ng)].SetLineColor(ROOT.kBlack);
-                elif ng=='luminosity'  : 
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullSquare)
-                elif ng=='QEDTheo'  : 
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
-                elif ng=='L1Prefire'  : 
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
-                else: 
-                    summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
+                        summaries[(charge,ng)].GetXaxis().SetTitle('lepton |#eta|')
+                summaries[(charge,ng)].SetMarkerStyle(groupPainter[ng][0])
+                summaries[(charge,ng)].SetMarkerColor(groupPainter[ng][1]); 
+                summaries[(charge,ng)].SetLineColor(groupPainter[ng][1]);
+                # if   ng=='binByBinStat': 
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle)
+                # elif ng=='stat':
+                #     #print "bin  stat.uncertainty"
+                #     #for ibin in range(1,summaries[(charge,ng)].GetNbinsX()+1):
+                #     #    print "%s   %s" % (str(ibin-1),str(summaries[(charge,ng)].GetBinContent(ibin)))
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullCircle); 
+                #     summaries[(charge,ng)].SetMarkerColor(ROOT.kBlack); 
+                #     summaries[(charge,ng)].SetLineColor(ROOT.kBlack);
+                # elif ng=='luminosity'  : 
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullSquare)
+                # elif ng=='QEDTheo'  : 
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kOpenSquareDiagonal)
+                # elif ng=='L1Prefire'  : 
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
+                # else: 
+                #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                 leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
                 # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
                 for y in xrange(quadrsum.GetNbinsX()):
@@ -675,10 +763,10 @@ if __name__ == "__main__":
                         totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
                 else:
                     totalerr.SetBinContent(y+1,fitErrors['W{sign} {bin}'.format(sign=sign,bin=y)])
-            totalerr.SetMarkerStyle(ROOT.kFullDoubleDiamond); 
-            totalerr.SetMarkerSize(3); 
-            totalerr.SetMarkerColor(ROOT.kRed+1); 
-            totalerr.SetLineColor(ROOT.kRed+1);
+            totalerr.SetMarkerStyle(groupPainter["Total"][0]); 
+            totalerr.SetMarkerColor(groupPainter["Total"][1]); 
+            totalerr.SetLineColor(groupPainter["Total"][1]);
+            totalerr.SetMarkerSize(groupPainter["Total"][2]); 
             totalerr.Draw('pl same')
             #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
             leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
