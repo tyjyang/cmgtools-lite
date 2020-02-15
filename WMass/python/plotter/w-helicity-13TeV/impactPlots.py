@@ -80,7 +80,7 @@ groupPainter = {"luminosity"   : [ROOT.kFullSquare, ROOT.kBlue, 2.5], # not to b
                 "QEDTheo"      : [ROOT.kOpenSquareDiagonal, ROOT.kMagenta+3, 2.5],  # not to be shown
                 "QCDTheo"      : [ROOT.kFullSquare,  ROOT.kOrange+7, 2.5],
                 "L1Prefire"    : [ROOT.kFourSquaresPlus, ROOT.kRed+2, 2.5],   # not to be shown
-                "pdfs"         : [ROOT.kOpenStar,   ROOT.kViolet+5, 2.5],
+                "pdfs"         : [ROOT.kFullStar,   ROOT.kViolet+5, 2.5],
                 "lepScale"     : [ROOT.kFullTriangleUp,   ROOT.kRed, 2.5],   # not to be shown
                 "EffStat"      : [ROOT.kFullTriangleDown, ROOT.kGreen+2, 2.5],
                 "EffSyst"      : [ROOT.kOpenSquare, ROOT.kMagenta+1, 2.5],    # not to be shown
@@ -105,7 +105,7 @@ yAxisRange_target = {"mu":          [1.e-1, 50],
                      "etaasym":     [9.e-2, 15],
                      "etaxsec":     [2.e-2, 100],
                      "etaxsecnorm": [1.e-2, 8],
-                     "ptasym":      [1.e-1, 700],
+                     "ptasym":      [1.e-1, 900],
                      "ptxsec":      [4.e-2, 200],
                      "ptxsecnorm":  [2.5e-2, 200],
                  }
@@ -415,6 +415,11 @@ if __name__ == "__main__":
 
         os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
+    gridline = ROOT.TLine(0,0,1,0)
+    #gridline.SetNDC(1)
+    gridline.SetLineColor(ROOT.kBlack)
+    gridline.SetLineStyle(3)
+
     if options.ybinfile:
         ybinfile = options.ybinfile
         ybinfile = open(ybinfile, 'r')
@@ -430,6 +435,8 @@ if __name__ == "__main__":
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         polarizations = ['unpolarized'] if re.match('^unpol|^A\d',options.target) else ['left','right','long']
         cp = 'plus_left' # groups assume a common Y binning
+        xmin = 0.0
+        xmax = 1.0
         for charge in charges:
             for pol in polarizations:
                 ing  = 0
@@ -450,7 +457,9 @@ if __name__ == "__main__":
                     #     summaries[(charge,pol,nuisgroup)].SetLineColor(utilities.safecolor(ing+1))
                     #     ing += 1
                     summaries[(charge,pol,nuisgroup)].SetLineWidth(2)
-                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(0.,2.41)
+                    xmin = 0.0
+                    xmax = 2.41
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(xmin,xmax)
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
                     if options.absolute:
                         #summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
@@ -504,9 +513,10 @@ if __name__ == "__main__":
                 if charge=='allcharges': sign=''
                 else: sign='+' if charge is 'plus' else '-' 
                 # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
-                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol=pol,chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol="" if pol=="unpolarized" else pol,
+                                                                                    chsign=sign if sign != "-" else (" "+sign),fl=flavour)
                 #header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
-                header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+                header = "#bf{{{p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 leg.SetHeader(header)            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
@@ -545,6 +555,13 @@ if __name__ == "__main__":
                 totalerr.Draw('pl same')
                 #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
                 leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
+                yvalInit = 1.e-6
+                for iexp in range(10):
+                    yval = yvalInit * 10**iexp
+                    if yval >= yAxisRange_target[options.target][0] and yval <= yAxisRange_target[options.target][1]:
+                        #print "Drawing grid line at y = {f}".format(f=yval)
+                        gridline.DrawLine(xmin,yval,xmax,yval)
+                # draw legend only after lines
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
                 lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
@@ -701,6 +718,8 @@ if __name__ == "__main__":
             lat = ROOT.TLatex()
             lat.SetNDC(); 
             lat.SetTextFont(42)
+            xmin = 0.0
+            xmax = 1.0
             quadrsum = summaries[(charge,groups[0])].Clone('quadrsum_{ch}'.format(ch=charge))
             totalerr = quadrsum.Clone('totalerr_{ch}'.format(ch=charge))
             for ing,ng in enumerate(groups):
@@ -713,11 +732,14 @@ if __name__ == "__main__":
                     summaries[(charge,ng)].GetYaxis().SetLabelSize(0.04)
                     summaries[(charge,ng)].GetYaxis().SetTitleOffset(0.7)
                     if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
-                        summaries[(charge,ng)].GetXaxis().SetRangeUser(ptmin,ptmax)
+                        xmin = ptmin
+                        xmax = ptmax
                         summaries[(charge,ng)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
                     else:
-                        summaries[(charge,ng)].GetXaxis().SetRangeUser(0.,2.4)
+                        xmin = etamin
+                        xmax = etamax
                         summaries[(charge,ng)].GetXaxis().SetTitle('lepton |#eta|')
+                summaries[(charge,ng)].GetXaxis().SetRangeUser(xmin,xmax)
                 summaries[(charge,ng)].SetMarkerStyle(groupPainter[ng][0])
                 summaries[(charge,ng)].SetMarkerColor(groupPainter[ng][1]); 
                 summaries[(charge,ng)].SetLineColor(groupPainter[ng][1]);
@@ -770,6 +792,13 @@ if __name__ == "__main__":
             totalerr.Draw('pl same')
             #leg.AddEntry(quadrsum, 'Quadr. sum. impacts', 'pl')
             leg.AddEntry(totalerr, 'Total uncertainty', 'pl')
+            yvalInit = 1.e-6
+            for iexp in range(10):
+                yval = yvalInit * 10**iexp
+                if yval >= yAxisRange_target[options.target][0] and yval <= yAxisRange_target[options.target][1]:
+                    #print "Drawing grid line at y = {f}".format(f=yval)
+                    gridline.DrawLine(xmin,yval,xmax,yval)
+            # draw legend after the lines
             leg.Draw('same')
             lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
             lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
