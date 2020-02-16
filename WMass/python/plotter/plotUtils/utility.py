@@ -650,7 +650,7 @@ def drawSingleTH1(h1,
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
-        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        sliceLabelOffset = 6. 
         for i in range(1,nptBins): # do not need line at canvas borders
             #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
             vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
@@ -987,7 +987,7 @@ def drawDataAndMC(h1, h2,
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
-        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        sliceLabelOffset = 6. 
         for i in range(1,nptBins): # do not need line at canvas borders
             #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
             vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
@@ -1725,7 +1725,7 @@ def drawMuElComparison(hlep, hmu, hel,
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = hlep.GetXaxis().GetBinLowEdge(0)
-        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        sliceLabelOffset = 6. 
         for i in range(1,nptBins): # do not need line at canvas borders
             #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
             vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
@@ -1733,7 +1733,8 @@ def drawMuElComparison(hlep, hmu, hel,
             for i in range(0,len(textForLines)): # we need nptBins texts
                 #texoffset = 0.1 * (4 - (i%4))
                 #ytext = (1. + texoffset)*ymax/2.  
-                ytext = 0.67*ymax                  
+                factor = 0.62 if "#eta" in xAxisName else 0.67
+                ytext = factor*ymax                  
                 bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
 
     # redraw legend, or vertical lines appear on top of it
@@ -2085,7 +2086,7 @@ def drawCheckTheoryBand(h1, h2, h3,
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
-        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        sliceLabelOffset = 6. 
         for i in range(1,nptBins): # do not need line at canvas borders
             #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
             vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
@@ -2617,7 +2618,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             nptBins = int(drawVertLines.split(',')[0])/nSplitUnrolledBins
             etarange = float(drawVertLines.split(',')[1])        
             offsetXaxisHist = h1_true.GetXaxis().GetBinLowEdge(0)
-            sliceLabelOffset = 6. if "#eta" in textForLines_true[0] else 6.
+            sliceLabelOffset = 6. 
             globalbinOffset = isplit * nbinsSplit
             for i in range(1,nptBins): # do not need line at canvas borders
                 #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())

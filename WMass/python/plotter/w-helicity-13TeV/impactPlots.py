@@ -23,7 +23,7 @@ def niceSystName(label):
     elif 'Fakes' in label: niceName = 'QCD bkg.'
     elif 'OtherExp' in label: niceName = 'other experimental'
     elif 'lumi' in label: niceName = 'luminosity'
-    elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F}#mu_{R}'
+    elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F+R}'
     elif 'QEDTheo' in label: niceName = 'FSR'
     elif 'stat' in label: niceName = 'statistical'
     elif 'Total' in label: niceName = 'Total'
@@ -76,7 +76,7 @@ def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
 # dictionary for marker style, marker and line color, and marker size
 groupPainter = {"luminosity"   : [ROOT.kFullSquare, ROOT.kBlue, 2.5], # not to be shown
                 "stat"         : [ROOT.kFullCircle, ROOT.kBlack, 2.5],
-                "binByBinStat" : [ROOT.kFullCircle, ROOT.kPink+7, 2.5],
+                "binByBinStat" : [ROOT.kFullCircle, ROOT.kAzure+1, 2.5],
                 "QEDTheo"      : [ROOT.kOpenSquareDiagonal, ROOT.kMagenta+3, 2.5],  # not to be shown
                 "QCDTheo"      : [ROOT.kFullSquare,  ROOT.kOrange+7, 2.5],
                 "L1Prefire"    : [ROOT.kFourSquaresPlus, ROOT.kRed+2, 2.5],   # not to be shown
@@ -84,7 +84,7 @@ groupPainter = {"luminosity"   : [ROOT.kFullSquare, ROOT.kBlue, 2.5], # not to b
                 "lepScale"     : [ROOT.kFullTriangleUp,   ROOT.kRed, 2.5],   # not to be shown
                 "EffStat"      : [ROOT.kFullTriangleDown, ROOT.kGreen+2, 2.5],
                 "EffSyst"      : [ROOT.kOpenSquare, ROOT.kMagenta+1, 2.5],    # not to be shown
-                "Fakes"        : [ROOT.kOpenDiamond,ROOT.kAzure+1, 2.5],
+                "Fakes"        : [ROOT.kOpenDiamond,ROOT.kPink+7, 2.5],
                 "OtherBkg"     : [ROOT.kOpenTriangleUp,   ROOT.kOrange+7, 2.5],  # not to be shown
                 "OtherExp"     : [ROOT.kOpenTriangleDown, ROOT.kSpring+5, 2.5],  # not to be shown
                 "Total"        : [ROOT.kFullDoubleDiamond, ROOT.kRed+1, 4]
@@ -513,10 +513,11 @@ if __name__ == "__main__":
                 if charge=='allcharges': sign=''
                 else: sign='+' if charge is 'plus' else '-' 
                 # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
-                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol="" if pol=="unpolarized" else pol,
+                polLetter = {"left" : "L", "right" : "R", "long" : "0"}
+                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol="" if pol=="unpolarized" else polLetter[pol],
                                                                                     chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-                #header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
-                header = "#bf{{{p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
+                header = "#bf{{Uncertainties in {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+                #header = "#bf{{{p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 leg.SetHeader(header)            
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
@@ -711,8 +712,8 @@ if __name__ == "__main__":
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
             thischannel = "W^{{{chsign}}}#rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
             varRangeText = etaRangeText if any(options.target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]) else ptRangeText  
-            #header = "#bf{{Uncertainties on {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
-            header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
+            header = "#bf{{Uncertainties in {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
+            #header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
             leg.SetHeader(header)            
             leg.SetNColumns(4)
             lat = ROOT.TLatex()
