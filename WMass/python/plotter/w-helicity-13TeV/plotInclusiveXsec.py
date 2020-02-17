@@ -153,7 +153,7 @@ if __name__ == "__main__":
                                                                             ptmin=genBins.ptBins[firstPtSignalBin], ptmax=genBins.ptBins[-1])
     #etaRangeText = "|#eta|^{{{l}}} #in [{etamin:3g}, {etamax:3g}] GeV".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
     #                                                                          etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
-    etaRangeText = "|#eta|^{{{l}}} < {etamax:3g}".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+    etaRangeText = "|#eta^{{{l}}}| < {etamax:3g}".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                               etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
 
     # just one value
@@ -274,6 +274,7 @@ if __name__ == "__main__":
     hXsec.SetBinContent(1,central)    
     hXsec.SetBinError(1,error)    
 
+    scaleFactor = 1.0
     if options.lumiNorm > 0:
         scaleFactor = 1./options.lumiNorm
         hXsecPlus.Scale(scaleFactor)
@@ -304,6 +305,45 @@ if __name__ == "__main__":
     writeHistoIntoFile(hXsecMinusTotTheory,tfOut)
     writeHistoIntoFile(hXsecTotTheory,tfOut)
 
+    ################
+    # getting some impacts for inclusive cross section
+    #key, target, label #(label is the name of the x axis label for that the TH2 for the proper target)
+    impactDict = {"incl" :  ["sumpois",        "W_lep_sumxsec",            None],
+                  "plus" :  ["sumpois",        "Wplus_lep_sumxsec",        None],
+                  "minus" : ["sumpois",        "Wminus_lep_sumxsec",       None],
+                  "asym" :  ["chargemetapois", "Wasym_lep_chargemetaasym", None]
+                }
+
+    # could just have exp+theory (I have the proper impact already, it has everything except stat(s) and lumi)
+    #impactToDisplay = ["luminosity", "allTheory", "allExp", "binByBinStat", "stat"]
+    #impactTextLabel = ["lumi", "theo", "exp", "stat(MC)", "stat"]
+    impactToDisplay = ["luminosity", "allTheoAndExp", "binByBinStat", "stat"]
+    impactTextLabel = ["lumi", "syst", "stat(MC)", "stat"]
+
+    for key in impactDict.keys():
+        th2name = 'nuisance_group_impact_{sfx}'.format(sfx=impactDict[key][0])
+        impMat = f.Get(th2name)
+        if impMat==None:
+            print "ERROR: Cannot find the impact TH2 named ",th2name," in the input file. Maybe you didn't run --doImpacts?\nSkipping."
+            sys.exit()
+        for ib in range(1,impMat.GetNbinsX()+1):
+            if impMat.GetXaxis().GetBinLabel(ib) == impactDict[key][1]: # this will be true only once
+                impactDict[key][2] = ROOT.TH1D("impact_"+key,"",impMat.GetNbinsY(),0,impMat.GetNbinsY())
+                for iy in range(1,impMat.GetNbinsY()+1):                    
+                    impactDict[key][2].GetXaxis().SetBinLabel(iy,impMat.GetYaxis().GetBinLabel(iy))
+                    impactVal = impMat.GetBinContent(ib,iy)
+                    if key != "asym":
+                        impactVal = impactVal * scaleFactor
+                        if isMuElComb:
+                            # xsec was twice the value for a single lepton
+                            impactVal = impactVal * 0.5
+                    impactDict[key][2].SetBinContent(iy,impactVal)
+            else:
+                continue
+
+    ################
+
+
     dictHist = {"incl"  : [hXsec,      hXsecTotTheory,       hXsecPDF],
                 "plus"  : [hXsecPlus,  hXsecPlusTotTheory,   hXsecPlusPDF],
                 "minus" : [hXsecMinus, hXsecMinusTotTheory,  hXsecMinusPDF],
@@ -312,9 +352,9 @@ if __name__ == "__main__":
 
     thislep = "e" if channel == "el" else "#mu" if channel == "mu" else "l"
     texts = {"incl"  : "W #rightarrow %s#nu" % thislep,
-             "plus"  : "W^{+} #rightarrow %s^{+ }#nu" % thislep,
-             "minus" : "W^{-} #rightarrow %s^{- }#bar{#nu}" % thislep,
-             "asym"  : "(W^{+ }-W^{- }) / (W^{+ }+W^{- })"
+             "plus"  : "W^{ +} #rightarrow %s^{ + }#nu" % thislep,
+             "minus" : "W^{ -} #rightarrow %s^{ - }#bar{#nu}" % thislep,
+             "asym"  : "(W^{ + }- W^{ - }) / (W^{ + }+ W^{ - })"
     }
 
     sortedKeys = ["plus", "minus", "incl", "asym"]
@@ -330,7 +370,7 @@ if __name__ == "__main__":
     rightMargin = 0.04
     ROOT.gStyle.SetEndErrorSize(12)
     canvas = ROOT.TCanvas("canvas","",2500,1500)   
-    canvas.SetTickx(1)
+    canvas.SetTickx(0)
     canvas.SetTicky(1)
     canvas.cd()
     canvas.SetLeftMargin(leftMargin)
@@ -365,35 +405,64 @@ if __name__ == "__main__":
     
     cuttext = ROOT.TLatex()
     cuttext.SetTextColor(ROOT.kBlack)
-    cuttext.SetTextSize(0.04)  # 0.03
+    cuttext.SetTextSize(0.045)  # 0.03
     cuttext.SetTextFont(42)
-    
 
+    theoryTextColor = ROOT.kPink-6 # or kBlue+1
+    
     ystart = 1
     nhists = len(dictHist.keys())
     gr = {}
     htotTheory = {}
     hpdf = {}
     hpdfdummyWhite = {}
+
+    xtext = 1.08
+    latMeas = ROOT.TLatex()
+    latMeas.SetTextFont(42)
+    latMeas.SetTextSize(0.035)
+    
     for ik,key in enumerate(sortedKeys):
         thisy = ystart + ik
         h = dictHist[key][0].Clone("dummy")
-        form = "0.4g" if key == "asym" else "0.f"
+        #form = "0.4g" if key == "asym" else "0.f"
+        # if key == "asym":
+        #     xsectextData = "measured: %.4f #pm %.4f" % (h.GetBinContent(1),h.GetBinError(1))
+        # else:
+        #     xsectextData = "measured: %.0f #pm %.0f pb" % (h.GetBinContent(1),h.GetBinError(1))        
         if key == "asym":
-            xsectextData = "measured: %.4f #pm %.4f" % (h.GetBinContent(1),h.GetBinError(1))
+            xsectextData = "%.4f" % (h.GetBinContent(1))
+            for i,ip in enumerate(impactToDisplay):
+                if ip == "luminosity": continue
+                iph = impactDict[key][2]
+                xsectextData += " #pm %.4f_{%s}" % (iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
+                                                      impactTextLabel[i])
         else:
-            xsectextData = "measured: %.0f #pm %.0f pb" % (h.GetBinContent(1),h.GetBinError(1))
+            xsectextData = "%.0f" % (h.GetBinContent(1))
+            for i,ip in enumerate(impactToDisplay):
+                iph = impactDict[key][2]
+                xsectextData += " #pm %.0f_{%s}" % (iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
+                                                      impactTextLabel[i])
+            xsectextData += " pb"
         htotTheory[ik] = dictHist[key][1]
         hpdf[ik] = dictHist[key][2]
         centralTheoryVal = ROOT.Double(0)
         centralTheoryPointVal = ROOT.Double(0) # not needed anyway
         htotTheory[ik].GetPoint(0,centralTheoryVal,centralTheoryPointVal) # this works for recent root version (maybe 
+        # if key == "asym":
+        #     xsectextTheo = "theory:       %.4f^{+%.4f}_{-%.4f}" % (centralTheoryVal, 
+        #                                                               htotTheory[ik].GetErrorXhigh(0), 
+        #                                                               htotTheory[ik].GetErrorXlow(0))
+        # else:
+        #     xsectextTheo = "theory:       %.0f^{%.0f}_{-%.0f} pb" % (centralTheoryVal, 
+        #                                                            htotTheory[ik].GetErrorXhigh(0), 
+        #                                                            htotTheory[ik].GetErrorXlow(0))
         if key == "asym":
-            xsectextTheo = "theory:       %.4f + %.4f - %.4f" % (centralTheoryVal, 
+            xsectextTheo = "%.4f + %.4f - %.4f" % (centralTheoryVal, 
                                                                       htotTheory[ik].GetErrorXhigh(0), 
                                                                       htotTheory[ik].GetErrorXlow(0))
         else:
-            xsectextTheo = "theory:       %.0f + %.0f - %.0f pb" % (centralTheoryVal, 
+            xsectextTheo = "%.0f + %.0f - %.0f pb" % (centralTheoryVal, 
                                                                    htotTheory[ik].GetErrorXhigh(0), 
                                                                    htotTheory[ik].GetErrorXlow(0))
 
@@ -423,15 +492,14 @@ if __name__ == "__main__":
             frame.GetXaxis().SetTitle("ratio (data/pred.) of inclusive cross sections and asymmetry")
             frame.GetXaxis().SetTitleOffset(1.2)
             frame.GetXaxis().SetTitleSize(0.05)
-            frame.GetXaxis().SetLabelSize(0.04)
-            frame.GetYaxis().SetTitle("")
+            frame.GetXaxis().SetRangeUser(xmin,xmax)
             # remove Y axis title, labels and ticks
+            frame.GetYaxis().SetTitle("")
             frame.GetYaxis().SetTitleOffset(999)
             frame.GetYaxis().SetTitleSize(0)
             frame.GetYaxis().SetLabelSize(0)
             frame.GetYaxis().SetRangeUser(ymin, ymax)    
             frame.GetYaxis().SetTickSize(0)
-            frame.GetXaxis().SetRangeUser(xmin,xmax)
             frame.Draw("HIST")
             canvas.Update()
             ##        
@@ -454,15 +522,19 @@ if __name__ == "__main__":
         hpdf[ik].Draw("E2 SAME")
         gr[ik].Draw("E1P1 SAME") # redraw to have it on top        
 
-        text.DrawLatex(xmin+0.01, thisy, texts[key])
-        xsectext.DrawLatex(1.08, thisy, xsectextData)
-        xsectext.DrawLatex(1.08, thisy-0.3, xsectextTheo)
-
+        text.DrawLatex(xmin+0.01, thisy-0.1, texts[key])
+        xsectext.SetTextColor(ROOT.kBlack)
+        xsectext.DrawLatex(xtext, thisy+0.1, xsectextData)
+        xsectext.SetTextColor(theoryTextColor)
+        xsectext.DrawLatex(xtext, thisy-0.4, xsectextTheo)
+        if ik == (len(sortedKeys)-1):
+            thisy = ystart + len(sortedKeys)
+            text.DrawLatex(xmin+0.01, thisy-0.1, "#bf{Observable}")
+            latMeas.SetTextColor(ROOT.kBlack)
+            latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured}")
+            latMeas.SetTextColor(theoryTextColor)
+            latMeas.DrawLatex(xtext, thisy-0.4, "#bf{Theory}")
     # end loop
-    vertline = ROOT.TLine(1,ymin, 1, ymax)
-    vertline.SetLineColor(ROOT.kRed+2)
-    vertline.SetLineWidth(2) # 2 for denser hatches
-    vertline.DrawLine(1,ymin, 1, ymax)
 
     horizline = ROOT.TLine(xmin,0,xmax,0)
     horizline.SetLineColor(ROOT.kBlack)
@@ -470,8 +542,11 @@ if __name__ == "__main__":
     for iy in range(ystart, ystart + nhists + 1):
         yval = float(iy) - 0.5
         horizline.DrawLine(xmin,yval,xmax,yval)
-        
-    leg = ROOT.TLegend(0.06,0.75,0.5,0.9)
+    horizline.SetLineStyle(0)
+    horizline.SetLineWidth(2)
+    # horizline.DrawLine(xmin,yval,xmax,yval) # draw after legend
+
+    leg = ROOT.TLegend(0.06,0.76,0.5,0.91)
     leg.SetFillColor(0)
     #leg.SetFillStyle(0)
     leg.SetBorderSize(0)
@@ -481,13 +556,22 @@ if __name__ == "__main__":
     leg.AddEntry(hpdf[ik],"PDFs #oplus #alpha_{S}","LF")
     leg.Draw("same")
 
+    yval = float(ystart + nhists + 1) - 0.5
+    vertline = ROOT.TLine(1,ymin, 1, yval)
+    vertline.SetLineColor(ROOT.kRed+2)
+    vertline.SetLineWidth(2) # 2 for denser hatches
+    vertline.DrawLine(1,ymin, 1, yval)
+    horizline.DrawLine(xmin,yval,xmax,yval) # draw after legend
+
     #cuttext.SetNDC();
     #cuttext.DrawLatex(0.65, 0.85, "Fiducial region:")
     #cuttext.DrawLatex(0.65, 0.8,  ptRangeText + ", " + etaRangeText)
     #cuttext.DrawLatex(0.65, 0.75, etaRangeText)
-    cuttext.DrawLatex(1.08, ymin + 0.9 * (ymax - ymin), "Fiducial region:")
-    cuttext.DrawLatex(1.08, ymin + 0.84 * (ymax - ymin),  ptRangeText + ", " + etaRangeText)
-    
+    cuttext.DrawLatex(xtext, ymin + 0.92 * (ymax - ymin), "#bf{Fiducial region:}")
+    cuttext.DrawLatex(xtext, ymin + 0.84 * (ymax - ymin),  ptRangeText + ", " + etaRangeText)
+    #latMeas.DrawLatex(xtext, ymin + 0.66 * (ymax - ymin), "#bf{Measured}")
+    #latMeas.DrawLatex(xtext+0.12, ymin + 0.66 * (ymax - ymin), "#bf{Theory}")
+
     
     #setTDRStyle()
     latCMS = ROOT.TLatex()
