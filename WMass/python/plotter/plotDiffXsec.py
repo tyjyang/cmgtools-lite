@@ -13,7 +13,7 @@ skipData = 0
 onlyData = 1
 
 skipInclusivePlot = 1
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
@@ -21,7 +21,7 @@ skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 0
 skipImpactsEtaPt = 1
-skipMuElComparison = 1
+skipMuElComparison = 0
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -414,10 +414,6 @@ for fit in fits:
     if skipPreliminary:
         command += " --skipPreliminary "
     for nuis in impacts_nuis:
-        if nuis == "GROUP":
-            varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)
-        else:
-            varopt = " --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
 
         for target in targets:
             if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
@@ -427,6 +423,13 @@ for fit in fits:
             else:
                 poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in  [2, 3, 7, 16] ]
 
+            if nuis == "GROUP":
+                if any(target == x for x in ["etaxsec", "ptxsec"]) and "luminosity" not in groupnames:
+                    varopt = " --nuisgroups '{ng},luminosity' ".format(ng=groupnames)
+                else:
+                    varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)
+            else:
+                varopt = " --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
             for poi in poi_regexp:
                 tmpcommand = command + " {vopt} --target {t} --pois '{poi_regexp}' ".format(vopt=varopt, t=target, poi_regexp=poi)  
                     
