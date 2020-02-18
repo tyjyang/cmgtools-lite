@@ -462,8 +462,8 @@ if __name__ == "__main__":
     canvas = ROOT.TCanvas("canvas","",800,700)
     canvas1D = ROOT.TCanvas("canvas1D","",1000,1000)
 
-    xaxisTitle = 'gen %s |#eta|' % lepton
-    yaxisTitle = 'gen %s p_{T} (GeV)' % lepton
+    xaxisTitle = 'dressed %s |#eta|' % lepton
+    yaxisTitle = 'dressed %s p_{T} (GeV)' % lepton
     if options.ptRange != "template":
         ptmin,ptmax = options.ptRange.split(',')
         yaxisTitle = yaxisTitle + "::%s,%s" % (ptmin, ptmax)
@@ -558,7 +558,7 @@ if __name__ == "__main__":
 
         icharge += 1
         print ""
-        xaxisTitle = 'gen %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
+        xaxisTitle = 'dressed %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
 
 
         chargeSign = "+" if charge == "plus" else "-"
@@ -1531,7 +1531,7 @@ if __name__ == "__main__":
 
                 # now data/prediction for the 1D xsection and charge asymmetry
                 ###############
-                xaxisTitle = 'gen %s |#eta|' % lepton
+                xaxisTitle = 'dressed %s |#eta|' % lepton
                 additionalTextBackup = additionalText
                 #additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::0.45,0.8,0.75,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                 #                                                                                       pttext=ptRangeText) # pass x1,y1,x2,y2

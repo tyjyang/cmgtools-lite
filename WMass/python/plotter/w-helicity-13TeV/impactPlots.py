@@ -15,10 +15,10 @@ utilities = utilities.util()
 
 
 def niceSystName(label):
-    if 'lepScale' in label: niceName = 'lepton scale'
+    if 'lepScale' in label: niceName = 'lepton p_{T} scale'
     elif 'OtherBkg' in label: niceName = 'other bkg'
     elif 'pdfs' in label: niceName = 'PDFs #oplus #alpha_{S}'
-    elif 'binByBinStat' in label: niceName = 'MC statistics'
+    elif 'binByBinStat' in label: niceName = 'MC statistical'
     elif 'EffStat' in label: niceName = 'efficiency stat.'
     elif 'Fakes' in label: niceName = 'QCD bkg.'
     elif 'OtherExp' in label: niceName = 'other experimental'
@@ -74,8 +74,8 @@ def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
 # }
 
 # dictionary for marker style, marker and line color, and marker size
-groupPainter = {"luminosity"   : [ROOT.kFullSquare, ROOT.kBlue, 2.5], # not to be shown
-                "stat"         : [ROOT.kFullCircle, ROOT.kBlack, 2.5],
+groupPainter = {"luminosity"   : [ROOT.kOpenSquare, ROOT.kBlue, 2.5], # not to be shown
+                "stat"         : [ROOT.kOpenCircle, ROOT.kBlack, 2.5],
                 "binByBinStat" : [ROOT.kFullCircle, ROOT.kAzure+1, 2.5],
                 "QEDTheo"      : [ROOT.kOpenSquareDiagonal, ROOT.kMagenta+3, 2.5],  # not to be shown
                 "QCDTheo"      : [ROOT.kFullSquare,  ROOT.kOrange+7, 2.5],
@@ -735,11 +735,11 @@ if __name__ == "__main__":
                     if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
                         xmin = ptmin
                         xmax = ptmax
-                        summaries[(charge,ng)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
+                        summaries[(charge,ng)].GetXaxis().SetTitle('dressed lepton p_{T} [GeV]')
                     else:
                         xmin = etamin
                         xmax = etamax
-                        summaries[(charge,ng)].GetXaxis().SetTitle('lepton |#eta|')
+                        summaries[(charge,ng)].GetXaxis().SetTitle('dressed lepton |#eta|')
                 summaries[(charge,ng)].GetXaxis().SetRangeUser(xmin,xmax)
                 summaries[(charge,ng)].SetMarkerStyle(groupPainter[ng][0])
                 summaries[(charge,ng)].SetMarkerColor(groupPainter[ng][1]); 
