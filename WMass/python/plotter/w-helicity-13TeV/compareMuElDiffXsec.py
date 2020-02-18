@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     for name in names:
         chargeSign = "+" if "plus" in name else "-" if "minus" in name else ""
-        xaxisTitle = 'gen lepton p_{T} (GeV)' if "1Dpt" in name else 'gen lepton |#eta|'
+        xaxisTitle = 'dressed lepton p_{T} (GeV)' if "1Dpt" in name else 'dressed lepton |#eta|'
         yaxisTitle = ""
         if "ChAsym" in name: yaxisTitle = "Asymmetry::0,0.25"
         elif "DiffXsec" in name:

@@ -2,13 +2,13 @@
 
 import ROOT, os, sys, re, array
 
-dryrun=0
-doMuons=0
+dryrun=1
+doMuons=1
 skipUnpack=1
 skipMergeRoot=1
 skipSingleCard=1
-skipMergeCard=0 # disabled if fitting each charge (see below)
-skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+skipMergeCard=1 # disabled if fitting each charge (see below)
+skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
 #flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI"
 #flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
@@ -62,7 +62,7 @@ noPtScalesOutliers = 0  # 0 means using the scales on outliers
 profileEleScales = 1
 useExpNonProfiledErrs = 0 # for now only works for ele when not profiling scales, ineffective if profiling everything
 useXsecWptWeights = 1 
-allPtBinsSignal = 0   # usually 1 for muons or combination, 0 for electrons
+allPtBinsSignal = 1   # usually 1 for muons or combination, 0 for electrons
 distinguishNameSigAsBkg = 1 # mainly for electrons to prepare for combination, it gives a different name for pt bins that are treated as background (can stay true for muons, because in the merger the name is changed only if allPtBinsSignal = 0)
 useBinUncEffStat = False
 useBinEtaPtUncorrUncEffStat = False
@@ -80,8 +80,8 @@ if not skipMergeCardFlavour:
     allPtBinsSignal = 1
 
 # el
-folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
-#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
+#folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
+folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal/"
 th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
 #folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec_allPtBinsAsSignal_1sigBin_4fixedPOI/"
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
