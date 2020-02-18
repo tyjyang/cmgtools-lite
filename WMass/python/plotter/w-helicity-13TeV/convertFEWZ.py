@@ -27,7 +27,7 @@ def getHelicity(charge, rightleft, a0, a4):
 
     
 
-def returnArray(lines):
+def returnArray(lines, ipdf):
 
     retx   = array('d', [])
     retval = array('d', [])
@@ -38,9 +38,15 @@ def returnArray(lines):
     retxup = array('d', [])
     retxdn = array('d', [])
 
+    tmp_iy = 0
     for line in lines:
         tmp_line = line.strip()
-        if not tmp_line[0].isdigit(): continue
+
+        if not tmp_line[0].isdigit():
+            continue
+
+        if not tmp_iy:
+            tmp_iy = tmp_line[0]
 
         retx   .append( float(tmp_line.split()[0]) )
         retval .append( float(tmp_line.split()[1]) )
@@ -55,56 +61,137 @@ def returnArray(lines):
     return retx, retval, retxdn, retxup, retnum, retpdf, rettot
         
 
+def addPdfIndex(lines,offset=1):
 
-basedir = '/afs/cern.ch/work/a/arapyan/public/fewz_smp18012/'
+    newlines = []
+    tmp_iy = -1
+    for iline, line in enumerate(lines):
+        if line[0] != tmp_iy:
+            tmp_iy = line[0]
+            ntmp = 0
+        newlines.append([ntmp+offset]+[float(i) for i in line])
+        ntmp += 1
 
-outfile_name = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections_FEWZ.root'
-outfile = ROOT.TFile(outfile_name, 'RECREATE')
-
-for ch, o in itertools.product('pm', ['nnlo', 'nlo']):
-
-
-    tmp_infile = open(basedir+'/w{ch}_{o}.dat'.format(ch=ch, o=o), 'r')
-
-
-    lines = [line for line in tmp_infile.readlines() if len(line.strip()) ]
-
-    ind_rap = [il for il,l in enumerate(lines) if 'Z/W rapidity' in l][0]
-    ind_a0  = [il for il,l in enumerate(lines) if 'A0 vs'        in l][0]
-    ind_a1  = [il for il,l in enumerate(lines) if 'A1 vs'        in l][0]
-    ind_a4  = [il for il,l in enumerate(lines) if 'A4 vs'        in l][0]
-
-
-    lines_rap = returnArray(lines[ind_rap:ind_a0])
-    lines_a0  = returnArray(lines[ind_a0 :ind_a1])
-    lines_a4  = returnArray(lines[ind_a4 :      ])
-
-    ## print lines_a0
-    ## print lines_a4
-
-    lines_l = getHelicity(ch, 'l', lines_a0, lines_a4)
-    lines_r = getHelicity(ch, 'r', lines_a0, lines_a4)
-
-    basename = 'graph_W{ch}_{o}_'.format(ch='plus' if ch == 'p' else 'minus', o=o)
-
-    tmp_graph_tot = ROOT.TGraphAsymmErrors(len(lines_rap[0]), lines_rap[0], lines_rap[1], lines_rap[2], lines_rap[3], lines_rap[6], lines_rap[6])
-    tmp_graph_a0  = ROOT.TGraphAsymmErrors(len(lines_a0 [0]), lines_a0 [0], lines_a0 [1], lines_a0 [2], lines_a0 [3], lines_a0 [6], lines_a0 [6])
-    tmp_graph_a4  = ROOT.TGraphAsymmErrors(len(lines_a4 [0]), lines_a4 [0], lines_a4 [1], lines_a4 [2], lines_a4 [3], lines_a4 [6], lines_a4 [6])
-    tmp_graph_fl  = ROOT.TGraphAsymmErrors(len(lines_l [0]), lines_l [0], lines_l [1], lines_l [2], lines_l [3], lines_l [6], lines_l [6])
-    tmp_graph_fr  = ROOT.TGraphAsymmErrors(len(lines_r [0]), lines_r [0], lines_r [1], lines_r [2], lines_r [3], lines_r [6], lines_r [6])
-
-    tmp_graph_tot.SetName(basename+'total'); tmp_graph_tot.SetTitle(basename+'total')
-    tmp_graph_a0 .SetName(basename+'a0'   ); tmp_graph_a0 .SetTitle(basename+'a0'   )
-    tmp_graph_a4 .SetName(basename+'a4'   ); tmp_graph_a4 .SetTitle(basename+'a4'   )
-    tmp_graph_fl .SetName(basename+'fl'   ); tmp_graph_fl .SetTitle(basename+'fl'   )
-    tmp_graph_fr .SetName(basename+'fr'   ); tmp_graph_fr .SetTitle(basename+'fr'   )
-
-    tmp_graph_tot . Write()
-    tmp_graph_a0  . Write()
-    tmp_graph_a4  . Write()
-    tmp_graph_fl  . Write()
-    tmp_graph_fr  . Write()
-
-outfile.Close()
-
+    return newlines
     
+def divideByDenom(lines, denlines):
+    newlines = []
+
+    for il, line in enumerate(lines):
+        newlines.append([line[0], line[1], line[2]/denlines[il][2], line[3]/denlines[il][3]])
+
+    return newlines
+
+
+def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
+    ## basedir = '/afs/cern.ch/work/a/arapyan/public/fewz_smp18012/'
+    basedir = '/eos/cms/store/group/phys_smp/arapyan/fewz_prediction/'
+    
+    outfile_name = '/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/theory/theory_cross_sections_FEWZ.root'
+    outfile = ROOT.TFile(outfile_name, 'RECREATE')
+
+    vals = {}
+    
+    for ch, pset in itertools.product('pm', [pdfset]):
+    
+    
+        tmp_infile = open(basedir+'/my_w{ch}_18012_{pset}/NNLO.pdf.results.dat'.format(ch=ch, pset=pset), 'r')
+    
+        print 'at file', tmp_infile
+    
+    
+        lines = [line for line in tmp_infile.readlines() if len(line.strip()) ]
+        
+        ind_rap = [il for il,l in enumerate(lines) if 'Z/W rapidity' in l][0]
+        ind_a0  = [il for il,l in enumerate(lines) if 'A_0 numer'    in l][0]
+        ind_a1  = [il for il,l in enumerate(lines) if 'A_1 numer'    in l][0]
+        ind_a4  = [il for il,l in enumerate(lines) if 'A_4 numer'    in l][0]
+        ind_de  = [il for il,l in enumerate(lines) if 'A_i denom'    in l][0]
+        
+        lines_rap = addPdfIndex([i.split() for i in lines[ind_rap+1 :ind_a0]])
+        # lines_a0  = addPdfIndex([i.split() for i in lines[ind_a0+1  :ind_a1]])
+        # lines_a4  = addPdfIndex([i.split() for i in lines[ind_a4+1  :ind_de]])
+        # lines_de  = addPdfIndex([i.split() for i in lines[ind_de+1  :      ]])
+    
+        # lines_a0  = divideByDenom(lines_a0, lines_de)
+        # lines_a4  = divideByDenom(lines_a4, lines_de)
+    
+        ### print 'this is lines rap', lines_rap
+    
+        tmp_infile.close()
+
+        tmp_infile_cen = open(basedir+'/my_w{ch}_18012_{pset}/NNLO.results.dat'.format(ch=ch, pset=pset), 'r')
+    
+        print 'at file for central values ', tmp_infile_cen
+    
+        lines = [line for line in tmp_infile_cen.readlines() if len(line.strip()) ]
+        
+        ind_rap = [il for il,l in enumerate(lines) if 'Z/W rapidity' in l][0]
+        ind_a0  = [il for il,l in enumerate(lines) if 'A_0 numer'    in l][0]
+        
+        lines_rap_cen = addPdfIndex([i.split() for i in lines[ind_rap+1 :ind_a0]], offset=0)
+        #print lines_rap_cen
+
+        ##npdf = max(i[0] for i in lines_rap)
+    
+        ## for ipdf in range(npdf+1):
+    
+        ##    graph_vals = [lines_rap_cen] + [i for i in lines_rap if i[0] is ipdf]
+
+        new_lines_rap = []
+        
+        for central in lines_rap_cen:
+            new_lines_rap.append(central)
+            tmp_rap = central[1]
+
+            new_lines_rap += [i for i in lines_rap if i[1] == tmp_rap]
+            
+
+        vals[ch] = new_lines_rap
+
+
+    return vals
+        
+    #    tmp_iy = -1
+    #    ntmp = 0
+    #    for iline, line in enumerate(lines_a0):
+    #        if line[0] != tmp_iy:
+    #            tmp_iy = line[0]
+    #            ntmp = 0
+    #        lines_a0[iline].insert(0, ntmp)
+    #        ntmp += 1
+        
+        #lines_rap = returnArray(lines[ind_rap:ind_a0], ipdf)
+        #lines_a0  = returnArray(lines[ind_a0 :ind_a1], ipdf)
+        #lines_a4  = returnArray(lines[ind_a4 :ind_de], ipdf)
+        #lines_de  = returnArray(lines[ind_de :      ], ipdf)
+        #
+        ### print lines_a0
+        ### print lines_a4
+        #
+        #lines_l = getHelicity(ch, 'l', lines_a0, lines_a4)
+        #lines_r = getHelicity(ch, 'r', lines_a0, lines_a4)
+        #
+        #basename = 'graph_W{ch}_{pset}_'.format(ch='plus' if ch == 'p' else 'minus', pset=pset)
+        #
+        #tmp_graph_tot = ROOT.TGraphAsymmErrors(len(lines_rap[0]), lines_rap[0], lines_rap[1], lines_rap[2], lines_rap[3], lines_rap[6], lines_rap[6])
+        #tmp_graph_a0  = ROOT.TGraphAsymmErrors(len(lines_a0 [0]), lines_a0 [0], lines_a0 [1], lines_a0 [2], lines_a0 [3], lines_a0 [6], lines_a0 [6])
+        #tmp_graph_a4  = ROOT.TGraphAsymmErrors(len(lines_a4 [0]), lines_a4 [0], lines_a4 [1], lines_a4 [2], lines_a4 [3], lines_a4 [6], lines_a4 [6])
+        #tmp_graph_fl  = ROOT.TGraphAsymmErrors(len(lines_l [0]), lines_l [0], lines_l [1], lines_l [2], lines_l [3], lines_l [6], lines_l [6])
+        #tmp_graph_fr  = ROOT.TGraphAsymmErrors(len(lines_r [0]), lines_r [0], lines_r [1], lines_r [2], lines_r [3], lines_r [6], lines_r [6])
+        #
+        #tmp_graph_tot.SetName(basename+'total'); tmp_graph_tot.SetTitle(basename+'total')
+        #tmp_graph_a0 .SetName(basename+'a0'   ); tmp_graph_a0 .SetTitle(basename+'a0'   )
+        #tmp_graph_a4 .SetName(basename+'a4'   ); tmp_graph_a4 .SetTitle(basename+'a4'   )
+        #tmp_graph_fl .SetName(basename+'fl'   ); tmp_graph_fl .SetTitle(basename+'fl'   )
+        #tmp_graph_fr .SetName(basename+'fr'   ); tmp_graph_fr .SetTitle(basename+'fr'   )
+        #
+        #tmp_graph_tot . Write()
+        #tmp_graph_a0  . Write()
+        #tmp_graph_a4  . Write()
+        #tmp_graph_fl  . Write()
+        #tmp_graph_fr  . Write()
+    
+    #outfile.Close()
+    
+        
