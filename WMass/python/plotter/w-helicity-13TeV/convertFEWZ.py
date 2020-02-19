@@ -138,6 +138,9 @@ def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
     vals = {}
     
     for ch, pset in itertools.product('pm', [pdfset]):
+
+        if pdfset == 'hera' and ch == 'm':
+            continue
     
     
         tmp_infile = open(basedir+'/my_w{ch}_18012_{pset}/NNLO.pdf.results.dat'.format(ch=ch, pset=pset), 'r')
