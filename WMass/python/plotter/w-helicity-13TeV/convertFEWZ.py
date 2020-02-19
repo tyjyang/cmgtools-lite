@@ -83,6 +83,51 @@ def divideByDenom(lines, denlines):
     return newlines
 
 
+def getGraph(pdfset, centrallines, errorlines):
+
+    xvals = array('d', [i[1] for i in centrallines])
+    xerrs = array('d', [0.12 for i in centrallines])
+
+    yvals = array('d', [i[2] for i in centrallines])
+
+    ups, dns = [], []
+    if pdfset == 'nnpdf31':
+        for central in centrallines:
+            cen = central[2]
+
+            allerrs = [i[2] for i in errorlines if i[1] == central[1] ]
+            pdferrs = allerrs[:-2]
+            aserrs  = allerrs[-2:]
+            pdferr  = math.sqrt(sum( [ (cen-err)**2 for err in pdferrs] ) )
+
+            ups.append(math.sqrt(pdferr**2 + ( (cen-aserrs[0])*0.67)**2 + central[3]**2) )
+            dns.append(math.sqrt(pdferr**2 + ( (cen-aserrs[1])*0.67)**2 + central[3]**2) )
+
+    elif pdfset in ['ct18', 'hera']:
+        for central in centrallines:
+            cen = central[2]
+
+            allerrs = [i[2] for i in errorlines if i[1] == central[1] ]
+
+            pairs = zip(allerrs[0::2], allerrs[1::2])
+            pairsup = allerrs[0::2]
+            pairsdn = allerrs[1::2]
+            upstmp = [max(0, x[0] - cen, x[1] - cen) for x in pairs]
+            dnstmp = [max(0, cen - x[0], cen - x[1]) for x in pairs] 
+            #upstmp = [cen - x for x in pairsup]
+            #dnstmp = [x - cen for x in pairsdn] 
+
+            ups.append(math.sqrt(sum( [(x/1.645)**2 for x in upstmp] ) + central[3]**2))
+            dns.append(math.sqrt(sum( [(x/1.645)**2 for x in dnstmp] ) + central[3]**2))
+
+    arr = []
+    for ii, v in enumerate(xvals):
+        #print v, yvals[ii], ups[ii], dns[ii]
+        arr.append([v, yvals[ii], ups[ii], dns[ii]])
+
+    return arr
+    
+
 def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
     ## basedir = '/afs/cern.ch/work/a/arapyan/public/fewz_smp18012/'
     basedir = '/eos/cms/store/group/phys_smp/arapyan/fewz_prediction/'
@@ -139,15 +184,19 @@ def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
         ##    graph_vals = [lines_rap_cen] + [i for i in lines_rap if i[0] is ipdf]
 
         new_lines_rap = []
+
+        graph = getGraph(pdfset, lines_rap_cen, lines_rap)
         
         for central in lines_rap_cen:
             new_lines_rap.append(central)
             tmp_rap = central[1]
 
+
             new_lines_rap += [i for i in lines_rap if i[1] == tmp_rap]
             
 
-        vals[ch] = new_lines_rap
+        #vals[ch] = new_lines_rap
+        vals[ch] = graph
 
 
     return vals
