@@ -176,8 +176,8 @@ if __name__ == '__main__':
         tmp_outdir = options.outdir+'/impactPlots/'
         poisGroups = ['W{ch}.*{pol}.*'.format(ch=charge,pol=pol) for charge in ['plus','minus'] for pol in ['left','right','long']]
         singleNuisGroups = ['CMS.*','pdf.*','mu.*','ErfPar0.*','ErfPar1.*','ErfPar2.*']
-        #targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec', 'A0', 'A4']
         targets = ['xsec','xsecnorm','asym','unpolasym','unpolxsec','unpolxsecnorm','A0','A4']
+        nuisgroups = 'pdfs,binByBinStat,EffStat,Fakes,lumi,QCDTheo,stat,Total'
         POIsForSummary = {'xsec': '.*', 'xsecnorm': '.*', 'asym': '.*chargeasym', 'unpolasym': '.*chargemetaasym', 'unpolxsec': '.*sumxsec', 'unpolxsecnorm': '.*sumxsecnorm', 'A0': '.*a0', 'A4': '.*a4'}
         for t in toysHessian:
             for tmp_file in [i for i in results.keys() if re.match('both_floatingPOIs_{toyhess}'.format(toyhess=t),i)]:
@@ -203,7 +203,11 @@ if __name__ == '__main__':
                 # now do the 1D summaries
                 for target in targets:
                     print "RUNNING 1D SUMMARIES OF SYSTEMATICS..."
-                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups .* --pois {pois} -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx} --longBkg '.format(fr=results[tmp_file], od=tmp_outdir, pois=POIsForSummary[target], cd=results['cardsdir'], tg=target, sfx=tmp_suffix)
+                    if 'norm' in target or 'asy' in target or 'A' in target:
+                        target_nuisgroups = nuisgroups.replace('lumi,','')
+                    else:
+                        target_nuisgroups = nuisgroups
+                    cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups {ng} --pois {pois} -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx} --longBkg '.format(fr=results[tmp_file], od=tmp_outdir, pois=POIsForSummary[target], cd=results['cardsdir'], tg=target, sfx=tmp_suffix, ng=target_nuisgroups)
                     if re.match('.*asym|A\d',target): cmd += ' --absolute '
                     print cmd
                     os.system(cmd)

@@ -300,11 +300,15 @@ def plotUnpolarizedValues(values,charge,channel,options):
         lat = ROOT.TLatex()
         lat.SetNDC(); lat.SetTextFont(42)
         legx1, legx2, legy1, legy2 = 0.2, 0.5, 0.7, 0.85
+
+        of = ROOT.TFile.Open('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.root'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type),'recreate')
+
         ## the graphs exist now. now starting to draw them
         ## ===========================================================
         if hasattr(values,'graph') and hasattr(values,'graph_fit'):
                 
             mg = ROOT.TMultiGraph()
+            mg.SetName('values')
             mg.Add(values.graph,'E2'); #mg.Add(values.graph2,'E2')
             mg.Add(values.graph_fit)
             if doAltExp:
@@ -347,6 +351,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
+            mg.Write()
 
         ## now make the relative error plot:
         ## ======================================
@@ -377,6 +382,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
                 yaxtitle = '#sigma_{Theory}/#sigma_{Data}'
                 yaxrange = (0.70, 1.30) if 'xsec' in valkey else (0.7,1.3) if valkey=='a0' else (-0.5, 2.5)
 
+            values.mg.SetName('ratios')
             values.mg.Draw('Pa')
             ## x axis fiddling
             values.mg.GetXaxis().SetTitle('')
@@ -392,12 +398,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetNdivisions(5)
             values.mg.GetYaxis().CenterTitle()
             values.mg.GetYaxis().SetDecimals()
+            values.mg.Write()
 
             line.Draw("Lsame");
 
-        for ext in ['png', 'pdf', 'root']:
+        for ext in ['png', 'pdf']:
             c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
-
+        of.Close()
 
 NPDFs = 60
 LUMINOSITY = 36000
@@ -425,6 +432,7 @@ if __name__ == "__main__":
     parser.add_option(     '--ybinsOutAcc', dest='ybinsOutAcc', type='string', default="", help='Define which Y bins were put in OutAcc channel in the fit. With format 14,15 ')
     parser.add_option(      '--max-rap'     , dest='maxRapidity', default='2.5'       , type='float', help='Max value for rapidity range')
     parser.add_option(      '--hessianFromToy', default=0       , type=int, help='get entry from toy file to be hessian like')
+    parser.add_option(      '--pdfonly'      , dest='pdfonly'   , default=False         , action='store_true',   help='if given, do not include alphaS and QCD scales in the theory bands')
     (options, args) = parser.parse_args()
 
 
@@ -551,10 +559,12 @@ if __name__ == "__main__":
                         xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
                 # and add alphaS (which in principle is part of PDF variations)
                 # print "rel PDFs on xsec for Y bin %d = +/-%.3f" % (iy,math.sqrt(xsec_totUp)/xsec_nom if xsec_nom else 0.)
-                xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
+                if not options.pdfonly: 
+                    xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
                 xsec_pdfsysts.append(math.sqrt(xsec_totUp))
                 # now to the total PDF error, add the QCD scales envelope
-                xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
+                if not options.pdfonly:
+                    xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
                 xsec_totUp = math.sqrt(xsec_totUp)
                 # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
                 # print "rel QCD scales on xsec for Y bin %d = +/-%.3f" % (iy,xsec_qcdenvelope[pol][iy]/xsec_nom if xsec_nom else 0.) 
