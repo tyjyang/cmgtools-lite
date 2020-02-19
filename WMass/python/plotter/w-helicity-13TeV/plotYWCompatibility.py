@@ -27,7 +27,7 @@ def makeCanvas():
     c2.SetLeftMargin(0.05);
     c2.SetRightMargin(0.05);
     c2.SetTopMargin(0.05);
-    c2.SetBottomMargin(0.16);
+    c2.SetBottomMargin(0.20);
     c2.SetFrameFillStyle(0);
     c2.SetFrameBorderMode(0);
     return c2
@@ -43,8 +43,11 @@ def makePads(subpadsYLow,subpadsYUp):
         pad.SetTicky(1);
         pad.SetLeftMargin(0.2);
         pad.SetRightMargin(0.05);
-        pad.SetTopMargin(0.1);
-        pad.SetBottomMargin(0.1);
+        pad.SetTopMargin(0.05);
+        if ip==len(subpadsYLow)-1:
+            pad.SetBottomMargin(0.15);
+        else:
+            pad.SetBottomMargin(0.05);
         pad.SetFrameFillStyle(0);
         pad.SetFrameBorderMode(0);
         pad.SetFrameFillStyle(0);
