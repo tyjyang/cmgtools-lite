@@ -83,7 +83,7 @@ def divideByDenom(lines, denlines):
     return newlines
 
 
-def getGraph(pdfset, centrallines, errorlines):
+def getGraph(pdfset, centrallines, errorlines, pdfsonly = False):
 
     xvals = array('d', [i[1] for i in centrallines])
     xerrs = array('d', [0.12 for i in centrallines])
@@ -100,8 +100,12 @@ def getGraph(pdfset, centrallines, errorlines):
             aserrs  = allerrs[-2:]
             pdferr  = math.sqrt(sum( [ (cen-err)**2 for err in pdferrs] ) )
 
-            ups.append(math.sqrt(pdferr**2 + ( (cen-aserrs[0])*0.67)**2 + central[3]**2) )
-            dns.append(math.sqrt(pdferr**2 + ( (cen-aserrs[1])*0.67)**2 + central[3]**2) )
+            if pdfsonly:
+                ups.append(math.sqrt(pdferr**2 + central[3]**2) )
+                dns.append(math.sqrt(pdferr**2 + central[3]**2) )
+            else:
+                ups.append(math.sqrt(pdferr**2 + ( (cen-aserrs[0])*0.67)**2 + central[3]**2) )
+                dns.append(math.sqrt(pdferr**2 + ( (cen-aserrs[1])*0.67)**2 + central[3]**2) )
 
     elif pdfset in ['ct18', 'hera']:
         for central in centrallines:
@@ -117,8 +121,12 @@ def getGraph(pdfset, centrallines, errorlines):
             #upstmp = [cen - x for x in pairsup]
             #dnstmp = [x - cen for x in pairsdn] 
 
-            ups.append(math.sqrt(sum( [(x/1.645)**2 for x in upstmp] ) + central[3]**2))
-            dns.append(math.sqrt(sum( [(x/1.645)**2 for x in dnstmp] ) + central[3]**2))
+            if pdfsonly:
+                ups.append(math.sqrt(sum( [(x/1.645)**2 for x in upstmp] ) + central[3]**2))
+                dns.append(math.sqrt(sum( [(x/1.645)**2 for x in dnstmp] ) + central[3]**2))
+            else:
+                ups.append(math.sqrt(sum( [(x/1.645)**2 for x in upstmp] ) + central[3]**2))
+                dns.append(math.sqrt(sum( [(x/1.645)**2 for x in dnstmp] ) + central[3]**2))
 
     arr = []
     for ii, v in enumerate(xvals):
@@ -128,7 +136,7 @@ def getGraph(pdfset, centrallines, errorlines):
     return arr
     
 
-def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
+def getForPDF(pdfset, pdfsonly=False): ## pdfset can be 'ct18' or 'nnpdf31'
     ## basedir = '/afs/cern.ch/work/a/arapyan/public/fewz_smp18012/'
     basedir = '/eos/cms/store/group/phys_smp/arapyan/fewz_prediction/'
     
@@ -138,6 +146,9 @@ def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
     vals = {}
     
     for ch, pset in itertools.product('pm', [pdfset]):
+
+        if pdfset == 'hera' and ch == 'm':
+            continue
     
     
         tmp_infile = open(basedir+'/my_w{ch}_18012_{pset}/NNLO.pdf.results.dat'.format(ch=ch, pset=pset), 'r')
@@ -185,7 +196,7 @@ def getForPDF(pdfset): ## pdfset can be 'ct18' or 'nnpdf31'
 
         new_lines_rap = []
 
-        graph = getGraph(pdfset, lines_rap_cen, lines_rap)
+        graph = getGraph(pdfset, lines_rap_cen, lines_rap, pdfsonly)
         
         for central in lines_rap_cen:
             new_lines_rap.append(central)
