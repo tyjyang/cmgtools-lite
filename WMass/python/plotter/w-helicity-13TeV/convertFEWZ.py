@@ -130,7 +130,7 @@ def getAsymmetry(pdfset, plus, minus, pdfsonly = False):
                 toterr_up = math.sqrt( toterr_up**2 + (asym-tmp_asyms_asup)**2 )
                 toterr_dn = math.sqrt( toterr_dn**2 + (asym-tmp_asyms_asdn)**2 )
 
-            retval.append( [asym, toterr_up, toterr_dn] )
+            retval.append( [pvs[1], asym, toterr_up, toterr_dn] )
 
         if pdfset in ['ct18', 'hera']:
             p_allerrs = [(perr[2]) for perr in p_errors if perr[1] == pvs[1] ]
@@ -157,7 +157,8 @@ def getAsymmetry(pdfset, plus, minus, pdfsonly = False):
             toterr_up = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_up ] ) )
             toterr_dn = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_dn ] ) )
 
-            retval.append( [asym, toterr_up, toterr_dn] )
+            ## set 0 the stat error (it's small in these dat files)
+            retval.append( [pvs[1], asym, toterr_up, toterr_dn] )
 
     return retval
 
@@ -297,7 +298,6 @@ def getForPDF(pdfset, pdfsonly=False): ## pdfset can be 'ct18' or 'nnpdf31'
 
     vals['a'] = asym
 
-    
 
     return vals
         
