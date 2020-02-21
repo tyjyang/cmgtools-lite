@@ -82,6 +82,84 @@ def divideByDenom(lines, denlines):
 
     return newlines
 
+def getAsymmetry(pdfset, plus, minus, pdfsonly = False):
+
+    xvals = array('d', [i[1] for i in plus[0]])
+    xerrs = array('d', [0.12 for i in plus[0]])
+
+    pvals = array('d', [i[2] for i in plus [0]])
+    mvals = array('d', [i[2] for i in minus[0]])
+
+    p_central = plus [0]
+    m_central = minus[0]
+    p_errors  = plus [1]
+    m_errors  = minus[1]
+    #print p_errors
+
+    retval = []
+
+    for ip,pvs in enumerate(p_central):
+        p = pvs[2]
+        m = m_central[ip][2]
+        asym = (p-m)/(p+m)
+
+        if pdfset == 'nnpdf31':
+            p_allerrs = [(p-perr[2]) for perr in p_errors if perr[1] == pvs[1] ]
+            p_pdferrs = p_allerrs[:-2]
+            p_aserrs  = [0.67*asscaled for asscaled in p_allerrs[-2:]]
+
+            m_allerrs = [(m-merr[2]) for merr in m_errors if merr[1] == m_central[ip][1] ]
+            m_pdferrs = m_allerrs[:-2]
+            m_aserrs  = [0.67*asscaled for asscaled in m_allerrs[-2:]]
+        
+            tmp_asyms_up  , tmp_asyms_dn   = [], []
+
+            for ipdf,pdf in enumerate(p_pdferrs):
+                pup, pdn = p+pdf, p-pdf
+                mup, mdn = m+m_pdferrs[ipdf], m-m_pdferrs[ipdf]
+                tmp_asyms_up.append(  (pup - mup)/(pup + mup) )
+                tmp_asyms_dn.append(  (pup - mup)/(pup + mup) ) ## this now makes it symmetric
+
+            toterr_up = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_up ] ) )
+            toterr_dn = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_dn ] ) )
+
+            tmp_asyms_asup = ((p+p_aserrs[0]) - (m+m_aserrs[0]))/((p+p_aserrs[0]) + (m+m_aserrs[0]))
+            tmp_asyms_asdn = ((p+p_aserrs[1]) - (m+m_aserrs[1]))/((p+p_aserrs[1]) + (m+m_aserrs[1]))
+
+            if not pdfsonly: ## add the alphaS in quadrature to the up/down
+                toterr_up = math.sqrt( toterr_up**2 + (asym-tmp_asyms_asup)**2 )
+                toterr_dn = math.sqrt( toterr_dn**2 + (asym-tmp_asyms_asdn)**2 )
+
+            retval.append( [asym, toterr_up, toterr_dn] )
+
+        if pdfset in ['ct18', 'hera']:
+            p_allerrs = [(perr[2]) for perr in p_errors if perr[1] == pvs[1] ]
+            m_allerrs = [(merr[2]) for merr in m_errors if merr[1] == m_central[ip][1] ]
+        
+
+            p_pairs = zip(p_allerrs[0::2], p_allerrs[1::2])
+            p_upstmp = [max(0, x[0] - p, x[1] - p) for x in p_pairs]
+            p_dnstmp = [max(0, p - x[0], p - x[1]) for x in p_pairs] 
+
+            m_pairs = zip(m_allerrs[0::2], m_allerrs[1::2])
+            m_upstmp = [max(0, x[0] - m, x[1] - m) for x in m_pairs]
+            m_dnstmp = [max(0, m - x[0], m - x[1]) for x in m_pairs] 
+
+
+            tmp_asyms_up  , tmp_asyms_dn   = [], []
+
+            for ipdf,pdf in enumerate(p_upstmp):
+                pup, pdn = p+pdf, p-p_dnstmp[ipdf]
+                mup, mdn = m+m_upstmp[ipdf], m-m_dnstmp[ipdf]
+                tmp_asyms_up.append(  (pup - mup)/(pup + mup) )
+                tmp_asyms_dn.append(  (pdn - mdn)/(pdn + mdn) )
+
+            toterr_up = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_up ] ) )
+            toterr_dn = math.sqrt(sum( [ (asym - i)**2 for i in tmp_asyms_dn ] ) )
+
+            retval.append( [asym, toterr_up, toterr_dn] )
+
+    return retval
 
 def getGraph(pdfset, centrallines, errorlines, pdfsonly = False):
 
@@ -144,7 +222,7 @@ def getForPDF(pdfset, pdfsonly=False): ## pdfset can be 'ct18' or 'nnpdf31'
     outfile = ROOT.TFile(outfile_name, 'RECREATE')
 
     vals = {}
-    
+
     for ch, pset in itertools.product('pm', [pdfset]):
 
         if pdfset == 'hera' and ch == 'm':
@@ -198,6 +276,11 @@ def getForPDF(pdfset, pdfsonly=False): ## pdfset can be 'ct18' or 'nnpdf31'
 
         graph = getGraph(pdfset, lines_rap_cen, lines_rap, pdfsonly)
         
+        if ch=='p':
+            vals_p = [lines_rap_cen, lines_rap]
+        if ch=='m':
+            vals_m = [lines_rap_cen, lines_rap]
+        
         for central in lines_rap_cen:
             new_lines_rap.append(central)
             tmp_rap = central[1]
@@ -209,6 +292,12 @@ def getForPDF(pdfset, pdfsonly=False): ## pdfset can be 'ct18' or 'nnpdf31'
         #vals[ch] = new_lines_rap
         vals[ch] = graph
 
+        if ch=='m':
+            asym = getAsymmetry(pdfset, vals_p, vals_m, pdfsonly)
+
+    vals['a'] = asym
+
+    
 
     return vals
         
