@@ -5,24 +5,9 @@ import numpy as np
 
 from plotYWCompatibility import makeCanvas,makePads
 from convertFEWZ import *
-import utilities
-utilities = utilities.util()
 
 # hardcoded binwidth !!! Nice, eh?
 bwidth = 0.25
-
-def getAsymmetry(mcvals):
-    plus = mcvals['p']
-    minus = mcvals['m']
-    asymmetry = []
-    for iy in range(len(plus)):
-        ## central value is the same for Up/Dn, just error changes
-        asyUp = utilities.getChargeAsy(plus[iy][1],minus[iy][1],
-                                       plus[iy][2],minus[iy][2])
-        asyDn = utilities.getChargeAsy(plus[iy][1],minus[iy][1],
-                                       plus[iy][3],minus[iy][3])
-        asymmetry.append([plus[iy][0],asyUp['asy'][0],asyUp['asy'][1],asyDn['asy'][1]])
-    return np.array(asymmetry)
 
 def getRatios(mcvals,graph_data,rationame,ybincenters,asymmetry=False):
     ratios = []
@@ -270,7 +255,7 @@ if __name__ == "__main__":
 
     plots = {'p':   'genAbsYUnpolarizedsumxsec_pdfs_plusfloatingPOIs_hessian_bbb1_syst1_data_lep_hessian',
              'm':   'genAbsYUnpolarizedsumxsec_pdfs_minusfloatingPOIs_hessian_bbb1_syst1_data_lep_hessian',
-             'asy': 'genAbsYUnpolarizedasymmetry_pdfs_asymmetryfloatingPOIs_hessian_bbb1_syst1_data_lep_hessian',
+             'a': 'genAbsYUnpolarizedasymmetry_pdfs_asymmetryfloatingPOIs_hessian_bbb1_syst1_data_lep_hessian',
              }
 
     if options.pdfonly:
@@ -282,22 +267,18 @@ if __name__ == "__main__":
     fewz_ct18    = getForPDF('ct18'   , pdfsonly=options.pdfonly)
 
     print "and now it is THE time to plot XSECS!"
-    for charge in ['p','m','asy']:
+    for charge in ['p','m','a']:
         plot = plots[charge]
         infile = ROOT.TFile.Open('{d}/{p}.root'.format(d=theDir,p=plot))
         nominal_values = infile.Get('values')
         nominal_ratios = infile.Get('ratios')
 
-        if charge!='asy':
+        fewz_nnpdf31_sc = np.array(fewz_nnpdf31[charge])
+        fewz_ct18_sc = np.array(fewz_ct18[charge])
+        if charge!='a':
             # rescale by the Y bin width
-            fewz_nnpdf31_sc = np.array(fewz_nnpdf31[charge])
             fewz_nnpdf31_sc[:,1:] *= 1./bwidth
-
-            fewz_ct18_sc = np.array(fewz_ct18[charge])
             fewz_ct18_sc[:,1:] *= 1./bwidth
-        else:
-            fewz_nnpdf31_sc = getAsymmetry(fewz_nnpdf31)
-            fewz_ct18_sc    = getAsymmetry(fewz_ct18)
 
         ## get the nominal MC and data from our beloved graphs
         canv = plotMCaNLO(nominal_values,nominal_ratios,fewz_nnpdf31_sc,fewz_ct18_sc,plot,theDir)
