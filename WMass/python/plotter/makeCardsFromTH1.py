@@ -1212,11 +1212,14 @@ if options.doSystematics:
     if flavour == "el":
         card.write("L1Prefire group = "    + ' '.join(filter(lambda x: re.match('.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*',x),allSystForGroups)) + " \n\n")
     # all theory
-    card.write("allTheory group = "       + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN|pdf.*|alphaS|fsr.*',x),allSystForGroups)) + "\n\n")
+    alltheoMatch = "muR.*|muF.*|qcdTheo_Wall_LnN|pdf.*|alphaS|fsr.*"
+    card.write("allTheory group = "       + ' '.join(filter(lambda x: re.match(alltheoMatch,x),allSystForGroups)) + "\n\n")
     # all exp (no lumi)
-    card.write("allExp group = "       + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scale.*|.*EffStat.*|FakesNorm.*|.*FR.*(norm|lnN|continuous)|Fakes.*Uncorrelated.*|CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg|CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*|.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*',x),allSystForGroups)) + "\n\n")
+    allexpMatch = ".*(smooth|CMS_W).*scale.*|.*EffStat.*|FakesNorm.*|.*FR.*(norm|lnN|continuous)|Fakes.*Uncorrelated.*|CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg|CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*|.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst.*"
+    card.write("allExp group = "       + ' '.join(filter(lambda x: re.match(allexpMatch,x),allSystForGroups)) + "\n\n")
     # all exp and theory (everything except lumi, and stat)
-    card.write("allTheoAndExp group = "       + ' '.join(filter(lambda x: re.match('muR.*|muF.*|qcdTheo_Wall_LnN|pdf.*|alphaS|fsr.*|.*(smooth|CMS_W).*scale.*|.*EffStat.*|FakesNorm.*|.*FR.*(norm|lnN|continuous)|Fakes.*Uncorrelated.*|CMS_DY|CMS_Top|CMS_VV|CMS_Tau.*|CMS_We_flips|CMS_Wbkg|CMS.*lepVeto|CMS.*bkg_lepeff|CMS.*sig_lepeff|CMS.*sig_testEffSyst|.*TestEffSyst.*|.*OutOfAccPrefireSyst.*|.*L1PrefireEleEffSyst',x),allSystForGroups)) + "\n\n")
+    alltheoexpMatch = alltheoMatch + "|" + allexpMatch
+    card.write("allTheoAndExp group = "       + ' '.join(filter(lambda x: re.match(alltheoexpMatch,x),allSystForGroups)) + "\n\n")
     card.write("\n")
 card.write("\n")
 
@@ -1329,7 +1332,12 @@ if not options.fitSingleCharge:
     card.write("\n")
     card.write("\n")
 
-    # inclusive charge asymmetry (ratio to be added soon)
+    # inclusive ratio +/-
+    card.write("Wratio_lep ratioMetaGroup = Wplus_lep Wminus_lep\n")
+    card.write("\n")
+    card.write("\n")
+
+    # inclusive charge asymmetry
     card.write("Wasym_lep chargeMetaGroup = Wplus_lep Wminus_lep\n")
     card.write("\n")
     card.write("\n")

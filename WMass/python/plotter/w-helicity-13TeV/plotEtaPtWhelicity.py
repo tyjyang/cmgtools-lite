@@ -96,7 +96,7 @@ if __name__ == "__main__":
             text.SetNDC()
             text.SetTextSize(0.04)  # 0.03
             text.SetTextFont(42)
-            text.DrawLatex(0.16, 0.95, "#bf{CMS} #it{Simulation Preliminary}")
+            text.DrawLatex(0.16, 0.95, "#bf{CMS} #it{Simulation Supplementary}")
             text.DrawLatex(0.63, 0.95, "35.9 fb^{-1} (13 TeV)")
             label = ROOT.TLatex()
             label.SetNDC()

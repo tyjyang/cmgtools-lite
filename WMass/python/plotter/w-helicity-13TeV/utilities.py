@@ -363,6 +363,7 @@ class util:
         htheory = {}    # inclusive for each charge 
         htheory_incl = {} # inclusive summing both charges
         htheory_asym = {}
+        htheory_ratio = {}
 
         print "ABSOLUTE XSEC"
         for charge in ["plus", "minus"]:
@@ -423,10 +424,20 @@ class util:
             denVal = (htheory[key] + htheory[("minus",key[1])])
             htheory_asym[keyAsym] = numVal / denVal
 
+        # now charge ratio
+        print "CHARGE RATIO"
+        for key in htheory:
+            # filter keys for plus charge
+            if str(key[0]) == "minus": continue
+            # 2D
+            keyRatio = ("all",key[1]) # to allow for homogeneous treatment as for the charged xsecs
+            htheory_ratio[keyRatio] = htheory[key] / htheory[("minus",key[1])]
+
         histo_file.Close()
         ret = { "xsec"     : [htheory],     # inclusive for each charge
                 "xsecIncl" : [htheory_incl], # inclusive summing both charges
                 "asym"     : [htheory_asym],
+                "ratio"     : [htheory_ratio],
                 "listkeys" : [key[1] for key in htheory if key[0] == "plus"]} # avoid double counting keys
         return ret
 
@@ -1087,6 +1098,14 @@ class util:
         elif getGen: expr += "_gen"
         ret = self.getExprFromHessianFast('chargeInclAsym',expr, nHistBins, minHist, maxHist, tree=tree)
         return ret
+
+    def getInclusiveRatioFromHessianFast(self, nHistBins=2000, minHist=0., maxHist=1.0, tree=None, getErr=False, getGen=False):
+        expr = "Wratio_lep_ratiometaratio"
+        if getErr: expr += "_err"
+        elif getGen: expr += "_gen"
+        ret = self.getExprFromHessianFast('chargeInclRatio',expr, nHistBins, minHist, maxHist, tree=tree)
+        return ret
+
 
     def getNormalizedDiffXsecFromHessianFast(self, charge, ieta, ipt, nHistBins=1000, minHist=0., maxHist=0.1, tree=None, getErr=False, getGen=False):
         expr = "W{c}_lep_ieta_{ieta}_ipt_{ipt}_pmaskedexpnorm".format(c=charge,ieta=ieta,ipt=ipt)

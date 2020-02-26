@@ -47,6 +47,11 @@
 # electron ID in EB (EE with 0.2 eta)
 # python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/egammaEffi.txt_EGM2D.root -o ~/www/wmass/13TeV/scaleFactors_Final/electron/elFullID_V2_granular_trueMCstatUncertainty/ -c el -n smoothEfficiency.root --fullID  --use-MC-error-from-histo --file-hist-forMCuncertainty "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/electron/elFullID_V2_granular/fullIDElectronEffAllCharge_fromRooFitResult_onlyStatUnc.root,effMC_all"
 
+
+# test on 24/02/2020, for muon reco2sele SF with only stat. uncertainty
+# python w-helicity-13TeV/smoothLeptonScaleFactors.py -i /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/recoToSeleMuonEff_fromRooFitResult_onlyStatUnc.root -o ~/www/wmass/13TeV/scaleFactors_Final/muon/recoToSelection_pt_25_55_eta0p1_fromRooFitResult_onlyStatUnc/ -c mu -n smoothEfficiency.root --muonRecoToSel --input-hist-names "effData,effMC,recoToSeleSF" --use-MC-error-from-histo
+
+
 import ROOT, os, sys, re, array, math
 
 sys.path.append(os.getcwd() + "/plotUtils/")

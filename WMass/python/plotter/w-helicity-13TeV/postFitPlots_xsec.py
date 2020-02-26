@@ -466,7 +466,8 @@ if __name__ == "__main__":
                 single_sig_unrolled[genkeyplot] = h1_unrolled.Clone('W{chfl}_{gk}_unrolled'.format(chfl=chfl, gk=genkeyplot))
                 single_sig_unrolled[genkeyplot].SetDirectory(None)
                 if genEtaPtBin == 0:
-                    total_sig[sigkeyplot] = h2_backrolled_1.Clone('{kp}'.format(kp=sigkeyplot))
+                    total_sig[sigkeyplot] = h2_backrolled_1.Clone('{kp}'.format(kp=sigkeyplot)) 
+                    total_sig[sigkeyplot].SetTitle("")
                     total_sig_unrolled[sigkeyplot] = h1_unrolled.Clone('{kp}_unrolled'.format(kp=sigkeyplot))
                     total_sig[sigkeyplot].SetDirectory(None)
                     total_sig_unrolled[sigkeyplot].SetDirectory(None)
@@ -501,7 +502,7 @@ if __name__ == "__main__":
                     print "Error: something went wrong! Missing key " + postfitkey
                     quit()
 
-            if not options.no2Dplot:
+            if not options.no2Dplot:                
                 total_sig[sigkeyplot].Write(total_sig[sigkeyplot].GetName())
                 cname = "W{chfl}_TOTALSIG_diffXsec_{sfx}".format(chfl=chfl,sfx=suffix)
                 drawCorrelationPlot(total_sig[sigkeyplot],xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
@@ -552,7 +553,7 @@ if __name__ == "__main__":
                         quit()
 
                 if not options.no2Dplot:
-                    h2_backrolled_1.Write(str(p))
+                    h2_backrolled_1.Write("{proc}_{chfl}_{sfx}".format(proc=p, chfl=chfl, sfx=suffix))
                     cname = "{proc}_{chfl}_diffXsec_{sfx}".format(proc=p, chfl=chfl, sfx=suffix)
                     drawCorrelationPlot(h2_backrolled_1,xaxisname2D,yaxisname2D,verticalAxisName,cname, "", 
                                         outname, 0,0, False, False, False, 1, palette=57, passCanvas=canvas2D)
@@ -575,6 +576,7 @@ if __name__ == "__main__":
                                               isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
             h1_expfull_unrolled = singleChargeUnrolled(h1_expfull, binshift, nMaskedCha=nMaskedChanPerCharge, name="unroll_"+expfullName2D,
                                                        isComb=isComb, isMuPlot=True if channelCombToPlot == "mu" else False, nRecoBins=nRecoBins)
+            h2_expfull_backrolled.Write("expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge))
             # can normalize the unrolled, not the 2D
             if options.normWidth:
                 #normalizeTH2byBinWidth(h2_expfull_backrolled)
@@ -582,12 +584,14 @@ if __name__ == "__main__":
      
             for projection in ['X','Y']:
                 nbinsProj = all_procs[chfl + "_" + 'obs'].GetNbinsY() if projection=='X' else all_procs[chfl + "_" + 'obs'].GetNbinsX()
-                hexpfull = h2_expfull_backrolled.ProjectionX("x_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("y_expfull_{sfx}_{ch}".format(sfx=prepost,ch=charge),1,nbinsProj,"e")
-                hdata = all_procs[chfl + "_" + 'obs'].ProjectionX("x_data_{ch}".format(ch=charge),1,nbinsProj,"e") if projection=='X' else all_procs[chfl + "_" + 'obs'].ProjectionY("y_data_{ch}".format(ch=charge),1,nbinsProj,"e")
+                hexpfull = h2_expfull_backrolled.ProjectionX("expfull_{sfx}_{ch}_px".format(sfx=prepost,ch=charge),1,nbinsProj,"e") if projection=='X' else h2_expfull_backrolled.ProjectionY("expfull_{sfx}_{ch}_py".format(sfx=prepost,ch=charge),1,nbinsProj,"e")
+                hdata = all_procs[chfl + "_" + 'obs'].ProjectionX("data_{sfx}{ch}_px".format(ch=charge,sfx=prepost),1,nbinsProj,"e") if projection=='X' else all_procs[chfl + "_" + 'obs'].ProjectionY("data_{sfx}{ch}_py".format(ch=charge,sfx=prepost),1,nbinsProj,"e")
                 if options.normWidth:
                     hdata.Scale(1., "width")
                     hexpfull.Scale(1., "width")
 
+                hdata.Write()
+                hexpfull.Write()
                 htot = hdata.Clone('tot_{ch}'.format(ch=charge)); 
                 htot.Reset("ICES"); 
                 htot.Sumw2()
@@ -607,6 +611,7 @@ if __name__ == "__main__":
                         proj1d.Scale(1., "width")
                     proj1d.SetFillColor(colors[keycolor])
                     stack.Add(proj1d)
+                    proj1d.Write()
                     htot.Add(proj1d) 
                     leg.AddEntry(proj1d,procsAndTitles["{k}".format(k=keycolor if "outliers" not in keycolor else "W{chfl}_outliers".format(chfl=chfl))],'F')
          
@@ -663,7 +668,8 @@ if __name__ == "__main__":
             drawTH1dataMCstack(hdata_unrolled,stack_unrolled, XlabelUnroll, YlabelUnroll, cnameUnroll, outname, leg, ratioYlabel,
                                1, passCanvas=cwide,hErrStack=h1_expfull_unrolled,lumi=35.9,wideCanvas=True, leftMargin=0.05,rightMargin=0.02, 
                                drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,etaptbinning=binning)
-            hdata_unrolled.Write(); htot_unrolled.Write()
+            #hdata_unrolled.Write()
+            #htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
         print "NOW PLOTTING THE RATIOS..."
