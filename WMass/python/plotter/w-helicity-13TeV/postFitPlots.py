@@ -138,6 +138,7 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     else:
         htot.GetXaxis().SetTitleSize(0.05)
         htot.GetXaxis().SetLabelSize(0.04)
+    htot.GetXaxis().SetTitle(htot.GetXaxis().GetTitle().replace('lepton','electron' if channel=='el' else 'muon'))
     htot.GetYaxis().SetTickLength(0.01)
     htot.Draw("HIST")
     #htot.SetLabelOffset(9999.0);
@@ -307,7 +308,7 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
     hratio.GetYaxis().SetLabelOffset(0.01)
     hratio.GetYaxis().SetDecimals(True) 
     hratio.GetYaxis().SetTitle('post-fit/pre-fit')
-    hratio.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
+    hratio.GetXaxis().SetTitle('unrolled {flav} (#eta,p_{{T}}) bin'.format(flav='electron' if channel=='el' else 'muon'))
     hratio.GetYaxis().SetTitleOffset(0.40)
     hratio.SetLineColor(ROOT.kBlack)
     hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
@@ -612,7 +613,7 @@ if __name__ == "__main__":
             htot_unrolled  = hdata_unrolled.Clone('unrolled_{sfx}_{ch}_full'.format(sfx=prepost,ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
             htot_unrolled.SetDirectory(None)
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
-            leg_unrolled = prepareLegend(xmin=0.4,textSize=0.045,ncols=9)
+            leg_unrolled = prepareLegend(xmin=0.4,textSize=0.045,ncols=10)
             output_txt = ''
             print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
             print 'nbinsX of hdata_unrolled', hdata_unrolled.GetNbinsX()

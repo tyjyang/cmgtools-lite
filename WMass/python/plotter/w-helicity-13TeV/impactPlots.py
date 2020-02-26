@@ -36,18 +36,19 @@ def latexLabel(label):
     bin = int(label.split(' ')[-1]) if any(pol in label for pol in ['left','right','long']) else -1
     deltaYW = 0.2 ### should use binningYW.txt, but let's  not make it too complicated
     minY,maxY=bin*deltaYW,(bin+1)*deltaYW
-    binLbl = ' {minY}<|Y_\mathrm{{ W }}|<{maxY}'.format(minY=minY,maxY=maxY)
+    binLbl = ' {minY}<|y_\mathrm{{ W }}|<{maxY}'.format(minY=minY,maxY=maxY)
     lblNoBin = ' '.join(label.split(' ')[:-1])
     lblNoBin = lblNoBin.replace('+','^+').replace(' left','_L').replace(' right','_R')
     lblNoBin += binLbl
     return lblNoBin
 
 def prepareLegendV2(textSize=0.035,xmin=0.35,xmax=0.9 ):
-    (x1,y1,x2,y2) = (xmin, 0.62, xmax, 0.87)
+    (x1,y1,x2,y2) = (xmin, 0.70, xmax, 0.90)
     leg = ROOT.TLegend(x1,y1,x2,y2)
     leg.SetNColumns(3)
     leg.SetFillColor(0)
-    #leg.SetFillColorAlpha(0,0.6) # better not transparent, all lines should not stay behing legend
+    leg.SetFillColorAlpha(0,0.6) # better not transparent, all lines should not stay behing legend
+    leg.SetFillStyle(0)
     leg.SetShadowColor(0)
     leg.SetLineColor(0)
     leg.SetBorderSize(0)
@@ -92,9 +93,9 @@ groupPainter = {"luminosity"   : [ROOT.kOpenSquare, ROOT.kBlue, 2.5], # not to b
 
 # dictionary to manage the y axis range for the 1D impacts vs eta, pt, or Yw (assumes options.absolute not set)
 # one might want to figure it out automatically based on the lines, though
-yAxisRange_target = {"mu":          [1.e-1, 50],
-                     "xsec":        [1.e-1, 50],
-                     "xsecnorm":    [1.e-1, 50],
+yAxisRange_target = {"mu":          [1.e-1, 100],
+                     "xsec":        [1.e-1, 100],
+                     "xsecnorm":    [1.e-1, 100],
                      "unpolxsec":   [8.e-2,100.],
                      "unpolxsecnorm": [1.e-1,50.],
                      "asym":        [5.e-4,1.8],
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     parser.add_option('-c', '--channel',     dest='channel',     default='',   type='string', help='Specify channel (el|mu) to make legend. It is no longer guessed from the name of POIs. If empty, generic "l" will be used in legends instead of (#mu|e)')
     parser.add_option(     '--ybinsBkg', dest='ybinsBkg', type='string', default="10,11", help='Define which Y bins are to be considered as background. With format 14,15 ')
     parser.add_option(     '--longBkg'     , dest='longBkg'  , default=False         , action='store_true',   help='if True, longitudinal component was treated as background, so the POIs are missing. Manage inputs accordingly')
-    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
+    parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=True, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
     (options, args) = parser.parse_args()
 
     # palettes:
@@ -334,8 +335,8 @@ if __name__ == "__main__":
                       "unpolxsecnorm": "unpolarized normalized cross section",
                       "asym":      "charge asymmetry",
                       "unpolasym": "unpolarized charge asymmetry",
-                      "A0":        "A0",
-                      "A4":        "A4",
+                      "A0":        "A_{0}",
+                      "A4":        "A_{4}",
                       "etaptasym":   "charge asymmetry",
                       "etaasym":   "charge asymmetry",
                       "etaxsec":   "cross section",
@@ -442,6 +443,7 @@ if __name__ == "__main__":
                 ing  = 0
                 ing2 = 0
                 for ing_tmp,nuisgroup in enumerate(groups):
+                    
                     # in case we add other lines, let's avoid messing up all the colors of the old ones
                     # I define a new integer counter that is not updated on certain conditions
                     h = ROOT.TH1D(charge+'_'+pol+'_'+nuisgroup,'',len(ybins[cp])-1,array('d',ybins[cp]))
@@ -460,7 +462,7 @@ if __name__ == "__main__":
                     xmin = 0.0
                     xmax = 2.41
                     summaries[(charge,pol,nuisgroup)].GetXaxis().SetRangeUser(xmin,xmax)
-                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|Y_{W}|')
+                    summaries[(charge,pol,nuisgroup)].GetXaxis().SetTitle('|y_{W}|')
                     if options.absolute:
                         #summaries[(charge,pol,nuisgroup)].GetYaxis().SetRangeUser(5.e-4,1.)
                         # use values set above, they already assume that asymmetry, A4 and A0 will be shown absolute
@@ -475,6 +477,7 @@ if __name__ == "__main__":
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetLabelSize(0.04)
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
         for j,nuisgroup in enumerate(groups):
+
             for i in xrange(th2_sub.GetNbinsX()):
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
                 if '+' in lbl: charge='plus'
@@ -516,7 +519,7 @@ if __name__ == "__main__":
                 polLetter = {"left" : "L", "right" : "R", "long" : "0"}
                 thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol="" if pol=="unpolarized" else polLetter[pol],
                                                                                     chsign=sign if sign != "-" else (" "+sign),fl=flavour)
-                header = "#bf{{Uncertainties in {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=ptRangeText)
+                header = "#bf{{Uncertainties in {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 #header = "#bf{{{p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 leg.SetHeader(header)            
                 leg.SetNColumns(4)
@@ -566,7 +569,7 @@ if __name__ == "__main__":
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
                 lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
-                for i in ['pdf', 'png', '.C']:
+                for i in ['pdf', 'png', 'C', 'root']:
                     suff = '' if not options.suffix else '_'+options.suffix
                     cs.SetLogy()
                     cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge,pol=pol))
@@ -712,7 +715,7 @@ if __name__ == "__main__":
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
             thischannel = "W^{{{chsign}}}#rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
             varRangeText = etaRangeText if any(options.target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]) else ptRangeText  
-            header = "#bf{{Uncertainties in {p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
+            header = "#bf{{Uncertainties in {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
             #header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
             leg.SetHeader(header)            
             leg.SetNColumns(4)
