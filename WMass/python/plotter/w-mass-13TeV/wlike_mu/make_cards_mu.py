@@ -10,9 +10,9 @@ SYSTFILE     = BASECONFIG+'/systsEnv.txt'
 QUEUE        = '1nd'
 #VAR          = '\'ptMuFull(returnChargeVal(LepGood1_kalPt,LepGood1_charge,LepGood2_kalPt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
 
-VAR          = '\'returnChargeVal(LepGood1_pt,LepGood1_charge,LepGood2_pt,LepGood2_charge,evt),returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
+VAR          = '\'returnChargeVal(LepGood1_pt,LepGood1_charge,LepGood2_pt,LepGood2_charge,evt):returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt)\''
 
-TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V1/'
+TREEPATH     = '/afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V2/'
 
 binningeta = [-2.4 + i*0.1 for i in range(49) ]
 binningeta = [float('{a:.3f}'.format(a=i)) for i in binningeta]
