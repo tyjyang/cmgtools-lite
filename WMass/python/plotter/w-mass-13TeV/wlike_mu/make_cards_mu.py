@@ -53,8 +53,8 @@ if __name__ == '__main__':
     print "RECO BINNING (eta - pt)"
     print "---------------------------------"
     print BINNING
-    #print etabinning
-    #print ptbinning
+    print 'eta:', etabinning
+    print 'pt :', ptbinning
     print "================================="
     print ""
 
@@ -68,6 +68,7 @@ if __name__ == '__main__':
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Z --vpt-weight W --vpt-weight TauDecaysW '
         cmd += ' --wlike '
+        cmd += ' --inclusive '
         if not options.printOnly:
             os.system(cmd)
         else:

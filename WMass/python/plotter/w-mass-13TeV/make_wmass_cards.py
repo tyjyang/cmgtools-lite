@@ -40,7 +40,7 @@ inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
 etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
 fsrsysts=[] # array containing (only) the PHOTOS/PYTHIA fsr reweighitng
 kamucasysts=[] # array containing the kalman filter muon momentum scale systematics
-coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
+#coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
+    parser.add_option('--inclusive', dest='inclusive', action="store_true", default=False, help="do not reweight angular coefficients. make it all inclusive.");
     (options, args) = parser.parse_args()
     
     if not options.wvar in ['genw', 'prefsrw']:
@@ -244,6 +245,8 @@ if __name__ == "__main__":
     fitvar = args[2]
     binning = args[3]
     SYSTFILE = args[4]
+
+    coefficients = ['inc'] if options.inclusive else ['ac'] + ['a'+str(i) for i in range(8)]
     
     luminosity = options.integratedLuminosity
     
@@ -340,6 +343,8 @@ if __name__ == "__main__":
             for coeff in coefficients:
                 ## get the list of all other coefficients
                 anticoeff = [proc for proc in coefficients if not proc==coeff]
+                if options.inclusive:
+                    anticoeff = ['ac'] + ['a'+str(i) for i in range(8)] 
                 if any(i in var for i in anticoeff) and options.decorrelateSignalScales: continue ## this might work. but who knows...
                 ## loop on both charges
                 for charge in ['plus', 'minus']:
