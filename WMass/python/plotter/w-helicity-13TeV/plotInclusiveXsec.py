@@ -143,9 +143,12 @@ if __name__ == "__main__":
         hasEtaRangeBkg = False
 
 
+    pname = "inclusiveXsecAndAsymmetry"
+    if options.doExpected: pname += "_expected"
+    if options.noBBB: pname += "_noBBB"
     # this file will store all histograms for later usage
-    outfilename = "plotInclusiveXsec.root"
-    tfOut = ROOT.TFile.Open(outname+outfilename,'recreate')
+    outfilename = outname+pname+".root"  # "plotInclusiveXsec.root"
+    tfOut = ROOT.TFile.Open(outfilename,'recreate')
     tfOut.cd()
 
     lepton = "electron" if channel == "el" else "muon" if channel == "mu" else "lepton"
@@ -159,7 +162,7 @@ if __name__ == "__main__":
                                                                               etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
 
     # just one value
-    hChAsymm = ROOT.TH1F("hChAsymm_{lep}".format(lep=lepton),
+    hChAsymm = ROOT.TH1F("hChargeAsym_{lep}".format(lep=lepton),
                          "Charge asymmetry: {Wch}".format(Wch=Wchannel),
                          1,0,1)
     hChAsymm.SetDirectory(tfOut)
@@ -188,12 +191,12 @@ if __name__ == "__main__":
     ##########################
     # graphs for theory uncertainty
     hChargeAsymPDF = ROOT.TGraphAsymmErrors(1)
-    hChargeAsymPDF.SetName("hChargeAsymPDF_{lep}".format(lep=lepton))
+    hChargeAsymPDF.SetName("hChargeAsym_{lep}_PDF".format(lep=lepton))
     hChargeAsymPDF.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
     #
     hChargeRatioPDF = ROOT.TGraphAsymmErrors(1)
-    hChargeRatioPDF.SetName("hChargeRatioPDF_{lep}".format(lep=lepton))
-    hChargeRatioPDF.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
+    hChargeRatioPDF.SetName("hChargeRatio_{lep}_PDF".format(lep=lepton))
+    hChargeRatioPDF.SetTitle("Charge ratio: {Wch}".format(Wch=Wchannel))
     #
     hXsecPlusPDF = ROOT.TGraphAsymmErrors(1)
     hXsecPlusPDF.SetName("hXsec_{lep}_plus_PDF".format(lep=lepton))
@@ -208,12 +211,12 @@ if __name__ == "__main__":
     hXsecPDF.SetTitle("cross section PDF: {Wch}".format(Wch=Wchannel))
     #
     hChargeAsymTotTheory = ROOT.TGraphAsymmErrors(1)
-    hChargeAsymTotTheory.SetName("hChargeAsymTotTheory_{lep}".format(lep=lepton))
+    hChargeAsymTotTheory.SetName("hChargeAsym_{lep}_TotTheory".format(lep=lepton))
     hChargeAsymTotTheory.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
     #
     hChargeRatioTotTheory = ROOT.TGraphAsymmErrors(1)
-    hChargeRatioTotTheory.SetName("hChargeRatioTotTheory_{lep}".format(lep=lepton))
-    hChargeRatioTotTheory.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
+    hChargeRatioTotTheory.SetName("hChargeRatio_{lep}_TotTheory".format(lep=lepton))
+    hChargeRatioTotTheory.SetTitle("Charge ratio: {Wch}".format(Wch=Wchannel))
     #
     hXsecPlusTotTheory = ROOT.TGraphAsymmErrors(1)
     hXsecPlusTotTheory.SetName("hXsec_{lep}_plus_TotTheory".format(lep=lepton))
@@ -323,10 +326,12 @@ if __name__ == "__main__":
     writeHistoIntoFile(hXsecMinus,tfOut)
     writeHistoIntoFile(hXsec,tfOut)
     writeHistoIntoFile(hChargeAsymPDF,tfOut)
+    writeHistoIntoFile(hChargeRatioPDF,tfOut)
     writeHistoIntoFile(hXsecPlusPDF,tfOut)
     writeHistoIntoFile(hXsecMinusPDF,tfOut)
     writeHistoIntoFile(hXsecPDF,tfOut)
     writeHistoIntoFile(hChargeAsymTotTheory,tfOut)
+    writeHistoIntoFile(hChargeRatioTotTheory,tfOut)
     writeHistoIntoFile(hXsecPlusTotTheory,tfOut)
     writeHistoIntoFile(hXsecMinusTotTheory,tfOut)
     writeHistoIntoFile(hXsecTotTheory,tfOut)
@@ -451,9 +456,6 @@ if __name__ == "__main__":
     latMeas.SetTextFont(42)
     latMeas.SetTextSize(0.035)
 
-    pname = "inclusiveXsecAndAsymmetry"
-    if options.doExpected: pname += "_expected"
-    if options.noBBB: pname += "_noBBB"
     textfile = open(outname+pname+".txt","w+")
     textfile.write("#Measured quantity and uncertainty breakdown (note that we show theory and exp both separately and combined)\n")        
     textfile.write("#Uncertainties do not trivially sum in quadratue, as they are correlated.\n\n")        

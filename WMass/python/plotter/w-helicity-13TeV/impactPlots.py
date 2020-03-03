@@ -569,10 +569,22 @@ if __name__ == "__main__":
                 leg.Draw('same')
                 lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
                 lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
-                for i in ['pdf', 'png', 'C', 'root']:
-                    suff = '' if not options.suffix else '_'+options.suffix
+                suff = '' if not options.suffix else '_'+options.suffix
+                impPlotName = options.outdir + "/ywImpacts{rel}{suff}_{target}_{ch}{pol}".format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,ch=charge,pol=pol)
+                for i in ['pdf', 'png', 'C']:
                     cs.SetLogy()
-                    cs.SaveAs(options.outdir+'/ywImpacts{rel}{suff}_{target}_{ch}{pol}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,ch=charge,pol=pol))
+                    cs.SaveAs('{n}.{i}'.format(n=impPlotName,i=i))
+
+                rfHepName = '{n}.root'.format(n=impPlotName)
+                rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+                if not rfHep:
+                    print "Error in impactPlots.py: could not open root file %s" % rfHepName
+                    quit()
+                rfHep.cd()
+                totalerr.Write()
+                for ing,ng in enumerate(groups):
+                    summaries[(charge,ng)].Write()
+                rfHep.Close()
 
 
 
@@ -806,11 +818,20 @@ if __name__ == "__main__":
             leg.Draw('same')
             lat.DrawLatex(0.1, 0.92, '#bf{CMS}' + ('' if options.skipPreliminary else ' #it{Preliminary}'))
             lat.DrawLatex(0.78, 0.92, '35.9 fb^{-1} (13 TeV)')
+            suff = '' if not options.suffix else '_'+options.suffix
+            impPlotName = options.outdir + "/etaImpacts{rel}{suff}_{target}_{ptbin}{ch}".format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,ptbin=("ipt"+str(theptbin)+"_") if isSinglePtStrip else "",ch=charge)
             for i in ['pdf', 'png']:
-                suff = '' if not options.suffix else '_'+options.suffix
                 cs.SetLogy()
-                cs.SaveAs(options.outdir+'/etaImpacts{rel}{suff}_{target}_{ptbin}{ch}.{i}'.format(rel='Abs' if options.absolute else 'Rel',
-                                                                                                  suff=suff,target=options.target,i=i,
-                                                                                                  ptbin=("ipt"+str(theptbin)+"_") if isSinglePtStrip else "",
-                                                                                                  ch=charge))
+                cs.SaveAs('{n}.{i}'.format(n=impPlotName,i=i))
+
+            rfHepName = '{n}.root'.format(n=impPlotName)
+            rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+            if not rfHep:
+                print "Error in impactPlots.py: could not open root file %s" % rfHepName
+                quit()
+            rfHep.cd()
+            totalerr.Write()
+            for ing,ng in enumerate(groups):
+                summaries[(charge,ng)].Write()
+            rfHep.Close()
 

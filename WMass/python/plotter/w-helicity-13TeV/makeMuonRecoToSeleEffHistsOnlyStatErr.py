@@ -51,6 +51,8 @@ heffSF = ROOT.TH2D("triggerSF","",len(etabins)-1, array("d",etabins), len(ptbins
 
 heffData_statUncOverTot = ROOT.TH2D("effData_statUncOverTot","all charges",
                                     len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
+heffData_systUnc = ROOT.TH2D("effData_systUnc","all charges",
+                             len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
 
 
 with open(infile) as f:
@@ -71,6 +73,7 @@ with open(infile) as f:
             systUncData = 0.0
         totUncData = math.sqrt( float(columns[5]) * float(columns[5]) + systUncData * systUncData)
         heffData_statUncOverTot.SetBinContent(ieta,ipt,float(columns[5])/totUncData)
+        heffData_systUnc.SetBinContent(ieta,ipt,systUncData)
 
 heffSF.Divide(heffData,heffMC)  # uncertainties are uncorrelated, can use simple Divide to propagate uncertainty on SF
 
@@ -78,11 +81,16 @@ drawCorrelationPlot(heffData_statUncOverTot,"%s #eta" % lepton, "%s p_{T} [GeV]"
                     "#sigma(stat) / #sigma(Tot): {l} recoToSele data efficiency".format(l="#mu" if isMu else "e"),
                     heffData_statUncOverTot.GetName(),"ForceTitle",plotoutdir,0,0,False,False,False,
                     1,palette=55)
+drawCorrelationPlot(heffData_systUnc,"%s #eta" % lepton, "%s p_{T} [GeV]" % lepton,
+                    "#sigma(syst): {l} recoToSele data efficiency".format(l="#mu" if isMu else "e"),
+                    heffData_systUnc.GetName(),"ForceTitle",plotoutdir,0,0,False,False,False,
+                    1,palette=55)
 
 tf = ROOT.TFile.Open(outfile,'recreate')
 heffData.Write(heffData.GetName())
 heffMC.Write(heffMC.GetName())
 heffSF.Write(heffSF.GetName())
 heffData_statUncOverTot.Write(heffData_statUncOverTot.GetName())
+heffData_systUnc.Write(heffData_systUnc.GetName())
 tf.Close()
 print "Created file %s " % outfile

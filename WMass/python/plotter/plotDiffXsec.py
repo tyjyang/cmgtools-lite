@@ -7,13 +7,13 @@ import ROOT, os, sys, re, array
 doMuElComb = 1
 doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
-dryrun = 1
+dryrun = 0
 skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
 onlyData = 1
-corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat
+corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat, else 0
 
-skipInclusivePlot = 0
+skipInclusivePlot = 1
 skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
@@ -22,7 +22,7 @@ skipCorr = 1
 skipCorr1D = 1
 skipImpacts = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 1
+skipMuElComparison = 0
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)

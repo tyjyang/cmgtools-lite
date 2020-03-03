@@ -247,6 +247,7 @@ def drawTH1(htmp,
             outhistname = "",
             canvasSize="700,625",
             passCanvas=None,
+            moreTextLatex=""
             ):
 
 
@@ -288,6 +289,18 @@ def drawTH1(htmp,
     ROOT.gStyle.SetOptStat(111110)
     ROOT.gStyle.SetOptFit(1102)
     #
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
+
     for ext in ["png","pdf"]:
         canvas.SaveAs(outdir + "{pfx}{hname}.{ext}".format(pfx=prefix,hname=("_"+outhistname) if len(outhistname) else "",ext=ext))
 
@@ -1557,7 +1570,8 @@ def drawMuElComparison(hlep, hmu, hel,
                        textForLines=[],                       
                        moreText="",
                        moreTextLatex="",
-                       skipPreliminary=True
+                       skipPreliminary=True,
+                       saveRootFileForHepdata = True                       
                    ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -1881,6 +1895,18 @@ def drawMuElComparison(hlep, hmu, hel,
         canvas.SaveAs(outdir + canvasName + "_logY.png")
         canvas.SaveAs(outdir + canvasName + "_logY.pdf")
         canvas.SetLogy(0)
+
+    if saveRootFileForHepdata:
+        rootfilename = outdir + canvasName + ".root"
+        rfHep = ROOT.TFile.Open(rootfilename,"recreate")
+        if not rfHep:
+            print "Error in drawXsecAndTheoryband(): could not open root file %s" % rootfilename
+            quit()
+        rfHep.cd()
+        hlep.Write("combination")
+        hmu.Write("muon")
+        hel.Write("electron")            
+        rfHep.Close()
         
           
 ################################################################
@@ -2318,7 +2344,8 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                           noLegendLowerPanel = True,
                           legendEntries = [],
                           skipPreliminary = True,
-                          nSplitUnrolledBins = 1  # integer telling in how many parts the unrolled must be split
+                          nSplitUnrolledBins = 1,  # integer telling in how many parts the unrolled must be split
+                          saveRootFileForHepdata = True
                       ):
 
     if h1.GetNbinsX()%nSplitUnrolledBins:
@@ -2888,3 +2915,14 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             canvas.SaveAs(outdir + canvasName_true + "_logY.pdf")
             canvas.SetLogy(0)
 
+        if saveRootFileForHepdata:
+            rootfilename = outdir + canvasName_true + ".root"
+            rfHep = ROOT.TFile.Open(rootfilename,"recreate")
+            if not rfHep:
+                print "Error in drawXsecAndTheoryband(): could not open root file %s" % rootfilename
+                quit()
+            rfHep.cd()
+            h1_true.Write("data")
+            h2_true.Write("theoryTotalPrediction")
+            h3.Write("theoryPDFsAndAlphaS")            
+            rfHep.Close()
