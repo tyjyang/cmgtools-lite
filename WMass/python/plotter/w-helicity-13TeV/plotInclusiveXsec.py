@@ -39,6 +39,8 @@ if __name__ == "__main__":
     parser.add_option(       '--use-xsec-wpt', dest='useXsecWithWptWeights' , default=False, action='store_true', help='Use xsec file made with W-pt weights')
     parser.add_option(       '--force-allptbins-theoryband', dest='forceAllPtBinsTheoryBand' , default=False, action='store_true', help='Use all pt bins for theory band, even if some of them were treated as background')
     parser.add_option(      '--skipPreliminary', dest='skipPreliminary', default=False, action='store_true', help='Do not add "Preliminary" to text on top left of canvas')
+    parser.add_option(     '--do-expected', dest='doExpected' , default=False , action='store_true',   help='If True, add "_expected" suffix to output name')
+    parser.add_option(     '--no-BBB', dest='noBBB' , default=False , action='store_true',   help='If True, add "_noBBB" suffix to output name')
     (options, args) = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -141,9 +143,12 @@ if __name__ == "__main__":
         hasEtaRangeBkg = False
 
 
+    pname = "inclusiveXsecAndAsymmetry"
+    if options.doExpected: pname += "_expected"
+    if options.noBBB: pname += "_noBBB"
     # this file will store all histograms for later usage
-    outfilename = "plotInclusiveXsec.root"
-    tfOut = ROOT.TFile.Open(outname+outfilename,'recreate')
+    outfilename = outname+pname+".root"  # "plotInclusiveXsec.root"
+    tfOut = ROOT.TFile.Open(outfilename,'recreate')
     tfOut.cd()
 
     lepton = "electron" if channel == "el" else "muon" if channel == "mu" else "lepton"
@@ -157,10 +162,15 @@ if __name__ == "__main__":
                                                                               etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
 
     # just one value
-    hChAsymm = ROOT.TH1F("hChAsymm_{lep}".format(lep=lepton),
+    hChAsymm = ROOT.TH1F("hChargeAsym_{lep}".format(lep=lepton),
                          "Charge asymmetry: {Wch}".format(Wch=Wchannel),
                          1,0,1)
     hChAsymm.SetDirectory(tfOut)
+    #
+    hChargeRatio = ROOT.TH1F("hChargeRatio_{lep}".format(lep=lepton),
+                             "Charge ratio +/-: {Wch}".format(Wch=Wchannel),
+                             1,0,1)
+    hChargeRatio.SetDirectory(tfOut)
     #
     hXsecPlus = ROOT.TH1F("hXsec_{lep}_plus".format(lep=lepton),
                          "cross section: {Wch}".format(Wch=Wchannel.replace('W','W+')),
@@ -181,8 +191,12 @@ if __name__ == "__main__":
     ##########################
     # graphs for theory uncertainty
     hChargeAsymPDF = ROOT.TGraphAsymmErrors(1)
-    hChargeAsymPDF.SetName("hChargeAsymPDF_{lep}".format(lep=lepton))
+    hChargeAsymPDF.SetName("hChargeAsym_{lep}_PDF".format(lep=lepton))
     hChargeAsymPDF.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
+    #
+    hChargeRatioPDF = ROOT.TGraphAsymmErrors(1)
+    hChargeRatioPDF.SetName("hChargeRatio_{lep}_PDF".format(lep=lepton))
+    hChargeRatioPDF.SetTitle("Charge ratio: {Wch}".format(Wch=Wchannel))
     #
     hXsecPlusPDF = ROOT.TGraphAsymmErrors(1)
     hXsecPlusPDF.SetName("hXsec_{lep}_plus_PDF".format(lep=lepton))
@@ -197,8 +211,12 @@ if __name__ == "__main__":
     hXsecPDF.SetTitle("cross section PDF: {Wch}".format(Wch=Wchannel))
     #
     hChargeAsymTotTheory = ROOT.TGraphAsymmErrors(1)
-    hChargeAsymTotTheory.SetName("hChargeAsymTotTheory_{lep}".format(lep=lepton))
+    hChargeAsymTotTheory.SetName("hChargeAsym_{lep}_TotTheory".format(lep=lepton))
     hChargeAsymTotTheory.SetTitle("Charge asymmetry: {Wch}".format(Wch=Wchannel))
+    #
+    hChargeRatioTotTheory = ROOT.TGraphAsymmErrors(1)
+    hChargeRatioTotTheory.SetName("hChargeRatio_{lep}_TotTheory".format(lep=lepton))
+    hChargeRatioTotTheory.SetTitle("Charge ratio: {Wch}".format(Wch=Wchannel))
     #
     hXsecPlusTotTheory = ROOT.TGraphAsymmErrors(1)
     hXsecPlusTotTheory.SetName("hXsec_{lep}_plus_TotTheory".format(lep=lepton))
@@ -232,6 +250,10 @@ if __name__ == "__main__":
     utilities.getTheoryBandInclusiveXsec(hChargeAsymTotTheory, hChargeAsymPDF, 
                                          histDict["listkeys"], histDict["asym"][0], 
                                          charge="all", valOnXaxis = True)
+    print "Make theory bands for inclusive ratio"
+    utilities.getTheoryBandInclusiveXsec(hChargeRatioTotTheory, hChargeRatioPDF, 
+                                         histDict["listkeys"], histDict["ratio"][0], 
+                                         charge="all", valOnXaxis = True)
     print "Make theory bands for absolute cross section and charge plus"
     utilities.getTheoryBandInclusiveXsec(hXsecPlusTotTheory, hXsecPlusPDF, 
                                          histDict["listkeys"], histDict["xsec"][0], 
@@ -258,6 +280,12 @@ if __name__ == "__main__":
     error = utilities.getInclusiveAsymmetryFromHessianFast(nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
     hChAsymm.SetBinContent(1,central)    
     hChAsymm.SetBinError(1,error)    
+
+    central = utilities.getInclusiveRatioFromHessianFast(nHistBins=2000, minHist=0., maxHist=1.0, tree=tree)
+    error = utilities.getInclusiveRatioFromHessianFast(nHistBins=2000, minHist=0., maxHist=1.0, tree=tree, getErr=True)
+    hChargeRatio.SetBinContent(1,central)    
+    hChargeRatio.SetBinError(1,error)    
+
 
     central = utilities.getInclusiveXsecFromHessianFast("plus",nHistBins=10000, minHist=0., maxHist=50000., tree=tree)
     error = utilities.getInclusiveXsecFromHessianFast("plus",nHistBins=10000, minHist=0., maxHist=50000., tree=tree, getErr=True)                    
@@ -293,14 +321,17 @@ if __name__ == "__main__":
         hXsec.Scale(0.5)
 
     writeHistoIntoFile(hChAsymm,tfOut)
+    writeHistoIntoFile(hChargeRatio,tfOut)
     writeHistoIntoFile(hXsecPlus,tfOut)
     writeHistoIntoFile(hXsecMinus,tfOut)
     writeHistoIntoFile(hXsec,tfOut)
     writeHistoIntoFile(hChargeAsymPDF,tfOut)
+    writeHistoIntoFile(hChargeRatioPDF,tfOut)
     writeHistoIntoFile(hXsecPlusPDF,tfOut)
     writeHistoIntoFile(hXsecMinusPDF,tfOut)
     writeHistoIntoFile(hXsecPDF,tfOut)
     writeHistoIntoFile(hChargeAsymTotTheory,tfOut)
+    writeHistoIntoFile(hChargeRatioTotTheory,tfOut)
     writeHistoIntoFile(hXsecPlusTotTheory,tfOut)
     writeHistoIntoFile(hXsecMinusTotTheory,tfOut)
     writeHistoIntoFile(hXsecTotTheory,tfOut)
@@ -311,15 +342,15 @@ if __name__ == "__main__":
     impactDict = {"incl" :  ["sumpois",        "W_lep_sumxsec",            None],
                   "plus" :  ["sumpois",        "Wplus_lep_sumxsec",        None],
                   "minus" : ["sumpois",        "Wminus_lep_sumxsec",       None],
+                  "ratio" : ["ratiometapois", "Wratio_lep_ratiometaratio", None],
                   "asym" :  ["chargemetapois", "Wasym_lep_chargemetaasym", None]
                 }
 
     # could just have exp+theory (I have the proper impact already, it has everything except stat(s) and lumi)
     #impactToDisplay = ["luminosity", "allTheory", "allExp", "binByBinStat", "stat"]
     #impactTextLabel = ["lumi", "theo", "exp", "stat(MC)", "stat"]
-    impactToDisplay = ["luminosity", "allTheoAndExp", "binByBinStat", "stat"]
-    impactTextLabel = ["lumi", "syst", "stat(MC)", "stat"]
-
+    impactToDisplay = ["luminosity", "allTheoAndExp", "binByBinStat", "stat", "allExp", "allTheory"]
+    impactTextLabel = ["lumi", "ExpAndTheoSyst", "stat(MC)", "stat", "expSyst", "theoSyst"]
     for key in impactDict.keys():
         th2name = 'nuisance_group_impact_{sfx}'.format(sfx=impactDict[key][0])
         impMat = f.Get(th2name)
@@ -332,7 +363,7 @@ if __name__ == "__main__":
                 for iy in range(1,impMat.GetNbinsY()+1):                    
                     impactDict[key][2].GetXaxis().SetBinLabel(iy,impMat.GetYaxis().GetBinLabel(iy))
                     impactVal = impMat.GetBinContent(ib,iy)
-                    if key != "asym":
+                    if key != "asym" and key != "ratio":
                         impactVal = impactVal * scaleFactor
                         if isMuElComb:
                             # xsec was twice the value for a single lepton
@@ -347,17 +378,20 @@ if __name__ == "__main__":
     dictHist = {"incl"  : [hXsec,      hXsecTotTheory,       hXsecPDF],
                 "plus"  : [hXsecPlus,  hXsecPlusTotTheory,   hXsecPlusPDF],
                 "minus" : [hXsecMinus, hXsecMinusTotTheory,  hXsecMinusPDF],
-                "asym"  : [hChAsymm,   hChargeAsymTotTheory, hChargeAsymPDF]
+                "asym"  : [hChAsymm,   hChargeAsymTotTheory, hChargeAsymPDF],
+                "ratio"  : [hChargeRatio,   hChargeRatioTotTheory, hChargeRatioPDF]
             }
 
     thislep = "e" if channel == "el" else "#mu" if channel == "mu" else "l"
-    texts = {"incl"  : "W #rightarrow %s#nu" % thislep,
+    texts = {"incl"  : "W #rightarrow %s^{ }#nu" % thislep,
              "plus"  : "W^{ +} #rightarrow %s^{ + }#nu" % thislep,
              "minus" : "W^{ -} #rightarrow %s^{ - }#bar{#nu}" % thislep,
+             "ratio"  : "W^{ + }/ W^{ - }",
              "asym"  : "(W^{ + }- W^{ - }) / (W^{ + }+ W^{ - })"
     }
 
-    sortedKeys = ["plus", "minus", "incl", "asym"]
+    #sortedKeys = ["asym", "minus", "plus", "incl"]  # last one will appear on top
+    sortedKeys = ["ratio", "minus", "plus", "incl"]  # last one will appear on top
     #sortedKeys = ["plus"]
 
     # at this point the histograms exist, need to plot them with partial uncertainties as well
@@ -368,7 +402,7 @@ if __name__ == "__main__":
     adjustSettings_CMS_lumi()
     leftMargin = 0.04
     rightMargin = 0.04
-    ROOT.gStyle.SetEndErrorSize(12)
+    ROOT.gStyle.SetEndErrorSize(5)
     canvas = ROOT.TCanvas("canvas","",2500,1500)   
     canvas.SetTickx(0)
     canvas.SetTicky(1)
@@ -378,8 +412,8 @@ if __name__ == "__main__":
     canvas.SetTopMargin(0.08)
     canvas.SetBottomMargin(0.12)
     canvas.cd()
-    xmin = 0.8
-    xmax = 1.3
+    xmin = 0.87
+    xmax = 1.20
     ymin = 0
     ymax = 7
 
@@ -400,7 +434,7 @@ if __name__ == "__main__":
 
     xsectext = ROOT.TLatex()
     xsectext.SetTextColor(ROOT.kBlack)
-    xsectext.SetTextSize(0.035)  # 0.03
+    xsectext.SetTextSize(0.04)  # 0.03
     xsectext.SetTextFont(42)    
     
     cuttext = ROOT.TLatex()
@@ -411,7 +445,7 @@ if __name__ == "__main__":
     theoryTextColor = ROOT.kPink-6 # or kBlue+1
     
     ystart = 1
-    nhists = len(dictHist.keys())
+    nhists = len(sortedKeys)
     gr = {}
     htotTheory = {}
     hpdf = {}
@@ -421,50 +455,70 @@ if __name__ == "__main__":
     latMeas = ROOT.TLatex()
     latMeas.SetTextFont(42)
     latMeas.SetTextSize(0.035)
-    
+
+    textfile = open(outname+pname+".txt","w+")
+    textfile.write("#Measured quantity and uncertainty breakdown (note that we show theory and exp both separately and combined)\n")        
+    textfile.write("#Uncertainties do not trivially sum in quadratue, as they are correlated.\n\n")        
+
     for ik,key in enumerate(sortedKeys):
         thisy = ystart + ik
         h = dictHist[key][0].Clone("dummy")
-        #form = "0.4g" if key == "asym" else "0.f"
-        # if key == "asym":
-        #     xsectextData = "measured: %.4f #pm %.4f" % (h.GetBinContent(1),h.GetBinError(1))
+
+        # no, do not sum in qudrature the uncertainties, they do not sum in quadrature
+        # totUncNoLumi = 0.0
+        # uncLumi = 0.0
+        iph = impactDict[key][2]
+        # for ip in impactToDisplay:
+        #     if ip == "luminosity": 
+        #         uncLumi = iph.GetBinContent(iph.GetXaxis().FindFixBin(ip))
+        #     else:
+        #         unc = iph.GetBinContent(iph.GetXaxis().FindFixBin(ip))
+        #         totUncNoLumi += unc*unc
+        # totUncNoLumi = ROOT.TMath.Sqrt(totUncNoLumi)
+        # if key == "asym" or key == "ratio":
+        #     xsectextData = "%.4f #pm %.4f" % (h.GetBinContent(1), h.GetBinError(1))
         # else:
-        #     xsectextData = "measured: %.0f #pm %.0f pb" % (h.GetBinContent(1),h.GetBinError(1))        
-        if key == "asym":
-            xsectextData = "%.4f" % (h.GetBinContent(1))
-            for i,ip in enumerate(impactToDisplay):
-                if ip == "luminosity": continue
-                iph = impactDict[key][2]
-                xsectextData += " #pm %.4f_{%s}" % (iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
-                                                      impactTextLabel[i])
+        #     xsectextData = "%.0f #pm %.0f (%.0f #oplus %.0f) pb" % (h.GetBinContent(1), h.GetBinError(1), uncLumi, totUncNoLumi)
+        if key == "asym" or key == "ratio":
+            xsectextData = "%.4f #pm %.4f" % (h.GetBinContent(1), h.GetBinError(1))
         else:
-            xsectextData = "%.0f" % (h.GetBinContent(1))
+            xsectextData = "%.0f #pm %.0f pb" % (h.GetBinContent(1), h.GetBinError(1))
+
+        fline = key
+        if key == "asym" or key == "ratio":
+            fline += ": {c:.4f} #pm {e:.4f}     ".format(c=h.GetBinContent(1),e=h.GetBinError(1))
             for i,ip in enumerate(impactToDisplay):
-                iph = impactDict[key][2]
-                xsectextData += " #pm %.0f_{%s}" % (iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
-                                                      impactTextLabel[i])
-            xsectextData += " pb"
+                fline += "   {v:.4f} ({itl})".format(v=iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
+                                                       itl=impactTextLabel[i])
+        else:
+            fline += ":    {c:.0f} #pm {e:.0f}       ".format(c=h.GetBinContent(1),e=h.GetBinError(1))
+            for i,ip in enumerate(impactToDisplay):
+                fline += "   {v:.0f} ({itl})".format(v=iph.GetBinContent(iph.GetXaxis().FindFixBin(ip)),
+                                                       itl=impactTextLabel[i])
+        fline += "\n\n"            
+        textfile.write(fline)
+
         htotTheory[ik] = dictHist[key][1]
         hpdf[ik] = dictHist[key][2]
         centralTheoryVal = ROOT.Double(0)
         centralTheoryPointVal = ROOT.Double(0) # not needed anyway
-        htotTheory[ik].GetPoint(0,centralTheoryVal,centralTheoryPointVal) # this works for recent root version (maybe 
-        # if key == "asym":
-        #     xsectextTheo = "theory:       %.4f^{+%.4f}_{-%.4f}" % (centralTheoryVal, 
-        #                                                               htotTheory[ik].GetErrorXhigh(0), 
-        #                                                               htotTheory[ik].GetErrorXlow(0))
-        # else:
-        #     xsectextTheo = "theory:       %.0f^{%.0f}_{-%.0f} pb" % (centralTheoryVal, 
-        #                                                            htotTheory[ik].GetErrorXhigh(0), 
-        #                                                            htotTheory[ik].GetErrorXlow(0))
-        if key == "asym":
-            xsectextTheo = "%.4f + %.4f - %.4f" % (centralTheoryVal, 
+        htotTheory[ik].GetPoint(0,centralTheoryVal,centralTheoryPointVal)
+        if key == "asym" or key == "ratio":
+            xsectextTheo = "%.4f^{ +%.4f}_{ -%.4f}" % (centralTheoryVal, 
                                                                       htotTheory[ik].GetErrorXhigh(0), 
                                                                       htotTheory[ik].GetErrorXlow(0))
         else:
-            xsectextTheo = "%.0f + %.0f - %.0f pb" % (centralTheoryVal, 
+            xsectextTheo = "%.0f^{ +%.0f}_{ -%.0f} pb" % (centralTheoryVal, 
                                                                    htotTheory[ik].GetErrorXhigh(0), 
                                                                    htotTheory[ik].GetErrorXlow(0))
+        # if key == "asym":
+        #     xsectextTheo = "%.4f + %.4f - %.4f" % (centralTheoryVal, 
+        #                                                               htotTheory[ik].GetErrorXhigh(0), 
+        #                                                               htotTheory[ik].GetErrorXlow(0))
+        # else:
+        #     xsectextTheo = "%.0f + %.0f - %.0f pb" % (centralTheoryVal, 
+        #                                                            htotTheory[ik].GetErrorXhigh(0), 
+        #                                                            htotTheory[ik].GetErrorXlow(0))
 
         scaleTheoryVal = 1./centralTheoryVal
         #print "x = %f   y = %f" % (centralTheoryVal, centralTheoryPointVal)
@@ -479,17 +533,22 @@ if __name__ == "__main__":
         gr[ik].SetMarkerColor(ROOT.kBlack)
         gr[ik].SetMarkerStyle(20)
         gr[ik].SetLineWidth(3)
-        gr[ik].SetMarkerSize(3)
+        if key == "ratio":
+            ROOT.gStyle.SetEndErrorSize(0)
+            gr[ik].SetMarkerSize(2)
+        else:
+            ROOT.gStyle.SetEndErrorSize(5)
+            gr[ik].SetMarkerSize(3)
         htotTheory[ik].SetPoint(0,1, thisy)                 
         hpdf[ik].SetPoint(0,1, thisy)                 
 
         if ik == 0:
-            frame = ROOT.TH1D("frame","",100,0,2)        
+            frame = ROOT.TH1D("frame","",100,0.5,1.5)        
             frame.SetLineColor(ROOT.kWhite)
             frame.SetMarkerColor(ROOT.kWhite)
             frame.SetMarkerSize(0)
             frame.GetXaxis().SetLabelSize(0.05)
-            frame.GetXaxis().SetTitle("ratio (data/pred.) of inclusive cross sections and asymmetry")
+            frame.GetXaxis().SetTitle("ratio (measured/prediction) of fiducial cross sections")
             frame.GetXaxis().SetTitleOffset(1.2)
             frame.GetXaxis().SetTitleSize(0.05)
             frame.GetXaxis().SetRangeUser(xmin,xmax)
@@ -526,14 +585,16 @@ if __name__ == "__main__":
         xsectext.SetTextColor(ROOT.kBlack)
         xsectext.DrawLatex(xtext, thisy+0.1, xsectextData)
         xsectext.SetTextColor(theoryTextColor)
-        xsectext.DrawLatex(xtext, thisy-0.4, xsectextTheo)
+        #xsectext.DrawLatex(xtext, thisy-0.4, xsectextTheo) # if no sub/super-scripts
+        xsectext.DrawLatex(xtext, thisy-0.3, xsectextTheo) # with sub/super-scripts 
         if ik == (len(sortedKeys)-1):
             thisy = ystart + len(sortedKeys)
             text.DrawLatex(xmin+0.01, thisy-0.1, "#bf{Observable}")
             latMeas.SetTextColor(ROOT.kBlack)
-            latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured}")
+            #latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured #pm uncertainty (lumi #oplus syst)}")
+            latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured #pm total uncertainty}")
             latMeas.SetTextColor(theoryTextColor)
-            latMeas.DrawLatex(xtext, thisy-0.4, "#bf{Theory}")
+            latMeas.DrawLatex(xtext, thisy-0.4, "#bf{Theory prediction}")
     # end loop
 
     horizline = ROOT.TLine(xmin,0,xmax,0)
@@ -551,7 +612,7 @@ if __name__ == "__main__":
     #leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.SetNColumns(1)
-    leg.AddEntry(gr[0],"measured","LPE")
+    leg.AddEntry(gr[0],"measured","LP")
     leg.AddEntry(htotTheory[ik],"MadGraph5_aMC@NLO","LF")
     leg.AddEntry(hpdf[ik],"PDFs #oplus #alpha_{S}","LF")
     leg.Draw("same")
@@ -585,8 +646,9 @@ if __name__ == "__main__":
         latCMS.DrawLatex(0.82+(0.04-rightMargin), 0.95, '(13 TeV)' % lumi)
     canvas.RedrawAxis("sameaxis")
     for ext in ["png", "pdf"]:
-        canvas.SaveAs(outname + "inclusiveXsecAndAsymmetry." + ext)
-        
+        canvas.SaveAs(outname + pname + "." + ext)
+
+    textfile.close()
 
     tfOut.Close()
     print ""

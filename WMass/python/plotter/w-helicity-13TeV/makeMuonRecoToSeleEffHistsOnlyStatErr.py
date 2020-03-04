@@ -14,15 +14,14 @@ ROOT.TH1.SetDefaultSumw2()
 # [0] https://mdunser.web.cern.ch/mdunser/private/w-helicity-13TeV/tnpFits/muFullData_trigger_fineBin_noMu50_PLUS/triggerMu/egammaEffi.txt
 
 isMu = True
-charge = "minus" if isMu else "all"
 #lepton = "muon" 
 lepton = "muon" if isMu else "electron" 
 subdir = "" if isMu else "trigger_etaEE0p1/"
 #mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/"
 mypath = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/{lep}/{sub}".format(lep=lepton,sub=subdir)
-infile = mypath + "trigger{lep}Eff{ch}.txt".format(lep="Muon" if isMu else "Electron", ch="Minus" if charge == "minus" else "Plus" if charge == "plus" else "AllCharge")
+infile = mypath + "recoToSele{lep}Eff.txt".format(lep="Muon" if isMu else "Electron")
 outfile = infile.replace('.txt','_onlyStatUnc.root')
-plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/{lep}/trigger_{ch}/{sub}".format(lep=lepton,sub=subdir,ch=charge)
+plotoutdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/test/{lep}/recoToSele/{sub}".format(lep=lepton,sub=subdir)
 
 noAlternativeFitData = False
 if subdir == "trigger_etaEE0p1/":
@@ -46,13 +45,13 @@ else:
 print etabins
 print ptbins
 
-heffData = ROOT.TH2D("effData_{ch}".format(ch=charge),"",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
-heffMC = ROOT.TH2D("effMC_{ch}".format(ch=charge),"",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
-heffSF = ROOT.TH2D("triggerSF_{ch}".format(ch=charge),"",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
+heffData = ROOT.TH2D("effData","",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
+heffMC = ROOT.TH2D("effMC","",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
+heffSF = ROOT.TH2D("triggerSF","",len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
 
-heffData_statUncOverTot = ROOT.TH2D("effData_statUncOverTot_{ch}".format(ch=charge),"charge {ch}".format(ch=charge),
+heffData_statUncOverTot = ROOT.TH2D("effData_statUncOverTot","all charges",
                                     len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
-heffData_systUnc = ROOT.TH2D("effData_systUnc_{ch}".format(ch=charge),"charge {ch}".format(ch=charge),
+heffData_systUnc = ROOT.TH2D("effData_systUnc","all charges",
                              len(etabins)-1, array("d",etabins), len(ptbins)-1, array("d",ptbins))
 
 
@@ -79,11 +78,11 @@ with open(infile) as f:
 heffSF.Divide(heffData,heffMC)  # uncertainties are uncorrelated, can use simple Divide to propagate uncertainty on SF
 
 drawCorrelationPlot(heffData_statUncOverTot,"%s #eta" % lepton, "%s p_{T} [GeV]" % lepton,
-                    "#sigma(stat) / #sigma(Tot): {l} trigger data efficiency".format(l="#mu" if isMu else "e"),
+                    "#sigma(stat) / #sigma(Tot): {l} recoToSele data efficiency".format(l="#mu" if isMu else "e"),
                     heffData_statUncOverTot.GetName(),"ForceTitle",plotoutdir,0,0,False,False,False,
                     1,palette=55)
 drawCorrelationPlot(heffData_systUnc,"%s #eta" % lepton, "%s p_{T} [GeV]" % lepton,
-                    "#sigma(syst): {l} trigger data efficiency".format(l="#mu" if isMu else "e"),
+                    "#sigma(syst): {l} recoToSele data efficiency".format(l="#mu" if isMu else "e"),
                     heffData_systUnc.GetName(),"ForceTitle",plotoutdir,0,0,False,False,False,
                     1,palette=55)
 
