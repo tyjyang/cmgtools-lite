@@ -11,6 +11,7 @@
 #include "TCanvas.h"
 #include "TGraphAsymmErrors.h"
 #include "TLorentzVector.h"
+#include "TEfficiency.h"
 #include "EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class.cc"
 
 #include <iostream>
@@ -120,6 +121,7 @@ float wpt_slope_weight(float wpt, float offset, float slope){
     return weight;
 }
 
+
 float prefireJetsWeight(float eta){
     float feta = fabs(eta);
     if (feta < 2.0) return 0.9986;
@@ -129,6 +131,72 @@ float prefireJetsWeight(float eta){
     if (feta < 2.5) return 0.9865;
     return 1.;
 }
+
+
+TFile* _file_prefireMapJets = NULL;
+TH2F* prefireMapJets = NULL;
+
+float mydeltaPhi(float phi1, float phi2) {
+  float result = phi1 - phi2;
+  while (result > float(M_PI)) result -= float(2*M_PI);
+  while (result <= -float(M_PI)) result += float(2*M_PI);
+  return result;
+}
+
+float mydeltaR(float eta1, float phi1, float eta2, float phi2) {
+  float deta = std::abs(eta1-eta2);
+  float dphi = mydeltaPhi(phi1,phi2);
+  return std::sqrt(deta*deta + dphi*dphi);
+}
+
+float prefireJetsScaleFactor(int njet, 
+			     float jet1_pt, float jet1_eta,
+			     float jet2_pt, float jet2_eta) {
+
+  if (njet == 0) {
+    std::cout << "njet = " << njet << std::endl;
+    return 1.0;
+  }
+
+  // must pass collection of cleaned jet
+  // abs(eta) on X axis, pt on Y axis
+  if (not prefireMapJets) {
+    _file_prefireMapJets = new TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/scaleFactors/muons/Map_Jet_L1FinOReff_bxm1_looseJet_SingleMuon_Run2016B-H.root");
+    prefireMapJets = (TH2F*) ((TEfficiency*)_file_prefireMapJets->Get("prefireEfficiencyMap"))->CreateHistogram();
+  }
+
+  // this function allows for up to 2 jets to prefire
+  // probability that a third jet prefires is really negligible (even with 2 of them but ok)
+  int etabin = 0;
+  int ptbin = 0;
+  int maxXbins = prefireMapJets->GetNbinsX();
+  int maxYbins = prefireMapJets->GetNbinsY();
+  float effPrefireJet1 = 0.0;
+  float effPrefireJet2 = 0.0;
+
+  if (njet > 0) {
+    etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet1_eta)) ) );
+    ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet1_pt) ) );
+    effPrefireJet1 = prefireMapJets->GetBinContent(etabin,ptbin);
+    if (njet > 1) {
+      etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet2_eta)) ) );
+      ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet2_pt) ) );
+      effPrefireJet2 = prefireMapJets->GetBinContent(etabin,ptbin);     
+    }
+  }
+
+  if (njet == 1) {
+    std::cout << "njet = " << njet << "\t SF = " << (1. - effPrefireJet1) << std::endl;
+    return (1. - effPrefireJet1);
+  } else if (njet == 2) {
+    std::cout << "njet = " << njet << "\t SF = " << (1. - (effPrefireJet1 + effPrefireJet2 - effPrefireJet1 * effPrefireJet2)) << std::endl;
+    return (1. - (effPrefireJet1 + effPrefireJet2 - effPrefireJet1 * effPrefireJet2));
+  } else {
+    std::cout << "njet = " << njet << std::endl;
+    return 1.0; // should never arrive here but let's be safe
+  }
+}
+
 
 float prefireJetsWeight_2l(float eta1, float eta2) {
 
@@ -293,6 +361,48 @@ float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false
   //float scaleToMCaNLO = isZ ? 1. : 0.958;
   return scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
 }
+//=================
+TFile *_file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO = NULL;
+TH1F *zptRatio_MGaMCAtNLO_PowhegMiNNLO = NULL; 
+
+float dyptWeight_PowhegMiNNLO(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false, bool usePhotos = false) {
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+  if (!amcnlody) {
+    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
+    amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
+  }
+  int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
+  // for the Z, change the pT *and* normalization to the measured one in data
+  // for the W, change only the pT, but scale back to the total xsec of MC@NLO (factor comptued for total xsec in acceptance)
+  // when using pt range 26-56 instead of 26-45, there is an additional factor 0.987, so the actual number would be 0.946 
+  
+  // when using only 0.958 I see that total gen-xsec no-Wpt over with-Wpt is 1.0138013 for W+ and 1.0144267 for W-
+  // let's take only 1.014 without distinguishing charges
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
+
+  if (!zptRatio_MGaMCAtNLO_PowhegMiNNLO) {
+    // 2 GeV granularity from 0 to 100 GeV (last bin is overflow)
+    _file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/ZptRatio_MGaMCAtNLO_PowhegMiNNLO_dressed_noCuts.root",_cmssw_base_.c_str()));
+    string hname_MGaMCAtNLO_PowhegMiNNLO = "pythia8";
+    if (usePhotos) hname_MGaMCAtNLO_PowhegMiNNLO = "pythia8_photos";
+    zptRatio_MGaMCAtNLO_PowhegMiNNLO = (TH1F*)(_file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO->Get(hname_MGaMCAtNLO_PowhegMiNNLO.c_str()));
+  }
+  int ptbinCorr = std::max(1, std::min(zptRatio_MGaMCAtNLO_PowhegMiNNLO->GetNbinsX(), 
+				       zptRatio_MGaMCAtNLO_PowhegMiNNLO->GetXaxis()->FindFixBin(pt2l))
+			   );
+
+  float scaleW = scaleNormWToGenXsecBeforeCuts ? 0.9714120 : 0.958;  //1.014 * 0.958 // to be revisited with new MC
+  float scaleToMCaNLO = isZ ? 1. : scaleW;
+  // plots are MC/data
+  //float scaleToMCaNLO = isZ ? 1. : 0.958;
+  return zptRatio_MGaMCAtNLO_PowhegMiNNLO->GetBinContent(ptbinCorr) * scaleToMCaNLO / amcnlody->GetBinContent(ptbin);
+}
+
+
+//=================
 
 TFile *_file_postfitWeights = NULL;
 TH1F *hist_scales_0plus  = NULL;
@@ -990,6 +1100,17 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
 
 }
 
+// return both SF, possibily only for events fulfilling a given condition
+float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bool passCut = true) {
+
+  if (passCut) {
+    return _get_muonSF_recoToSelection(pdgid,pt,eta)*_get_muonSF_selectionToTrigger(pdgid,pt,eta,charge);
+  } else {
+    return 1.0;
+  }
+
+}
+
 //============================
 
 TFile *_file_eleTrigger_EBeta0p1 = NULL;
@@ -1426,12 +1547,102 @@ float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass pos
 
 }
 
+float triggerSFforChargedLeptonMatchingTriggerWlike(bool isOddEvent, // pass positive or negative number, depending on what you want 
+						    bool matchTrigger_l1, bool matchTrigger_l2,
+						    int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
+						    float pt1, float pt2,
+						    float eta1, float eta2						 
+						    ) {
+
+  int requiredCharge = isOddEvent ? 1 : -1;
+
+  bool thisLepMatchesTrigger = false;
+  int pdgId = 0;
+  float pt  = 0.0;
+  float eta = 0.0;
+
+  bool otherLepMatchesTrigger = false;
+  int pdgId_other = 0;
+  float pt_other  = 0.0;
+  float eta_other = 0.0;
+  
+  bool isSameSign = (pdgid1*pdgid2 > 0) ? true : false;
+  
+  // pdgID > 0 for negative leptons
+  if (isSameSign || requiredCharge * pdgid1 < 0) {
+    pdgId = pdgid1;
+    pt    = pt1;
+    eta   = eta1;    
+    thisLepMatchesTrigger = matchTrigger_l1;
+    pdgId_other = pdgid2;
+    pt_other    = pt2;
+    eta_other   = eta2;    
+    otherLepMatchesTrigger = matchTrigger_l2;
+  } else {
+    pdgId = pdgid2;
+    pt    = pt2;
+    eta   = eta2;
+    thisLepMatchesTrigger = matchTrigger_l2;
+    pdgId_other = pdgid1;
+    pt_other    = pt1;
+    eta_other   = eta1;    
+    otherLepMatchesTrigger = matchTrigger_l1;
+  }
+
+  // consider only case where given lepton matches trigger
+  if (isSameSign) {
+    if (thisLepMatchesTrigger and otherLepMatchesTrigger) {      
+      // charge is known, but what about which eta-pt ?
+      // this is a minor component for Z with SS in MC, might just randomly choose one
+      return 1;
+    } else if (thisLepMatchesTrigger) {
+      // here we choose leading lepton for now (charge == -1 * pdgId)      
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, -1 * pdgId);					    
+      // return 1;
+    } else if (otherLepMatchesTrigger) {
+      return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1 * pdgId_other);
+    } else {
+      return 0; // should not happen, but just in case
+    }
+  } else {
+    if (thisLepMatchesTrigger) {
+      int sfCharge = requiredCharge;
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, sfCharge);					    
+    } else {
+      // if lepton does not match trigger, we decide to reject the event
+      return 0.0; 
+    }
+  }
+
+}
+
+
 bool triggerMatchV2(int requiredCharge, // pass positive or negative number, depending on what you want 
 		    float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
 		    float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
 		    int pdgId1, int pdgId2  // used to decide which lepton has the required charge
 		    ) {
 
+  // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
+  // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
+  if (requiredCharge * pdgId1 < 0) {
+    // use lep 1
+    return (matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) ? 1 : 0; 
+  } else {
+    // use lep 2
+    return (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2 > 0.0) ? 1 : 0; 
+  }
+
+}
+
+
+bool triggerMatchWlike(bool isOddEvent, // pass positive or negative number, depending on what you want 
+		       float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
+		       float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
+		       int pdgId1, int pdgId2  // used to decide which lepton has the required charge
+		       ) {
+
+  int requiredCharge = isOddEvent ? 1 : -1;
   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
   // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
   if (requiredCharge * pdgId1 < 0) {

@@ -85,7 +85,7 @@ class lepAwayJetProducer(Module):
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         leps = filter(self.lepSel, Collection(event, "LepGood"))
-        jets = filter(self.jetSel, Collection(event, "Jet"))
+        jets = filter(self.jetSel, Collection(event, "JetAll"))
         jets.sort(key = self.jetSort, reverse=True)
         ret = {}
         for V in self.vars: ret[V] = []
@@ -319,7 +319,7 @@ class lepCalibratedEnergyProducer(Module):
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
 eleRelIsoEA = lambda : lepIsoEAProducer("%s/src/RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt" % os.environ['CMSSW_BASE'])
-lepQCDAwayJet = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 2.4,
+lepQCDAwayJet = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 4.7,
                                             pairSel =lambda lep, jet: deltaR(lep.eta,lep.phi, jet.eta, jet.phi) > 0.7)
 eleCalibrated = lambda : lepCalibratedEnergyProducer("CMGTools/WMass/python/postprocessing/data/leptonScale/el/Legacy2016_07Aug2017_FineEtaR9_ele")
 kamucaCentral = lambda : KaMuCaProducer(version='80X',syst=False)

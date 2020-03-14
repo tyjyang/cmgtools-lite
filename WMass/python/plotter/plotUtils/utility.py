@@ -873,6 +873,9 @@ def drawNTH1(hists=[],
         pad2.SetFillColor(0)
         pad2.SetGridy(1)
         pad2.SetFillStyle(0)
+    else:
+        canvas.SetBottomMargin(0.15)
+
 
     h1 = hists[0]
     hnums = [hists[i] for i in range(1,len(hists))]

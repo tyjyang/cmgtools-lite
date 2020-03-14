@@ -80,8 +80,9 @@ class KinematicVars:
         else: return phi
 
 class GenQEDJetProducer(Module):
-    def __init__(self,deltaR,beamEn=7000.):
+    def __init__(self,deltaR,beamEn=7000.,saveVertexZ=False):
         self.beamEn=beamEn
+        self.saveVertexZ=saveVertexZ
         self.deltaR = deltaR
         self.vars = ("pt","eta","phi","mass","pdgId","fsrDR","fsrPt")
         self.genwvars = ("charge","pt","mass","y","costcs","phics","decayId")
@@ -202,7 +203,7 @@ class GenQEDJetProducer(Module):
                 if abs(p.pdgId) == 15       and not p.isPromptDecayed : continue
             lepton = ROOT.TLorentzVector()
             lepton.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
-            leptons.append( [lepton, p.pdgId] )
+            leptons.append( [lepton, p.pdgId, p.vz()] ) # adding Z coordinate of vertex
 
         #leptons = sorted(leptons, key = lambda x: x[0].Pt() )
         leptons.sort(key = lambda x: x[0].Pt(), reverse=True )
@@ -327,8 +328,8 @@ class GenQEDJetProducer(Module):
         ## check if the proper Ws can be made
         bareLeptonCollection                = self.getBareLeptons(strictlyPrompt=makeBosons)
         dressedLeptonCollection             = self.getDressedLeptons(bareLeptonCollection,strictlyPrompt=makeBosons)
-        dressedLepton, dressedLeptonPdgId   = dressedLeptonCollection[0] if len(dressedLeptonCollection) else (0,0)
-        bareLepton,    bareLeptonPdgId      = bareLeptonCollection[0]    if len(bareLeptonCollection)    else (0,0)
+        dressedLepton, dressedLeptonPdgId, dressedLeptonVertexZ   = dressedLeptonCollection[0] if len(dressedLeptonCollection) else (0,0,0)
+        bareLepton,    bareLeptonPdgId, bareLeptonVertexZ      = bareLeptonCollection[0]    if len(bareLeptonCollection)    else (0,0,0)
         #(preFSRLepton , preFSRLeptonPdgId ) = self.getPreFSRLepton()     if makeBosons else (0,0)
         (neutrino     , neutrinoPdgId     ) = self.getNeutrino()         if makeBosons else (0,0)
         ## new to work also for Z
@@ -353,6 +354,7 @@ class GenQEDJetProducer(Module):
             retL["phi"]   = [leppy[0].Phi() for leppy in dressedLeptonCollection ]
             retL["pdgId"] = [leppy[1]       for leppy in dressedLeptonCollection ]
             retL["mass"]  = [leppy[0].M() if leppy[0].M() >= 0. else 0. ]
+            retL["vertexZ"] = [leppy[2]       for leppy in dressedLeptonCollection ]
 
             retL["fsrDR"] = []
             retL["fsrPt"] = []
@@ -363,6 +365,8 @@ class GenQEDJetProducer(Module):
 
             for V in self.vars:
                 self.out.fillBranch("GenLepDressed_"+V, retL[V])
+            if self.saveVertexZ:
+                self.out.fillBranch("GenLepDressed_vertexZ", retL["vertexZ"])
 
         #always produce the bare lepton collection
         if len(bareLeptonCollection)>0:
@@ -373,6 +377,7 @@ class GenQEDJetProducer(Module):
             retB["phi"]   = [bareLeptonCollection[i][0].Phi() for i in leptonsToTake ]
             retB["mass"]  = [bareLeptonCollection[i][0].M() if dressedLeptonCollection[i][0].M() >= 0. else 0. for i in leptonsToTake]
             retB["pdgId"] = [bareLeptonCollection[i][1] for i in leptonsToTake ]
+            retB["vertexZ"] = [bareLeptonCollection[i][2] for i in leptonsToTake ]
             retB["fsrDR"] = []
             retB["fsrPt"] = []
             for  i in leptonsToTake:
@@ -383,6 +388,8 @@ class GenQEDJetProducer(Module):
             self.out.fillBranch("nGenLepBare", leptonsToTake[-1])
             for V in self.vars:
                 self.out.fillBranch("GenLepBare_"+V, retB[V])
+            if self.saveVertexZ:
+                self.out.fillBranch("GenLepDressed_vertexZ", retL["vertexZ"])
 
         #W-specific
         if neutrino:
@@ -548,5 +555,5 @@ class GenQEDJetProducer(Module):
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
 genQEDJets14TeV = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=7000.)
-genQEDJets = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=6500.)
+genQEDJets = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=6500.,saveVertexZ=True)
 

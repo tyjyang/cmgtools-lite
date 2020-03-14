@@ -30,8 +30,8 @@ selectedEvents=getHeppyOption("selectEvents","")
 # save PDF information and do not skim. Do only for needed MC samples
 runOnSignal = True
 doTriggerMatching = True
-keepLHEweights = True
-signalZ = True
+keepLHEweights = False
+signalZ = False
 runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
@@ -220,7 +220,7 @@ hbheAna = cfg.Analyzer(
     hbheAnalyzer, name="hbheAnalyzer", IgnoreTS4TS5ifJetInLowBVRegion=False
     )
 dmCoreSequence.insert(dmCoreSequence.index(ttHCoreEventAna),hbheAna)
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
+#treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
 treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
 treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
 treeProducer.globalVariables.append(NTupleVariable("Flag_badChargedHadronFilter", lambda ev: ev.badChargedHadron, help="bad charged hadron filter decision"))
@@ -259,13 +259,13 @@ puppiMetAna=metAna.clone(
 
 from CMGTools.RootTools.samples.triggers_13TeV_DATA2016 import *
 triggerFlagsAna.triggerBits = {
-    'DoubleMu' : triggers_mumu_iso,
-    'DoubleMuSS' : triggers_mumu_ss,
-    'DoubleMuNoIso' : triggers_mumu_noniso,
-    'DoubleEl' : triggers_ee,
-    'MuEG'     : triggers_mue,
+    #'DoubleMu' : triggers_mumu_iso,
+    #'DoubleMuSS' : triggers_mumu_ss,
+    #'DoubleMuNoIso' : triggers_mumu_noniso,
+    #'DoubleEl' : triggers_ee,
+    #'MuEG'     : triggers_mue,
     'SingleMu' : triggers_1mu_iso,
-    'SingleMuNoIso' : triggers_1mu_noniso,
+    #'SingleMuNoIso' : triggers_1mu_noniso,
     'SingleEl'     : triggers_1e,
 }
 triggerFlagsAna.unrollbits = True
@@ -299,11 +299,12 @@ samples_1prompt = single_t + tt_1l + z_jets + dibosons
 ##configureSplittingFromTime(samples_signal,100,6)
 
 if   runOnSignal and signalZ==False:
-    selectedComponents = [WJetsToLNu_ext2v5]
+    selectedComponents = [WJetsToLNu_94X,WJetsToLNu_94X_ext]
 elif runOnSignal and signalZ:
-    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+    #selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+    selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
-selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+#selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
 for comp in selectedComponents:
     comp.splitFactor = len(comp.files)/2 #200
@@ -325,7 +326,11 @@ if runData != False: # and not isTest: # For running on data
     is50ns = False
     dataChunks = []
 
-    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt' # 36.295/fb
+    #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt' # 36.295/fb
+    # should use the following instead
+    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON_MuonPhys.txt' # ~36.3/fb
+
+    # old
     #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
@@ -457,11 +462,14 @@ print runData
 print 'THIS IS SELECTED COMPONENTS', selectedComponents
 
 test = getHeppyOption('test')
-if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x']:    
     if test=='testdata':
         comp = selectedComponents[0]
         comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
-    if test=='testw':
+    if test =='testw94x':
+        comp = WJetsToLNu_94X
+        comp.files = comp.files[:1]
+    elif test=='testw':
         comp = WJetsToLNu_ext
         #comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
         comp.files = comp.files[:1]

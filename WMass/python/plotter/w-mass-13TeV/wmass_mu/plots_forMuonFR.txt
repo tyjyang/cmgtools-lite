@@ -4,6 +4,8 @@ ptl1coarse: ptMuFull(LepGood1_calPt,LepGood1_eta): 19,26,64 ; XTitle="muon p_{T}
 
 etal1: LepGood1_eta: 48,-2.4,2.4 ; XTitle="muon #eta", Legend='TC', IncludeOverflows=False
 
+etal1coarse: LepGood1_eta: 24,-2.4,2.4 ; XTitle="muon #eta", Legend='TC', IncludeOverflows=False
+
 ptl1__etal1: LepGood1_calPt\:LepGood1_eta: 48,-2.4,2.4,39,26,65 ; XTitle='muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
 
 ptl1_56: ptMuFull(LepGood1_calPt,LepGood1_eta): 30,26,56 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False

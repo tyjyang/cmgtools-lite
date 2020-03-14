@@ -58,7 +58,7 @@ class PrefireSFProducerJets(Module):
             elif len(effs) >= 2:
                 effs = sorted(effs)
                 effs = effs [:2]
-                sf = (1.-effs[0])*(1.-effs[1])
+                sf = 1.0 - (effs[0] + effs[1] - effs[0]*effs[1]) # SF = 1-p, p=probability that at least one jet prefires
         else:
             sf = 1.
 

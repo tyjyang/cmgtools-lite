@@ -40,7 +40,7 @@ TH2 * angular_7 = 0;
 // Index 10 and 11 to scale  Slope Up/Down with EWK Down/Up (more EWK means lower FR, so it makes sense to decrease the slope to create a band around nominal)
 // Keep array index larger than the number of index you will use, so you don't have to increase it everytime you add another index
 TH2 * FR_mu = 0;
-TH2 * FRi_mu[20] = {0};  
+TH2 * FRi_mu[30] = {0};  
 TH2 * FR_el = 0;
 TH2 * FRi_el[20] = {0};
 
@@ -52,7 +52,7 @@ TH2 * FRi_el_qcdmc[5] = {0};
 
 // prompt rate
 TH2 * PR_mu = 0;
-TH2 * PRi_mu[20] = {0};
+TH2 * PRi_mu[30] = {0};
 TH2 * PR_el = 0;
 TH2 * PRi_el[20] = {0};
 
@@ -434,7 +434,7 @@ float* _getFakeRateWmass(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=
   float pr = hist_pr->GetBinContent(ptbin, etabin);
     
   // safety checks
-  if (fr > pr) return 0;
+  if (fr >= pr) return 0;
   if (pr > 1.0) pr = 1.0;  // just in case
 
 
@@ -457,8 +457,7 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   float weight;
 
-  // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
-  // so in that case the weight can be safely set as 0, because those events are not used in the analysis
+  // safety thing
   if (pr <= fr) {
     //std::cout << "### Error in weight: FR >= PR. Please check!" << std::endl;
     //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;

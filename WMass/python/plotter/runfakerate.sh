@@ -48,7 +48,7 @@ istest="y"
 today=`date +"%d_%m_%Y"`
 testdir="testFRv8/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_jetPt30_nativeMCatNLOxsec_reweightWZpt"
 if [[ "${useMuon}" == "y" ]]; then
-    testdir="testFR_wmass/fr_${today}_eta_${ptDefinition}_mT20_${lumi/./p}fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec_reweightWZpt"
+    testdir="testFR_wmass/fr_${today}_eta_${ptDefinition}_mT40_${lumi/./p}fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec_reweightWZpt_SFonlyIfPassNum"
 fi
 
 ######################
@@ -70,7 +70,9 @@ addOption=" -A eleKin pfmtLess40 'mt_2(met_pt,met_phi,ptElFull(LepGood1_calPt,Le
 
 # no Z veto for muons
 if [[ "${useMuon}" == "y" ]]; then
-    addOption=" -R mt pfmt20 'mt_2(met_pt,met_phi,ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 20' "    
+    #addOption=" -R mt pfmt40 'mt_2(met_pt,met_phi,ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi) < 40' "    
+    addOption=" -R nJet30 nJet40 'LepGood_awayJet_pt > 40' "    
+    addOption=""    
 fi
 
 

@@ -9,9 +9,9 @@ hasReweightedWZpt = 1
 
 if doMuons:
 
-    inputFolder = "fr_02_02_2020_eta_pt_finer_mT20_35p9fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec_reweightWZpt"
+    inputFolder = "fr_03_03_2020_eta_pt_finer_mT40_35p9fb_signedEta_subtrAllMC_L1prefire_jetPt30_nativeMCatNLOxsec_reweightWZpt_SFonlyIfPassNum"
     inputFullPath = "www/wmass/13TeV/fake-rate/test_mu/testFR_wmass/" + inputFolder + "/mu/comb/"
-    outputFolder = "www/wmass/13TeV/fake-rate/muon/FR_graphs_tests/muonFRandPR_fitFRpol2PRerf_xFit26to65_nativeMCatNLOxsec_reweightWZpt_withLepSF_mt20/"
+    outputFolder = "www/wmass/13TeV/fake-rate/muon/FR_graphs_tests/muonFRandPR_fitFRpol2PRerf_xFit26to65_nativeMCatNLOxsec_reweightWZpt_SFonlyIfPassNum/"
     outfileTag = outputFolder.split('/')[-2]
     histPrefix = "fakeRateNumerator_mu_vs_etal1mu_pt_finer"
     isMuon = "true"
