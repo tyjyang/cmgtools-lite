@@ -2,17 +2,18 @@
 
 import ROOT, os, sys, re, array
 
-dryrun=1
+dryrun=0
 doMuons=1
 skipUnpack=1
 skipMergeRoot=1
-skipSingleCard=1
-skipMergeCard=1 # disabled if fitting each charge (see below)
-skipMergeCardFlavour=0 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
+skipSingleCard=0
+skipMergeCard=0 # disabled if fitting each charge (see below)
+skipMergeCardFlavour=1 # requires both flavours, the electron cards should have all signal bins considered as signal (or be set up manually)
 flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec"
 #flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI"
 #flavourCombinationOutdir = "muElCombination_allSig_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45"
 
+doImpactsOnMW=True
 # exclude some nuisances
 # some more things are set below
 excludeNuisRegexp = "CMS_DY,CMS_.*FR.*_slope,CMS_.*FR.*_continuous,CMS.*sig_lepeff" #,.*pdf.*|.*alphaS.*|.*mu(R|F).*|.*mW.*"
@@ -72,7 +73,7 @@ uncorrelateQCDscalesByCharge = True
 uncorrelateNuisancesByCharge = ""  # use regular expression, otherwise keep ""
 uncorrelatePtscaleByEtaside = False if useAnalyticSmoothPtScales else True
 # note that there is always a part of the uncertainty that is charge-uncorrelated
-freezePOIs = False  # no need for dedicated postfix, added automatically to the one given below
+freezePOIs = True  # no need for dedicated postfix, added automatically to the one given below
 skipFitData = False
 skipFitAsimov = False
 
@@ -221,7 +222,7 @@ postfixCardMaker = "_symFSRptScalemW" # for single-charge fit in single flavor
 optionsForCardMaker = optionsForCardMaker + " --postfix " + postfixCardMaker
 
 postfixCardMakerMerger = ""
-if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec"
+if doMuons: postfixCardMakerMerger = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw"
 else      : postfixCardMakerMerger = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly_addInclXsec"
 
 if noPtScalesOutliers:
@@ -246,6 +247,10 @@ if skipFitAsimov:
     optionsForCardMaker       += " --skip-fit-asimov "
     optionsForCardMakerMergerFlavour += " --skip-fit-asimov "
 # --no-correlate-xsec-stat
+if doImpactsOnMW:
+    optionsForCardMaker += " --impacts-mW "
+    optionsForCardMakerMerger += " --impacts-mW "
+    optionsForCardMakerMergerFlavour += " --impacts-mW "
 
 
 if combineElePt01asBkg:

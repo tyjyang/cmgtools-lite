@@ -20,9 +20,11 @@ skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipImpacts = 1
+skipCorrAll4HEPdata = 1
+skipImpacts = 0
+skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 0
+skipMuElComparison = 1
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -87,7 +89,7 @@ if doMuElComb:
         quit()
 
 postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly_addInclXsec"
-postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec"
+postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw"
 
 if flavour == "el":
     postfix = postfix_el
@@ -201,6 +203,7 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 #groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
 groupnames = 'binByBinStat,stat,pdfs,QCDTheo,Fakes,EffStat'
+groupnames_4HEPdata = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
 #if flavour == "el" or doMuElComb:
 #    groupnames += ',L1Prefire'
 #groupnamesEtaPt = groupnames
@@ -397,6 +400,31 @@ for fit in fits:
                 if not dryrun:
                     os.system(tmpcommand)
 
+    ## ADD COVARIANCE with all nuisances to prepare hepdata
+    ## for now only saving covariance matrix, not correlation
+    filter_matrixType_poiRegexp = {"channelpmaskedexp"     : "W.*pmaskedexp",
+                                   "channelpmaskedexpnorm" : "W.*pmaskedexpnorm",
+                                   "channelsumpois"        : "W.*sumxsec",
+                                   "channelsumpoisnorm"    : "W.*sumxsecnorm",
+                                   "channelchargepois"     : "W.*chargeasym",
+                                   "channelchargemetapois" : "W.*chargemetaasym",
+                                   "channelratiometapois"  : "W.*ratiometaratio",
+                               }
+    for matrixType in filter_matrixType_poiRegexp.keys():
+        poiRegexp=filter_matrixType_poiRegexp[matrixType]
+        command = "python w-helicity-13TeV/subMatrix.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+        command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/subMatrix_4HEPdata/{pf}/{mt}".format(lep=lepton,fd=folder, pf=postfix, mt=matrixType)
+        command += " --nContours 51 --type hessian --suffix  {fit} --matrix-type {mt} --which-matrix covariance --divide-covariance-by-bin-area --margin 0.18,0.11,0.08,0.22 ".format(fit=fit, mt=matrixType)
+        command += " --etaptbinfile cards/{fd}/binningPtEta.txt --canvasSize '1200,1000' ".format(fd=folder)
+        tmpcommand = command + " --params '{poiRegexp}' --show-all-nuisances ".format(poiRegexp=poiRegexp)
+        tmpcommand += " --parNameCanvas AllPoisAndNuis_{poi} -c {fl} ".format(poi=poiRegexp.replace(".*",""), fl=flavour)
+        if not skipCorrAll4HEPdata:
+            print ""
+            print tmpcommand
+            if not dryrun:
+                os.system(tmpcommand)
+
+
     print ""
     print "="*30
     print "IMPACTS"
@@ -439,6 +467,47 @@ for fit in fits:
                     print tmpcommand
                     if not dryrun:
                         os.system(tmpcommand)
+
+    print ""
+    print "="*30
+    print "IMPACTS 4 HEPdata"
+    print ""
+
+    ## IMPACTS for HEPdata (more lines than in paper)
+    command = "python w-helicity-13TeV/impactPlots.py cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+    command += " -o plots/diffXsecAnalysis_new/{lep}/{fd}/impactPlots_4HEPdata/{pf}/  --suffix {fit} ".format(lep=lepton,fd=folder,fit=fit,pf=postfix)
+    command += " {pt} ".format(pt=ptMinForImpacts)
+    command += " --nContours 51 --margin '0.16,0.2,0.1,0.12' --canvasSize '1200,1000' --splitOutByTarget "
+    # --palette 70 --invertPalette: kDarkBody from light blue to red
+    # with following line will make impacts with graphs, not matrix                        
+    command += " --etaptbinfile cards/{fd}/binningPtEta.txt ".format(fd=folder)
+    if flavour != "lep":
+        command += " -c {fl}".format(fl=flavour)
+    if skipPreliminary:
+        command += " --skipPreliminary "
+    for nuis in impacts_nuis:
+
+        for target in targets:
+            if any(target == x for x in ["etaxsec", "etaxsecnorm", "etaasym"]):
+                poi_regexp = ["W.*_ieta_.*"]
+            elif any(target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]):
+                poi_regexp = ["W.*_ipt_.*"]
+            else:
+                poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in  [2, 3, 7, 16] ]
+
+            if nuis == "GROUP":
+                varopt = " --nuisgroups '{ng}' ".format(ng=groupnames_4HEPdata)
+            else:
+                varopt = " --nuis '{nuis_regexp}' ".format(nuis_regexp=nuis)
+            for poi in poi_regexp:
+                tmpcommand = command + " {vopt} --target {t} --pois '{poi_regexp}' ".format(vopt=varopt, t=target, poi_regexp=poi)  
+                    
+                if not skipImpactsAll4HEPdata:
+                    print ""
+                    print tmpcommand
+                    if not dryrun:
+                        os.system(tmpcommand)
+
 
     print ""
     print "="*30
