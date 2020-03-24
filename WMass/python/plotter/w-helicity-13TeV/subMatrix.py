@@ -1,4 +1,4 @@
-import ROOT, os, datetime, re, operator, math
+import ROOT, os, datetime, re, operator, math, sys
 from array import array
 ROOT.gROOT.SetBatch(True)
 
@@ -27,6 +27,26 @@ utilities = utilities.util()
 #def SetCorrMatrixPalette():
 #ROOT.gStyle.SetPalette()
 
+def getBinAreaFromParamName(pname,genBins,isHelicity=False):
+    if isHelicity:
+        genYwBins = genBins
+        dyw = 1.0
+        if "_Ybin_" in pname:
+            iyw = int((pname.split("_Ybin_")[1]).split("_")[0])
+            dyw = genYwBins[iyw+1] - genYwBins[iyw]
+        return dyw
+    else:
+        genEtaPtBins = genBins
+        dpt = 1.0
+        deta = 1.0
+        if "_ieta_" in pname:        
+            ieta = int((pname.split("_ieta_")[1]).split("_")[0])
+            deta = genEtaPtBins.etaBins[ieta+1] - genEtaPtBins.etaBins[ieta]
+        if "_ipt_" in pname:        
+            ipt = int((pname.split("_ipt_")[1]).split("_")[0])
+            dpt = genEtaPtBins.ptBins[ipt+1] - genEtaPtBins.ptBins[ipt]
+        return deta * dpt
+
 def lepInFakeSystForSort(name):
     if re.match("Uncorrelated\d+mu",name): 
         return 1
@@ -34,32 +54,83 @@ def lepInFakeSystForSort(name):
         return 2
 
 
-def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
+def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
+
+    if re.match("W.*sumxsec",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        nn  = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        if forceLep: nn = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        chs = "+" if "plus" in name else "-" if "minus" in name else ""
+        return "W{ch}({l}#nu) fiducial".format(ch=chs,l=nn)
+
+    if re.match("Wasym.*chargemetaasym",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        nn  = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        if forceLep: nn = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        return "W({l}#nu) fiducial".format(l=nn)
+
+    if re.match("Wratio.*ratiometaratio",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        nn  = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        if forceLep: nn = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        return "W+/W- fiducial".format(l=nn)
+
 
     if '_Ybin' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
-        if 'plus' in name: nn += 'W+ '
-        elif 'minus' in name: nn += 'W- '
-        else: nn += 'W '
-        if 'left' in name: nn += 'left '
-        elif 'right' in name: nn += 'right '
-        elif 'long' in name: nn += 'long '
-        else: nn += 'unpolarized '
-        idx = -2 if (name.endswith('mu') or any([x in name for x in ['masked','sumxsec','charge','a0','a4']])) else -1
-        nn += name.split('_')[idx]
-        if 'eff_unc' in name:
-            nn = '#epsilon_{unc}^{'+nn+'}'
+        genYwBins = genBins
+        if drawRangeInLabel:
+            charge = "plus" if "plus" in name else "minus" if "minus" in name else ""
+            wch = "W+" if "plus" in name else "W-" if "minus" in name else "W"
+            lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            pol = "left" in 'left' in name else "right" if "right" in name else "long" if "long" in name else "unpolarized"
+            ywl,ywh = 0.0,0.0
+            if genYwBins:
+                iyw = int((name.split("_Ybin_")[1]).split("_")[0])
+                # get key to read binning (same for all charges and polarizations, but let's stay general
+                # in case charge was not set, take key for "plus" charge and cross fingers
+                charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol)
+                ywl = genYwBins[charge_pol][iyw]
+                ywh = genYwBins[charge_pol][iyw+1]
+            nn = "{wch}#rightarrow{lep}#nu ({pol}): |y_{{W}}| #in [{ywl:1.2f},{yw:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            if 'plus' in name: nn += 'W+ '
+            elif 'minus' in name: nn += 'W- '
+            else: nn += 'W '
+            if 'left' in name: nn += 'left '
+            elif 'right' in name: nn += 'right '
+            elif 'long' in name: nn += 'long '
+            else: nn += 'unpolarized '
+            idx = -2 if (name.endswith('mu') or any([x in name for x in ['masked','sumxsec','charge','a0','a4']])) else -1
+            nn += name.split('_')[idx]
+            if 'eff_unc' in name:
+                nn = '#epsilon_{unc}^{'+nn+'}'
         return nn
 
     elif '_ieta_' in name and '_ipt_' in name:
-        nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
-        nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        genEtaPtBins = genBins
         ieta,ipt = get_ieta_ipt_from_process_name(name)
-        nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
+        if drawRangeInLabel:
+            etal,etah = 0.0,0.0
+            ptl,pth = 0.0,0.0
+            if genEtaPtBins:
+                etal = genEtaPtBins.etaBins[ieta]
+                etah = genEtaPtBins.etaBins[ieta+1]
+                ptl = genEtaPtBins.ptBins[ipt]
+                pth = genEtaPtBins.ptBins[ipt+1]
+            wch = 'W+' if 'plus' in name else 'W-' if 'minus' in name else 'W'
+            lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            nn = "{wch}#rightarrow{lep}#nu: |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,etal=etal,etah=etah,ptl=ptl,pth=pth)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
         return nn
 
     elif '_ieta_' in name:
-
+        genEtaPtBins = genBins
         # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta = int((name.split("_ieta_")[1]).split("_")[0])
@@ -73,15 +144,16 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
             wch = 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
             lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
-            nn = "{wch} |#eta^{{{lep}}}| #in [{etal:1.1f}, {etah:1.1f}]".format(wch=wch,lep=lep,etal=etal,etah=etah)
+            nn = "{wch} |#eta^{{{lep}}}| #in [{etal:1.1f},{etah:1.1f}]".format(wch=wch,lep=lep,etal=etal,etah=etah)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '            
             nn += "i#eta = {neta}".format(neta=ieta)
             
         return nn
 
     elif '_ipt_' in name:
+        genEtaPtBins = genBins
         # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
         # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
@@ -95,9 +167,9 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
             wch = 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
             lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
-            nn = "{wch} p_{{T}}({lep}) #in [{ptl:3g}, {pth:3g}]".format(wch=wch,lep=lep,ptl=ptl,pth=pth)
+            nn = "{wch} p_{{T}}^{{{lep}}} #in [{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,ptl=ptl,pth=pth)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
             nn += "ip_{{T}} = {npt}".format(npt=ipt)
         return nn
@@ -110,7 +182,8 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
         #     return name.replace("CMS_We_","")        
         #else:
         #    return name
-        return name.replace("CMS_","")
+        #return name.replace("CMS_","")
+        return name
 
     elif re.match( "Fakes(Eta|EtaCharge|PtNorm|PtSlope)Uncorrelated.*",name):
         num = re.findall(r'\d+', name) # get number
@@ -122,8 +195,8 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
         if "FakesEtaCharge" in name: tmpvar = "#eta-ch"
         elif "FakesEta" in name: tmpvar = "#eta"
         elif "FakesPtNorm" in name: tmpvar = "p_{T}-norm"
-        elif "FakesPtSlope" in name: tmpvar = "p_{T}-slope"    
-        return "Fakes {var}-{n} {lepCh}".format(var=tmpvar, n=num[0], lepCh=leptonCharge)
+        elif "FakesPtSlope" in name: tmpvar = "p_{T}-shape"    
+        return "QCD bkg {var}-{n} {lepCh}".format(var=tmpvar, n=num[0], lepCh=leptonCharge)
 
     elif re.match(".*EffStat\d+.*",name):
         num = re.findall(r'\d+', name) # get number (there will be two of them, need the second)
@@ -131,7 +204,7 @@ def niceName(name,genEtaPtBins="",forceLep="",drawRangeInLabel=False):
         leptonCharge = ""
         if len(pfx):
             leptonCharge = "{lep}{chs}".format(lep="#mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
-        return "Eff. uncorr. {n1}-{n2} {lepCh}".format(n1=num[0],n2=num[1],lepCh=leptonCharge)
+        return "Eff.stat. {n1}-{n2} {lepCh}".format(n1=num[0],n2=num[1],lepCh=leptonCharge)
 
 
     else:  
@@ -161,7 +234,11 @@ if __name__ == "__main__":
     parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
     parser.add_option(     '--canvasSize', dest='canvasSize', default='', type='string', help='Pass canvas dimensions as "width,height" ')
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec')
-    parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu), if not given it is inferred from the inputs, but might be wrong depending on naming conventions')
+    parser.add_option(     '--ywbinfile',   dest='ywbinfile',   default='',  type='string', help='Yw binning used for labels with helicity')
+    parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu|lep), if not given it is inferred from the inputs, but might be wrong depending on naming conventions')
+    parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs')
+    parser.add_option('--which-matrix',  dest='whichMatrix',     default='both', type='string', help='Which matrix: covariance|correlation|both')
+    parser.add_option(     '--divide-covariance-by-bin-area', dest='divideCovarianceBybinArea',    default=False, action='store_true', help='Divide covariance by bin area (2D xsec) or bin width (1D xsec)')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -192,11 +269,23 @@ if __name__ == "__main__":
     pois_regexps = list(options.params.split(','))
     print "Filtering POIs with the following regex: ",pois_regexps
 
+    if options.etaptbinfile and options.ywbinfile:
+        print "Error: options --etaptbinfile and --ywbinfile are incompatible. Choose only one based on the fit"
+        quit()
+
     if options.etaptbinfile:
         etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    elif options.ywbinfile:
+        # to implement
+        print "--ywbinfile to implement"
+        quit()
+        ybinfile = open(options.ywbinfile, 'r')
+        genBins = eval(ybinfile.read())
+        ybinfile.close()
     else:
         genBins = ""
+    
 
     params = []; indices = []
 
@@ -205,6 +294,8 @@ if __name__ == "__main__":
 
     cov = {}; corr = {}
 
+    nNuisances = 0
+    nPois = 0
     ### GET LIST OF PARAMETERS THAT MATCH THE SPECIFIED OPTION IN THE TOYFILE
     if options.type == 'toys':
         toyfile = ROOT.TFile(args[0], 'read')
@@ -234,15 +325,47 @@ if __name__ == "__main__":
         suffix = options.matrixType
         corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
         covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
-        for ib in range(1+corrmatrix.GetNbinsX()+1):
+        for ib in range(1,corrmatrix.GetNbinsX()+1):
+            #if nNuisances > 5: break # only for tests
             for poi in pois_regexps:
                 if re.match(poi, corrmatrix.GetXaxis().GetBinLabel(ib)):
                     ## store mean and rms into the dictionaries from before
                     ## also keep a list of the parameter names, for sorting
                     params .append(corrmatrix.GetXaxis().GetBinLabel(ib))
                     indices.append(ib)
-            
+                    nPois += 1
+                elif options.showAllNuisances:
+                    # exclude pois, hopefully no nuisance has the name starting with W!
+                    if not corrmatrix.GetXaxis().GetBinLabel(ib).startswith("W"):
+                        params .append(corrmatrix.GetXaxis().GetBinLabel(ib))
+                        indices.append(ib)
+                        nNuisances += 1
+
+    if options.showAllNuisances:
+        print "nPois = %d" % nPois
+        print "nNuisances = %d" % nNuisances
+
+    filter_matrixType_poiPostfix = {"channelpmaskedexp"     : "pmaskedexp",
+                                    "channelpmaskedexpnorm" : "pmaskedexpnorm",
+                                    "channelsumpois"        : "sumxsec",
+                                    "channelsumpoisnorm"    : "sumxsecnorm",
+                                    "channelchargepois"     : "chargeasym",
+                                    "channelchargemetapois" : "chargemetaasym",
+                                    "channelratiometapois"  : "ratiometaratio",
+                                    "channelpolpois"        : "polxsec"  #  check if it is correct
+
+    }
+    poiPostfix = filter_matrixType_poiPostfix[options.matrixType]
+    poiHasToBeScaled = True if poiPostfix in ["pmaskedexp", "sumxsec"] else False
     ## construct the covariances and the correlations in one go.
+    ## for the covariance, need to scale xsec content to port it from number of events to pb (and for combination need to divide by 2), but only for absolute things
+    # also normalize by bin area the  numbers for absolute and normalized cross section (as it is done on the plots)
+    scalefactor_poi = 1./35900.
+    if options.channel == "lep":
+        scalefactor_poi /= 2.
+
+    print "Preparing list of parameters to build the matrix ..."
+
     for ip1, p1 in enumerate(params):
         for ip2, p2 in enumerate(params):
             if options.type == 'toys':
@@ -252,7 +375,23 @@ if __name__ == "__main__":
                 cov [(p1,p2)] = h.GetMean()
                 corr[(p1,p2)] = cov[(p1,p2)]/(fiterrs[p1]*fiterrs[p2])
             elif options.type == 'hessian':
-                cov [(p1,p2)] = covmatrix .GetBinContent(indices[ip1],indices[ip2])
+                scalefactor = 1.0
+                # normalization by bin area/width only for 2D/1D xsec, but might be added for rapidity as well
+                if options.divideCovarianceBybinArea: 
+                    if any(x in p1 for x in ["_ieta_","_ipt_"]):
+                        scalefactor /= getBinAreaFromParamName(p1,genBins)
+                    if any(x in p2 for x in ["_ieta_","_ipt_"]):
+                        scalefactor /= getBinAreaFromParamName(p2,genBins)
+                    if "_Ybin_" in p1:
+                        scalefactor /= getBinAreaFromParamName(p1,genBins,isHelicity=True)
+                    if "_Ybin_" in p2:
+                        scalefactor /= getBinAreaFromParamName(p2,genBins,isHelicity=True)
+                if poiHasToBeScaled:
+                    if p1.endswith(poiPostfix):     
+                        scalefactor *= scalefactor_poi
+                    if p2.endswith(poiPostfix):     
+                        scalefactor *= scalefactor_poi
+                cov [(p1,p2)] = scalefactor * covmatrix .GetBinContent(indices[ip1],indices[ip2])
                 corr[(p1,p2)] = corrmatrix.GetBinContent(indices[ip1],indices[ip2])
         
 
@@ -276,28 +415,35 @@ if __name__ == "__main__":
     #params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-1])) if '_Ybin_' in x else 0)
     # one might want to invert the order of charge and helicity for the sorting
 
+    params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
     params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
     params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
     params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
-    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 100 if 'alphaS' in x else 0)
-    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
-    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
-    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)            
-    params = sorted(params, key= lambda x: lepInFakeSystForSort(x) if 'Fakes' in x else 0)   
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)    
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtNormUncorrelated' in x else 0)
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaChargeUncorrelated' in x else 0) 
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtSlopeUncorrelated' in x else 0)   
-      
+    params = sorted(params, key= lambda x: 1 if x.endswith(poiPostfix) else 0)
+ 
+    # sort if not using all params (otherwise the order should be already ok, as it is taken from the original matrix)
+    if not options.showAllNuisances:
 
-    # sort by charge if needed     
-    # I think it is useful that different charges are separated in the matrix, it is easier to read it 
-    params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
-    params = sorted(params, key = lambda x: 0 if "right" in x else -1 if "left" in x else -1)
+        params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 100 if 'alphaS' in x else 0)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+        params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)            
+        params = sorted(params, key= lambda x: lepInFakeSystForSort(x) if 'Fakes' in x else 0)   
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaUncorrelated' in x else 0)    
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtNormUncorrelated' in x else 0)
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesEtaChargeUncorrelated' in x else 0) 
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtSlopeUncorrelated' in x else 0)   
+        # sort by charge if needed     
+        # I think it is useful that different charges are separated in the matrix, it is easier to read it 
+        params = sorted(params, key = lambda x: 0 if "right" in x else -1 if "left" in x else -1)
+
     print "sorted params = ", params
 
+    print "="*30
+    print "Now going to create the matrix"
+    print "="*30
     ch = 1200
     cw = 1200
     if options.canvasSize:
@@ -323,10 +469,10 @@ if __name__ == "__main__":
     c.SetBottomMargin(cbm)
     c.SetTopMargin(ctm)
 
-    ## make the new, smaller TH2F correlation matrix
+    ## make the new, smaller TH2D correlation matrix
     nbins = len(params)
-    th2_sub = ROOT.TH2F('sub_corr_matrix', '', nbins, 0., nbins, nbins, 0., nbins)
-    th2_cov = ROOT.TH2F('sub_cov_matrix',  '', nbins, 0., nbins, nbins, 0., nbins)
+    th2_sub = ROOT.TH2D('sub_corr_matrix', 'correlation matrix', nbins, 0., nbins, nbins, 0., nbins)
+    th2_cov = ROOT.TH2D('sub_cov_matrix',  'covariance matrix', nbins, 0., nbins, nbins, 0., nbins)
 
     if 'Wplus' in options.params and 'pmaskedexpnorm' in options.params:
         pass
@@ -348,25 +494,61 @@ if __name__ == "__main__":
     th2_cov.GetYaxis().SetTickLength(0.)
     
     ## pretty nested loop. enumerate the tuples
+    nParams = len(params)
+    # set axis labels
+    print "Setting Labels"
+    for i,x in enumerate(params):
+        sys.stdout.write('Row {num}/{tot}   \r'.format(num=i,tot=nParams))
+        sys.stdout.flush()
+        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
+        th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
+        th2_sub.GetYaxis().SetBinLabel(i+1, new_x)
+        th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
+        th2_cov.GetYaxis().SetBinLabel(i+1, new_x)
+         
+    print "Setting Values"
     for i,x in enumerate(params):
         for j,y in enumerate(params):
+            if j>i: break
+            sys.stdout.write('Row {num}/{tot}   Column {col}/{tot}   \r'.format(num=i,tot=nParams, col=j))
+            sys.stdout.flush()
+            #new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
+            #new_y = niceName(y,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
             ## set it into the new sub-matrix
-            th2_sub.SetBinContent(i+1, j+1, corr[(x,y)])
-            th2_cov.SetBinContent(i+1, j+1, cov [(x,y)])
-            ## set the labels correctly
-            new_x = niceName(x,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
-            new_y = niceName(y,genEtaPtBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
-            th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
-            th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
-            th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
-            th2_cov.GetYaxis().SetBinLabel(j+1, new_y)
+            ## note that the matrix is symmetric
+            if not options.whichMatrix == "covariance":
+                th2_sub.SetBinContent(i+1, j+1, corr[(x,y)])
+                th2_sub.SetBinContent(j+1, i+1, corr[(x,y)])
+                #th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
+                #th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
+            if not options.whichMatrix == "correlation":
+                th2_cov.SetBinContent(i+1, j+1, cov [(x,y)])
+                th2_cov.SetBinContent(j+1, i+1, cov [(x,y)])
+                #th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
+                #th2_cov.GetYaxis().SetBinLabel(j+1, new_y)
 
     th2_sub.GetZaxis().SetRangeUser(-1, 1)
     
     covMax = max(abs(th2_cov.GetMaximum()), abs(th2_cov.GetMinimum()))
     th2_cov.GetZaxis().SetRangeUser(-1.*covMax, covMax)
 
-    for im,tmp_mat in enumerate([th2_sub, th2_cov]):
+    print "="*30
+    print "Now finally drawing the matrix"
+    print "="*30
+    matricesToPlot = []
+    if options.whichMatrix == "both": 
+        matricesToPlot = [th2_sub, th2_cov]
+    elif options.whichMatrix == "covariance": 
+        matricesToPlot = [th2_cov]
+    else:
+        matricesToPlot = [th2_sub]
+
+    for im,tmp_mat in enumerate(matricesToPlot):
+
+        if options.whichMatrix == "both":
+            corcov = 'Correlation' if not im else 'Covariance'
+        else:
+            corcov = 'Covariance' if options.whichMatrix == "covariance" else "Correlation"
 
         if options.title: 
             if options.title == "0":
@@ -379,18 +561,7 @@ if __name__ == "__main__":
         lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
         lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
 
-        if options.parNameCanvas: 
-            paramsName = options.parNameCanvas
-        else : 
-            paramsName = options.params.replace(',','AND')
-            for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
-                paramsName = paramsName.replace(x,'')
-
         if options.outdir:
-            for i in ['pdf', 'png']:
-                suff = '' if not options.suffix else '_'+options.suffix
-                c.SaveAs(options.outdir+'/smallCorrelation{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName))
-            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
             ROOT.gStyle.SetPaintTextFormat('1.2f')
             if len(params)<30: tmp_mat.Draw('colz text45')
             else: tmp_mat.Draw('colz')
@@ -412,11 +583,16 @@ if __name__ == "__main__":
                 for x in ['.', '*', '$', '^', '|', '[', ']', '(', ')']:
                     paramsName = paramsName.replace(x,'')
 
-            if options.outdir:
-                for i in ['pdf', 'png']:
-                    suff = '' if not options.suffix else '_'+options.suffix
-                    c.SaveAs(options.outdir+'/small{corcov}{suff}_{pn}.{i}'.format(suff=suff,i=i,pn=paramsName,corcov='Correlation' if not im else 'Covariance'))
-                os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+            suff = '' if not options.suffix else '_'+options.suffix
+            outfname = options.outdir+'/small{corcov}{suff}_{pn}'.format(suff=suff,pn=paramsName,corcov=corcov)
+            for i in ['pdf', 'png']:
+                c.SaveAs('{ofn}.{i}'.format(ofn=outfname,i=i))
+            # save matrix in root file
+            matRootFile = ROOT.TFile.Open("{ofn}.root".format(ofn=outfname),"recreate")
+            matRootFile.cd()
+            tmp_mat.Write()
+            matRootFile.Close("matrix{corcov}".format(corcov=corcov))
+            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
 
 
     if options.showMoreCorrelated:

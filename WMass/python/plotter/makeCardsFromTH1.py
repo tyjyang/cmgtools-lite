@@ -222,6 +222,8 @@ def combFlavours(options):
         combineCmd = 'combinetf.py -t -1 {bbb} {metafile} --doh5Output '.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
+            if options.doImpactsOnMW:
+                combineCmd += " --doImpacts  "
         else:
             if options.doSystematics:
                 combineCmd += " --doImpacts  "
@@ -317,6 +319,8 @@ def prepareChargeFit(options, charges=["plus"]):
         combineCmd = 'combinetf.py -t -1 {bbb} {metafile} --doh5Output '.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
         if options.freezePOIs:
             combineCmd += " --POIMode none"
+            if options.doImpactsOnMW:
+                combineCmd += " --doImpacts  "
         else:
             if options.doSystematics:
                 combineCmd += " --doImpacts  "
@@ -428,6 +432,7 @@ parser.add_option("", "--clipSystVariations", type=float, default=-1.,  help="Cl
 parser.add_option("", "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
 parser.add_option(      '--combineElePt01asBkg', dest='combineElePt01asBkg', default=False, action='store_true', help='If True, flavour combination is made by keeping some electron bins as background')
 parser.add_option(       '--no-pt-scales-outliers'  , dest='noPtScalesOutliers', default=False, action='store_true', help='Do not profile pt scales')
+parser.add_option(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
 (options, args) = parser.parse_args()
 
 print ""
@@ -934,7 +939,8 @@ for syst in qcdAndPDF:
 sortedTheoSystkeys.append("mW")
 if not isExcludedNuisance(excludeNuisances, "mW", keepNuisances): 
     allSystForGroups.append("mW")
-    card.write(('%-16s shape' % "mW") + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
+    keyname = "shape" if not options.doImpactsOnMW else "shapeNoConstraint"
+    card.write(('%-16s %s' % ("mW",keyname)) + " ".join([kpatt % ("1.0" if any(x in p for x in WandTau) else "-") for p in allprocesses]) +"\n")
 
 if flavour == "el":
     # prefiring binning for nuisances = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4], 
@@ -1220,6 +1226,15 @@ if options.doSystematics:
     # all exp and theory (everything except lumi, and stat)
     alltheoexpMatch = alltheoMatch + "|" + allexpMatch
     card.write("allTheoAndExp group = "       + ' '.join(filter(lambda x: re.match(alltheoexpMatch,x),allSystForGroups)) + "\n\n")
+
+    if options.flavour == "mu":
+        for iptsys in range(2,6):
+            card.write("lepScaleSyst{i} group = ".format(i=str(iptsys))   + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scaleSyst{i}.*'.format(i=str(iptsys)),x),allSystForGroups)) + "\n\n")
+    card.write("lepScaleStat group = "   + ' '.join(filter(lambda x: re.match('.*(smooth|CMS_W).*scaleStat.*',x),allSystForGroups)) + "\n\n")
+
+    if options.doImpactsOnMW:
+        card.write("wmass noiGroup = mW \n\n")        
+    
     card.write("\n")
 card.write("\n")
 
@@ -1436,7 +1451,10 @@ for maskChan in maskedChannels:
     tmp_xsec_dc.write('# --------------------------------------------------------------\n')
     for sys in sortedTheoSystkeys: # this is only theoretical systs
         if isExcludedNuisance(excludeNuisances, sys, keepNuisances): continue
-        tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+        if options.doImpactsOnMW and sys == "mW":
+            tmp_xsec_dc.write('%-15s   shapeNoConstraint %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
+        else:
+            tmp_xsec_dc.write('%-15s   shape %s\n' % (sys,(" ".join(['1.0' if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
     if len(options.wallLnN):
         if not isExcludedNuisance(excludeNuisances, "qcdTheo_Wall_LnN", keepNuisances): 
             tmp_xsec_dc.write('%-15s      lnN %s\n' % ("qcdTheo_Wall_LnN",(" ".join([WallLnNxsec if p in tmp_sigprocs_mcha  else '  -  ' for p in tmp_sigprocs_mcha]))) )
