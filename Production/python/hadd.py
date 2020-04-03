@@ -10,8 +10,21 @@ def haddPck(file, odir, idirs):
     '''
     sum = None
     for dir in idirs:
-        fileName = file.replace( idirs[0], dir )
-        pckfile = open(fileName)
+        fileName = file.replace( idirs[0], dir, skipAllButTreeAndSkimReport=False )
+        if skipAllButTreeAndSkimReport:
+            print fileName
+            # test avoiding failure of unnecessary files
+            if all(x not in fileName for x in ["skimAnalyzerCount","treeProducer"]):
+                try:
+                    pckfile = open(fileName)
+                except:
+                    print "Skipping pckfile "+fileName
+                    continue
+            else:
+                pckfile = open(fileName)
+        else:
+            # if skipAllButTreeAndSkimReport=False, just open file and see what happens
+            pckfile = open(fileName)
         try:
             obj = pickle.load(pckfile)
         except:
@@ -36,11 +49,11 @@ def haddPck(file, odir, idirs):
     txtFile.close()
 
 
-def hadd(file, odir, idirs, appx=''):
+def hadd(file, odir, idirs, appx='', skipAllButTreeAndSkimReport=False):
     MAX_ARG_STRLEN = 131072
     if file.endswith('.pck'):
         try:
-            haddPck( file, odir, idirs)
+            haddPck( file, odir, idirs, skipAllButTreeAndSkimReport)
         except ImportError:
             pass
         return
@@ -68,7 +81,7 @@ def hadd(file, odir, idirs, appx=''):
         os.system(cmd)
 
 
-def haddRec(odir, idirs):
+def haddRec(odir, idirs, skipAllButTreeAndSkimReport=False):
     print 'adding', idirs
     print 'to', odir
 
@@ -92,10 +105,10 @@ def haddRec(odir, idirs):
             # os.system(cmd)
             os.mkdir(dir)
         for file in files:
-            hadd('/'.join([root, file]), odir, idirs)
+            hadd('/'.join([root, file]), odir, idirs, skipAllButTreeAndSkimReport)
 
 
-def haddChunks(idir, removeDestDir, cleanUp=False, ignoreDirs=None, maxSize=None):
+def haddChunks(idir, removeDestDir, cleanUp=False, ignoreDirs=None, maxSize=None, skipAllButTreeAndSkimReport=False):
 
     chunks = {}
     compsToSpare = set()
@@ -150,7 +163,7 @@ def haddChunks(idir, removeDestDir, cleanUp=False, ignoreDirs=None, maxSize=None
             if removeDestDir:
                 if os.path.isdir( odir ):
                     shutil.rmtree(odir)
-            haddRec(odir, cchunks)
+            haddRec(odir, cchunks, skipAllButTreeAndSkimReport)
             if cleanUp and (comp not in compsToSpare):
                 for chunk in cchunks:
                     shutil.move(chunk, chunkDir)
