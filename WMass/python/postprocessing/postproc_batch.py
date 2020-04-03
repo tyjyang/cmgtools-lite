@@ -14,21 +14,26 @@ from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 # optional: -d <datasetToRun> -c <chunkToRun>
 
 ## if you want to submit to condor, add:
-## --log friends_log/ --submit  --runtime 240 (optional, default 480 minutes)
+## --log friends_log/ --submit  --runtime 240 (optional, default 480 minutes) --memory 2000 (or more if needed)
 
 ## if you insist on running on LSF, instead add:
 ## --log friends_log/ --submit --env lxbatch --queue 1nd (optional, default 8nh)
 
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
-                   ("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
-                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamucaCentral,kamucaSyst"),
-                   ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
-                   ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
+                   #("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
+                   #("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamucaCentral,kamucaSyst"),
+                   #("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJet,muCalibrated,kamucaCentral,kamucaSyst"),
+                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJetAll,muCalibrated"),
+                   ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner,jetAllReCleaner"),
+                   ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJetsWithVertex"),
+                   #("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJet,muCalibrated"),
+                   #("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
+                   #("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
                    ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
                    ##("CMGTools.WMass.postprocessing.examples.recoilTrainExtra","recoilTrainExtra"),
                    ]
 
-def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None):
+def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None,maxMemory=4000):
 
     #if not os.path.isfile(logdir+'/dummy_exec.sh'):
     dummy_exec = open(logdir+'/dummy_exec.sh','w') 
@@ -52,9 +57,10 @@ Output     = {ld}/{name}_$(ProcId).out
 Error      = {ld}/{name}_$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-request_memory = 4000
+request_memory = {mem}
 """.format(ld=logdir,
            name=name,
+           mem=maxMemory,
            here=os.environ['PWD'])
     if flavour:
         job_desc += '+JobFlavour = "%s"\n' % flavour
@@ -62,6 +68,8 @@ request_memory = 4000
         job_desc += '+MaxRuntime = %s\n' % maxruntime
     if os.environ['USER'] in ['mdunser', 'psilva']:
         job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
+    if os.environ['USER'] in ['mciprian']:
+        job_desc += '+AccountingGroup = "group_u_CMS.CAF.ALCA"\n'
     ##job_desc += 'queue 1\n'
 
     jobdesc_file = logdir+'/'+name+'.condor'
@@ -91,6 +99,7 @@ if __name__ == "__main__":
     parser.add_option("-j", "--jobs",    dest="jobs",      type="int",    default=1, help="Use N threads");
     parser.add_option("-q", "--queue",   dest="queue",     type="string", default='8nh', help="Run jobs on lxbatch instead of locally");
     parser.add_option("-r", "--runtime",    type=int, default=480, help="Condor runtime. In minutes.");
+    parser.add_option(      "--memory",     type=int, default=2000, help="Condor memory. In MB.");
     parser.add_option("-s", "--submit",    action='store_true', default=False, help="Submit the jobs to lsf/condor.");
     parser.add_option("-t", "--tree",    dest="tree",      default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
@@ -213,7 +222,7 @@ if __name__ == "__main__":
         cmds = []
         for (name,fin,sample_nevt,fout,data,_range,chunk) in jobs:
             if not chunk or chunk == -1:
-                condorSubFile = writeCondorCfg(logdir,name,maxRunTime=options.runtime)
+                condorSubFile = writeCondorCfg(logdir,name,maxRunTime=options.runtime,maxMemory=options.memory)
             #if chunk != -1:
             if options.env == 'condor':
                 tmp_f = open(condorSubFile, 'a')
