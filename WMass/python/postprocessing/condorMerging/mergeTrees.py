@@ -76,6 +76,14 @@ if __name__ == '__main__':
             tmp_root = tmp_f.readlines()[0].replace('\n','')
             if options.strict:
                 checkIntegrity(tmp_root)
+            skimfile = options.directory+'/'+sd+'/skimAnalyzerCount/SkimReport.pck'
+            if not os.path.isfile(skimfile):
+                # should not happen that we get here if folder was already found as bad, but let's check
+                badfolder = options.directory+'/'+sd
+                if badfolder not in badChunksList:
+                    print "Warning: no SkimReport.pck found in folder " + sd
+                    badChunksList.append(badfolder)
+                    continue
             dss[dsname]['files'  ] .append(tmp_root)
             dss[dsname]['chunks' ] .append(os.path.abspath(options.directory+'/'+sd))
             if dss[dsname]['avgsize'][1] < 300: ## only calculate avg on the first 300. this is sparta!
