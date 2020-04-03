@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     ROOT.gStyle.SetOptStat(0)
     from optparse import OptionParser
-    parser = OptionParser(usage='%prog th3.root [options] ')
+    parser = OptionParser(usage='%prog th2.root [options] ')
     parser.add_option('-o','--outdir',     dest='outdir',     default='',   type='string', help='outdput directory to save plots')
     parser.add_option(     '--palette'  , dest='palette',      default=55, type=int, help='Set palette: use a negative number to select a built-in one, otherwise the default is 55 (kRainbow)')
     parser.add_option(     '--rebinEtaPt'  , dest='rebinEtaPt',      default=(0,0), nargs=2, type=int, help='Rebinnign factor for eta-pt distribution. Default is none, equivalent to 1,1')

@@ -84,7 +84,8 @@ if useFullData2016:
 if useMuon:
     #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)*prefireJetsWeight(LepGood1_eta)" ' 
     # test no sf, use them only for numerator
-    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*prefireJetsWeight(LepGood1_eta)*_get_muonSF_TriggerAndIDiso(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge,(LepGood1_relIso04 < 0.15))" ' 
+    #MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*prefireJetsWeight(LepGood1_eta)*_get_muonSF_TriggerAndIDiso(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge,(LepGood1_relIso04 < 0.15))" ' 
+    MCweightOption = ' -W "puw2016_nTrueInt_36fb(nTrueInt)*prefireJetsWeight(LepGood1_eta)*_get_muonSF_TriggerAndIDiso(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)" ' 
     # _get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta)*_get_muonSF_selectionToTrigger(LepGood1_pdgId,LepGood1_calPt,LepGood1_eta,LepGood1_charge)
 
 if options.noScaleFactors:

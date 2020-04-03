@@ -56,7 +56,63 @@ float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
 
 }
 
+float mt_wlike_samesign(float pt1, float phi1, float pt2, float phi2, float met, float phimet) {
+
+  // compute mt with both cases, and return average
+
+  TVector2 metv = TVector2();
+  metv.SetMagPhi(met,phimet);
+  // use same vector and sum met
+  TVector2 met_wlike = TVector2();
+
+  met_wlike.SetMagPhi(pt2,phi2);
+  met_wlike += metv;
+  Double_t mt_wlike_1 = std::sqrt(2*pt1*met_wlike.Mod()*(1-std::cos(phi1-met_wlike.Phi())));
+
+  met_wlike.SetMagPhi(pt1,phi1);
+  met_wlike += metv;
+  Double_t mt_wlike_2 = std::sqrt(2*pt2*met_wlike.Mod()*(1-std::cos(phi2-met_wlike.Phi())));
+
+  return 0.5 * (mt_wlike_1 + mt_wlike_2);
+
+}
+
+TRandom3 *rng_mt = NULL;
+float mt_wlike_samesign_random(float pt1, float phi1, float pt2, float phi2, float met, float phimet, ULong64_t evt) {
+
+  // for tests
+  // randomly select one lepton to compute mt
+
+  TVector2 metv = TVector2();
+  metv.SetMagPhi(met,phimet);
+  // use same vector and sum met
+  TVector2 met_wlike = TVector2();
+
+  Double_t ptL = 0.0;
+  Double_t phiL = 0.0;
+  if(!rng_mt) rng_mt = new TRandom3();
+  // use eventNumber as seed
+  rng_mt->SetSeed(evt); 
+  if (rng_mt->Rndm() > 0.5) {
+    ptL = pt1;
+    phiL = phi1;
+    met_wlike.SetMagPhi(pt2,phi2);
+  } else {
+    ptL = pt2;
+    phiL = phi2;    
+    met_wlike.SetMagPhi(pt1,phi1);
+  }
+
+  met_wlike += metv;
+  return std::sqrt(2*ptL*met_wlike.Mod()*(1-std::cos(phiL-met_wlike.Phi())));
+
+}
+
+
 float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, float met, float phimet, ULong64_t evt) {
+  
+  //if (ch1 == ch2) return mt_wlike_samesign(pt1,phi1,pt2,phi2,met,phimet);
+
   float ptL  = returnChargeVal(pt1,ch1,pt2,ch2,evt);
   float phiL = returnChargeVal(phi1,ch1,phi2,ch2,evt);
 
@@ -70,7 +126,9 @@ float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, f
   TVector2 met_wlike = pl+metv;
 
   return std::sqrt(2*ptL*met_wlike.Mod()*(1-std::cos(phiL-met_wlike.Phi())));
+
 }
+
 
 float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {
@@ -1594,11 +1652,10 @@ float triggerSFforChargedLeptonMatchingTriggerWlike(bool isOddEvent, // pass pos
     if (thisLepMatchesTrigger and otherLepMatchesTrigger) {      
       // charge is known, but what about which eta-pt ?
       // this is a minor component for Z with SS in MC, might just randomly choose one
-      return 1;
-    } else if (thisLepMatchesTrigger) {
-      // here we choose leading lepton for now (charge == -1 * pdgId)      
+      // use leading for now to be simple, it is really a small component
       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, -1 * pdgId);					    
-      // return 1;
+    } else if (thisLepMatchesTrigger) {
+      return _get_muonSF_selectionToTrigger(pdgId, pt, eta, -1 * pdgId);					    
     } else if (otherLepMatchesTrigger) {
       return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1 * pdgId_other);
     } else {
@@ -1641,6 +1698,11 @@ bool triggerMatchWlike(bool isOddEvent, // pass positive or negative number, dep
 		       float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
 		       int pdgId1, int pdgId2  // used to decide which lepton has the required charge
 		       ) {
+
+  if (pdgId1 * pdgId2 > 0) {
+    // same sign case
+    return ((matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) || (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2));
+  }
 
   int requiredCharge = isOddEvent ? 1 : -1;
   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId

@@ -188,12 +188,22 @@ def getMaximumTH(h, excludeMax=None):
 
 #########################################################################
 
+def fillTH2fromTH3zrange(h2, h3, zbinLow=1, zbinHigh=1):
+    for ix in range(1,1+h2.GetNbinsX()):
+        for iy in range(1,1+h2.GetNbinsY()):
+            error = ROOT.Double(0)
+            h2.SetBinContent(ix,iy,h3.IntegralAndError(ix,ix,iy,iy,zbinLow,zbinHigh,error))
+            h2.SetBinError(ix,iy,error);
+
+
+#########################################################################
+
 
 def createPlotDirAndCopyPhp(outdir):
     if outdir != "./":
         if not os.path.exists(outdir):
             os.system("mkdir -p "+outdir)
-            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/e/emanuele/public/index.php "+outdir)
+            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
     
 
 #########################################################################
@@ -302,8 +312,8 @@ def drawTH1(htmp,
 def drawCorrelationPlot(h2D_tmp,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
                         canvasName="default", plotLabel="", outdir="./",
-                        rebinFactorY=0,
                         rebinFactorX=0,
+                        rebinFactorY=0,
                         smoothPlot=True,
                         drawProfileX=True,
                         scaleToUnitArea=True,
@@ -329,8 +339,8 @@ def drawCorrelationPlot(h2D_tmp,
     adjustSettings_CMS_lumi()
 
     if (rebinFactorX): 
-        if isinstance(rebinFactorX, int): h2D_tmp.RebinY(rebinFactorX)
-        else:                             h2D_tmp.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
+        if isinstance(rebinFactorX, int): h2D_tmp.RebinX(rebinFactorX)
+        else:                             h2D_tmp.RebinX(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
 
     if (rebinFactorY): 
         if isinstance(rebinFactorY, int): h2D_tmp.RebinY(rebinFactorY)
@@ -890,13 +900,28 @@ def drawNTH1(hists=[],
 
     colors = [ROOT.kRed+2, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+7, ROOT.kAzure+2, ROOT.kPink+7]
     for ic,h in enumerate(hnums):
+        # h.SetLineColor(colors[ic])
+        # h.SetFillColor(colors[ic])
+        # if ic==0: h.SetFillStyle(3004)   
+        # if ic==2: h.SetFillStyle(3002)   
+        # h.SetFillColor(colors[ic])
+        # h.SetMarkerSize(0)
         h.SetLineColor(colors[ic])
         h.SetFillColor(colors[ic])
-        if ic==0: h.SetFillStyle(3004)   
-        if ic==2: h.SetFillStyle(3002)   
-        h.SetFillColor(colors[ic])
         h.SetMarkerSize(0)
-
+        if ic==0: 
+            h.SetFillStyle(3004)   
+        if ic==1: 
+            h.SetFillColor(0) 
+            h.SetLineWidth(2) 
+        if ic==2: 
+            h.SetFillStyle(3002)           
+        if ic==3:
+            h.SetFillColor(0)
+            h1.SetMarkerColor(ROOT.kGray+3)
+            h1.SetMarkerStyle(25)
+            #h1.SetMarkerSize(2)
+            
     
     #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
@@ -1065,7 +1090,7 @@ def drawNTH1(hists=[],
             den_noerr.SetBinError(iBin,0.)
 
         ratio.Divide(den_noerr)
-        ratio.SetFillColor(ROOT.kGray+1)
+        ratio.SetFillColor(ROOT.kGray)
         #den_noerr.SetFillColor(ROOT.kGray)
         frame.Draw()
         ratio.SetMarkerSize(0)
@@ -1076,22 +1101,17 @@ def drawNTH1(hists=[],
         for i,h in enumerate(hnums):
             ratios.append(h.Clone("ratio_"+str(i+1)))
             ratios[-1].Divide(den_noerr)
-            ratios[-1].SetLineColor(h.GetLineColor())
-            ratios[-1].SetMarkerSize(0)
-            ratios[-1].SetMarkerStyle(0)
-        # print values
-        # if "unrolledXsec_eta_abs_" in canvasName or "xsec_eta_abs_" in canvasName:
-        #     print "eta-bin   Rel.Unc (%)"
-        #     for i in range (1,ratio.GetNbinsX()+1):
-        #         if "unrolledXsec_eta_abs_" in canvasName:
-        #             if i%etarange == 1:
-        #                 print textForLines[int((i-1)/etarange)]
-        #             print "%s  %s" % (str(int(i%etarange)),str(100*ratio.GetBinError(i)))
-        #         else:
-        #             print "%s  %s" % (str(i),str(100*ratio.GetBinError(i)))
-   
+            #ratios[-1].SetLineColor(h.GetLineColor())
+            #ratios[-1].SetMarkerSize(0)
+            #ratios[-1].SetMarkerStyle(0)
+            #ratios[-1].SetFillColor(0)
+            if h.GetFillColor():
+                ratios[-1].Draw("E2 SAME")
+            else:
+                ratios[-1].Draw("HIST SAME")
+
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-        line.SetLineColor(ROOT.kRed)
+        line.SetLineColor(ROOT.kBlack)
         line.SetLineWidth(1)
         line.Draw("Lsame")
 

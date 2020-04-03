@@ -28,25 +28,32 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
+keepEventsWithNoGoodVertex = True
+forceSignalSkim = True # force skims for signal (some lepton cuts, single or dilepton skim)
 runOnSignal = True
 doTriggerMatching = True
 keepLHEweights = False
-signalZ = False
+signalZ = True
 runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
 doRecoilVariables = False
 
+if keepEventsWithNoGoodVertex:
+    vertexAna.keepFailingEvents = True
+
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
-ttHLepSkim.maxLeptons = 999
+#ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # this is applied to all leptons! not just some
+#ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.muonID('POG_ID_Loose')>0"
+ttHLepSkim.maxLeptons = 2
 #ttHLepSkim.idCut  = ""
-ttHLepSkim.ptCuts = [23]
+ttHLepSkim.ptCuts = [23, 10]
 
 if diLeptonSkim:
     ttHLepSkim.minLeptons = 2
-    ttHLepSkim.maxLeptons = 999
-    #ttHLepSkim.idCut  = ""
+    ttHLepSkim.maxLeptons = 2
+    ttHLepSkim.idCut  = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # not sure it works
     ttHLepSkim.ptCuts = [23, 23]
 
 if doTriggerMatching:
@@ -68,14 +75,16 @@ lepAna.loose_electron_id = "POG_Cuts_ID_SPRING16_25ns_v1_HLT"
 isolation = None
 
 if useBasicRECOLeptons:
-    lepAna.inclusive_muon_id  = None
-    lepAna.inclusive_muon_pt  = 23
+    lepAna.inclusive_muon_id  = "POG_ID_Loose"
+    #lepAna.inclusive_muon_id  = None
+    lepAna.inclusive_muon_pt  = 10
     lepAna.inclusive_muon_eta = 2.4
     lepAna.inclusive_muon_dxy = 1000.
     lepAna.inclusive_muon_dz  = 1000.
     # loose muon selection
-    lepAna.loose_muon_id     = None
-    lepAna.loose_muon_pt     = 23
+    lepAna.loose_muon_id     = "POG_ID_Loose"
+    #lepAna.loose_muon_id     = None
+    lepAna.loose_muon_pt     = 10
     lepAna.loose_muon_eta    = 2.4
     lepAna.loose_muon_dxy    = 1000.
     lepAna.loose_muon_dz     = 1000.
@@ -300,9 +309,11 @@ samples_1prompt = single_t + tt_1l + z_jets + dibosons
 
 if   runOnSignal and signalZ==False:
     selectedComponents = [WJetsToLNu_94X,WJetsToLNu_94X_ext]
+    #selectedComponents = [WJetsToLNu_94X]
 elif runOnSignal and signalZ:
     #selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
-    selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+    #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+    selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
 #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
@@ -462,12 +473,15 @@ print runData
 print 'THIS IS SELECTED COMPONENTS', selectedComponents
 
 test = getHeppyOption('test')
-if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x']:    
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94x']:    
     if test=='testdata':
         comp = selectedComponents[0]
         comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     if test =='testw94x':
         comp = WJetsToLNu_94X
+        comp.files = comp.files[:1]
+    elif test =='testz94x':
+        comp = ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
         comp.files = comp.files[:1]
     elif test=='testw':
         comp = WJetsToLNu_ext
@@ -589,7 +603,8 @@ if not keepLHEweights:
     histoCounter.doLHE = False
 
 if runOnSignal and (not signalZ or runZlikeW):
-    if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
+    if not forceSignalSkim:
+        if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
     if triggerAna in sequence: sequence.remove(triggerAna)
     if genAna in sequence: genAna.saveAllInterestingGenParticles = True
 
