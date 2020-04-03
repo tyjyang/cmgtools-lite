@@ -5,6 +5,9 @@ parser.add_option('-p', '--part'     , type=int, default=0 , help='number of the
 parser.add_option(      '--skipCheck',           default=False, help='skip check of the file\'s integrity [%default]', action='store_true')
 parser.add_option('-d', '--dirs'     , type=str, default='', help='comma separated list of the directories to copy and run hadd on')
 parser.add_option('-o', '--targetdir', type=str, default='', help='target directory for the output')
+parser.add_option('--skipAllButTreeAndSkimReport', dest='skipAllButTreeAndSkimReport',
+                  default=False,action='store_true',
+                  help='When hadding stuff, skip hadd of some pck files that might be missing but not necessary (you only need the tree and the report from skimAnalyzerCount for number of events before any selection')
 (options, args) = parser.parse_args()
 
 
@@ -55,6 +58,8 @@ for ic,cmd in enumerate(cmds):
 
 print 'STATUS: running haddChunks command:'
 haddCmd = 'haddChunks.py -c ./'
+if options.skipAllButTreeAndSkimReport:
+    haddCmd += " --skipAllButTreeAndSkimReport "
 os.system('{hc}'.format(hc=haddCmd))
 
 ## renaming the output directory and copying to target directory
