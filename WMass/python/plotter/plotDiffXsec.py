@@ -5,9 +5,9 @@ import ROOT, os, sys, re, array
 # to run plots from Asimov fit and data. For toys need to adapt this script
 
 doMuElComb = 1
-doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
+doMuon = 0 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
-dryrun = 0
+dryrun = 1
 skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
 onlyData = 1
@@ -21,10 +21,10 @@ skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipCorrAll4HEPdata = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 1
+skipMuElComparison = 0
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -89,7 +89,8 @@ if doMuElComb:
         quit()
 
 postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly_addInclXsec"
-postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw"
+postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec"
+#postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw"
 
 if flavour == "el":
     postfix = postfix_el
