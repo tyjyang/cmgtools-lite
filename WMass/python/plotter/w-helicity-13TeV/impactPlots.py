@@ -432,7 +432,20 @@ if __name__ == "__main__":
             bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
 
         summaries = {}
-        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]        
+        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        print "GROUPS = ",groups
+        ## hack to have the same sorting in the legend of 2D xsec in the paper
+        sortedGroups = []
+        for ng in groups:
+            if 'Fakes' in ng:         sortedGroups.append((ng,0))
+            if 'EffStat' in ng:       sortedGroups.append((ng,1))
+            if 'QCDTheo' in ng:       sortedGroups.append((ng,2))
+            if 'pdfs' in ng:          sortedGroups.append((ng,3))
+            if 'stat' in ng:          sortedGroups.append((ng,4))
+            if 'binByBinStat' in ng:  sortedGroups.append((ng,5))
+            if 'Total' in ng:         sortedGroups.append((ng,6))
+        sortedGroups = sorted(sortedGroups, key=lambda ng: ng[1])
+        sortedGroups = [ng[0] for ng in sortedGroups]
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         polarizations = ['unpolarized'] if re.match('^unpol|^A\d',options.target) else ['left','right','long']
         cp = 'plus_left' # groups assume a common Y binning
@@ -442,7 +455,7 @@ if __name__ == "__main__":
             for pol in polarizations:
                 ing  = 0
                 ing2 = 0
-                for ing_tmp,nuisgroup in enumerate(groups):
+                for ing_tmp,nuisgroup in enumerate(sortedGroups):
                     
                     # in case we add other lines, let's avoid messing up all the colors of the old ones
                     # I define a new integer counter that is not updated on certain conditions
@@ -476,7 +489,7 @@ if __name__ == "__main__":
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleSize(0.06)
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetLabelSize(0.04)
                     summaries[(charge,pol,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
-        for j,nuisgroup in enumerate(groups):
+        for j,nuisgroup in enumerate(sortedGroups):
 
             for i in xrange(th2_sub.GetNbinsX()):
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
@@ -525,9 +538,9 @@ if __name__ == "__main__":
                 leg.SetNColumns(4)
                 lat = ROOT.TLatex()
                 lat.SetNDC(); lat.SetTextFont(42)
-                quadrsum = summaries[(charge,pol,groups[0])].Clone('quadrsum_{ch}_{pol}'.format(ch=charge,pol=pol))
+                quadrsum = summaries[(charge,pol,sortedGroups[0])].Clone('quadrsum_{ch}_{pol}'.format(ch=charge,pol=pol))
                 totalerr = quadrsum.Clone('totalerr_{ch}_{pol}'.format(ch=charge,pol=pol))
-                for ing,ng in enumerate(groups):
+                for ing,ng in enumerate(sortedGroups):
                     drawopt = 'pl' if ing==0 else 'pl same'
                     summaries[(charge,pol,ng)].Draw(drawopt)
                     summaries[(charge,pol,ng)].SetMarkerStyle(groupPainter[ng][0])
@@ -541,7 +554,7 @@ if __name__ == "__main__":
                     # elif ng=='L1Prefire'     : summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFourSquaresPlus)
                     # else: summaries[(charge,pol,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                     leg.AddEntry(summaries[(charge,pol,ng)], niceSystName(ng), 'pl')
-                    # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
+                    # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis sortedGroups)
                     for y in xrange(quadrsum.GetNbinsX()):
                         quadrsum.SetBinContent(y+1,math.hypot(quadrsum.GetBinContent(y+1),summaries[(charge,pol,ng)].GetBinContent(y+1)))
                 quadrsum.SetMarkerStyle(ROOT.kFullCrossX); quadrsum.SetMarkerSize(3); quadrsum.SetMarkerColor(ROOT.kBlack); quadrsum.SetLineColor(ROOT.kBlack); quadrsum.SetLineStyle(ROOT.kDashed)
@@ -582,8 +595,8 @@ if __name__ == "__main__":
                     quit()
                 rfHep.cd()
                 totalerr.Write()
-                for ing,ng in enumerate(groups):
-                    summaries[(charge,ng)].Write()
+                for ing,ng in enumerate(sortedGroups):
+                    summaries[(charge,pol,ng)].Write()
                 rfHep.Close()
 
 
