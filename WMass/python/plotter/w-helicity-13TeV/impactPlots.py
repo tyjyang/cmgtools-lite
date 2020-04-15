@@ -437,8 +437,8 @@ if __name__ == "__main__":
         ## hack to have the same sorting in the legend of 2D xsec in the paper
         sortedGroups = []
         for ng in groups:
-            if 'Fakes' in ng:         sortedGroups.append((ng,0))
-            if 'EffStat' in ng:       sortedGroups.append((ng,1))
+            if 'EffStat' in ng:       sortedGroups.append((ng,0))
+            if 'Fakes' in ng:         sortedGroups.append((ng,1))
             if 'QCDTheo' in ng:       sortedGroups.append((ng,2))
             if 'pdfs' in ng:          sortedGroups.append((ng,3))
             if 'stat' in ng:          sortedGroups.append((ng,4))
