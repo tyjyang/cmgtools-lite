@@ -153,14 +153,14 @@ if __name__ == "__main__":
             canvas = canvUnroll
             if "_eta" in name:
                 #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                xaxisTitle = "unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                 for ipt in range(0,genBins.Npt):
                     #varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
                     varBinRanges.append("#splitline{{[{ptmin:3g}, {ptmax:.3g}]}}{{GeV}}".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
             else:
                 #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                xaxisTitle = "unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                 for ieta in range(0,genBins.Neta):
                     #varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))

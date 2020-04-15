@@ -200,7 +200,7 @@ if __name__ == "__main__":
         ROOT.gROOT.SetBatch()
         if not os.path.isdir(options.outdir):
             os.system('mkdir -p {od}'.format(od=options.outdir))
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/m/mciprian/public/index.php',od=options.outdir))
 
     if len(options.nuis)==0 and len(options.nuisgroups)==0:
         print "Will plot the impact for all the single nuisances. It may be a big matrix"
@@ -414,7 +414,7 @@ if __name__ == "__main__":
             suff = '' if not options.suffix else '_'+options.suffix
             c.SaveAs(options.outdir+'/smallImpacts{rel}{suff}_{target}_{cn}.{i}'.format(rel='Abs' if options.absolute else 'Rel',suff=suff,target=options.target,i=i,cn=cname))
 
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/m/mciprian/public/index.php',od=options.outdir))
 
     gridline = ROOT.TLine(0,0,1,0)
     #gridline.SetNDC(1)
@@ -437,8 +437,8 @@ if __name__ == "__main__":
         ## hack to have the same sorting in the legend of 2D xsec in the paper
         sortedGroups = []
         for ng in groups:
-            if 'Fakes' in ng:         sortedGroups.append((ng,0))
-            if 'EffStat' in ng:       sortedGroups.append((ng,1))
+            if 'EffStat' in ng:       sortedGroups.append((ng,0))
+            if 'Fakes' in ng:         sortedGroups.append((ng,1))
             if 'QCDTheo' in ng:       sortedGroups.append((ng,2))
             if 'pdfs' in ng:          sortedGroups.append((ng,3))
             if 'stat' in ng:          sortedGroups.append((ng,4))
@@ -608,6 +608,11 @@ if __name__ == "__main__":
 
         summaries = {}
         groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        # hack: swap two entries to comply with the order for helicity, they are probably not the same because of
+        # the groups defined in the card
+        tmp = groups[0] 
+        groups[0] = groups[1]
+        groups[1] = tmp
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         for charge in charges:
             ing = 0

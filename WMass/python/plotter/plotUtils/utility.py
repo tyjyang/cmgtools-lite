@@ -1684,13 +1684,13 @@ def drawMuElComparison(hlep, hmu, hel,
     hmu.SetMarkerColor(ROOT.kBlue+1)
     hmu.SetMarkerStyle(21)
     hmu.SetMarkerSize(1.3)
-    hmu.Draw("EX0P0 SAME0")
+    hmu.Draw("E0X0P0 SAME")
 
     hel.SetLineColor(ROOT.kRed+1)  # kRed+2
     hel.SetMarkerColor(ROOT.kRed+2)
     hel.SetMarkerStyle(21)
     hel.SetMarkerSize(1.3)
-    hel.Draw("EX0P SAME0")
+    hel.Draw("E0X0P0 SAME")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -1852,8 +1852,8 @@ def drawMuElComparison(hlep, hmu, hel,
         ratioel.SetMarkerSize(1.6)
         den.SetMarkerSize(0) 
         den.Draw("E2same")
-        ratiomu.Draw("EX0P0 same0")
-        ratioel.Draw("EX0P0 same0")
+        ratiomu.Draw("E0X0P0 same")
+        ratioel.Draw("E0X0P0 same")
         
  
         line = ROOT.TF1("horiz_line","1",den.GetXaxis().GetBinLowEdge(1),den.GetXaxis().GetBinLowEdge(den.GetNbinsX()+1))

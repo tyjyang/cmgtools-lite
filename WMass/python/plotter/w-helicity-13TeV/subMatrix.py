@@ -31,9 +31,15 @@ def getBinAreaFromParamName(pname,genBins,isHelicity=False):
     if isHelicity:
         genYwBins = genBins
         dyw = 1.0
+        # use left pol to retrieve binning if none of the keys below is found (e.g. it happens for unpolarized)
+        # similarly for charge, use minus if no match
+        # this works because the binning is the same
+        charge = "plus" if "plus" in pname else "minus" 
+        pol = "left" if 'left' in pname else "right" if "right" in pname else "long" if "long" in pname else "left"
+        charge_pol = "{ch}_{pol}".format(ch=charge,pol=pol)  
         if "_Ybin_" in pname:
             iyw = int((pname.split("_Ybin_")[1]).split("_")[0])
-            dyw = genYwBins[iyw+1] - genYwBins[iyw]
+            dyw = genYwBins[charge_pol][iyw+1] - genYwBins[charge_pol][iyw]
         return dyw
     else:
         genEtaPtBins = genBins
@@ -89,10 +95,13 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
                 iyw = int((name.split("_Ybin_")[1]).split("_")[0])
                 # get key to read binning (same for all charges and polarizations, but let's stay general
                 # in case charge was not set, take key for "plus" charge and cross fingers
-                charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol)
+                # similarly, use left for binning when pol is unpolarized
+                charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol if pol!="unpolarized" else "left")  
                 ywl = genYwBins[charge_pol][iyw]
                 ywh = genYwBins[charge_pol][iyw+1]
-            nn = "{wch}#rightarrow{lep}#nu ({pol}): |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            nn = "{wch}#rightarrow{lep}#nu  {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            if name.startswith("norm_"):  # normalization systematics for bins not fitted as pois
+                nn = "norm.syst. " + nn
         else:
             nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             if 'plus' in name: nn += 'W+ '
@@ -228,7 +237,7 @@ if __name__ == "__main__":
     parser.add_option(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (keep it odd: no correlation is white with our palette)')
     parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
     parser.add_option(     '--vertical-labels-X', dest='verticalLabelsX',    default=False, action='store_true', help='Set labels on X axis vertically (sometimes they overlap if rotated)')
-    parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ("small correlation matrix" is used as default). Use 0 to remove title')
+    parser.add_option(     '--title'  , dest='title',    default='', type='string', help='Title for matrix ')
     parser.add_option(     '--show-more-correlated' , dest='showMoreCorrelated',    default=0, type=int, help='Show the N nuisances more correlated (in absolute value) with the parameters given with --params. If 0, do not do this part')
     parser.add_option('-m','--matrix-type', dest='matrixType',    default='channelpmaskedexpnorm', type='string', help='Select which matrix to read from file')
     parser.add_option(     '--margin',     dest='margin',     default='', type='string', help='Pass canvas margin as "left,right,top,bottom" ')
@@ -239,6 +248,7 @@ if __name__ == "__main__":
     parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs')
     parser.add_option('--which-matrix',  dest='whichMatrix',     default='both', type='string', help='Which matrix: covariance|correlation|both')
     parser.add_option(     '--divide-covariance-by-bin-area', dest='divideCovarianceBybinArea',    default=False, action='store_true', help='Divide covariance by bin area (2D xsec) or bin width (1D xsec)')
+    parser.add_option(     '--skipLatexOnTop', dest='skipLatexOnTop',    default=False, action='store_true', help='Do not write "CMS blabla" on top (mainly useful when a title is needed)')
     (options, args) = parser.parse_args()
 
     ROOT.TColor.CreateGradientColorTable(3,
@@ -264,7 +274,7 @@ if __name__ == "__main__":
         ROOT.gROOT.SetBatch()
         if not os.path.isdir(options.outdir):
             os.system('mkdir -p {od}'.format(od=options.outdir))
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/m/mciprian/public/index.php',od=options.outdir))
 
     pois_regexps = list(options.params.split(','))
     print "Filtering POIs with the following regex: ",pois_regexps
@@ -277,15 +287,18 @@ if __name__ == "__main__":
         etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
     elif options.ywbinfile:
-        # to implement
-        print "--ywbinfile to implement"
-        quit()
         ybinfile = open(options.ywbinfile, 'r')
         genBins = eval(ybinfile.read())
         ybinfile.close()
     else:
         genBins = ""
     
+    print "="*30
+    print "Gen binning:"
+    print "-"*30
+    print genBins
+    print "="*30
+
 
     params = []; indices = []
 
@@ -327,7 +340,7 @@ if __name__ == "__main__":
         corrmatrix = hessfile.Get('correlation_matrix_'+suffix)
         covmatrix  = hessfile.Get('covariance_matrix_'+suffix)
         for ib in range(1,corrmatrix.GetNbinsX()+1):
-            #if nNuisances > 5: break # only for tests
+            #if nNuisances > 5 and nPois > 10: break # only for tests
             for poi in pois_regexps:
                 if re.match(poi, corrmatrix.GetXaxis().GetBinLabel(ib)):
                     ## store mean and rms into the dictionaries from before
@@ -353,8 +366,9 @@ if __name__ == "__main__":
                                     "channelchargepois"     : "chargeasym",
                                     "channelchargemetapois" : "chargemetaasym",
                                     "channelratiometapois"  : "ratiometaratio",
-                                    "channelpolpois"        : "polxsec",  #  check if it is correct
-                                    "channelnone"           : "pmaskedexp"
+                                    "channelpolpois"        : "a4",  #  check if it is correct
+                                    #"channelpolpois"        : "unpolarizedxsec", 
+                                    "channelnone"           : "pmaskedexp" # dummy, there are no POIs in this case
     }
     poiPostfix = filter_matrixType_poiPostfix[options.matrixType]
     poiHasToBeScaled = True if poiPostfix in ["pmaskedexp", "sumxsec"] else False
@@ -417,10 +431,13 @@ if __name__ == "__main__":
     # one might want to invert the order of charge and helicity for the sorting
 
     params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
-    params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
-    params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
-    params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
-    params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
+    if options.ywbinfile:
+        params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
+        params = sorted(params, key= lambda x: (1 if "left" in x else 2 if "right" in x else "3") if '_Ybin_' in x else 0)
+    else:
+        params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
+        params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
+        params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else 0)
     params = sorted(params, key= lambda x: 1 if x.endswith(poiPostfix) else 0)
  
     # sort if not using all params (otherwise the order should be already ok, as it is taken from the original matrix)
@@ -485,7 +502,7 @@ if __name__ == "__main__":
         #th2_sub.SetTitle('correlations of PDF nuisance parameters')
         th2_sub.GetXaxis().SetLabelSize(0.025)
         th2_sub.GetYaxis().SetLabelSize(0.025)
-        th2_cov.SetTitle('covariance of PDF nuisance parameters')
+        #th2_cov.SetTitle('covariance of PDF nuisance parameters')
         th2_cov.GetXaxis().SetLabelSize(0.025)
         th2_cov.GetYaxis().SetLabelSize(0.025)
 
@@ -501,7 +518,7 @@ if __name__ == "__main__":
     for i,x in enumerate(params):
         sys.stdout.write('Row {num}/{tot}   \r'.format(num=i,tot=nParams))
         sys.stdout.flush()
-        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=False)
+        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
         th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
         th2_sub.GetYaxis().SetBinLabel(i+1, new_x)
         th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
@@ -513,20 +530,13 @@ if __name__ == "__main__":
             if j>i: break
             sys.stdout.write('Row {num}/{tot}   Column {col}/{tot}   \r'.format(num=i,tot=nParams, col=j))
             sys.stdout.flush()
-            #new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
-            #new_y = niceName(y,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
-            ## set it into the new sub-matrix
             ## note that the matrix is symmetric
             if not options.whichMatrix == "covariance":
                 th2_sub.SetBinContent(i+1, j+1, corr[(x,y)])
                 th2_sub.SetBinContent(j+1, i+1, corr[(x,y)])
-                #th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
-                #th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
             if not options.whichMatrix == "correlation":
                 th2_cov.SetBinContent(i+1, j+1, cov [(x,y)])
                 th2_cov.SetBinContent(j+1, i+1, cov [(x,y)])
-                #th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
-                #th2_cov.GetYaxis().SetBinLabel(j+1, new_y)
 
     th2_sub.GetZaxis().SetRangeUser(-1, 1)
     
@@ -551,7 +561,9 @@ if __name__ == "__main__":
         else:
             corcov = 'Covariance' if options.whichMatrix == "covariance" else "Correlation"
 
-        th2_sub.SetTitle("")
+        tmp_mat.SetTitle("")
+        if options.title: 
+            tmp_mat.SetTitle(options.title)
 
         if options.outdir:
             ROOT.gStyle.SetPaintTextFormat('1.2f')
@@ -560,13 +572,12 @@ if __name__ == "__main__":
 
             lat = ROOT.TLatex()
             lat.SetNDC(); lat.SetTextFont(42)
-            lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
-            lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
+            if not options.skipLatexOnTop:
+                lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
+                lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
 
             if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
             if nbins >= 20: tmp_mat.LabelsOption("v","X")
-
-            tmp_mat.SetTitle("")
 
             if options.parNameCanvas: 
                 paramsName = options.parNameCanvas
@@ -584,7 +595,7 @@ if __name__ == "__main__":
             matRootFile.cd()
             tmp_mat.Write()
             matRootFile.Close("matrix{corcov}".format(corcov=corcov))
-            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+            os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/m/mciprian/public/index.php',od=options.outdir))
 
 
     if options.showMoreCorrelated:

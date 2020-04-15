@@ -10,21 +10,21 @@ combineElePt01asBkg = 0
 dryrun = 0
 skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
-onlyData = 1
+onlyData = 0
 corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat, else 0
 
 skipInclusivePlot = 1
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipCorrAll4HEPdata = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 1
+skipMuElComparison = 0
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -62,6 +62,8 @@ seed = 123456789
 
 folder = ""
 folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI_ptMax45/"
+#folder_mu = "diffXsec_mu_2020_04_10_nativeMCatNLOxsec_fixJetPrefire_1sigBin_4fixedPOI/"
 folder_el = "diffXsec_el_2019_09_22_nativeMCatNLOxsec/"
 
 flavour = ""
@@ -89,7 +91,8 @@ if doMuElComb:
         quit()
 
 postfix_el = "nativeMCatNLOxsecW_profilePtScales_newSmoothUncorrScale_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitPtSystByPt_FSRshapeOnly_addInclXsec"
-postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw"
+postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec"
+#postfix_mu = "nativeMCatNLOxsecW_RochesterCorrUncert_cropNegBinNomi_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_FSRshapeOnly_addInclXsec_addImpactsOnMw_fixedPOI"
 
 if flavour == "el":
     postfix = postfix_el
