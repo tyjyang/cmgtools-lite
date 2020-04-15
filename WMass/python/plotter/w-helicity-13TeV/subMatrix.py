@@ -83,7 +83,7 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
             wch = "W+" if "plus" in name else "W-" if "minus" in name else "W"
             lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
-            pol = "left" in 'left' in name else "right" if "right" in name else "long" if "long" in name else "unpolarized"
+            pol = "left" if 'left' in name else "right" if "right" in name else "long" if "long" in name else "unpolarized"
             ywl,ywh = 0.0,0.0
             if genYwBins:
                 iyw = int((name.split("_Ybin_")[1]).split("_")[0])
@@ -92,9 +92,9 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
                 charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol)
                 ywl = genYwBins[charge_pol][iyw]
                 ywh = genYwBins[charge_pol][iyw+1]
-            nn = "{wch}#rightarrow{lep}#nu ({pol}): |y_{{W}}| #in [{ywl:1.2f},{yw:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            nn = "{wch}#rightarrow{lep}#nu ({pol}): |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             if 'plus' in name: nn += 'W+ '
             elif 'minus' in name: nn += 'W- '
             else: nn += 'W '
@@ -124,14 +124,14 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
             nn = "{wch}#rightarrow{lep}#nu: |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,etal=etal,etah=etah,ptl=ptl,pth=pth)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
             nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
         return nn
 
     elif '_ieta_' in name:
         genEtaPtBins = genBins
-        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
         # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ieta = int((name.split("_ieta_")[1]).split("_")[0])
         # nn += "i#eta = {neta}".format(neta=ieta)
@@ -146,7 +146,7 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
             nn = "{wch} |#eta^{{{lep}}}| #in [{etal:1.1f},{etah:1.1f}]".format(wch=wch,lep=lep,etal=etal,etah=etah)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '            
             nn += "i#eta = {neta}".format(neta=ieta)
             
@@ -154,7 +154,7 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
 
     elif '_ipt_' in name:
         genEtaPtBins = genBins
-        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l:'
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
         # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
         ipt = int((name.split("_ipt_")[1]).split("_")[0])
         # nn += "ip_{{T}} = {npt}".format(npt=ipt)
@@ -169,7 +169,7 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
             nn = "{wch} p_{{T}}^{{{lep}}} #in [{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,ptl=ptl,pth=pth)
         else:
-            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else 'l: '
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
             nn += "ip_{{T}} = {npt}".format(npt=ipt)
         return nn
@@ -296,6 +296,7 @@ if __name__ == "__main__":
 
     nNuisances = 0
     nPois = 0
+
     ### GET LIST OF PARAMETERS THAT MATCH THE SPECIFIED OPTION IN THE TOYFILE
     if options.type == 'toys':
         toyfile = ROOT.TFile(args[0], 'read')
@@ -352,8 +353,8 @@ if __name__ == "__main__":
                                     "channelchargepois"     : "chargeasym",
                                     "channelchargemetapois" : "chargemetaasym",
                                     "channelratiometapois"  : "ratiometaratio",
-                                    "channelpolpois"        : "polxsec"  #  check if it is correct
-
+                                    "channelpolpois"        : "polxsec",  #  check if it is correct
+                                    "channelnone"           : "pmaskedexp"
     }
     poiPostfix = filter_matrixType_poiPostfix[options.matrixType]
     poiHasToBeScaled = True if poiPostfix in ["pmaskedexp", "sumxsec"] else False
@@ -500,7 +501,7 @@ if __name__ == "__main__":
     for i,x in enumerate(params):
         sys.stdout.write('Row {num}/{tot}   \r'.format(num=i,tot=nParams))
         sys.stdout.flush()
-        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
+        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=False)
         th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
         th2_sub.GetYaxis().SetBinLabel(i+1, new_x)
         th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
@@ -550,31 +551,22 @@ if __name__ == "__main__":
         else:
             corcov = 'Covariance' if options.whichMatrix == "covariance" else "Correlation"
 
-        if options.title: 
-            if options.title == "0":
-                th2_sub.SetTitle("")
-            else:
-                th2_sub.SetTitle(options.title)
-
-        lat = ROOT.TLatex()
-        lat.SetNDC(); lat.SetTextFont(42)
-        lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
-        lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
+        th2_sub.SetTitle("")
 
         if options.outdir:
             ROOT.gStyle.SetPaintTextFormat('1.2f')
             if len(params)<30: tmp_mat.Draw('colz text45')
             else: tmp_mat.Draw('colz')
 
+            lat = ROOT.TLatex()
+            lat.SetNDC(); lat.SetTextFont(42)
+            lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
+            lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
+
             if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
             if nbins >= 20: tmp_mat.LabelsOption("v","X")
 
-            if options.title: 
-                if options.title == "0":
-                    tmp_mat.SetTitle("")
-                else:
-                    tmp_mat.SetTitle(options.title)
-
+            tmp_mat.SetTitle("")
 
             if options.parNameCanvas: 
                 paramsName = options.parNameCanvas
