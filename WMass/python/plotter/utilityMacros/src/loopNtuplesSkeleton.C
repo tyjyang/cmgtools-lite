@@ -745,7 +745,8 @@ void fillHistograms(const string& treedir = "./",
       // the reco2Selection SF is eta-smoothed
       //sfRecoToSelectionMu = lep_SF2[0]; 
       sfRecoToSelectionMu = _get_muonSF_recoToSelection(lep_pdgId[0], lep1calPt, lep_eta[0], useBinnedSF); // this is also eta-smoothed 
-      sfPrefireMu = prefireJetsWeight(lep_eta[0]);
+      //sfPrefireMu = prefireJetsWeight(lep_eta[0]); // wrong
+      sfPrefireMu = 0.999; // approximated but mostly correct
       wgt = sfTriggerMu * sfRecoToSelectionMu * sfPrefireMu; 
       // for muons, get fast weight for efficiency Up/Down
       Double_t syst = 0.0;

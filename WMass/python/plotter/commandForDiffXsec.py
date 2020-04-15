@@ -95,9 +95,14 @@ th3file_el = "cards/" + folder_el + "wel_20Sept2019_smoothSF_fsrNormGenXsec_WptN
 #th3file_el = "cards/" + folder_el + "wel_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin_recoPt29to57.root"
 
 
-# mu
-folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
+# mu (test fixing prefire, not official folders for paper, at least at the moment of writing the comment)
+#folder_mu = "diffXsec_mu_2020_04_10_nativeMCatNLOxsec_fixJetPrefire/"
+folder_mu = "diffXsec_mu_2020_04_10_nativeMCatNLOxsec_fixJetPrefire_1sigBin_4fixedPOI/"
+
+#
+#folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec/"
 th3file_mu = "cards/" + folder_mu + "wmu_19Sept2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec.root"
+
 #folder_mu = "diffXsec_mu_2019_09_19_nativeMCatNLOxsec_1sigBin_4fixedPOI/"
 #th3file_mu = "cards/" + folder_mu + "wmu_15oct2019_smoothSF_fsrNormGenXsec_WptNormGenXsec_nativeMCatNLOxsec_singleSignalBin.root"
 #folder_mu = "diffXsec_mu_2019_09_19_onlyZandTau_recoPt25to57_1sigBin_4fixedPOI/"
