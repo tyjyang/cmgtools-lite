@@ -37,11 +37,13 @@ def getRatios(mcvals,graph_data,rationame,ybincenters,asymmetry=False):
         ratioGr.SetPointError(ir,0.5*bwidth,0.5*bwidth,r[2],r[3])
     return ratioGr
 
-def makeFullLegend(graphs,titles,styles,ncols=1,xmin=0.25,ymin=0.7,xmax=0.9,ymax=0.9):
+def makeFullLegend(graphs,titles,styles,ncols=1,xmin=0.25,ymin=0.7,xmax=0.9,ymax=0.9,textSize=0.05):
     leg = ROOT.TLegend(xmin,ymin,xmax,ymax)
     leg.SetNColumns(ncols)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(textSize)
     for i in range(len(graphs)):
         leg.AddEntry(graphs[i], titles[i], styles[i])
     return leg
@@ -96,7 +98,7 @@ def plotOneRatio(ratioGraphs,mcname,color,fillstyle,isBottomPlot=False,asymmetry
 
     leg = makeFullLegend(ratioGraphs[:2],
                           [mcname,'data'],
-                          ['f','pe'],ymin=0.70,xmax=0.6,ncols=2)
+                          ['f','pe'],ymin=0.70,xmax=0.75,ncols=2,textSize=0.08)
     leg.Draw()
     leg.SetName("leg"+mcname)
 
@@ -188,7 +190,7 @@ def plotMCaNLO(values,ratios,fewzvals_nnpdf31,fewzvals_ct18,plotname,outdir):
 
     leg0 = makeFullLegend([graphs[0],graphs[2],fewz_nnpdf31_Gr,fewz_ct18_Gr,graphs[1]],
                           ['MC@NLO NNPDF3.0','MC@NLO* NNPDF3.0','FEWZ NNPDF3.1','FEWZ CT18','data'],
-                          ['f','l','f','f','pl'],ncols=2)
+                          ['f','l','f','f','pl'],ncols=2,textSize=0.03)
     leg0.Draw()
 
     ## save in a ROOT file
@@ -228,7 +230,7 @@ def plotMCaNLO(values,ratios,fewzvals_nnpdf31,fewzvals_ct18,plotname,outdir):
     lat.SetNDC(); lat.SetTextFont(42)
     lat.DrawLatex(0.2, 0.97, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.60, 0.97, '35.9 fb^{-1} (13 TeV)')
-    lat.DrawLatex(0.25, 0.55,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if ch=='-' else "#nu"))
+    lat.DrawLatex(0.25, 0.57,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if ch=='-' else "#nu"))
     lat2 = ROOT.TLatex()
     lat2.SetNDC(); lat2.SetTextFont(42);  lat2.SetTextSize(0.04);
     lat2.DrawLatex(0.90, 0.012, '|y_{W}|')
