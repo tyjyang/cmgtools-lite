@@ -3,14 +3,14 @@ import pprint
 import pickle
 import shutil
 
-def haddPck(file, odir, idirs):
+def haddPck(file, odir, idirs, skipAllButTreeAndSkimReport=False):
     '''add pck files in directories idirs to a directory outdir.
     All dirs in idirs must have the same subdirectory structure.
     Each pickle file will be opened, and the corresponding objects added to a destination pickle in odir.
     '''
     sum = None
     for dir in idirs:
-        fileName = file.replace( idirs[0], dir, skipAllButTreeAndSkimReport=False )
+        fileName = file.replace( idirs[0], dir)
         if skipAllButTreeAndSkimReport:
             print fileName
             # test avoiding failure of unnecessary files
@@ -53,7 +53,7 @@ def hadd(file, odir, idirs, appx='', skipAllButTreeAndSkimReport=False):
     MAX_ARG_STRLEN = 131072
     if file.endswith('.pck'):
         try:
-            haddPck( file, odir, idirs, skipAllButTreeAndSkimReport)
+            haddPck( file, odir, idirs, skipAllButTreeAndSkimReport=skipAllButTreeAndSkimReport)
         except ImportError:
             pass
         return
@@ -105,7 +105,7 @@ def haddRec(odir, idirs, skipAllButTreeAndSkimReport=False):
             # os.system(cmd)
             os.mkdir(dir)
         for file in files:
-            hadd('/'.join([root, file]), odir, idirs, skipAllButTreeAndSkimReport)
+            hadd('/'.join([root, file]), odir, idirs, skipAllButTreeAndSkimReport=skipAllButTreeAndSkimReport)
 
 
 def haddChunks(idir, removeDestDir, cleanUp=False, ignoreDirs=None, maxSize=None, skipAllButTreeAndSkimReport=False):
@@ -163,7 +163,7 @@ def haddChunks(idir, removeDestDir, cleanUp=False, ignoreDirs=None, maxSize=None
             if removeDestDir:
                 if os.path.isdir( odir ):
                     shutil.rmtree(odir)
-            haddRec(odir, cchunks, skipAllButTreeAndSkimReport)
+            haddRec(odir, cchunks, skipAllButTreeAndSkimReport=skipAllButTreeAndSkimReport)
             if cleanUp and (comp not in compsToSpare):
                 for chunk in cchunks:
                     shutil.move(chunk, chunkDir)

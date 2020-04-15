@@ -4,6 +4,12 @@ import ROOT
 import re 
 import os
 
+##
+##
+# WARNING: the script currently checks for the presence of the folder, it doesn't check whether the root file is in a good state. This feature can be added in the future
+##
+##
+
 
 if __name__ == "__main__":
     from optparse import OptionParser

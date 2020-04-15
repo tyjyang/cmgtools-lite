@@ -36,6 +36,8 @@ request_memory = {mem}
            time=maxRunTime)
     if os.environ['USER'] in ['mdunser', 'psilva']:
         job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
+    if os.environ['USER'] in ['mciprian']:
+        job_desc += '+AccountingGroup = "group_u_CMS.CAF.ALCA"\n'
     ##job_desc += 'queue 1\n'
 
     jobdesc_file = logdir+'/'+name+'.condor'

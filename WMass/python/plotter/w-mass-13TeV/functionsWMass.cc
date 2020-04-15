@@ -20,6 +20,7 @@
 #include <cstdlib> //as stdlib.h      
 #include <cstdio>
 #include <string>
+#include <vector>
 
 TF1 * helicityFractionSimple_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
 TF1 * helicityFractionSimple_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
@@ -55,6 +56,34 @@ float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
     return retVal;
 
 }
+
+float returnPlusVal(float val1, int ch1, float val2, int ch2){
+  
+  // return value of the lepton with desired charge, without looking at event parity
+  // assumes opposite charges
+  return (ch1 > 0) ? val1 : val2;
+
+}
+
+float returnMinusVal(float val1, int ch1, float val2, int ch2){
+  
+  // return value of the lepton with desired charge, without looking at event parity
+  // assumes opposite charges
+  return (ch1 < 0) ? val1 : val2;
+
+}
+
+float returnChargeValAllEvt(int desiredCharge, float val1, int ch1, float val2, int ch2, float returnForSameCharge = 0.0){
+  
+  if (ch1*ch2 > 0) {
+    return returnForSameCharge;
+  } else {
+    if (desiredCharge > 0) return (ch1 > 0) ? val1 : val2;
+    else                   return (ch1 < 0) ? val1 : val2;
+  }
+
+}
+
 
 float mt_wlike_samesign(float pt1, float phi1, float pt2, float phi2, float met, float phimet) {
 
@@ -207,14 +236,63 @@ float mydeltaR(float eta1, float phi1, float eta2, float phi2) {
   return std::sqrt(deta*deta + dphi*dphi);
 }
 
-float prefireJetsScaleFactor(int njet, 
-			     float jet1_pt, float jet1_eta,
-			     float jet2_pt, float jet2_eta) {
+double prefireJetsScaleFactor(int njet_tmp, 
+			      float jet1_pt = 0.0, float jet1_eta = 0.0,
+			      float jet2_pt = 0.0, float jet2_eta = 0.0,
+			      float jet3_pt = 0.0, float jet3_eta = 0.0) {
 
-  if (njet == 0) {
-    std::cout << "njet = " << njet << std::endl;
-    return 1.0;
+
+  double ret1 = 1.0;
+  // return 1.0; for tests
+  if (njet_tmp == 0) {
+    //std::cout << "njet = " << njet_tmp << std::endl;
+    return ret1;
+  } 
+
+  std::vector<float> jet_eta;
+  std::vector<float> jet_pt;
+  jet_eta.clear();
+  jet_pt.clear();
+  float maxEta_prefireMap = 3.5; // map arrives up to 3.5, but prefire in bin 3.0-3.5 is lower than in 2.5-3.0
+
+  // check how many jets can prefire, this part is ugly because this function could not accept a pointer to jets
+  // because it need to be passed to TTree::Draw and it doesn't accept pointers
+  if (njet_tmp == 1) {
+    if (fabs(jet1_eta) < maxEta_prefireMap && fabs(jet1_eta) > 2.0 && jet1_pt > 30.0) {
+      jet_eta.push_back(jet1_eta);
+      jet_pt.push_back(jet1_pt);
+    }    
+  } else if (njet_tmp == 2) {
+    if (fabs(jet1_eta) < maxEta_prefireMap && fabs(jet1_eta) > 2.0 && jet1_pt > 30.0) {
+      jet_eta.push_back(jet1_eta);
+      jet_pt.push_back(jet1_pt);
+    } 
+    if (fabs(jet2_eta) < maxEta_prefireMap && fabs(jet2_eta) > 2.0 && jet2_pt > 30.0) {
+      jet_eta.push_back(jet2_eta);
+      jet_pt.push_back(jet2_pt);
+    }
+  } else if (njet_tmp >= 3) {
+    if (fabs(jet1_eta) < maxEta_prefireMap && fabs(jet1_eta) > 2.0 && jet1_pt > 30.0) {
+      jet_eta.push_back(jet1_eta);
+      jet_pt.push_back(jet1_pt);
+    } 
+    if (fabs(jet2_eta) < maxEta_prefireMap && fabs(jet2_eta) > 2.0 && jet2_pt > 30.0) {
+      jet_eta.push_back(jet2_eta);
+      jet_pt.push_back(jet2_pt);
+    }
+    if (fabs(jet3_eta) < maxEta_prefireMap && fabs(jet3_eta) > 2.0 && jet3_pt > 30.0) {
+      jet_eta.push_back(jet3_eta);
+      jet_pt.push_back(jet3_pt);
+    }
   }
+
+  unsigned int njet = jet_eta.size();  
+  // std::cout << "array size == " << njet << std::endl;  
+  if (njet == 0) return ret1;
+
+  // for (UInt_t ij = 0; ij < njet; ij++) {
+  //   std::cout << ij << ") jet pt/eta = " <<  jet_pt[ij] << " / " << jet_eta[ij] << std::endl;
+  // }
 
   // must pass collection of cleaned jet
   // abs(eta) on X axis, pt on Y axis
@@ -233,25 +311,39 @@ float prefireJetsScaleFactor(int njet,
   float effPrefireJet2 = 0.0;
 
   if (njet > 0) {
-    etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet1_eta)) ) );
-    ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet1_pt) ) );
+    etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet_eta[0])) ) );
+    ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet_pt[0]) ) );
     effPrefireJet1 = prefireMapJets->GetBinContent(etabin,ptbin);
     if (njet > 1) {
-      etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet2_eta)) ) );
-      ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet2_pt) ) );
+      etabin = std::max(1, std::min( maxXbins, prefireMapJets->GetXaxis()->FindFixBin(fabs(jet_eta[1])) ) );
+      ptbin = std::max(1, std::min( maxYbins, prefireMapJets->GetYaxis()->FindFixBin(jet_pt[1]) ) );
       effPrefireJet2 = prefireMapJets->GetBinContent(etabin,ptbin);     
     }
+  } else {
+    return ret1;
   }
 
+  double sf = 1.0;
   if (njet == 1) {
-    std::cout << "njet = " << njet << "\t SF = " << (1. - effPrefireJet1) << std::endl;
-    return (1. - effPrefireJet1);
-  } else if (njet == 2) {
-    std::cout << "njet = " << njet << "\t SF = " << (1. - (effPrefireJet1 + effPrefireJet2 - effPrefireJet1 * effPrefireJet2)) << std::endl;
-    return (1. - (effPrefireJet1 + effPrefireJet2 - effPrefireJet1 * effPrefireJet2));
+    sf = (1. - effPrefireJet1);
+    // if (sf < 0.9) {
+    //   std::cout << "njet = " << njet << "\t SF(1) = " << sf 
+    // 		<< " \t jet pt/eta = " << jet_pt[0] << " / " << jet_eta[0] << std::endl;      
+    // }
+    return ret1;
+    return sf;
+  } else if (njet >= 2) {
+    sf = (1. - (effPrefireJet1 + effPrefireJet2 - effPrefireJet1 * effPrefireJet2)); 
+    // if (sf < 0.9) {
+    //   std::cout << "njet = " << njet << "\t SF(2) = " << sf
+    // 		<< " \t jet1 pt/eta = " << jet_pt[0] << " / " << jet_eta[0]
+    // 		<< " \t jet2 pt/eta = " << jet_pt[1] << " / " << jet_eta[1] << std::endl;
+    // }
+    return ret1;
+    return sf;
   } else {
-    std::cout << "njet = " << njet << std::endl;
-    return 1.0; // should never arrive here but let's be safe
+    // std::cout << "njet = " << njet << std::endl;
+    return ret1; // should never arrive here but let's be safe
   }
 }
 

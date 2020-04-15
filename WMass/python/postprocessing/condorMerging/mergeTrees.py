@@ -100,7 +100,7 @@ if __name__ == '__main__':
     date = datetime.date.today().isoformat()
     condorSubmitCommands = []
     for ds in dss.keys():
-        n_chunksPerPart = int(options.maxsize/dss[ds]['avgsize'][0])
+        n_chunksPerPart = 30 if dss[ds]['avgsize'][0] == 0.0 else int(options.maxsize/dss[ds]['avgsize'][0])
         print 'for dataset {d} i will merge {n} files per chunk for roughly {nc} chunks'.format(d=ds,n=n_chunksPerPart,nc=len(dss[ds]['files'])/n_chunksPerPart+1)
         tmp_condor_filename = 'condor_merge_{ds}_{d}.condor'.format(ds=ds,d=date)
         tmp_condor = open(tmp_condor_filename,'w')

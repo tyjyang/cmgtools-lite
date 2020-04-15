@@ -19,13 +19,33 @@ if "/functions_cc.so" not in ROOT.gSystem.GetLibraries():
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc+" % os.environ['CMSSW_BASE']);
 
-def makeSignalModel(model, w):
+def getBinsFromName(name):
+
+    # name = "hist_pt_%.1f_%.1f_eta_%.3f_%.3f"
+    if not all([x in name for x in ["eta","pt"]]):
+        #print "Error in getBinsFromName(): 'eta' or 'pt' not found in %s. Exit" % name
+        return -999.,-999.,-999.,-999.
+    tokens = name.split('_')
+    for i,tkn in enumerate(tokens):
+        #print "%d %s" % (i, tkn)                                                                                      
+        if tkn == "eta": 
+            etalow  = float(tokens[i + 1].replace('m','-').replace('p','.'))
+            etahigh = float(tokens[i + 2].replace('m','-').replace('p','.'))
+        if tkn == "pt":  
+            ptlow  = float(tokens[i + 1].replace('m','-').replace('p','.'))
+            pthigh = float(tokens[i + 2].replace('m','-').replace('p','.'))
+    return ptlow,pthigh,etalow,etahigh
+
+def makeSignalModel(model, w, useRightTailCB=False):
     if model == "Z-Voit":
         w.factory("Voigtian::signal(mass,sum::(dm[0,-10,10],MZ[91.1876]), GammaZ[2.495],sigma)")
         return (w.pdf("signal"), ["dm", "sigma"])
     if model == "Z-CB":
         w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
-        w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.])")
+        if useRightTailCB:
+            w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[-3., -8.0, 0.5], n[1, 0.1, 100.])")
+        else:
+            w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.])")            
         w.factory("FCONV::signal(mass,zBW,resol)")
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n"] )
     if model == "Z-DCB":
@@ -36,9 +56,9 @@ def makeSignalModel(model, w):
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n","alpha2", "n2"] )
     raise RuntimeError, "missing signal model: "+model
 
-def makeSignalModel1D(model, w):
+def makeSignalModel1D(model, w, useRightTailCB=False):
     w.factory("sigma[1.5,0.3,10]")
-    return makeSignalModel(model,w)
+    return makeSignalModel(model,w, useRightTailCB=useRightTailCB)
 
 def makeSignalModel2D(model, w):
     #w.factory('expr::sigma("@0*exp(@1)",lambda[1,0.5,2.0], logdm)')
@@ -61,29 +81,37 @@ def makeSumModel(spdf,bpdf,w):
     w.factory("SUM::sumModel(f_signal[0.9,0.5,1]*%s, %s)" % (spdf.GetName(), bpdf.GetName()))
     return w.pdf("sumModel")
 
-def printPlot(frame, name, text, options, spam=[]):
-    c1 = ROOT.TCanvas("c1","c1")
+def printPlot(frame, name, text, options, spam=[], canvas=None, legend=None):
+    c1 = canvas if canvas != None else ROOT.TCanvas("c1","c1",1200,900)
+    c1.SetTopMargin(0.08)
+    c1.SetTickx(1)
+    c1.SetTicky(1)
     xoffs = 0;
     frame.SetMaximum(frame.GetMaximum()*(1.05+0.07*len(spam)))
+    frame.SetTitle("")
+    c1.SetLeftMargin(0.12)
     if frame.GetMaximum() >= 100*1000:
-        c1.SetLeftMargin(0.21); xoffs = 0.155
+        xoffs = 0.155
         frame.Draw();
         frame.GetYaxis().SetTitleOffset(1.7)
     elif frame.GetMaximum() >= 1000:
-        c1.SetLeftMargin(0.18); xoffs = 0.02
+        xoffs = 0.02
         frame.Draw()
         frame.GetYaxis().SetTitleOffset(1.45)
-    else:
-        c1.SetLeftMargin(0.16); # default
+    else:        
         frame.Draw()
         frame.GetYaxis().SetTitleOffset(1.25)
     c1.SetRightMargin(0.05); 
     frame.GetXaxis().SetNdivisions(505);   
     frame.GetXaxis().SetDecimals(1);   
+    frame.GetXaxis().SetTitle("dilepton mass (GeV)");   
+    frame.GetXaxis().SetTitleSize(0.05);   
+    frame.GetXaxis().SetTitleOffset(1.02);       
+    if legend != None: legend.Draw("same")
     printCanvas(c1, name, text, options, xoffs=xoffs, spam=spam)
 
 def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
-    if   options.lumi > 3.54e+1: lumitext = "%.0f fb^{-1}" % options.lumi
+    if   options.lumi > 3.54e+1: lumitext = "%.1f fb^{-1}" % options.lumi
     elif options.lumi > 3.54e+0: lumitext = "%.1f fb^{-1}" % options.lumi
     elif options.lumi > 3.54e-1: lumitext = "%.2f fb^{-1}" % options.lumi
     elif options.lumi > 3.54e-2: lumitext = "%.0f pb^{-1}" % (options.lumi*1000)
@@ -94,11 +122,23 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
     doSpam(lumitext+" (13 TeV)", .55+xoffs, .955, .97, .998, align=32, textSize=options.textSize)
 
     if spam:
-        y0 = 0.91 - options.textSize*1.2
+        y0 = 0.88 - options.textSize*1.2
         for line in spam:
             niceline = re.sub(r"(\s+)-(\d+)",r"\1#minus\2", line)
-            doSpam(niceline, 0.50, y0, 0.90, y0 + options.textSize*1.2, textSize=options.textSize, align=22)
+            doSpam(niceline, 0.55, y0, 0.95, y0 + options.textSize*1.2, textSize=options.textSize, align=22)
             y0 -= options.textSize * 1.2
+
+    lat = ROOT.TLatex()
+    lat.SetTextSize(0.04)
+    lat.SetTextFont(42)
+    lat.SetTextColor(ROOT.kBlack)
+    lat.SetNDC()
+    ptlow,pthigh,etalow,etahigh = getBinsFromName(name)
+    if ptlow > 0.0:
+        lat.DrawLatex(0.15, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
+        lat.DrawLatex(0.15, 0.44, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
+
+    c1.RedrawAxis("sameaxis")
     for ext in "png", "pdf":
         c1.Print("%s/%s.%s" % (options.printDir, name, ext))
     log = open("%s/%s.%s"  % (options.printDir, name, "txt"), "w")
@@ -106,12 +146,50 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
     log.close()
 
 
-def makePlot1D(w, data, pdf, params, result, name, options):
+def makePlot1D(w, data, pdf, params, result, name, options, histRoot=None):
+
+    xmin = float(options.xvar[1].split(",")[1])
+    xmax = float(options.xvar[1].split(",")[2])
+    if options.fitRange:
+        xmin = float(max(options.fitRange[0],xmin))
+        xmax = float(min(options.fitRange[1],xmax))
+
     frame = w.var("mass").frame(ROOT.RooFit.Bins(w.var("mass").getBins()/options.rebin))
-    data.plotOn(frame)
+    data.plotOn(frame, ROOT.RooFit.Name("points"))
     if pdf.GetName() == "sumModel":
-        pdf.plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(2))
-    pdf.plotOn(frame)
+        pdf.plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineColor(ROOT.kRed+1),ROOT.RooFit.LineStyle(2), ROOT.RooFit.Name("pdf_bkg"))
+    pdf.plotOn(frame, ROOT.RooFit.Name("pdf_model"))
+
+    chi2 = frame.chiSquare("pdf_model","points",result.floatParsFinal().getSize()) # this might be wrong if range is not set for the curve, but it should be already set since the fit is made in the desired range
+    #
+    # alternate Chi2, but it is different from the one above
+    chi2_v2 = ROOT.RooChi2Var("chi2","chi2 var",pdf,data, 0, "fit");
+    ndof = -1
+    nbinsInRange = -1
+    if histRoot:
+        # Ndof = number of bins in range - number of parameters - 1
+        # add epsilon = 0.0001 to value when looking for bin.
+        # e.g. 3 bins from 70 to 73 means than 70.0001 and 73.0001 are bin number 1 and 4,so the difference gives 3
+        ndof = histRoot.GetXaxis().FindFixBin(xmax+0.0001) - histRoot.GetXaxis().FindFixBin(xmin+0.0001)  - result.floatParsFinal().getSize() - 1
+        nbinsInRange = histRoot.GetXaxis().FindFixBin(xmax+0.0001) - histRoot.GetXaxis().FindFixBin(xmin+0.0001)
+
+    c1 = ROOT.TCanvas("c1","c1",1200,900)
+    legfit = ROOT.TLegend(0.15, 0.72, 0.5, 0.9)
+    legfit.SetFillColor(0)
+    legfit.SetFillStyle(0)
+    legfit.SetBorderSize(0)
+    dummy1 = ROOT.TH1F("hdummy1","",1,0,1)
+    dummy2 = ROOT.TH1F("hdummy2","",1,0,1)
+    dummy3 = ROOT.TH1F("hdummy3","",1,0,1)
+    dummy1.SetMarkerStyle(20)
+    dummy2.SetLineColor(ROOT.kBlue);    dummy2.SetLineWidth(2);
+    dummy3.SetLineColor(ROOT.kRed+1);    dummy3.SetLineWidth(2);  dummy3.SetLineStyle(2)
+    if "ref" in name : legfit.AddEntry(dummy1,"MC data","LPE")
+    else:              legfit.AddEntry(dummy1,"data","LPE")
+    legfit.AddEntry(dummy2,"model","L")
+    if pdf.GetName() == "sumModel":
+        legfit.AddEntry(dummy3,"background","L")
+
     text = []
     for param in params:
         var = result.floatParsFinal().find(param)
@@ -119,15 +197,18 @@ def makePlot1D(w, data, pdf, params, result, name, options):
     if "dm" in params and "sigma" in params:
         dm = result.floatParsFinal().find("dm")
         sm = result.floatParsFinal().find("sigma")
-        spam = [ ("#Delta = %.2f #pm %.2f GeV" % (dm.getVal(), dm.getError())),
-                 ("#sigma = %.2f #pm %.2f GeV" % (sm.getVal(), sm.getError())) ]
+        spam = [ ("#Delta = %.3f #pm %.3f GeV" % (dm.getVal(), dm.getError())),
+                 ("#sigma = %.3f #pm %.3f GeV" % (sm.getVal(), sm.getError())) ]
     else:
         spam = []
+    spam.append("#chi^{2} = %.2f   N^{model}_{pars} = %d" % (chi2, result.floatParsFinal().getSize()))
+    #spam.append("#chi^{2}_{alt} = %.2f   ndf = %d" % (chi2_v2.getVal(), ndof))
+    #spam.append("N_{bins}(%3.1f,%3.1f) = %d" % (xmin,xmax,nbinsInRange))
     if w.function("resol"):
         foms = getResolutionFOMs(w)
         for k,v in foms.iteritems(): 
             text.append("%s: %.3f" % (k,v))
-    printPlot(frame,name,text,options, spam = spam)
+    printPlot(frame,name,text,options, spam = spam, canvas=c1, legend=legfit)
 
 class GioProjWData:
     def __init__(self, pdf, xvar, data, rebinFactor=1):
@@ -179,13 +260,50 @@ def makePlot2D(w, data, pdf, params, result, name, options):
 
 def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options):
     frame = w.var("mass").frame()
-    data.plotOn(frame)
+    data.plotOn(frame, ROOT.RooFit.Name("points_data"))
     if pdfref.GetName() == "sumModel" and pdf.GetName() == "sumModel":
-        pdf.plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(2))
-        pdf.plotOn(frame)
-        pdfref.plotOn(frame, ROOT.RooFit.LineColor(ROOT.kGray+0))
-        pdfref.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGray+2))
-        pdf.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGreen+2))
+        pdf.plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineColor(ROOT.kRed+1), ROOT.RooFit.LineStyle(2), ROOT.RooFit.Name("pdf_bkg_data"))
+        pdf.plotOn(frame, ROOT.RooFit.LineColor(ROOT.kBlue),ROOT.RooFit.Name("pdf_model_data"))
+        pdf.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGreen+2), ROOT.RooFit.Name("pdf_signal_data"))
+        pdfref.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGray+1),ROOT.RooFit.Name("pdf_signal_mc"))
+    else:
+        pdf.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGreen+2), ROOT.RooFit.Name("pdf_signal_data"))
+        pdfref.plotOn(frame, ROOT.RooFit.Components("signal"), ROOT.RooFit.LineColor(ROOT.kGray+1),ROOT.RooFit.Name("pdf_signal_mc"))
+        
+    # dummy legend
+    c1 = ROOT.TCanvas("c1","c1",1200,900)
+    legfit = ROOT.TLegend(0.15, 0.6, 0.5, 0.9)
+    legfit.SetFillColor(0)
+    legfit.SetFillStyle(0)
+    legfit.SetBorderSize(0)
+    dummy1 = ROOT.TH1F("hdummy1","",1,0,1)
+    dummy2 = ROOT.TH1F("hdummy2","",1,0,1)
+    dummy3 = ROOT.TH1F("hdummy3","",1,0,1)
+    dummy4 = ROOT.TH1F("hdummy4","",1,0,1)
+    dummy5 = ROOT.TH1F("hdummy5","",1,0,1)
+    dummy1.SetMarkerStyle(20)
+    dummy2.SetLineColor(ROOT.kBlue);    dummy2.SetLineWidth(2);
+    dummy3.SetLineColor(ROOT.kGreen+2);    dummy3.SetLineWidth(2);
+    dummy4.SetLineColor(ROOT.kRed+1);    dummy4.SetLineWidth(2);  dummy4.SetLineStyle(2)
+    dummy5.SetLineColor(ROOT.kGray+1);    dummy5.SetLineWidth(2);
+    if pdfref.GetName() == "sumModel" and pdf.GetName() == "sumModel":
+        legfit.AddEntry(dummy1,"data","LPE")
+        legfit.AddEntry(dummy2,"model (data)","L")
+        legfit.AddEntry(dummy3,"signal (data)","L")
+        legfit.AddEntry(dummy4,"background (data)","L")
+        legfit.AddEntry(dummy5,"signal (MC)","L")
+    else:
+        legfit.AddEntry(dummy1,"data","LPE")
+        legfit.AddEntry(dummy3,"signal (data)","L")
+        legfit.AddEntry(dummy5,"signal (MC)","L")
+    
+    lat = ROOT.TLatex()
+    lat.SetTextSize(0.025)
+    lat.SetTextFont(42)
+    ptlow,pthigh,etalow,etahigh = getBinsFromName(name)
+    lat.DrawLatex(0.18, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
+    lat.DrawLatex(0.18, 0.45, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
+
     text = []
     for param in params:
         var = result.floatParsFinal().find(param)
@@ -198,26 +316,49 @@ def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options
         fsm =    result.floatParsFinal().find("sigma")
         rdm = refresult.floatParsFinal().find("dm")
         rsm = refresult.floatParsFinal().find("sigma")
-        spam = [ "#Delta - #Delta_{MC} = %.2f #pm %.2f GeV" % (
+        spam = [ "#Delta - #Delta_{MC} = %.3f #pm %.3f GeV" % (
                         fdm.getVal() - rdm.getVal(), hypot(fdm.getError(), rdm.getError())),
-                 "#sigma/#sigma_{MC} = %.2f #pm %.2f" % (
+                 "#sigma/#sigma_{MC} = %.3f #pm %.3f" % (
                          fsm.getVal()/rsm.getVal(), 
                         (fsm.getVal()/rsm.getVal())*hypot(fsm.getError()/fsm.getVal(), rsm.getError()/rsm.getVal())) ]
     else:
         spam = []
-    printPlot(frame,name,text,options, spam=spam)
+    printPlot(frame,name,text,options, spam=spam, canvas=c1, legend=legfit)
 
 
-def fit1D(hist, options, modelOverride=False):
+def fit1D(hist, options, modelOverride=False, etaptbin=None):
+
+    useRightTailCB = False  # default is to have tail of single-CB to the left
+    # manage fit range
+    xmin = options.xvar[1].split(",")[1]
+    xmax = options.xvar[1].split(",")[2]
+    if options.fitRange:
+        xmin = max(options.fitRange[0],xmin)
+        xmax = min(options.fitRange[1],xmax)
+    if etaptbin:
+        ptbin = etaptbin[0] -1
+        etabin = etaptbin[1] -1
+        ptedges = [float(x) for x in options.ptbins.split(',')]
+        etaedges = [float(x) for x in options.etabins.split(',')]
+        if ptedges[ptbin] >= 45.0:
+            useRightTailCB = True
+            xmin = 80.0
+            xmax = 110.0
+        else:
+            xmin = 70.0
+            xmax = 100.0        
+        #if ptedges[ptbin] >= 45.0 and ptedges[ptbin+1] <= 50 and etaedges[etabin] >= 1.6:
+            #bpdf, bparams = (None, []) # use no bkg when fit range is very narrow (not enough leverage)
+
     w = ROOT.RooWorkspace("w")
     w.factory("mass[%g,%g]" % (hist.GetXaxis().GetXmin(), hist.GetXaxis().GetXmax()))
     w.var("mass").setBins(hist.GetNbinsX())
     w.var("mass").SetTitle(hist.GetXaxis().GetTitle())
     data = ROOT.RooDataHist("data","data", ROOT.RooArgList(w.var("mass")), hist)
-    spdf, sparams = makeSignalModel1D(options.signalModel if not modelOverride else modelOverride, w)
+    spdf, sparams = makeSignalModel1D(options.signalModel if not modelOverride else modelOverride, w, useRightTailCB=useRightTailCB)
     bpdf, bparams = makeBackgroundModel(options.backgroundModel, w) if options.backgroundModel else (None, [])
     pdf = makeSumModel(spdf, bpdf, w)
-    result = pdf.fitTo(data, ROOT.RooFit.Save(True))
+    result = pdf.fitTo(data, ROOT.RooFit.Save(True),ROOT.RooFit.SumW2Error(True),ROOT.RooFit.Range(float(xmin), float(xmax)),ROOT.RooFit.Strategy(options.fitStrategy))
     return (w,data,pdf,sparams+bparams,result)
 
 def getResolutionFOMs(w,pdf="resol",xvar="mass",xrange=[-10,10]):
@@ -263,7 +404,7 @@ def fit2D(hist, options):
     bpdf, bparams = makeBackgroundModel(options.backgroundModel, w) if options.backgroundModel else (None, [])
     pdf = makeSumModel(spdf, bpdf, w)
     conditional = ROOT.RooFit.ConditionalObservables(ROOT.RooArgSet(w.var("massErr")))
-    result = pdf.fitTo(data, ROOT.RooFit.Save(True), conditional)
+    result = pdf.fitTo(data, ROOT.RooFit.Save(True), ROOT.RooFit.SumW2Error(True), conditional)
     return (w,data,pdf,sparams+bparams,result)
 
 
@@ -301,6 +442,8 @@ def makeCut(cut):
         return "abs(LepGood_pdgId[0]) == 13 && max(abs(LepGood_eta[0]),abs(LepGood_eta[1])) > 1.5 && max(abs(LepGood_eta[0]),abs(LepGood_eta[1])) < 2.0 && min(abs(LepGood_eta[0]),abs(LepGood_eta[1])) < 1.0"
     elif cut == "Zmm-B0E3":
         return "abs(LepGood_pdgId[0]) == 13 && max(abs(LepGood_eta[0]),abs(LepGood_eta[1])) > 2.0 && max(abs(LepGood_eta[0]),abs(LepGood_eta[1])) < 2.4 && min(abs(LepGood_eta[0]),abs(LepGood_eta[1])) < 1.0"
+    elif cut == "Zmm-full":
+        return "(passVertexPreSel == 1) && (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0 ) && nLepGood == 2 && (LepGood_pdgId[0] * LepGood_pdgId[1]) == -169 && LepGood_mediumMuonId[0]  > 0 && LepGood_mediumMuonId[1] > 0 && LepGood_relIso04[0] < 0.15 && LepGood_relIso04[1] < 0.15"
     else:
         return cut
 
@@ -308,10 +451,24 @@ def makeHist1D(tree, options, weightedMC = False):
     print "Filling tree for cut %s" % options.cut
     finalCut =  makeCut(options.cut)
     if weightedMC: 
-        #finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)*leptonSF_We(LepGood2_pdgId,LepGood2_pt,LepGood2_eta)" % finalCut
         # add trigger SF for triggering object
         # add also prefiring, but should decide which lepton to use (unless using jet function)
-        finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_rocPt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_rocPt,LepGood2_eta)*triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],LepGood_rocPt[0],LepGood_rocPt[1],LepGood_eta[0],LepGood_eta[1])" % finalCut
+        funcTrigSF = ""
+        if options.useAllEvents:
+            flag = 0  # need to pass 1 for positive charge, 0 for negative, because function triggerSFforChargedLeptonMatchingTriggerWlike takes as first argument a bool, which is 1 (0) for positive (negative) charge
+            # the flag is typically defined using function isOddEvent(evt), which will be true (false) for odd (even) events, for which we generally want charge plus (minus)
+            if options.selectCharge == "plus":
+                flag = 1
+            elif options.selectCharge == "minus":
+                flag = 0
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike({f},(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(f=flag,pt=options.ptvar)
+        else:
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(pt=options.ptvar)
+
+        wgt = "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],{pt}[0],LepGood_eta[1])*_get_muonSF_recoToSelection(LepGood_pdgId[1],{pt}[1],LepGood_eta[1])* {trigSF} * jetPrefireSF_JetAll_Clean".format(pt=options.ptvar, trigSF=funcTrigSF)
+        finalCut = "(%s) * %s" % (finalCut, wgt)
+    if options.selectCharge in ["plus", "minus"] and not options.useAllEvents:
+        finalCut += " * {func}(evt)".format(func="isOddEvent" if options.selectCharge=="plus" else "isEvenEvent") 
     finalCut = scalarToVector(finalCut)
     tree.Draw("%s>>hist(%s)" % (scalarToVector(options.xvar[0]), options.xvar[1]), finalCut, "goff", options.maxEntries)
     print "Done, fitting."
@@ -328,10 +485,24 @@ def makeHist2D(tree, options, weightedMC = False,
     print "Filling tree for cut %s" % options.cut
     finalCut =  makeCut(options.cut)
     if weightedMC: 
-        #finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)*leptonSF_We(LepGood2_pdgId,LepGood2_pt,LepGood2_eta) " % finalCut
         # add trigger SF for triggering object
         # add also prefiring, but should decide which lepton to use (unless using jet function)
-        finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_rocPt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_rocPt,LepGood2_eta)*triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],LepGood_rocPt[0],LepGood_rocPt[1],LepGood_eta[0],LepGood_eta[1])" % finalCut
+        funcTrigSF = ""
+        if options.useAllEvents:
+            flag = 0  # need to pass 1 for positive charge, 0 for negative, because function triggerSFforChargedLeptonMatchingTriggerWlike takes as first argument a bool, which is 1 (0) for positive (negative) charge
+            # the flag is typically defined using function isOddEvent(evt), which will be true (false) for odd (even) events, for which we generally want charge plus (minus)
+            if options.selectCharge == "plus":
+                flag = 1
+            elif options.selectCharge == "minus":
+                flag = 0
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike({f},(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(f=flag,pt=options.ptvar)
+        else:
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(pt=options.ptvar)
+
+        wgt = "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],{pt}[0],LepGood_eta[1])*_get_muonSF_recoToSelection(LepGood_pdgId[1],{pt}[1],LepGood_eta[1])* {trigSF} * jetPrefireSF_JetAll_Clean".format(pt=options.ptvar, trgiSF=funcTrigSF)
+        finalCut = "(%s) * %s" % (finalCut, wgt)
+    if options.selectCharge in ["plus", "minus"] and not options.useAllEvents:
+        finalCut += " * {func}(evt)".format(func="isOddEvent" if options.selectCharge=="plus" else "isEvenEvent") 
     finalCut = scalarToVector(finalCut)
     tree.Draw("%s:%s>>hist(%s,%d,%g,%g)" % (scalarToVector(dmvar), scalarToVector(options.xvar[0]), scalarToVector(options.xvar[1]), dmbins,dmrange[0],dmrange[1]), finalCut, "goff", options.maxEntries)
     hist = ROOT.gROOT.FindObject("hist")
@@ -364,7 +535,7 @@ def processOneDMSlice(args):
     res = {}; refres = {}
     name = options.name+"_dm_%.2f_%.2f" % (dm[0], dm[1])
     (w,data,pdf, params, result) = fit1D(hist, options)
-    makePlot1D(w, data, pdf, params, result, name, options)
+    makePlot1D(w, data, pdf, params, result, name, options, hist)
     for x in myparams:
         var = result.floatParsFinal().find(x)
         res[x] = ( 0.5*(dm[0] + dm[1]), 0.5*(dm[1] - dm[0]), 
@@ -374,7 +545,7 @@ def processOneDMSlice(args):
         for k,v in foms.iteritems(): res[k] = v
     if refhist:
         (wref,dataref, pdfref, params, refresult) = fit1D(refhist, options)
-        makePlot1D(wref, dataref, pdfref, params, refresult, name+"_ref", options)
+        makePlot1D(wref, dataref, pdfref, params, refresult, name+"_ref", options, refhist)
         makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name+"_comp", options)
         for x in myparams:
             var = refresult.floatParsFinal().find(x)
@@ -389,14 +560,14 @@ def processOnePtEtaBin(args):
     bin,hist,refhist,myparams,options = args
     res = {}; refres = {}
     name = hist.GetName().replace("hist_",options.name+"_")
-    (w,data,pdf, params, result) = fit1D(hist, options)
-    makePlot1D(w, data, pdf, params, result, name, options)
+    (w,data,pdf, params, result) = fit1D(hist, options, etaptbin=bin)
+    makePlot1D(w, data, pdf, params, result, name, options, hist, )
     for x in myparams:
         var = result.floatParsFinal().find(x)
         res[x] = ( var.getVal(), var.getError() )
     if refhist:
-        (wref,dataref, pdfref, params, refresult) = fit1D(refhist, options)
-        makePlot1D(wref, dataref, pdfref, params, refresult, name+"_ref", options)
+        (wref,dataref, pdfref, params, refresult) = fit1D(refhist, options, etaptbin=bin)
+        makePlot1D(wref, dataref, pdfref, params, refresult, name+"_ref", options, refhist)
         makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name+"_comp", options)
         for x in myparams:
             var = refresult.floatParsFinal().find(x)
@@ -405,12 +576,38 @@ def processOnePtEtaBin(args):
 
 def makeHist3D_(tree, y, z, options, weightedMC = False):
     print "Filling tree for cut %s" % options.cut
+    ## cut maker    
     finalCut =  makeCut(options.cut)
+    flag = 0  # need to pass 1 for positive charge, 0 for negative, because function triggerSFforChargedLeptonMatchingTriggerWlike takes as first argument a bool, which is 1 (0) for positive (negative) charge
+    # the flag is typically defined using function isOddEvent(evt), which will be true (false) for odd (even) events, for which we generally want charge plus (minus)
+    if options.useAllEvents:
+        if options.selectCharge == "plus":
+            flag = 1
+        elif options.selectCharge == "minus":
+            flag = 0
+
     if weightedMC: 
-        #finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*trgSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta,2)*leptonSF_We(LepGood1_pdgId,LepGood1_pt,LepGood1_eta)*leptonSF_We(LepGood2_pdgId,LepGood2_pt,LepGood2_eta)  " % finalCut
-        # add trigger SF for triggering object
-        # add also prefiring, but should decide which lepton to use (unless using jet function)
-        finalCut = "(%s) * puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_rocPt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_rocPt,LepGood2_eta)*triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],LepGood_rocPt[0],LepGood_rocPt[1],LepGood_eta[0],LepGood_eta[1])" % finalCut
+        funcTrigSF = ""
+        if options.useAllEvents:
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike({f},(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(f=flag,pt=options.ptvar)
+        else:
+            funcTrigSF = "triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt),(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0),(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0),LepGood_pdgId[0],LepGood_pdgId[1],{pt}[0],{pt}[1],LepGood_eta[0],LepGood_eta[1])".format(pt=options.ptvar)
+
+        # MC weight = 36300*1999.0*2346.27/84696508770.880005        
+        # i.e. luminosity*xsec*genWeight/SumWeights
+        # sumWeights now is hardcoded, should be taken summing integral of histogram from each root file
+        # 2346.27 is the genWeight for pilot DY sample with photos, but it has a sign
+        # so it is 36300*1999.0/84696508770.880005 = 0.000856749599872
+        wgt = "genWeight * 0.000856749599872 * puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood_pdgId[0],{pt}[0],LepGood_eta[1])*_get_muonSF_recoToSelection(LepGood_pdgId[1],{pt}[1],LepGood_eta[1])* {trigSF} * jetPrefireSF_JetAll_Clean".format(pt=options.ptvar, trigSF=funcTrigSF)
+        finalCut = "(%s) * %s" % (finalCut, wgt)
+    # trigger match and event parity if needed
+    if options.selectCharge in ["plus", "minus"]:
+        if options.useAllEvents:            
+            finalCut += " * triggerMatchWlike({f},LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1])".format(f=flag)
+        else:
+            finalCut += " * triggerMatchWlike(isOddEvent(evt),LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1]) * {func}(evt)".format(func="isOddEvent" if options.selectCharge=="plus" else "isEvenEvent") 
+    ## end of cut maker
+
     finalCut = scalarToVector(finalCut)
     yexpr, yedges = y
     zexpr, zedges = z
@@ -418,27 +615,79 @@ def makeHist3D_(tree, y, z, options, weightedMC = False):
     xedges = [ xmin + i * (xmax-xmin)/int(xbins) for i in xrange(0,int(xbins)+1) ]
     hist = ROOT.TH3D("hist","hist", len(xedges)-1,array('f',xedges),  len(yedges)-1,array('f',yedges),  len(zedges)-1,array('f',zedges))
     nent = tree.Draw("%s:%s:%s>>hist" % (scalarToVector(zexpr),scalarToVector(yexpr),scalarToVector(options.xvar[0])), finalCut, "goff", options.maxEntries)
+    if nent < 0:
+        print "Warning: something fishy happenend with TTree::Draw() in makeHist3D_(). Abort"
+        quit()
     hist = ROOT.gROOT.FindObject("hist")
     if weightedMC:
         for bx in xrange(hist.GetNbinsX()+2): 
           for by in xrange(hist.GetNbinsY()+2): 
              for bz in xrange(hist.GetNbinsZ()+2): 
                 hist.SetBinContent(bx,by,bz, max(0, hist.GetBinContent(bx,by,bz)))
+    #if options.saveHistoInFile:
+    # always save histogram, why not, unless it was loaded from file
+    if not options.loadHistoFromFile:
+        histToSave = hist.Clone("%s_histo_mass_pt_eta" % ("mc" if weightedMC else "data"))
+        outf = ROOT.TFile.Open(options.printDir + "/histo3D_mass_pt_eta.root","UPDATE")
+        outf.cd()
+        histToSave.Write(histToSave.GetName(),ROOT.TObject.kOverwrite)
+        outf.Close()
+
     return hist
 
 def makeHistsMPtEta(tree, ptedges, etaedges, options,  weightedMC = False):
-    hl1 = makeHist3D_(tree, ("LepGood_pt[0]", ptedges), ("abs(LepGood_eta[0])", etaedges), options, weightedMC=weightedMC)
-    hl1 = hl1.Clone("hist_l1");
-    hl2 = makeHist3D_(tree, ("LepGood_pt[1]", ptedges), ("abs(LepGood_eta[1])", etaedges), options, weightedMC=weightedMC)
-    hl2 = hl2.Clone("hist_l2");
-    hl1.Scale(0.5);
-    hl2.Scale(0.5);
-    hl1.Add(hl2)
+    hl1 = None
+    # get or make histogram
+    if options.loadHistoFromFile:
+        fname = options.loadHistoFromFile
+        hname = "%s_histo_mass_pt_eta" % ("mc" if weightedMC else "data")
+        infile = ROOT.TFile.Open(fname,"READ")
+        hl1 = infile.Get(hname)
+        if not hl1:
+            print "Warning: I could not get histogram %s from file %s. Please check" % (hname,fname)
+            quit()
+        else:
+            hl1.SetDirectory(0)
+        infile.Close()
+    else:   
+        useSignedEta = False
+        if float(options.etabins.split(',')[0]) < 0.0:
+            useSignedEta = True
+        if options.selectCharge in ["plus", "minus"]:
+            if options.useAllEvents:
+                selCharge = 0;
+                if options.selectCharge == "plus": 
+                    selCharge = 1
+                else:
+                    selCharge = -1
+                funcPt = "returnChargeValAllEvt({c},{pt}[0],LepGood_charge[0],{pt}[1],LepGood_charge[1],0.0)".format(c=selCharge,pt=options.ptvar)
+                funcEta = "returnChargeValAllEvt({c},LepGood_eta[0],LepGood_charge[0],LepGood_eta[1],LepGood_charge[1],-999.0)".format(c=selCharge)
+            else:
+                funcPt = "returnChargeVal({pt}[0],LepGood_charge[0],{pt}[1],LepGood_charge[1],evt)".format(pt=options.ptvar)
+                funcEta = "returnChargeVal(LepGood_eta[0],LepGood_charge[0],LepGood_eta[1],LepGood_charge[1],evt)"
+
+            funcEta = "{feta}".format(feta=funcEta) if useSignedEta else "abs({feta})".format(feta=funcEta)
+            hl1 = makeHist3D_(tree, (funcPt, ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+        else:
+            funcEta = "LepGood_eta[0]" if useSignedEta else "abs(LepGood_eta[0])"
+            hl1 = makeHist3D_(tree, ("{pt}[0]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+            hl1 = hl1.Clone("hist_l1");
+            funcEta = "LepGood_eta[1]" if useSignedEta else "abs(LepGood_eta[1])"
+            hl2 = makeHist3D_(tree, ("{pt}[1]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+            hl2 = hl2.Clone("hist_l2");
+            hl1.Scale(0.5);
+            hl2.Scale(0.5);
+            hl1.Add(hl2)
+    ##
+    # now we have the histogram
+
     xbins, xmin, xmax = map(float, options.xvar[1].split(","))
     ret = []
     for ipt in xrange(1,len(ptedges)):
         for ieta in xrange(1,len(etaedges)):
             name = "hist_pt_%.1f_%.1f_eta_%.3f_%.3f" % (ptedges[ipt-1],ptedges[ipt],etaedges[ieta-1],etaedges[ieta])
+            name = name.replace(".","p")
+            name = name.replace("-","m")
             hist1D = ROOT.TH1D(name,name, int(xbins),xmin,xmax)
             hist1D.SetDirectory(None)
             for bx in xrange(1,hist1D.GetNbinsX()+1):
@@ -446,6 +695,9 @@ def makeHistsMPtEta(tree, ptedges, etaedges, options,  weightedMC = False):
             hist1D.bin = (ipt,ieta)
             ret.append(hist1D)
     h2d = hl1.Project3D("yz")
+    if not h2d:
+        print "Error in makeHistsMPtEta(): h2d is Null"
+        quit()
     return (h2d,ret)
             
 def styleScatterData(gdata,gmc=None):
@@ -459,15 +711,28 @@ def styleScatterMC(gmc):
  
 def addZFitterOptions(parser):
     parser.add_option("-n", "--name",   dest="name", default='plot', help="name");
-    parser.add_option("-r", "--refmc",   dest="refmc", default=None, help="refmc");
+    parser.add_option("-r", "--refmc",   dest="refmc", default=None, help="path to mc samples for chain");
+    parser.add_option("-d", "--data",   dest="data", default=None, help="path to data samples for chain");
+    parser.add_option("--data-regexp",   dest="dataRegexp", type="string", default="SingleMuon.*", help="regular expression to use some data samples")
+    parser.add_option("--mc-regexp",   dest="mcRegexp", type="string", default="ZJToMuMu_powhegMiNNLO_pythia8_photos.*", help="regular expression to use some MC samples")
     parser.add_option("-m", "--mode",   dest="mode", default='1D_PtEtaSlices', help="mode");
     parser.add_option("-s", "--signalModel",   dest="signalModel", default='Z-CB', help="Signal model");
     parser.add_option("-b", "--backgroundModel",   dest="backgroundModel", default='Expo', help="Background model");
     parser.add_option("-t", "--tree",    dest="tree", default='tree', help="Tree name");
+    parser.add_option("-f", "--friends", dest="friends", default='Friends', help="Friend tree name (pass empty string to disable friends");
     parser.add_option("-c", "--cut",     dest="cut", type="string", default="Zee", help="cut")
     parser.add_option("--xcut",     dest="xcut", type="float", nargs=2, default=None, help="x axis cut")
-#    parser.add_option("-x", "--x-var",   dest="xvar", type="string", default=(" mass_2(ptCorr(LepGood1_pt,LepGood1_eta,LepGood1_phi,LepGood1_r9,run,isData,evt),LepGood1_eta,LepGood1_phi,0.00051,ptCorr(LepGood2_pt,LepGood2_eta,LepGood2_phi,LepGood2_r9,run,isData,evt),LepGood2_eta,LepGood2_phi,0.00051)","80,70,110"), nargs=2, help="X var and bin")
-    parser.add_option("-x", "--x-var",   dest="xvar", type="string", default=(" mass_2(LepGood1_pt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_pt,LepGood2_eta,LepGood2_phi,0.1057)","80,70,110"), nargs=2, help="X var and bin")
+    parser.add_option("-x", "--x-var",   dest="xvar", type="string", default=(" mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)","80,70,110"), nargs=2, help="X var and bin")
+    parser.add_option("--ptvar",   dest="ptvar", type="string", default="LepGood_pt", help="pt variable in tree to use (default is uncorrected one)")
+    parser.add_option("--fit-range",    dest="fitRange", type="float", nargs=2, default=None, help="Range for fit on variable specified with -x")
+    parser.add_option("--fit-strategy",  dest="fitStrategy", type="int", default="1", help="Roofit fit strategy passed to RooFit::Strategy(XX): XX can be 0,1,2 where 2 is the slowest but most accurate strategy")
+    parser.add_option("--select-charge",   dest="selectCharge", type="string", default="all", help="Use only one charge (plus|minus) or all (all): in latter case both leptons are used to fill the distribution")
+    parser.add_option("--ptbins",   dest="ptbins", type="string", default="23,30,35,40,45,50,60,70", help="Comma separated list of pt bin edges")
+    parser.add_option("--etabins",   dest="etabins", type="string", default="-2.4,-1.6,-0.8,0,0.8,1.6,2.4", help="Comma separated list of eta bin edges")
+    parser.add_option("--useAllEvents",    dest="useAllEvents", default=False, action='store_true' , help="When selecting charge, use all events instead of using only event with given parity to select the charged lepton (this will imply statistical correlations among the two charges)");
+    parser.add_option("-u", "--no-weigth-mc",   dest="noWeightMC", default=False, action='store_true' , help="Do not use weigths for MC (scale factors and PU weight)");
+    parser.add_option(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (let it be odd, so the central strip is white if not using --abs-value and the range is symmetric)')
+    parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 1 is colore one , 55 is kRainbow')
     parser.add_option("--xtitle",   dest="xtitle", type="string", default="mass (GeV)", help="X title")
     parser.add_option("--textSize",   dest="textSize", type="float", default=0.04, help="Text size")
     parser.add_option("-l","--lumi",   dest="lumi", type="float", default=35.9, help="Text size")
@@ -475,51 +740,121 @@ def addZFitterOptions(parser):
     parser.add_option("--max-entries",     dest="maxEntries", default=1000000000, type="int", help="Max entries to process in each tree") 
     parser.add_option("-j", "--jobs",    dest="jobs",      type="int",    default=0, help="Use N threads");
     parser.add_option("--rebin",    dest="rebin",      type="int",    default=1, help="Rebin mass plots by N");
+    #parser.add_option("--saveHistoInFile",   dest="saveHistoInFile", default=False, action='store_true', help="Save histogram in file for later usage (can be used as input with --histoFromFile to avoid rerunning on ntuples to change fits)")
+    parser.add_option("--loadHistoFromFile",   dest="loadHistoFromFile", type="string", default="", help="Load histogram from file instead of running on ntuples. Pass file name")
 
 if __name__ == "__main__":
+
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] tree [tree2] ")
     addZFitterOptions(parser)
     (options, args) = parser.parse_args()
-    if len(args) == 0:
-        print "You must specify at least one tree to fit"
+    if not options.data:
+        print "You must specify at least one data tree to fit"
+        quit()
     ROOT.gROOT.SetBatch(True)
-    ROOT.gROOT.ProcessLine(".x ~/cpp/tdrstyle.cc")
     if not os.path.exists(options.printDir):
         os.system("mkdir -p "+options.printDir)
         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+options.printDir)
-    tree = ROOT.TChain(options.tree)
-    for fname in args: tree.Add(fname)
-    if options.refmc:
-        if "*" or "?" in options.refmc:
-            reftree = ROOT.TChain(options.tree)
-            files = glob.glob(options.refmc)
-            for fname in files: reftree.Add(fname)
-        else:
-            reffile = ROOT.TFile.Open(options.refmc)
-            reftree = reffile.Get(options.tree)
+
+
+    #ROOT.TH1.SetDefaultSumw2()  ## keep commented, otherwise for some mysterious reason the mass distribution for MC has all the data points with error equal to the content. Anyway, the histograms are still filled with weigths, so the errors should be correct (and when fitting one only needs to set ROOT.RooFit.SumW2Error() to use the actual MC stat to compute the uncertainty)
+
+    # built-in palette from light blue to orange
+    ROOT.TColor.CreateGradientColorTable(3,
+                                         array ("d", [0.00, 0.50, 1.00]),
+                                         ##array ("d", [1.00, 1.00, 0.00]),
+                                         ##array ("d", [0.70, 1.00, 0.34]),
+                                         ##array ("d", [0.00, 1.00, 0.82]),
+                                         array ("d", [0.00, 1.00, 1.00]),
+                                         array ("d", [0.34, 1.00, 0.65]),
+                                         array ("d", [0.82, 1.00, 0.00]),
+                                         255,  0.95)
+
+
+
+    # tree = None
+    # if "*" or "?" in options.data:
+    #     tree = ROOT.TChain(options.tree)
+    #     files = glob.glob(options.data)
+    #     for fname in files: 
+    #         print fname
+    #         tree.Add(fname)
+    # else:
+    #     datafile = ROOT.TFile.Open(options.data)
+    #     tree = datafile.Get(options.tree)
+
+    # if options.refmc:
+    #     if "*" or "?" in options.refmc:
+    #         reftree = ROOT.TChain(options.tree)
+    #         files = glob.glob(options.refmc)
+    #         for fname in files: reftree.Add(fname)
+    #     else:
+    #         reffile = ROOT.TFile.Open(options.refmc)
+    #         reftree = reffile.Get(options.tree)
+    # some hardcoded stuff for tests
+
+    ## prepare trees
+    tree = None
+    reftree = None
+    if not options.loadHistoFromFile:
+        print "Preparing trees to run on ..."
+        # data
+        dataMatch = re.compile(options.dataRegexp)
+        datapath = options.data
+        if not datapath.endswith("/"): datapath += "/"
+        folders = [x for x in os.listdir(datapath) if dataMatch.match(x)]
+        tree = ROOT.TChain(options.tree)
+        ftree = ROOT.TChain(options.friends)
+        for i,f in enumerate(folders):
+            tree.Add(datapath + f + "/treeProducerWMass/tree.root")
+            ftree.Add(datapath + "friends/tree_Friend_" + f + ".root")
+        if tree.GetEntries() != ftree.GetEntries():
+            print "Error: data trees and friends have different number of entries"
+            quit()
+        print "Data chain made of %d trees: number of events (unweighted) = %d" % (tree.GetNtrees(),tree.GetEntries())
+        tree.AddFriend(ftree)
+        # and now mc
+        mcMatch = re.compile(options.mcRegexp)
+        mcpath = options.refmc
+        if not mcpath.endswith("/"): mcpath += "/"
+        folders = [x for x in os.listdir(mcpath) if mcMatch.match(x)]
+        reftree = ROOT.TChain(options.tree)
+        refftree = ROOT.TChain(options.friends)
+        for i,f in enumerate(folders):
+            reftree.Add(mcpath + f + "/treeProducerWMass/tree.root")
+            refftree.Add(mcpath + "friends/tree_Friend_" + f + ".root")
+        if reftree.GetEntries() != refftree.GetEntries():
+            print "Error: mc trees and friends have different number of entries"
+            quit()
+        print "MC chain made of %d trees: number of events (unweighted) = %d" % (reftree.GetNtrees(),reftree.GetEntries())
+        reftree.AddFriend(refftree)
+        #### Done with trees
+
+    useWeightMC = False if options.noWeightMC else True
+
     if options.mode == "1D":
         hist =   makeHist1D(tree, options)
         (w,data,pdf, params, result) = fit1D(hist, options)
-        makePlot1D(w, data, pdf, params, result, options.name, options)
+        makePlot1D(w, data, pdf, params, result, options.name, options,hist)
         if options.refmc:
-            refhist = makeHist1D(reftree, options, weightedMC=True)
+            refhist = makeHist1D(reftree, options, weightedMC=useWeightMC)
             (wref,dataref, pdfref, params, refresult) = fit1D(refhist, options)
-            makePlot1D(wref, dataref, pdfref, params, refresult, options.name+"_ref", options)
+            makePlot1D(wref, dataref, pdfref, params, refresult, options.name+"_ref", options, refhist)
             makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, options.name+"_comp", options)
     elif options.mode == "2D":
         hist =   makeHist2D(tree, options)
         (w,data,pdf, params, result) = fit2D(hist, options)
         makePlot2D(w, data, pdf, params, result, options.name, options)
         if options.refmc:
-            refhist = makeHist2D(reftree, options, weightedMC=True)
+            refhist = makeHist2D(reftree, options, weightedMC=useWeightMC)
             (wref,dataref, pdfref, params, refresult) = fit2D(refhist, options)
             makePlot2D(wref, dataref, pdfref, params, refresult, options.name+"_ref", options)
         #    makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, options.name+"_comp", options)
     elif options.mode == "1D_DMSlices":
         hists =   makeHist1D_DMSlices(tree, options)
         if options.refmc:
-            refhists = makeHist1D_DMSlices(reftree, options, weightedMC=True)
+            refhists = makeHist1D_DMSlices(reftree, options, weightedMC=useWeightMC)
         else: 
             refhists = [None for h in hists]
         myparams = [ "dm", "sigma" ]
@@ -589,11 +924,13 @@ if __name__ == "__main__":
             gdata["sigma"].Draw("P SAME")
             printCanvas(c1, options.name+"_summary_eff", [], options)
     elif options.mode == "1D_PtEtaSlices":
-        ptbins = [20,30,35,40,45,60,90]; 
-        etabins = [0, 1.0, 1.5, 2.1, 2.5] if "Zee" in options.cut else [0, 1.2, 2.4]
+        #ptbins = [23,30,35,40,45,50,60,70]; # depends on skim in the ntuples
+        #etabins = [0, 1.0, 1.5, 2.1, 2.5] if "Zee" in options.cut else [0, 0.8, 1.6, 2.4]
+        ptbins = [float(x) for x in options.ptbins.split(',')]
+        etabins = [float(x) for x in options.etabins.split(',')]
         frame2D, hists = makeHistsMPtEta(tree, ptbins, etabins, options)
         if options.refmc:
-            _, refhists = makeHistsMPtEta(reftree, ptbins, etabins, options, weightedMC=True)
+            _, refhists = makeHistsMPtEta(reftree, ptbins, etabins, options, weightedMC=useWeightMC)
         else: 
             refhists = [None for h in hists]
         myparams = [ "dm", "sigma" ]
@@ -612,7 +949,8 @@ if __name__ == "__main__":
         for i,hist in enumerate(hists):
             ptmin,ptmax,etamin,etamax = ptbins[hist.bin[0]-1],ptbins[hist.bin[0]],etabins[hist.bin[1]-1],etabins[hist.bin[1]]
             binIndex[hist.bin] = i
-            binLabel[hist.bin] = "#splitline{%g < p_{T} < %g}{%g < |#eta| < %g}" % (ptmin,ptmax,etamin,etamax)
+            #binLabel[hist.bin] = "#splitline{%g < p_{T} < %g}{%g < |#eta| < %g}" % (ptmin,ptmax,etamin,etamax)
+            binLabel[hist.bin] = "%g < p_{T} < %g   %g < #eta < %g" % (ptmin,ptmax,etamin,etamax)
         frame2D.GetXaxis().SetNdivisions(505)
         frame2D.SetMarkerSize(2.0)
         # make graphs
@@ -648,37 +986,66 @@ if __name__ == "__main__":
            else:
               for x in myparams:
                    text[x].append("%s    %+5.3f +- %5.3f " % (header, res[x][0], res[x][1]))
-        c1 = ROOT.TCanvas("c1","c1")
+        c1 = ROOT.TCanvas("c1","c1",1800,1200)
+        c1.SetTickx(1)
+        c1.SetTicky(1)
+        #c1.SetGrid()
         c1.SetRightMargin(0.2)
         ROOT.gStyle.SetOptStat(0)
-        ROOT.gStyle.SetPalette(1);
-        ROOT.gStyle.SetPaintTextFormat(".2f")
+        if options.palette > 0: ROOT.gStyle.SetPalette(options.palette);
+        ROOT.gStyle.SetNumberContours(options.nContours)
+        ROOT.gStyle.SetPaintTextFormat(".3f")
         def normalizeZ(h,pivot=0):
             swing = max(abs(h.GetMaximum()-pivot), abs(h.GetMinimum()-pivot))
             h.GetZaxis().SetRangeUser(pivot-1.5*swing,pivot+1.5*swing)
         for x in myparams:
             if x == "dm": normalizeZ(hdata[x])
-            hdata[x].SetContour(100)
+            #hdata[x].SetContour(100)
             hdata[x].Draw("COLZ0 TEXTE")
+            hdata[x].SetMarkerSize(1.2)
+            hdata[x].SetTitle("")            
+            hdata[x].GetXaxis().SetTitle("muon #eta")
+            hdata[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
+            hdata[x].GetZaxis().SetTitleOffset(1.4)
+            hdata[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
             printCanvas(c1, hdata[x].GetName(), text[x], options)
             if options.refmc:
                 if x == "dm": normalizeZ(href[x])
-                href[x].SetContour(100)
+                #href[x].SetContour(100)
+                href[x].GetXaxis().SetTitle("muon #eta")
+                href[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
+                href[x].SetTitle("")
+                href[x].GetZaxis().SetTitleOffset(1.4)
                 href[x].Draw("COLZ0 TEXTE")
+                href[x].SetMarkerSize(1.2)
+                href[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
                 printCanvas(c1, href[x].GetName(), text[x], options)
                 normalizeZ(hdiff[x], pivot = 1 if x == "sigma" else 0)
-                hdiff[x].SetContour(100)
+                #hdiff[x].SetContour(100)
+                ROOT.gStyle.SetPaintTextFormat(".3f")
+                hdiff[x].GetXaxis().SetTitle("muon #eta")
+                hdiff[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
+                hdiff[x].SetTitle("")
                 hdiff[x].Draw("COLZ0 TEXTE")
+                hdiff[x].SetMarkerSize(1.2)            
+                hdiff[x].GetZaxis().SetTitle({'dm'    :"#Deltam - #Deltam_{MC}  (GeV)",
+                                              'sigma' :'#sigma/#sigma_{MC}'}[x]
+                )
+                hdiff[x].GetZaxis().SetTitleOffset(1.4)
                 printCanvas(c1, hdiff[x].GetName(), text[x], options)
                 hdiff[x].SaveAs("%s/%s.root" % (options.printDir, hdiff[x].GetName()))
-        c1 = ROOT.TCanvas("c1","c1")
-        c1.SetLeftMargin(0.35)
+        c1 = ROOT.TCanvas("c1","c1",1000,1000)
+        c1.SetTickx(1)
+        c1.SetTicky(1)
+        c1.SetGrid()
+        c1.SetRightMargin(0.04)
+        c1.SetLeftMargin(0.3)
         for x in myparams:
             xmax = max(g[x].GetX()[i] + 1.3*g[x].GetErrorX(i) for g in (gdata,gref) for i in xrange(len(fits)))
             xmin = min(g[x].GetX()[i] - 1.3*g[x].GetErrorX(i) for g in (gdata,gref) for i in xrange(len(fits)))
             dx = 0.1*(xmax-xmin)
             frame = ROOT.TH2D("frame","", 100, xmin-dx, xmax+dx, len(hists), 0., len(hists))
-            frame.GetXaxis().SetTitle({'dm':"#Delta m  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x]);
+            frame.GetXaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x]);
             frame.GetXaxis().SetNdivisions(505)
             for bin,label in binLabel.iteritems():
                 frame.GetYaxis().SetBinLabel(binIndex[bin]+1, label)
@@ -694,7 +1061,8 @@ if __name__ == "__main__":
                 xmin = min(g[x].GetX()[i] - 1.3*g[x].GetErrorX(i) for g in (gdiff,) for i in xrange(len(fits)))
                 dx = 0.1*(xmax-xmin)
                 frame = ROOT.TH2D("frame","", 100, xmin-dx, xmax+dx, len(hists), 0., len(hists))
-                frame.GetXaxis().SetTitle({'dm':"#Delta - #Delta_{MC}  (GeV)",'sigma':'#sigma/#sigma_{MC}'}[x]);
+                frame.GetXaxis().SetTitle({'dm'    :"#Deltam - #Deltam_{MC}  (GeV)",
+                                           'sigma' :'#sigma/#sigma_{MC}'} [x]);
                 frame.GetXaxis().SetNdivisions(505)
                 for bin,label in binLabel.iteritems():
                     frame.GetYaxis().SetBinLabel(binIndex[bin]+1, label)

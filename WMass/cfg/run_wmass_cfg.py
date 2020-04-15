@@ -30,10 +30,10 @@ selectedEvents=getHeppyOption("selectEvents","")
 # save PDF information and do not skim. Do only for needed MC samples
 keepEventsWithNoGoodVertex = True
 forceSignalSkim = True # force skims for signal (some lepton cuts, single or dilepton skim)
-runOnSignal = True
+runOnSignal = False
 doTriggerMatching = True
 keepLHEweights = False
-signalZ = True
+signalZ = False
 runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
@@ -75,14 +75,14 @@ lepAna.loose_electron_id = "POG_Cuts_ID_SPRING16_25ns_v1_HLT"
 isolation = None
 
 if useBasicRECOLeptons:
-    lepAna.inclusive_muon_id  = "POG_ID_Loose"
+    lepAna.inclusive_muon_id  = "POG_ID_Loose" # or POG_ID_Soft
     #lepAna.inclusive_muon_id  = None
     lepAna.inclusive_muon_pt  = 10
     lepAna.inclusive_muon_eta = 2.4
     lepAna.inclusive_muon_dxy = 1000.
     lepAna.inclusive_muon_dz  = 1000.
     # loose muon selection
-    lepAna.loose_muon_id     = "POG_ID_Loose"
+    lepAna.loose_muon_id     = "POG_ID_Loose" # or POG_ID_Soft
     #lepAna.loose_muon_id     = None
     lepAna.loose_muon_pt     = 10
     lepAna.loose_muon_eta    = 2.4
@@ -91,14 +91,14 @@ if useBasicRECOLeptons:
     lepAna.loose_muon_relIso = 1000.
     # inclusive very loose electron selection
     lepAna.inclusive_electron_id  = None
-    lepAna.inclusive_electron_pt  = 25
+    lepAna.inclusive_electron_pt  = 25 # use 10
     lepAna.inclusive_electron_eta = 2.5
     lepAna.inclusive_electron_dxy = 1000.
     lepAna.inclusive_electron_dz  = 1000.
     lepAna.inclusive_electron_lostHits = 100
     # loose electron selection
-    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5",
-    lepAna.loose_electron_pt     = 25
+    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
+    lepAna.loose_electron_pt     = 25   # use 10
     lepAna.loose_electron_eta    = 2.5
     lepAna.loose_electron_dxy    = 1000.
     lepAna.loose_electron_dz     = 1000.
@@ -476,7 +476,8 @@ test = getHeppyOption('test')
 if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94x']:    
     if test=='testdata':
         comp = selectedComponents[0]
-        comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
+        comp.files = comp.files[:1]
+        #comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
     if test =='testw94x':
         comp = WJetsToLNu_94X
         comp.files = comp.files[:1]

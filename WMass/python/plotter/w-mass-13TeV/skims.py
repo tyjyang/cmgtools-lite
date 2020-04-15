@@ -65,11 +65,14 @@ if __name__ == "__main__":
                 os.system("rm -rf "+outputDirSkims)
                 os.makedirs(outputDirSkims)
                 os.makedirs(outputDirFSkims)
-        os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile))
+        if options.varfile: 
+            os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile))
+        os.system('cp {sf} {od}'.format(od=outputDirSkims,sf=args[0])) ## this should work??
         os.system('cp {sf} {od}'.format(od=outputDirSkims,sf=args[1])) ## this should work??
     else: 
-        print "Make only the friend trees in dir ",outputDirFSkims
-        os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile)) ## this should work??
+        print "Make only the friend trees in dir ",outputDirFSkims        
+        if options.varfile:
+            os.system('cp {vf} {od}'.format(od=outputDirSkims,vf=options.varfile)) ## this should work??
 
     OPTS = ' --obj tree -P '+treeDir+' --s2v -j 4 -F Friends "{P}/friends/tree_Friend_{cname}.root" '
     OPTS += ' --max-entries %d ' % options.maxEntries 
@@ -100,10 +103,6 @@ if __name__ == "__main__":
     if not options.mainOnly:
         print "Now skimming the event variables friend trees:\n"
         os.system(cmdFSkimEv)
-        # print "Now skimming the fake rate friend trees:\n"
-        # os.system(cmdFSkimFr)
-        # print "Now skimming the trigger friend trees:\n"
-        # os.system(cmdFSkimTg)
 
     print "VERY DONE\n"
 

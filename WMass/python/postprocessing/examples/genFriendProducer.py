@@ -123,6 +123,10 @@ class GenQEDJetProducer(Module):
             if not self.noSavePreFSR: self.out.branch("GenLepPreFSR_" +V, "F", lenVar="nGenLepPreFSR")
             self.out.branch("GenLepBare_"   +V, "F", lenVar="nGenLepBare")
             self.out.branch("GenPromptNu_"  +V, "F", lenVar="nGenPromptNu")
+        if self.saveVertexZ:
+            self.out.branch("GenLepDressed_vertexZ", "F", lenVar="nGenLepDressed")
+            self.out.branch("GenLepBare_vertexZ", "F", lenVar="nGenLepDressed")
+
         for V in self.genwvars:
             self.out.branch("genw_"   +V, "F")
             if not self.noSavePreFSR: self.out.branch("prefsrw_"+V, "F")
@@ -207,7 +211,7 @@ class GenQEDJetProducer(Module):
             lepton = ROOT.TLorentzVector()
             lepton.SetPtEtaPhiM(p.pt, p.eta, p.phi, p.mass if p.mass >= 0. else 0.)
             if self.saveVertexZ:
-                leptons.append( [lepton, p.pdgId, p.vz()] ) # only works if vz() was saved in genParts
+                leptons.append( [lepton, p.pdgId, p.vertexZ] ) # only works if vertexZ was saved in genParts
             else:
                 leptons.append( [lepton, p.pdgId, 0] ) 
             
@@ -399,7 +403,7 @@ class GenQEDJetProducer(Module):
             for V in self.vars:
                 self.out.fillBranch("GenLepBare_"+V, retB[V])
             if self.saveVertexZ:
-                self.out.fillBranch("GenLepDressed_vertexZ", retL["vertexZ"])
+                self.out.fillBranch("GenLepBare_vertexZ", retL["vertexZ"])
 
         #W-specific
         if neutrino:

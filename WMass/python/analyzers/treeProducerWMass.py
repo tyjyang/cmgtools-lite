@@ -18,8 +18,8 @@ wmass_globalVariables = [
             #NTupleVariable("primaryVertex_x",  lambda ev: ev.goodVertices[0].x(), float, help="primary vertex x"),
             #NTupleVariable("primaryVertex_y",  lambda ev: ev.goodVertices[0].y(), float, help="primary vertex y"),
             NTupleVariable("primaryVertex_z",  lambda ev: ev.vertices[0].z(), float, help="z of first vertex in collection (even if bad) in cm"),
-            NTupleVariable("primaryGoodVertex_z",  lambda ev: ev.goodVertices[0].z(), float, help="z of first good vertex in cm"),
-            NTupleVariable("genVertez_z",  lambda ev: ev.genVertexZ, float, help="Position z of generator vertex (from leading-pt isPromptFinalState() mu or el)"),
+            NTupleVariable("primaryGoodVertex_z",  lambda ev: ev.goodVertices[0].z() if len(ev.goodVertices) else -999, float, help="z of first good vertex in cm"),
+            NTupleVariable("genVertez_z",  lambda ev: ev.genVertexZ, float, mcOnly=True, help="Position z of generator vertex (from leading-pt isPromptFinalState() mu or el)"),
             #NTupleVariable("nTrueInt",  lambda ev: ev.nTrueInteractions, int, mcOnly=True, help="Number of true interaction from MC"), 
 
             ## ------- lheHT, needed for merging HT binned samples 
