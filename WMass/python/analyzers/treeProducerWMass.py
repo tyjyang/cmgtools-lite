@@ -55,7 +55,9 @@ pdfsVariables = [
         ]
 
 wmass_collections = {
-            "selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMass, 8, help="Leptons after the preselection"),
+            #"selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMass, 8, help="Leptons after the preselection"),
+    # following has less variables
+            "selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMassPruned, 8, help="Leptons after the preselection"),
             #"otherLeptons"    : NTupleCollection("LepOther", leptonTypeSusy, 8, help="Leptons after the preselection"),
             ##------------------------------------------------
             "cleanJets"       : NTupleCollection("Jet",     jetTypeWMass, 15, help="Cental jets after full selection and cleaning, sorted by pt"),
