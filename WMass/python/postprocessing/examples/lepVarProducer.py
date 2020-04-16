@@ -66,11 +66,12 @@ class lepIsoEAProducer(Module):
         return True
 
 class lepAwayJetProducer(Module):
-    def __init__(self, lepSel = lambda lep: True, jetSel = lambda jet : True, pairSel = lambda lep, jet : True):
+    def __init__(self, lepSel = lambda lep: True, jetSel = lambda jet : True, pairSel = lambda lep, jet : True, jetCollection="Jet"):
         self.lepSel = lepSel
         self.jetSel = jetSel
         self.pairSel = pairSel
         self.jetSort = lambda jet: jet.pt 
+        self.jetCollection=jetCollection
         self.vars = ("pt","eta","phi")
     def beginJob(self):
         pass
@@ -85,7 +86,7 @@ class lepAwayJetProducer(Module):
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         leps = filter(self.lepSel, Collection(event, "LepGood"))
-        jets = filter(self.jetSel, Collection(event, "Jet"))
+        jets = filter(self.jetSel, Collection(event, self.jetCollection))
         jets.sort(key = self.jetSort, reverse=True)
         ret = {}
         for V in self.vars: ret[V] = []
@@ -193,10 +194,12 @@ class KaMuCaProducer(Module):
         return True
 
 class lepCalibratedEnergyProducer(Module):
-    def __init__(self,correctionFile,seed=0,synchronization=False):
+    def __init__(self,correctionFile,seed=0,synchronization=False,skipElectron=False,saveRochesterStatVariations=False):
         self.corrFile = correctionFile
         self.seed = seed
         self.synchronization = synchronization
+        self.skipElectron = skipElectron
+        self.saveRochesterStatVariations = saveRochesterStatVariations 
         if "/EnergyScaleCorrection_class_cc.so" not in ROOT.gSystem.GetLibraries():
             print 'did not find EnergyScaleCorrection shared object, rebuilding'
             ROOT.gSystem.Load("$CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/libFWCoreParameterSet.so")
@@ -218,7 +221,10 @@ class lepCalibratedEnergyProducer(Module):
         print 'initializing all the rochester correction objects'
         ## rochester corrections for data and mc on legacy rereco
         self._rochester  = ROOT.RoccoR()
-        self._rochester.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016.txt')
+        #self._rochester.init('/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016.txt')
+
+        # new version from Aleko produced in March 2020, from ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
+        self._rochester.init('%s/src/CMGTools/WMass/data/rochesterCorrections/RoccoR2016_newFrom_ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd.txt' % os.environ['CMSSW_BASE'])
     
         nLayersHistFile = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/cmssw/w-helicity-13TeV/CMSSW_8_0_25/src/CMGTools/WMass/data/rochesterCorrections/nLayersInner_goodmu.root",'read')
         self._nLayersHist = copy.deepcopy(nLayersHistFile.Get("nLayersInner"))
@@ -238,6 +244,9 @@ class lepCalibratedEnergyProducer(Module):
         self.out = wrappedOutputTree
         self.out.branch("LepGood_rocPt_step1", "F", lenVar="nLepGood")
         self.out.branch("LepGood_rocPt", "F", lenVar="nLepGood")
+        if self.saveRochesterStatVariations:
+            for istat in range(100):
+                self.out.branch("LepGood_rocPt_stat%d" % istat, "F", lenVar="nLepGood")
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
     def gauss(self):
@@ -260,67 +269,81 @@ class lepCalibratedEnergyProducer(Module):
         leps = Collection(event, "LepGood")
         rocPt_step1 = []
         rocPt = []
+        rocPt_stat = {}
+        for istat in range(100):
+            rocPt_stat[istat] = []
+        #rocPt_syst = {} # not now
         for l in leps:
             l_ch, l_pt, l_eta, l_phi = l.charge, l.pt, l.eta, l.phi
             if abs(l.pdgId)==13: # implemented only for electrons
                 if event.isData:
-                    scale = self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi)
+                    scale = self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, 0, 0)
                     rocPt_step1.append(scale)
                     rocPt.append(l.pt * scale)
-
-                    ## not now systs = []
-                    ## not now for ivar in range(1,5): ## 4 error sets of the rochester corrections.
-                    ## not now     if ivar == 1:
-                    ## not now         vstat = []
-                    ## not now         for istat in range(1,100):
-                    ## not now             vstat.append(self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, ivar, istat) )
-                    ## not now         vstat = np.array(vstat)
-                    ## not now         systs.append(np.sqrt(np.mean(vstat**2))) ## takes the rms of the vstat thing. how dumb
-                    ## not now     else:
-                    ## not now         systs.append( self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, ivar, 0) )
-
+                    if self.saveRochesterStatVariations:
+                        for istat in range(100):
+                            statvar = self._rochester.kScaleDT(l_ch, l_pt, l_eta, l_phi, 1, istat) 
+                            rocPt_stat[istat].append(l.pt * statvar)
                 else:
                     l_gpt = l.mcPt
                     if l_gpt:
                         scale = self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, 0, 0)
+                        if self.saveRochesterStatVariations:
+                            for istat in range(100):
+                                statvar = self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, 1, istat)
+                                rocPt_stat[istat].append(l.pt * statvar)
                     else:
                         ## ATTENTION. THE NTRK IS RANDOMLY CHOSEN FROM A HISTOGRAM DISTRIBUTED LIKE THE SIGNAL MC
                         tmp_nlayers = int(self._nLayersHist.GetRandom())
-                        scale = self._rochester.kSmearMC(l_ch, l_pt, l_eta, l_phi, tmp_nlayers, ROOT.gRandom.Rndm())
+                        scale = self._rochester.kSmearMC(l_ch, l_pt, l_eta, l_phi, tmp_nlayers, ROOT.gRandom.Rndm(), 0,0)
+                        if self.saveRochesterStatVariations:
+                            for istat in range(100):
+                                statvar = self._rochester.kSmearMC(l_ch, l_pt, l_eta, l_phi, tmp_nlayers, ROOT.gRandom.Rndm(), 1, istat)
+                                rocPt_stat[istat].append(l.pt * statvar)
+
                     rocPt_step1.append(scale)
                     rocPt.append(l.pt * scale )
-
-                    ## not now systs = []
-                    ## not now for ivar in range(1,5): ## 4 error sets of the rochester corrections.
-                    ## not now     if ivar == 1:
-                    ## not now         vstat = []
-                    ## not now         for istat in range(1,100):
-                    ## not now             vstat.append(self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, ivar, istat) )
-                    ## not now         vstat = np.array(vstat)
-                    ## not now         systs.append(np.sqrt(np.mean(vstat**2))) ## takes the rms of the vstat thing. how dumb
-                    ## not now     else:
-                    ## not now         systs.append( self._rochester.kSpreadMC(l_ch, l_pt, l_eta, l_phi, l_gpt, ivar, 0) )
-
             else:
-                if event.isData:
-                    scale = self._worker.ScaleCorrection(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt)
-                    rocPt_step1.append(l.pt * scale)
-                    rocPt.append(l.pt * scale * self.residualScale(l.pt,l.eta,event.isData))
+                if self.skipElectron:
+                    rocPt_step1.append(-999.9)
+                    rocPt.append(-999.9)
+                    if self.saveRochesterStatVariations:
+                        for istat in range(100):
+                            rocPt_stat[istat].append(-999.9)
                 else:
-                    smear = self._worker.getSmearingSigma(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt,0.,0.)
-                    corr = 1.0 + smear * self.gauss()
-                    rocPt_step1.append(l.pt * corr)
-                    rocPt.append(l.pt * corr)
+                    if event.isData:
+                        scale = self._worker.ScaleCorrection(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt)
+                        rocPt_step1.append(l.pt * scale)
+                        rocPt.append(l.pt * scale * self.residualScale(l.pt,l.eta,event.isData))
+                    else:
+                        smear = self._worker.getSmearingSigma(event.run,abs(l.etaSc)<1.479,l.r9,abs(l.eta),l.pt,0.,0.)
+                        corr = 1.0 + smear * self.gauss()
+                        rocPt_step1.append(l.pt * corr)
+                        rocPt.append(l.pt * corr)
+                    # same dummy for both data and MC
+                    if self.saveRochesterStatVariations:
+                        for i in range(100):
+                            rocPt_stat[istat].append(-999.9)
+
         self.out.fillBranch("LepGood_rocPt_step1", rocPt_step1)
         self.out.fillBranch("LepGood_rocPt", rocPt)
+        if self.saveRochesterStatVariations:
+            for istat in range(100):
+                self.out.fillBranch("LepGood_rocPt_stat%d" % istat, rocPt_stat[istat])
         return True
 
 
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
 eleRelIsoEA = lambda : lepIsoEAProducer("%s/src/RecoEgamma/ElectronIdentification/data/Summer16/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_80X.txt" % os.environ['CMSSW_BASE'])
-lepQCDAwayJet = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 2.4,
+lepQCDAwayJet = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 2.5,
                                             pairSel =lambda lep, jet: deltaR(lep.eta,lep.phi, jet.eta, jet.phi) > 0.7)
+lepQCDAwayJetAll = lambda : lepAwayJetProducer(jetSel = lambda jet : jet.pt > 30 and abs(jet.eta) < 4.7,
+                                               pairSel =lambda lep, 
+                                               jet: deltaR(lep.eta,lep.phi, jet.eta, jet.phi) > 0.7,
+                                               jetCollection="JetAll")
 eleCalibrated = lambda : lepCalibratedEnergyProducer("CMGTools/WMass/python/postprocessing/data/leptonScale/el/Legacy2016_07Aug2017_FineEtaR9_ele")
+muCalibratedWithStatVar = lambda : lepCalibratedEnergyProducer("CMGTools/WMass/python/postprocessing/data/leptonScale/el/Legacy2016_07Aug2017_FineEtaR9_ele",skipElectron=True, saveRochesterStatVariations=True)
+muCalibrated = lambda : lepCalibratedEnergyProducer("CMGTools/WMass/python/postprocessing/data/leptonScale/el/Legacy2016_07Aug2017_FineEtaR9_ele",skipElectron=True)
 kamucaCentral = lambda : KaMuCaProducer(version='80X',syst=False)
 kamucaSyst    = lambda : KaMuCaProducer(version='80X',syst=True)

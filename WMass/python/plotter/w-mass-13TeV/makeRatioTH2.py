@@ -35,7 +35,7 @@
 # muon FR (need to build the FR versu pt and eta
 # python w-helicity-13TeV/makeRatioTH2.py ../../data/fakerate/frAndPr_fit_mu_2018-09-13_finerETA.root fakerates_smoothed_data_interpolated ../../data/fakerate/frAndPr_fit_mu_2018-09-19_jetPt45_finerETA.root fakerates_smoothed_data_interpolated_awayJetPt45 -o /afs/cern.ch/user/m/mciprian/www/wmass/13TeV/fake-rate/muon/ratio_FR_PR/fromMarc_jetPt30_Over_jetPt45/ -f ratio_FR -n FILE -t "FR jet p_{T} > 30 / jet p_{T} > 45" -z "Fake rate ratio" -r 0.9 1.2   --buildFakeRate -x "muon p_{T} [GeV]" -y "muon #eta" --h1Dbinning "75,0.9,1.2"
 
-# python w-helicity-13TeV/makeRatioTH2.py plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metJecUp_plus/test_plots.root ptl1__etal1_W plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metNominal_plus/test_plots.root ptl1__etal1_W -o plots/distribution/muonPlots/SKIMS_muons_latest/ratio_metJecUpMT/ -f ratio MetJecUp_nominal_W -n FILE -z "yields ratio for W^{+}" --ratioRange 0.97 1.005 -t "E_{T}^{miss}(JEC Up) / nominal"
+# python w-helicity-13TeV/makeRatioTH2.py plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metJecUp_plus/test_plots.root ptl1__etal1_W plots/distribution/muonPlots/SKIMS_muons_latest/ptVsEta_W_metNominal_plus/test_plots.root ptl1__etal1_W -o plots/distribution/muonPlots/SKIMS_muons_latest/ratio_metJecUpMT/ -f ratio_MetJecUp_nominal_W -n FILE -z "yields ratio for W^{+}" --ratioRange 0.97 1.005 -t "E_{T}^{miss}(JEC Up) / nominal"
 
 ################################
 ################################
@@ -46,10 +46,6 @@ import time
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
-from templateRolling import roll1Dto2D
-from templateRolling import dressed2D
-from make_diff_xsec_cards import getDiffXsecBinning
-from make_diff_xsec_cards import templateBinning
 
 ROOT.gROOT.SetBatch(True)
         
@@ -67,7 +63,7 @@ if __name__ == "__main__":
     parser.add_option('-r','--ratioRange',  dest='ratioRange',  default=(0, 2),type="float", nargs=2, help="Min and max for the ratio in the plot")
     parser.add_option(     '--h1Dbinning',  dest='h1Dbinning',  default='50,0.9,1.1', type='string', help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_option('-v','--valBadRatio', dest='valBadRatio', default='0', type='float', help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
-    parser.add_option(     '--buildFakeRate', dest="buildFakeRate", action="store_true", default=False, help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta")
+    parser.add_option(     '--buildFakeRate', dest="buildFakeRate", action="store_true", default=False, help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta (obsolete, no longer using pol1 to interpolate)")
     parser.add_option(     '--xRange'     , dest='xRange', default=(0,-1), type='float', nargs=2, help='Select range for X axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_option(     '--yRange'     , dest='yRange', default=(0,-1), type='float', nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_option('-e', '--divide-error', dest="divideError", action="store_true", default=False, help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")

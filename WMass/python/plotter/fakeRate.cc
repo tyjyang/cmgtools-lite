@@ -40,9 +40,9 @@ TH2 * angular_7 = 0;
 // Index 10 and 11 to scale  Slope Up/Down with EWK Down/Up (more EWK means lower FR, so it makes sense to decrease the slope to create a band around nominal)
 // Keep array index larger than the number of index you will use, so you don't have to increase it everytime you add another index
 TH2 * FR_mu = 0;
-TH2 * FRi_mu[15] = {0};  
+TH2 * FRi_mu[30] = {0};  
 TH2 * FR_el = 0;
-TH2 * FRi_el[15] = {0};
+TH2 * FRi_el[20] = {0};
 
 // FR for QCD MC, needed not to clash with that on data (above) in case they are used together
 TH2 * FR_mu_qcdmc = 0;
@@ -52,9 +52,9 @@ TH2 * FRi_el_qcdmc[5] = {0};
 
 // prompt rate
 TH2 * PR_mu = 0;
-TH2 * PRi_mu[15] = {0};
+TH2 * PRi_mu[30] = {0};
 TH2 * PR_el = 0;
-TH2 * PRi_el[15] = {0};
+TH2 * PRi_el[20] = {0};
 
 TH2 * FRcorrection = 0;
 TH2 * FRcorrection_i[5];
@@ -375,50 +375,104 @@ float* _getFakeRate(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=0) {
   return rates;
 }
 
-float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { //, int expected_pdgId=11) {
+//=======================
 
-  float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
+float* _getFakeRateWmass(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=0) {
+
+  // this function reads the FR/PR from a histogram, it does not derive it reading the parameters of a 
+  // functional form used to interpolate FR/PR
+  //
+  // WARNING: THE HISTOGRAM HAS PT ON X AXIS AND ETA ON Y AXIS
+  //
+
+  // formula for fake rate including effect of prompt rate
+  //
+  // Let LNT denote the region passing loose but not tight selection, T the region passing the tight selection.
+  // Let p and f denote the prompt and fake lepton rate respectively.
+  // Then:
+  // N(QCD in T) = f/(p-f) * (p*N(NLT) - (1-p)*N(T))
+  // second term is negative by definition of p)
+  // If p=1, then N(QCD in T) = f/(1-f) * N(NLT), which is the formula used in function fakeRateWeight_1l_i_smoothed()
+
+
+  double feta = std::fabs(leta); int fid = abs(lpdgId); 
+
+  if (FRi_el[iFR] == 0 && FRi_mu[iFR] == 0) {
+    // this is the case where the histogram was not loaded correctly (one is 0 because you use the other flavour)
+    std::cout << "Error in fakeRateWeight_promptRateCorr_1l_i_smoothed: hist_fr == 0. Returning 0" << std::endl;	
+    return 0;
+  } 
+
+  if (PRi_el[iPR] == 0 && PRi_mu[iPR] == 0) {
+    // as above
+    std::cout << "Error in fakeRateWeight_promptRateCorr_1l_i_smoothed: hist_pr == 0. Returning 0" << std::endl;	
+    return 0;
+  }
+
+
+  TH2 *hist_fr = (fid == 11 ? FRi_el[iFR] : FRi_mu[iFR]);
+  TH2 *hist_pr = (fid == 11 ? PRi_el[iPR] : PRi_mu[iPR]);
+  if (hist_fr == 0 || hist_pr == 0) {
+    // this is the case where you expect electrons but get a muon, or viceversa
+    // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
+    // do not issue warning messages here, unless it is for testing
+    //std::cout << "Error in _getFakeRateWmass: hist_fr == 0 || hist_pr == 0. It seems the flavour is not what you expect. Returning 0" << std::endl;	
+    return 0;
+  }
+
+  Bool_t hasNegativeEta = (hist_fr->GetYaxis()->GetBinLowEdge(1) < 0) ? true : false;
+
+  // FR and PR histogram should have same binning, but let's make it general
+  //
+  // First FR
+  int etabin = std::max(1, std::min(hist_fr->GetNbinsY(), hist_fr->GetYaxis()->FindBin(hasNegativeEta ? leta : feta)));
+  int ptbin = std::max(1, std::min(hist_fr->GetNbinsX(), hist_fr->GetXaxis()->FindBin(lpt)));
+  float fr = hist_fr->GetBinContent(ptbin, etabin);
+    // and now PR
+  etabin = std::max(1, std::min(hist_pr->GetNbinsY(), hist_pr->GetYaxis()->FindBin(hasNegativeEta ? leta : feta)));
+  ptbin = std::max(1, std::min(hist_pr->GetNbinsX(), hist_pr->GetXaxis()->FindBin(lpt)));
+  float pr = hist_pr->GetBinContent(ptbin, etabin);
+    
+  // safety checks
+  if (fr >= pr) return 0;
+  if (pr > 1.0) pr = 1.0;  // just in case
+
+
+  static float rates[2];
+  rates[0] = pr;
+  rates[1] = fr;
+  return rates;
+}
+
+
+
+//======================
+
+float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { 
+
+  // float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
+  float* rates = _getFakeRateWmass(lpt,leta,lpdgId,iFR,iPR);
   float pr = rates[0];
   float fr = rates[1];
 
-  // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
-  float FRnormWgt = 1.0; 
-  double feta = std::fabs(leta); int fid = abs(lpdgId);
-  if(fid == 11){
-    if      (iFR==5) FRnormWgt = 1.05 + feta*0.06; // from 1.05 to 1.20
-    else if (iFR==6) FRnormWgt = 0.95 - feta*0.06;
-  }
-  else {
-    // for muons vary continuously in eta from 5% to 20% between eta = 0 and eta = 2.4
-    if      (iFR==5) FRnormWgt = 1.05 + feta*0.0625;
-    else if (iFR==6) FRnormWgt = 0.95 - feta*0.0625;
-  }
-
   float weight;
 
-  // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
-  // so in that case the weight can be safely set as 0, because those events are not used in the analysis
-  if (pr < fr) {
-    //std::cout << "### Error in weight: FR > PR. Please check!" << std::endl;
+  // safety thing
+  if (pr <= fr) {
+    //std::cout << "### Error in weight: FR >= PR. Please check!" << std::endl;
     //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
     return 0;
-  } else if (pr == fr) {
-    //std::cout << "### Error in weight: division by 0. Please check" << std::endl;
-    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
-    return 0;
-  }
+  } 
 
   if (passWP) {
     // tight
     // returning a negative weight
-    weight = FRnormWgt*fr*(pr-1)/(pr-fr); // pr=1 --> return 0
+    weight = fr*(pr-1)/(pr-fr); // pr=1 --> return 0
   } else {
     // not tight (but still loose)
-    weight = FRnormWgt*fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
+    weight = fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
   }
 
-  // if (weight != weight)   std::cout << "weight is NaN" << std::endl;
-  // if (fabs(weight) > 10.) std::cout << "event with large weight: " << weight << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
 
   return weight;
 
@@ -446,8 +500,17 @@ float getSimpleFakeRateWeight_2l(float fr1, bool passWP1,
 
 //==============================
 
-float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, int allFakes0_onlyNff1_onlyNpf2 = 0, bool addNppToFormula = false) {
+float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int lpdgId1, bool passWP1, float lpt2, float leta2, int lpdgId2, bool passWP2, int fakesFlag = 0) {
 
+  // fakesFlag:
+  // 0: all terms
+  // 1: only Nff
+  // 2: only Npf+Nfp
+
+  // values > 10 are used as a proxy for iFR and iPR (cannot have too many arguments in this function
+  // otherwise ROOT crashes o.O
+
+  //bool addNppToFormula = false; // keep for quick tests
   // addNppToFormula should stay false, it represents the prompt lepton component, which is basically the Z
   // see plots here: 
   // http://mciprian.web.cern.ch/mciprian/wmass/13TeV/Wlike/TREE_4_WLIKE_MU/comparisons/chPlus_oddEvts_withPrefire_trigSFonlyZ__1ifBothLepMatchTrig_elseOnPlusLepIfMatchElseOther_addTkMuTrigger_testWlikeAnalysis_checkFRformula/
@@ -455,6 +518,10 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   //
   int iFR=0;
   int iPR=0;
+  if (fakesFlag > 10) {
+    iFR = fakesFlag;
+    iPR = fakesFlag;
+  }
 
   float* rates1 = _getFakeRate(lpt1,leta1,lpdgId1,iFR,iPR);
   float pr1 = rates1[0];
@@ -464,30 +531,12 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   float pr2 = rates2[0];
   float fr2 = rates2[1];
 
-  // implement an eta-pt dependent lnN nuisance parameter to account for normalization variations
-  float FRnormWgt1 = 1.0; 
-  float FRnormWgt2 = 1.0; 
-  // for muons vary continuosly in eta from 5% to 20% between eta = 0 and eta = 2.4
-  // only muons supported
-  if      (iFR==5) {
-    FRnormWgt1 = 1.05 + std::fabs(leta1)*0.0625;
-    FRnormWgt2 = 1.05 + std::fabs(leta2)*0.0625;
-  }
-  else if (iFR==6) {
-    FRnormWgt1 = 0.95 - std::fabs(leta1)*0.0625;
-    FRnormWgt2 = 0.95 - std::fabs(leta2)*0.0625;
-  }
-
   float weight = 0.0;
 
   // for large pt, when using pol2 it can happen that FR > PR, but this was observed for pt > 100 GeV, which is far beyond the range we are interested
   // so in that case the weight can be safely set as 0, because those events are not used in the analysis
-  if (pr1 < fr1 || pr2 < fr2) {
+  if (pr1 <= fr1 || pr2 <= fr2) {
     //std::cout << "### Error in weight: FR > PR. Please check!" << std::endl;
-    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
-    return 0;
-  } else if (pr1 == fr1 || pr2 == fr2) {
-    //std::cout << "### Error in weight: division by 0. Please check" << std::endl;
     //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
     return 0;
   }
@@ -499,45 +548,45 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
   
   if (passWP1 && passWP2) { // t11
 
-    if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight += pr1*pr2 * (1.-fr1)*(1.-fr2); // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight -= pr1*fr2 * (1.-pr2)*(1.-fr1); // pr=1 --> return 0 [contribution to Npf]
       weight -= fr1*pr2 * (1.-pr1)*(1.-fr2); // pr=1 --> return 0 [contribution to Nfp]
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight += fr1*fr2 * (1.-pr1)*(1.-pr2); // pr=1 --> return 0 [contribution to Nff]
     }
 
   } else if (!passWP2 && passWP1) { // t10
 
-    if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight -= pr1*pr2 * (1.-fr1)*fr2; // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight += pr1*fr2 * pr2*(1.-fr1); // [contribution to Npf]
-      weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Npf]
+      weight += fr1*pr2 * fr2*(1.-pr1); // [contribution to Nfp]
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight -= fr1*fr2 * pr2*(1.-pr1); // [contribution to Nff]    
     }
 
   } else if (!passWP1 && passWP2) { // t01
 
-    if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight -= pr1*pr2 * fr1*(1.-fr2); // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight += pr1*fr2 * fr1*(1.-pr2); // [contribution to Npf]
-      weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Npf]
+      weight += fr1*pr2 * pr1*(1.-fr2); // [contribution to Nfp]
     } 
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight -= fr1*fr2 * pr1*(1.-pr2); // [contribution to Nff]
     }
 
   } else {
 
-    if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
-    if (allFakes0_onlyNff1_onlyNpf2 != 1) {
+    //if (addNppToFormula) weight += pr1*pr2 * fr1*fr2; // [contribution to Npp]
+    if (fakesFlag != 1) {
       weight -= pr1*fr2 * fr1*pr2; // [contribution to Npf]
       weight -= fr1*pr2 * pr1*fr2; // [contribution to Nfp] 
     }
-    if (allFakes0_onlyNff1_onlyNpf2 != 2) {
+    if (fakesFlag != 2) {
       weight += fr1*fr2 * pr1*pr2; // [contribution to Nfp]     
     }
 

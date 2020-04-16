@@ -14,11 +14,17 @@ wmass_globalVariables = [
             NTupleVariable("rho",  lambda ev: ev.rho, float, help="kt6PFJets rho"),
             NTupleVariable("rhoCN",  lambda ev: ev.rhoCN, float, help="fixed grid rho central neutral"),
             NTupleVariable("nVert",  lambda ev: len(ev.goodVertices), int, help="Number of good vertices"), 
-            ## NTupleVariable("nTrueInt",  lambda ev: ev.nTrueInteractions, mcOnly=True, int, help="Number of true interaction from MC"), 
+            NTupleVariable("passVertexPreSel",  lambda ev: ev.passedVertexAnalyzer, int, help="Event has passed vertex selection in vertex analyzer"), 
+            #NTupleVariable("primaryVertex_x",  lambda ev: ev.goodVertices[0].x(), float, help="primary vertex x"),
+            #NTupleVariable("primaryVertex_y",  lambda ev: ev.goodVertices[0].y(), float, help="primary vertex y"),
+            NTupleVariable("primaryVertex_z",  lambda ev: ev.vertices[0].z(), float, help="z of first vertex in collection (even if bad) in cm"),
+            NTupleVariable("primaryGoodVertex_z",  lambda ev: ev.goodVertices[0].z() if len(ev.goodVertices) else -999, float, help="z of first good vertex in cm"),
+            NTupleVariable("genVertez_z",  lambda ev: ev.genVertexZ, float, mcOnly=True, help="Position z of generator vertex (from leading-pt isPromptFinalState() mu or el)"),
+            #NTupleVariable("nTrueInt",  lambda ev: ev.nTrueInteractions, int, mcOnly=True, help="Number of true interaction from MC"), 
 
             ## ------- lheHT, needed for merging HT binned samples 
-            NTupleVariable("lheHT", lambda ev : getattr(ev,"lheHT",-999), mcOnly=True, help="H_{T} computed from quarks and gluons in Heppy LHEAnalyzer"),
-            NTupleVariable("lheHTIncoming", lambda ev : getattr(ev,"lheHTIncoming",-999), mcOnly=True, help="H_{T} computed from quarks and gluons in Heppy LHEAnalyzer (only LHE status<0 as mothers)"),
+            #NTupleVariable("lheHT", lambda ev : getattr(ev,"lheHT",-999), mcOnly=True, help="H_{T} computed from quarks and gluons in Heppy LHEAnalyzer"),
+            #NTupleVariable("lheHTIncoming", lambda ev : getattr(ev,"lheHTIncoming",-999), mcOnly=True, help="H_{T} computed from quarks and gluons in Heppy LHEAnalyzer (only LHE status<0 as mothers)"),
 
             ##--------------------------------------------------            
             NTupleVariable("mZ1", lambda ev : ev.bestZ1[0], help="Best m(ll) SF/OS"),
@@ -49,10 +55,13 @@ pdfsVariables = [
         ]
 
 wmass_collections = {
-            "selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMass, 8, help="Leptons after the preselection"),
+            #"selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMass, 8, help="Leptons after the preselection"),
+    # following has less variables
+            "selectedLeptons" : NTupleCollection("LepGood",  leptonTypeWMassPruned, 8, help="Leptons after the preselection"),
             #"otherLeptons"    : NTupleCollection("LepOther", leptonTypeSusy, 8, help="Leptons after the preselection"),
             ##------------------------------------------------
-            "cleanJets"       : NTupleCollection("Jet",     jetTypeSusyExtraLight, 15, help="Cental jets after full selection and cleaning, sorted by pt"),
+            "cleanJets"       : NTupleCollection("Jet",     jetTypeWMass, 15, help="Cental jets after full selection and cleaning, sorted by pt"),
+            "cleanJetsAll"    : NTupleCollection("JetAll",  jetTypeWMass, 15, help="All jets after full selection and cleaning, sorted by pt"),
             ## marc "cleanJetsFwd"    : NTupleCollection("JetFwd",  jetTypeSusy,  6, help="Forward jets after full selection and cleaning, sorted by pt"),            
             #"fatJets"         : NTupleCollection("FatJet",  fatJetType,  15, help="AK8 jets, sorted by pt"),
             ##------------------------------------------------
@@ -63,7 +72,8 @@ wmass_collections = {
             #"genleps"         : NTupleCollection("genLep",     genParticleWithLinksType, 10, help="Generated leptons (e/mu) from W/Z decays"),                                                                                                
             #"gentauleps"      : NTupleCollection("genLepFromTau", genParticleWithLinksType, 10, help="Generated leptons (e/mu) from decays of taus from W/Z/h decays"),                                                                       
             #"gentaus"         : NTupleCollection("genTau",     genParticleWithLinksType, 10, help="Generated leptons (tau) from W/Z decays"),                            
-            "generatorSummary" : NTupleCollection("GenPart", genParticleWithLinksType, 50 , mcOnly=True, help="Hard scattering particles, with ancestry and links"),
+            #"generatorSummary" : NTupleCollection("GenPart", genParticleWithLinksTypeAndVertex, 50 , mcOnly=True, help="Hard scattering particles, with ancestry and links"),
+            "generatorSummary" : NTupleCollection("GenPart", genParticleWithLinksTypeAndVertex, 50 , mcOnly=True, help="Hard scattering particles, with ancestry and links"),
 }
 
 wmass_recoilVariables=[

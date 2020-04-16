@@ -1335,8 +1335,8 @@ void drawGraphCMS(vector<TGraph*> grList = {},
 		  const Double_t lumi = -1.0,
 		  const Bool_t drawRatioWithNominal = false,
 		  const string& ratioPadYaxisName = "X/first",
-		  const vector<Int_t> vecMCcolors = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2}
-		  ) 
+		  const vector<Int_t> vecMCcolors = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2},
+		  const string& etabinText = "") 
 
 {
 
@@ -1393,6 +1393,7 @@ void drawGraphCMS(vector<TGraph*> grList = {},
   leg.SetFillColor(0);
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
+  leg.SetNColumns(2);
 
   //Int_t colorList[] = {kBlack, kRed, kGreen+2, kBlue, kOrange+1, kCyan+2, kGray+2};
 
@@ -1427,6 +1428,19 @@ void drawGraphCMS(vector<TGraph*> grList = {},
   if (lumi < 0) CMS_lumi(canvas,"",true,false);
   else CMS_lumi(canvas,Form("%.1f",lumi),true,false);
   setTDRStyle();
+
+  TLatex etabin;
+  etabin.SetTextSize(0.05);
+  etabin.SetTextFont(42);
+  etabin.SetTextColor(kBlack);
+  etabin.DrawLatex(0.15,0.2,etabinText.c_str());
+
+  TLegend legeta(0.12,0.15,0.6,0.25);
+  legeta.SetFillColor(0);
+  legeta.SetFillStyle(0);
+  legeta.SetBorderSize(0);
+  legeta.AddEntry("",etabinText.c_str(),"");
+  legeta.Draw("same");    
 
   canvas->RedrawAxis("sameaxis");
 
@@ -3654,11 +3668,10 @@ void buildChain(TChain* chain,
 		const string& treePath = "", 
 		const Sample& sample = Sample::data_doubleEG, 
 		TChain* chFriend = NULL, 
-		TChain* chSfFriend = NULL,
 		const string& nameMatch = "",
 		const bool noSumGenWeight = false
 		) {
-  
+ 
   cout << "Collecting samples ..." << endl;
   
   vector<string> subSampleNameVectorTmp;
@@ -3698,26 +3711,6 @@ void buildChain(TChain* chain,
     subSampleNameVectorTmp.push_back("DYJetsToLL_M50_ext2_part8");
     subSampleNameVectorTmp.push_back("DYJetsToLL_M50_ext2_part9");
     subSampleNameVectorTmp.push_back("DYJetsToLL_M50_ext2_part10");
-    /* } else if (sample == Sample::zjets_LO) { */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part1"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part10"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part11"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part2"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part3"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part4"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part5"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part6"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part7"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part8"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext2_part9"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part1"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part2"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part3"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part4"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part5"); */
-    /*   subSampleNameVectorTmp.push_back("DYJetsToLL_M50_LO_ext_part6"); */
-    /* } else if (sample == Sample::data_doubleEG) { */
-    /* } else if (sample == Sample::data_doubleMu) { */
   } else if (sample == Sample::data_singleEG || sample == Sample::qcd_ele_fake) {
     subSampleNameVectorTmp.push_back("SingleElectron_07Aug17_Run2016B_part1");
     subSampleNameVectorTmp.push_back("SingleElectron_07Aug17_Run2016B_part2");
@@ -3740,125 +3733,52 @@ void buildChain(TChain* chain,
     subSampleNameVectorTmp.push_back("SingleElectron_07Aug17_Run2016H_part2");
     subSampleNameVectorTmp.push_back("SingleElectron_07Aug17_Run2016H_part3");
     subSampleNameVectorTmp.push_back("SingleElectron_07Aug17_Run2016H_part4");
-    /* } else if (sample == Sample::data_singleMu) {  */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part11"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part12"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part13"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part14"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part15"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part16"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part17"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part18"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part19"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part20"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part21"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part22"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part23"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part9"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part9"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part11"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part12"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part13"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part14"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part9"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part11"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part9"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part11"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part12"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part13"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part14"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part15"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part16"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part17"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part18"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part19"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part20"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part21"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part22"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part23"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part9"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part1"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part10"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part11"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part12"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part13"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part14"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part15"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part17"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part18"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part19"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part2"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part20"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part21"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part22"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part23"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part24"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part25"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part26"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part27"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part28"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part29"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part3"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part30"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part31"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part32"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part4"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part5"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part6"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part7"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part8"); */
-    /*   subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part9"); */
+    } else if (sample == Sample::data_singleMu) {
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part5");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part6");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016B_part7");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016C_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016D_part5");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016E_part5");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016F_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part5");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part6");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part7");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part8");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016G_part9");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part1");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part10");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part11");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part2");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part3");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part4");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part5");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part6");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part7");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part8");
+      subSampleNameVectorTmp.push_back("SingleMuon_Run2016H_part9");
   } else if (sample == Sample::top) {
     subSampleNameVectorTmp.push_back("TBar_tWch_ext");
     subSampleNameVectorTmp.push_back("TBar_tch_powheg_part1");
@@ -3896,22 +3816,22 @@ void buildChain(TChain* chain,
   } else if (sample == Sample::qcd_mu) {
     subSampleNameVectorTmp.push_back("QCD_Mu15_part1");
     subSampleNameVectorTmp.push_back("QCD_Mu15_part2");
-    subSampleNameVectorTmp.push_back("QCD_Pt1000toInf_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt120to170_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt15to20_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt170to300_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt170to300_Mu5_ext");
-    subSampleNameVectorTmp.push_back("QCD_Pt20to30_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5_ext");
-    subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5_ext2");
-    subSampleNameVectorTmp.push_back("QCD_Pt30to50_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt470to600_Mu5_ext");
-    subSampleNameVectorTmp.push_back("QCD_Pt50to80_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt600to800_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt800to1000_Mu5_ext2");
-    subSampleNameVectorTmp.push_back("QCD_Pt80to120_Mu5");
-    subSampleNameVectorTmp.push_back("QCD_Pt80to120_Mu5_ext");
+    /* subSampleNameVectorTmp.push_back("QCD_Pt1000toInf_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt120to170_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt15to20_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt170to300_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt170to300_Mu5_ext"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt20to30_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5_ext"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt300to470_Mu5_ext2"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt30to50_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt470to600_Mu5_ext"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt50to80_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt600to800_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt800to1000_Mu5_ext2"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt80to120_Mu5"); */
+    /* subSampleNameVectorTmp.push_back("QCD_Pt80to120_Mu5_ext"); */
   } else if (sample == Sample::qcd_ele) {
     subSampleNameVectorTmp.push_back("QCD_Pt20to30_EMEnriched");
     subSampleNameVectorTmp.push_back("QCD_Pt30to50_EMEnriched");
@@ -4003,57 +3923,9 @@ void buildChain(TChain* chain,
       exit(EXIT_FAILURE);
     }
 
-  }
-
-  // SF friend
-  if (chSfFriend != NULL) {
-
-    for(UInt_t i = 0; i < subSampleNameVector.size(); i++) {
-  
-      string friend_treeRootFile = treePath + "friends/sfFriend_" + subSampleNameVector[i]+ ".root";
-      chSfFriend->Add(TString(friend_treeRootFile.c_str()));
-
-    }
-
-    if(!chSfFriend ) {
-      cout << "#### Error in buildChain() function: chSfFriend not created. End of programme" << endl;
-      exit(EXIT_FAILURE);
-    }
-
-    cout << "Adding SF friend to chain ..." << endl;
-    chain->AddFriend(chSfFriend); //adding whole friend chain as friend   
-    cout << "entries in chSfFriend = " << chSfFriend->GetEntries() << endl;
-    
-    if (chain->GetEntries() != chSfFriend->GetEntries()) {
-      cout << "#### Error in buildChain() function: chain and chSfFriend have different number of events." << endl;      
-      cout << "sample: " << getStringFromEnumSample(sample) << endl;
-      cout << "chain: " << chain->GetEntries() << endl;
-      cout << "chSfFriend: " << chSfFriend->GetEntries() << endl;
-      cout << "#### End of programme" << endl;
-      exit(EXIT_FAILURE);
-    }
 
   }
 
-
-}
-
-//=========================================================
-
-void buildChain(TChain* chain, 
-		vector<Double_t>& genwgtVec, 
-		const bool use8TeVSample = true, 
-		const string& treePath = "", 
-		const Sample& sample = Sample::data_doubleEG, 
-		TChain* chFriend = NULL, 
-		TChain* chSfFriend = NULL,
-		const string& nameMatch = "",
-		const bool noSumGenWeight = false
-		) {
-  
-
-  if (use8TeVSample) cout << "### WARNING: use8TeVSample no longer implemented in buildChain(), it will be ignored" << endl;
-  buildChain(chain, genwgtVec, treePath, sample, chFriend, chSfFriend, nameMatch, noSumGenWeight);
 
 }
 

@@ -140,7 +140,7 @@ if __name__ == "__main__":
         ROOT.gROOT.SetBatch()
         if not os.path.isdir(options.outdir):
             os.system('mkdir -p {od}'.format(od=options.outdir))
-        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/g/gpetrucc/php/index.php',od=options.outdir))
+        os.system('cp {pf} {od}'.format(pf='/afs/cern.ch/user/m/mciprian/public/index.php',od=options.outdir))
 
     if len(options.nuis)==0 and len(options.nuisgroups)==0:
         print "Will plot the impact for all the single nuisances. It may be a big matrix"

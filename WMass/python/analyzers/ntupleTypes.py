@@ -12,16 +12,35 @@ from CMGTools.TTHAnalysis.tools.functionsRAX import _susy2lss_idEmu_cuts_obj,_su
 ## LEPTON
 ##------------------------------------------  
 
-leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType ], variables = [
+leptonTypeWMassPruned = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonTypeSmaller ], variables = [
+    NTupleVariable("chIso04", lambda lepton : lepton.chargedHadronIsoR(0.4), help="Lepton charged hadron isolation in a cone DeltaR=0.4"),
+    NTupleVariable("nhIso04", lambda lepton : lepton.neutralHadronIsoR(0.4), help="Lepton neutral hadron isolation in a cone DeltaR=0.4"),
+    NTupleVariable("phIso04", lambda lepton : lepton.photonIsoR(0.4), help="Lepton photon isolation in a cone DeltaR=0.4"),
+    # More
+    NTupleVariable("tightChargeFix",  lambda lepton : ( lepton.isGsfCtfScPixChargeConsistent() + lepton.isGsfScPixChargeConsistent() ) if abs(lepton.pdgId()) == 11 else 2*(lepton.muonBestTrack().ptError()/lepton.muonBestTrack().pt() < 0.2), int, help="Tight charge criteria: for electrons, 2 if isGsfCtfScPixChargeConsistent, 1 if only isGsfScPixChargeConsistent, 0 otherwise; for muons, 2 if ptError/pt < 0.20, 0 otherwise (using the muon best track)"),
+    NTupleVariable("muonTrackType",  lambda lepton : 1 if abs(lepton.pdgId()) == 11 else lepton.muonBestTrackType(), int, help="Muon best track type"),
+    NTupleVariable("ptErrTk",  lambda lepton : ( lepton.gsfTrack().ptError() ) if abs(lepton.pdgId()) == 11 else (lepton.muonBestTrack().ptError()), help="pt error, for the gsf track or muon best track"),
+    NTupleVariable("matchedTrgObjMuPt"  , lambda x: x.matchedTrgObjwmassMu.pt() if  x.matchedTrgObjwmassMu else -999.          , help="Matched trigger object (cone dR<0.3) pT to IsoMu24"),
+    NTupleVariable("matchedTrgObjMuDR"  , lambda x: deltaR(x, x.matchedTrgObjwmassMu) if  x.matchedTrgObjwmassMu else -999.    , help="Matched trigger object (cone dR<0.3) dR to IsoMu24"),
+    NTupleVariable("matchedTrgObjTkMuPt", lambda x: x.matchedTrgObjwmassTkMu.pt() if  x.matchedTrgObjwmassTkMu else -999.      , help="Matched trigger object (cone dR<0.3) pT to IsoTkMu24"),
+    NTupleVariable("matchedTrgObjTkMuDR", lambda x: deltaR(x, x.matchedTrgObjwmassTkMu) if  x.matchedTrgObjwmassTkMu else -999., help="Matched trigger object (cone dR<0.3) dR to IsoTkMu24"),
+    NTupleVariable("matchedTrgObjMu50Pt", lambda x: x.matchedTrgObjwmassMu50.pt() if  x.matchedTrgObjwmassMu50 else -999.      , help="Matched trigger object (cone dR<0.3) pT to Mu50"),
+    NTupleVariable("matchedTrgObjMu50DR", lambda x: deltaR(x, x.matchedTrgObjwmassMu50) if  x.matchedTrgObjwmassMu50 else -999., help="Matched trigger object (cone dR<0.3) dR to Mu50"),
+    NTupleVariable("nLayersInner", lambda lepton: lepton.innerTrack().hitPattern().trackerLayersWithMeasurement() if abs(lepton.pdgId()) == 13 else -999., help="Number of layers with measurements in inner track hit pattern for muons."),
+])
+
+
+leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonTypeSmaller ], variables = [
     # Lepton MVA-id related variables
-    NTupleVariable("jetDR",      lambda lepton : deltaR(lepton.eta(),lepton.phi(),lepton.jet.eta(),lepton.jet.phi()) if hasattr(lepton,'jet') else -1, help="deltaR(lepton, nearest jet)"),
+    # this uses uncleaned jets, better not use it
+    #NTupleVariable("jetDR",      lambda lepton : deltaR(lepton.eta(),lepton.phi(),lepton.jet.eta(),lepton.jet.phi()) if hasattr(lepton,'jet') else -1, help="deltaR(lepton, nearest jet)"),
     NTupleVariable("r9",      lambda lepton : lepton.full5x5_r9() if abs(lepton.pdgId()) == 11 else -99, help="SuperCluster 5x5 r9 variable, only for electrons; -99 for muons"),
     NTupleVariable("chIso04", lambda lepton : lepton.chargedHadronIsoR(0.4), help="Lepton charged hadron isolation in a cone DeltaR=0.4"),
     NTupleVariable("nhIso04", lambda lepton : lepton.neutralHadronIsoR(0.4), help="Lepton neutral hadron isolation in a cone DeltaR=0.4"),
     NTupleVariable("phIso04", lambda lepton : lepton.photonIsoR(0.4), help="Lepton photon isolation in a cone DeltaR=0.4"),
-    #2016 muon Id
-    NTupleVariable("softMuonId2016", lambda lepton: _soft_MuonId_2016ICHEP(lepton), help="Soft muon ID retuned for ICHEP 2016"),
-    NTupleVariable("mediumMuonID2016", lambda lepton: _medium_MuonId_2016ICHEP(lepton), help="Medium muon ID retuned for ICHEP 2016"),
+    #2016 muon Id (obsolete)
+    #NTupleVariable("softMuonId2016", lambda lepton: _soft_MuonId_2016ICHEP(lepton), help="Soft muon ID retuned for ICHEP 2016"),
+    #NTupleVariable("mediumMuonID2016", lambda lepton: _medium_MuonId_2016ICHEP(lepton), help="Medium muon ID retuned for ICHEP 2016"),
     # More
     NTupleVariable("tightChargeFix",  lambda lepton : ( lepton.isGsfCtfScPixChargeConsistent() + lepton.isGsfScPixChargeConsistent() ) if abs(lepton.pdgId()) == 11 else 2*(lepton.muonBestTrack().ptError()/lepton.muonBestTrack().pt() < 0.2), int, help="Tight charge criteria: for electrons, 2 if isGsfCtfScPixChargeConsistent, 1 if only isGsfScPixChargeConsistent, 0 otherwise; for muons, 2 if ptError/pt < 0.20, 0 otherwise (using the muon best track)"),
     NTupleVariable("muonTrackType",  lambda lepton : 1 if abs(lepton.pdgId()) == 11 else lepton.muonBestTrackType(), int, help="Muon best track type"),
@@ -48,6 +67,12 @@ leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType
     NTupleVariable("matchedTrgObjMu50Pt", lambda x: x.matchedTrgObjwmassMu50.pt() if  x.matchedTrgObjwmassMu50 else -999.      , help="Matched trigger object (cone dR<0.3) pT to Mu50"),
     NTupleVariable("matchedTrgObjMu50DR", lambda x: deltaR(x, x.matchedTrgObjwmassMu50) if  x.matchedTrgObjwmassMu50 else -999., help="Matched trigger object (cone dR<0.3) dR to Mu50"),
     NTupleVariable("nLayersInner", lambda lepton: lepton.innerTrack().hitPattern().trackerLayersWithMeasurement() if abs(lepton.pdgId()) == 13 else -999., help="Number of layers with measurements in inner track hit pattern for muons."),
+])
+
+jetTypeWMass = NTupleObjectType("jetWMass", baseObjectTypes = [ fourVectorType ], variables = [
+    # add more if you want
+    #NTupleVariable("id",    lambda x : x.jetID("POG_PFID") , int, mcOnly=False,help="POG Loose jet ID"),
+    #NTupleVariable("puId", lambda x : getattr(x, 'puJetIdPassed', -99), int,     mcOnly=False, help="puId (full MVA, loose WP, 5.3.X training on AK5PFchs: the only thing that is available now)"),
 ])
 
 

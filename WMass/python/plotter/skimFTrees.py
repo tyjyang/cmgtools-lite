@@ -37,7 +37,7 @@ def _runIt(args,options,excludeProcesses=[]):
                 print "Skipping {n}: doesn't match filter".format(n=dset)
                 continue
         print "Skimming friend for component %s..." % dset
-        skipMe = False
+        skipMe = False        
         for p in procsToExclude:
             if p in dset: skipMe = True
         if skipMe: continue
@@ -119,7 +119,7 @@ use_x509userproxy = true
 Log        = {ld}/$(ProcId).log
 Output     = {ld}/$(ProcId).out
 getenv      = True
-request_memory = 4000
+request_memory = 2000
 +MaxRuntime = 7200
 +JobBatchName = "{name}"\n
 '''.format(runner=runner,ld=options.logdir,name=options.jobName))
@@ -145,7 +145,28 @@ request_memory = 4000
             dsets = [d.replace(ffilename+'_','').replace('.root','') for d in os.listdir(sys.argv[2]) if ffilename in d]
             dsets = [d for d in dsets if d in os.listdir(treedir)]
 
+        procsToExclude = []
+        for p0 in options.excludeProcess:
+            for p in p0.split(","):
+                procsToExclude.append(p)
+        if len(procsToExclude): 
+            print "skimFTrees: exlude the following datasets: ", ", ".join(procsToExclude)            
+
         for d in dsets:
+
+            if options.component and d!=options.component: continue
+
+            if len(procsToExclude):
+                for p in procsToExclude:
+                    if p in d: continue
+
+            if options.matchComponent: 
+                if re.match(options.matchComponent,d):
+                    pass
+                    #print "Component {n} matched filter".format(n=d)
+                else:                    
+                    #print "Skipping {n}: doesn't match filter".format(n=d)
+                    continue
 
             print "\t component %-40s" % d
             componentPost = ' --component {c} '.format(c=d)

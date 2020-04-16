@@ -188,12 +188,22 @@ def getMaximumTH(h, excludeMax=None):
 
 #########################################################################
 
+def fillTH2fromTH3zrange(h2, h3, zbinLow=1, zbinHigh=1):
+    for ix in range(1,1+h2.GetNbinsX()):
+        for iy in range(1,1+h2.GetNbinsY()):
+            error = ROOT.Double(0)
+            h2.SetBinContent(ix,iy,h3.IntegralAndError(ix,ix,iy,iy,zbinLow,zbinHigh,error))
+            h2.SetBinError(ix,iy,error);
+
+
+#########################################################################
+
 
 def createPlotDirAndCopyPhp(outdir):
     if outdir != "./":
         if not os.path.exists(outdir):
             os.system("mkdir -p "+outdir)
-            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/e/emanuele/public/index.php "+outdir)
+            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
     
 
 #########################################################################
@@ -302,8 +312,8 @@ def drawTH1(htmp,
 def drawCorrelationPlot(h2D_tmp,
                         labelXtmp="xaxis", labelYtmp="yaxis", labelZtmp="zaxis",
                         canvasName="default", plotLabel="", outdir="./",
-                        rebinFactorY=0,
                         rebinFactorX=0,
+                        rebinFactorY=0,
                         smoothPlot=True,
                         drawProfileX=True,
                         scaleToUnitArea=True,
@@ -329,8 +339,8 @@ def drawCorrelationPlot(h2D_tmp,
     adjustSettings_CMS_lumi()
 
     if (rebinFactorX): 
-        if isinstance(rebinFactorX, int): h2D_tmp.RebinY(rebinFactorX)
-        else:                             h2D_tmp.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
+        if isinstance(rebinFactorX, int): h2D_tmp.RebinX(rebinFactorX)
+        else:                             h2D_tmp.RebinX(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
 
     if (rebinFactorY): 
         if isinstance(rebinFactorY, int): h2D_tmp.RebinY(rebinFactorY)
@@ -801,6 +811,352 @@ def drawSingleTH1(h1,
 
 
 ################################################################
+
+def drawNTH1(hists=[],
+             legEntries=[],
+             labelXtmp="xaxis", labelYtmp="yaxis",
+             canvasName="default", outdir="./",
+             rebinFactorX=0,
+             draw_both0_noLog1_onlyLog2=0,                  
+             leftMargin=0.15,
+             rightMargin=0.04,
+             labelRatioTmp="Rel.Unc.::0.5,1.5",
+             drawStatBox=False,
+             legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
+             canvasSize="600,700",  # use X,Y to pass X and Y size     
+             lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+             drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
+             passCanvas=None,
+             lumi=None,
+             drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+             textForLines=[],                       
+             moreText="",
+             moreTextLatex=""
+):
+
+    # moreText is used to pass some text to write somewhere (TPaveText is used)
+    # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
+    # one can add more lines using the ";" key. FOr example, "stuff1;stuff2::x1,y1,x2,y2"
+    # the coordinates should be defined taking into account how many lines will be drawn
+    # if the coordinates are not passed (no "::"), then default ones are used, but this might not be satisfactory
+
+    # moreTextLatex is similar, but used TLatex, and the four coordinates are x1,y1,ypass,textsize
+    # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
+
+    if len(hists) != len(legEntries):
+        print "Warning in drawNTH1: #(hists) != #(legEntries). Abort"
+        quit()
+
+    if (rebinFactorX): 
+        if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
+        # case in which rebinFactorX is a list of bin edges
+        else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+
+    xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
+    yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
+    yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
+
+    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
+
+    adjustSettings_CMS_lumi()
+    addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
+    createPlotDirAndCopyPhp(outdir)
+    
+
+    cw,ch = canvasSize.split(',')
+    #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetLeftMargin(leftMargin)
+    canvas.SetRightMargin(rightMargin)
+    canvas.cd()
+
+    pad2 = 0
+    if lowerPanelHeight: 
+        canvas.SetBottomMargin(lowerPanelHeight)
+        pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+        pad2.SetTopMargin(1-lowerPanelHeight)
+        pad2.SetRightMargin(rightMargin)
+        pad2.SetLeftMargin(leftMargin)
+        pad2.SetFillColor(0)
+        pad2.SetGridy(1)
+        pad2.SetFillStyle(0)
+    else:
+        canvas.SetBottomMargin(0.15)
+
+
+    h1 = hists[0]
+    hnums = [hists[i] for i in range(1,len(hists))]
+    frame = h1.Clone("frame")
+    frame.GetXaxis().SetLabelSize(0.04)
+    frame.SetStats(0)
+
+    h1.SetLineColor(ROOT.kBlack)
+    h1.SetMarkerColor(ROOT.kBlack)
+    h1.SetMarkerStyle(20)
+    #h1.SetMarkerSize(0)
+
+    colors = [ROOT.kRed+2, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+7, ROOT.kAzure+2, ROOT.kPink+7]
+    for ic,h in enumerate(hnums):
+        # h.SetLineColor(colors[ic])
+        # h.SetFillColor(colors[ic])
+        # if ic==0: h.SetFillStyle(3004)   
+        # if ic==2: h.SetFillStyle(3002)   
+        # h.SetFillColor(colors[ic])
+        # h.SetMarkerSize(0)
+        h.SetLineColor(colors[ic])
+        h.SetFillColor(colors[ic])
+        h.SetMarkerSize(0)
+        if ic==0: 
+            h.SetFillStyle(3004)   
+        if ic==1: 
+            h.SetFillColor(0) 
+            h.SetLineWidth(2) 
+        if ic==2: 
+            h.SetFillStyle(3002)           
+        if ic==3:
+            h.SetFillColor(0)
+            h1.SetMarkerColor(ROOT.kGray+3)
+            h1.SetMarkerStyle(25)
+            #h1.SetMarkerSize(2)
+            
+    
+    #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
+    # if min and max were not set, set them based on histogram content
+    if ymin == ymax == 0.0:
+        # ymin,ymax = getMinMaxHisto(h1,excludeEmpty=True,sumError=True)            
+        # ymin *= 0.9
+        # ymax *= (1.1 if leftMargin > 0.1 else 2.0)
+        # if ymin < 0: ymin = 0
+        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
+        ymin = 9999.9
+        ymax = -9999.9
+        for h in hists:
+            if h.GetBinContent(h.GetMaximumBin()) > ymax: ymax = h.GetBinContent(h.GetMaximumBin())
+            if h.GetBinContent(h.GetMinimumBin()) < ymin: ymin = h.GetBinContent(h.GetMinimumBin())
+        if ymin < 0: ymin = 0
+        ymax *= 1.2
+        
+    # print "#### WARNING ####"
+    # print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
+    # print "#################"
+    # ymin = 0 # hardcoded
+
+    if lowerPanelHeight:
+        h1.GetXaxis().SetLabelSize(0)
+        h1.GetXaxis().SetTitle("")  
+    else:
+        h1.GetXaxis().SetTitle(xAxisName)
+        h1.GetXaxis().SetTitleOffset(1.2)
+        h1.GetXaxis().SetTitleSize(0.05)
+        h1.GetXaxis().SetLabelSize(0.04)
+    h1.GetYaxis().SetTitle(yAxisName)
+    h1.GetYaxis().SetTitleOffset(yAxisTitleOffset) 
+    h1.GetYaxis().SetTitleSize(0.05)
+    h1.GetYaxis().SetLabelSize(0.04)
+    h1.GetYaxis().SetRangeUser(ymin, ymax)
+    h1.GetYaxis().SetTickSize(0.01)
+    if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
+    h1.Draw("PE")
+    for h in hnums:
+        h.Draw("HIST SAME")
+
+    nColumnsLeg = 1
+    if ";" in legendCoords: 
+        nColumnsLeg = int(legendCoords.split(";")[1])
+    legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
+    lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
+    leg.SetFillColor(0)
+    leg.SetFillStyle(0)
+    leg.SetFillColorAlpha(0,0.6)
+    leg.SetShadowColor(0)
+    leg.SetBorderSize(0)
+    leg.SetNColumns(nColumnsLeg)
+    for il,le in enumerate(legEntries):
+        leg.AddEntry(hists[il],le,"PE" if il == 0 else "FL")
+    leg.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    if drawStatBox:
+        ROOT.gPad.Update()
+        ROOT.gStyle.SetOptStat(1110)
+        ROOT.gStyle.SetOptFit(1102)
+    else:
+        h1.SetStats(0)
+
+    vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
+    vertline.SetLineColor(ROOT.kBlack)
+    vertline.SetLineStyle(3)
+    bintext = ROOT.TLatex()
+    #bintext.SetNDC()
+    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextFont(42)
+    if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
+
+    if len(drawVertLines):
+        #print "drawVertLines = " + drawVertLines
+        nptBins = int(drawVertLines.split(',')[0])
+        etarange = float(drawVertLines.split(',')[1])        
+        offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
+        for i in range(1,nptBins): # do not need line at canvas borders
+            #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
+            vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+        if len(textForLines):
+            for i in range(0,len(textForLines)): # we need nptBins texts
+                #texoffset = 0.1 * (4 - (i%4))
+                #ytext = (1. + texoffset)*ymax/2.  
+                ytext = (1.1)*ymax/2.  
+                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+
+    # redraw legend, or vertical lines appear on top of it
+    leg.Draw("same")
+
+    if len(moreText):
+        realtext = moreText.split("::")[0]
+        x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
+        if "::" in moreText:
+            x1,y1,x2,y2 = (float(x) for x in (moreText.split("::")[1]).split(","))
+        pavetext = ROOT.TPaveText(x1,y1,x2,y2,"NB NDC")
+        for tx in realtext.split(";"):
+            pavetext.AddText(tx)
+        pavetext.SetFillColor(0)
+        pavetext.SetFillStyle(0)
+        pavetext.SetBorderSize(0)
+        pavetext.SetLineColor(0)
+        pavetext.Draw("same")
+
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
+
+
+  # TPaveText *pvtxt = NULL;
+  # if (yAxisName == "a.u.") {
+  #   pvtxt = new TPaveText(0.6,0.6,0.95,0.7, "BR NDC")
+  #   pvtxt.SetFillColor(0)
+  #   pvtxt.SetFillStyle(0)
+  #   pvtxt.SetBorderSize(0)
+  #   pvtxt.AddText(Form("norm num/den = %.2f +/- %.2f",IntegralRatio,ratioError))
+  #   pvtxt.Draw()
+  # }
+
+    setTDRStyle()
+    if leftMargin > 0.1:
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
+    else:
+        latCMS = ROOT.TLatex()
+        latCMS.SetNDC();
+        latCMS.SetTextFont(42)
+        latCMS.SetTextSize(0.045)
+        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+
+    if lowerPanelHeight:
+        pad2.Draw()
+        pad2.cd()
+
+        frame.Reset("ICES")
+        if setRatioYAxisRangeFromUser: frame.GetYaxis().SetRangeUser(yminRatio,ymaxRatio)
+        #else:                          
+        #frame.GetYaxis().SetRangeUser(0.5,1.5)
+        frame.GetYaxis().SetNdivisions(5)
+        frame.GetYaxis().SetTitle(yRatioAxisName)
+        frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
+        frame.GetYaxis().SetTitleSize(0.05)
+        frame.GetYaxis().SetLabelSize(0.04)
+        frame.GetYaxis().CenterTitle()
+        frame.GetXaxis().SetTitle(xAxisName)
+        if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
+        frame.GetXaxis().SetTitleOffset(1.2)
+        frame.GetXaxis().SetTitleSize(0.05)
+
+        ratio = h1.Clone("ratio")
+        den_noerr = h1.Clone("den_noerr")
+        for iBin in range (1,den_noerr.GetNbinsX()+1):
+            den_noerr.SetBinError(iBin,0.)
+
+        ratio.Divide(den_noerr)
+        ratio.SetFillColor(ROOT.kGray)
+        #den_noerr.SetFillColor(ROOT.kGray)
+        frame.Draw()
+        ratio.SetMarkerSize(0)
+        ratio.SetMarkerStyle(0) # important to remove dots at y = 1
+        ratio.Draw("E2same")
+
+        ratios = []
+        for i,h in enumerate(hnums):
+            ratios.append(h.Clone("ratio_"+str(i+1)))
+            ratios[-1].Divide(den_noerr)
+            #ratios[-1].SetLineColor(h.GetLineColor())
+            #ratios[-1].SetMarkerSize(0)
+            #ratios[-1].SetMarkerStyle(0)
+            #ratios[-1].SetFillColor(0)
+            if h.GetFillColor():
+                ratios[-1].Draw("E2 SAME")
+            else:
+                ratios[-1].Draw("HIST SAME")
+
+        line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+        line.SetLineColor(ROOT.kBlack)
+        line.SetLineWidth(1)
+        line.Draw("Lsame")
+
+        if drawLineLowerPanel:
+            legEntry,yline = drawLineLowerPanel.split('::')
+            line2 = ROOT.TF1("horiz_line_2",str(1+float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line3 = ROOT.TF1("horiz_line_3",str(1-float(yline)),ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
+            line2.SetLineColor(ROOT.kBlue)
+            line2.SetLineWidth(1)
+            line2.Draw("Lsame")
+            line3.SetLineColor(ROOT.kBlue)
+            line3.SetLineWidth(1)
+            line3.Draw("Lsame")
+            x1leg2 = 0.2 if leftMargin > 0.1 else 0.07
+            x2leg2 = 0.5 if leftMargin > 0.1 else 0.27
+            y1leg2 = 0.25 if leftMargin > 0.1 else 0.3
+            y2leg2 = 0.35 if leftMargin > 0.1 else 0.35
+            leg2 = ROOT.TLegend(x1leg2, y1leg2, x2leg2, y2leg2)
+            leg2.SetFillColor(0)
+            leg2.SetFillStyle(0)
+            leg2.SetBorderSize(0)
+            leg2.AddEntry(line2,legEntry,"L")
+            leg2.Draw("same")
+
+        
+        pad2.RedrawAxis("sameaxis")
+
+
+    if draw_both0_noLog1_onlyLog2 != 2:
+        canvas.SaveAs(outdir + canvasName + ".png")
+        canvas.SaveAs(outdir + canvasName + ".pdf")
+
+    if draw_both0_noLog1_onlyLog2 != 1:        
+        if yAxisName == "a.u.": 
+            h1.GetYaxis().SetRangeUser(max(0.0001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        else:
+            h1.GetYaxis().SetRangeUser(max(0.001,h1.GetMinimum()*0.8),h1.GetMaximum()*100)
+        canvas.SetLogy()
+        canvas.SaveAs(outdir + canvasName + "_logY.png")
+        canvas.SaveAs(outdir + canvasName + "_logY.pdf")
+        canvas.SetLogy(0)
+
+
+################################################################
+
 
 def drawDataAndMC(h1, h2,
                   labelXtmp="xaxis", labelYtmp="yaxis",
@@ -2724,3 +3080,133 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         canvas.SaveAs(outdir + canvasName + "_logY.pdf")
         canvas.SetLogy(0)
         
+
+#########################################################################
+
+## some old functions from 2D xsec analysis, which are imported by other scripts, let's put them here
+
+def getArrayParsingString(inputString, verbose=False, makeFloat=False):
+    # convert string [a,b,c,...] to list of a b c ...
+    tmp = inputString.replace('[','').replace(']','')
+    tmp = tmp.split(',')
+    if verbose:
+        print "Input:",inputString
+        print "Output:",tmp
+    if makeFloat:
+        ret = [float(x) for x in tmp]
+    else:
+        ret = tmp
+    return ret
+
+# new function
+def getGlobalBin(ix, iy, nbinsX, binFrom0=True):
+    # ix goes from 0 to nbinsX-1, like the value returned by "for ix in xrange(nbinsX)"
+    # same is expected for iy
+    # If this is the case, global bin starts from 0
+    #However, if binFrom0=False, it is expected that the bins start from 1 (like those of a TH1) and the globalbin that is returned will start from 1 as well
+    if binFrom0:
+        return (ix + iy * nbinsX)
+    else:
+        return (ix-1 + (iy-1) * nbinsX) + 1  # trasform ix,iy in [1,N] to ix',iy' in [0,N-1], get global bin and sum 1 so that it starts from 1
+
+def getXYBinsFromGlobalBin(globalbin, nbinsX, binFrom0=True):
+    # global bin goes from 0 to nbinX*nbinsY-1 
+    # returned x(y) is a number from 0 to nbinsX(Y) -1
+    # however, if that is not the convention, then binFrom0 must be set to False: this manages the case where the global bin starts from 1 and the returned ix and iy will start from 1 as well
+    tmp = globalbin if binFrom0 else (globalbin-1)
+    iy = int(tmp/nbinsX)
+    ix = tmp % nbinsX
+    if not binFrom0:
+        ix = ix + 1
+        iy = iy + 1
+    return ix,iy
+
+def getArrayBinNumberFromValue(binEdgesArray,val):
+    # assumes values in binEdgesArray are ordered in increasing order
+    # we follow ROOT convention: when evaluating bin=ibin, upper edge belongs to ibin+1, lower edge belongs to ibin
+    # return -2 for overflow, -1 for underflow, a number in [0,len(binEdgesArray)-1] otherwise
+    ret = -2
+    if val < binEdgesArray[0]: return -1
+    for bin in range(len(binEdgesArray)-1):
+        if val < binEdgesArray[bin+1]:
+            ret = bin
+            break
+    return ret
+
+
+class templateBinning:
+    def __init__(self,etaBins=[],ptBins=[]):
+        self.etaBins = etaBins
+        self.ptBins = ptBins
+        self.Neta = len(etaBins)-1
+        self.Npt  = len(ptBins)-1
+        self.NTotBins = self.Neta * self.Npt
+
+    def printBin(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis"
+        print "eta bins: %s" % str(self.Neta)
+        print "pt  bins: %s" % str(self.Npt)
+        print ""
+
+    def printBinAll(self):
+        print "###########################"
+        print "Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins
+        print "eta bins: %s" % str(self.Neta)
+        print "%s" % str(self.etaBins)
+        print "-"*20
+        print "pt  bins: %s" % str(self.Npt)
+        print "%s" % str(self.ptBins)
+        print "-"*20
+        print ""
+
+def getEtaPtBinning(inputBins, whichBins="reco"):
+    
+    # whichBins can be reco or gen
+    # actually, gen was needed only for 2D xsec, might not be used anymore
+    if whichBins not in ["reco", "gen"]:
+        print "Error in function getEtaPtBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        exit()
+
+    # case in which we are passing a file containing the binning and not directly the binning itself
+    if inputBins.startswith("file=") or re.match(".*binningPtEta.*.txt",inputBins):
+        etaPtbinningFile = inputBins.replace("file=","")
+        with open(etaPtbinningFile) as f:
+            content = f.readlines()
+        for x in content:
+            if str(x).startswith(whichBins):
+                tmpbinning = (x.split(whichBins+":")[1]).strip()
+            else:
+                continue
+        etabinning = tmpbinning.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = tmpbinning.split('*')[1]
+    else:
+        etabinning = inputBins.split('*')[0]    # this is like [a,b,c,...], and is of type string. We nedd to get an array  
+        ptbinning  = inputBins.split('*')[1]
+    etabinning = getArrayParsingString(etabinning,makeFloat=True)
+    ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
+    #binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning] 
+    binning = [etabinning, ptbinning] 
+    #print binning
+    return binning
+
+def roll1Dto2D(h1d, histo):
+    for i in xrange(1,h1d.GetNbinsX()+1):
+        # histogram bin is numbered starting from 1, so add 1
+        xbin = (i - 1) % histo.GetNbinsX() + 1  
+        ybin = (i - 1) / histo.GetNbinsX() + 1
+        histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
+        histo.SetBinError(xbin,ybin,h1d.GetBinError(i)) 
+    return histo
+
+def dressed2D(h1d,binning,name,title=''):
+    if len(binning) == 4:
+        n1 = binning[0]; bins1 = array('d', binning[1])
+        n2 = binning[2]; bins2 = array('d', binning[3])
+        h2_1 = ROOT.TH2F(name, title, n1, bins1, n2, bins2 )
+    else:
+        n1 = binning[0]; min1 = binning[1]; max1 = binning[2]
+        n2 = binning[3]; min2 = binning[4]; max2 = binning[5]
+        h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
+    h2_backrolled_1 = roll1Dto2D(h1d, h2_1 )
+    return h2_backrolled_1

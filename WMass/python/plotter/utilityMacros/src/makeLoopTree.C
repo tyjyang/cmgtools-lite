@@ -31,7 +31,7 @@ void makeLoopTree(const bool isMuon = false,
   cout << "Loading functions.cc" << endl;
   gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/functions.cc+",cmssw_base.c_str())); 
   cout << "Loading functionsWMass.cc" << endl;
-  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/functionsWMass.cc+",cmssw_base.c_str()));
+  gROOT->ProcessLine(Form(".L %s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc+",cmssw_base.c_str()));
   cout << "Loading loopNtuplesSkeleton.cc" << endl;
   gROOT->ProcessLine(".L loopNtuplesSkeleton.C++");
 

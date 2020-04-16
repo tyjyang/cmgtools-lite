@@ -3,11 +3,11 @@
 # 1. if you have already the output of friendChunkCheck.sh -z fdir > zombies.txt
 # ./scripts/friendChunkResub.py frienddir maintreedir zombies.txt -N 500000
 # 2. if you don't have it
-#  ./scripts/friendChunkResub.py frienddir maintreedir --run-checker -N 500000
+#  ./scripts/friendChunkResub.py frienddir maintreedir --run-checker -N 500000 -l <logdir> -m 2000 -t 15000
 
 import sys,os,re
 
-def writeCondorCfg(logdir, name, flavour=None, maxRunTime=None):
+def writeCondorCfg(logdir, name, flavour=None, maxRunTime=15000, memory=4000):
 
     #if not os.path.isfile(logdir+'/dummy_exec.sh'):
     dummy_exec = open(logdir+'/dummy_exec.sh','w') 
@@ -27,13 +27,17 @@ Output     = {ld}/{name}_$(ProcId).out
 Error      = {ld}/{name}_$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
-request_memory = 4000
-+MaxRuntime = 15000 \n
+request_memory = {mem}
++MaxRuntime = {time} \n
 """.format(ld=logdir,
            name=name,
-           here=os.environ['PWD'])
+           here=os.environ['PWD'],
+           mem=memory,
+           time=maxRunTime)
     if os.environ['USER'] in ['mdunser', 'psilva']:
         job_desc += '+AccountingGroup = "group_u_CMST3.all"\n'
+    if os.environ['USER'] in ['mciprian']:
+        job_desc += '+AccountingGroup = "group_u_CMS.CAF.ALCA"\n'
     ##job_desc += 'queue 1\n'
 
     jobdesc_file = logdir+'/'+name+'.condor'
@@ -49,10 +53,20 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] dir_with_friend_trees dir_with_trees [checkedfile.txt]")
     parser.add_option("-c",      "--run-checker", dest="runChecker",  action='store_true', default=False, help="Run the script friendChunkCheck.sh");
     parser.add_option("-N", "--events",  dest="chunkSize", type="int",    default=1000000, help="Default chunk size when splitting trees");
+    parser.add_option("-m", "--memory",  dest="memory", type="int",    default=4000, help="Default memory for condor jobs in MB");
+    parser.add_option("-t", "--time",  dest="time", type="int",    default=15000, help="Default max time for condor jobs in seconds");
+    parser.add_option("-l", "--logdir",  dest="logdir", type="string",    default="", help="Specify folder where to store the condor file, and log files");
     (options, args) = parser.parse_args()
 
     fdir = args[0]
     maindir = args[1]
+
+    if not options.logdir:
+        print "Warning, pass a directory where to store condor outputs with option -l"
+        quit()
+    else:
+        if not os.path.exists(options.logdir):
+            os.makedirs(options.logdir)
 
     if options.runChecker:
         print "Running friendChunkCheck.py now on ",fdir,". Will take time..."
@@ -83,7 +97,8 @@ if __name__ == "__main__":
             cmd = "python postproc_batch.py {maintreedir} {frienddir} --friend -N {nevents} -d {dataset} -c {chunk} ".format(maintreedir=maindir,frienddir=fdir,nevents=options.chunkSize,dataset=dataset,chunk=chunk)
             cmds.append(cmd)
             #print cmd
-    f_name   = writeCondorCfg('friends_log', 'friendsResubmission')
+    #f_name   = writeCondorCfg('friends_log', 'friendsResubmission',maxRunTime=options.time,memory=options.memory)    
+    f_name   = writeCondorCfg(options.logdir, 'friendsResubmission',maxRunTime=options.time,memory=options.memory)
     f_condor = open(f_name, 'a')
     for cmd in cmds:
         f_condor.write(cmd.replace('python', 'arguments = ')+' \n')

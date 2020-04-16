@@ -65,3 +65,19 @@ python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-signal.
 python  w-helicity-13TeV/skims.py w-helicity-13TeV/wmass_mu/skimming/mca-signal.txt w-helicity-13TeV/wmass_e/skimming/skimCuts_wmunu.txt /eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/trees/SKIMS_muons_latest/ /eos/cms/store/cmst3/group/wmass/mciprian/TREES_1LEP_80X_V3_SIGSKIM_WMUNU_FULLSEL_NOMT -f w-helicity-13TeV/wmass_e/skimming/tests/varsSkim_80X_Wmu_sig_friends.txt --fo -q cmscaf1nd --log logs_friends_Wskim_24Nov2018
 
 
+# muon FR for Wmass in 2020
+python  w-mass-13TeV/skims.py w-mass-13TeV/wmass_mu/skimming/mca-skimMuonFR.txt w-mass-13TeV/wmass_mu/skimming/skimCuts_muonFR.txt /afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1/ /eos/cms/store/cmst3/group/wmass/mciprian/TREE_4_WMASS_skimMuonFR_21Jan2020 -f w-mass-13TeV/wmass_mu/skimming/varsToKeep_muonFR.txt --main-only -q cmscaf1nd --log logs_muonFRskim
+# and friends
+python  w-mass-13TeV/skims.py w-mass-13TeV/wmass_mu/skimming/mca-skimMuonFR.txt w-mass-13TeV/wmass_e/skimming/skimCuts_muonFR.txt /afs/cern.ch/work/e/emanuele/TREES/TREES_wlike_mu_V1/ /eos/cms/store/cmst3/group/wmass/mciprian/TREE_4_WMASS_skimMuonFR_21Jan2020 -f w-mass-13TeV/wmass_mu/skimming/varsToKeep_friends_muonFR.txt --fo -q cmscaf1nd --log logs_friends_muonFRskim
+
+
+#########################################
+# Zmumu skim with 94X trees (data, Z, W)
+#########################################
+# no file to cut variables with -f (not really needed)
+
+#main
+python w-mass-13TeV/skims.py w-mass-13TeV/wlike_mu/tests/mca-94X_skim_zmm.txt w-mass-13TeV/wlike_mu/tests/cuts_skim_zmm.txt MY_EOS_SPACE/heppyNtuples/links_newTmpTrees/ MY_EOS_SPACE/heppyNtuples/skim_Zmumu --main-only -q cmscaf1nd --log logs_ZmumuSkim_13apr2020
+
+# friends
+python w-mass-13TeV/skims.py w-mass-13TeV/wlike_mu/tests/mca-94X_skim_zmm.txt w-mass-13TeV/wlike_mu/tests/cuts_skim_zmm.txt MY_EOS_SPACE/heppyNtuples/links_newTmpTrees/ MY_EOS_SPACE/heppyNtuples/skim_Zmumu --fo -q cmscaf1nd --log logs_friends_ZmumuSkim_13apr2020

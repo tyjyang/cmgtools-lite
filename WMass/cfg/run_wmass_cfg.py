@@ -28,25 +28,32 @@ isTest = getHeppyOption("test",None) != None and not re.match("^\d+$",getHeppyOp
 selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
-runOnSignal = True
+keepEventsWithNoGoodVertex = True
+forceSignalSkim = True # force skims for signal (some lepton cuts, single or dilepton skim)
+runOnSignal = False
 doTriggerMatching = True
-keepLHEweights = True
-signalZ = True
+keepLHEweights = False
+signalZ = False
 runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
 doRecoilVariables = False
 
+if keepEventsWithNoGoodVertex:
+    vertexAna.keepFailingEvents = True
+
 # Lepton Skimming
 ttHLepSkim.minLeptons = 1
-ttHLepSkim.maxLeptons = 999
+#ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # this is applied to all leptons! not just some
+#ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.muonID('POG_ID_Loose')>0"
+ttHLepSkim.maxLeptons = 2
 #ttHLepSkim.idCut  = ""
-ttHLepSkim.ptCuts = [23]
+ttHLepSkim.ptCuts = [23, 10]
 
 if diLeptonSkim:
     ttHLepSkim.minLeptons = 2
-    ttHLepSkim.maxLeptons = 999
-    #ttHLepSkim.idCut  = ""
+    ttHLepSkim.maxLeptons = 2
+    ttHLepSkim.idCut  = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # not sure it works
     ttHLepSkim.ptCuts = [23, 23]
 
 if doTriggerMatching:
@@ -68,28 +75,30 @@ lepAna.loose_electron_id = "POG_Cuts_ID_SPRING16_25ns_v1_HLT"
 isolation = None
 
 if useBasicRECOLeptons:
-    lepAna.inclusive_muon_id  = None
-    lepAna.inclusive_muon_pt  = 23
+    lepAna.inclusive_muon_id  = "POG_ID_Loose" # or POG_ID_Soft
+    #lepAna.inclusive_muon_id  = None
+    lepAna.inclusive_muon_pt  = 10
     lepAna.inclusive_muon_eta = 2.4
     lepAna.inclusive_muon_dxy = 1000.
     lepAna.inclusive_muon_dz  = 1000.
     # loose muon selection
-    lepAna.loose_muon_id     = None
-    lepAna.loose_muon_pt     = 23
+    lepAna.loose_muon_id     = "POG_ID_Loose" # or POG_ID_Soft
+    #lepAna.loose_muon_id     = None
+    lepAna.loose_muon_pt     = 10
     lepAna.loose_muon_eta    = 2.4
     lepAna.loose_muon_dxy    = 1000.
     lepAna.loose_muon_dz     = 1000.
     lepAna.loose_muon_relIso = 1000.
     # inclusive very loose electron selection
     lepAna.inclusive_electron_id  = None
-    lepAna.inclusive_electron_pt  = 25
+    lepAna.inclusive_electron_pt  = 25 # use 10
     lepAna.inclusive_electron_eta = 2.5
     lepAna.inclusive_electron_dxy = 1000.
     lepAna.inclusive_electron_dz  = 1000.
     lepAna.inclusive_electron_lostHits = 100
     # loose electron selection
-    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5",
-    lepAna.loose_electron_pt     = 25
+    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
+    lepAna.loose_electron_pt     = 25   # use 10
     lepAna.loose_electron_eta    = 2.5
     lepAna.loose_electron_dxy    = 1000.
     lepAna.loose_electron_dz     = 1000.
@@ -220,7 +229,7 @@ hbheAna = cfg.Analyzer(
     hbheAnalyzer, name="hbheAnalyzer", IgnoreTS4TS5ifJetInLowBVRegion=False
     )
 dmCoreSequence.insert(dmCoreSequence.index(ttHCoreEventAna),hbheAna)
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
+#treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
 treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
 treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
 treeProducer.globalVariables.append(NTupleVariable("Flag_badChargedHadronFilter", lambda ev: ev.badChargedHadron, help="bad charged hadron filter decision"))
@@ -259,13 +268,13 @@ puppiMetAna=metAna.clone(
 
 from CMGTools.RootTools.samples.triggers_13TeV_DATA2016 import *
 triggerFlagsAna.triggerBits = {
-    'DoubleMu' : triggers_mumu_iso,
-    'DoubleMuSS' : triggers_mumu_ss,
-    'DoubleMuNoIso' : triggers_mumu_noniso,
-    'DoubleEl' : triggers_ee,
-    'MuEG'     : triggers_mue,
+    #'DoubleMu' : triggers_mumu_iso,
+    #'DoubleMuSS' : triggers_mumu_ss,
+    #'DoubleMuNoIso' : triggers_mumu_noniso,
+    #'DoubleEl' : triggers_ee,
+    #'MuEG'     : triggers_mue,
     'SingleMu' : triggers_1mu_iso,
-    'SingleMuNoIso' : triggers_1mu_noniso,
+    #'SingleMuNoIso' : triggers_1mu_noniso,
     'SingleEl'     : triggers_1e,
 }
 triggerFlagsAna.unrollbits = True
@@ -299,11 +308,14 @@ samples_1prompt = single_t + tt_1l + z_jets + dibosons
 ##configureSplittingFromTime(samples_signal,100,6)
 
 if   runOnSignal and signalZ==False:
-    selectedComponents = [WJetsToLNu_ext2v5]
+    selectedComponents = [WJetsToLNu_94X,WJetsToLNu_94X_ext]
+    #selectedComponents = [WJetsToLNu_94X]
 elif runOnSignal and signalZ:
-    selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+    #selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
+    #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+    selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
-selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+#selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
 for comp in selectedComponents:
     comp.splitFactor = len(comp.files)/2 #200
@@ -325,7 +337,11 @@ if runData != False: # and not isTest: # For running on data
     is50ns = False
     dataChunks = []
 
-    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt' # 36.295/fb
+    #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON_MuonPhys.txt' # 36.295/fb
+    # should use the following instead
+    json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON_MuonPhys.txt' # ~36.3/fb
+
+    # old
     #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
@@ -457,11 +473,18 @@ print runData
 print 'THIS IS SELECTED COMPONENTS', selectedComponents
 
 test = getHeppyOption('test')
-if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew']:
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94x']:    
     if test=='testdata':
         comp = selectedComponents[0]
-        comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
-    if test=='testw':
+        comp.files = comp.files[:1]
+        #comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
+    if test =='testw94x':
+        comp = WJetsToLNu_94X
+        comp.files = comp.files[:1]
+    elif test =='testz94x':
+        comp = ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
+        comp.files = comp.files[:1]
+    elif test=='testw':
         comp = WJetsToLNu_ext
         #comp.files = ['/eos/user/m/mdunser/w-helicity-13TeV/localFilesMINIAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8.root']
         comp.files = comp.files[:1]
@@ -581,7 +604,8 @@ if not keepLHEweights:
     histoCounter.doLHE = False
 
 if runOnSignal and (not signalZ or runZlikeW):
-    if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
+    if not forceSignalSkim:
+        if ttHLepSkim in sequence: sequence.remove(ttHLepSkim)
     if triggerAna in sequence: sequence.remove(triggerAna)
     if genAna in sequence: genAna.saveAllInterestingGenParticles = True
 

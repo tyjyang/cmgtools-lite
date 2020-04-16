@@ -35,6 +35,9 @@ if __name__ == '__main__':
     parser = optparse.OptionParser(usage='usage: %prog [opts] ', version='%prog 1.0')
     parser.add_option('-d', '--directory', type=str, default='',    help='directory with the output directories [%default]')
     parser.add_option(      '--strict',              default=False, help='perform a strict check on the integrity of the root files [%default]', action='store_true')
+    parser.add_option('--skipAllButTreeAndSkimReport', dest='skipAllButTreeAndSkimReport',
+                      default=False,action='store_true',
+                      help='When hadding stuff, skip hadd of some pck files that might be missing but not necessary (you only need the tree and the report from skimAnalyzerCount for number of events before any selection')
     parser.add_option(      '--dryRun',              default=False, help='dry run (do not submit to condor) [%default]', action='store_true')
     parser.add_option('-m', '--maxsize'  , type=float, default=6. ,    help='maximum size of the output parts. [%default] gb')
     parser.add_option('-o', '--targetdir', type=str, default='',    help='target directory for the output [%default]')
@@ -68,10 +71,19 @@ if __name__ == '__main__':
             dss[dsname]['avgsize'] = [0., 0]
         try:
             ## this is basically already a check for processed chunks
-            tmp_f = open(options.directory+'/'+sd+'/treeProducerWMass/tree.root.url','r')
+            urlfile = options.directory+'/'+sd+'/treeProducerWMass/tree.root.url'
+            tmp_f = open(urlfile,'r')
             tmp_root = tmp_f.readlines()[0].replace('\n','')
             if options.strict:
                 checkIntegrity(tmp_root)
+            skimfile = options.directory+'/'+sd+'/skimAnalyzerCount/SkimReport.pck'
+            if not os.path.isfile(skimfile):
+                # should not happen that we get here if folder was already found as bad, but let's check
+                badfolder = options.directory+'/'+sd
+                if badfolder not in badChunksList:
+                    print "Warning: no SkimReport.pck found in folder " + sd
+                    badChunksList.append(badfolder)
+                    continue
             dss[dsname]['files'  ] .append(tmp_root)
             dss[dsname]['chunks' ] .append(os.path.abspath(options.directory+'/'+sd))
             if dss[dsname]['avgsize'][1] < 300: ## only calculate avg on the first 300. this is sparta!
@@ -82,12 +94,13 @@ if __name__ == '__main__':
             badChunksList.append(options.directory+'/'+sd)
             continue
         except Exception:
+            badChunksList.append(options.directory+'/'+sd)
             continue
 
     date = datetime.date.today().isoformat()
     condorSubmitCommands = []
     for ds in dss.keys():
-        n_chunksPerPart = int(options.maxsize/dss[ds]['avgsize'][0])
+        n_chunksPerPart = 30 if dss[ds]['avgsize'][0] == 0.0 else int(options.maxsize/dss[ds]['avgsize'][0])
         print 'for dataset {d} i will merge {n} files per chunk for roughly {nc} chunks'.format(d=ds,n=n_chunksPerPart,nc=len(dss[ds]['files'])/n_chunksPerPart+1)
         tmp_condor_filename = 'condor_merge_{ds}_{d}.condor'.format(ds=ds,d=date)
         tmp_condor = open(tmp_condor_filename,'w')
@@ -101,12 +114,15 @@ getenv      = True
 transfer_input_files  = fullMergeTrees.py
 
 environment = "LS_SUBCWD={here}"
-request_memory = 4000
+request_memory = 2000
 +MaxRuntime = 7200\n\n'''.format(ds=ds, here=os.environ['PWD']))
+        if os.environ['USER'] in ['mciprian']:
+            tmp_condor.write('+AccountingGroup = "group_u_CMS.CAF.ALCA"\n\n')
+
         n_part = 1
         while len(dss[ds]['chunks']):
             chunks = ','.join(dss[ds]['chunks'][:n_chunksPerPart])
-            tmp_condor.write('arguments = {cmssw} {n} {chunks} {td} {strict}\n'.format(cmssw=cmsenv,n=n_part,chunks=chunks,td=options.targetdir,strict=options.strict))
+            tmp_condor.write('arguments = {cmssw} {n} {chunks} {td} {strict} {skipSome}\n'.format(cmssw=cmsenv,n=n_part,chunks=chunks,td=options.targetdir,strict=options.strict,skipSome=options.skipAllButTreeAndSkimReport))
             tmp_condor.write('queue 1\n\n')
             ## now remove the chunks from the list that are in this job:
             dss[ds]['chunks'] = dss[ds]['chunks'][n_chunksPerPart:]

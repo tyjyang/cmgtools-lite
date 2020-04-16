@@ -32,5 +32,11 @@ if [ "$5" == "True" ]; then
     skipCheckOPT="--skipCheck"
 fi
 
+skipAllButTreeAndSkimReport=""
+if [ "$6" == "True" ]; then
+    skipAllButTreeAndSkimReport="--skipAllButTreeAndSkimReport"
+fi
+
+
 echo 'will run the full merge python script'
-python ../fullMergeTrees.py -p $2 -d $3 -o $4 ${skipCheckOPT}
+python ../fullMergeTrees.py -p $2 -d $3 -o $4 ${skipCheckOPT} ${skipAllButTreeAndSkimReport}

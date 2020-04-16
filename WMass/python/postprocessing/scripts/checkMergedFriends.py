@@ -80,6 +80,7 @@ if __name__ == "__main__":
     parser.add_option(      "--sp", dest="selectProcess",  type="string", default=None, help="Process only datasets that match this regexp (or comma-separated list of regexp)");
     parser.add_option(      "--xp", dest="excludeProcess",  type="string", default=None, help="Process only datasets that do not match this regexp (or comma-separated list of regexp)");
     parser.add_option("--skipFriend", dest="skipFriend", action="store_true", default=False, help="Check only main trees (useful if for some reason you don't have friends yet)");
+    parser.add_option(      "--friendDir", dest="friendDir",  type="string", default="friends", help="folder with friends");
 
     
     (options, args) = parser.parse_args()
@@ -104,7 +105,7 @@ if __name__ == "__main__":
             if options.selectProcess and not any(re.match(proc,d) for proc in sel_processes): continue
             if options.excludeProcess and any(re.match(proc,d) for proc in excl_processes): continue
             print "Checking dataset %s..." % d
-            cf = CheckOneFriend(inputdir,d, skipFriend=options.skipFriend)
+            cf = CheckOneFriend(inputdir,d, frienddir=options.friendDir,skipFriend=options.skipFriend)
             if not cf.check(1):
                 badDir.append(d)
         break
