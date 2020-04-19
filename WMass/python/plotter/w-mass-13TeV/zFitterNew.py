@@ -19,6 +19,30 @@ if "/functions_cc.so" not in ROOT.gSystem.GetLibraries():
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc+" % os.environ['CMSSW_BASE']);
 
+def setAxisTH2(h2,options,xtitle=None,ytitle=None):
+
+    charge = ""
+    if options.selectCharge == "plus": charge = "positive"
+    elif options.selectCharge == "minus": charge = "negative"
+
+    h2.SetTitle("")
+    h2.SetMarkerSize(1.2)            
+    # X
+    h2.GetXaxis().SetTitle(("%s muon #eta" % charge) if xtitle==None else xtitle)
+    h2.GetXaxis().SetTitleSize(0.05)
+    h2.GetXaxis().SetLabelSize(0.04)
+    h2.GetXaxis().SetTitleOffset(0.95) 
+    # Y
+    h2.GetYaxis().SetTitle(("%s muon p_{T} (GeV)" % charge) if ytitle==None else ytitle)    
+    h2.GetYaxis().SetTitleSize(0.05)
+    h2.GetYaxis().SetLabelSize(0.04)
+    h2.GetYaxis().SetTitleOffset(0.95)
+    # Z
+    h2.GetZaxis().SetTitleSize(0.05)
+    h2.GetZaxis().SetLabelSize(0.04)
+    h2.GetZaxis().SetTitleOffset(1.2) # 1.4
+
+
 def getBinsFromName(name):
 
     # name = "hist_pt_%.1f_%.1f_eta_%.3f_%.3f"
@@ -43,15 +67,17 @@ def makeSignalModel(model, w, useRightTailCB=False):
     if model == "Z-CB":
         w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
         if useRightTailCB:
-            w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[-3., -8.0, 0.5], n[1, 0.1, 100.])")
+            w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[-3., -8.0, -0.5], n[1, 0.1, 100.])")
         else:
             w.factory("CBShape::resol(mass,dm[0,-10,10], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.])")            
         w.factory("FCONV::signal(mass,zBW,resol)")
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n"] )
     if model == "Z-DCB":
-        ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit")
+        #ROOT.gSystem.Load("libHiggsAnalysisCombinedLimit")
+        #w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
+        ROOT.gSystem.Load("%s/src/CMGTools/WMass/python/plotter/testDoubleCB/my_double_CB_cc.so" % os.environ['CMSSW_BASE'])
         w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
-        w.factory("DoubleCB::resol(mass,dm[0,-10,10], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
+        w.factory("My_double_CB::resol(mass,dm[0,-10,10], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
         w.factory("FCONV::signal(mass,zBW,resol)")
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n","alpha2", "n2"] )
     raise RuntimeError, "missing signal model: "+model
@@ -70,7 +96,7 @@ def makeSignalModel2D(model, w):
 
 def makeBackgroundModel(model, w):
     if model == "Expo":
-        w.factory("Exponential::background(mass,slope[-0.1,-1,0.1])")
+        w.factory("Exponential::background(mass,slope[-0.1,-1,0.5])")
         return (w.pdf("background"), [])
     if model == "None":
         return (None, [])
@@ -118,8 +144,8 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
     elif options.lumi > 3.54e-3: lumitext = "%.1f pb^{-1}" % (options.lumi*1000)
     else                       : lumitext = "%.2f pb^{-1}" % (options.lumi*1000)
 
-    doSpam("#bf{CMS} #it{%s}" % ("Simulation" if "_ref" in name else "Preliminary"), 0.15+xoffs, 0.955, 0.55+xoffs, 0.998, align=12, textSize=options.textSize)
-    doSpam(lumitext+" (13 TeV)", .55+xoffs, .955, .97, .998, align=32, textSize=options.textSize)
+    doSpam("#bf{CMS} #it{%s}" % ("Simulation" if "_ref" in name else "Preliminary"), 0.15+xoffs, 0.94, 0.55+xoffs, 0.99, align=12, textSize=options.textSize)
+    doSpam(lumitext+" (13 TeV)", .55+xoffs, .94, .97, .99, align=32, textSize=options.textSize)
 
     if spam:
         y0 = 0.88 - options.textSize*1.2
@@ -139,7 +165,8 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
         lat.DrawLatex(0.15, 0.44, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
 
     c1.RedrawAxis("sameaxis")
-    for ext in "png", "pdf":
+    exts = [x for x in options.plotExtension.split(',')]
+    for ext in exts:
         c1.Print("%s/%s.%s" % (options.printDir, name, ext))
     log = open("%s/%s.%s"  % (options.printDir, name, "txt"), "w")
     for line in text: log.write(line +"\n")
@@ -316,11 +343,12 @@ def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options
         fsm =    result.floatParsFinal().find("sigma")
         rdm = refresult.floatParsFinal().find("dm")
         rsm = refresult.floatParsFinal().find("sigma")
-        spam = [ "#Delta - #Delta_{MC} = %.3f #pm %.3f GeV" % (
-                        fdm.getVal() - rdm.getVal(), hypot(fdm.getError(), rdm.getError())),
-                 "#sigma/#sigma_{MC} = %.3f #pm %.3f" % (
-                         fsm.getVal()/rsm.getVal(), 
-                        (fsm.getVal()/rsm.getVal())*hypot(fsm.getError()/fsm.getVal(), rsm.getError()/rsm.getVal())) ]
+        spam = [ "#Delta - #Delta_{MC} = %.3f #pm %.3f GeV" % (fdm.getVal() - rdm.getVal(),
+                                                               hypot(fdm.getError(), rdm.getError()))
+        ]
+        spam.append("#Delta = %.3f #pm %.3f GeV" % (fdm.getVal(),fdm.getError()))
+        spam.append("#Delta_{MC} = %.3f #pm %.3f GeV" % (rdm.getVal(),rdm.getError()))
+        spam.append("#sigma/#sigma_{MC} = %.3f #pm %.3f" % (fsm.getVal()/rsm.getVal(), (fsm.getVal()/rsm.getVal())*hypot(fsm.getError()/fsm.getVal(), rsm.getError()/rsm.getVal())) )
     else:
         spam = []
     printPlot(frame,name,text,options, spam=spam, canvas=c1, legend=legfit)
@@ -330,8 +358,8 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None):
 
     useRightTailCB = False  # default is to have tail of single-CB to the left
     # manage fit range
-    xmin = options.xvar[1].split(",")[1]
-    xmax = options.xvar[1].split(",")[2]
+    xmin = float(options.xvar[1].split(",")[1])
+    xmax = float(options.xvar[1].split(",")[2])
     if options.fitRange:
         xmin = max(options.fitRange[0],xmin)
         xmax = min(options.fitRange[1],xmax)
@@ -340,13 +368,21 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None):
         etabin = etaptbin[1] -1
         ptedges = [float(x) for x in options.ptbins.split(',')]
         etaedges = [float(x) for x in options.etabins.split(',')]
-        if ptedges[ptbin] >= 45.0:
-            useRightTailCB = True
-            xmin = 80.0
-            xmax = 110.0
-        else:
-            xmin = 70.0
-            xmax = 100.0        
+        print "\n"*5
+        print "="*40
+        print ">>> Fitting bin: %.1f < pt < %.1f   %.1f < eta < %.1f" % (ptedges[ptbin],ptedges[ptbin+1],
+                                                                         etaedges[etabin],etaedges[etabin+1])
+        print "="*40
+        print "\n"
+
+        if options.signalModel == "Z-CB":
+            if ptedges[ptbin] >= 45.0:
+                useRightTailCB = True
+                xmin = 80.0
+                xmax = 110.0
+            else:
+                xmin = 70.0
+                xmax = 100.0        
         #if ptedges[ptbin] >= 45.0 and ptedges[ptbin+1] <= 50 and etaedges[etabin] >= 1.6:
             #bpdf, bparams = (None, []) # use no bkg when fit range is very narrow (not enough leverage)
 
@@ -358,7 +394,7 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None):
     spdf, sparams = makeSignalModel1D(options.signalModel if not modelOverride else modelOverride, w, useRightTailCB=useRightTailCB)
     bpdf, bparams = makeBackgroundModel(options.backgroundModel, w) if options.backgroundModel else (None, [])
     pdf = makeSumModel(spdf, bpdf, w)
-    result = pdf.fitTo(data, ROOT.RooFit.Save(True),ROOT.RooFit.SumW2Error(True),ROOT.RooFit.Range(float(xmin), float(xmax)),ROOT.RooFit.Strategy(options.fitStrategy))
+    result = pdf.fitTo(data, ROOT.RooFit.Save(True),ROOT.RooFit.SumW2Error(True),ROOT.RooFit.Range(float(xmin), float(xmax)),ROOT.RooFit.Strategy(options.fitStrategy),ROOT.RooFit.PrintLevel(options.roofitPrintLevel))
     return (w,data,pdf,sparams+bparams,result)
 
 def getResolutionFOMs(w,pdf="resol",xvar="mass",xrange=[-10,10]):
@@ -606,8 +642,9 @@ def makeHist3D_(tree, y, z, options, weightedMC = False):
             finalCut += " * triggerMatchWlike({f},LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1])".format(f=flag)
         else:
             finalCut += " * triggerMatchWlike(isOddEvent(evt),LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1]) * {func}(evt)".format(func="isOddEvent" if options.selectCharge=="plus" else "isEvenEvent") 
-    ## end of cut maker
-
+    ## end of cut maker    
+    
+    #finalCut += " * ({pt}[0]<{ptmax} && {pt}[1]<{ptmax} )".format(pt=options.ptvar,ptmax=options.ptbins.split(',')[-1])
     finalCut = scalarToVector(finalCut)
     yexpr, yedges = y
     zexpr, zedges = z
@@ -725,12 +762,14 @@ def addZFitterOptions(parser):
     parser.add_option("-x", "--x-var",   dest="xvar", type="string", default=(" mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)","80,70,110"), nargs=2, help="X var and bin")
     parser.add_option("--ptvar",   dest="ptvar", type="string", default="LepGood_pt", help="pt variable in tree to use (default is uncorrected one)")
     parser.add_option("--fit-range",    dest="fitRange", type="float", nargs=2, default=None, help="Range for fit on variable specified with -x")
+    parser.add_option("--setRangeClosure",   dest="setRangeClosure", type="float", default=0.0, help="Range for final closure 2D plot in GeV. Pass positive value X, range is set to [-X,X]. By default, use histogram range extended by 20%")
     parser.add_option("--fit-strategy",  dest="fitStrategy", type="int", default="1", help="Roofit fit strategy passed to RooFit::Strategy(XX): XX can be 0,1,2 where 2 is the slowest but most accurate strategy")
     parser.add_option("--select-charge",   dest="selectCharge", type="string", default="all", help="Use only one charge (plus|minus) or all (all): in latter case both leptons are used to fill the distribution")
-    parser.add_option("--ptbins",   dest="ptbins", type="string", default="23,30,35,40,45,50,60,70", help="Comma separated list of pt bin edges")
+    parser.add_option("--ptbins",   dest="ptbins", type="string", default="23,30,35,40,45,50,55,60", help="Comma separated list of pt bin edges")
     parser.add_option("--etabins",   dest="etabins", type="string", default="-2.4,-1.6,-0.8,0,0.8,1.6,2.4", help="Comma separated list of eta bin edges")
     parser.add_option("--useAllEvents",    dest="useAllEvents", default=False, action='store_true' , help="When selecting charge, use all events instead of using only event with given parity to select the charged lepton (this will imply statistical correlations among the two charges)");
     parser.add_option("-u", "--no-weigth-mc",   dest="noWeightMC", default=False, action='store_true' , help="Do not use weigths for MC (scale factors and PU weight)");
+    #parser.add_option("--chi2fit",   dest="chi2fit", default=False, action='store_true' , help="Use Chi^2 fit (default is maximum likelihood fit)");
     parser.add_option(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (let it be odd, so the central strip is white if not using --abs-value and the range is symmetric)')
     parser.add_option(     '--palette'  , dest='palette',      default=0, type=int, help='Set palette: default is a built-in one, 1 is colore one , 55 is kRainbow')
     parser.add_option("--xtitle",   dest="xtitle", type="string", default="mass (GeV)", help="X title")
@@ -742,6 +781,8 @@ def addZFitterOptions(parser):
     parser.add_option("--rebin",    dest="rebin",      type="int",    default=1, help="Rebin mass plots by N");
     #parser.add_option("--saveHistoInFile",   dest="saveHistoInFile", default=False, action='store_true', help="Save histogram in file for later usage (can be used as input with --histoFromFile to avoid rerunning on ntuples to change fits)")
     parser.add_option("--loadHistoFromFile",   dest="loadHistoFromFile", type="string", default="", help="Load histogram from file instead of running on ntuples. Pass file name")
+    parser.add_option("--plot-extension",   dest="plotExtension", type="string", default="png,pdf", help="Comma separated list of extensions to save plots (can just use png to save space)")
+    parser.add_option("--roofitPrintLevel",    dest="roofitPrintLevel",      type="int",    default=0, help="RooFit::PrintLevel flag in fitTo: can use -1 to suppress everything, 0 for minimal output, 1 is default for RooFit");
 
 if __name__ == "__main__":
 
@@ -759,6 +800,8 @@ if __name__ == "__main__":
 
 
     #ROOT.TH1.SetDefaultSumw2()  ## keep commented, otherwise for some mysterious reason the mass distribution for MC has all the data points with error equal to the content. Anyway, the histograms are still filled with weigths, so the errors should be correct (and when fitting one only needs to set ROOT.RooFit.SumW2Error() to use the actual MC stat to compute the uncertainty)
+    
+    ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
 
     # built-in palette from light blue to orange
     ROOT.TColor.CreateGradientColorTable(3,
@@ -1002,37 +1045,30 @@ if __name__ == "__main__":
             if x == "dm": normalizeZ(hdata[x])
             #hdata[x].SetContour(100)
             hdata[x].Draw("COLZ0 TEXTE")
-            hdata[x].SetMarkerSize(1.2)
-            hdata[x].SetTitle("")            
-            hdata[x].GetXaxis().SetTitle("muon #eta")
-            hdata[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
-            hdata[x].GetZaxis().SetTitleOffset(1.4)
+            setAxisTH2(hdata[x],options)
             hdata[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
-            printCanvas(c1, hdata[x].GetName(), text[x], options)
+            printCanvas(c1, hdata[x].GetName(), text[x], options, xoffs=-0.1)
             if options.refmc:
                 if x == "dm": normalizeZ(href[x])
                 #href[x].SetContour(100)
-                href[x].GetXaxis().SetTitle("muon #eta")
-                href[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
-                href[x].SetTitle("")
-                href[x].GetZaxis().SetTitleOffset(1.4)
+                setAxisTH2(href[x],options)
                 href[x].Draw("COLZ0 TEXTE")
-                href[x].SetMarkerSize(1.2)
                 href[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
-                printCanvas(c1, href[x].GetName(), text[x], options)
-                normalizeZ(hdiff[x], pivot = 1 if x == "sigma" else 0)
+                printCanvas(c1, href[x].GetName(), text[x], options, xoffs=-0.1)
+                #normalizeZ(hdiff[x], pivot = 1 if x == "sigma" else 0)
+                maxz = float(max(abs(hdiff[x].GetBinContent(hdiff[x].GetMinimumBin())),abs(hdiff[x].GetBinContent(hdiff[x].GetMaximumBin()))))
+                if options.setRangeClosure and x == "dm":
+                    hdiff[x].GetZaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
+                else:
+                    hdiff[x].GetZaxis().SetRangeUser(-1.2*maxz,1.2*maxz)
                 #hdiff[x].SetContour(100)
                 ROOT.gStyle.SetPaintTextFormat(".3f")
-                hdiff[x].GetXaxis().SetTitle("muon #eta")
-                hdiff[x].GetYaxis().SetTitle("muon p_{T} (GeV)")
-                hdiff[x].SetTitle("")
+                setAxisTH2(hdiff[x],options)
                 hdiff[x].Draw("COLZ0 TEXTE")
-                hdiff[x].SetMarkerSize(1.2)            
                 hdiff[x].GetZaxis().SetTitle({'dm'    :"#Deltam - #Deltam_{MC}  (GeV)",
                                               'sigma' :'#sigma/#sigma_{MC}'}[x]
                 )
-                hdiff[x].GetZaxis().SetTitleOffset(1.4)
-                printCanvas(c1, hdiff[x].GetName(), text[x], options)
+                printCanvas(c1, hdiff[x].GetName(), text[x], options, xoffs=-0.1)
                 hdiff[x].SaveAs("%s/%s.root" % (options.printDir, hdiff[x].GetName()))
         c1 = ROOT.TCanvas("c1","c1",1000,1000)
         c1.SetTickx(1)
@@ -1055,6 +1091,9 @@ if __name__ == "__main__":
                 gref[x].Draw("PZ SAME")
             styleScatterData(gdata[x])
             gdata[x].Draw("PZ SAME")
+            frame.GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+            gdata[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+            gref[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
             printCanvas(c1, options.name+"_"+x+"_summary", text[x], options)
             if options.refmc:
                 xmax = max(g[x].GetX()[i] + 1.3*g[x].GetErrorX(i) for g in (gdiff,) for i in xrange(len(fits)))
@@ -1069,7 +1108,14 @@ if __name__ == "__main__":
                 frame.Draw()
                 styleScatterData(gdiff[x])
                 gdiff[x].Draw("PZ SAME")
+                if options.setRangeClosure and x == "dm":
+                    frame.GetXaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
+                    gdiff[x].GetXaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
+                else:
+                    frame.GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+                    gdiff[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
                 printCanvas(c1, options.name+"_"+x+"_diff_summary", text[x], options)
+                #gdiff[x].SaveAs("%s/%s.root" % (options.printDir, gdiff[x].GetName()))
 
  
         
