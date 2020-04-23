@@ -415,8 +415,18 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     ROOT.RooMsgService.instance().setGlobalKillBelow(gKill)
     
 
-def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06):
+def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
     numkeys = [ "data" ]
+    if len(ratioNumsWithData): 
+        for p in pmap.iterkeys():                
+            for s in ratioNumsWithData.split(","):
+                #print "p, s : %s,%s" % (p,s)
+                # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
+                # if re.match(s,p): 
+                if s==p: 
+                    numkeys.append(p)
+                    break
+
     if "data" not in pmap: 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
@@ -450,7 +460,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     ratios = [] #None
     for numkey in numkeys:
         if hasattr(pmap[numkey], 'poissonGraph'):
-            ratio = pmap[numkey].poissonGraph.Clone("data_div"); 
+            ratio = pmap[numkey].poissonGraph.Clone(numkey+"_div"); 
             for i in xrange(ratio.GetN()):
                 x    = ratio.GetX()[i]
                 div  = total.GetBinContent(total.GetXaxis().FindBin(x))
@@ -459,7 +469,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
                                        ratio.GetErrorYlow(i)/div  if div > 0 else 0, 
                                        ratio.GetErrorYhigh(i)/div if div > 0 else 0) 
         else:
-            ratio = pmap[numkey].Clone("data_div"); 
+            ratio = pmap[numkey].Clone(numkey+"_div"); 
             ratio.Divide(total)
             if not errorBarsOnRatio:
                 for i in range(ratio.GetNbinsX()+2):
@@ -564,6 +574,8 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     line.Draw("L")
     for ratio in ratios:
         ratio.Draw("E SAME" if ratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
+        if len(ratioNumsWithData) and ratio.GetName() != "data_div":
+            ratio.SetMarkerColor(ratio.GetLineColor())
     leg0 = ROOT.TLegend(0.12 if doWide else 0.2, 0.8, 0.25 if doWide else 0.45, 0.9)
     leg0.SetFillColor(0)
     leg0.SetShadowColor(0)
@@ -585,8 +597,18 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     legendratio1_ = leg1
     return (ratios, unity, unity0, line)
 
-def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred."):
+def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",ratioNumsWithData=""):
     numkeys = [ "data" ]
+    if len(ratioNumsWithData):
+        for p in pmap.iterkeys():                
+            for s in ratioNumsWithData.split(","):
+                #print "p, s : %s,%s" % (p,s)
+                # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
+                # if re.match(s,p): 
+                if s==p: 
+                    numkeys.append(p)
+                    break
+
     if "data" not in pmap: 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
@@ -1148,7 +1170,8 @@ class PlotMaker:
                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, 
                                                             doWide=doWide, showStatTotLegend=(False if options.noLegendRatioPlot else True),
                                                             errorBarsOnRatio = options.errorBarsOnRatio,
-                                                            ratioYLabelSize = options.ratioYLabelSize)
+                                                            ratioYLabelSize = options.ratioYLabelSize,
+                                                            ratioNumsWithData = options.ratioNumsWithData)
                 if self._options.printPlots:
                     for ext in self._options.printPlots.split(","):
                         fdir = printDir;
@@ -1281,7 +1304,7 @@ class PlotMaker:
                                     # inside the function some histograms are created, which means they are being redefined
                                     # this will issue a warning that a histogram with same name is being replaced, but should be harmless
                                     rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
-                                                           ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel)
+                                                           ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel,ratioNumsWithData=options.ratioNumsWithData)
                                     for r in rdata:
                                         r.Draw(pspec.getOption("PlotMode","COLZ0"))
                                         if drawBox != None:
@@ -1327,6 +1350,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--showMCError", dest="showMCError", action="store_true", default=False, help="Show a shaded area for MC uncertainty")
     parser.add_option("--showRatio", dest="showRatio", action="store_true", default=False, help="Add a data/sim ratio plot at the bottom")
     parser.add_option("--ratioDen", dest="ratioDen", type="string", default="background", help="Denominator of the ratio, when comparing MCs")
+    parser.add_option("--ratioNumsWithData", dest="ratioNumsWithData", type="string", default="", help="When plotting data and MC, use also these processes as numerators to make ratio with total/background (useful to plot ratios of unstacked components). Need a comma separated list of processes");
     parser.add_option("--ratioNums", dest="ratioNums", type="string", default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
     parser.add_option("--ratioYLabel", dest="ratioYLabel", type="string", default="Data/pred.", help="Y axis label of the ratio histogram.")
     parser.add_option("--noErrorBandOnRatio", dest="errorBandOnRatio", action="store_false", default=True, help="Do not show the error band on the reference in the ratio plots")

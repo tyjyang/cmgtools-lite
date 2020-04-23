@@ -9,8 +9,11 @@ from utility import *
 ROOT.gROOT.SetBatch(True)
 
 indir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/Wlike/test_zFitter/"
-fplus = "newRoccor_fullSel_chargePlus_allEvents_trigMatchPlus_signEta_testFit_2CB_altPtBins/"
-fminus = "newRoccor_fullSel_chargeMinus_allEvents_trigMatchMinus_signEta_testFit_2CB_altPtBins/"
+#fplus = "newRoccor_fullSel_chargePlus_allEvents_trigMatchPlus_signEta_testFit_2CB_altPtBins/"
+#fminus = "newRoccor_fullSel_chargeMinus_allEvents_trigMatchMinus_signEta_testFit_2CB_altPtBins/"
+#fplus = "newRoccor_fullSel_chargePlus_allEvents_trigMatchPlus_signEta_testFit_2CB_1ptBin23to60_0p4eta/"
+#fminus = "newRoccor_fullSel_chargeMinus_allEvents_trigMatchMinus_signEta_testFit_2CB_1ptBin23to60_0p4eta/"
+fdir = "newRoccorValidation_nominal"
 fname = "plot_dm_diff.root"
 hname = "plot_dm_diff"
 
@@ -42,6 +45,7 @@ if __name__ == "__main__":
             
     from optparse import OptionParser
     parser = OptionParser(usage='%prog [options]')
+    parser.add_option("-c", "--charge", dest="charge",   type="string", default="plus,minus", help="Charges to run closure on");
     (options, args) = parser.parse_args()
 
     ROOT.TH1.StatOverflows(True) # to use under/overflow bins when computing rms of histogram
@@ -59,21 +63,29 @@ if __name__ == "__main__":
 
     hrms = ROOT.TH1D("htmp","",200,-0.1,0.1)
 
-    for charge in ["plus", "minus"]:
+    charges = [x for x in options.charge.split(',')]
+    for charge in charges:
 
-        inputDirNomi = indir + (fplus if charge == "plus" else fminus)
+        inputDirNomi = indir + fdir + "/" + charge + "/"
         fnomi = inputDirNomi + fname
         fn = ROOT.TFile.Open(fnomi)
         hnomi = fn.Get(hname)
         hnomi.SetDirectory(0)
         fn.Close()
-        hTotStat = copy.deepcopy(hnomi.Clone("hTotStat_{c}".format(c=charge)))
-        hTotStat.Reset()
-        hFitUnc = copy.deepcopy(hnomi.Clone("hFitUnc_{c}".format(c=charge))) # to draw fit error only on TH2
-        hFitUnc.Reset()
+        hTotUnc = copy.deepcopy(hnomi.Clone("hTotUnc_{c}".format(c=charge)))
+        hTotUnc.Reset()
+        hStatUncOnly = copy.deepcopy(hnomi.Clone("hStatUncOnly_{c}".format(c=charge))) # to draw fit error only on TH2
+        hStatUncOnly.Reset()
         hstat = []
+
+        nbinsClosure = hnomi.GetNbinsX()*hnomi.GetNbinsY()
+        gdiff = ROOT.TGraphErrors(nbinsClosure)
+        gdiff.SetName("graph_{c}".format(c=charge))
+        gdiffStatUncOnly = ROOT.TGraphErrors(hnomi.GetNbinsX()*hnomi.GetNbinsY())
+        gdiffStatUncOnly.SetName("graph_statOnly_{c}".format(c=charge))
+
         for i in range(100):
-            fstat = indir + "newRoccor_charge{c}_stat{d}/".format(c="Plus" if charge == "plus" else "Minus",d=i) + fname
+            fstat = inputDirNomi + "RoccorStatVar/charge{c}_stat{d}/".format(c="Plus" if charge == "plus" else "Minus",d=i) + fname
             fn = ROOT.TFile.Open(fstat)
             if not fn:
                 print "Warning: could not open file %s" % fstat
@@ -82,16 +94,34 @@ if __name__ == "__main__":
             hstat[i].SetDirectory(0)
             hstat[i].Add(hnomi,-1.0)
             fn.Close()
-        for ix in range(1,1+hnomi.GetNbinsX()):
-            for iy in range(1,1+hnomi.GetNbinsY()):
+        ig = 0
+        for iy in range(1,1+hnomi.GetNbinsY()):
+            for ix in range(1,1+hnomi.GetNbinsX()):
                 hrms.Reset()
                 for i in range(100):
                     hrms.Fill(hstat[i].GetBinContent(ix,iy))
-                hTotStat.SetBinContent(ix,iy,hnomi.GetBinContent(ix,iy))
+                hTotUnc.SetBinContent(ix,iy,hnomi.GetBinContent(ix,iy))
                 totErr = hrms.GetStdDev() * hrms.GetStdDev() + hnomi.GetBinError(ix,iy) * hnomi.GetBinError(ix,iy)
-                hTotStat.SetBinError(ix,iy,ROOT.TMath.Sqrt(totErr))
+                hTotUnc.SetBinError(ix,iy,ROOT.TMath.Sqrt(totErr))
                 #hFitUnc.SetBinContent(ix,iy,hnomi.GetBinError(ix,iy))
-                hFitUnc.SetBinContent(ix,iy,hrms.GetStdDev())
+                hStatUncOnly.SetBinContent(ix,iy,hrms.GetStdDev())
+                
+                # prepare graph
+                gdiff.SetPoint(ig,      hTotUnc.GetBinContent(ix,iy), ig+0.5)
+                gdiff.SetPointError(ig, hTotUnc.GetBinError(ix,iy)  , 0.0)
+                gdiff.SetLineWidth(4)
+                gdiff.SetMarkerStyle(ROOT.kFullCircle)
+                gdiff.SetLineColor(ROOT.kAzure+7)
+                gdiff.SetMarkerColor(ROOT.kAzure+7)
+                # partial uncertainty
+                gdiffStatUncOnly.SetPoint(ig,      hTotUnc.GetBinContent(ix,iy),        ig+0.5)
+                gdiffStatUncOnly.SetPointError(ig, hStatUncOnly.GetBinContent(ix,iy)  , 0.0)
+                gdiffStatUncOnly.SetLineWidth(4)
+                gdiffStatUncOnly.SetMarkerStyle(ROOT.kFullCircle)
+                gdiffStatUncOnly.SetLineColor(ROOT.kPink-6)
+                gdiffStatUncOnly.SetMarkerColor(ROOT.kPink-6)
+                gdiffStatUncOnly.SetMarkerSize(1.5)
+                ig += 1
 
 
         # draw histograms
@@ -100,12 +130,63 @@ if __name__ == "__main__":
         canvas.SetRightMargin(0.2)
         canvas.SetTickx(1)
         canvas.SetTicky(1)
+        canvas.SetTopMargin(0.05)
         canvas.cd()
-        setStyleTH2(hTotStat,charge)
-        hTotStat.SetBarOffset(0.2)
-        hTotStat.Draw("COLZ TEXTE")
-        hFitUnc.SetMarkerColor(ROOT.kRed+2)
-        hFitUnc.SetBarOffset(-0.2)
-        hFitUnc.Draw("TEXT SAME")
+        setStyleTH2(hTotUnc,charge)
+        hTotUnc.SetBarOffset(0.2)
+        hTotUnc.Draw("COLZ TEXTE")
+        hStatUncOnly.SetMarkerColor(ROOT.kRed+2)
+        hStatUncOnly.SetBarOffset(-0.2)
+        hStatUncOnly.Draw("TEXT SAME")
         for ext in ['png', 'pdf']:
             canvas.SaveAs('{od}/{cn}_withStatUnc.{ext}'.format(od=inputDirNomi, cn=hname, ext=ext))
+
+
+        # draw histograms
+
+        # dummy histogram to dra frame of graph summary
+        xmax = max(gdiff.GetX()[i] + 1.3*gdiff.GetErrorX(i) for i in xrange(nbinsClosure))
+        xmin = min(gdiff.GetX()[i] - 1.3*gdiff.GetErrorX(i) for i in xrange(nbinsClosure))
+        dx = 0.1*(xmax-xmin)
+        frame = ROOT.TH2D("frame","", 100, xmin-dx, xmax-dx, nbinsClosure, 0., nbinsClosure)
+        frame.GetXaxis().SetTitle("#Deltam - #Deltam_{MC}  (GeV)");
+        frame.GetXaxis().SetNdivisions(505)
+        ig = 1
+        for iy in range(1,1+hTotUnc.GetNbinsY()):
+            for ix in range(1,1+hTotUnc.GetNbinsX()):
+                # Y axis label
+                label = "%g < p_{T} < %g   %.1f < #eta < %.1f" % (hTotUnc.GetYaxis().GetBinLowEdge(iy),
+                                                                  hTotUnc.GetYaxis().GetBinLowEdge(iy+1),
+                                                                  hTotUnc.GetXaxis().GetBinLowEdge(ix),
+                                                                  hTotUnc.GetXaxis().GetBinLowEdge(ix+1))
+                frame.GetYaxis().SetBinLabel(ig, label)            
+                ig += 1
+
+        c2 = ROOT.TCanvas("c2","",1000,1200)
+        c2.SetTickx(1)
+        c2.SetTicky(1)
+        c2.SetGrid()
+        c2.SetRightMargin(0.04)
+        c2.SetLeftMargin(0.3)
+        c2.SetTopMargin(0.05)
+        c2.cd()
+        frame.Draw()
+        gdiff.Draw("PZ SAME")
+        gdiffStatUncOnly.Draw("PZ SAME")
+        frame.GetXaxis().SetRangeUser(-0.1,0.1)
+        gdiff.GetXaxis().SetRangeUser(-0.1,0.1)
+        lat = ROOT.TLatex()
+        lat.SetNDC()
+        lat.SetTextFont(42)
+        lat.SetTextSize(0.03)
+        lat.DrawLatex(0.3, 0.96, '#bf{CMS} #it{Preliminary}')
+        lat.DrawLatex(0.75, 0.96, '36.3 fb^{-1} (13 TeV)')
+        leg = ROOT.TLegend(0.01,0.01,0.55,0.06)
+        leg.SetBorderSize(0)
+        leg.SetNColumns(2)
+        leg.AddEntry(gdiff,"fit #oplus stat. unc.","PL")
+        leg.AddEntry(gdiffStatUncOnly,"stat. unc.","PL")
+        leg.Draw("same")
+        c2.RedrawAxis("sameaxis")
+        for ext in ['png', 'pdf']:
+            c2.SaveAs('{od}/{cn}_withStatUnc_summary.{ext}'.format(od=inputDirNomi, cn=hname, ext=ext))

@@ -1,0 +1,78 @@
+# all W decays
+
+data: SingleMuon_Run2016* 
+
+QCD  : QCD_Mu15_part*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt15to20_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt20to30_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt30to50_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt50to80_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt80to120_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt120to170_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt170to300_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt300to470_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt470to600_Mu5_ext      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt600to800_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt800to1000_Mu5_ext2      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+
+
+QCD_Mu15  : QCD_Mu15_part*      : xsec       ; FillColor=ROOT.kRed+1 , Label="QCD mu15", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt15to20_Mu5       : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt20to30_Mu5       : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt30to50_Mu5       : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt50to80_Mu5      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt80to120_Mu5*      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt120to170_Mu5      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt170to300_Mu5*      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt300to470_Mu5*      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt470to600_Mu5_ext      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt600to800_Mu5      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt800to1000_Mu5_ext2      : xsec       ; FillColor=ROOT.kGray+2 , Label="QCD mu5", NormSystematic=1.0
+
+# use native MC@NLO cross section instead of 3.*20508.9 for W
+
+W   : WJetsToLNu_* :60400.0 ; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+
+Wpt   : WJetsToLNu_94X_* :60400.0 ; FillColor=ROOT.kRed+2  , AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)", Label="W (pt)", NormSystematic=0.038
+
+Wnopt   : WJetsToLNu_94X_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+
+Wmu   : WJetsToLNu_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+
+Wptmu   : WJetsToLNu_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W (pt)", NormSystematic=0.038, AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)"
+
+
+Z : DYJetsToLL_M50_*    : 2008.4*3   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+
+Zpt : DYJetsToLL_M50_*    : 2008.4*3   ; FillColor=ROOT.kAzure+2 , Label="Z (pt)", NormSystematic=0.04, AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0)"
+
+#Z  : DYJetsToLL_M5*    : 2008.4*3 :(GenLepDressed_pdgId[0] * GenLepDressed_pdgId[1]) == -169  ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04, AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0)"
+
+TauDecaysW   : WJetsToLNu_* : 60400. : genw_decayId != 12 && genw_decayId != 14; FillColor=ROOT.kPink+7 , Label="W\#rightarrow\#tau\#nu", NormSystematic=1.0
+
+TauDecaysWpt   : WJetsToLNu_* : 60400. : genw_decayId != 12 && genw_decayId != 14; FillColor=ROOT.kPink+7 , Label="W\#rightarrow\#tau\#nu (pt)", NormSystematic=0.038, AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)"
+
+Top : TTLep_pow_part*                      : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.09
+Top  : TTJets_SingleLeptonFromT_*          : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.09
+Top  : TTJets_SingleLeptonFromTbar_*       : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.09
+Top  : TToLeptons_sch_amcatnlo             : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.04
+Top  : T_tch_powheg_part*                  : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.04
+Top  : TBar_tch_powheg_part*               : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.04
+Top  : T_tWch_ext                          : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.06
+Top  : TBar_tWch_ext                       : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top", NormSystematic=0.06
+
+
+Top2l : TTLep_pow_part*                      : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top (2l)", NormSystematic=0.09
+
+Top1l  : TTJets_SingleLeptonFromT_*          : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.09
+Top1l  : TTJets_SingleLeptonFromTbar_*       : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.09
+Top1l  : TToLeptons_sch_amcatnlo             : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : T_tch_powheg_part*                  : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : TBar_tch_powheg_part*               : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : T_tWch_ext                          : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.06
+Top1l  : TBar_tWch_ext                       : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.06
+
+DiBosons  : WW+WW_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.03
+DiBosons  : WZ+WZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.05
+DiBosons  : ZZ+ZZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.05
+

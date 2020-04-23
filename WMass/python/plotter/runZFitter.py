@@ -3,7 +3,7 @@
 import os, subprocess, re
 import ROOT
 
-ntuplesPath = "/eos/cms/store/cmst3/group/wmass/mciprian/heppyNtuples/skim_Zmumu/"
+# this script is meant to run only the stat variations, the nominal can be run locally, it is fast
 
 def checkClosureFile(indir):
 
@@ -47,10 +47,18 @@ if __name__ == "__main__":
     parser.add_option("-d", "--dry-run", dest="dryRun", default=False, action="store_true",  help="Just print commands") 
     parser.add_option("-f", "--only-fit", dest="onlyFit", default=False, action="store_true",  help="Just fit, do not run on ntuples (only works if histograms exist already)") 
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
+    parser.add_option("-o", "--outdir", dest="outdir", type="string", default=None, help="Output folder with the nominal closure: this contains the two charge subfolders, and a folder named 'RoccorStatVar' will be created inside each of them");
     parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="zFitterNew", help="Name assigned to jobs");
     parser.add_option("--run-failed", dest="runFailed", default=False, action="store_true",  help="Just run failed jobs (assumes you already ran once but some histograms are missing)") 
     parser.add_option("--only-check-failed", dest="onlyCheckFailed", default=False, action="store_true",  help="Just check failed jobs") 
+    parser.add_option("--only-delete-fits", dest="onlyDeleteFits", default=False, action="store_true",  help="Utility option to delete fits when no longer needed, to save space") 
+    parser.add_option("--draw-fits",   dest="drawFits", default=False, action='store_true' , help="Save plots for fits (takes quite a lot of space for all the stat variations)");
+    parser.add_option("--ptbins",   dest="ptbins", type="string", default="23,30,35,40,45,50,55,60", help="Comma separated list of pt bin edges")
+    parser.add_option("--etabins",   dest="etabins", type="string", default="-2.4,-1.6,-0.8,0,0.8,1.6,2.4", help="Comma separated list of eta bin edges")
+    parser.add_option("--ntuples-path",   dest="ntuplesPath", type="string", default="/eos/cms/store/cmst3/group/wmass/mciprian/heppyNtuples/skim_Zmumu/", help="Path to ntuples")
     (options, args) = parser.parse_args() 
+
+    ntuplesPath = options.ntuplesPath
 
 
     if options.onlyCheckFailed and options.runFailed:
@@ -62,7 +70,9 @@ if __name__ == "__main__":
         print "Will just check bad folders ..."
     if options.runFailed:
         print "Will only run failed jobs (it assumes you already tried once)"
-        
+    if options.onlyDeleteFits:        
+        print "Will only delete fits to save space"
+
     ## constructing the command and arguments to run in condor submit file
     runner = "%s/src/CMGTools/WMass/python/postprocessing/lxbatch_runner.sh" % os.environ['CMSSW_BASE']
  
@@ -80,6 +90,15 @@ if __name__ == "__main__":
     failedDir = []
 
     for charge in ["plus", "minus"]:
+
+        if not options.outdir: 
+            print 'ERROR: must give a directory where to store output!\nexiting...'
+            exit()
+        else:
+            outdir = options.outdir.rstrip("/") + charge + "/RoccorStatVar/"
+            if not os.path.exists(outdir):
+                os.system("mkdir -p "+outdir)
+
 
         condor_fn = options.logdir+'/condor_zFitter_{c}.condor'.format(c=charge)
         condor_f = open(condor_fn,'w')
@@ -103,7 +122,15 @@ request_memory = 2000
         for istat in range(100):
 
             ptvar = "LepGood_rocPt" + ("_stat%d" % istat)
-            pdir = "plots/Wlike/test_zFitter/newRoccor_charge{c}_stat{d}/".format(c="Plus" if charge=="plus" else "Minus",d=istat)
+            pdir = "{o}/charge{c}_stat{d}/".format(o=outdir,c="Plus" if charge=="plus" else "Minus",d=istat)
+
+            if options.onlyDeleteFits:
+                rmcmd = "rm {pd}plot_pt_*_eta_*.p*".format(pd=pdir)
+                if options.dryRun: 
+                    print rmcmd
+                else:
+                    os.system(rmcmd)
+                continue
 
             if options.onlyCheckFailed:
                 ret = checkClosureFile(pdir)
@@ -133,9 +160,11 @@ request_memory = 2000
             cmd += " -x  mass_2({pt}[0],LepGood_eta[0],LepGood_phi[0],0.1057,{pt}[1],LepGood_eta[1],LepGood_phi[1],0.1057) 80,70,110 ".format(pt=ptvar)
             cmd += " --select-charge {c} --useAllEvents".format(c=charge)
             cmd += " --setRangeClosure 0.1  -s Z-DCB --roofitPrintLevel -1 --plot-extension png "
+            cmd += " --ptbins {pt} --etabins {eta}".format(pt=options.ptbins,eta=options.etabins)
             if options.onlyFit or runOnlyFit:
                 cmd += " --loadHistoFromFile {pd}histo3D_mass_pt_eta.root ".format(pd=pdir)
-
+            if not options.drawFits:
+                cmd += " --no-draw-fits "
 
             cmdargs = [x.strip() for x in cmd.split()]
             strargs=''
@@ -148,6 +177,9 @@ request_memory = 2000
             condor_f.write('\narguments = {d} {cmssw} {cmdargs}\n'.format(d=os.getcwd(), cmssw = os.environ['CMSSW_BASE'], cmdargs=strargs))
             condor_f.write('queue 1\n\n')
 
+        if options.onlyDeleteFits:
+            continue
+
         condor_f.close()
         cmd = 'condor_submit {sf}'.format(sf=condor_fn)
 
@@ -157,6 +189,8 @@ request_memory = 2000
             else:
                 os.system(cmd)
 
+    if options.onlyDeleteFits:
+        quit()
 
     if options.onlyCheckFailed:
         if len(failedDir):

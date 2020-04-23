@@ -1,0 +1,104 @@
+pt: returnChargeVal(LepGood1_rocPt,LepGood1_charge,LepGood2_rocPt,LepGood2_charge,evt): 30,26,56 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptuncorr: returnChargeVal(LepGood1_pt,LepGood1_charge,LepGood2_pt,LepGood2_charge,evt): 30,26,56 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+eta: returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4 ; XTitle="muon #eta", Legend='TC', IncludeOverflows=False
+
+ptBoth: LepGood_rocPt: 30,26,56 ; XTitle="both muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+etaBoth: LepGood_eta: 48,-2.4,2.4 ; XTitle="both muon #eta", Legend='TC', IncludeOverflows=False
+
+
+ptSum: LepGood1_rocPt+LepGood2_rocPt: 120,50,110 ; XTitle="sum of muons p_{T} [GeV]", Legend='TC', IncludeOverflows=True
+
+ptDiff: LepGood1_rocPt-LepGood2_rocPt: 100,0,25 ; XTitle="difference of muons p_{T} [GeV]", Legend='TC', IncludeOverflows=True
+
+etaDiff: LepGood1_eta-LepGood2_eta: 60,-3.0,3.0 ; XTitle="difference of muons #eta", Legend='TC', IncludeOverflows=True
+
+absPhiDiff: abs(deltaPhi(LepGood1_phi,LepGood2_phi)): 32,0.0,3.2 ; XTitle="difference of muons #phi", Legend='TC', IncludeOverflows=True
+
+ptDiffMinusMinusPlus: ptDiffCharge(LepGood1_rocPt,LepGood1_charge,LepGood2_rocPt,LepGood2_charge): 100,-50,50 ; XTitle="difference of muons p_{T} (neg - pos) [GeV]", Legend='TC', IncludeOverflows=True
+
+zmass: mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057): 60,0,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False
+
+zmass60to120: mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057): 60,60,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False
+
+zmass60to120uncorr: mass_2(LepGood1_pt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_pt,LepGood2_eta,LepGood2_phi,0.1057): 60,60,120; XTitle="Z mass (uncorrected p_{T})", Legend='TC', IncludeOverflows=False
+
+
+mt_wlike__zmass: mt_wlike(LepGood1_rocPt,LepGood1_phi,LepGood1_charge,LepGood2_rocPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt)\:mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057): 30,0,120,30,0,120; XTitle="dilepton invariant mass [GeV]", YTitle="W-like transverse mass [GeV]", Legend='TC', IncludeOverflows=False
+
+
+mt_wlike: mt_wlike(LepGood1_rocPt,LepGood1_phi,LepGood1_charge,LepGood2_rocPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt): 60,0,120; XTitle="W-like transverse mass", Legend='TC', IncludeOverflows=False
+
+mt_wlike_samesign: mt_wlike_samesign(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi,met_pt,met_phi): 60,0,120; XTitle="W-like transverse mass", Legend='TC', IncludeOverflows=False
+
+mt_wlike_samesign_random: mt_wlike_samesign_random(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi,met_pt,met_phi,evt): 60,0,120; XTitle="W-like transverse mass", Legend='TC', IncludeOverflows=False
+
+pt__eta: returnChargeVal(LepGood1_rocPt,LepGood1_charge,LepGood2_rocPt,LepGood2_charge,evt)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,30,26,56 ; XTitle='muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
+
+pt__eta_both: LepGood_rocPt\:LepGood1_eta: 48,-2.4,2.4,30,26,56 ; XTitle='both muon #eta', YTitle='both muon p_{T} [GeV]', Legend='TR'
+
+zpt: pt_2(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi): 50,0,100 ; XTitle="reconstructed Z p_{T} [GeV]", Legend='TR'
+
+zrapidity: rapidity_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,LepGood1_mass,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,LepGood2_mass): 70,-3.5,3.5 ; XTitle="reconstructed Z rapidity", Legend='TR'
+
+zrapidityuncorr: rapidity_2(LepGood1_pt,LepGood1_eta,LepGood1_phi,LepGood1_mass,LepGood2_pt,LepGood2_eta,LepGood2_phi,LepGood2_mass): 35,-3.5,3.5 ; XTitle="reconstructed Z rapidity (pT no corr.)", Legend='TR'
+
+nJetClean: nJet_Clean: 5,-0.5,4.5 ; XTitle="number of jets (cleaned)", Legend='TR'
+jetCleanEta1: Jet_Clean_eta[0]: 60,-3.0,3.0 ; XTitle="Leading jet #eta (cleaned)", Legend='TR'
+jetCleanPt1: Jet_Clean_pt[0]: 60,25,85 ; XTitle="Leading jet p_{T} (cleaned) [GeV]", Legend='TR'
+jetCleanEta2: Jet_Clean_eta[1]: 60,-3.0,3.0 ; XTitle="Second jet #eta (cleaned)", Legend='TR'
+jetCleanPt2: Jet_Clean_pt[1]: 60,25,85 ; XTitle="Second jet p_{T} (cleaned) [GeV]", Legend='TR'
+
+nJetAllClean: nJetAll_Clean: 5,-0.5,4.5 ; XTitle="number of jets (cleaned)", Legend='TR'
+jetAllCleanEta1: JetAll_Clean_eta[0]: 90,-4.5,4.5 ; XTitle="Leading jet #eta (cleaned)", Legend='TR', IncludeOverflows=False
+jetAllCleanPt1: JetAll_Clean_pt[0]: 60,25,85 ; XTitle="Leading jet p_{T} (cleaned) [GeV]", Legend='TR', IncludeOverflows=False
+jetAllCleanEta2: JetAll_Clean_eta[1]: 90,-4.5,4.5 ; XTitle="Second jet #eta (cleaned)", Legend='TR', IncludeOverflows=False
+jetAllCleanPt2: JetAll_Clean_pt[1]: 60,25,85 ; XTitle="Second jet p_{T} (cleaned) [GeV]", Legend='TR', IncludeOverflows=False
+
+genZptDressed: pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]) : 50,0,100 ; XTitle="Z gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+
+genZptDressed_binApproxSMP17010: pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]) : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,65,70,80,90,100,120,160,190,220,250] ; XTitle="Z gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+# [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,18,20,22,25,28,32,37,43,52,65,85,120,160,190,220,250]
+
+
+genPtDressedBoth: GenLepDressed_pt : 80,0,80 ; XTitle="both leptons gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+
+genPtDressed1: GenLepDressed_pt[0] : 80,0,80 ; XTitle="leading lepton gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+
+genPtDressed2: GenLepDressed_pt[1] : 80,0,80 ; XTitle="second lepton gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+
+genEtaDressedBoth: GenLepDressed_eta : 80,-4.0,4.0 ; XTitle="both leptons gen-#eta (dressed)", Legend='TC', IncludeOverflows=True
+
+genEtaDressed1: GenLepDressed_eta[0] : 80,-4.0,4.0 ; XTitle="leading lepton gen-#eta (dressed)", Legend='TC', IncludeOverflows=True
+
+genEtaDressed2: GenLepDressed_eta[1] : 80,-4.0,4.0 ; XTitle="second lepton gen-#eta (dressed)", Legend='TC', IncludeOverflows=True
+
+nGenLepDressed: nGenLepDressed : 6,-0.5,5.5 ; XTitle="nGenLepDressed", Legend='TC', IncludeOverflows=True
+
+nLepGood: nLepGood: 6,-0.5,5.5 ; XTitle="nLepGood", Legend='TC', IncludeOverflows=True
+
+genZptPreFSR: pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenLepPreFSR_pt[1],GenLepPreFSR_phi[1]) : 50,0,100 ; XTitle="Z gen-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=True
+
+genZptPreFSR_binApproxSMP17010: pt_2(GenLepPreFSR_pt[0],GenLepPreFSR_phi[0],GenLepPreFSR_pt[1],GenLepPreFSR_phi[1]) : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,65,70,80,90,100,120,160,190,220,250] ; XTitle="Z gen-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=True
+# [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,18,20,22,25,28,32,37,43,52,65,85,120,160,190,220,250]
+
+genPtPreFSRBoth: GenLepPreFSR_pt : 70,10,80 ; XTitle="both leptons gen-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=True
+
+genEtaPreFSRBoth: GenLepPreFSR_eta : 70,-3.5,3.5 ; XTitle="both leptons gen-#eta (preFSR)", Legend='TC', IncludeOverflows=True
+
+ptSum_ptz: LepGood1_rocPt+LepGood2_rocPt\:pt_2(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi): 50,0.0,100,120,50,110 ; XTitle="reconstructed Z p_{T} [GeV]", YTitle="sum of muons p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptSum_genptz: LepGood1_rocPt+LepGood2_rocPt\:pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]):  50,0.0,100,120,50,110 ; XTitle="generator Z p_{T} [GeV]", YTitle="sum of muons p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptz_genptz: pt_2(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi)\:pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenLepDressed_pt[1],GenLepDressed_phi[1]):  50,0.0,100,50,0,100 ; XTitle="generator Z p_{T} [GeV]", YTitle="reconstructed Z p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+dxy: returnChargeVal(fabs(LepGood1_dxy),LepGood1_charge,fabs(LepGood2_dxy),LepGood2_charge,evt): 40,0.0,0.2 ; XTitle="muon dxy [cm]", Legend='TC', IncludeOverflows=False, Logy=True
+
+jetPrefireSF: prefireJetsScaleFactor(nJetAll_Clean,JetAll_Clean_pt[0],JetAll_Clean_eta[0],JetAll_Clean_pt[1],JetAll_Clean_eta[1],JetAll_Clean_pt[2],JetAll_Clean_eta[2]):  21,0.805,1.015 ; XTitle="jet prefire scale factor", Legend='TC', IncludeOverflows=True
+
+jetPrefireSF_full: prefireJetsScaleFactor(nJetAll_Clean,JetAll_Clean_pt[0],JetAll_Clean_eta[0],JetAll_Clean_pt[1],JetAll_Clean_eta[1],JetAll_Clean_pt[2],JetAll_Clean_eta[2]):  101,0.005,1.015 ; XTitle="jet prefire scale factor", Legend='TC', IncludeOverflows=True, Logy=True 
+
+jetPrefireSF_full_v2: jetPrefireSF_JetAll_Clean:  101,0.005,1.015 ; XTitle="jet prefire scale factor", Legend='TC', IncludeOverflows=True, Logy=True
+
+zmass__eta: mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,60,60,120 ; XTitle='muon #eta', YTitle='m(#mu#mu) [GeV]', Legend='TR'

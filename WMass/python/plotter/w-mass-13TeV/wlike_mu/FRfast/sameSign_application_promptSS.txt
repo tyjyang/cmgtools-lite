@@ -1,0 +1,4 @@
+## invert the cut for the OS pair
+cut-change: -169 : 169
+# assign -1 as weight to subtract this part from ss data
+weight: -1.0*puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_kalPt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_kalPt,LepGood2_eta)*prefireJetsWeight(returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt))

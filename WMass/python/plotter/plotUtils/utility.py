@@ -257,7 +257,10 @@ def drawTH1(htmp,
             outhistname = "",
             canvasSize="700,625",
             passCanvas=None,
+            moreTextLatex="",
+            skipTdrStyle=False
             ):
+
 
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
@@ -293,11 +296,24 @@ def drawTH1(htmp,
     h.SetStats(1)
     h.Draw("HIST")
     canvas.RedrawAxis("sameaxis")
-    setTDRStyle()
+    if not skipTdrStyle: 
+        setTDRStyle()
     # force drawing stat box
     ROOT.gStyle.SetOptStat(111110)
     ROOT.gStyle.SetOptFit(1102)
-    #
+    #    
+    if len(moreTextLatex):
+        realtext = moreTextLatex.split("::")[0]
+        x1,y1,ypass,textsize = 0.75,0.8,0.08,0.035
+        if "::" in moreTextLatex:
+            x1,y1,ypass,textsize = (float(x) for x in (moreTextLatex.split("::")[1]).split(","))            
+        lat = ROOT.TLatex()
+        lat.SetNDC();
+        lat.SetTextFont(42)        
+        lat.SetTextSize(textsize)
+        for itx,tx in enumerate(realtext.split(";")):
+            lat.DrawLatex(x1,y1-itx*ypass,tx)
+
     for ext in ["png","pdf"]:
         canvas.SaveAs(outdir + "{pfx}{hname}.{ext}".format(pfx=prefix,hname=("_"+outhistname) if len(outhistname) else "",ext=ext))
 
@@ -1170,7 +1186,7 @@ def drawDataAndMC(h1, h2,
                   #legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
                   legendCoords="0.15,0.65,0.85,0.9;3",  # for unrolled use 1 line # x1,x2,y1,y2
                   canvasSize="600,700",  # use X,Y to pass X and Y size     
-                  lowerPanelHeight = 0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
+                  lowerPanelHeight=0.3,  # number from 0 to 1, 0.3 means 30% of space taken by lower panel. 0 means do not draw lower panel with relative error
                   #drawLineLowerPanel="lumi. uncertainty::0.025" # if not empty, draw band at 1+ number after ::, and add legend with title
                   #drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
                   passCanvas=None,
@@ -1184,7 +1200,8 @@ def drawDataAndMC(h1, h2,
                   histMCpartialUncLegEntry = "",
                   useDifferenceInLowerPanel = False,
                   noLegendLowerPanel = False,
-                  legendEntries = []
+                  legendEntries = [],
+                  drawLumiLatex=False
                   ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -1392,17 +1409,17 @@ def drawDataAndMC(h1, h2,
   # }
 
     setTDRStyle()
-    if leftMargin > 0.1:
-        if lumi != None: CMS_lumi(canvas,lumi,True,False)
-        else:            CMS_lumi(canvas,"",True,False)
-    else:
+    if drawLumiLatex:
         latCMS = ROOT.TLatex()
         latCMS.SetNDC();
         latCMS.SetTextFont(42)
         latCMS.SetTextSize(0.045)
-        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
-        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+        latCMS.DrawLatex(canvas.GetLeftMargin(), 0.95, '#bf{CMS} #it{Preliminary}')
+        if lumi != None: latCMS.DrawLatex(0.7, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.8, 0.95, '(13 TeV)' % lumi)
+    else:
+        if lumi != None: CMS_lumi(canvas,lumi,True,False)
+        else:            CMS_lumi(canvas,"",True,False)
 
     if lowerPanelHeight:
         pad2.Draw()
