@@ -37,6 +37,10 @@ Wpt   : WJetsToLNu_94X_* :60400.0 ; FillColor=ROOT.kRed+2  , AddWeight="dyptWeig
 
 Wnopt   : WJetsToLNu_94X_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
 
+Wnopt_dzIn1mm   : WJetsToLNu_94X_* :60400.0 : abs(primaryVertex_z-genVertez_z)<0.1 && genw_decayId == 14; FillColor=ROOT.kBlack , Label="W (dz<1mm)", NormSystematic=0.038
+
+Wnopt_dzOut1mm   : WJetsToLNu_94X_* :60400.0 : abs(primaryVertex_z-genVertez_z)>0.1 && genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W (dz>1mm)", NormSystematic=0.038
+
 Wmu   : WJetsToLNu_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
 
 Wptmu   : WJetsToLNu_* :60400.0 : genw_decayId == 14; FillColor=ROOT.kRed+2 , Label="W (pt)", NormSystematic=0.038, AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)"

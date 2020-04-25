@@ -55,6 +55,10 @@ dzVertex_gen_primary_largeRange: primaryVertex_z-genVertez_z: 600,-60.0,60.0; XT
 #genWptDressed: pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]) : 50,0,100 ; XTitle="W gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
 
 
-dzVertex_gen_primary__Wpt: primaryVertex_z-genVertez_z\:pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]) : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco)",XTitle="W-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=False
+dzVertex_gen_primary__Wpt: (primaryVertex_z-genVertez_z)\:pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]) : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=False
 
-dzVertex_gen_primary__dressedLepPt: primaryVertex_z-genVertez_z\:GenLepDressed_pt[0]: 50,0,100,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco)",XTitle=" leading dressed lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+dzVertex_gen_primary__dressedLepPt: (primaryVertex_z-genVertez_z)\:GenLepDressed_pt[0]: 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" leading dressed lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+dzVertex_gen_primary__ptReco_over_ptGen: (primaryVertex_z-genVertez_z)\:safeRatio(LepGood1_rocPt,GenLepDressed_pt[0],1.0): 200,0.5,1.5,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]", XTitle="lepton p_{T}^{reco}/p_{T}^{gen}", Legend='TL', IncludeOverflows=False
+
+ptReco_over_ptGen: safeRatio(LepGood1_rocPt,GenLepDressed_pt[0],1.0): 100,0.5,1.5; XTitle="lepton p_{T}^{reco}/p_{T}^{gen}", Legend='TL', IncludeOverflows=False, Logy=True

@@ -5,6 +5,9 @@ from array import array
 from CMGTools.WMass.plotter.tree2yield import scalarToVector
 from CMGTools.TTHAnalysis.tools.plotDecorations import doSpam
 
+# examples to run this script (see all options)
+#python w-mass-13TeV/zFitterNew.py --data MY_EOS_SPACE/heppyNtuples/skim_Zmumu/ --pdir plots/Wlike/test_zFitter/newRoccorValidation_onlyHistoFineBins/ -c Zmm-full --refmc "MY_EOS_SPACE/heppyNtuples/skim_Zmumu/" --ptvar "LepGood_rocPt" --select-charge minus --useAllEvents -x " mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)" "800,70,110"  --setRangeClosure 0.1  -s "MC-SCALE"  --roofitPrintLevel 0 --fit-strategy 2 --backgroundModel None --rebinTemplateModel 1 --templateSmoothOrder 3 --ptbins "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65" --etabins "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4" --compareDataMC -p "dm" --makeOnlyHisto
+
 ## safe batch mode
 import sys
 args = sys.argv[:]
@@ -81,7 +84,7 @@ def makeSignalModel(model, w, useRightTailCB=False):
         #w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
         ROOT.gSystem.Load("%s/src/CMGTools/WMass/python/plotter/testDoubleCB/my_double_CB_cc.so" % os.environ['CMSSW_BASE'])
         w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
-        w.factory("My_double_CB::resol(mass,dm[0,-3,3], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
+        w.factory("My_double_CB::resol(mass,dm[0,-0.6,0.6], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
         w.factory("FCONV::signal(mass,zBW,resol)")
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n","alpha2", "n2"] )
 
@@ -104,12 +107,13 @@ def makeSignalModel(model, w, useRightTailCB=False):
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n"] )
     if model == "MC-G":
         w.factory("HistPdf::zMC(mass,mcdata,%d)" % options.templateSmoothOrder)
-        w.factory("Gaussian::resol(mass,dm[0,-3,3], sigma)")            
+        w.factory("Gaussian::resol(mass,dm[0,-0.1,0.1], sigma)")            
         w.factory("FCONV::signal(mass,zMC,resol)")
         return (w.pdf("signal"), ["dm", "sigma"] )
     if model == "MC-SCALE":
         w.factory("HistPdf::signal(xf,mass,mcdata,%d)" % options.templateSmoothOrder)
-        return (w.pdf("signal"), ["dm","sigma"] )
+        #return (w.pdf("signal"), ["dm","sigma"] )
+        return (w.pdf("signal"), ["dm"] )
         #return (w.pdf("mcdata_shift"), ["dm"] )
 
     raise RuntimeError, "missing signal model: "+model
@@ -119,9 +123,9 @@ def makeSignalModel1D(model, w, useRightTailCB=False):
         pass
     else:
         if model.startswith("MC"):
-            w.factory("sigma[1.5,0.001,10]")
+            w.factory("sigma[0.05,0.001,3]")
         else:
-            w.factory("sigma[1.5,0.3,10]")
+            w.factory("sigma[1.5,0.1,10]")
     return makeSignalModel(model,w, useRightTailCB=useRightTailCB)
 
 def makeBackgroundModel(model, w):
@@ -145,7 +149,6 @@ def printPlot(frame, name, text, options, spam=[], canvas=None, legend=None):
     xoffs = 0;
     frame.SetMaximum(frame.GetMaximum()*(1.05+0.07*len(spam)))
     frame.SetTitle("")
-    c1.SetLeftMargin(0.12)
     if frame.GetMaximum() >= 100*1000:
         xoffs = 0.155
         frame.Draw();
@@ -175,7 +178,7 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
     else                       : lumitext = "%.2f pb^{-1}" % (options.lumi*1000)
 
     doSpam("#bf{CMS} #it{%s}" % ("Simulation" if "_ref" in name else "Preliminary"), 0.15+xoffs, 0.94, 0.55+xoffs, 0.99, align=12, textSize=options.textSize)
-    doSpam(lumitext+" (13 TeV)", .55+xoffs, .94, .97, .99, align=32, textSize=options.textSize)
+    doSpam(lumitext+" (13 TeV)", .55+xoffs, .94, .85, .99, align=32, textSize=options.textSize)
 
     if spam:
         y0 = 0.88 - options.textSize*1.2
@@ -191,8 +194,8 @@ def printCanvas(c1, name, text, options, xoffs=0, spam=[]):
     lat.SetNDC()
     ptlow,pthigh,etalow,etahigh = getBinsFromName(name)
     if ptlow > 0.0:
-        lat.DrawLatex(0.15, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
-        lat.DrawLatex(0.15, 0.44, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
+        lat.DrawLatex(c1.GetLeftMargin()+0.05, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
+        lat.DrawLatex(c1.GetLeftMargin()+0.05, 0.44, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
 
     c1.RedrawAxis("sameaxis")
     exts = [x for x in options.plotExtension.split(',')]
@@ -231,7 +234,8 @@ def makePlot1D(w, data, pdf, params, result, name, options, histRoot=None):
         nbinsInRange = histRoot.GetXaxis().FindFixBin(xmax+0.0001) - histRoot.GetXaxis().FindFixBin(xmin+0.0001)
 
     c1 = ROOT.TCanvas("c1","c1",1200,900)
-    legfit = ROOT.TLegend(0.15, 0.72, 0.5, 0.9)
+    c1.SetLeftMargin(0.18)
+    legfit = ROOT.TLegend(c1.GetLeftMargin()+0.05, 0.72, c1.GetLeftMargin()+0.35, 0.9)
     legfit.SetFillColor(0)
     legfit.SetFillStyle(0)
     legfit.SetBorderSize(0)
@@ -254,7 +258,10 @@ def makePlot1D(w, data, pdf, params, result, name, options, histRoot=None):
         text.append("%s: %.3f +- %.3f" % (param, var.getVal(), var.getError()))
     if "dm" in params:
         dm = result.floatParsFinal().find("dm")
-        spam.append( "#Delta = %.3f #pm %.3f GeV" % (dm.getVal(), dm.getError()))
+        if options.signalModel == "MC-SCALE":
+            spam.append( "#Delta = %.5f #pm %.5f" % (dm.getVal(), dm.getError()))
+        else:
+            spam.append( "#Delta = %.3f #pm %.3f GeV" % (dm.getVal(), dm.getError()))
     if "sigma" in params:
         sm = result.floatParsFinal().find("sigma")
         spam.append("#sigma = %.3f #pm %.3f GeV" % (sm.getVal(), sm.getError()))
@@ -283,7 +290,8 @@ def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options
         
     # dummy legend
     c1 = ROOT.TCanvas("c1","c1",1200,900)
-    legfit = ROOT.TLegend(0.15, 0.6, 0.5, 0.9)
+    c1.SetLeftMargin(0.18)
+    legfit = ROOT.TLegend(c1.GetLeftMargin()+0.05, 0.6, c1.GetLeftMargin()+0.35, 0.9)
     legfit.SetFillColor(0)
     legfit.SetFillStyle(0)
     legfit.SetBorderSize(0)
@@ -312,8 +320,8 @@ def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options
     lat.SetTextSize(0.025)
     lat.SetTextFont(42)
     ptlow,pthigh,etalow,etahigh = getBinsFromName(name)
-    lat.DrawLatex(0.18, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
-    lat.DrawLatex(0.18, 0.45, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
+    lat.DrawLatex(c1.GetLeftMargin()+0.05, 0.5,  "{ptlow:3g} < p_{{T}}(GeV) < {pthigh:3g}".format(ptlow=ptlow,pthigh=pthigh))
+    lat.DrawLatex(c1.GetLeftMargin()+0.05, 0.45, "{etalow:3g} < #eta < {etahigh:3g}".format(etalow=etalow,etahigh=etahigh))
 
     text = []
     for param in params:
@@ -322,19 +330,20 @@ def makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name, options
         text.append("%s: fit %.3f +- %.3f ref %.3f +- %.3f  diff %.3f +- %.3f" % (param,
                         var.getVal(), var.getError(), ref.getVal(), ref.getError(),
                         var.getVal()-ref.getVal(), hypot(var.getError(), ref.getError())))
-    if "dm" in params and "sigma" in params:
+    spam = []
+    if "dm" in params:
         fdm =    result.floatParsFinal().find("dm")
-        fsm =    result.floatParsFinal().find("sigma")
         rdm = refresult.floatParsFinal().find("dm")
-        rsm = refresult.floatParsFinal().find("sigma")
-        spam = [ "#Delta - #Delta_{MC} = %.3f #pm %.3f GeV" % (fdm.getVal() - rdm.getVal(),
-                                                               hypot(fdm.getError(), rdm.getError()))
-        ]
+        spam.append("#Delta - #Delta_{MC} = %.3f #pm %.3f GeV" % (fdm.getVal() - rdm.getVal(),
+                                                               hypot(fdm.getError(), rdm.getError())))
+        
         spam.append("#Delta = %.3f #pm %.3f GeV" % (fdm.getVal(),fdm.getError()))
         spam.append("#Delta_{MC} = %.3f #pm %.3f GeV" % (rdm.getVal(),rdm.getError()))
+    if "sigma" in params:
+        fsm =    result.floatParsFinal().find("sigma")
+        rsm = refresult.floatParsFinal().find("sigma")
         spam.append("#sigma/#sigma_{MC} = %.3f #pm %.3f" % (fsm.getVal()/rsm.getVal(), (fsm.getVal()/rsm.getVal())*hypot(fsm.getError()/fsm.getVal(), rsm.getError()/rsm.getVal())) )
-    else:
-        spam = []
+
     if not options.noDrawFits:
         printPlot(frame,name,text,options, spam=spam, canvas=c1, legend=legfit)
 
@@ -382,6 +391,8 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None, isData=True, mcHist
         if options.signalModel.startswith("MC"):
             data = ROOT.RooDataHist(rdh_name,rdh_name, ROOT.RooArgList(w.var("mass")), hist.RebinX(options.rebinTemplateModel,hist.GetName()+"_rebin"))
             return (w,data)
+        else:   
+            data = ROOT.RooDataHist(rdh_name,rdh_name, ROOT.RooArgList(w.var("mass")), hist)
     else:
         data = ROOT.RooDataHist(rdh_name,rdh_name, ROOT.RooArgList(w.var("mass")), hist)
         if options.fitDataWithData:            
@@ -401,9 +412,10 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None, isData=True, mcHist
             #Declare shifted xf(x) = x - a
             getattr(w, 'import')(mcHist, ROOT.RooCmdArg())       
             if options.signalModel == "MC-SCALE":
-                dm = ROOT.RooRealVar("dm","dm",0,-1,1) ;
-                sigma = ROOT.RooRealVar("sigma","sigma",1,0.99999,1.00001) ;
-                xf = ROOT.RooFormulaVar("xf","scale","sigma*(mass-dm)",ROOT.RooArgList(w.var("mass"),dm,sigma)) ;
+                dm = ROOT.RooRealVar("dm","dm",0,-0.005,0.005) ;
+                #sigma = ROOT.RooRealVar("sigma","sigma",1,0.99999,1.00001) ;
+                #xf = ROOT.RooFormulaVar("xf","scale","sigma*(mass-dm)",ROOT.RooArgList(w.var("mass"),dm,sigma)) ;
+                xf = ROOT.RooFormulaVar("xf","scale","(1+dm)*mass",ROOT.RooArgList(w.var("mass"),dm)) ;
                 getattr(w, 'import')(xf,ROOT.RooCmdArg())               
             #mcTemplate = ROOT.RooHistPdf("mcTemplate","MC template",ROOT.RooArgSet(w.var("mass")), mcHist, 2)
             #getattr(w, 'import')(mcTemplate, ROOT.RooCmdArg())
@@ -503,7 +515,7 @@ def processOnePtEtaBin(args):
         # solved as explained here: https://sft.its.cern.ch/jira/browse/ROOT-6785
         getattr(wref, 'import')(dataref, ROOT.RooCmdArg())
 
-    (w,data,pdf, params, result) = fit1D(hist, options, etaptbin=bin, isData=True, mcHist=dataref)
+    (w,data,pdf, params, result) = fit1D(hist, options, etaptbin=bin, isData=True, mcHist=dataref if options.signalModel.startswith("MC") else None)
     makePlot1D(w, data, pdf, params, result, name, options, hist)
     for x in myparams:        
         var = result.floatParsFinal().find(x)
@@ -517,7 +529,7 @@ def processOnePtEtaBin(args):
         makePlot1DRef(w, data, pdf, pdfref, params, result, refresult, name+"_comp", options)
     return (bin,res,refres)
 
-def makeHist3D_(tree, y, z, options, weightedMC = False):
+def makeHist3D_(tree, y, z, options, weightedMC = False, isData=True):
     print "Filling tree for cut %s" % options.cut
     ## cut maker    
     finalCut =  makeCut(options.cut)
@@ -575,25 +587,17 @@ def makeHist3D_(tree, y, z, options, weightedMC = False):
           for by in xrange(hist.GetNbinsY()+2): 
              for bz in xrange(hist.GetNbinsZ()+2): 
                 hist.SetBinContent(bx,by,bz, max(0, hist.GetBinContent(bx,by,bz)))
-    #if options.saveHistoInFile:
-    # always save histogram, why not, unless it was loaded from file
-    if not options.loadHistoFromFile:
-        histToSave = hist.Clone("%s_histo_mass_pt_eta" % ("mc" if weightedMC else "data"))
-        outf = ROOT.TFile.Open(options.printDir + "/histo3D_mass_pt_eta.root","UPDATE")
-        outf.cd()
-        histToSave.Write(histToSave.GetName(),ROOT.TObject.kOverwrite)
-        outf.Close()
 
     return hist
 
-def makeHistsMPtEta(tree, options,  weightedMC = False):
+def makeHistsMPtEta(tree, options,  weightedMC = False, isData=True):
     hl1 = None
     ptedges =  [float(x) for x in options.ptbins.split(',')]
     etaedges = [float(x) for x in options.etabins.split(',')]
     # get or make histogram
     if options.loadHistoFromFile:
         fname = options.loadHistoFromFile
-        hname = "%s_histo_mass_pt_eta" % ("mc" if weightedMC else "data")
+        hname = "%s_histo_mass_pt_eta" % ("data" if isData else "mc")
         infile = ROOT.TFile.Open(fname,"READ")
         hl1 = infile.Get(hname)
         if not hl1:
@@ -629,7 +633,7 @@ def makeHistsMPtEta(tree, options,  weightedMC = False):
             print ">>> Changing pt binning: now using %s" % options.ptbins
         if options.rebinEta > 1:
             hl1.RebinZ(int(options.rebinEta))
-            options.etabins = ",".join([str(hl1.GetZaxis().GetBinLowEdge(i)) for i in range(1,2+hl1.GetNbinsZ())])
+            options.etabins = ",".join([str(round(hl1.GetZaxis().GetBinLowEdge(i),2)) for i in range(1,2+hl1.GetNbinsZ())])
             print ">>> Changing eta binning: now using %s" % options.etabins
 
         ptedges =  [float(x) for x in options.ptbins.split(',')]
@@ -653,19 +657,30 @@ def makeHistsMPtEta(tree, options,  weightedMC = False):
                 funcEta = "returnChargeVal(LepGood_eta[0],LepGood_charge[0],LepGood_eta[1],LepGood_charge[1],evt)"
 
             funcEta = "{feta}".format(feta=funcEta) if useSignedEta else "abs({feta})".format(feta=funcEta)
-            hl1 = makeHist3D_(tree, (funcPt, ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+            hl1 = makeHist3D_(tree, (funcPt, ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC,isData=isData)
         else:
             funcEta = "LepGood_eta[0]" if useSignedEta else "abs(LepGood_eta[0])"
-            hl1 = makeHist3D_(tree, ("{pt}[0]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+            hl1 = makeHist3D_(tree, ("{pt}[0]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC,isData=isData)
             hl1 = hl1.Clone("hist_l1");
             funcEta = "LepGood_eta[1]" if useSignedEta else "abs(LepGood_eta[1])"
-            hl2 = makeHist3D_(tree, ("{pt}[1]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC)
+            hl2 = makeHist3D_(tree, ("{pt}[1]".format(pt=options.ptvar), ptedges), ("{feta}".format(feta=funcEta), etaedges), options, weightedMC=weightedMC,isData=isData)
             hl2 = hl2.Clone("hist_l2");
             hl1.Scale(0.5);
             hl2.Scale(0.5);
             hl1.Add(hl2)
     ##
     # now we have the histogram
+    #if options.saveHistoInFile:
+    # always save histogram, why not, unless it was loaded from file
+    if not options.loadHistoFromFile:
+        histToSave = hl1.Clone("%s_histo_mass_pt_eta" % ("data" if isData else "mc"))
+        outf = ROOT.TFile.Open(options.printDir + "/histo3D_mass_pt_eta.root","RECREATE" if isData else "UPDATE")
+        outf.cd()
+        histToSave.Write(histToSave.GetName(),ROOT.TObject.kOverwrite)
+        outf.Close()    
+
+    if options.makeOnlyHisto:
+        return (0,0)
 
     # xbins, xmin, xmax = map(float, options.xvar[1].split(","))
     xbins = hl1.GetNbinsX()
@@ -745,10 +760,12 @@ def addZFitterOptions(parser):
     parser.add_option("--templateSmoothOrder",    dest="templateSmoothOrder",      type="int",    default=2, help="Order of smoothing for MC template, if using template fit");
     #parser.add_option("--saveHistoInFile",   dest="saveHistoInFile", default=False, action='store_true', help="Save histogram in file for later usage (can be used as input with --histoFromFile to avoid rerunning on ntuples to change fits)")
     parser.add_option("--loadHistoFromFile",   dest="loadHistoFromFile", type="string", default="", help="Load histogram from file instead of running on ntuples. Pass file name")
+    parser.add_option("--drawTH2option",   dest="drawTH2option", type="string", default="COLZ0 TEXTE", help="Options to draw TH2")
     parser.add_option("--plot-extension",   dest="plotExtension", type="string", default="png,pdf", help="Comma separated list of extensions to save plots (can just use png to save space)")
     parser.add_option("--roofitPrintLevel",    dest="roofitPrintLevel",      type="int",    default=0, help="RooFit::PrintLevel flag in fitTo: can use -1 to suppress everything, 0 for minimal output, 1 is default for RooFit");
     parser.add_option("--fitDataWithData",    dest="fitDataWithData", default=False, action='store_true' , help="For test: fit data with data template");
     parser.add_option("--compareDataMC",    dest="compareDataMC", default=False, action='store_true' , help="Plot data and MC in same canvas to compare");
+    parser.add_option("--makeOnlyHisto",    dest="makeOnlyHisto", default=False, action='store_true' , help="only produce histogram and exit. Useful to make a very finely binned histogram to allows making fits later with any desired rebinning");
 
 if __name__ == "__main__":
 
@@ -778,7 +795,7 @@ if __name__ == "__main__":
         
     #ROOT.TH1.SetDefaultSumw2()  ## keep commented, otherwise for some mysterious reason the mass distribution for MC has all the data points with error equal to the content. Anyway, the histograms are still filled with weigths, so the errors should be correct (and when fitting one only needs to set ROOT.RooFit.SumW2Error() to use the actual MC stat to compute the uncertainty)
     
-    adjustSettings_CMS_lumi()
+    #adjustSettings_CMS_lumi()
     ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
 
     # built-in palette from light blue to orange
@@ -855,11 +872,14 @@ if __name__ == "__main__":
     useWeightMC = False if options.noWeightMC else True
 
     if options.mode == "1D_PtEtaSlices":
-        frame2D, hists = makeHistsMPtEta(tree, options)
+        frame2D, hists = makeHistsMPtEta(tree, options, isData=True)
         if options.refmc:
-            _, refhists = makeHistsMPtEta(reftree, options, weightedMC=useWeightMC)
+            _, refhists = makeHistsMPtEta(reftree, options, weightedMC=useWeightMC, isData=False)
         else: 
             refhists = [None for h in hists]
+        if options.makeOnlyHisto:
+            print "Using option --makeOnlyHisto. Histogram is made. Now exit"
+            quit()
         myparams = [x for x in options.params.split(',')]
         tasks = [ (hist.bin,hist,refhist,myparams,options) for (hist, refhist) in zip(hists,refhists) ] 
         if options.jobs > 0:
@@ -936,17 +956,25 @@ if __name__ == "__main__":
         for x in myparams:
             if x == "dm": normalizeZ(hdata[x])
             #hdata[x].SetContour(100)
-            hdata[x].Draw("COLZ0 TEXTE")
+            hdata[x].Draw(options.drawTH2option)
             setAxisTH2(hdata[x],options)
             hdata[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
-            printCanvas(c1, hdata[x].GetName(), text[x], options, xoffs=-0.1)
+            if x == "dm" and options.signalModel == "MC-SCALE":
+                hdata[x].GetZaxis().SetTitle("scale")
+                ROOT.gStyle.SetPaintTextFormat(".5f")
+            if options.signalModel.startswith("MC") and options.setRangeClosure:
+                hdata[x].GetZaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
+            printCanvas(c1, hdata[x].GetName(), text[x], options, xoffs=0.0)
+            if options.signalModel.startswith("MC"):
+                hdata[x].SaveAs("%s/%s.root" % (options.printDir, hdata[x].GetName()))
+
             if options.refmc and not options.signalModel.startswith("MC"):
                 if x == "dm": normalizeZ(href[x])
                 #href[x].SetContour(100)
                 setAxisTH2(href[x],options)
-                href[x].Draw("COLZ0 TEXTE")
+                href[x].Draw(options.drawTH2option)
                 href[x].GetZaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x])
-                printCanvas(c1, href[x].GetName(), text[x], options, xoffs=-0.1)
+                printCanvas(c1, href[x].GetName(), text[x], options, xoffs=0.0)
                 #normalizeZ(hdiff[x], pivot = 1 if x == "sigma" else 0)
                 maxz = float(max(abs(hdiff[x].GetBinContent(hdiff[x].GetMinimumBin())),abs(hdiff[x].GetBinContent(hdiff[x].GetMaximumBin()))))
                 minz = float(hdiff[x].GetBinContent(hdiff[x].GetMinimumBin()))
@@ -958,7 +986,7 @@ if __name__ == "__main__":
                 #hdiff[x].SetContour(100)
                 ROOT.gStyle.SetPaintTextFormat(".3f")
                 setAxisTH2(hdiff[x],options)
-                hdiff[x].Draw("COLZ0 TEXTE")
+                hdiff[x].Draw(options.drawTH2option)
                 hdiff[x].GetZaxis().SetTitle({'dm'    :"#Deltam - #Deltam_{MC}  (GeV)",
                                               'sigma' :'#sigma/#sigma_{MC}'}[x]
                 )
@@ -975,7 +1003,7 @@ if __name__ == "__main__":
             xmax = max(g[x].GetX()[i] + 1.3*g[x].GetErrorX(i) for g in (gdata,gref) for i in xrange(len(fits)))
             xmin = min(g[x].GetX()[i] - 1.3*g[x].GetErrorX(i) for g in (gdata,gref) for i in xrange(len(fits)))
             dx = 0.1*(xmax-xmin)
-            frame = ROOT.TH2D("frame","", 100, xmin-dx, xmax+dx, len(hists), 0., len(hists))
+            frame = ROOT.TH2D("frame","", 1000, xmin-dx, xmax+dx, len(hists), 0., len(hists))
             frame.GetXaxis().SetTitle({'dm':"#Deltam  (GeV)",'sigma':'#sigma(m)  (GeV)'}[x]);
             frame.GetXaxis().SetNdivisions(505)
             for bin,label in binLabel.iteritems():
@@ -988,7 +1016,15 @@ if __name__ == "__main__":
             gdata[x].Draw("PZ SAME")
             frame.GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
             gdata[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+            if x == "dm" and options.signalModel == "MC-SCALE":
+                frame.GetXaxis().SetTitle("scale")
+                gdata[x].GetXaxis().SetTitle("scale")
+            if options.signalModel.startswith("MC") and options.setRangeClosure:
+                gdata[x].GetXaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
+                frame.GetXaxis().SetRangeUser(-1.0*options.setRangeClosure,options.setRangeClosure)
             gref[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+            c1.SetLeftMargin(0.35)
+            c1.SetRightMargin(0.1)
             printCanvas(c1, options.name+"_"+x+"_summary", text[x], options)
             if options.refmc and not options.signalModel.startswith("MC"):
                 xmax = max(g[x].GetX()[i] + 1.3*g[x].GetErrorX(i) for g in (gdiff,) for i in xrange(len(fits)))
@@ -1009,6 +1045,8 @@ if __name__ == "__main__":
                 else:
                     frame.GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
                     gdiff[x].GetXaxis().SetRangeUser(xmin-dx,xmax+dx)
+                c1.SetLeftMargin(0.35)
+                c1.SetRightMargin(0.1)
                 printCanvas(c1, options.name+"_"+x+"_diff_summary", text[x], options)
                 #gdiff[x].SaveAs("%s/%s.root" % (options.printDir, gdiff[x].GetName()))
 
