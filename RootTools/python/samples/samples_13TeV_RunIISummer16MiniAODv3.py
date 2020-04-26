@@ -11,14 +11,19 @@ kreator = ComponentCreator()
 ZJToMuMu_powhegMiNNLO_pythia8_testProd        = kreator.makeMCComponent("ZJToMuMu_powhegMiNNLO_pythia8_testProd"       , "/ZJToMuMu_TuneCUETP8M1_13TeV-powheg-MiNNLO-pythia8/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3-v1/MINIAODSIM"       , "CMS", ".*root", 2008.4)
 ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd = kreator.makeMCComponent("ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd", "/ZJToMuMu_TuneCUETP8M1_13TeV-powheg-MiNNLO-pythia8-photos/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3-v1/MINIAODSIM", "CMS", ".*root", 2008.4)
 
+
+
 WJetsToLNu_94X        = kreator.makeMCComponent("WJetsToLNu_94X"       , "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3-v1/MINIAODSIM"       , "CMS", ".*root", 3* 20508.9)
 
 WJetsToLNu_94X_ext        = kreator.makeMCComponent("WJetsToLNu_94X_ext"       , "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3_ext2-v1/MINIAODSIM"       , "CMS", ".*root", 3* 20508.9)
 
+ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos = kreator.makeMCComponent("ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos", "/ZJToMuMu_mWPilot_TuneCP5_13TeV-powheg-MiNNLO-pythia8-photos/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3-v1/MINIAODSIM", "CMS", ".*root", 2008.4)
+
 
 ### ----------------------------- summary ----------------------------------------
 
-mcSamples = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd ]
+#mcSamples = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd ]
+mcSamples = [ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos ]
 
 samples = mcSamples
 

@@ -1,10 +1,10 @@
 #
 alwaystrue      : 1
 #genEtaPt        : fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] < 56 && GenLepDressed_pt[0]>26
-genEtaPt        : fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] > 28
+genEtaPt        : fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] > 26
 vertexPresel    : passVertexPreSel == 1
 #muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && ptMuFull(LepGood1_rocPt,LepGood1_eta) < 56.
-muonInAccept    : nLepGood == 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4
+muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4
 muMediumId      : LepGood1_mediumMuonId  > 0
 muTightIso      : LepGood1_relIso04 < 0.15
 ##

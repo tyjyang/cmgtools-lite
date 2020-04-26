@@ -30,10 +30,10 @@ selectedEvents=getHeppyOption("selectEvents","")
 # save PDF information and do not skim. Do only for needed MC samples
 keepEventsWithNoGoodVertex = True
 forceSignalSkim = True # force skims for signal (some lepton cuts, single or dilepton skim)
-runOnSignal = False
+runOnSignal = True
 doTriggerMatching = True
 keepLHEweights = False
-signalZ = False
+signalZ = True
 runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
@@ -46,7 +46,7 @@ if keepEventsWithNoGoodVertex:
 ttHLepSkim.minLeptons = 1
 #ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # this is applied to all leptons! not just some
 #ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.muonID('POG_ID_Loose')>0"
-ttHLepSkim.maxLeptons = 2
+ttHLepSkim.maxLeptons = 5 # might even comment to make it dummy
 #ttHLepSkim.idCut  = ""
 ttHLepSkim.ptCuts = [23, 10]
 
@@ -71,18 +71,18 @@ lepAna.miniIsolationVetoLeptons = None # use 'inclusive' to veto inclusive lepto
 lepAna.doIsolationScan = False
 
 # Lepton Preselection
-lepAna.loose_electron_id = "POG_Cuts_ID_SPRING16_25ns_v1_HLT"
+lepAna.loose_electron_id = "POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto"  #"POG_Cuts_ID_SPRING16_25ns_v1_HLT" # overridden below if useBasicRECOLeptons
 isolation = None
 
 if useBasicRECOLeptons:
-    lepAna.inclusive_muon_id  = "POG_ID_Loose" # or POG_ID_Soft
+    lepAna.inclusive_muon_id  = None # or POG_ID_Soft (this is more for BPH)
     #lepAna.inclusive_muon_id  = None
     lepAna.inclusive_muon_pt  = 10
     lepAna.inclusive_muon_eta = 2.4
     lepAna.inclusive_muon_dxy = 1000.
     lepAna.inclusive_muon_dz  = 1000.
     # loose muon selection
-    lepAna.loose_muon_id     = "POG_ID_Loose" # or POG_ID_Soft
+    lepAna.loose_muon_id     = "POG_ID_Loose" # or POG_ID_Soft (this is more for BPH)
     #lepAna.loose_muon_id     = None
     lepAna.loose_muon_pt     = 10
     lepAna.loose_muon_eta    = 2.4
@@ -91,14 +91,14 @@ if useBasicRECOLeptons:
     lepAna.loose_muon_relIso = 1000.
     # inclusive very loose electron selection
     lepAna.inclusive_electron_id  = None
-    lepAna.inclusive_electron_pt  = 25 # use 10
+    lepAna.inclusive_electron_pt  = 10 # use 10
     lepAna.inclusive_electron_eta = 2.5
     lepAna.inclusive_electron_dxy = 1000.
     lepAna.inclusive_electron_dz  = 1000.
     lepAna.inclusive_electron_lostHits = 100
     # loose electron selection
-    lepAna.loose_electron_id     = None #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
-    lepAna.loose_electron_pt     = 25   # use 10
+    lepAna.loose_electron_id     = "POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto" #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
+    lepAna.loose_electron_pt     = 10   # use 10
     lepAna.loose_electron_eta    = 2.5
     lepAna.loose_electron_dxy    = 1000.
     lepAna.loose_electron_dz     = 1000.
@@ -313,7 +313,8 @@ if   runOnSignal and signalZ==False:
 elif runOnSignal and signalZ:
     #selectedComponents = [DYJetsToLL_M50, DYJetsToLL_M50_ext2]
     #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
-    selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+    #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
+    selectedComponents = [ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos]
 
 #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
@@ -473,7 +474,7 @@ print runData
 print 'THIS IS SELECTED COMPONENTS', selectedComponents
 
 test = getHeppyOption('test')
-if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94x']:    
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94xMwPilot']:    
     if test=='testdata':
         comp = selectedComponents[0]
         comp.files = comp.files[:1]
@@ -481,6 +482,9 @@ if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x'
     if test =='testw94x':
         comp = WJetsToLNu_94X
         comp.files = comp.files[:1]
+    elif test == 'testz94xMwPilot':
+        comp = ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos
+        comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv3/ZJToMuMu_mWPilot_TuneCP5_13TeV-powheg-MiNNLO-pythia8-photos/MINIAODSIM/PUMoriond17_94X_mcRun2_asymptotic_v3-v1/250000/D24DA931-7882-EA11-AAC9-0CC47A4D7634.root']
     elif test =='testz94x':
         comp = ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
         comp.files = comp.files[:1]
