@@ -220,8 +220,8 @@ lepAna = cfg.Analyzer(
     # input collections
     muons='slimmedMuons',
     electrons='slimmedElectrons',
-    rhoMuon= 'fixedGridRhoFastjetCentralNeutral',
-    rhoElectron = 'fixedGridRhoFastjetCentralNeutral',
+    rhoMuon= 'fixedGridRhoFastjetCentralNeutral', # perhaps it should be fixedGridRhoFastjetAll but we use dBeta 
+    rhoElectron = 'fixedGridRhoFastjetAll' # was 'fixedGridRhoFastjetCentralNeutral',
     # energy scale corrections and ghost muon suppression (off by default)
     doMuonScaleCorrections=False,
     doElectronScaleCorrections=False, # "embedded" in 5.18 for regression
