@@ -3,19 +3,28 @@
 import ROOT, os, sys, re, array, math, copy
 import time
 
+## safe batch mode 
+import sys
+args = sys.argv[:]
+sys.argv = ['-b']
+import ROOT
+sys.argv = args
+ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
+
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
-
-ROOT.gROOT.SetBatch(True)
 
 indir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/Wlike/test_zFitter/"
 #fplus = "newRoccor_fullSel_chargePlus_allEvents_trigMatchPlus_signEta_testFit_2CB_altPtBins/"
 #fminus = "newRoccor_fullSel_chargeMinus_allEvents_trigMatchMinus_signEta_testFit_2CB_altPtBins/"
 #fplus = "newRoccor_fullSel_chargePlus_allEvents_trigMatchPlus_signEta_testFit_2CB_1ptBin23to60_0p4eta/"
 #fminus = "newRoccor_fullSel_chargeMinus_allEvents_trigMatchMinus_signEta_testFit_2CB_1ptBin23to60_0p4eta/"
-fdir = "newRoccorValidation_nominal"
-fname = "plot_dm_diff.root"
-hname = "plot_dm_diff"
+fdir = "newRoccorValidation_nominal_templateFitScaleNoSmear_pt14_eta0p4"
+#fname = "plot_dm_diff.root"
+#hname = "plot_dm_diff"
+fname = "plot_dm.root"
+hname = "plot_dm"
 
 def setStyleTH2(h2,ch):
 
@@ -50,7 +59,7 @@ if __name__ == "__main__":
 
     ROOT.TH1.StatOverflows(True) # to use under/overflow bins when computing rms of histogram
     ROOT.gStyle.SetNumberContours(51) # default is 20 
-    ROOT.gStyle.SetPaintTextFormat(".3f")
+    ROOT.gStyle.SetPaintTextFormat(".5f")
     ROOT.gStyle.SetOptStat(0)
     ROOT.TColor.CreateGradientColorTable(3,
                                          array ("d", [0.00, 0.50, 1.00]),
@@ -85,7 +94,7 @@ if __name__ == "__main__":
         gdiffStatUncOnly.SetName("graph_statOnly_{c}".format(c=charge))
 
         for i in range(100):
-            fstat = inputDirNomi + "RoccorStatVar/charge{c}_stat{d}/".format(c="Plus" if charge == "plus" else "Minus",d=i) + fname
+            fstat = inputDirNomi + "RoccorStatVar/charge{c}_stat{d}/{ch}/".format(c="Plus" if charge == "plus" else "Minus",d=i,ch=charge) + fname
             fn = ROOT.TFile.Open(fstat)
             if not fn:
                 print "Warning: could not open file %s" % fstat
@@ -126,7 +135,7 @@ if __name__ == "__main__":
 
         # draw histograms
         #adjustSettings_CMS_lumi()
-        canvas = ROOT.TCanvas("canvas","",1800,1200)
+        canvas = ROOT.TCanvas("canvas","",2200,1200)
         canvas.SetRightMargin(0.2)
         canvas.SetTickx(1)
         canvas.SetTicky(1)
@@ -134,22 +143,23 @@ if __name__ == "__main__":
         canvas.cd()
         setStyleTH2(hTotUnc,charge)
         hTotUnc.SetBarOffset(0.2)
-        hTotUnc.Draw("COLZ TEXTE")
+        hTotUnc.Draw("COLZ0 TEXT45E")
         hStatUncOnly.SetMarkerColor(ROOT.kRed+2)
         hStatUncOnly.SetBarOffset(-0.2)
-        hStatUncOnly.Draw("TEXT SAME")
+        hStatUncOnly.Draw("TEXT45 SAME")
         for ext in ['png', 'pdf']:
             canvas.SaveAs('{od}/{cn}_withStatUnc.{ext}'.format(od=inputDirNomi, cn=hname, ext=ext))
 
 
         # draw histograms
 
-        # dummy histogram to dra frame of graph summary
+        # dummy histogram to draw frame of graph summary
         xmax = max(gdiff.GetX()[i] + 1.3*gdiff.GetErrorX(i) for i in xrange(nbinsClosure))
         xmin = min(gdiff.GetX()[i] - 1.3*gdiff.GetErrorX(i) for i in xrange(nbinsClosure))
         dx = 0.1*(xmax-xmin)
         frame = ROOT.TH2D("frame","", 100, xmin-dx, xmax-dx, nbinsClosure, 0., nbinsClosure)
-        frame.GetXaxis().SetTitle("#Deltam - #Deltam_{MC}  (GeV)");
+        #frame.GetXaxis().SetTitle("#Deltam - #Deltam_{MC}  (GeV)");
+        frame.GetXaxis().SetTitle("scale");
         frame.GetXaxis().SetNdivisions(505)
         ig = 1
         for iy in range(1,1+hTotUnc.GetNbinsY()):
@@ -173,8 +183,8 @@ if __name__ == "__main__":
         frame.Draw()
         gdiff.Draw("PZ SAME")
         gdiffStatUncOnly.Draw("PZ SAME")
-        frame.GetXaxis().SetRangeUser(-0.1,0.1)
-        gdiff.GetXaxis().SetRangeUser(-0.1,0.1)
+        frame.GetXaxis().SetRangeUser(-0.001,0.001)
+        gdiff.GetXaxis().SetRangeUser(-0.001,0.001)
         lat = ROOT.TLatex()
         lat.SetNDC()
         lat.SetTextFont(42)

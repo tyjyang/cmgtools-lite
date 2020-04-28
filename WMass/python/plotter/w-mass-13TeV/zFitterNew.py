@@ -6,7 +6,11 @@ from CMGTools.WMass.plotter.tree2yield import scalarToVector
 from CMGTools.TTHAnalysis.tools.plotDecorations import doSpam
 
 # examples to run this script (see all options)
+
 #python w-mass-13TeV/zFitterNew.py --data MY_EOS_SPACE/heppyNtuples/skim_Zmumu/ --pdir plots/Wlike/test_zFitter/newRoccorValidation_onlyHistoFineBins/ -c Zmm-full --refmc "MY_EOS_SPACE/heppyNtuples/skim_Zmumu/" --ptvar "LepGood_rocPt" --select-charge minus --useAllEvents -x " mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)" "800,70,110"  --setRangeClosure 0.1  -s "MC-SCALE"  --roofitPrintLevel 0 --fit-strategy 2 --backgroundModel None --rebinTemplateModel 1 --templateSmoothOrder 3 --ptbins "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65" --etabins "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4" --compareDataMC -p "dm" --makeOnlyHisto
+
+# python w-mass-13TeV/zFitterNew.py --data MY_EOS_SPACE/heppyNtuples/skim_Zmumu/ --pdir plots/Wlike/test_zFitter/newRoccorValidation_nominal_templateFitScaleNoSmear_pt14_eta0p4/ -c Zmm-full --refmc "MY_EOS_SPACE/heppyNtuples/skim_Zmumu/" --ptvar "LepGood_rocPt" --select-charge plus --useAllEvents -x " mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)" "800,70,110"  --setRangeClosure 0.001  -s "MC-SCALE"  --roofitPrintLevel 0 --fit-strategy 2 --backgroundModel None --rebin 5 --rebinTemplateModel 2 --templateSmoothOrder 3 --ptbins "23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65" --etabins "-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4" --compareDataMC -p "dm" --loadHistoFromFile plots/Wlike/test_zFitter/newRoccorValidation_onlyHistoFineBins/plus/histo3D_mass_pt_eta.root --rebin-pt 14 --rebin-eta 4 --rebinComparisonPlot 2 --drawTH2option "COLZ0TEXT45E"
+
 
 ## safe batch mode
 import sys
@@ -84,7 +88,7 @@ def makeSignalModel(model, w, useRightTailCB=False):
         #w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
         ROOT.gSystem.Load("%s/src/CMGTools/WMass/python/plotter/testDoubleCB/my_double_CB_cc.so" % os.environ['CMSSW_BASE'])
         w.factory("BreitWigner::zBW(mass,MZ[91.1876], GammaZ[2.495])")
-        w.factory("My_double_CB::resol(mass,dm[0,-0.6,0.6], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
+        w.factory("My_double_CB::resol(mass,dm[0,-0.8,0.8], sigma, alpha[3., 0.5, 8], n[1, 0.1, 100.], alpha2[3., 0.5, 8], n2[1, 0.1, 100.])")
         w.factory("FCONV::signal(mass,zBW,resol)")
         return (w.pdf("signal"), ["dm", "sigma","alpha", "n","alpha2", "n2"] )
 
@@ -123,9 +127,9 @@ def makeSignalModel1D(model, w, useRightTailCB=False):
         pass
     else:
         if model.startswith("MC"):
-            w.factory("sigma[0.05,0.001,3]")
+            w.factory("sigma[0.01,0.0001,3]")
         else:
-            w.factory("sigma[1.5,0.1,10]")
+            w.factory("sigma[1.5,0.05,10]")
     return makeSignalModel(model,w, useRightTailCB=useRightTailCB)
 
 def makeBackgroundModel(model, w):
@@ -399,9 +403,11 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None, isData=True, mcHist
             #getattr(w, 'import')(data, ROOT.RooFit.Rename("mcdata"))               
             datarebin = ROOT.RooDataHist("datarebin",rdh_name, ROOT.RooArgList(w.var("mass")), hist.RebinX(options.rebinTemplateModel,hist.GetName()+"_rebin"))
             #Declare shifted xf(x) = x - a
-            dm = ROOT.RooRealVar("dm","dm",0,-1,1) ;
-            sigma = ROOT.RooRealVar("sigma","sigma",1,0.99999,1.00001) ;
-            xf = ROOT.RooFormulaVar("xf","scale","sigma*(mass-dm)",ROOT.RooArgList(w.var("mass"),dm,sigma)) ;
+            #dm = ROOT.RooRealVar("dm","dm",0,-1,1) ;
+            #sigma = ROOT.RooRealVar("sigma","sigma",1,0.99999,1.00001) ;
+            #xf = ROOT.RooFormulaVar("xf","scale","sigma*(mass-dm)",ROOT.RooArgList(w.var("mass"),dm,sigma)) ;
+            dm = ROOT.RooRealVar("dm","dm",0,-0.001,0.001) ;
+            xf = ROOT.RooFormulaVar("xf","scale","(1+dm)*mass",ROOT.RooArgList(w.var("mass"),dm)) ;
             getattr(w, 'import')(datarebin, ROOT.RooFit.Rename("mcdata"))               
             getattr(w, 'import')(xf,ROOT.RooCmdArg())               
             #getattr(w, 'import')(dm,ROOT.RooCmdArg())               
@@ -412,7 +418,7 @@ def fit1D(hist, options, modelOverride=False, etaptbin=None, isData=True, mcHist
             #Declare shifted xf(x) = x - a
             getattr(w, 'import')(mcHist, ROOT.RooCmdArg())       
             if options.signalModel == "MC-SCALE":
-                dm = ROOT.RooRealVar("dm","dm",0,-0.005,0.005) ;
+                dm = ROOT.RooRealVar("dm","dm",0,-0.001,0.001) ;
                 #sigma = ROOT.RooRealVar("sigma","sigma",1,0.99999,1.00001) ;
                 #xf = ROOT.RooFormulaVar("xf","scale","sigma*(mass-dm)",ROOT.RooArgList(w.var("mass"),dm,sigma)) ;
                 xf = ROOT.RooFormulaVar("xf","scale","(1+dm)*mass",ROOT.RooArgList(w.var("mass"),dm)) ;
@@ -480,7 +486,8 @@ def processOnePtEtaBin(args):
                       hist.GetName().replace("hist_","compareMassDataMC_"),
                       options.printDir+"/comparisonDataMC/",1,
                       leftMargin=0.18,
-                      labelRatioTmp="Data/pred.::0.95,1.05",
+                      rebinFactorX=options.rebinComparisonPlot,
+                      labelRatioTmp="Data/pred.::0.9,1.1",
                       legendCoords="0.2,0.45,0.74,0.9;1",
                       passCanvas=cDataMC,
                       lumi="36.3",
@@ -696,6 +703,15 @@ def makeHistsMPtEta(tree, options,  weightedMC = False, isData=True):
             hist1D.SetDirectory(None)
             for bx in xrange(1,hist1D.GetNbinsX()+1):
                 hist1D.SetBinContent(bx, hl1.GetBinContent(bx,ipt,ieta))
+            if ipt == (len(ptedges)-1) and options.addOverflowInLastPtBin:
+                name = "hist_pt_%.1f_inf_eta_%.3f_%.3f" % (ptedges[ipt],etaedges[ieta-1],etaedges[ieta])
+                name = name.replace(".","p")
+                name = name.replace("-","m")
+                hist1Doverflow = ROOT.TH1D(name,name, int(xbins),xmin,xmax)
+                hist1Doverflow.SetDirectory(None)
+                for bx in xrange(1,hist1Doverflow.GetNbinsX()+1):
+                    hist1Doverflow.SetBinContent(bx, hl1.GetBinContent(bx,ipt+1,ieta))
+                hist1D.Add(hist1Doverflow)
             hist1D.bin = (ipt,ieta)
             ret.append(hist1D)
     h2d = hl1.Project3D("yz")
@@ -765,7 +781,9 @@ def addZFitterOptions(parser):
     parser.add_option("--roofitPrintLevel",    dest="roofitPrintLevel",      type="int",    default=0, help="RooFit::PrintLevel flag in fitTo: can use -1 to suppress everything, 0 for minimal output, 1 is default for RooFit");
     parser.add_option("--fitDataWithData",    dest="fitDataWithData", default=False, action='store_true' , help="For test: fit data with data template");
     parser.add_option("--compareDataMC",    dest="compareDataMC", default=False, action='store_true' , help="Plot data and MC in same canvas to compare");
+    parser.add_option("--rebinComparisonPlot",    dest="rebinComparisonPlot",      type="int",    default=0, help="Rebin mass plots by N when plotting data and MC for comparison using --compareDataMC (this comes after rebinning with --rebin, and only affects those plots)");
     parser.add_option("--makeOnlyHisto",    dest="makeOnlyHisto", default=False, action='store_true' , help="only produce histogram and exit. Useful to make a very finely binned histogram to allows making fits later with any desired rebinning");
+    parser.add_option("--addOverflowInLastPtBin",    dest="addOverflowInLastPtBin", default=False, action='store_true' , help="For last pt bin, use all events outside the upper edge");
 
 if __name__ == "__main__":
 

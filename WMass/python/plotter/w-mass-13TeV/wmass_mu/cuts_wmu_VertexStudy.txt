@@ -1,12 +1,14 @@
 #
 alwaystrue      : 1
-#genEtaPt        : fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] < 56 && GenLepDressed_pt[0]>26
-genEtaPt        : fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] > 26
+#genEtaPt        :  fabs(GenLepDressed_eta[0])<2.4 && GenLepDressed_pt[0] > 26 && fabs(GenLepDressed_pdgId[0])==13
+#genEtaPt        :  fabs(GenLepDressed_eta[0])>2.4 && GenLepDressed_pt[0] > 26 && fabs(GenLepDressed_pdgId[0])==13
+genMuNoEtaPt  : fabs(GenLepDressed_pdgId[0])==13
 vertexPresel    : passVertexPreSel == 1
-#muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && ptMuFull(LepGood1_rocPt,LepGood1_eta) < 56.
-muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4
+muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && deltaR(GenLepDressed_eta[0],GenLepDressed_phi[0],LepGood1_eta,LepGood1_phi)>0.2
 muMediumId      : LepGood1_mediumMuonId  > 0
 muTightIso      : LepGood1_relIso04 < 0.15
 ##
 mtl1pf40        : mt_2(ptMuFull(LepGood1_rocPt,LepGood1_eta),LepGood1_phi,met_pt,met_phi) > 40.
 trigger         : (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0 )
+#muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && ((LepGood1_charge * LepGood1_mcMatchId) == 0 || deltaR(GenLepDressed_eta[0],GenLepDressed_phi[0],LepGood1_eta,LepGood1_phi)>0.1)
+#muonInAccept    : nLepGood >= 1 && abs(LepGood1_pdgId)==13 && ptMuFull(LepGood1_rocPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && deltaR(GenLepDressed_eta[0],GenLepDressed_phi[0],LepGood1_eta,LepGood1_phi)>0.2

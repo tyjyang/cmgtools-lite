@@ -1177,10 +1177,10 @@ def drawNTH1(hists=[],
 def drawDataAndMC(h1, h2,
                   labelXtmp="xaxis", labelYtmp="yaxis",
                   canvasName="default", outdir="./",
-                  #rebinFactorX=0,
                   draw_both0_noLog1_onlyLog2=0,                  
                   leftMargin=0.15,
                   rightMargin=0.04,
+                  rebinFactorX=0,
                   labelRatioTmp="Data/pred.::0.5,1.5",
                   drawStatBox=False,
                   #legendCoords="0.15,0.35,0.8,0.9",  # x1,x2,y1,y2
@@ -1215,10 +1215,14 @@ def drawDataAndMC(h1, h2,
 
     # h1 is data, h2 in MC
 
-    #if (rebinFactorX): 
-    #    if isinstance(rebinFactorX, int): h1.Rebin(rebinFactorX)
-    #    # case in which rebinFactorX is a list of bin edges
-    #    else:                             h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+    if (rebinFactorX): 
+        if isinstance(rebinFactorX, int): 
+            h1.Rebin(rebinFactorX)
+            h2.Rebin(rebinFactorX)
+        # case in which rebinFactorX is a list of bin edges
+        else:   
+            h1.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
+            h2.Rebin(len(rebinFactorX)-1,"",array('d',rebinFactorX)) 
 
     xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)

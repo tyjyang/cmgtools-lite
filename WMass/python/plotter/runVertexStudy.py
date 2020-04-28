@@ -3,15 +3,18 @@
 import os, subprocess, re
 import ROOT
 
-workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+#workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
 
 
 path = "{cmssw}/src/CMGTools/WMass/python/plotter/".format(cmssw=os.environ['CMSSW_BASE'])
 mcafile  = path + "w-mass-13TeV/wmass_mu/mca_wmu_forTest.txt"
 cutfile  = path + "w-mass-13TeV/wmass_mu/cuts_wmu_VertexStudy.txt"
 plotfile = path + "w-mass-13TeV/wmass_mu/plots_forTest.txt"
+proc = "QCD" # Wnopt
+plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt"
 
-# this script is meant to run the study on vertex using W MC
+# this script is meant to run the study on vertex using W MC or other MC
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -72,9 +75,9 @@ request_memory = 2000
             cmd += " {mca} {cut} {plot}".format(mca=mcafile,cut=cutfile,plot=plotfile)
             cmd += " -f -l 35.9 --s2v --tree treeProducerWMass --obj tree --noCms -j 8 "
             cmd += " --legendFontSize 0.05 --setLegendCoordinates 0.2,0.77,0.9,0.92 --allProcInLegend --noLegendRatioPlot --n-column-legend 2 "            
-            cmd += " --sP dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt "
+            cmd += " --sP {plots} ".format(plots=plots)
             cmd += " -P {ntp} -F Friends {ntp}friends/tree_Friend_{{cname}}.root ".format(ntp=ntuplesPath)
-            cmd += " -p Wnopt -W 1.0 -U {wp} --pdir {o}/{wp}/ ".format(o=outdir,wp=wp)        
+            cmd += " -p {proc} -W 1.0 -U {wp} --pdir {o}/{wp}/ ".format(proc=proc,o=outdir,wp=wp)        
             cmdargs = [x.strip() for x in cmd.split()]
             strargs=''
             for a in cmdargs: # join do not preserve " or '

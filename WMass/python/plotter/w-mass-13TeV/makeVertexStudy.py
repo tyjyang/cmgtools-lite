@@ -16,9 +16,9 @@ sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
 # plots/vertexStudy/ask1orMoreLep
-outdir = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_v3/compareEfficiency"
+outdir = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_antiMatch/compareEfficiency"
 
-inputfolder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_v3/"
+inputfolder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_antiMatch/"
 # inputfiles = {"1::genEtaPt"                : "W_94X_noRecoCuts_genEtaPt26to56",
 #               "2::fullSel_NoMtNoIsoNoID"   : "W_94X_allRecoCuts_noMtNoIsoNoID",
 #               "3::fullSel_NoMtNoIso"       : "W_94X_allRecoCuts_noMtNoIso",
@@ -28,16 +28,30 @@ inputfolder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW
 #               "7::1lepInAccept"            : "W_94X_1lepInAccept",
 #           }
 
-workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+#workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+#colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
+#markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
+
+workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
+markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
+
+#range for efficiency plot
+effLow = 0.5
+effHigh = 1.05
 
 absDzVal = 0.1 # 1 mm        
+# Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.01 width
+# dressed lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
 var = "Wpt"
-#var = "dressedLepPt"
+genWPtLow = 0.0
+genWPtHigh = 100.0
+rebinWPt = 5 # default 2
+var = "dressedLepPt"
 genLepPtLow = 26.0
-genLepPtHigh = 56.0
+genLepPtHigh = 100.0
+rebinLepPt = 8 # default 1
 hname = "dzVertex_gen_primary__{v}_Wnopt".format(v=var)
-# Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.1 width
-# dressed lepton pT from 26 to 56 with 2 GeV width, dz from -1.0 to 1.0 with 0.1 width
 
 if __name__ == "__main__":
 
@@ -58,6 +72,9 @@ if __name__ == "__main__":
     # store integrals with no cut to compute selection efficiency as ratio of yields in each cut step
     backupIntInDz_noCuts = 0.0
     backupIntOutDz_noCuts = 0.0
+
+    hnumtmp = ROOT.TH1D("hnumtmp","",1,0,1)
+    hdentmp = ROOT.TH1D("hdentmp","",1,0,1)
 
     for ik,key in enumerate(sortkeys):
 
@@ -89,14 +106,35 @@ if __name__ == "__main__":
             heffSel_passDz.SetBinContent(ik,1.0)            
             heffSel_failDz.SetBinContent(ik,1.0)            
         else:
+            grAsErr = ROOT.TGraphAsymmErrors()
+            hnumtmp.SetBinContent(1,intInDz)
+            hnumtmp.SetBinError(1,ROOT.TMath.Sqrt(intInDz))
+            hdentmp.SetBinContent(1,backupIntInDz_noCuts)
+            hdentmp.SetBinError(1,ROOT.TMath.Sqrt(backupIntInDz_noCuts))
+            grAsErr.Divide(hnumtmp,hdentmp,"cl=0.683 b(1,1) mode")
+            err = max(grAsErr.GetErrorYlow(0),grAsErr.GetErrorYhigh(0))
             heffSel_passDz.SetBinContent(ik,intInDz/backupIntInDz_noCuts)
+            heffSel_passDz.SetBinError(ik,err)
+            #
+            hnumtmp.SetBinContent(1,intInDz)
+            hnumtmp.SetBinError(1,ROOT.TMath.Sqrt(intInDz))
+            hdentmp.SetBinContent(1,backupIntInDz_noCuts)
+            hdentmp.SetBinError(1,ROOT.TMath.Sqrt(backupIntInDz_noCuts))
+            grAsErr.Divide(hnumtmp,hdentmp,"cl=0.683 b(1,1) mode")
+            err = max(grAsErr.GetErrorYlow(0),grAsErr.GetErrorYhigh(0))
             heffSel_failDz.SetBinContent(ik,(intTot-intInDz)/backupIntOutDz_noCuts)
+            heffSel_failDz.SetBinError(ik,err)
 
         print "Inclusive efficiency: %.1f" % (100.*intInDz/intTot)
 
-        wptBins = [4.0 * i for i in range(0,26)]
+
+        # if ik == 5:
+        #     rebinLepPt = 3 * rebinLepPt
+        #     rebinWPt = 3 * rebinWPt
+        #wptBins = [4.0 * i for i in range(0,26)]    
+        wptBins = [genWPtLow + (rebinWPt*2.0) * i for i in range(0,1+int((genWPtHigh-genWPtLow+0.001)/(2.0*rebinWPt)))]
         if var == "dressedLepPt":
-            wptBins = [genLepPtLow + 1.0 * i for i in range(0,1+int(genLepPtHigh-genLepPtLow+0.001))]
+            wptBins = [genLepPtLow + (rebinLepPt*1.0) * i for i in range(0,1+int(genLepPtHigh-genLepPtLow+0.001)/rebinLepPt)]
         
         hists[key] = ROOT.TH1D("eff_"+key,"",len(wptBins)-1,array("d",wptBins))
         #gr[key] = 
@@ -108,7 +146,11 @@ if __name__ == "__main__":
             intTot_inWptRange = h2.Integral(wptBinLow,wptBinHigh,0,1+dzBinsTot)
             intInDz_inWptRange = h2.Integral(wptBinLow,wptBinHigh,dzBinLow,dzBinHigh)
             #print "%.1f   %.1f" % (intInDz_inWptRange, intTot_inWptRange)
-            eff = intInDz_inWptRange/intTot_inWptRange
+            eff = 0.0
+            if intTot_inWptRange > 0.0:            
+                eff = intInDz_inWptRange/intTot_inWptRange
+            else:
+                eff = 1.05
             hists[key].SetBinContent(iwpt+1, eff)            
             print "bin %d) Wpt in [%.0f, %.0f] GeV: eff = %.1f" % (iwpt+1, wptBins[iwpt], wptBins[iwpt+1],100.*eff)
         #
@@ -122,6 +164,8 @@ if __name__ == "__main__":
             print "Empty overflow bin"
         print "\n"*2
     
+    sortkeys = sortkeys[:5]
+
     adjustSettings_CMS_lumi()    
     createPlotDirAndCopyPhp(outdir)
     canvas = ROOT.TCanvas("canvas","",900,900)
@@ -131,8 +175,6 @@ if __name__ == "__main__":
     canvas.SetLeftMargin(0.12)
     canvas.SetRightMargin(0.04)
     canvas.cd()
-    colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
-    markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
     if len(sortkeys) > len(colors):
         print "Warning: need to extend color array"
         quit()
@@ -158,7 +200,7 @@ if __name__ == "__main__":
             hists[k].GetYaxis().SetTitleOffset(1.15)
             hists[k].GetYaxis().SetTitleSize(0.05)
             hists[k].GetYaxis().SetLabelSize(0.04)
-            hists[k].GetYaxis().SetRangeUser(0.7,1)
+            hists[k].GetYaxis().SetRangeUser(effLow,effHigh)
     leg = ROOT.TLegend(0.15,0.15,0.9,0.35)
     leg.SetFillColor(0)
     leg.SetFillStyle(0)
@@ -228,12 +270,21 @@ if __name__ == "__main__":
     for ib in range(1,1+heffSel_passDz.GetNbinsX()):
         if ib == 1:
             lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
-                          0.7,
+                          0.75,
                           "#varepsilon(i)/#varepsilon(i-1)")            
         else:
+            a  = heffSel_passDz.GetBinContent(ib)
+            da = heffSel_passDz.GetBinError(ib)
+            b  = heffSel_passDz.GetBinContent(ib-1)
+            db = heffSel_passDz.GetBinError(ib-1)
+            ratio = a/b 
+            lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
+                          0.75,
+                          "{:.1f}%".format(100.*ratio))
+            err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
             lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
                           0.7,
-                          "{:.1f}%".format(100.*heffSel_passDz.GetBinContent(ib)/heffSel_passDz.GetBinContent(ib-1)))
+                          "{:.1f}%".format(100.*err))
     lat.SetTextColor(ROOT.kRed+2)
     for ib in range(1,1+heffSel_failDz.GetNbinsX()):
         if ib == 1:
@@ -241,9 +292,18 @@ if __name__ == "__main__":
                           0.6,
                           "#varepsilon(i)/#varepsilon(i-1)")            
         else:
+            a  = heffSel_failDz.GetBinContent(ib)
+            da = heffSel_failDz.GetBinError(ib)
+            b  = heffSel_failDz.GetBinContent(ib-1)
+            db = heffSel_failDz.GetBinError(ib-1)
+            ratio = a/b 
             lat.DrawLatex(-0.2+heffSel_failDz.GetXaxis().GetBinCenter(ib),
                           0.6,
-                          "{:.1f}%".format(100.*heffSel_failDz.GetBinContent(ib)/heffSel_failDz.GetBinContent(ib-1)))
+                          "{:.1f}%".format(100.*ratio))
+            err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
+            lat.DrawLatex(-0.2+heffSel_failDz.GetXaxis().GetBinCenter(ib),
+                          0.55,
+                          "{:.1f}%".format(100.*err))
     #
     for ext in ["png","pdf"]:
         csel.SaveAs(outdir + "/selectionEfficiency.{ext}".format(v=var,ext=ext))
