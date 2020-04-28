@@ -1,0 +1,7 @@
+## Let both leptons always pass the isolation
+cut-change: LepGood1_relIso04 : -1.
+cut-change: LepGood2_relIso04 : -1.
+#
+load-histo: FR_mu_i13 : $DATA/fakerate/fakeRateSmoothed_mu_fr_fitPol1_xMaxFit55_noLepSF.root : frSmoothParameter_data
+load-histo: PR_mu_i13 : $DATA/fakerate/fakeRateSmoothed_mu_fr_fitPol1_xMaxFit55_noLepSF.root : frSmoothParameter_ewk
+weight: fakeRateWeight_promptRateCorr_2l_i_smoothed(LepGood1_calPt,LepGood1_eta,LepGood1_pdgId,(LepGood1_relIso04<0.15),LepGood2_calPt,LepGood2_eta,LepGood2_pdgId,(LepGood2_relIso04<0.15),13)

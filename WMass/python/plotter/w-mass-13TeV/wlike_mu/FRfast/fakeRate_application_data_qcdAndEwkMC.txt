@@ -1,0 +1,7 @@
+## Let the first lepton always pass the loose isolation (1.0)
+## cut-change: LepGood1_relIso03: if3(LepGood1_relIso03 < 1., -1., 2.)
+cut-change: LepGood1_relIso04 : -1.
+#
+load-histo: FR_mu_i17 : $DATA/fakerate/muonFRandPR_fitFRpol2PRerf_xFit26to65_nativeMCatNLOxsec_reweightWZpt_withLepSF.root : fr_pt_eta_qcd
+load-histo: PR_mu_i17 : $DATA/fakerate/muonFRandPR_fitFRpol2PRerf_xFit26to65_nativeMCatNLOxsec_reweightWZpt_withLepSF.root : fr_pt_eta_ewk
+weight: fakeRateWeight_promptRateCorr_1l_i_smoothed(LepGood1_calPt,LepGood1_eta,LepGood1_pdgId,(LepGood1_relIso04<0.15),17,17)

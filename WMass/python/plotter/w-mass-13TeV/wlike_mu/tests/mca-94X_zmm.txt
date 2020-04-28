@@ -1,0 +1,108 @@
+## for trigger matching, can use either pT or DR, because I only need to require it is > 0 (set to -999 if no match)
+# all W decays
+
+
+data: SingleMuon_Run2016* : triggerMatchWlike(isOddEvent(evt),LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1])
+
+Z : ZJToMuMu_powhegMiNNLO_pythia8_testProd_*    : 1990.0   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04, AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0)"
+
+Zphotos : ZJToMuMu_powhegMiNNLO_pythia8_photos_*    : 1990.0   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04, AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)"
+
+ZphotosNoZpt : ZJToMuMu_powhegMiNNLO_pythia8_photos_*    : 1990.0   ; FillColor=ROOT.kRed+2 , Label="Z (noZpt)", NormSystematic=0.04, AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])"
+
+ZphotosNoWeight : ZJToMuMu_powhegMiNNLO_pythia8_photos_*    : 1990.0   ; FillColor=ROOT.kAzure , Label="Z no wgt", NormSystematic=0.04,
+
+ZphotosTestPilot : ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos*    : 1990.0   ; FillColor=ROOT.kRed+2 , Label="Z pilot", NormSystematic=0.01,
+
+
+ZphotosOLDROCCOR : ZJToMuMu_powhegMiNNLO_pythia8_photos_OLDROCCOR*    : 1990.0   ; FillColor=ROOT.kRed+2 , Label="Z (old Roch.corr)", NormSystematic=0.04, AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuPt[0]>0.0 || LepGood_matchedTrgObjTkMuPt[0] > 0.0)\,(LepGood_matchedTrgObjMuPt[1] >0.0 || LepGood_matchedTrgObjTkMuPt[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuPt[0]\,LepGood_matchedTrgObjMuPt[1]\,LepGood_matchedTrgObjTkMuPt[0]\,LepGood_matchedTrgObjTkMuPt[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)"
+
+ZphotosNEWROCCOR : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd*    : 1990.0   ; FillColor=ROOT.kAzure+2 , Label="Z (new Roch.corr)", NormSystematic=0.04, AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)"
+
+ZphotosNewPrefire : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd*    : 1990.0   ; FillColor=ROOT.kAzure+2 , Label="Z (new prefire)", AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)*jetPrefireSF_JetAll_Clean"
+
+# prefireJetsScaleFactor(nJetAll_Clean\,JetAll_Clean_pt[0]\,JetAll_Clean_eta[0]\,JetAll_Clean_pt[1]\,JetAll_Clean_eta[1]\,JetAll_Clean_pt[2]\,JetAll_Clean_eta[2])
+# 
+# prefireJetsScaleFactor(nJetAll_Clean,JetAll_Clean_pt[0],JetAll_Clean_eta[0],JetAll_Clean_pt[1],JetAll_Clean_eta[1],JetAll_Clean_pt[2],JetAll_Clean_eta[2])
+
+ZphotosOldPrefire : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd*    : 1990.0   ; FillColor=ROOT.kRed+2 , Label="Z (old prefire)",  AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)*prefireJetsWeight(returnChargeVal(LepGood1_eta\,LepGood1_charge\,LepGood2_eta\,LepGood2_charge\,evt))"
+
+ZphotosNoPrefire : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd*    : 1990.0   ; FillColor=ROOT.kBlack , Label="Z (no prefire)", AddWeight="triggerSFforChargedLeptonMatchingTriggerWlike(isOddEvent(evt)\,(LepGood_matchedTrgObjMuDR[0]>0.0 || LepGood_matchedTrgObjTkMuDR[0] > 0.0)\,(LepGood_matchedTrgObjMuDR[1] >0.0 || LepGood_matchedTrgObjTkMuDR[1]>0.0)\,LepGood_pdgId[0]\,LepGood_pdgId[1]\,LepGood_rocPt[0]\,LepGood_rocPt[1]\,LepGood_eta[0]\,LepGood_eta[1])* triggerMatchWlike(isOddEvent(evt)\,LepGood_matchedTrgObjMuDR[0]\,LepGood_matchedTrgObjMuDR[1]\,LepGood_matchedTrgObjTkMuDR[0]\,LepGood_matchedTrgObjTkMuDR[1]\,LepGood_pdgId[0]\,LepGood_pdgId[1])*dyptWeight_PowhegMiNNLO(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenLepDressed_pt[1]\,GenLepDressed_phi[1])\,1\,0\,1)"
+
+TopVV : TTLep_pow_part*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top\,VV", NormSystematic=0.09
+TopVV  : WW+WW_ext                           : xsec                             ; FillColor=ROOT.kOrange+2, Label="Top\,VV", NormSystematic=0.03
+TopVV  : WZ+WZ_ext                           : xsec                             ; FillColor=ROOT.kOrange+2, Label="Top\,VV", NormSystematic=0.05
+TopVV  : ZZ+ZZ_ext                           : xsec                             ; FillColor=ROOT.kOrange+2, Label="Top\,VV", NormSystematic=0.05
+
+Top2l : TTLep_pow_part*                      : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top (2l)", NormSystematic=0.09
+
+Top1l  : TTJets_SingleLeptonFromT_*          : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.09
+Top1l  : TTJets_SingleLeptonFromTbar_*       : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.09
+Top1l  : TToLeptons_sch_amcatnlo             : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : T_tch_powheg_part*                  : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : TBar_tch_powheg_part*               : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.04
+Top1l  : T_tWch_ext                          : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top (1l)", NormSystematic=0.06
+Top1l  : TBar_tWch_ext                       : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top\,VV", NormSystematic=0.06
+
+VV  : WW+WW_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.03
+VV  : WZ+WZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.05
+VV  : ZZ+ZZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="VV", NormSystematic=0.05
+
+VVssprompt  : WZ+WZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="WZ\,ZZ", NormSystematic=0.05
+VVssprompt  : ZZ+ZZ_ext                           : xsec                             ; FillColor=ROOT.kViolet+2, Label="WZ\,ZZ", NormSystematic=0.05
+
+
+W   : WJetsToLNu_* :60400.0 ; FillColor=ROOT.kRed+2  , AddWeight="dyptWeight(pt_2(GenLepDressed_pt[0]\,GenLepDressed_phi[0]\,GenPromptNu_pt[0]\,GenPromptNu_phi[0])\,0\,1)", Label="W", NormSystematic=0.038
+Wnopt   : WJetsToLNu_* :60400.0 ; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+
+
+Wtmp   : WJetsToLNu_part1+WJetsToLNu_part2+WJetsToLNu_part4+WJetsToLNu_part5 :60400.0 ; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+
+
+QCD  : QCD_Mu15_part*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt15to20_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt20to30_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt30to50_Mu5       : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt50to80_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt80to120_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt120to170_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt170to300_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt300to470_Mu5*      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt470to600_Mu5_ext      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt600to800_Mu5      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+# QCD  : QCD_Pt800to1000_Mu5_ext2      : xsec       ; FillColor=ROOT.kGray+1 , Label="QCD", NormSystematic=1.0
+
+
+QCD_Mu15  : QCD_Mu15_part*      : xsec       ; FillColor=ROOT.kRed+2 , Label="QCD mu15", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt15to20_Mu5       : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt20to30_Mu5       : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt30to50_Mu5       : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt50to80_Mu5      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt80to120_Mu5*      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt120to170_Mu5      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt170to300_Mu5*      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt300to470_Mu5*      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt470to600_Mu5_ext      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt600to800_Mu5      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+QCD_Mu5  : QCD_Pt800to1000_Mu5_ext2      : xsec       ; FillColor=ROOT.kBlue , Label="QCD mu5", NormSystematic=1.0
+
+# fakes: ss leptons in data subtracting prompt 2-ss-lepton processes, such as WZ and ZZ
+
+incl_datass           : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data_test.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
+incl_datass           : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-ssPrompt.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_promptSS.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
+
+
+newZ : ZJToMuMu_powhegMiNNLO_pythia8_testProd_*    : 1990.0   ; FillColor=ROOT.kBlue , Label="Z (new)", NormSystematic=0.04
+
+newZ_photos : ZJToMuMu_powhegMiNNLO_pythia8_photos_*    : 1990.0   ; FillColor=ROOT.kBlack , Label="Z (new\, photos)", NormSystematic=0.04
+
+oldZ  : DYJetsToLL_M5*    : 1990.0*3 :(GenLepDressed_pdgId[0] * GenLepDressed_pdgId[1]) == -169  ; FillColor=ROOT.kRed+2 , Label="Z (old)", NormSystematic=0.04
+
+newZ_someRecoCuts : ZJToMuMu_powhegMiNNLO_pythia8_testProd_*    : 1990.0: (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0) && nLepGood == 2 && LepGood1_pt > 23. && abs(LepGood1_eta)<2.4 && LepGood2_pt > 23. && abs(LepGood2_eta)<2.4 && LepGood1_pdgId*LepGood2_pdgId == -169 && LepGood1_mediumMuonId  > 0 && LepGood2_mediumMuonId  > 0   ; FillColor=ROOT.kRed+2 , Label="Z (new\, cuts)", NormSystematic=0.04
+
+newZ_photos_someRecoCuts : ZJToMuMu_powhegMiNNLO_pythia8_photos_*    : 1990.0: (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0) && nLepGood == 2 && LepGood1_pt > 23. && abs(LepGood1_eta)<2.4 && LepGood2_pt > 23. && abs(LepGood2_eta)<2.4 && LepGood1_pdgId*LepGood2_pdgId == -169 && LepGood1_mediumMuonId  > 0 && LepGood2_mediumMuonId  > 0   ; FillColor=ROOT.kGreen+2 , Label="Z (new\, photos\, cuts)", NormSystematic=0.04
+
+newZ_testCuts : ZJToMuMu_powhegMiNNLO_pythia8_testProd_*    : 1990.0: nLepGood > 0   ; FillColor=ROOT.kGreen+2 , Label="Z (new\, cuts)", NormSystematic=0.04
+
+
+incl_data_qcd           : + ; IncludeMca="w-mass-13TeV/wlike_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data_test.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes_qcd'

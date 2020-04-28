@@ -220,8 +220,8 @@ lepAna = cfg.Analyzer(
     # input collections
     muons='slimmedMuons',
     electrons='slimmedElectrons',
-    rhoMuon= 'fixedGridRhoFastjetCentralNeutral',
-    rhoElectron = 'fixedGridRhoFastjetCentralNeutral',
+    rhoMuon= 'fixedGridRhoFastjetCentralNeutral', # perhaps it should be fixedGridRhoFastjetAll but we use dBeta 
+    rhoElectron = 'fixedGridRhoFastjetAll', # was 'fixedGridRhoFastjetCentralNeutral',
     # energy scale corrections and ghost muon suppression (off by default)
     doMuonScaleCorrections=False,
     doElectronScaleCorrections=False, # "embedded" in 5.18 for regression
@@ -260,8 +260,8 @@ lepAna = cfg.Analyzer(
     mu_effectiveAreas = "Spring15_25ns_v1", #(can be 'Data2012' or 'Phys14_25ns_v1' or 'Spring15_25ns_v1')
     # electron isolation correction method (can be "rhoArea" or "deltaBeta")
     ele_isoCorr = "rhoArea" ,
-    ele_effectiveAreas = "Spring16_25ns_v1" , #(can be 'Data2012' or 'Phys14_25ns_v1' or 'Spring15_25ns_v1' or 'Spring15_50ns_v1')
-    ele_tightId = "Cuts_SPRING16_25ns_v1_ConvVetoDxyDz" ,
+    ele_effectiveAreas = "Fall17_25ns_v1" , #(can be 'Data2012' or 'Phys14_25ns_v1' or 'Spring15_25ns_v1' or 'Spring15_50ns_v1')
+    ele_tightId = "Cuts_FALL17_25ns_v1_ConvVetoDxyDz" ,
     # Mini-isolation, with pT dependent cone: will fill in the miniRelIso, miniRelIsoCharged, miniRelIsoNeutral variables of the leptons (see https://indico.cern.ch/event/368826/ )
     doMiniIsolation = False, # off by default since it requires access to all PFCandidates 
     packedCandidates = 'packedPFCandidates',

@@ -1822,4 +1822,8 @@ bool isEvenEvent(ULong64_t evt) {
 
 }
 
+float safeRatio(float num, float den, float safe = 1.0) {
+  return (den != 0.0) ? (num/den) : safe;
+}
+
 #endif
