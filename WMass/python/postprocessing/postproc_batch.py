@@ -25,11 +25,12 @@ DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "
                    #("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJet,muCalibrated,kamucaCentral,kamucaSyst"),
                    ("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJetAll,muCalibratedWithStatVar"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner,jetAllReCleaner"),
+                   ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
                    #("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJetsWithVertex"),
                    #("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJet,muCalibrated"),
                    #("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner"),
                    #("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
-                   ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"),
+                   ## only if you have forward jets!!!! ("CMGTools.WMass.postprocessing.examples.prefireSFProducerJets","prefireSFProducerJets"), # no longer needed, done in jetReCleaner
                    ##("CMGTools.WMass.postprocessing.examples.recoilTrainExtra","recoilTrainExtra"),
                    ]
 
