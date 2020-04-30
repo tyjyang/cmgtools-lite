@@ -176,9 +176,8 @@ class GenQEDJetProducer(Module):
         return idx_map[(mur,muf)]
 
     def bwWeight(self,genMass,imass, isW):
-        # default mass calculated from MG5 inputs
-        # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 +/- 7.65e-06 (GeV)
-        (m0,gamma) = (80419.,2050.0) if isW else (91187.6, 2495.2) # MeV . the Z values are from the PDG, not from the MC production!!!
+        # mass and width from MiNNLO samples, using PDG inputs + width-dependent scheme https://indico.cern.ch/event/908015/contributions/3820269
+        (m0,gamma) = (80351.972,2084.299) if isW else (91153.481, 2494.266) # MeV 
         newmass = m0 + imass*5.
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - newmass*newmass,2) + pow(gamma*newmass,2))
@@ -539,18 +538,18 @@ class GenQEDJetProducer(Module):
 
             ## set here the nominal weight for the PDF set we want to use:
             ## the index should be:
-            ##   9 for NNPDF31_nnlo_hessian_pdfas
-            ## 120 for NNPDF31_nnlo_as_0118_CMSW1_hessian_100, where: CMSW1 => No CMS W data
-            ## 221 for NNPDF31_nnlo_as_0118_CMSW2_hessian_100, where: CMSW2 => No collider W data
-            ## 322 for NNPDF31_nnlo_as_0118_CMSW3_hessian_100, where: CMSW3 => No CMS W,Z data
-            ## 423 for NNPDF31_nnlo_as_0118_CMSW4_hessian_100, where: CMSW4 => No collider W,Z data
-            ## 524 for CT14nnlo             ATTENTION, number of hessianWeights is: 29
-            ## 583 for MMHT2014nnlo68cl     ATTENTION, number of hessianWeights is: 51, alphaS separate
-            ## 637 for ABMP16_5_nnlo        ATTENTION, number of hessianWeights is: 30
-            ## 667 for HERAPDF20_NNLO_EIG   ATTENTION, number of hessianWeights is: 29
-            ## 696 for HERAPDF20_NNLO_VAR   ATTENTION, number of hessianWeights is: 14, alphaS separate
+            ##  18 for NNPDF31_nnlo_hessian_pdfas
+            ## 129 for NNPDF31_nnlo_as_0118_CMSW1_hessian_100, where: CMSW1 => No CMS W data
+            ## 230 for NNPDF31_nnlo_as_0118_CMSW2_hessian_100, where: CMSW2 => No collider W data
+            ## 331 for NNPDF31_nnlo_as_0118_CMSW3_hessian_100, where: CMSW3 => No CMS W,Z data
+            ## 432 for NNPDF31_nnlo_as_0118_CMSW4_hessian_100, where: CMSW4 => No collider W,Z data
+            ## 533 for CT14nnlo             ATTENTION, number of hessianWeights is: 29
+            ## 592 for MMHT2014nnlo68cl     ATTENTION, number of hessianWeights is: 51, alphaS separate
+            ## 646 for ABMP16_5_nnlo        ATTENTION, number of hessianWeights is: 30
+            ## 676 for HERAPDF20_NNLO_EIG   ATTENTION, number of hessianWeights is: 29
+            ## 705 for HERAPDF20_NNLO_VAR   ATTENTION, number of hessianWeights is: 14, alphaS separate
 
-            centralPDFIndex  = 423 ## for CMSW4
+            centralPDFIndex  = 432 ## for CMSW4
             centralPDFWeight = lheweights[centralPDFIndex] ## 423 for CMSW4
 
             ## the PDF variations are saved as ratios w/r/t the nominal weight of the selected sample

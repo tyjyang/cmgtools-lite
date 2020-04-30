@@ -21,7 +21,7 @@ ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos = kreator.makeMCComponent("ZJToMuMu
 
 
 # for private usage with some files
-myFiles = [f.strip() for f in open("%s/src/CMGTools/WMass/cfg/ZJToMuMu_mWPilot_listOn28April2020_first100files.txt" % os.environ['CMSSW_BASE'], "r")]
+myFiles = [f.strip() for f in open("%s/src/CMGTools/WMass/cfg/ZJToMuMu_mWPilot_listOn28April2020_files.txt" % os.environ['CMSSW_BASE'], "r")]
 PARTIAL_ZJToMuMu_mWPilot = kreator.makePrivateMCComponent('PARTIAL_ZJToMuMu_mWPilot',  '/ZJToMuMu_mWPilot_TuneCP5_13TeV-powheg-MiNNLO-pythia8-photos/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3-v1/MINIAODSIM', myFiles, 2008.4 )
 
 

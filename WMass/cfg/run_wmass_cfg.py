@@ -487,7 +487,7 @@ if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x'
         #comp = ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos
         #comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv3/ZJToMuMu_mWPilot_TuneCP5_13TeV-powheg-MiNNLO-pythia8-photos/MINIAODSIM/PUMoriond17_94X_mcRun2_asymptotic_v3-v1/250000/D24DA931-7882-EA11-AAC9-0CC47A4D7634.root']
         comp = PARTIAL_ZJToMuMu_mWPilot
-        comp.files = comp.files[:50]
+        comp.files = comp.files[:1]
     elif test =='testz94x':
         comp = ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
         comp.files = comp.files[:1]
