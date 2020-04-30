@@ -98,7 +98,9 @@ class GenQEDJetProducer(Module):
         self.pdfWeightOffset = 9 #index of first mc replica weight (careful, this should not be the nominal weight, which is repeated in some mc samples).  The majority of run2 LO madgraph_aMC@NLO samples with 5fs matrix element and pdf would use index 10, corresponding to pdf set 263001, the first alternate mc replica for the nominal pdf set 263000 used for these samples
         self.nMCReplicasWeights = 100 #number of input weights (100 for NNPDF 3.0)
         self.nHessianWeights    = 100 #number of hessian weights in the MC
-        self.massWeights = range(-20,21) ## order them by integer range(80300, 80505, 5) #masses in MeV
+        self.massBWWeights = range(-20,21) ## order them by integer range(80300, 80505, 5) #masses in MeV
+        self.massWeightsIdx = 844
+        self.massWeights = [91087.6+i*10 for i in range(21)]
         if "PDFWeightsHelper_cc.so" not in ROOT.gSystem.GetLibraries():
             ROOT.gROOT.ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include")
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/PDFWeightsHelper.cc+" % os.environ['CMSSW_BASE'])
@@ -135,9 +137,12 @@ class GenQEDJetProducer(Module):
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
-        for imass in self.massWeights:
+        for imass in self.massBWWeights:
             masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
             self.out.branch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), "F")
+        for m in self.massWeights:
+            self.out.branch("mass_shift{0}{1}".format(*self.massShiftAndType(m)), "F")
+
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 
@@ -174,6 +179,11 @@ class GenQEDJetProducer(Module):
         idx_map[("Dn","Dn")] = 8
         if (mur,muf) not in idx_map: raise Exception('Scale variation muR={mur},muF={muf}'.format(mur=mur,muf=muf))
         return idx_map[(mur,muf)]
+
+
+    def massShiftAndType(self, mass):
+        shift = int((mass - 91187.6))
+        return (str(abs(shift)), "Up" if shift > 0 else "Down")
 
     def bwWeight(self,genMass,imass, isW):
         # mass and width from MiNNLO samples, using PDG inputs + width-dependent scheme https://indico.cern.ch/event/908015/contributions/3820269
@@ -470,9 +480,11 @@ class GenQEDJetProducer(Module):
                 kv = KinematicVars(self.beamEn)
                 self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
                 self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
-                for imass in self.massWeights:
+                for imass in self.massBWWeights:
                     masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                     self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass,isW=isWBoson))
+                for m in self.massWeights:
+                    self.out.fillBranch("mass_%s" % str(m).replace(".", "p"))
 
         #if len(dressedLeptonCollection) == 2 or (len(dressedLeptonCollection) == 1 and neutrino):
         if len(dressedLeptonCollection):
@@ -500,7 +512,7 @@ class GenQEDJetProducer(Module):
             kv = KinematicVars(self.beamEn)
             self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
             self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
-            for imass in self.massWeights:
+            for imass in self.massBWWeights:
                 masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                 self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
 
@@ -521,7 +533,7 @@ class GenQEDJetProducer(Module):
             for V in self.genwvars:
                 self.out.fillBranch("genw_"+V   , -999)
                 if not self.noSavePreFSR: self.out.fillBranch("prefsrw_"+V, -999)
-            for imass in self.massWeights:
+            for imass in self.massBWWeights:
                 masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                 self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), 1.)
 
@@ -566,6 +578,10 @@ class GenQEDJetProducer(Module):
                 
                 ## alphaS now different in new MC. CMSW4 does not have a alphaS variation, so taking the one of the nominal PDF set
                 self.out.fillBranch("qcd_alphaS{idir}".format(idir=idir), lheweights[110+ii] ) ## 110 is alphaS-up of nominal pdf set, 111 is alphaS-down of nominal pdf set
+
+            if len(lhe_wgts) > (self.massWeightsIdx+len(self.massWeights)):
+                for i, m in enumerate(self.massWeights):
+                    self.out.fillBranch("mass_shift{0}{1}".format(*self.massShiftAndType(m)), lheweights[i+self.massWeightsIdx]/qcd0Wgt)
 
         ## save the central PDF weight that is either 1. or set in the previous block of code
         self.out.fillBranch("pdfCentralWgt", centralPDFWeight )
