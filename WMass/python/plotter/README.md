@@ -59,7 +59,7 @@ This is harmless, because it happens only once the tree is safely produced.
 
 ### resubmit friends
 ```
-./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000
+./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000 -l <logdir>
 ```
 Then merge. First create a dir where to put the chunks. Make on the same filesystem where the chunks are to make the mv fast (no copy of the files)
 The scripts expects the directory "Chunks", so link it
@@ -73,3 +73,6 @@ Then do a final check:
 ```
 python scripts/checkMergedFriends.py <mainTreeDir>
 ```
+checkMergedFriends.py also has some useful options
+1) --sp to select only some samples to check accroding to a regular expression
+2) --skipFriend to check only sanity of main trees (mainly useful before running friends)

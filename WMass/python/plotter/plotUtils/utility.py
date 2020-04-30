@@ -1001,7 +1001,8 @@ def drawNTH1(hists=[],
         ROOT.gStyle.SetOptStat(1110)
         ROOT.gStyle.SetOptFit(1102)
     else:
-        h1.SetStats(0)
+        for htmp in hists:
+            htmp.SetStats(0)
 
     vertline = ROOT.TLine(36,0,36,canvas.GetUymax())
     vertline.SetLineColor(ROOT.kBlack)
@@ -1100,31 +1101,47 @@ def drawNTH1(hists=[],
         frame.GetXaxis().SetTitleOffset(1.2)
         frame.GetXaxis().SetTitleSize(0.05)
 
-        ratio = h1.Clone("ratio")
-        den_noerr = h1.Clone("den_noerr")
-        for iBin in range (1,den_noerr.GetNbinsX()+1):
-            den_noerr.SetBinError(iBin,0.)
+        if len(hists) == 2:
+            ratio = h1.Clone("ratio")
+            den = hnums[0].Clone("den")
+            den_noerr = hnums[0].Clone("den_noerr")
+            for iBin in range (1,den_noerr.GetNbinsX()+1):
+                den_noerr.SetBinError(iBin,0.)
+            den.Divide(den_noerr)
+            ratio.Divide(den_noerr)
+            den.SetFillColor(ROOT.kGray)
+            #den_noerr.SetFillColor(ROOT.kGray)
+            frame.Draw()
+            frame.SetMarkerSize(0)
+            frame.SetMarkerStyle(0) # important to remove dots at y = 1
+            den.Draw("E2same")
+            ratio.Draw("EPSAME")
+        else:
+            ratio = h1.Clone("ratio")
+            den_noerr = h1.Clone("den_noerr")
+            for iBin in range (1,den_noerr.GetNbinsX()+1):
+                den_noerr.SetBinError(iBin,0.)
 
-        ratio.Divide(den_noerr)
-        ratio.SetFillColor(ROOT.kGray)
-        #den_noerr.SetFillColor(ROOT.kGray)
-        frame.Draw()
-        ratio.SetMarkerSize(0)
-        ratio.SetMarkerStyle(0) # important to remove dots at y = 1
-        ratio.Draw("E2same")
+            ratio.Divide(den_noerr)
+            ratio.SetFillColor(ROOT.kGray)
+            #den_noerr.SetFillColor(ROOT.kGray)
+            frame.Draw()
+            ratio.SetMarkerSize(0)
+            ratio.SetMarkerStyle(0) # important to remove dots at y = 1
+            ratio.Draw("E2same")
 
-        ratios = []
-        for i,h in enumerate(hnums):
-            ratios.append(h.Clone("ratio_"+str(i+1)))
-            ratios[-1].Divide(den_noerr)
-            #ratios[-1].SetLineColor(h.GetLineColor())
-            #ratios[-1].SetMarkerSize(0)
-            #ratios[-1].SetMarkerStyle(0)
-            #ratios[-1].SetFillColor(0)
-            if h.GetFillColor():
-                ratios[-1].Draw("E2 SAME")
-            else:
-                ratios[-1].Draw("HIST SAME")
+            ratios = []
+            for i,h in enumerate(hnums):
+                ratios.append(h.Clone("ratio_"+str(i+1)))
+                ratios[-1].Divide(den_noerr)
+                #ratios[-1].SetLineColor(h.GetLineColor())
+                #ratios[-1].SetMarkerSize(0)
+                #ratios[-1].SetMarkerStyle(0)
+                #ratios[-1].SetFillColor(0)
+                if h.GetFillColor():
+                    ratios[-1].Draw("E2 SAME")
+                else:
+                    ratios[-1].Draw("HIST SAME")
 
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kBlack)

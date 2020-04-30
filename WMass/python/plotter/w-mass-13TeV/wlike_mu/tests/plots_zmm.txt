@@ -38,6 +38,8 @@ pt__eta: returnChargeVal(LepGood1_rocPt,LepGood1_charge,LepGood2_rocPt,LepGood2_
 
 pt__eta_both: LepGood_rocPt\:LepGood1_eta: 48,-2.4,2.4,30,26,56 ; XTitle='both muon #eta', YTitle='both muon p_{T} [GeV]', Legend='TR'
 
+zptuncorr: pt_2(LepGood1_pt,LepGood1_phi,LepGood2_pt,LepGood2_phi): 50,0,100 ; XTitle="reconstructed Z p_{T} (pT no corr.) [GeV]", Legend='TR'
+
 zpt: pt_2(LepGood1_rocPt,LepGood1_phi,LepGood2_rocPt,LepGood2_phi): 50,0,100 ; XTitle="reconstructed Z p_{T} [GeV]", Legend='TR'
 
 zrapidity: rapidity_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,LepGood1_mass,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,LepGood2_mass): 70,-3.5,3.5 ; XTitle="reconstructed Z rapidity", Legend='TR'
@@ -102,3 +104,7 @@ jetPrefireSF_full: prefireJetsScaleFactor(nJetAll_Clean,JetAll_Clean_pt[0],JetAl
 jetPrefireSF_full_v2: jetPrefireSF_JetAll_Clean:  101,0.005,1.015 ; XTitle="jet prefire scale factor", Legend='TC', IncludeOverflows=True, Logy=True
 
 zmass__eta: mass_2(LepGood1_rocPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_rocPt,LepGood2_eta,LepGood2_phi,0.1057)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,60,60,120 ; XTitle='muon #eta', YTitle='m(#mu#mu) [GeV]', Legend='TR'
+
+
+nTrueInt: nTrueInt : 100,0,100 ; XTitle="number of true PU interactions", Legend='TC'
+
