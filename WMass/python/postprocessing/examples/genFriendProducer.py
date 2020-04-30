@@ -98,7 +98,9 @@ class GenQEDJetProducer(Module):
         self.pdfWeightOffset = 9 #index of first mc replica weight (careful, this should not be the nominal weight, which is repeated in some mc samples).  The majority of run2 LO madgraph_aMC@NLO samples with 5fs matrix element and pdf would use index 10, corresponding to pdf set 263001, the first alternate mc replica for the nominal pdf set 263000 used for these samples
         self.nMCReplicasWeights = 100 #number of input weights (100 for NNPDF 3.0)
         self.nHessianWeights    = 100 #number of hessian weights in the MC
-        self.massWeights = range(-20,21) ## order them by integer range(80300, 80505, 5) #masses in MeV
+        self.massBWWeights = range(-20,21) ## order them by integer range(80300, 80505, 5) #masses in MeV
+        self.massWeightsIdx = 844
+        self.massWeights = [-100+i*10 for i in range(21)] 
         if "PDFWeightsHelper_cc.so" not in ROOT.gSystem.GetLibraries():
             ROOT.gROOT.ProcessLine(".include /cvmfs/cms.cern.ch/slc6_amd64_gcc530/external/eigen/3.2.2/include")
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/PDFWeightsHelper.cc+" % os.environ['CMSSW_BASE'])
@@ -135,9 +137,12 @@ class GenQEDJetProducer(Module):
         for scale in ['muR','muF',"muRmuF","alphaS"]:
             for idir in ['Up','Dn']:
                 self.out.branch("qcd_{scale}{idir}".format(scale=scale,idir=idir), "H")
-        for imass in self.massWeights:
+        for imass in self.massBWWeights:
             masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
             self.out.branch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), "F")
+        for m in self.massWeights:
+            self.out.branch("mass_shift{0}MeV{1}".format(*self.massShiftAndType(m)), "F")
+
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 
@@ -175,10 +180,14 @@ class GenQEDJetProducer(Module):
         if (mur,muf) not in idx_map: raise Exception('Scale variation muR={mur},muF={muf}'.format(mur=mur,muf=muf))
         return idx_map[(mur,muf)]
 
-    def bwWeight(self,genMass,imass, isW):
-        # default mass calculated from MG5 inputs
-        # width calculated with MG5_aMC_v2_6_3_2 loop_sm-ckm_no_b_mass for w+ > all all --> 2.05 +/- 7.65e-06 (GeV)
-        (m0,gamma) = (80419.,2050.0) if isW else (91187.6, 2495.2) # MeV . the Z values are from the PDG, not from the MC production!!!
+
+    # Leaving this trivial function in case we want to make it more intelligent later
+    def massShiftAndType(self, shift):
+        return (str(abs(shift)), "Up" if shift > 0 else "Down")
+
+    def bwWeight(self,genMass,imass,isW):
+        # mass and width from MiNNLO samples, using PDG inputs + width-dependent scheme https://indico.cern.ch/event/908015/contributions/3820269
+        (m0,gamma) = (80351.972,2084.299) if isW else (91153.481, 2494.266) # MeV 
         newmass = m0 + imass*5.
         s_hat = pow(genMass,2)
         return (pow(s_hat - m0*m0,2) + pow(gamma*m0,2)) / (pow(s_hat - newmass*newmass,2) + pow(gamma*newmass,2))
@@ -471,7 +480,7 @@ class GenQEDJetProducer(Module):
                 kv = KinematicVars(self.beamEn)
                 self.out.fillBranch("prefsrw_costcs" , kv.cosThetaCS(lplus, lminus))
                 self.out.fillBranch("prefsrw_phics"  , kv.phiCS     (lplus, lminus))
-                for imass in self.massWeights:
+                for imass in self.massBWWeights:
                     masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                     self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=prefsrw.M()*1000,imass=imass,isW=isWBoson))
 
@@ -501,7 +510,7 @@ class GenQEDJetProducer(Module):
             kv = KinematicVars(self.beamEn)
             self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
             self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
-            for imass in self.massWeights:
+            for imass in self.massBWWeights:
                 masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                 self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
 
@@ -522,7 +531,7 @@ class GenQEDJetProducer(Module):
             for V in self.genwvars:
                 self.out.fillBranch("genw_"+V   , -999)
                 if not self.noSavePreFSR: self.out.fillBranch("prefsrw_"+V, -999)
-            for imass in self.massWeights:
+            for imass in self.massBWWeights:
                 masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
                 self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), 1.)
 
@@ -539,18 +548,18 @@ class GenQEDJetProducer(Module):
 
             ## set here the nominal weight for the PDF set we want to use:
             ## the index should be:
-            ##   9 for NNPDF31_nnlo_hessian_pdfas
-            ## 120 for NNPDF31_nnlo_as_0118_CMSW1_hessian_100, where: CMSW1 => No CMS W data
-            ## 221 for NNPDF31_nnlo_as_0118_CMSW2_hessian_100, where: CMSW2 => No collider W data
-            ## 322 for NNPDF31_nnlo_as_0118_CMSW3_hessian_100, where: CMSW3 => No CMS W,Z data
-            ## 423 for NNPDF31_nnlo_as_0118_CMSW4_hessian_100, where: CMSW4 => No collider W,Z data
-            ## 524 for CT14nnlo             ATTENTION, number of hessianWeights is: 29
-            ## 583 for MMHT2014nnlo68cl     ATTENTION, number of hessianWeights is: 51, alphaS separate
-            ## 637 for ABMP16_5_nnlo        ATTENTION, number of hessianWeights is: 30
-            ## 667 for HERAPDF20_NNLO_EIG   ATTENTION, number of hessianWeights is: 29
-            ## 696 for HERAPDF20_NNLO_VAR   ATTENTION, number of hessianWeights is: 14, alphaS separate
+            ##  18 for NNPDF31_nnlo_hessian_pdfas
+            ## 129 for NNPDF31_nnlo_as_0118_CMSW1_hessian_100, where: CMSW1 => No CMS W data
+            ## 230 for NNPDF31_nnlo_as_0118_CMSW2_hessian_100, where: CMSW2 => No collider W data
+            ## 331 for NNPDF31_nnlo_as_0118_CMSW3_hessian_100, where: CMSW3 => No CMS W,Z data
+            ## 432 for NNPDF31_nnlo_as_0118_CMSW4_hessian_100, where: CMSW4 => No collider W,Z data
+            ## 533 for CT14nnlo             ATTENTION, number of hessianWeights is: 29
+            ## 592 for MMHT2014nnlo68cl     ATTENTION, number of hessianWeights is: 51, alphaS separate
+            ## 646 for ABMP16_5_nnlo        ATTENTION, number of hessianWeights is: 30
+            ## 676 for HERAPDF20_NNLO_EIG   ATTENTION, number of hessianWeights is: 29
+            ## 705 for HERAPDF20_NNLO_VAR   ATTENTION, number of hessianWeights is: 14, alphaS separate
 
-            centralPDFIndex  = 423 ## for CMSW4
+            centralPDFIndex  = 432 ## for CMSW4
             centralPDFWeight = lheweights[centralPDFIndex] ## 423 for CMSW4
 
             ## the PDF variations are saved as ratios w/r/t the nominal weight of the selected sample
@@ -567,6 +576,10 @@ class GenQEDJetProducer(Module):
                 
                 ## alphaS now different in new MC. CMSW4 does not have a alphaS variation, so taking the one of the nominal PDF set
                 self.out.fillBranch("qcd_alphaS{idir}".format(idir=idir), lheweights[110+ii] ) ## 110 is alphaS-up of nominal pdf set, 111 is alphaS-down of nominal pdf set
+
+            if len(lhe_wgts) > (self.massWeightsIdx+len(self.massWeights)):
+                for i, m in enumerate(self.massWeights):
+                    self.out.fillBranch("mass_shift{0}MeV{1}".format(*self.massShiftAndType(m)), lheweights[i+self.massWeightsIdx]/qcd0Wgt)
 
         ## save the central PDF weight that is either 1. or set in the previous block of code
         self.out.fillBranch("pdfCentralWgt", centralPDFWeight )
