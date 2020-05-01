@@ -343,8 +343,8 @@ def drawCorrelationPlot(h2D_tmp,
     adjustSettings_CMS_lumi()
 
     if (rebinFactorX): 
-        if isinstance(rebinFactorX, int): h2D_tmp.RebinY(rebinFactorX)
-        else:                             h2D_tmp.RebinY(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
+        if isinstance(rebinFactorX, int): h2D_tmp.RebinX(rebinFactorX)
+        else:                             h2D_tmp.RebinX(len(rebinFactorX)-1,"",array('d',rebinFactorX)) # case in which rebinFactorX is a list of bin edges
 
     if (rebinFactorY): 
         if isinstance(rebinFactorY, int): h2D_tmp.RebinY(rebinFactorY)
