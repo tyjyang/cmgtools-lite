@@ -355,9 +355,11 @@ class GenQEDJetProducer(Module):
         ## new to work also for Z
         if not self.noSavePreFSR:
             preFSRLeptonsAndPdgIds = self.getPreFSRLepton() if makeBosons else []
+            # let's save all preFSR leptons. If one wants to save space then it should be better to 
+            # save two opposite sign leptons rather than the leading 2
             # ## take the two hardest preFSR leptons if there are 4, which happens with photos
-            if len(preFSRLeptonsAndPdgIds) == 4:
-                preFSRLeptonsAndPdgIds = preFSRLeptonsAndPdgIds[:2]
+            #if len(preFSRLeptonsAndPdgIds) == 4:
+            #    preFSRLeptonsAndPdgIds = preFSRLeptonsAndPdgIds[:2]
 
         ## keep commented to save all particles
         #
@@ -453,9 +455,6 @@ class GenQEDJetProducer(Module):
             # there should be 2 or 4 (for photos), when there are 4 the first 2 are saved
             # but I might want to save all
             #if len(preFSRLeptonsAndPdgIds) == 2 or (len(preFSRLeptonsAndPdgIds) == 1 and neutrino):
-            if len(preFSRLeptonsAndPdgIds):
-
-
                 if not neutrino: ## these are Zs
                     isWBoson = False
                     prefsrw = preFSRLeptonsAndPdgIds[0][0] + preFSRLeptonsAndPdgIds[1][0]
@@ -510,9 +509,10 @@ class GenQEDJetProducer(Module):
             kv = KinematicVars(self.beamEn)
             self.out.fillBranch("genw_costcs" , kv.cosThetaCS(lplus, lminus))
             self.out.fillBranch("genw_phics"  , kv.phiCS     (lplus, lminus))
-            for imass in self.massBWWeights:
-                masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
-                self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
+            ## filling mass weights must be done on preFSR only
+            #for imass in self.massBWWeights:
+            #    masssign = 'm' if imass < 0 else 'p' if imass > 0 else ''
+            #    self.out.fillBranch("mass_{s}{mass}".format(s=masssign,mass=abs(imass)), self.bwWeight(genMass=genw.M()*1000,imass=imass,isW=isWBoson))
 
             ## remove these variables to save space
             #self.out.fillBranch("genw_mt"   , sqrt(2*lplus.Pt()*lminus.Pt()*(1.-cos(deltaPhi(lplus.Phi(),lminus.Phi())) )))
@@ -520,7 +520,7 @@ class GenQEDJetProducer(Module):
             #self.out.fillBranch("genw_phi",genw.Phi())
             #self.out.fillBranch("genw_costcm",kv.cosThetaCM(lplus,lminus))
             #self.out.fillBranch("genw_cost2d",kv.cosTheta2D(genw,dressedLeptons[0]))
-        else: ## no neutrino found!
+        else: ## no dressed lepton
             ##if not len(dressedLeptons): 
             ##    print '================================'
             ##    print 'no dressed leptons found!'
@@ -589,6 +589,6 @@ class GenQEDJetProducer(Module):
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
 genQEDJets14TeV = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=7000.)
-genQEDJets = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=6500.,noSavePreFSR=True)
+genQEDJets = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=6500.,noSavePreFSR=False)
 genQEDJetsWithVertex = lambda : GenQEDJetProducer(deltaR=0.1,beamEn=6500.,saveVertexZ=True, noSavePreFSR=True)
 

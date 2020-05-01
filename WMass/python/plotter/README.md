@@ -42,14 +42,24 @@ First to an interactive test with few events:
 ```
 python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -d <dastasetName> -c 0 -N 20000
 ```
+<friendsDir> will generally be <mainTreeDir>/friends/ but it is not mandatory
 Then flood condor (4hrs / 250k events)
 ```
 python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -N 250000  --submit  --runtime 240
 ```
+Number passed to runtime is in minutes
+Note that the test will likely end with an error message as the follwoing
+```
+Traceback (most recent call last):
+  File "postproc_batch.py", line 277, in <module>
+    ret = dict(map(_runIt, jobs))
+TypeError: cannot convert dictionary update sequence element #0 to a sequence
+```
+This is harmless, because it happens only once the tree is safely produced.
 
 ### resubmit friends
 ```
-./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000
+./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000 -l <logdir>
 ```
 Then merge. First create a dir where to put the chunks. Make on the same filesystem where the chunks are to make the mv fast (no copy of the files)
 The scripts expects the directory "Chunks", so link it
@@ -63,3 +73,6 @@ Then do a final check:
 ```
 python scripts/checkMergedFriends.py <mainTreeDir>
 ```
+checkMergedFriends.py also has some useful options
+1) --sp to select only some samples to check accroding to a regular expression
+2) --skipFriend to check only sanity of main trees (mainly useful before running friends)
