@@ -268,8 +268,8 @@ if __name__ == "__main__":
 
 
     nuisances = []; nuisances_indices = []
-    for ib in xrange(1,impMat.GetNbinsY()+1):
-        for n in nuis_regexps:
+    for n in nuis_regexps:
+        for ib in xrange(1,impMat.GetNbinsY()+1):
             thislabel = impMat.GetYaxis().GetBinLabel(ib)
             if re.match(n, thislabel):
                 nuisances.append(thislabel)
@@ -358,10 +358,10 @@ if __name__ == "__main__":
                 val = mat[(x,y)]
             else: 
                 val = 100*mat[(x,y)]/valuesAndErrors[x][0] if valuesAndErrors[x][0] !=0 else 0.0
-            th2_sub.SetBinContent(i+1, j+1, abs(val) if options.absValue else val)
+            th2_sub.SetBinContent(i+1, j+1, abs(val) if options.absValue else val)            
             ## set the labels correctly
             new_x = niceName(x)
-            new_y = niceName(y)
+            new_y = y #new_y = niceName(y) # not needed for groups, it doesn't change it
             th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
             th2_sub.GetYaxis().SetBinLabel(j+1, new_y)
             
@@ -432,20 +432,8 @@ if __name__ == "__main__":
             bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
 
         summaries = {}
-        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
-        print "GROUPS = ",groups
-        ## hack to have the same sorting in the legend of 2D xsec in the paper
-        sortedGroups = []
-        for ng in groups:
-            if 'EffStat' in ng:       sortedGroups.append((ng,0))
-            if 'Fakes' in ng:         sortedGroups.append((ng,1))
-            if 'QCDTheo' in ng:       sortedGroups.append((ng,2))
-            if 'pdfs' in ng:          sortedGroups.append((ng,3))
-            if 'stat' in ng:          sortedGroups.append((ng,4))
-            if 'binByBinStat' in ng:  sortedGroups.append((ng,5))
-            if 'Total' in ng:         sortedGroups.append((ng,6))
-        sortedGroups = sorted(sortedGroups, key=lambda ng: ng[1])
-        sortedGroups = [ng[0] for ng in sortedGroups]
+        sortedGroups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        print "GROUPS = ",sortedGroups
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         polarizations = ['unpolarized'] if re.match('^unpol|^A\d',options.target) else ['left','right','long']
         cp = 'plus_left' # groups assume a common Y binning
@@ -607,17 +595,14 @@ if __name__ == "__main__":
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
 
         summaries = {}
-        groups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
-        # hack: swap two entries to comply with the order for helicity, they are probably not the same because of
-        # the groups defined in the card
-        tmp = groups[0] 
-        groups[0] = groups[1]
-        groups[1] = tmp
+        sortedGroups = [th2_sub.GetYaxis().GetBinLabel(j+1) for j in xrange(th2_sub.GetNbinsY())]
+        print "GROUPS"
+        print sortedGroups
         charges = ['allcharges'] if 'asym' in options.target else ['plus','minus']
         for charge in charges:
             ing = 0
             ing2 = 0
-            for ing_tmp,nuisgroup in enumerate(groups):
+            for ing_tmp,nuisgroup in enumerate(sortedGroups):
                 # in case we add other lines, let's avoid messing up all the colors of the old ones
                 # I define a new integer counter that is not updated on certain conditions
                 h = None
@@ -643,8 +628,8 @@ if __name__ == "__main__":
                 # summaries[(charge,nuisgroup)].GetYaxis().SetLabelSize(0.04)
                 # summaries[(charge,nuisgroup)].GetYaxis().SetTitleOffset(0.7)
                 # if nuisgroup in ["QEDTheo","L1Prefire"]:
-                #     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(groups)+ing2+1))
-                #     summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(groups)+ing2+1))
+                #     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(len(sortedGroups)+ing2+1))
+                #     summaries[(charge,nuisgroup)].SetLineColor(utilities.safecolor(len(sortedGroups)+ing2+1))
                 #     ing2 += 1
                 # else:
                 #     summaries[(charge,nuisgroup)].SetMarkerColor(utilities.safecolor(ing+1))
@@ -657,7 +642,7 @@ if __name__ == "__main__":
                     summaries[(charge,nuisgroup)].GetYaxis().SetRangeUser(yAxisRange_target[options.target][0],
                                                                           yAxisRange_target[options.target][1])
                     summaries[(charge,nuisgroup)].GetYaxis().SetTitle('Relative uncertainty (%)')
-        for j,nuisgroup in enumerate(groups):
+        for j,nuisgroup in enumerate(sortedGroups):
             for i in xrange(th2_sub.GetNbinsX()):
                 lbl = th2_sub.GetXaxis().GetBinLabel(i+1)
                 # we expect something like "el: W+ i#eta, ip_T = 3, 5" we need to get 3 
@@ -754,9 +739,9 @@ if __name__ == "__main__":
             lat.SetTextFont(42)
             xmin = 0.0
             xmax = 1.0
-            quadrsum = summaries[(charge,groups[0])].Clone('quadrsum_{ch}'.format(ch=charge))
+            quadrsum = summaries[(charge,sortedGroups[0])].Clone('quadrsum_{ch}'.format(ch=charge))
             totalerr = quadrsum.Clone('totalerr_{ch}'.format(ch=charge))
-            for ing,ng in enumerate(groups):
+            for ing,ng in enumerate(sortedGroups):
                 drawopt = 'pl' if ing==0 else 'pl same'
                 summaries[(charge,ng)].Draw(drawopt)                
                 if ing == 0: 
@@ -795,7 +780,7 @@ if __name__ == "__main__":
                 # else: 
                 #     summaries[(charge,ng)].SetMarkerStyle(ROOT.kFullTriangleUp+ing)
                 leg.AddEntry(summaries[(charge,ng)], niceSystName(ng), 'pl')
-                # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis groups)
+                # now compute the quadrature sum of all the uncertainties (neglecting correlations among nuis sortedGroups)
                 for y in xrange(quadrsum.GetNbinsX()):
                     if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
                         if options.ptMinSignal > 0 and genBins.ptBins[int(y)] < options.ptMinSignal:
@@ -849,7 +834,7 @@ if __name__ == "__main__":
                 quit()
             rfHep.cd()
             totalerr.Write()
-            for ing,ng in enumerate(groups):
+            for ing,ng in enumerate(sortedGroups):
                 summaries[(charge,ng)].Write()
             rfHep.Close()
 

@@ -10,21 +10,21 @@ combineElePt01asBkg = 0
 dryrun = 0
 skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
-onlyData = 0
+onlyData = 1
 corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat, else 0
 
 skipInclusivePlot = 1
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
 skipCorrAll4HEPdata = 1
-skipImpacts = 1
+skipImpacts = 0
 skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 0
+skipMuElComparison = 1
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)
@@ -205,7 +205,7 @@ impacts_nuis = ["GROUP"]     # this will do groups, I can filter some of them, b
 #impacts_nuis = ["muTestEffSyst0","muTestEffSyst1","muTestEffSyst2"] 
 #groupnames = 'binByBinStat,stat,pdfs,wmodel,EffStat,scales,alphaS'
 #groupnames = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
-groupnames = 'binByBinStat,stat,pdfs,QCDTheo,Fakes,EffStat'
+groupnames = 'EffStat,Fakes,QCDTheo,pdfs,luminosity,stat,binByBinStat'
 groupnames_4HEPdata = 'binByBinStat,stat,luminosity,pdfs,QCDTheo,Fakes,OtherBkg,OtherExp,EffStat,EffSyst,lepScale,QEDTheo'
 #if flavour == "el" or doMuElComb:
 #    groupnames += ',L1Prefire'
@@ -456,8 +456,8 @@ for fit in fits:
                 poi_regexp = ["W.*_ieta_.*_ipt_%d_.*" % i for i in  [2, 3, 7, 16] ]
 
             if nuis == "GROUP":
-                if any(target == x for x in ["etaxsec", "ptxsec"]) and "luminosity" not in groupnames:
-                    varopt = " --nuisgroups '{ng},luminosity' ".format(ng=groupnames)
+                if all(target != x for x in ["etaxsec", "ptxsec"]):
+                    varopt = " --nuisgroups '{ng}' ".format(ng=groupnames.replace(',luminosity',''))
                 else:
                     varopt = " --nuisgroups '{ng}' ".format(ng=groupnames)
             else:
