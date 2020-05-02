@@ -7,7 +7,7 @@ import ROOT, os, sys, re, array
 doMuElComb = 1
 doMuon = 1 # if 0 do electrons, but doMuElComb overrides it if doMuElComb=1, which runs the combination
 combineElePt01asBkg = 0
-dryrun = 0
+dryrun = 1
 skipPreliminary = True # passed as an option to some scripts to print "Preliminary" in plot
 skipData = 0
 onlyData = 1
@@ -18,10 +18,10 @@ skipPlot = 1
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
-skipCorr = 1
+skipCorr = 0
 skipCorr1D = 1
 skipCorrAll4HEPdata = 1
-skipImpacts = 0
+skipImpacts = 1
 skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
 skipMuElComparison = 1

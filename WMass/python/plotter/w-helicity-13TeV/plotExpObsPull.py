@@ -155,5 +155,16 @@ if __name__ == "__main__":
     for ext in ['pdf','png']:
         c.SaveAs('{outdir}/comp_{name}.{ext}'.format(outdir=options.outdir,name=name,ext=ext))
     
+    # save graphs in root file to convert to hepdata later (no need to add prefit, trivial
+    rfHepName = '{outdir}/comp_{name}.root'.format(outdir=options.outdir,name=name)
+    rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+    if not rfHep:
+        print "Error in plotExpObsPull.py: could not open root file %s" % rfHepName
+        quit()
+    rfHep.cd()
+    gr_expected.Write("expected_postfit")
+    gr_observed.Write("observed_postfit")
+    rfHep.Close()
 
-    
+
+

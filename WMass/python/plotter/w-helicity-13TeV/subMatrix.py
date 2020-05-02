@@ -99,7 +99,9 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
                 charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol if pol!="unpolarized" else "left")  
                 ywl = genYwBins[charge_pol][iyw]
                 ywh = genYwBins[charge_pol][iyw+1]
-            nn = "{wch}#rightarrow{lep}#nu  {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            #nn = "{wch}#rightarrow{lep}#nu {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            nn = "{wch} {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,pol=pol,ywl=ywl,ywh=ywh)
+            
             if name.startswith("norm_"):  # normalization systematics for bins not fitted as pois
                 nn = "norm.syst. " + nn
         else:
@@ -131,7 +133,8 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
             wch = 'W+' if 'plus' in name else 'W-' if 'minus' in name else 'W'
             lep = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
             if forceLep: lep = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
-            nn = "{wch}#rightarrow{lep}#nu: |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,etal=etal,etah=etah,ptl=ptl,pth=pth)
+            #nn = "{wch}#rightarrow{lep}#nu: |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,etal=etal,etah=etah,ptl=ptl,pth=pth)
+            nn = "{wch} |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,etal=etal,etah=etah,ptl=ptl,pth=pth)
         else:
             nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
             nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
@@ -573,8 +576,9 @@ if __name__ == "__main__":
             lat = ROOT.TLatex()
             lat.SetNDC(); lat.SetTextFont(42)
             if not options.skipLatexOnTop:
-                lat.DrawLatex(0.15, 0.95, '#bf{CMS}') #it{Preliminary}')
-                lat.DrawLatex(0.56, 0.95, '35.9 fb^{-1} (13 TeV)')
+                offsetLatex = c.GetLeftMargin()-0.15
+                lat.DrawLatex(0.15+offsetLatex, 0.95, '#bf{CMS}') #it{Preliminary}')
+                lat.DrawLatex(0.56+offsetLatex, 0.95, '35.9 fb^{-1} (13 TeV)')
 
             if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
             if nbins >= 20: tmp_mat.LabelsOption("v","X")
