@@ -39,6 +39,7 @@ diLeptonSkim = False
 useBasicRECOLeptons = True
 doRecoilVariables = False
 normGenWeightMode = 1.0 # nominal genWeigth: store genWeights divided by nominal (mode of distribution) in the histogram saved along the tree (default is 1.0, i.e. no division)
+selectedDataEra = 'BCDEF' # select some data era to process when using data ('BCDEFGH' for 2016)
 
 if keepEventsWithNoGoodVertex:
     vertexAna.keepFailingEvents = True
@@ -349,7 +350,7 @@ if runData != False: # and not isTest: # For running on data
     #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    eras='BCDEFGH'
+    eras= selectedDataEra # 'BCDEFGH'
     for era in eras:
         if era=='B':
             processing = "Run2016B-17Jul2018_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
