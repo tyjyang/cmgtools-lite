@@ -29,7 +29,7 @@ selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
 keepEventsWithNoGoodVertex = False
-forceSignalSkim = True # force skims for signal (some lepton cuts, single or dilepton skim)
+forceSignalSkim = False  # force skims for signal (some lepton cuts, single or dilepton skim)
 runOnSignal = True
 doTriggerMatching = True
 keepLHEweights = True
@@ -38,6 +38,8 @@ runZlikeW = True
 diLeptonSkim = False
 useBasicRECOLeptons = True
 doRecoilVariables = False
+normGenWeightMode = 1.0 # nominal genWeigth: store genWeights divided by nominal (mode of distribution) in the histogram saved along the tree (default is 1.0, i.e. no division)
+selectedDataEra = 'BCDEF' # select some data era to process when using data ('BCDEFGH' for 2016)
 
 if keepEventsWithNoGoodVertex:
     vertexAna.keepFailingEvents = True
@@ -46,7 +48,7 @@ if keepEventsWithNoGoodVertex:
 ttHLepSkim.minLeptons = 1
 #ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.mediumMuonId > 0" # this is applied to all leptons! not just some
 #ttHLepSkim.idCut = "(lepton.pdgId == 13 or lepton.pdgId == -13) and lepton.muonID('POG_ID_Loose')>0"
-ttHLepSkim.maxLeptons = 8 # might even comment to make it dummy
+ttHLepSkim.maxLeptons = 30 # might even comment to make it dummy
 #ttHLepSkim.idCut  = ""
 ttHLepSkim.ptCuts = [23, 10]
 
@@ -75,7 +77,7 @@ lepAna.loose_electron_id = "POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto"  #"PO
 isolation = None
 
 if useBasicRECOLeptons:
-    lepAna.inclusive_muon_id  = "POG_ID_Loose" # use None #or POG_ID_Soft (this is more for BPH)
+    lepAna.inclusive_muon_id  = None # use None #or POG_ID_Soft (this is more for BPH)
     #lepAna.inclusive_muon_id  = None
     lepAna.inclusive_muon_pt  = 10
     lepAna.inclusive_muon_eta = 2.4
@@ -91,14 +93,14 @@ if useBasicRECOLeptons:
     lepAna.loose_muon_relIso = 1000.
     # inclusive very loose electron selection
     lepAna.inclusive_electron_id  = None
-    lepAna.inclusive_electron_pt  = 25 # use 10
+    lepAna.inclusive_electron_pt  = 10 # use 10
     lepAna.inclusive_electron_eta = 2.5
     lepAna.inclusive_electron_dxy = 1000.
     lepAna.inclusive_electron_dz  = 1000.
     lepAna.inclusive_electron_lostHits = 100
     # loose electron selection
-    lepAna.loose_electron_id     = None # use "POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto" #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
-    lepAna.loose_electron_pt     = 25   # use 10
+    lepAna.loose_electron_id     = "POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto" #"", #POG_MVA_ID_NonTrig_full5x5", POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto
+    lepAna.loose_electron_pt     = 10   # use 10
     lepAna.loose_electron_eta    = 2.5
     lepAna.loose_electron_dxy    = 1000.
     lepAna.loose_electron_dz     = 1000.
@@ -222,6 +224,7 @@ treeProducer = cfg.Analyzer(
 ## histo counter
 dmCoreSequence.insert(dmCoreSequence.index(skimAnalyzer),
                         histoCounter)
+histoCounter.normGenWeightMode = normGenWeightMode
 
 # HBHE new filter
 from CMGTools.TTHAnalysis.analyzers.hbheAnalyzer import hbheAnalyzer
@@ -315,7 +318,7 @@ elif runOnSignal and signalZ:
     #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
     #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
     #selectedComponents = [ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos]
-    selectedComponents = [PARTIAL_ZJToMuMu_mWPilot]
+    selectedComponents = [ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos]
 
 #selectedComponents = [ZJToMuMu_powhegMiNNLO_pythia8_testProd, ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd]
 
@@ -347,7 +350,7 @@ if runData != False: # and not isTest: # For running on data
     #json = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt' # 36.5/fb
 
     run_ranges = []; useAAA=False;
-    eras='BCDEFGH'
+    eras= selectedDataEra # 'BCDEFGH'
     for era in eras:
         if era=='B':
             processing = "Run2016B-17Jul2018_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))

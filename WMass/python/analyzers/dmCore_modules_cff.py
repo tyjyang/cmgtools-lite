@@ -102,9 +102,11 @@ eventFlagsAna = cfg.Analyzer(
         "HBHENoiseFilter" : [ "Flag_HBHENoiseFilter" ],
         "HBHENoiseIsoFilter" : [ "Flag_HBHENoiseIsoFilter" ],
         "globalTightHalo2016Filter" : [ "Flag_globalTightHalo2016Filter" ],
-        "CSCTightHalo2015Filter" : [ "Flag_CSCTightHalo2015Filter" ],
-        "CSCTightHaloFilter" : [ "Flag_CSCTightHaloFilter" ],
-        "CSCTightHalo2016Filter" : [ "Flag_globalTightHalo2016Filter" ],
+        "globalSuperTightHalo2016Filter" : [ "Flag_globalSuperTightHalo2016Filter" ],
+        "BadPFMuonFilter" : [ "Flag_BadPFMuonFilter" ],
+        #"CSCTightHalo2015Filter" : [ "Flag_CSCTightHalo2015Filter" ],
+        #"CSCTightHaloFilter" : [ "Flag_CSCTightHaloFilter" ],
+        #"CSCTightHalo2016Filter" : [ "Flag_globalTightHalo2016Filter" ],
         "hcalLaserEventFilter" : [ "Flag_hcalLaserEventFilter" ],
         "EcalDeadCellTriggerPrimitiveFilter" : [ "Flag_EcalDeadCellTriggerPrimitiveFilter" ],
         "goodVertices" : [ "Flag_goodVertices" ],
@@ -167,7 +169,7 @@ vertexAna = cfg.Analyzer(
 pileUpAna = cfg.Analyzer(
     PileUpAnalyzer, name="PileUpAnalyzer",
     true = True,  # use number of true interactions for reweighting
-    makeHists=False
+    makeHists=True
     )
 
 
@@ -389,12 +391,12 @@ jetAna = cfg.Analyzer(
     cleanSelectedLeptons = False, #Whether to clean 'selectedLeptons' after disambiguation. Treat with care (= 'False') if running Jetanalyzer more than once
     minLepPt = 10,
     relaxJetId = False,  
-    doPuId = True, # Not commissioned in 7.0.X, use the Run1 training for the time being
+    doPuId = True, # 80X working point implemented for now (for 2016)
     recalibrateJets = True, # "MC", # True, False, 'MC', 'Data'
     applyL2L3Residual = True, # Switch to 'Data' when they will become available for Data
     recalibrationType = "AK4PFchs",
-    mcGT     = "Spring16_25nsV6_MC",
-    dataGT   = "Spring16_25nsV6_DATA",
+    mcGT     = "Summer16_07Aug2017_V11_MC",
+    dataGT   = [(-1,"Summer16_07Aug2017BCD_V11_DATA"),(276831,"Summer16_07Aug2017EF_V11_DATA"),(278802,"Summer16_07Aug2017GH_V11_DATA")], # this is run dependent, give first run of the IOV and corresponding GT (first run for first IOV can be any value lower than the expected run numbers for that IOV)
     jecPath = "%s/src/CMGTools/RootTools/data/jec/" % os.environ['CMSSW_BASE'],
     shiftJEC = 0, # set to +1 or -1 to get +/-1 sigma shifts
     addJECShifts = False, # if true, add  "corr", "corrJECUp", and "corrJECDown" for each jet (requires uncertainties to be available!)

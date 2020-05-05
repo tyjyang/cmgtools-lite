@@ -71,9 +71,9 @@ leptonTypeWMass = NTupleObjectType("leptonWMass", baseObjectTypes = [ leptonType
 
 jetTypeWMass = NTupleObjectType("jetWMass", baseObjectTypes = [ fourVectorType ], variables = [
     # add more if you want
-    NTupleVariable("id",    lambda x : x.jetID("POG_PFID") , int, mcOnly=False,help="POG Loose jet ID"),
+    NTupleVariable("id",    lambda x : x.jetID("POG_PFID") , int, mcOnly=False,help="POG jet ID (0 if not passed, 1 for loose, 3 for tight, 4 if also PAG_monoID_Loose and 5 if also PAG_monoID_Tight)"),
     NTupleVariable("rawPt",  lambda x : x.pt() * x.rawFactor(), help="p_{T} before JEC"),
-    #NTupleVariable("puId", lambda x : getattr(x, 'puJetIdPassed', -99), int,     mcOnly=False, help="puId (full MVA, loose WP, 5.3.X training on AK5PFchs: the only thing that is available now)"),
+    NTupleVariable("puId", lambda x : getattr(x, 'puJetIdPassed', -99), int,     mcOnly=False, help="puId (now for 80X)"),
 ])
 
 
