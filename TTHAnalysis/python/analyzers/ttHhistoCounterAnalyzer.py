@@ -21,6 +21,7 @@ class ttHhistoCounterAnalyzer( Analyzer ):
         self.doLHE = getattr(cfg_ana, 'doLHE', True)
         self.cfg_ana = cfg_ana
         self.isInitSMS = False
+        self.normGenWeightMode = 1.0 # used to normalize genWeight to the most probable one when filling the histogram
 
     def declareHandles(self):
         super(ttHhistoCounterAnalyzer, self).declareHandles()
@@ -39,7 +40,10 @@ class ttHhistoCounterAnalyzer( Analyzer ):
             if self.cfg_comp.isMC:
                 if self.doLHE:
                     self.inputLHE = ROOT.TH1D("CountLHE","CountLHE",20001,-0.5,20000.5)
-                self.inputGenWeights = ROOT.TH1D("SumGenWeights","SumGenWeights",1,0,2)
+                self.inputGenWeights = ROOT.TH1D("SumGenWeights","SumGenWeights",1,0,2)                
+                self.distrGenWeights = ROOT.TH1D("distrGenWeights",
+                                                 "distribution of Log10(wgt/nomi) nomi = %.3f" % self.normGenWeightMode,
+                                                 4800,-12.0,12.0)
 
 
     def initSMS(self,event):
@@ -108,6 +112,7 @@ class ttHhistoCounterAnalyzer( Analyzer ):
         if self.cfg_comp.isMC:
             genWeight_ = float(self.mchandles['GenInfo'].product().weight())
             self.inputGenWeights.Fill(1, genWeight_);
+            self.distrGenWeights.Fill(ROOT.TMath.Sign(1,genWeight_)*ROOT.TMath.Log10(abs(genWeight_/self.normGenWeightMode)), genWeight_);
             if isSMS: self.inputGenWeightsSMS.Fill(m1,m2,1, genWeight_);
 
         return True
