@@ -221,6 +221,23 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             mg.GetYaxis().SetDecimals()
      
             leg.Draw('same')
+
+        # save for HEPData
+        plotname = "{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}".format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, t=options.type)
+        rfHepName = '{n}.root'.format(n=plotname)
+        rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+        if not rfHep:
+            print "Error in plotYW.py: could not open root file %s" % rfHepName
+            quit()
+        rfHep.cd()
+        polsToSave = ["left","right"] + ([] if skipLong else ["long"])
+        for pts in polsToSave:
+            values[pts].graph.Clone().Write("exp_{p}".format(p=pts))
+            values[pts].graph_fit.Clone().Write("data_{p}".format(p=pts))
+            if doAltExp:
+                values[pts].altgraph.Clone().Write("expAlt_{p}".format(p=pts))
+        rfHep.Close()
+        # done with hepdata
      
         ## now make the relative error plot:
         ## ======================================
@@ -277,8 +294,8 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
-        for ext in ['png', 'pdf', 'root']:
-            c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+        for ext in ['png', 'pdf']: #, 'root']:
+            c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
 
 
 def plotUnpolarizedValues(values,charge,channel,options):
@@ -351,7 +368,22 @@ def plotUnpolarizedValues(values,charge,channel,options):
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
-            mg.Write()
+            #mg.Write() # is this line needed? It causes warning during runtime
+
+        # save for HEPData
+        plotname = "{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}".format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type)
+        rfHepName = '{n}.root'.format(n=plotname)
+        rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+        if not rfHep:
+            print "Error in plotYW.py: could not open root file %s" % rfHepName
+            quit()
+        rfHep.cd()
+        values.graph.Clone().Write("exp")
+        values.graph_fit.Clone().Write("data")
+        if doAltExp:
+            values.altgraph.Clone().Write("expAlt")
+        rfHep.Close()
+        # done with hepdata
 
         ## now make the relative error plot:
         ## ======================================
@@ -398,12 +430,12 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetNdivisions(5)
             values.mg.GetYaxis().CenterTitle()
             values.mg.GetYaxis().SetDecimals()
-            values.mg.Write()
+            #values.mg.Write()  # is this line needed? It causes warning during runtime
 
             line.Draw("Lsame");
 
         for ext in ['png', 'pdf']:
-            c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext,t=options.type))
+            c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
         of.Close()
 
 NPDFs = 60
@@ -438,7 +470,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(options.outdir):
         os.system('mkdir {od}'.format(od=options.outdir))
-        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php {od}".format(od=options.outdir))
+        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php {od}".format(od=options.outdir))
 
     if options.ybinfile:
         ybinfile = options.ybinfile
