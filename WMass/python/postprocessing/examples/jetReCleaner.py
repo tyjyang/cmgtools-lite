@@ -18,7 +18,7 @@ class JetReCleaner(Module):
         self.eff2d = self.teff.CreateHistogram()
 
         #self.vars = ("pt","eta","phi","mass","btagCSV")
-        self.vars = ("pt","eta","phi","mass")
+        self.vars = ("pt","eta","phi","mass","id","rawPt","puId")
         if "jetReCleanerHelper.cc_cc.so" not in ROOT.gSystem.GetLibraries():
             print "Load C++ Worker"
             ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/postprocessing/helpers/jetReCleanerHelper.cc+" % os.environ['CMSSW_BASE'])
