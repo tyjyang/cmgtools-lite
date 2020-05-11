@@ -245,6 +245,25 @@ def plotValues(values,charge,channel,options):
         for leg in legs:
             leg.Draw("same")
 
+    # save for HEPData
+    plotname = '{od}/genAbsY{norm}_pdfs_{ch}{suffix}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix)
+    rfHepName = '{n}.root'.format(n=plotname)
+    rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+    if not rfHep:
+        print "Error in plotYW.py: could not open root file %s" % rfHepName
+        quit()
+    rfHep.cd()
+    polsToSave = ["left","right"] + ([] if skipLong else ["long"])
+    for pts in polsToSave:
+        for flav in flavors:
+            values[(flav,pts)].graph_fit.Clone().Write("data_{f}_{p}".format(f=flav,p=pts))
+            if flav == "lep":
+                values[(flav,pts)].graph.Clone().Write("exp_{f}_{p}".format(f=flav,p=pts))
+                if doAltExp:
+                    values[(flav,pts)].altgraph.Clone().Write("expAlt_{f}_{p}".format(f=flav,p=pts))
+    rfHep.Close()
+    # done with hepdata
+
     lines = {}
     subpadLegends = {}
     if sum(hasattr(values[(flav,pol)],'mg') for pol in polarizations for flav in flavors)==3*len(polarizations):
@@ -346,12 +365,13 @@ def plotValues(values,charge,channel,options):
             isubpad+=1
 
     c2.cd()
-    lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
-    lat.DrawLatex(0.62, 0.95, '35.9 fb^{-1} (13 TeV)')
+    # was 0.95 but for me it appears inside the frame
+    lat.DrawLatex(0.2, 0.97, '#bf{CMS}') #it{Preliminary}')
+    lat.DrawLatex(0.62, 0.97, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|y_{W}|')
     for ext in ['png', 'pdf']:
-        c2.SaveAs('{od}/genAbsY{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=normstr, ch=charge, suffix=options.suffix, ext=ext))
+        c2.SaveAs('{p}.{ext}'.format(p=plotname, ext=ext))
 
 
 def plotUnpolarizedValues(values,charge,channel,options):
@@ -422,6 +442,23 @@ def plotUnpolarizedValues(values,charge,channel,options):
         leg = makeFullLegendUnpol(values)
         leg.Draw('same')
     
+    # save for HEPData
+    plotname = '{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix)
+    rfHepName = '{n}.root'.format(n=plotname)
+    rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+    if not rfHep:
+        print "Error in plotYW.py: could not open root file %s" % rfHepName
+        quit()
+    rfHep.cd()
+    for flav in flavors:
+        values[flav].graph_fit.Clone().Write("data_{f}".format(f=flav))
+        if flav == "lep":
+            values[flav].graph.Clone().Write("exp_{f}".format(f=flav))
+            if doAltExp:
+                values[flav].altgraph.Clone().Write("expAlt_{f}".format(f=flav))
+    rfHep.Close()
+    # done with hepdata
+
     lines = {}
     subpadLegends = {}
     ## now make the relative error plot:
@@ -514,12 +551,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
         subpadLegends["comp_lep"].Draw('same')
 
     c2.cd()
-    lat.DrawLatex(0.2, 0.95, '#bf{CMS}') #it{Preliminary}')
-    lat.DrawLatex(0.60, 0.95, '35.9 fb^{-1} (13 TeV)')
+    # was 0.95 but for me it appears inside the frame
+    lat.DrawLatex(0.2, 0.97, '#bf{CMS}') #it{Preliminary}')
+    lat.DrawLatex(0.60, 0.97, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|y_{W}|')
-    for ext in ['png', 'pdf', 'C', 'root']:
-        c2.SaveAs('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}.{ext}'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, ext=ext))
+    for ext in ['png', 'pdf', 'C']:#, 'root']:
+        c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
 
 
 NPDFs = 60
@@ -549,7 +587,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(options.outdir):
         os.system('mkdir {od}'.format(od=options.outdir))
-        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php {od}".format(od=options.outdir))
+        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php {od}".format(od=options.outdir))
 
     if options.ybinfile:
         ybinfile = options.ybinfile
