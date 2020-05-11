@@ -30,11 +30,11 @@ selectedEvents=getHeppyOption("selectEvents","")
 # save PDF information and do not skim. Do only for needed MC samples
 keepEventsWithNoGoodVertex = False
 forceSignalSkim = False  # force skims for signal (some lepton cuts, single or dilepton skim)
-runOnSignal = True
+runOnSignal = False if runData else False # might be false fro backgrounds
 doTriggerMatching = True
-keepLHEweights = True
-signalZ = True
-runZlikeW = True
+keepLHEweights = False if (runData or not runOnSignal) else False
+signalZ = False
+runZlikeW = False
 diLeptonSkim = False
 useBasicRECOLeptons = True
 doRecoilVariables = False
@@ -286,25 +286,25 @@ triggerFlagsAna.checkL1Prescale = False
 
 ## do some trigger matching for the trigger efficiency studies
 
-from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv2 import *
+#from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv2 import *
 from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv3 import *
-from CMGTools.RootTools.samples.samples_13TeV_DATA2016 import *
+#from CMGTools.RootTools.samples.samples_13TeV_DATA2016 import *
 from CMGTools.HToZZ4L.tools.configTools import printSummary, configureSplittingFromTime, cropToLumi, prescaleComponents, insertEventSelector, mergeExtensions
 from CMGTools.RootTools.samples.autoAAAconfig import *
 
-selectedComponents = [ DYJetsToLL_M50, WJetsToLNu ]
+selectedComponents = Top + DiBosons + [QCD_Mu15]
 
-samples_1fake = [QCD_Mu15] + QCD_Mu5 + QCDPtEMEnriched + QCDPtbcToE + GJetsDR04HT
-single_t = [TToLeptons_sch_amcatnlo,T_tch_powheg,TBar_tch_powheg,T_tWch_ext,TBar_tWch_ext] # single top + tW
-tt_1l = [TTJets_SingleLeptonFromT,TTJets_SingleLeptonFromT_ext,TTJets_SingleLeptonFromTbar,TTJets_SingleLeptonFromTbar_ext] # TT 1l
-w_jets = [WJetsToLNu_LO,WJetsToLNu_LO_ext,WJetsToLNu,WJetsToLNu_ext,WJetsToLNu_ext2v5] # W+jets
-z_jets = [DYJetsToLL_M50_LO_ext,DYJetsToLL_M50_LO_ext2,DYJetsToLL_M50] # Z+jets
-dibosons = [WW,WW_ext,WZ,WZ_ext,ZZ,ZZ_ext] # di-boson
+#samples_1fake = [QCD_Mu15] + QCD_Mu5 + QCDPtEMEnriched + QCDPtbcToE + GJetsDR04HT
+#single_t = [TToLeptons_sch_amcatnlo,T_tch_powheg,TBar_tch_powheg,T_tWch_ext,TBar_tWch_ext] # single top + tW
+#tt_1l = [TTJets_SingleLeptonFromT,TTJets_SingleLeptonFromT_ext,TTJets_SingleLeptonFromTbar,TTJets_SingleLeptonFromTbar_ext] # TT 1l
+#w_jets = [WJetsToLNu_LO,WJetsToLNu_LO_ext,WJetsToLNu,WJetsToLNu_ext,WJetsToLNu_ext2v5] # W+jets
+#z_jets = [DYJetsToLL_M50_LO_ext,DYJetsToLL_M50_LO_ext2,DYJetsToLL_M50] # Z+jets
+#dibosons = [WW,WW_ext,WZ,WZ_ext,ZZ,ZZ_ext] # di-boson
 #tt_2l = [TTJets_DiLepton, TTJets_DiLepton_ext, TTLep_pow, TTLep_pow_ext]
 #tt_2l = [TTLep_pow, TTLep_pow_ext]
 
-samples_signal = w_jets
-samples_1prompt = single_t + tt_1l + z_jets + dibosons
+#samples_signal = w_jets
+#samples_1prompt = single_t + tt_1l + z_jets + dibosons
 
 ##configureSplittingFromTime(samples_1fake,30,6)
 ##configureSplittingFromTime(samples_1prompt,50,6)
@@ -336,6 +336,7 @@ if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a giv
         c.splitFactor = len(c.files)
         c.fineSplitFactor = 1
 
+json = None
 
 if runData != False: # and not isTest: # For running on data
 
@@ -353,9 +354,13 @@ if runData != False: # and not isTest: # For running on data
     eras= selectedDataEra # 'BCDEFGH'
     for era in eras:
         if era=='B':
-            processing = "Run2016B-17Jul2018_ver2-v1"; short = "Run2016B"; dataChunks.append((json,processing,short,run_ranges,useAAA))
+            processing = "Run2016B-17Jul2018_ver2-v1"; 
+            short = "Run2016B"; 
+            dataChunks.append((json,processing,short,run_ranges,useAAA))
         else:
-            processing = "Run2016%s-17Jul2018-v1" % era; short = "Run2016%s" % era; dataChunks.append((json,processing,short,run_ranges,useAAA))
+            processing = "Run2016%s-17Jul2018-v1" % era; 
+            short = "Run2016%s" % era; 
+            dataChunks.append((json,processing,short,run_ranges,useAAA))
     
     DatasetsAndTriggers = []
     selectedComponents = [];
@@ -402,6 +407,8 @@ if runData != False: # and not isTest: # For running on data
                 #comp.splitFactor = len(comp.files)/3
                 comp.splitFactor = len(comp.files)/2
                 comp.fineSplitFactor = 1
+                comp.isMC = False
+                comp.isData = True
                 selectedComponents.append( comp )
             if exclusiveDatasets: vetos += triggers
     if json is None:
@@ -478,18 +485,21 @@ print runData
 print 'THIS IS SELECTED COMPONENTS', selectedComponents
 
 test = getHeppyOption('test')
-if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94xMwPilot']:    
+if test in[ 'testw' , 'testz' , 'testdata' , 'testwnew' , 'testznew', 'testw94x', 'testz94xMwPilot','testbkg']:    
     if test=='testdata':
         comp = selectedComponents[0]
         comp.files = comp.files[:1]
         #comp.files = ['/eos/cms/store/data/Run2016C/SingleElectron/MINIAOD/03Feb2017-v1/50000/AEA181FD-61EB-E611-B54D-1CC1DE18CFF6.root']
-    if test =='testw94x':
+    elif test=='testbkg':
+        comp = selectedComponents[0]
+        comp.files = comp.files[:1]
+    elif test =='testw94x':
         comp = WJetsToLNu_94X
         comp.files = comp.files[:1]
     elif test == 'testz94xMwPilot':
         #comp = ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos
         #comp.files = ['/eos/cms/store/mc/RunIISummer16MiniAODv3/ZJToMuMu_mWPilot_TuneCP5_13TeV-powheg-MiNNLO-pythia8-photos/MINIAODSIM/PUMoriond17_94X_mcRun2_asymptotic_v3-v1/250000/D24DA931-7882-EA11-AAC9-0CC47A4D7634.root']
-        comp = PARTIAL_ZJToMuMu_mWPilot
+        comp = ZJToMuMu_mWPilot_powhegMiNNLO_pythia8_photos
         comp.files = comp.files[:1]
     elif test =='testz94x':
         comp = ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd
