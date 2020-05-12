@@ -162,6 +162,7 @@ if __name__ == "__main__":
         print "Error in plotExpObsPull.py: could not open root file %s" % rfHepName
         quit()
     rfHep.cd()
+    dummyh.Write("xAxisLabels")
     gr_expected.Write("expected_postfit")
     gr_observed.Write("observed_postfit")
     rfHep.Close()
