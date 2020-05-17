@@ -397,11 +397,11 @@ if __name__ == "__main__":
     outname = options.outdir
     if not os.path.exists(outname):
         os.system("mkdir -p "+outname)
-        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outname)
+        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outname)
     outnamesub = outname+'/singleRapidities'
     if not os.path.exists(outnamesub):
         os.system("mkdir -p "+outnamesub)
-        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/g/gpetrucc/php/index.php "+outnamesub)
+        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outnamesub)
 
     savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
     

@@ -108,7 +108,8 @@ if __name__ == "__main__":
         params = sorted(params)
         if any(re.match('pdf.*',x) for x in params):
             # generally there will be alphaS along with pdfs
-            params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
+            # put alpha at last position
+            params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 100 if 'alphaS' in x else 0, reverse=False)
         elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
             params = sorted(params)
             # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
@@ -329,7 +330,7 @@ if __name__ == "__main__":
         lat  = ROOT.TLatex(); lat.SetNDC(); lat.SetTextFont(42); lat.SetTextSize(0.04)
         ROOT.gROOT.SetBatch()
         ROOT.gStyle.SetOptStat(0)
-        fout = ROOT.TFile("{od}/postfit_{suff}.root".format(od=options.outdir, suff=options.suffix),"RECREATE")
+        fout = ROOT.TFile("{fn}.root".format(fn=outnameNoExt),"RECREATE")
 
         # need to shrink histogram, as some bins might have been removed when ranking. 
         # Also, use same sorting as table
@@ -420,7 +421,9 @@ if __name__ == "__main__":
         # leg.SetTextFont(42)
         # leg.AddEntry(hist_fit_s,"S+B fit"   ,"EPL")
         # leg.Draw()
-        fout.WriteTObject(canvas_nuis)
+        #fout.WriteTObject(canvas_nuis)
+        hist_fit_s.Write()
+        fout.Close()
 
         for ext in ['png', 'pdf']:
             canvas_nuis.SaveAs("{noext}.{ext}".format(noext=outnameNoExt, ext=ext))

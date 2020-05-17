@@ -287,9 +287,11 @@ if __name__ == "__main__":
         quit()
 
     if options.etaptbinfile:
+        print "HERE for 2D xsec"
         etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
         genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
     elif options.ywbinfile:
+        print "HERE for helicity"
         ybinfile = open(options.ywbinfile, 'r')
         genBins = eval(ybinfile.read())
         ybinfile.close()
@@ -299,7 +301,10 @@ if __name__ == "__main__":
     print "="*30
     print "Gen binning:"
     print "-"*30
-    print genBins
+    if options.etaptbinfile:
+        genBins.printBinAll() 
+    else:
+        print genBins
     print "="*30
 
 

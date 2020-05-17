@@ -19,6 +19,25 @@ def getParams(infile):
         params.append(alphas)
     return params
 
+
+def getParamsFromRoot(infile):
+    f = ROOT.TFile.Open(infile,"READ")
+    if not f or not f.IsOpen():
+        raise RuntimeError('Unable to open file {fn}'.format(fn=infile))
+    h = f.Get("fit_s")
+    if not h:
+        raise RuntimeError('Unable to get histogram "fit_s" from file {fn}'.format(fn=infile))    
+    params = []
+    for ib in range(1,1+h.GetNbinsX()):
+        key = h.GetXaxis().GetBinLabel(ib)
+        pull = [h.GetBinContent(ib),h.GetBinError(ib)]
+        params.append((key,pull[0],pull[1]))
+    #if 'alphaS' in params[0][0]:
+    #    alphas = params[0]
+    #    del params[0]
+    #    params.append(alphas)
+    return params
+
 def niceNameQCDScales(name):
     pol = 'L' if name.startswith('left') else 'R' if name.startswith('right') else '0'
     charge = '+' if name.endswith('plus') else '-'
@@ -28,7 +47,10 @@ def niceNameQCDScales(name):
     m = re.match('(\D+)(\d+)',nuis)
     nuis = m.group(1)
     index = m.group(2)
-    niceName = 'W^{{{charge}}}_{{{pol}}} {nuis}^{{{index}}}'.format(charge=charge,pol=pol,nuis=nuis,index=index)
+    #niceName = 'W^{{{charge}}}_{{{pol}}} {nuis}^{{{index}}}'.format(charge=charge,pol=pol,nuis=nuis,index=index)
+    # better to have index not as exponent, it overlaps with subscripts of previous label
+    niceName = 'W^{{{charge}}}_{{{pol}}} {nuis} {index}'.format(charge=charge,pol=pol,nuis=nuis,index=index)
+
     return niceName
 
 def niceNamePDFs(name):
@@ -44,29 +66,38 @@ if __name__ == "__main__":
 
     from optparse import OptionParser
     parser = OptionParser(usage='%prog [options] ')
-    parser.add_option('--exp'   , dest='expected', type="string", default='expected.latex', help='Text file for the expected');
-    parser.add_option('--obs'   , dest='observed', type="string", default='observed.latex', help='Text file for the observed');
+    parser.add_option('--exp'   , dest='expected', type="string", default='expected.latex', help='Text file for the expected, or root file');
+    parser.add_option('--obs'   , dest='observed', type="string", default='observed.latex', help='Text file for the observed, or root file');
     parser.add_option('--outdir', dest='outdir'  , type="string", default='results'       , help='Output directory');
+    parser.add_option('--name'   , dest='name', type="string", default='', help='name for output');
     (options, args) = parser.parse_args()
 
-    tokens = options.expected.split('_')
-    name = '_'.join(tokens[1:3])
+    if not options.name:
+        print "Please pass a name for the output using option --name"
+        quit()
 
-    exp_pulls = getParams(options.expected)
-    obs_pulls = getParams(options.observed)
+    name = options.name
+    if options.expected.endswith(".root"):
+        print "Getting values from root file"
+        exp_pulls = getParamsFromRoot(options.expected)
+        obs_pulls = getParamsFromRoot(options.observed)
+    else:
+        exp_pulls = getParams(options.expected)
+        obs_pulls = getParams(options.observed)
+        
     npars = len(exp_pulls)
     
-    x = array('f',[i+1 for i in range(npars)])
+    x = array('d',[float(i+1) for i in range(npars)])
     
-    zero   = array('f',[0 for i in range(npars)])
-    one    = array('f',[1 for i in range(npars)])
-    exone  = array('f', [0.4 for i in range(npars)])
+    zero   = array('d',[0.0 for i in range(npars)])
+    one    = array('d',[1.0 for i in range(npars)])
+    exone  = array('d', [0.4 for i in range(npars)])
 
-    eyexp  = array('f',[p[2] for p in exp_pulls])
-    exexp  = array('f', [0.25 for i in range(npars)])
+    eyexp  = array('d',[float(p[2]) for p in exp_pulls])
+    exexp  = array('d', [0.25 for i in range(npars)])
 
-    yobs   = array('f',[p[1] for p in obs_pulls])
-    eyobs  = array('f',[p[2] for p in obs_pulls])
+    yobs   = array('d',[float(p[1]) for p in obs_pulls])
+    eyobs  = array('d',[float(p[2]) for p in obs_pulls])
 
     c = ROOT.TCanvas('c','',1200,600)
 
@@ -94,7 +125,7 @@ if __name__ == "__main__":
     dummyh = ROOT.TH1F('dummyh','',npars,x[0]-0.5,x[-1]+0.5)
     dummyh.GetYaxis().SetRangeUser(-maxz,maxz)
     dummyh.GetXaxis().SetRangeUser(-1.5,npars+1.5)
-    dummyh.GetXaxis().LabelsOption('v')
+    #dummyh.GetXaxis().LabelsOption('v') # gives warning: TAxis::Sort:0: RuntimeWarning: Cannot sort. No labels
     dummyh.GetYaxis().SetTitle('#theta - #theta^{0}')
     dummyh.GetYaxis().CenterTitle()
     dummyh.GetXaxis().SetTitleFont(42)
@@ -133,7 +164,7 @@ if __name__ == "__main__":
     leg.AddEntry(gr_expected,'post-fit expected','f')
     
     # observed
-    gr_observed = ROOT.TGraphErrors(npars,x,yobs,zero,eyexp)
+    gr_observed = ROOT.TGraphErrors(npars,x,yobs,zero,eyobs)
     gr_observed.GetYaxis().SetRangeUser(-maxz,maxz)
     gr_observed.GetXaxis().SetRangeUser(-0.5,npars+0.5)
     gr_observed.SetMarkerStyle(ROOT.kFullCircle)
@@ -167,5 +198,14 @@ if __name__ == "__main__":
     gr_observed.Write("observed_postfit")
     rfHep.Close()
 
-
-
+    # print "="*30
+    # print "Printing obs_pulls for debugging"
+    # for x in obs_pulls:
+    #     print "%s    %.4f    %.4f" % (x[0], float(x[1]), float(x[2]))
+    # gr_observed.Print()
+    # print "="*30
+    # print "Printing exp_pulls for debugging"
+    # for x in exp_pulls:
+    #     print "%s    %.4f    %.4f" % (x[0], float(x[1]), float(x[2]))
+    # gr_expected.Print()
+    # print "="*30
