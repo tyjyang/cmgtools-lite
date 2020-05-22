@@ -36,6 +36,7 @@ class WeightCalculatorFromHistogram {
 
 WeightCalculatorFromHistogram::WeightCalculatorFromHistogram(TH1 *hist, TH1* targethist, bool norm, bool fixLargeWeights, bool verbose) {
   norm_ = norm;
+  if (norm_) hist->Scale(targethist->Integral()/hist->Integral());
   verbose_ = verbose;
   if(hist->GetNcells()!=targethist->GetNcells()) {
     std::cout << "ERROR! Numerator and denominator histograms have different number of bins!" << std::endl;
@@ -84,14 +85,16 @@ std::vector<float> WeightCalculatorFromHistogram::loadVals(TH1 *hist, bool norm)
   std::vector<float> vals;
   for(int i=0; i<nbins; ++i) {
     double bc=hist->GetBinContent(i);
-    double val = (i>0 && bc==0 && hist->GetBinContent(i-1)>0 && hist->GetBinContent(i+1)>0) ? 0.5*(hist->GetBinContent(i-1)+hist->GetBinContent(i+1)) : bc;
+    double val = (i>0 && i<nbins && bc==0 && hist->GetBinContent(i-1)>0 && hist->GetBinContent(i+1)>0) ? 0.5*(hist->GetBinContent(i-1)+hist->GetBinContent(i+1)) : bc;
     vals.push_back(std::max(bc,0.));
   }
   if(verbose_) std::cout << "Normalization of " << hist->GetName() << ": " << hist->Integral() << std::endl;
-  if(norm) {
-    float scale = 1.0/hist->Integral();
-    for(int i=0; i<nbins; ++i) vals[i] *= scale;
-  }
+  // don't do it here: better to normalize MC to integral of data
+  // in this way we avoid dealing with small fractional bin contents (bin content is ~integer and large)
+  // if(norm) {
+  //   float scale = 1.0/hist->Integral();
+  //   for(int i=0; i<nbins; ++i) vals[i] *= scale;
+  // }
   return vals;
 }
 
@@ -109,7 +112,7 @@ TH1* WeightCalculatorFromHistogram::ratio(TH1 *hist, TH1* targethist, bool fixLa
       if(targetvals[i]<1e-3) targetvals[i]=0.;
       if(vals[i]<1e-3) vals[i]=0.;
     }
-    float weight = vals[i] !=0 ? targetvals[i]/vals[i] : 1.;
+    float weight = (vals[i] > 0.0) ? targetvals[i]/vals[i] : 1.;
     if(verbose_) std::cout <<  std::setprecision(4) << weight << " ";
     weights.push_back(weight);
   }
@@ -128,8 +131,11 @@ float WeightCalculatorFromHistogram::checkIntegral(std::vector<float> wgt1, std:
   float myint=0;
   float refint=0;
   for(int i=0; i<(int)wgt1.size(); ++i) {
-    myint += wgt1[i]*refvals_[i];
-    refint += wgt2[i]*refvals_[i];
+    // ?  no need to multiply by refvals_[i], it factorizes in the ratio
+    // myint += wgt1[i]*refvals_[i];
+    // refint += wgt2[i]*refvals_[i];
+    myint += wgt1[i];
+    refint += wgt2[i];
   }
   return (myint-refint)/refint;
 }
@@ -137,14 +143,16 @@ float WeightCalculatorFromHistogram::checkIntegral(std::vector<float> wgt1, std:
 void WeightCalculatorFromHistogram::fixLargeWeights(std::vector<float> &weights, float maxshift,float hardmax) {
   float maxw = std::min(*(std::max_element(weights.begin(),weights.end())),float(5.));
   std::vector<float> cropped(weights); //start with the default weights before cropping
+  bool hasEntered = false;
   while (maxw > hardmax) {
+    hasEntered = true;
     for(int i=0; i<(int)weights.size(); ++i) cropped[i]=std::min(maxw,weights[i]);
     float shift = checkIntegral(cropped,weights);
     if(verbose_) std::cout << "For maximum weight " << maxw << ": integral relative change: " << shift << std::endl;
     if(fabs(shift) > maxshift) break;
     maxw *= 0.95;
   }
-  maxw /= 0.95;
+  if (hasEntered) maxw /= 0.95;
   for(int i=0; i<(int)weights.size(); ++i) cropped[i] = std::min(maxw,weights[i]);
   float normshift = checkIntegral(cropped,weights);
   for(int i=0; i<(int)weights.size(); ++i) weights[i] = cropped[i]*(1-normshift);

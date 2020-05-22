@@ -19,11 +19,12 @@ from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 ## if you insist on running on LSF, instead add:
 ## --log friends_log/ --submit --env lxbatch --queue 1nd (optional, default 8nh)
 
-DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
+DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight"),
+                   #("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight,puWeight2016BF"),
                    #("CMGTools.WMass.postprocessing.examples.lepSFProducer","lep2016SF"),
                    #("CMGTools.WMass.postprocessing.examples.lepVarProducer","eleRelIsoEA,lepQCDAwayJet,eleCalibrated,kamucaCentral,kamucaSyst"),
                    #("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJet,muCalibrated,kamucaCentral,kamucaSyst"),
-                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","lepQCDAwayJetAll,muCalibratedWithStatVar"),
+                   ("CMGTools.WMass.postprocessing.examples.lepVarProducer","muCalibratedWithStatVar"),
                    ("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner,jetAllReCleaner"),
                    ("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
                    #("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJetsWithVertex"),
