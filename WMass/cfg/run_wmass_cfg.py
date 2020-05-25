@@ -29,8 +29,8 @@ selectedEvents=getHeppyOption("selectEvents","")
 
 # save PDF information and do not skim. Do only for needed MC samples
 keepEventsWithNoGoodVertex = False
-forceSignalSkim = False  # force skims for signal (some lepton cuts, single or dilepton skim)
-runOnSignal = False if runData else False # might be false fro backgrounds
+forceSignalSkim = True  # force skims for signal (some lepton cuts, single or dilepton skim)
+runOnSignal = False if runData else True # might be false for backgrounds
 doTriggerMatching = True
 keepLHEweights = False if (runData or not runOnSignal) else False
 signalZ = False
@@ -292,7 +292,9 @@ from CMGTools.RootTools.samples.samples_13TeV_RunIISummer16MiniAODv3 import *
 from CMGTools.HToZZ4L.tools.configTools import printSummary, configureSplittingFromTime, cropToLumi, prescaleComponents, insertEventSelector, mergeExtensions
 from CMGTools.RootTools.samples.autoAAAconfig import *
 
-selectedComponents = Top + DiBosons + [QCD_Mu15]
+#selectedComponents = Top + DiBosons + [QCD_Mu15]
+#selectedComponents = DiBosons_exclusive
+selectedComponents = WamcAtNLO
 
 #samples_1fake = [QCD_Mu15] + QCD_Mu5 + QCDPtEMEnriched + QCDPtbcToE + GJetsDR04HT
 #single_t = [TToLeptons_sch_amcatnlo,T_tch_powheg,TBar_tch_powheg,T_tWch_ext,TBar_tWch_ext] # single top + tW

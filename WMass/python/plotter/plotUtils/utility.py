@@ -1110,6 +1110,7 @@ def drawNTH1(hists=[],
             den.Divide(den_noerr)
             ratio.Divide(den_noerr)
             den.SetFillColor(ROOT.kGray)
+            den.SetFillStyle(1001)
             #den_noerr.SetFillColor(ROOT.kGray)
             frame.Draw()
             frame.SetMarkerSize(0)
@@ -1124,6 +1125,7 @@ def drawNTH1(hists=[],
 
             ratio.Divide(den_noerr)
             ratio.SetFillColor(ROOT.kGray)
+            ratio.SetFillStyle(1001)
             #den_noerr.SetFillColor(ROOT.kGray)
             frame.Draw()
             ratio.SetMarkerSize(0)
