@@ -16,9 +16,9 @@ corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec
 skipInclusivePlot = 1
 skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 0
 skipPostfit = 1  # only for Data
-skipCorr = 0
+skipCorr = 1
 skipCorr1D = 1
 skipCorrAll4HEPdata = 1
 skipImpacts = 1
@@ -124,17 +124,19 @@ ptMinTemplate = "30" if (flavour == "el" or not allPtBinsSignal) else "26"
 # do not ask Wplus.*_ieta_.*_mu$ to select signal strength rejecting pmasked, because otherwise you must change diffNuisances.py
 # currently it uses GetFromHessian with keepGen=True, so _mu$ would create a problem (should implement the possibility to reject a regular expression)
 # if you want mu rejecting pmasked do _mu_mu or _el_mu (for electrons _mu works because it doesn't induce ambiguities with the flavour)
-diffNuisances_pois = ["pdf.*|alphaS", 
-                      "muR.*|muF.*", 
+allSystNuisances = "CMS_.*|.*smooth.*scale.*|.*TestEffSyst.*|mW|fsr.*|L1Prefire.*|OutOfAccPrefire.*|ErfPar.*|Fakes(Eta|Pt).*[0-9]+(mu|el).*|pdf.*|alphaS|muR.*|muF.*"
+diffNuisances_pois = [#"pdf.*|alphaS", 
+                      #"muR.*|muF.*", 
                       ##"Fakes(Eta|Pt).*[0-9]+mu.*", 
                       ##"Fakes(Eta|Pt).*[0-9]+el.*",
-                      "Fakes(Eta|Pt).*[0-9]+(mu|el).*", 
+                      #"Fakes(Eta|Pt).*[0-9]+(mu|el).*", 
                       ##"ErfPar0EffStat.*", 
                       ##"ErfPar1EffStat.*", 
                       ##"ErfPar2EffStat.*", 
-                      "CMS_.*|.*smooth.*scale.*|.*TestEffSyst.*|mW|fsr|L1Prefire.*|OutOfAccPrefire.*", 
+                      #"CMS_.*|.*smooth.*scale.*|.*TestEffSyst.*|mW|fsr|L1Prefire.*|OutOfAccPrefire.*", 
                       ##"Wplus.*_ieta_.*_mu",     
-                      ##"Wminus.*_ieta_.*_mu"
+                      ##"Wminus.*_ieta_.*_mu",
+                      allSystNuisances, 
                       ]
 
 # this is appended to nuis below
