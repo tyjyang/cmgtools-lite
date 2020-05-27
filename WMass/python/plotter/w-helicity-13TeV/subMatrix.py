@@ -583,7 +583,7 @@ if __name__ == "__main__":
             if not options.skipLatexOnTop:
                 offsetLatex = c.GetLeftMargin()-0.15
                 lat.DrawLatex(0.15+offsetLatex, 0.95, '#bf{CMS}') #it{Preliminary}')
-                lat.DrawLatex(0.56+offsetLatex, 0.95, '35.9 fb^{-1} (13 TeV)')
+                lat.DrawLatex(0.58+offsetLatex, 0.95, '35.9 fb^{-1} (13 TeV)')
 
             if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
             if nbins >= 20: tmp_mat.LabelsOption("v","X")

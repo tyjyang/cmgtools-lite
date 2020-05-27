@@ -422,8 +422,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
         mg.GetXaxis().SetTitleOffset(5.5)
         mg.GetXaxis().SetLabelSize(0)
         titles = {'asymmetry': 'Charge asymmetry',
-                  'a0': '|A_{0}|', 
-                  'a4': '|A_{4}|',
+                  'a0': 'A_{0}', 
+                  'a4': 'A_{4}',
                   'sumxsec': 'd#sigma / d|y_{W}| (pb)',
                   'sumxsecnorm': 'd#sigma / #sigma_{tot}^{fit} / d|y_{W}|'}
         ranges = {'asymmetry': (-0.1,0.4),
@@ -556,7 +556,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
     lat.DrawLatex(0.60, 0.97, '35.9 fb^{-1} (13 TeV)')
     lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|y_{W}|')
-    for ext in ['png', 'pdf', 'C']:#, 'root']:
+    for ext in ['png', 'pdf']: #, 'C', 'root']:
         c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
 
 
@@ -891,6 +891,9 @@ if __name__ == "__main__":
                     tmp_val.elo.append(chasy_val['asy'][1])
      
                     asy_fit = valuesAndErrors[flav]['W_{pol}_Ybin_{iy}_chargeasym'.format(pol=pol,iy=iy)]
+                    # there is a crash when starting 'lep', don't know why
+                    # so the comparison for asymmetry will be missing
+                    #print "CHECK flav={flav} pol={pol} iy={iy}!!!".format(flav=flav,pol=pol,iy=iy)
                     tmp_val.val_fit .append(asy_fit[0])
                     tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
                     tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))

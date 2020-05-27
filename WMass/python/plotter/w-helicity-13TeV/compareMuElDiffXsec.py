@@ -127,9 +127,10 @@ if __name__ == "__main__":
             legendCoords = "0.6,0.92,0.45,0.65" if "ChAsym" in name else "0.6,0.92,0.72,0.92"
 
         additionalText = ""
-        additionalTextLatex = "W^{{{chs}}} #rightarrow l#nu;{vartext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
-                                                                                               vartext=etaRangeText if "1Dpt" in name else ptRangeText,
-                                                                                               txc=texCoord)
+        additionalTextLatex = "W^{{{chs}}} #rightarrow l^{{{chs} }}{nuSign};{vartext}::{txc},0.08,0.04".format(chs=" "+chargeSign,
+                                                                                                               vartext=etaRangeText if "1Dpt" in name else ptRangeText,
+                                                                                                               nuSign="#nu" if chargeSign=="+" else "#bar{#nu}",
+                                                                                                               txc=texCoord)
 
         varBinRanges = []
         vertLinesArg = ""
@@ -147,7 +148,7 @@ if __name__ == "__main__":
                 else: 
                     yaxisTitle += " (pb/GeV)::0,200"
 
-            additionalText = "W^{{{chs}}} #rightarrow l#nu::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign)
+            additionalText = "W^{{{chs}}} #rightarrow l^{{{chs} }}{nuSign}::0.8,0.84,0.9,0.9".format(chs=" "+chargeSign, nuSign="#nu" if chargeSign=="+" else "#bar{#nu}")
             additionalTextLatex = ""
 
             canvas = canvUnroll

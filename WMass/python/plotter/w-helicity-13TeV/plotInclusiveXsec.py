@@ -207,7 +207,7 @@ if __name__ == "__main__":
     hXsecMinusPDF.SetTitle("cross section PDF: {Wch}".format(Wch=Wchannel.replace('W','W-')))
     #
     hXsecPDF = ROOT.TGraphAsymmErrors(1)
-    hXsecPDF.SetName("hXsec_{lep}_minus_PDF".format(lep=lepton))
+    hXsecPDF.SetName("hXsec_{lep}_PDF".format(lep=lepton))
     hXsecPDF.SetTitle("cross section PDF: {Wch}".format(Wch=Wchannel))
     #
     hChargeAsymTotTheory = ROOT.TGraphAsymmErrors(1)
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     hXsecMinusTotTheory.SetTitle("cross section: {Wch}".format(Wch=Wchannel.replace('W','W-')))
     #
     hXsecTotTheory = ROOT.TGraphAsymmErrors(1)
-    hXsecTotTheory.SetName("hXsec_{lep}_minus_TotTheory".format(lep=lepton))
+    hXsecTotTheory.SetName("hXsec_{lep}_TotTheory".format(lep=lepton))
     hXsecTotTheory.SetTitle("cross section: {Wch}".format(Wch=Wchannel))
     #
     ##########################

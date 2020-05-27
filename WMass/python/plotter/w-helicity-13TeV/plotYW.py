@@ -336,8 +336,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             titles = {'asymmetry': 'Charge asymmetry',
-                      'a0': '|A_{0}|', 
-                      'a4': '|A_{4}|',
+                      'a0': 'A_{0}', 
+                      'a4': 'A_{4}',
                       'sumxsec': 'd#sigma / d|y_{W}| (pb)',
                       'sumxsecnorm': 'd#sigma/d|y_{W}| / #sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
