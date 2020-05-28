@@ -112,7 +112,7 @@ class util:
                 if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
                 histo = histo_file.Get(name)
-                val = rescale*histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
+                val = rescale*histo.Integral()/35900./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()
@@ -694,12 +694,24 @@ class util:
 #######################
 #test for helicity
 
-    def getTheoryHistHelicityFast(self, xsecWithWptWeights=True, nBinsYw = 10):
+    def getTheoryHistHelicityFast(self, xsecWithWptWeights=False, nBinsYw = 12, scale=1.0, maxNyBinsForNorm=12):
  
+        # maxNyBinsForNorm should be 10, but apparently in plotYW the norm is computed wrongly so to include the 12th bin, let's check that
+
+        # scale is used to multiply the histogram content, to go from yields to pb
+        # usually scale = (1/lumiNorm = 35900) * 0.5 (histograms have yields for e+mu
+        # there might also bin an additional factor 4 to account for the division of the yields by bin width, which is 0.25
+
         # hardcoded binning for yW, only first 10 bins from 0 to 2.5, width of 0.25
 
         print "Inside getTheoryHistHelicityFast() ..."
         # hardcoded for now
+        # this is not already using the native aMC@NLO xsec (I think)
+        # need to rescale by 60400/(3*20508.9)
+        if xsecWithWptWeights:
+            nativeXsec_scale = 1.0
+        else:
+            nativeXsec_scale = 60400./(3*20508.9)
         infile = {"plus" : "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec_baremc.root",
                   "minus": "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_minus_shapes_xsec_baremc.root"
               }
@@ -731,7 +743,7 @@ class util:
                 for pol in ["left", "right", "long", "unpolarized"]:     
                
                     histname = "xsec_{ch}_{p}_{n}".format(ch=charge,p=pol,n=n)
-                    htheory[(charge,pol,n)] = ROOT.TH1D(histname,"",10,0,2.5)
+                    htheory[(charge,pol,n)] = ROOT.TH1D(histname,"",nBinsYw,0,0.25*nBinsYw)
                     htheory[(charge,pol,n)].SetDirectory(0)
 
                     if pol == "unpolarized": 
@@ -747,7 +759,7 @@ class util:
                             hname = "x_W{ch}_{pol}_Ybin_{iy}_{var}{extra}".format(ch=charge,pol=pol,iy=iy,var=n,extra="Up" if "pdf" in n else "")
                         htmp = histo_file.Get(hname)                        
                         self.checkHistInFile(htmp, hname, infile, message="in getTheoryHistHelicityFast()")
-                        htheory[(charge,pol,n)].SetBinContent(iy+1, htmp.Integral())
+                        htheory[(charge,pol,n)].SetBinContent(iy+1, nativeXsec_scale * scale * htmp.Integral())
 
                 for pol in ["left", "right", "long"]:
                     htheory[(charge,"unpolarized",n)].Add(htheory[(charge,pol,n)])
@@ -763,8 +775,8 @@ class util:
             htheory_xsecnorm[key] = htheory[key].Clone(htheory[key].GetName().replace("xsec_","xsecnorm_"))
             htheory_xsecnorm[key].SetDirectory(0)
             totxsec = 0
-            for pol in ["left", "right", "long"]:
-                totxsec += htheory[(key[0],pol,key[2])].Integral()
+            for pol in ["left", "right", "long"]: 
+                totxsec += htheory[(key[0],pol,key[2])].Integral(1,maxNyBinsForNorm)
             htheory_xsecnorm[key].Scale(1./totxsec) 
 
 
@@ -795,7 +807,10 @@ class util:
             htmp_den.Add(htheory[(key[0],"long",key[2])])
             htheory_A4[key].Divide(htmp_num,htmp_den)
             htheory_A0[key].Divide(htheory[(key[0],"long",key[2])],htmp_den)
-        
+            # not sure why, but these are scaled up by 2 in the script from Emanuele and Marc
+            # let's also do
+            htheory_A4[key].Scale(2.0)
+            htheory_A0[key].Scale(2.0)
 
         # differently from getTheoryHistDiffXsecFast(), here the dictionary has one object per item, not a list
         ret = { "xsec"     : htheory,
@@ -937,6 +952,52 @@ class util:
                     #tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - hnomi.GetBinContent(ivar+1)
                     #envelopeQCD = max(abs(envelopeQCD), abs(tmpvar))
                     envelopeQCD_vals.append(hists[(charge,nuis)].GetBinContent(ivar+1))
+
+            hretPDF.SetBinContent(ivar+1, nomi)
+            hretPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum))
+            errX = 0.5 * hnomi.GetBinWidth(ivar+1) # symmetric bins in x, error is just half the bin width
+            hretAlpha.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretAlpha.SetPointError(ivar, errX, errX, abs(min(envelopeAlphaS_vals)-nomi), abs(max(envelopeAlphaS_vals)-nomi))
+            hretQCD.SetPoint(ivar, hnomi.GetBinCenter(ivar+1), nomi)
+            hretQCD.SetPointError(ivar, errX, errX, abs(min(envelopeQCD_vals)-nomi), abs(max(envelopeQCD_vals)-nomi))
+            #hretAlpha.SetBinContent(ivar+1, hnomi.GetBinContent(ivar+1))
+            #hretAlpha.SetBinError(ivar+1, envelopeAlphaS)
+            #hretQCD.SetBinContent(ivar+1, hnomi.GetBinContent(ivar+1))
+            #hretQCD.SetBinError(ivar+1, envelopeQCD)
+
+
+#######################
+
+    def checkTheoryBandHelicity(self, hretPDF, hretAlpha, hretQCD, theovars, hists, nvarbins, charge="all", pol="unpolarized" ):
+        
+        # hretAlpha, hretQCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+        # pdfs can stay as a TH1
+
+        # to test width of the bands
+        hnomi = hists[(charge,pol,"nominal")]
+        for ivar in range(nvarbins):
+            pdfquadrsum = 0.0
+            nomi = hnomi.GetBinContent(ivar+1)
+            envelopeQCD_vals = [nomi]     # muR, muF, muRmuF, with Up and Down
+            envelopeAlphaS_vals = [nomi]  # basically Up and Down
+            for nuis in theovars:
+                if nuis == "nominal": continue
+                if "pdf" in nuis:
+                    tmpvar = hists[(charge,pol,nuis)].GetBinContent(ivar+1) - nomi
+                    pdfquadrsum += tmpvar * tmpvar
+                elif "alpha" in nuis:
+                    # 1.5 is because weight corresponds to 0.001, but should be 0.0015
+                    #tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - hnomi.GetBinContent(ivar+1)
+                    #envelopeAlphaS = max(abs(envelopeAlphaS), 1.5* abs(tmpvar))
+                    # if alphaHist is larger than nomi difference is positive and I add the variations time 1.5, otherwise
+                    # it is negative and I subtract
+                    alt = hists[(charge,pol,nuis)].GetBinContent(ivar+1)
+                    altscaled = nomi * math.exp( 1.5 * math.log(alt/nomi) )
+                    envelopeAlphaS_vals.append(altscaled)
+                else:
+                    #tmpvar = hists[(charge,nuis)].GetBinContent(ivar+1) - hnomi.GetBinContent(ivar+1)
+                    #envelopeQCD = max(abs(envelopeQCD), abs(tmpvar))
+                    envelopeQCD_vals.append(hists[(charge,pol,nuis)].GetBinContent(ivar+1))
 
             hretPDF.SetBinContent(ivar+1, nomi)
             hretPDF.SetBinError(ivar+1, math.sqrt(pdfquadrsum))
