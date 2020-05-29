@@ -81,7 +81,7 @@ class util:
                 err = ROOT.Double()
                 istart = histo.FindBin(val+epsilon)
                 iend   = histo.FindBin(ybins[cp][iv+1]+epsilon)
-                val = histo.IntegralAndError(istart, iend-1, err)/36000. ## do not include next bin
+                val = histo.IntegralAndError(istart, iend-1, err)/35900. ## do not include next bin
                 conts.append(float(val))
             histos[pol] = conts
         histo_file.Close()
@@ -133,11 +133,11 @@ class util:
                 if val in excludeYbins: continue
                 binname = 'x_W{ch}_{pol}_Ybin_{iy}'.format(ch=charge,pol=pol,iy=iv)
                 histo_nominal = histo_file.Get(binname)
-                nominal = histo_nominal.Integral()/36000./float(nchannels)
+                nominal = histo_nominal.Integral()/35900./float(nchannels)
                 envelope = 0
                 for s in systs:
                     histo_systs = histo_file.Get(binname+'_'+s)
-                    envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
+                    envelope = max(envelope, abs(histo_systs.Integral()/35900./float(nchannels) - nominal))
                     if doAlphaS: 
                         # wrong way (even if pretty similar for small variations)
                         #envelope = 1.5*envelope # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) 
@@ -708,16 +708,16 @@ class util:
         # hardcoded for now
         # this is not already using the native aMC@NLO xsec (I think)
         # need to rescale by 60400/(3*20508.9)
+        nativeXsec_scale = 60400./(3*20508.9)
+        infile = {}
         if xsecWithWptWeights:
-            nativeXsec_scale = 1.0
+            infile = {"plus" : "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec.root",
+                  "minus": "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_minus_shapes_xsec.root"
+                  }
         else:
-            nativeXsec_scale = 60400./(3*20508.9)
-        infile = {"plus" : "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec_baremc.root",
+            infile = {"plus" : "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec_baremc.root",
                   "minus": "/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_minus_shapes_xsec_baremc.root"
-              }
-        if xsecWithWptWeights:
-            print "NOT IMPLEMENTED. ABORT"
-            quit()
+                  }
 
         htheory = {}
         htheory_xsecnorm = {}
@@ -822,9 +822,10 @@ class util:
         return ret
 
 
-    def getTheoryBandHelicity(self, hretTotTheory, hretPDF, theovars, hists, nYwBins, charge="all", pol="unpolarized"):
+    def getTheoryBandHelicity(self, hretTotTheory, hretPDF, theovars, hists, nYwBins, charge="all", pol="unpolarized", pdfOnly=True):
         
         # AlphaS and QCD can have asymmetric uncertainties, so I need a TGraphAsymmErrors()
+        # pdfOnly=True means PDFs will not include alphaS
 
         # charge == all for asymmetry, plus or minus otherwise
         hnomi = hists[(charge, pol, "nominal")]
@@ -866,8 +867,13 @@ class util:
             alphaSErrorLow  = abs(min(envelopeAlphaS_vals)-nomi)
             QCDErrorHigh    = abs(max(envelopeQCD_vals)-nomi)
             QCDErrorLow     = abs(min(envelopeQCD_vals)-nomi)
-            pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh) 
-            pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow) 
+            if pdfOnly:
+                pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum) 
+                pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum) 
+            else:
+                pdfAlphaSErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh) 
+                pdfAlphaSErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow) 
+                
             totTheoryErrorHigh = math.sqrt(pdfquadrsum + alphaSErrorHigh * alphaSErrorHigh + QCDErrorHigh * QCDErrorHigh)
             totTheoryErrorLow  = math.sqrt(pdfquadrsum + alphaSErrorLow * alphaSErrorLow + QCDErrorLow * QCDErrorLow)
 

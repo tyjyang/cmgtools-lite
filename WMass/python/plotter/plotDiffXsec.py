@@ -14,7 +14,7 @@ onlyData = 1
 corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat, else 0
 
 skipInclusivePlot = 1
-skipPlot = 1
+skipPlot = 0
 skipTemplate = 1
 skipDiffNuis = 1
 skipPostfit = 1  # only for Data
@@ -24,7 +24,7 @@ skipCorrAll4HEPdata = 1
 skipImpacts = 1
 skipImpactsAll4HEPdata = 1
 skipImpactsEtaPt = 1
-skipMuElComparison = 0
+skipMuElComparison = 1
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
 
 useXsecWptWeights = 0 # to plot the band better to keep the unweighted xsec (so keep 0)

@@ -36,20 +36,27 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage='%prog [options]')
     parser.add_option('-o','--outdir', dest='outdir', default='', type='string', help='output directory to save things')
+    parser.add_option('-w', '--xsec-wpt-weight'    , dest='useXsecWptWeight' , default=False         , action='store_true',   help='if True, use xsec with Wpt reweighting to make bands')
+    parser.add_option('-p', '--pdf-only'    , dest='pdfOnly' , default=False         , action='store_true',   help='if True, PDF uncertainty will not include alphaS')
     (options, args) = parser.parse_args()
-
 
     ROOT.TH1.SetDefaultSumw2()
     ROOT.TH1.StatOverflows(True)
     
-    outname = options.outdir
+    outname = options.outdir.rstrip("/")
+    if options.useXsecWptWeight:
+        outname += "_wptWeights"
+    if options.pdfOnly:
+        outname += "_pdfOnly"
+    outname += "/"
+
     createPlotDirAndCopyPhp(outname)
 
     nBinsYw = 12
     print "Now retrieving all the theory variations, to make the theory bands later on"
     scale =  0.5 / 35900.0 # factor 0.5 for the double channel , and then dividing by lumi to go from yields to pb
     # there might be a factor 4 = 1/0.25 because dividing by bin width, but it will be done in plotYW directly (only relevant for aboslute xsec)
-    histDict = utilities.getTheoryHistHelicityFast(xsecWithWptWeights=False,nBinsYw = nBinsYw,scale=scale)
+    histDict = utilities.getTheoryHistHelicityFast(xsecWithWptWeights=options.useXsecWptWeight,nBinsYw = nBinsYw,scale=scale)
     print "DONE, all the histograms for the theory bands were taken"
 
     # sanity check
@@ -95,23 +102,22 @@ if __name__ == "__main__":
         hAsymTotTheory[pol].SetTitle("Charge asymmetry TotTheory: %s" % pol)
 
         print "Make theory bands for asymmetry and pol %s" % pol
-        utilities.getTheoryBandHelicity(hAsymTotTheory[pol], hAsymPDF[pol], histDict["listkeys"], histDict["asym"], nBinsYw, charge="all", pol=pol)
+        utilities.getTheoryBandHelicity(hAsymTotTheory[pol], hAsymPDF[pol], histDict["listkeys"], histDict["asym"], nBinsYw, charge="all", pol=pol, pdfOnly=options.pdfOnly)
         print "DONE"
         writeGraphIntoFile(hAsymTotTheory[pol],tfOut)
         writeGraphIntoFile(hAsymPDF[pol],tfOut)
 
-        # pseudodata = ROOT.TH1D("pseudodata","",10,0,2.5)
-        # for ib in range(1,1+pseudodata.GetNbinsX()):
-        #     xval = ROOT.Double(0)
-        #     yval = ROOT.Double(0)
-        #     hAsymPDF.GetPoint(ib-1,xval,yval)
-        #     pseudodata.SetBinContent(ib,yval)
-        #     pseudodata.SetBinError(ib,hAsymPDF.GetErrorY(ib-1))
+        for ib in range(1,1+pseudodata.GetNbinsX()):
+            xval = ROOT.Double(0)
+            yval = ROOT.Double(0)
+            hAsymPDF[pol].GetPoint(ib-1,xval,yval)
+            pseudodata.SetBinContent(ib,yval)
+            pseudodata.SetBinError(ib,hAsymPDF[pol].GetErrorY(ib-1))
 
-        #     drawXsecAndTheoryband(pseudodata, hAsymTotTheory, "|y_{W}|", "charge asymmetry::-0.10,0.40","chargeAsym_unpol_yW_lep_dataAndExp",outname,labelRatioTmp="data-exp::-0.10,0.10",draw_both0_noLog1_onlyLog2=1,passCanvas=canvas1D,lumi="35.9",
-        #                           lowerPanelHeight=0.35, moreTextLatex="unpolarized", 
-        #                           invertRatio=False, useDifferenceInLowerPanel=True,
-        #                           histMCpartialUnc=hAsymPDF, histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=True)
+        drawXsecAndTheoryband(pseudodata, hAsymTotTheory[pol], "|y_{W}|::0,2.5", "charge asymmetry::-0.10,0.40","chargeAsym_unpol_yW_lep_dataAndExp",outname,labelRatioTmp="data-exp::-0.10,0.10",draw_both0_noLog1_onlyLog2=1,passCanvas=canvas1D,lumi="35.9",
+                              lowerPanelHeight=0.35, moreTextLatex=pol, 
+                              invertRatio=False, useDifferenceInLowerPanel=True,
+                              histMCpartialUnc=hAsymPDF[pol], histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=True)
 
         for charge in ["plus", "minus"]:
 
@@ -124,7 +130,7 @@ if __name__ == "__main__":
             hXsecPDF[(charge,pol)].SetTitle("abs cross section PDF: %s %s" % (charge, pol))
             #
             print "Make theory bands for absolute cross section and charge %s and pol %s" % (charge, pol)
-            utilities.getTheoryBandHelicity(hXsecTotTheory[(charge,pol)], hXsecPDF[(charge,pol)], histDict["listkeys"], histDict["xsec"], nBinsYw, charge=charge, pol=pol)
+            utilities.getTheoryBandHelicity(hXsecTotTheory[(charge,pol)], hXsecPDF[(charge,pol)], histDict["listkeys"], histDict["xsec"], nBinsYw, charge=charge, pol=pol, pdfOnly=options.pdfOnly)
             print "DONE"
             writeGraphIntoFile(hXsecTotTheory[(charge,pol)],tfOut)
             writeGraphIntoFile(hXsecPDF[(charge,pol)],tfOut)
@@ -152,7 +158,7 @@ if __name__ == "__main__":
             hXsecNormPDF[(charge,pol)].SetTitle("norm cross section PDF: %s %s" % (charge, pol))
 
             print "Make theory bands for normalized cross section and charge %s and pol %s" % (charge, pol)
-            utilities.getTheoryBandHelicity(hXsecNormTotTheory[(charge,pol)], hXsecNormPDF[(charge,pol)], histDict["listkeys"],histDict["xsecnorm"], nBinsYw, charge=charge, pol=pol)            
+            utilities.getTheoryBandHelicity(hXsecNormTotTheory[(charge,pol)], hXsecNormPDF[(charge,pol)], histDict["listkeys"],histDict["xsecnorm"], nBinsYw, charge=charge, pol=pol, pdfOnly=options.pdfOnly)            
             print "DONE"
             writeGraphIntoFile(hXsecNormTotTheory[(charge,pol)],tfOut)
             writeGraphIntoFile(hXsecNormPDF[(charge,pol)],tfOut)
@@ -193,7 +199,7 @@ if __name__ == "__main__":
                 hA4QCDonly[charge].SetTitle("A4 QCD only: %s" % charge)
 
                 print "Make theory bands for A4 and charge %s" % charge
-                utilities.getTheoryBandHelicity(hA4TotTheory[charge], hA4PDF[charge], histDict["listkeys"], histDict["A4"], nBinsYw, charge=charge, pol=pol)
+                utilities.getTheoryBandHelicity(hA4TotTheory[charge], hA4PDF[charge], histDict["listkeys"], histDict["A4"], nBinsYw, charge=charge, pol=pol, pdfOnly=options.pdfOnly)
                 print "DONE"
                 writeGraphIntoFile(hA4TotTheory[charge],tfOut)
                 writeGraphIntoFile(hA4PDF[charge],tfOut)
@@ -212,7 +218,7 @@ if __name__ == "__main__":
                                       invertRatio=False, useDifferenceInLowerPanel=True,
                                       histMCpartialUnc=hA4PDF[charge], histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=True)
                 
-                drawCheckTheoryBand(hA4PDFonly[charge], hA4alphaSonly[charge], hA4QCDonly[charge],"|y_W|::0,2.5","rel. unc.::0.8,1.2", "theoryBands_A4_{ch}".format(ch=charge),outname,draw_both0_noLog1_onlyLog2=1,lumi="35.9",moreTextLatex="{c}_{p}".format(c=charge,p=pol))
+                drawCheckTheoryBand(hA4PDFonly[charge], hA4alphaSonly[charge], hA4QCDonly[charge],"|y_W|::0,2.5","uncertainty on A_4::-0.10,0.1", "theoryBands_A4_{ch}".format(ch=charge),outname,draw_both0_noLog1_onlyLog2=1,lumi="35.9",moreTextLatex="{c}_{p}".format(c=charge,p=pol),drawDifferenceBands=True)
 
                 # A0
                 hA0PDF[charge] = ROOT.TGraphAsymmErrors(nBinsYw)
@@ -224,7 +230,7 @@ if __name__ == "__main__":
                 hA0TotTheory[charge].SetTitle("A0 TotTheory: %s" % charge)
 
                 print "Make theory bands for A0 and charge %s" % charge
-                utilities.getTheoryBandHelicity(hA0TotTheory[charge], hA0PDF[charge], histDict["listkeys"], histDict["A0"], nBinsYw, charge=charge, pol=pol)
+                utilities.getTheoryBandHelicity(hA0TotTheory[charge], hA0PDF[charge], histDict["listkeys"], histDict["A0"], nBinsYw, charge=charge, pol=pol, pdfOnly=options.pdfOnly)
                 print "DONE"
                 writeGraphIntoFile(hA0TotTheory[charge],tfOut)
                 writeGraphIntoFile(hA0PDF[charge],tfOut)

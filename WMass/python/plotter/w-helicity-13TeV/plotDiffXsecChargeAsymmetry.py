@@ -271,7 +271,7 @@ if __name__ == "__main__":
                                                                             ptmin=genBins.ptBins[firstPtSignalBin], ptmax=genBins.ptBins[-1])
     #etaRangeText = "|#eta|^{{{l}}} #in [{etamin:3g}, {etamax:3g}] GeV".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
     #                                                                          etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
-    etaRangeText = "|#eta|^{{{l}}} < {etamax:3g}".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+    etaRangeText = "|#eta^{{{l}}}| < {etamax:3g}".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                               etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
     labelRatioDataExp = "exp./obs.::0.9,1.1" if options.invertRatio else "obs./exp.::0.9,1.1"
 
@@ -514,7 +514,7 @@ if __name__ == "__main__":
         #additionalText = "W #rightarrow {lep}#nu::0.2,0.5,0.4,0.6".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") # pass x1,y1,x2,y2
         #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", pttext=ptRangeText) # pass x1,y1,x2,y2
         texCoord = "0.2,0.65"
-        additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+        additionalText = "W #rightarrow {lep}^{{ }}#nu;{pttext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                     pttext=ptRangeText,
                                                                                     txc=texCoord)
         legendCoords = "0.2,0.4,0.75,0.85"
@@ -526,7 +526,7 @@ if __name__ == "__main__":
                       )
         legendCoords = "0.2,0.4,0.45,0.55"
         texCoord = "0.6,0.85"
-        additionalText = "W #rightarrow {lep}#nu;{etatext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+        additionalText = "W #rightarrow {lep}^{{ }}#nu;{etatext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                    etatext=etaRangeText,
                                                                                    txc=texCoord)
         drawSingleTH1(hChAsymm1Dpt,yaxisTitle,"charge asymmetry",
@@ -1506,7 +1506,7 @@ if __name__ == "__main__":
                         
                         additionalTextBackup = additionalText
                         # pass x1,y1,x2,y2
-                        additionalText = "W #rightarrow {lep}#nu::0.78,0.84,0.88,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
+                        additionalText = "W #rightarrow {lep}^{{ }}#nu::0.78,0.84,0.88,0.9".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l") 
                         
                         labelRatioDataExp_asym = labelRatioDataExp
                         #labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::0.8,1.5"
@@ -1612,7 +1612,7 @@ if __name__ == "__main__":
                     additionalTextBackup = additionalText
                     #additionalText = "W #rightarrow {lep}#nu;{pttext}::0.2,0.6,0.5,0.7".format(lep="e" if channel == "el" else "#mu",pttext=ptRangeText) # pass x1,y1,x2,y2
                     texCoord = "0.2,0.68"
-                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.045".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+                    additionalText = "W #rightarrow {lep}^{{ }}#nu;{pttext}::{txc},0.08,0.045".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                                pttext=ptRangeText,
                                                                                                txc=texCoord)
                     legendCoords = "0.2,0.6,0.75,0.85"
@@ -1631,7 +1631,7 @@ if __name__ == "__main__":
                     
                     legendCoords = "0.48,0.88,0.75,0.85"
                     texCoord = "0.2,0.48"
-                    additionalText = "W #rightarrow {lep}#nu;{pttext}::{txc},0.08,0.045".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
+                    additionalText = "W #rightarrow {lep}^{{ }}#nu;{pttext}::{txc},0.08,0.045".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                                pttext=etaRangeText,
                                                                                                txc=texCoord)
                     labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::-0.05,0.05"
