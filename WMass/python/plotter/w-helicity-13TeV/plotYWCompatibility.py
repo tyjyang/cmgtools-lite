@@ -527,7 +527,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             comp = makeUncorrDiff(values['el'].graph_fit, values['mu'].graph_fit)
         else:
             yaxtitle = '#sigma_{#mu}/#sigma_{e}'
-            yaxrange = (0.8, 1.2)
+            yaxrange = (0.7, 1.3)
             comp = makeUncorrRatio(values['el'].graph_fit, values['mu'].graph_fit)
         comp.SetName("comp"); comp.SetTitle("")
         comp.SetMarkerColor(values['mu'].color)
@@ -575,7 +575,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
 
 
 NPDFs = 60
-LUMINOSITY = 35900
+#LUMINOSITY = 35900
+LUMINOSITY = 36000
 
 if __name__ == "__main__":
 

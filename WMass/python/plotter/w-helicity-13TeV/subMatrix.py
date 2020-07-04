@@ -254,6 +254,11 @@ if __name__ == "__main__":
     parser.add_option(     '--skipLatexOnTop', dest='skipLatexOnTop',    default=False, action='store_true', help='Do not write "CMS blabla" on top (mainly useful when a title is needed)')
     (options, args) = parser.parse_args()
 
+    if options.divideCovarianceBybinArea and not options.whichMatrix == "covariance":
+        print "Warning: you are not using a covariance matrix, but correlation one"
+        print "Then, option --divide-covariance-by-bin-area will be ignored"
+        options.divideCovarianceBybinArea = False
+        
     ROOT.TColor.CreateGradientColorTable(3,
                                       array ("d", [0.00, 0.50, 1.00]),
                                       ##array ("d", [1.00, 1.00, 0.00]),
@@ -383,9 +388,20 @@ if __name__ == "__main__":
     ## construct the covariances and the correlations in one go.
     ## for the covariance, need to scale xsec content to port it from number of events to pb (and for combination need to divide by 2), but only for absolute things
     # also normalize by bin area the  numbers for absolute and normalized cross section (as it is done on the plots)
-    scalefactor_poi = 1./35900.
+    # the yields/pb scale factor is 35900 for 2D xsec, and 36000 for helicity
+    # this is because the yields for helicity were made using 36/fb
+    scalefactor_poi = 1./(36000.0 if options.ywbinfile else 35900.0)
     if options.channel == "lep":
-        scalefactor_poi /= 2.
+        scalefactor_poi /= 2.            
+
+    #######
+    # NOTE 
+    #######
+    # should change signs for A4 in the W+, because the fit returns a positive number, but theory
+    # predicts A4<0 for W+, so we manually change sign in the plot
+    # this must also reflect in the covariance matrix
+    # i.e. if the covariance with a nuisance and a yW bin for A4 in W+ channel is negative, it means scaling the former up moves the latter down, but since A4 should have opposite sign the direction of the shift is swapped as well
+
 
     print "Preparing list of parameters to build the matrix ..."
 
@@ -397,9 +413,11 @@ if __name__ == "__main__":
                 h = ROOT.gROOT.FindObject('h_{x}_{y}'.format(x=p1,y=p2)).Clone()
                 cov [(p1,p2)] = h.GetMean()
                 corr[(p1,p2)] = cov[(p1,p2)]/(fiterrs[p1]*fiterrs[p2])
+                # this part is obsolete and might not have all the proper scaling factors used for hessian below
             elif options.type == 'hessian':
                 scalefactor = 1.0
                 # normalization by bin area/width only for 2D/1D xsec, but might be added for rapidity as well
+                scalefactorSignA4wplus = 1.0
                 if options.divideCovarianceBybinArea: 
                     if any(x in p1 for x in ["_ieta_","_ipt_"]):
                         scalefactor /= getBinAreaFromParamName(p1,genBins)
@@ -412,10 +430,14 @@ if __name__ == "__main__":
                 if poiHasToBeScaled:
                     if p1.endswith(poiPostfix):     
                         scalefactor *= scalefactor_poi
-                    if p2.endswith(poiPostfix):     
+                        if poiPostfix == "a4" and "Wplus_Ybin_" in p1:
+                            scalefactorSignA4wplus *= -1.0 # see previous comment on A4 for W+
+                if p2.endswith(poiPostfix):     
                         scalefactor *= scalefactor_poi
-                cov [(p1,p2)] = scalefactor * covmatrix .GetBinContent(indices[ip1],indices[ip2])
-                corr[(p1,p2)] = corrmatrix.GetBinContent(indices[ip1],indices[ip2])
+                        if poiPostfix == "a4" and "Wplus_Ybin_" in p2:
+                            scalefactorSignA4wplus *= -1.0 # see previous comment on A4 for W+
+                cov [(p1,p2)] = scalefactorSignA4wplus * scalefactor * covmatrix .GetBinContent(indices[ip1],indices[ip2])
+                corr[(p1,p2)] = scalefactorSignA4wplus * corrmatrix.GetBinContent(indices[ip1],indices[ip2])
         
 
     print "===> Build covariance matrix from this set of params: ", params

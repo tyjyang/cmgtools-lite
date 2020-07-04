@@ -81,7 +81,7 @@ class util:
                 err = ROOT.Double()
                 istart = histo.FindBin(val+epsilon)
                 iend   = histo.FindBin(ybins[cp][iv+1]+epsilon)
-                val = histo.IntegralAndError(istart, iend-1, err)/35900. ## do not include next bin
+                val = histo.IntegralAndError(istart, iend-1, err)/36000. ## do not include next bin
                 conts.append(float(val))
             histos[pol] = conts
         histo_file.Close()
@@ -112,7 +112,7 @@ class util:
                 if val in excludeYbins: continue
                 name = 'x_W{ch}_{pol}_Ybin_{iy}{suffix}'.format(ch=charge,pol=pol,iy=iv,ip=ip,suffix=pstr)                
                 histo = histo_file.Get(name)
-                val = rescale*histo.Integral()/35900./float(nchannels) # xsec file yields normalized to 36 fb-1
+                val = rescale*histo.Integral()/36000./float(nchannels) # xsec file yields normalized to 36 fb-1
                 xsecs.append(float(val))
             values[pol] = xsecs
         histo_file.Close()
@@ -133,11 +133,11 @@ class util:
                 if val in excludeYbins: continue
                 binname = 'x_W{ch}_{pol}_Ybin_{iy}'.format(ch=charge,pol=pol,iy=iv)
                 histo_nominal = histo_file.Get(binname)
-                nominal = histo_nominal.Integral()/35900./float(nchannels)
+                nominal = histo_nominal.Integral()/36000./float(nchannels)
                 envelope = 0
                 for s in systs:
                     histo_systs = histo_file.Get(binname+'_'+s)
-                    envelope = max(envelope, abs(histo_systs.Integral()/35900./float(nchannels) - nominal))
+                    envelope = max(envelope, abs(histo_systs.Integral()/36000./float(nchannels) - nominal))
                     if doAlphaS: 
                         # wrong way (even if pretty similar for small variations)
                         #envelope = 1.5*envelope # one sigma corresponds to +-0.0015 (weights correspond to +-0.001) 

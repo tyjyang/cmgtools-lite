@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     nBinsYw = 12
     print "Now retrieving all the theory variations, to make the theory bands later on"
-    scale =  0.5 / 35900.0 # factor 0.5 for the double channel , and then dividing by lumi to go from yields to pb
+    scale =  0.5 / 36000.0 # factor 0.5 for the double channel , and then dividing by lumi to go from yields to pb (must use 36000 and not 35900 because the yields in the fit were normalized to 36000)
     # there might be a factor 4 = 1/0.25 because dividing by bin width, but it will be done in plotYW directly (only relevant for aboslute xsec)
     histDict = utilities.getTheoryHistHelicityFast(xsecWithWptWeights=options.useXsecWptWeight,nBinsYw = nBinsYw,scale=scale)
     print "DONE, all the histograms for the theory bands were taken"

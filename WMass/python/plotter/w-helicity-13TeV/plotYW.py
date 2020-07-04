@@ -389,10 +389,44 @@ def plotUnpolarizedValues(values,charge,channel,options):
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
             mg.Write() 
 
-        values.graph.Clone().Write("exp")
-        values.graph_fit.Clone().Write("data")
-        if doAltExp:
-            values.altgraph.Clone().Write("expAlt")
+        # save for HepData, but for A4 in W+ I need to take graph changing sign to all points
+        # because A4 is negative for W+, but the fit returns a positive number
+        # for HepData I want to report the actual values as predicted from theory, even if
+        # the plot has -A4 to make the comparison with minus charge easier
+        # for the asymmetric errors, what is ErrorYhigh becomes ErrorYlow and viceversa
+        if valkey == "a4" and charge == "plus":
+            gA4_exp = values.graph.Clone("gA4_exp") 
+            gA4_data = values.graph_fit.Clone("gA4_data") 
+            if doAltExp:
+                gA4_altexp = values.altgraph.Clone("gA4_altexp") 
+            for ip in range(gA4_data.GetN()):
+                xval = ROOT.Double(0)
+                yval_data = ROOT.Double(0)  
+                yval_exp = ROOT.Double(0)  
+                gA4_data.GetPoint(ip,xval,yval_data)  
+                gA4_data.SetPoint(ip,xval,-1.0*yval_data)
+                tmperrhigh = gA4_data.GetErrorYhigh(ip) 
+                gA4_data.SetPointEYhigh(ip, gA4_data.GetErrorYlow(ip))
+                gA4_data.SetPointEYlow(ip, tmperrhigh)
+                gA4_exp.GetPoint(ip,xval,yval_exp)  
+                gA4_exp.SetPoint(ip,xval,-1.0*yval_exp)
+                tmperrhigh = gA4_exp.GetErrorYhigh(ip) 
+                gA4_exp.SetPointEYhigh(ip, gA4_exp.GetErrorYlow(ip))
+                gA4_exp.SetPointEYlow(ip, tmperrhigh)
+                if doAltExp:
+                    yval_altexp = ROOT.Double(0)
+                    gA4_altexp.GetPoint(ip,xval,yval_altexp)  
+                    gA4_altexp.SetPoint(ip,xval,-1.0*yval_altexp)
+            # now saves
+            gA4_exp.Write("exp")
+            gA4_data.Write("data")
+            if doAltExp:
+                gA4_altexp.Write("expAlt")
+        else:
+            values.graph.Clone().Write("exp")
+            values.graph_fit.Clone().Write("data")
+            if doAltExp:
+                values.altgraph.Clone().Write("expAlt")
 
         ## now make the relative error plot:
         ## ======================================
@@ -453,7 +487,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
             c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
 
 NPDFs = 60
-LUMINOSITY = 35900
+#LUMINOSITY = 35900
+LUMINOSITY = 36000
 
 def getGraphsTheoryXsecPrefit(wptReweighted=False, pdfOnly=False):
     # file with all theory bands prefit, without or with Wpt reweighting, normalized to native aMC@NLO xsec
