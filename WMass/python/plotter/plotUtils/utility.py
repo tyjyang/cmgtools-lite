@@ -1933,7 +1933,8 @@ def drawCheckTheoryBand(h1, h2, h3,
                         invertRatio = False,  # make expected over observed if True
                         useDifferenceInLowerPanel = False,
                         noLegendLowerPanel = False,
-                        legendEntries = []
+                        legendEntries = [],
+                        drawDifferenceBands = False
                     ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -2031,33 +2032,57 @@ def drawCheckTheoryBand(h1, h2, h3,
 
     h2IsGraph = False
     h3IsGraph = False
-    ratio1.Divide(den_noerr)
+    if not ratio2.InheritsFrom("TH1"):
+        h2IsGraph = True
+    if not ratio3.InheritsFrom("TH1"):
+        h3IsGraph = True
+
+    if drawDifferenceBands:
+        ratio1.Add(den_noerr,-1.0)
+    else:
+        ratio1.Divide(den_noerr)
 
     if ratio2.InheritsFrom("TH1"):
         ratio2.Divide(den_noerr)
     else:
         h2IsGraph = True
         for i in range(den_noerr.GetNbinsX()):
-            ratio2.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio2.Eval(den_noerr.GetBinCenter(i+1)) / h1.GetBinContent(i+1) )
-            ratio2.SetPointEYhigh(i, ratio2.GetErrorYhigh(i) / h1.GetBinContent(i+1))
-            ratio2.SetPointEYlow( i, ratio2.GetErrorYlow(i)  / h1.GetBinContent(i+1))
+            if drawDifferenceBands:
+                ratio2.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio2.Eval(den_noerr.GetBinCenter(i+1)) - h1.GetBinContent(i+1) )
+                ratio2.SetPointEYhigh(i, ratio2.GetErrorYhigh(i))
+                ratio2.SetPointEYlow( i, ratio2.GetErrorYlow(i) )
+
+            else:
+                ratio2.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio2.Eval(den_noerr.GetBinCenter(i+1)) / h1.GetBinContent(i+1) )
+                ratio2.SetPointEYhigh(i, ratio2.GetErrorYhigh(i) / h1.GetBinContent(i+1))
+                ratio2.SetPointEYlow( i, ratio2.GetErrorYlow(i)  / h1.GetBinContent(i+1))
 
     if ratio3.InheritsFrom("TH1"):
         ratio3.Divide(den_noerr)
     else:
         h3IsGraph = True
         for i in range(den_noerr.GetNbinsX()):
-            ratio3.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio3.Eval(den_noerr.GetBinCenter(i+1)) / h1.GetBinContent(i+1) )
-            ratio3.SetPointEYhigh(i, ratio3.GetErrorYhigh(i) / h1.GetBinContent(i+1))
-            ratio3.SetPointEYlow( i, ratio3.GetErrorYlow(i)  / h1.GetBinContent(i+1))
-
+            if drawDifferenceBands:
+                ratio3.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio3.Eval(den_noerr.GetBinCenter(i+1)) - h1.GetBinContent(i+1) )
+                ratio3.SetPointEYhigh(i, ratio3.GetErrorYhigh(i))
+                ratio3.SetPointEYlow( i, ratio3.GetErrorYlow(i) )
+            else:
+                ratio3.SetPoint(i, den_noerr.GetBinCenter(i+1), ratio3.Eval(den_noerr.GetBinCenter(i+1)) / h1.GetBinContent(i+1) )
+                ratio3.SetPointEYhigh(i, ratio3.GetErrorYhigh(i) / h1.GetBinContent(i+1))
+                ratio3.SetPointEYlow( i, ratio3.GetErrorYlow(i)  / h1.GetBinContent(i+1))
 
     ratio1.SetFillColor(ROOT.kGreen) # kGreen+1
     ratio1.SetFillStyle(3001)  # 1001 to make it solid again
     ratio1.SetLineColor(ROOT.kGreen+1) # kGreen+2                       
     ratio1.SetLineWidth(1) # make it smaller when it is drawn on top of something
-    ratio2.SetFillColor(ROOT.kRed+1) # kGreen+1
-    ratio2.SetFillStyle(3244)  # 1001 to make it solid again
+    # if not drawDifferenceBands:
+    #     ratio2.SetFillColor(ROOT.kRed+1) # kGreen+1
+    #     ratio2.SetFillStyle(3244)  # 1001 to make it solid again
+    # else:
+    #     ratio2.SetMarkerColor(ROOT.kRed+2) # kGreen+2                       
+    #     ratio2.SetMarkerStyle(ROOT.kOpenSquare) # kGreen+2                       
+    ratio2.SetFillColor(ROOT.kRed+1)
+    ratio2.SetFillStyle(3244)
     ratio2.SetLineColor(ROOT.kRed+2) # kGreen+2                       
     ratio2.SetLineWidth(1) # make it smaller when it is drawn on top of something
     ratio3.SetLineColor(ROOT.kBlack)

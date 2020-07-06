@@ -44,8 +44,15 @@ def makeFullLegend(graphs,titles,styles,ncols=1,xmin=0.25,ymin=0.7,xmax=0.9,ymax
     leg.SetBorderSize(0)
     leg.SetTextFont(42)
     leg.SetTextSize(textSize)
-    for i in range(len(graphs)):
-        leg.AddEntry(graphs[i], titles[i], styles[i])
+    for i in range(len(graphs)):        
+        # try to align item for 'data' in canvas, TLegend screws the position based on the text size and length
+        if len(graphs)==2 and "FEWZ" in titles[i]:
+            if "CT18" in titles[i]:
+                leg.AddEntry(graphs[i], titles[i]+"            ", styles[i]) 
+            else:
+                leg.AddEntry(graphs[i], titles[i]+"       ", styles[i]) 
+        else:
+            leg.AddEntry(graphs[i], titles[i], styles[i])
     return leg
 
 def plotOne(mcvals,mcname,color,fillstyle,ybincenters):
@@ -98,7 +105,8 @@ def plotOneRatio(ratioGraphs,mcname,color,fillstyle,isBottomPlot=False,asymmetry
 
     leg = makeFullLegend(ratioGraphs[:2],
                           [mcname,'data'],
-                          ['f','pe'],ymin=0.70,xmax=0.75,ncols=2,textSize=0.08)
+                          ['f','pe'],ymin=0.70,xmax=0.7,ncols=2,textSize=0.09)
+                                                     #0.75               #0.08
     leg.Draw()
     leg.SetName("leg"+mcname)
 
@@ -282,7 +290,7 @@ if __name__ == "__main__":
             fewz_nnpdf31_sc[:,1:] *= 1./bwidth
             fewz_ct18_sc[:,1:] *= 1./bwidth
 
-        ## get the nominal MC and data from our beloved graphs
+            ## get the nominal MC and data from our beloved graphs
         canv = plotMCaNLO(nominal_values,nominal_ratios,fewz_nnpdf31_sc,fewz_ct18_sc,plot,theDir)
 
     

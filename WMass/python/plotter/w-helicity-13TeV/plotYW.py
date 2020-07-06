@@ -292,7 +292,11 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
-            lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            if charge == 'asymmetry':
+                lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            else:
+                lat.DrawLatex(0.20, 0.80,  'W^{{ {ch}}} #rightarrow {lep}^{{ {ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
         for ext in ['png', 'pdf']: #, 'root']:
             c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
@@ -318,7 +322,17 @@ def plotUnpolarizedValues(values,charge,channel,options):
         lat.SetNDC(); lat.SetTextFont(42)
         legx1, legx2, legy1, legy2 = 0.2, 0.5, 0.7, 0.85
 
-        of = ROOT.TFile.Open('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.root'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type),'recreate')
+        #of = ROOT.TFile.Open('{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}.root'.format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type),'recreate')
+
+        # save for HEPData
+        # will also save the TMultigraph used in plotYW_FEWZ.py
+        plotname = "{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}".format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type)
+        rfHepName = '{n}.root'.format(n=plotname)
+        rfHep = ROOT.TFile.Open(rfHepName,"recreate")
+        if not rfHep:
+            print "Error in plotYW.py: could not open root file %s" % rfHepName
+            quit()
+        rfHep.cd()
 
         ## the graphs exist now. now starting to draw them
         ## ===========================================================
@@ -336,13 +350,14 @@ def plotUnpolarizedValues(values,charge,channel,options):
             mg.GetXaxis().SetTitleOffset(5.5)
             mg.GetXaxis().SetLabelSize(0)
             titles = {'asymmetry': 'Charge asymmetry',
-                      'a0': '|A_{0}|', 
-                      'a4': '|A_{4}|',
+                      'a0': 'A_{0}', 
+                      'a4': '-A_{4}' if charge == 'plus' else 'A_{4}',
                       'sumxsec': 'd#sigma / d|y_{W}| (pb)',
                       'sumxsecnorm': 'd#sigma/d|y_{W}| / #sigma_{tot}'}
             ranges = {'asymmetry': (-0.1,0.4),
                       'a0': (0.07,0.2),
-                      'a4': (-1,2),
+                      #'a4': (-1,2),
+                      'a4': (-0.5,1.2),
                       'sumxsec': (1500,4500),
                       'sumxsecnorm': (0.1,0.5)}
             mg.GetYaxis().SetTitle(titles[valkey])
@@ -366,24 +381,52 @@ def plotUnpolarizedValues(values,charge,channel,options):
             lat.DrawLatex(0.18, 0.94, '#bf{{CMS}} {prel}'.format(prel=PRELIMINARY))
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
-            lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch}}}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
-            lat.DrawLatex(0.88, 0.03, '|y_{W}|')
-            #mg.Write() # is this line needed? It causes warning during runtime
+            if charge == 'asymmetry':
+                lat.DrawLatex(0.20, 0.40,  'W^{{{ch}}} #rightarrow {lep}^{{{ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+            else:
+                lat.DrawLatex(0.20, 0.40,  'W^{{ {ch}}} #rightarrow {lep}^{{ {ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
 
-        # save for HEPData
-        plotname = "{od}/genAbsYUnpolarized{norm}_pdfs_{ch}{suffix}_{t}".format(od=options.outdir, norm=valkey, ch=charge, suffix=options.suffix, t=options.type)
-        rfHepName = '{n}.root'.format(n=plotname)
-        rfHep = ROOT.TFile.Open(rfHepName,"recreate")
-        if not rfHep:
-            print "Error in plotYW.py: could not open root file %s" % rfHepName
-            quit()
-        rfHep.cd()
-        values.graph.Clone().Write("exp")
-        values.graph_fit.Clone().Write("data")
-        if doAltExp:
-            values.altgraph.Clone().Write("expAlt")
-        rfHep.Close()
-        # done with hepdata
+            lat.DrawLatex(0.88, 0.03, '|y_{W}|')
+            mg.Write() 
+
+        # save for HepData, but for A4 in W+ I need to take graph changing sign to all points
+        # because A4 is negative for W+, but the fit returns a positive number
+        # for HepData I want to report the actual values as predicted from theory, even if
+        # the plot has -A4 to make the comparison with minus charge easier
+        # for the asymmetric errors, what is ErrorYhigh becomes ErrorYlow and viceversa
+        if valkey == "a4" and charge == "plus":
+            gA4_exp = values.graph.Clone("gA4_exp") 
+            gA4_data = values.graph_fit.Clone("gA4_data") 
+            if doAltExp:
+                gA4_altexp = values.altgraph.Clone("gA4_altexp") 
+            for ip in range(gA4_data.GetN()):
+                xval = ROOT.Double(0)
+                yval_data = ROOT.Double(0)  
+                yval_exp = ROOT.Double(0)  
+                gA4_data.GetPoint(ip,xval,yval_data)  
+                gA4_data.SetPoint(ip,xval,-1.0*yval_data)
+                tmperrhigh = gA4_data.GetErrorYhigh(ip) 
+                gA4_data.SetPointEYhigh(ip, gA4_data.GetErrorYlow(ip))
+                gA4_data.SetPointEYlow(ip, tmperrhigh)
+                gA4_exp.GetPoint(ip,xval,yval_exp)  
+                gA4_exp.SetPoint(ip,xval,-1.0*yval_exp)
+                tmperrhigh = gA4_exp.GetErrorYhigh(ip) 
+                gA4_exp.SetPointEYhigh(ip, gA4_exp.GetErrorYlow(ip))
+                gA4_exp.SetPointEYlow(ip, tmperrhigh)
+                if doAltExp:
+                    yval_altexp = ROOT.Double(0)
+                    gA4_altexp.GetPoint(ip,xval,yval_altexp)  
+                    gA4_altexp.SetPoint(ip,xval,-1.0*yval_altexp)
+            # now saves
+            gA4_exp.Write("exp")
+            gA4_data.Write("data")
+            if doAltExp:
+                gA4_altexp.Write("expAlt")
+        else:
+            values.graph.Clone().Write("exp")
+            values.graph_fit.Clone().Write("data")
+            if doAltExp:
+                values.altgraph.Clone().Write("expAlt")
 
         ## now make the relative error plot:
         ## ======================================
@@ -409,10 +452,13 @@ def plotUnpolarizedValues(values,charge,channel,options):
             yaxrange = (0,0)
             if valkey in ['asymmetry','a4']:
                 yaxtitle = 'A_{Theory}-A_{Data}'
-                yaxrange = (-0.1, 0.1)
+                if valkey == 'a4':
+                    yaxrange = (-0.2, 0.2)
+                else:
+                    yaxrange = (-0.1, 0.1)
             else:
                 yaxtitle = '#sigma_{Theory}/#sigma_{Data}'
-                yaxrange = (0.70, 1.30) if 'xsec' in valkey else (0.7,1.3) if valkey=='a0' else (-0.5, 2.5)
+                yaxrange = (0.80, 1.20) if 'xsec' in valkey else (0.8,1.2) if valkey=='a0' else (-0.5, 2.5)
 
             values.mg.SetName('ratios')
             values.mg.Draw('Pa')
@@ -430,16 +476,46 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetYaxis().SetNdivisions(5)
             values.mg.GetYaxis().CenterTitle()
             values.mg.GetYaxis().SetDecimals()
-            #values.mg.Write()  # is this line needed? It causes warning during runtime
+            values.mg.Write()
 
             line.Draw("Lsame");
 
+        rfHep.Close()
+        # done with hepdata
+
         for ext in ['png', 'pdf']:
             c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))
-        of.Close()
 
 NPDFs = 60
+#LUMINOSITY = 35900
 LUMINOSITY = 36000
+
+def getGraphsTheoryXsecPrefit(wptReweighted=False, pdfOnly=False):
+    # file with all theory bands prefit, without or with Wpt reweighting, normalized to native aMC@NLO xsec
+    # made with w-helicity-13TeV/plotHelicityChargeAsymmetry.py if you need to redo it
+    pdfpostfix = "_pdfOnly" if pdfOnly else ""
+    wptpostfix = "_wptWeights" if wptReweighted else ""
+
+    fname = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/helicityAnalysis/checkTheoryBands{w}{p}/plotHelicityChargeAsymmetry.root".format(w=wptpostfix,p=pdfpostfix)
+
+    f = ROOT.TFile.Open(fname,"READ")
+    graphs = {}
+    for k in f.GetListOfKeys():
+        name = k.GetName()
+        obj  = k.ReadObj()
+        if not obj:
+            raise RuntimeError('Unable to read object {n} in {fn}'.format(n=name,fn=fname))
+        graphs[name] = obj
+    f.Close()
+    #
+    # check the graphs are still in the dictionary, exit after first entry
+    # yes it does, can comment
+    # for ik,k in enumerate(graphs.keys()):
+    #     if ik: 
+    #         break
+    #     graphs[k].Print()
+        
+    return graphs
 
 if __name__ == "__main__":
 
@@ -468,8 +544,18 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
 
+    theoryBands = getGraphsTheoryXsecPrefit(wptReweighted=True,pdfOnly=options.pdfonly) 
+    # graphs from 0 to 3.0 with 12 bins of 0.25 width, but the last two are out of acceptance and ignored (the last one should have been from 2.75 to 10 actually, but we don't care), the normalized xsec is made using all the 12 bins for all polarizations
+    theoryBandsNoWpt = getGraphsTheoryXsecPrefit(wptReweighted=False,pdfOnly=options.pdfonly)
+    nBinsTheoryGraph = 12
+    hGrNameKey = "PDF" if options.pdfonly else "TotTheory"
+
+    # should have used bands from Xsec without Wpt reweighting, but apparently the PDF uncertainty is smaller than expected, and this is probably due to the fact that the input cross sections were not made using appropriate helicity fractions for each pdf variation
+    # instead, this is apparently done for the Wpt reweighted xsec (although I don't get exactly the same numbers as Josh, but very close)
+    # so, the central value will be taken from the non-reweighted xsec, but the band from the reweighted one (it has slightly larger pdf uncertainty, and probably this is more correct)
+
     if not os.path.isdir(options.outdir):
-        os.system('mkdir {od}'.format(od=options.outdir))
+        os.system('mkdir -p {od}'.format(od=options.outdir))
         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php {od}".format(od=options.outdir))
 
     if options.ybinfile:
@@ -497,11 +583,9 @@ if __name__ == "__main__":
     ybinfile = open(ybinfile, 'r')
     ybins = eval(ybinfile.read())
     ybinfile.close()
-
+    #print "YBINS: "
     #print ybins
-    
 
-    #print ybins    
     bkgYBins = []
     if options.ybinsBkg:
         bkgYBins = list(int(i) for i in options.ybinsBkg.split(','))        
@@ -521,16 +605,19 @@ if __name__ == "__main__":
     for k,v in ybins.items():
         tmplist = list(abs(i - v[v.index(i)+1]) for i in v[:-1])
         ybinwidths[k] = [float('{n:.2f}'.format(n=i)) for i in tmplist]
-
+    #print "YBINWIDTHS: "
+    #print ybinwidths
 
     charges = options.charge.split(',')
     xsecfiles = options.xsecfiles.split(',')
     doAltExp =  options.altxsecfiles
-    xsec_nominal_allCharges = {}; xsec_systematics_allCharges = {}; xsec_pdfsystematics_allCharges = {}
+    xsec_nominal_allCharges = {}; 
+    xsecnorm_nominal_allCharges = {}; 
 
     if doAltExp:
         alt_xsecfiles = options.altxsecfiles.split(',')
         alt_xsec_nominal_allCharges = {}
+        alt_xsecnorm_nominal_allCharges = {}
 
     polarizations = ['left','right','long']
     signal_polarizations = ['left','right']
@@ -549,89 +636,53 @@ if __name__ == "__main__":
 
         sign = 1. if charge=='plus' else -1.
 
-        ## this gets the pdf central variation binned in the correct format
-        xsec_nominal     = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],0,nChan, polarizations=polarizations, generator='mcatnlo')
-        xsec_qcdenvelope = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations, generator='mcatnlo')
-        xsec_alphas_syst = utilities.getQCDScaleEnvelope(ybins,charge,xsecfiles[ic],nChan, polarizations=polarizations, doAlphaS=True, generator='mcatnlo')
-        xsec_nominal_allCharges[charge] = xsec_nominal
+        xsec_nominal = {}
+        xsecnorm_nominal = {}
+        alt_xsec_nominal = {}
+        alt_xsecnorm_nominal = {}
+        for pol in ["left","right","long"]:
+            nameGraphTotTheory_xsec = "hXsec{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+            nameGraphTotTheory_xsecnorm = "hXsecNorm{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+            values = []
+            valuesnorm = []
+            for iy in range(nBinsTheoryGraph): # all bins of yW
+                xval = ROOT.Double(0)
+                yval = ROOT.Double(0)  
+                yvalnorm = ROOT.Double(0)  
+                theoryBandsNoWpt[nameGraphTotTheory_xsec].GetPoint(iy,xval,yval)  
+                values.append(yval)
+                theoryBandsNoWpt[nameGraphTotTheory_xsecnorm].GetPoint(iy,xval,yvalnorm)  
+                valuesnorm.append(yvalnorm)
+            xsec_nominal[pol] = values
+            xsecnorm_nominal[pol] = valuesnorm
+        xsec_nominal_allCharges[charge] = xsec_nominal        
+        xsecnorm_nominal_allCharges[charge] = xsecnorm_nominal        
 
         if doAltExp: 
-            alt_xsec_nominal = utilities.getXSecFromShapes(ybins,charge,alt_xsecfiles[ic],0,nChan, polarizations=polarizations, generator='mcatnlo' )
+            for pol in ["left","right","long"]:
+                altvalues = []
+                altvaluesnorm = []
+                nameGraphTotTheory_xsec = "hXsec{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+                nameGraphTotTheory_xsecnorm = "hXsecNorm{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+                for iy in range(nBinsTheoryGraph): # all bins of yW
+                    xval = ROOT.Double(0)
+                    altyval = ROOT.Double(0)  
+                    altyvalnorm = ROOT.Double(0)  
+                    theoryBands[nameGraphTotTheory_xsec].GetPoint(iy,xval,altyval)  
+                    altvalues.append(altyval)
+                    theoryBands[nameGraphTotTheory_xsecnorm].GetPoint(iy,xval,altyvalnorm)  
+                    altvaluesnorm.append(altyvalnorm)
+                alt_xsec_nominal[pol] = altvalues
+                alt_xsecnorm_nominal[pol] = altvaluesnorm            
             alt_xsec_nominal_allCharges[charge] = alt_xsec_nominal
-
-        value_syst = {}
-        for pol in polarizations:
-            histos = []
-            values = []
-            for ip in xrange(1,NPDFs+1):
-                # print "Loading polarization %s, histograms for pdf %d" % (pol,ip)
-                ## this gets the pdf variations after correctly rebinning the YW
-                xsec_pdf = utilities.getXSecFromShapes(ybins,charge,xsecfiles[ic],ip,nChan, polarizations=polarizations, generator='mcatnlo' )
-                values.append(xsec_pdf[pol])
-            value_syst[pol] = values
-
-        xsec_systematics = {}
-        xsec_pdfsystematics = {}
-        for pol in polarizations:
-            #print "===> Running pol = ",pol
-            xsec_systs=[]
-            xsec_pdfsysts=[]
-            for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-                xsec_nom = xsec_nominal[pol][iy]
-                #print "\tBin iy={iy},y={y}. Nom = {nom} ".format(iy=iy,y=y,nom=nom)
-                totUp=0; xsec_totUp=0
-                for ip,pdf in enumerate(value_syst[pol]):
-                    xsec_pdf = value_syst[pol][ip]
-                    #print "\tip = {ip}  pdf = {pdf}".format(ip=ip,pdf=pdf[iy])
-                    # debug
-                    xsec_relsyst = abs(xsec_nom-xsec_pdf[iy])/xsec_nom if xsec_nom else 0.0
-                    if xsec_relsyst>0.20:
-                        print "SOMETHING WENT WRONG WITH THIS PDF: %d HAS RELATIVE SYST = %f. SKIPPING !" % (ip,relsyst)
-                    else:
-                        xsec_totUp += math.pow(xsec_relsyst*xsec_nom,2)
-                # and add alphaS (which in principle is part of PDF variations)
-                # print "rel PDFs on xsec for Y bin %d = +/-%.3f" % (iy,math.sqrt(xsec_totUp)/xsec_nom if xsec_nom else 0.)
-                if not options.pdfonly: 
-                    xsec_totUp += math.pow(xsec_alphas_syst[pol][iy],2)
-                xsec_pdfsysts.append(math.sqrt(xsec_totUp))
-                # now to the total PDF error, add the QCD scales envelope
-                if not options.pdfonly:
-                    xsec_totUp += math.pow(xsec_qcdenvelope[pol][iy],2)
-                xsec_totUp = math.sqrt(xsec_totUp)
-                # print "Rel systematic for Y bin %d = +/-%.3f" % (iy,totUp/nom)
-                # print "rel QCD scales on xsec for Y bin %d = +/-%.3f" % (iy,xsec_qcdenvelope[pol][iy]/xsec_nom if xsec_nom else 0.) 
-                # print "Rel alpha syst on xsec for Y bin %d = +/-%.3f" % (iy,xsec_alphas_syst[pol][iy]/xsec_nom if xsec_nom else 0.) 
-                #print "\tRel systematic on xsec for Y bin %d = +/-%.3f" % (iy,xsec_totUp/xsec_nom if xsec_nom else 0.)
-                xsec_systs.append(xsec_totUp)
-            xsec_systematics[pol]=xsec_systs
-            xsec_pdfsystematics[pol]=xsec_pdfsysts
-        xsec_systematics_allCharges[charge] = xsec_systematics
-        xsec_pdfsystematics_allCharges[charge] = xsec_pdfsystematics
+            alt_xsecnorm_nominal_allCharges[charge] = alt_xsecnorm_nominal
+            # print "Charge %s " % charge
+            # print "alt_xsec_nominal[left]:"
+            # print alt_xsec_nominal["left"]
+            # print "alt_xsec_nominal[right]:"
+            # print alt_xsec_nominal["right"]
 
         angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}; alt_angcoeff_nominal = {'sumxsec': [], 'a0': [], 'a4': []}
-        angcoeff_systematics = {'sumxsec': [], 'a0': [], 'a4': []}; angcoeff_pdfsystematics = {'sumxsec': [], 'a0': [], 'a4': []}
-        for  iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol if not pol=='long' else 'right')]):
-            xsec_unpolarized_nominal_iy = sum([xsec_nominal[pol][iy] for pol in polarizations])
-            angcoeff_nominal['sumxsec'].append(xsec_unpolarized_nominal_iy)
-            xsec_unpolarized_iy = sum([xsec_systematics[pol][iy] for pol in polarizations])
-            xsec_unpolarized_iy_pdfonly = sum([xsec_pdfsystematics[pol][iy] for pol in polarizations])
-            angcoeff_systematics['sumxsec'].append(xsec_unpolarized_iy) 
-            angcoeff_pdfsystematics['sumxsec'].append(xsec_unpolarized_iy_pdfonly) 
-            coeffs_val = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
-                                             xsec_systematics['left'][iy], xsec_systematics['right'][iy], xsec_systematics['long'][iy])
-            coeffs_val_pdfsystsonly = utilities.getCoeffs(xsec_nominal['left'][iy],     xsec_nominal['right'][iy],     xsec_nominal['long'][iy],
-                                                          xsec_pdfsystematics['left'][iy], xsec_pdfsystematics['right'][iy], xsec_pdfsystematics['long'][iy])
-            angcoeff_nominal['a0'].append(coeffs_val['a0'][0])
-            angcoeff_nominal['a4'].append(sign*coeffs_val['a4'][0])
-            angcoeff_systematics['a0'].append(coeffs_val['a0'][1]);  angcoeff_pdfsystematics['a0'].append(coeffs_val_pdfsystsonly['a0'][1])
-            angcoeff_systematics['a4'].append(coeffs_val['a4'][1]);  angcoeff_pdfsystematics['a4'].append(coeffs_val_pdfsystsonly['a4'][1])
-            if doAltExp:
-                alt_xsec_unpolarized_nominal_iy = sum([alt_xsec_nominal[pol][iy] for pol in polarizations])
-                alt_angcoeff_nominal['sumxsec'].append(alt_xsec_unpolarized_nominal_iy)
-                alt_coeffs_val = utilities.getCoeffs(alt_xsec_nominal['left'][iy],     alt_xsec_nominal['right'][iy],     alt_xsec_nominal['long'][iy],
-                                                     xsec_systematics['left'][iy],     xsec_systematics['right'][iy],     xsec_systematics['long'][iy])
-                alt_angcoeff_nominal['a0'].append(alt_coeffs_val['a0'][0])
-                alt_angcoeff_nominal['a4'].append(sign*alt_coeffs_val['a4'][0])
 
         nOuterBinsToExclude = 0  ### out of acceptance Y bins, or that were treated as background (not to be considered for the total xsec)
         if len(outAccYBins):
@@ -642,6 +693,7 @@ if __name__ == "__main__":
         MAXYFORNORM = ybins[cp][-nOuterBinsToExclude-1] # exclude the outermost 2 bins which has huge error due to acceptance
         print "MAXYFORNORM = " + str(MAXYFORNORM)
         normsigmaIn  = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
+        print "NORMSIGMAIN: " + str(normsigmaIn)
         normsigmaOut = sum([xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)>=MAXYFORNORM])
         if doAltExp:
             alt_normsigmaIn  = sum([alt_xsec_nominal[allpol][iy] for allpol in polarizations for iy,y in enumerate(ybins[cp][:-1]) if abs(y)<MAXYFORNORM])
@@ -657,8 +709,7 @@ if __name__ == "__main__":
 
             for iy,y in enumerate(ybinwidths['{ch}_{pol}'.format(ch=charge,pol=pol)]):
                 if iy in bkgYBins: continue
-                # normsigma is used to normalize the expected: then, the sum should be the one on the expected
-                # which is also less sensitive to fluctuations, since in data some bins can be 0
+
                 normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
                 if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
                 parname = 'W{charge}_{pol}_Ybin_{iy}'.format(charge=charge,pol=pol,iy=iy)
@@ -680,33 +731,53 @@ if __name__ == "__main__":
                     xsec_fit = [x/float(nChan) for x in valuesAndErrors['{par}_{sfx}'.format(par=parname,sfx=suffix)]]
                     scale = LUMINOSITY
 
-                if options.normxsec:
-                    rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
-                else:
-                    rfit     = xsec_nominal[pol][iy]/xsec_fit[0]*scale
-                rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0]
-
-                tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
                 if doAltExp: 
-                    tmp_val.altval.append(alt_xsec_nominal[pol][iy]/ybinwidths[cp][iy])
-                tmp_val.ehi.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy])
-                tmp_val.elo.append(xsec_systematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
-                tmp_val.ehi2.append(xsec_pdfsystematics[pol][iy]/ybinwidths[cp][iy])
-                tmp_val.elo2.append(xsec_pdfsystematics[pol][iy]/ybinwidths[cp][iy]) # symmetric for the expected
-                if options.normxsec:
-                    tmp_val.val[-1] = tmp_val.val[-1]/normsigma
-                    if doAltExp:
-                        tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
-                    tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
-                    tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
-                    tmp_val.ehi2[-1] = tmp_val.ehi2[-1]/normsigma
-                    tmp_val.elo2[-1] = tmp_val.elo2[-1]/normsigma
+                    if options.normxsec:
+                        #tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
+                        tmp_val.altval.append(alt_xsecnorm_nominal[pol][iy]/ybinwidths[cp][iy])
+                        #print "iy = %d --> alt_val %s = %.3f" % (iy,pol,tmp_val.altval[-1])
+                    else:
+                        tmp_val.altval.append(alt_xsec_nominal[pol][iy]/ybinwidths[cp][iy])
+                        #print "iy = %d --> alt_val %s = %.3f" % (iy,pol,tmp_val.altval[-1])
 
-                tmp_val.relv. append(rfit);
-                tmp_val.rello.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy])
-                tmp_val.relhi.append(xsec_systematics[pol][iy]/xsec_nominal[pol][iy]) # symmetric for the expected
-                tmp_val.rello2.append(xsec_pdfsystematics[pol][iy]/xsec_nominal[pol][iy])
-                tmp_val.relhi2.append(xsec_pdfsystematics[pol][iy]/xsec_nominal[pol][iy]) # symmetric for the expected
+                # abs xsec
+                nameGraphTotTheory_xsec = "hXsec{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+                xsec_ehi_totTheory = theoryBands[nameGraphTotTheory_xsec].GetErrorYhigh(iy)  
+                xsec_elo_totTheory = theoryBands[nameGraphTotTheory_xsec].GetErrorYlow(iy)  
+                nameGraphPDF_xsec = "hXsecPDF_{c}_{p}".format(c=charge,p=pol)
+                xsec_ehi_pdf = theoryBands[nameGraphPDF_xsec].GetErrorYhigh(iy)  
+                xsec_elo_pdf = theoryBands[nameGraphPDF_xsec].GetErrorYlow(iy)  
+                # norm xsec
+                nameGraphTotTheory_xsecnorm = "hXsecNorm{n}_{c}_{p}".format(n=hGrNameKey,c=charge,p=pol)
+                xsecnorm_ehi_totTheory = theoryBands[nameGraphTotTheory_xsecnorm].GetErrorYhigh(iy)  
+                xsecnorm_elo_totTheory = theoryBands[nameGraphTotTheory_xsecnorm].GetErrorYlow(iy)  
+                nameGraphPDF_xsecnorm = "hXsecNormPDF_{c}_{p}".format(c=charge,p=pol)
+                xsecnorm_ehi_pdf = theoryBands[nameGraphPDF_xsecnorm].GetErrorYhigh(iy)  
+                xsecnorm_elo_pdf = theoryBands[nameGraphPDF_xsecnorm].GetErrorYlow(iy)  
+
+                if options.normxsec:
+                    tmp_val.val.append(xsecnorm_nominal[pol][iy]/ybinwidths[cp][iy])
+                    tmp_val.ehi.append(xsecnorm_ehi_totTheory/ybinwidths[cp][iy])     
+                    tmp_val.elo.append(xsecnorm_elo_totTheory/ybinwidths[cp][iy])
+                    tmp_val.ehi2.append(xsecnorm_ehi_pdf/ybinwidths[cp][iy])
+                    tmp_val.elo2.append(xsecnorm_elo_pdf/ybinwidths[cp][iy])
+                    #rfit     = xsec_nominal[pol][iy]/normsigma/xsec_fit[0]
+                    rfit     = xsecnorm_nominal[pol][iy]/xsec_fit[0]
+                    tmp_val.rello.append(xsecnorm_elo_totTheory/xsecnorm_nominal[pol][iy])
+                    tmp_val.relhi.append(xsecnorm_ehi_totTheory/xsecnorm_nominal[pol][iy])
+                    tmp_val.rello2.append(xsecnorm_elo_pdf/xsecnorm_nominal[pol][iy])
+                    tmp_val.relhi2.append(xsecnorm_ehi_pdf/xsecnorm_nominal[pol][iy])
+                else:
+                    tmp_val.val.append(xsec_nominal[pol][iy]/ybinwidths[cp][iy])
+                    tmp_val.ehi.append(xsec_ehi_totTheory/ybinwidths[cp][iy])                
+                    tmp_val.elo.append(xsec_elo_totTheory/ybinwidths[cp][iy])
+                    tmp_val.ehi2.append(xsec_ehi_pdf/ybinwidths[cp][iy])
+                    tmp_val.elo2.append(xsec_elo_pdf/ybinwidths[cp][iy])
+                    rfit = xsec_nominal[pol][iy]/(xsec_fit[0]/scale) 
+                    tmp_val.rello.append(xsec_elo_totTheory/xsec_nominal[pol][iy])
+                    tmp_val.relhi.append(xsec_ehi_totTheory/xsec_nominal[pol][iy])
+                    tmp_val.rello2.append(xsec_elo_pdf/xsec_nominal[pol][iy])
+                    tmp_val.relhi2.append(xsec_ehi_pdf/xsec_nominal[pol][iy])
                 
                 tmp_val.val_fit.append(xsec_fit[0]/ybinwidths[cp][iy]/scale)
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidths[cp][iy]/scale)
@@ -717,7 +788,10 @@ if __name__ == "__main__":
                                                                                                                                           sigma=tmp_val.val[-1],units=units,
                                                                                                                                           val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
 
+                tmp_val.relv. append(rfit);
                 tmp_val.relv_fit .append(1.)
+                #rfit_err = rfit*abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0]
+                rfit_err = abs(xsec_fit[0]-xsec_fit[1])/xsec_fit[0] # if it is the error on the denominator of the ratio, which is the fit, then just take the relative uncertainty (rfit is exp/data)
                 tmp_val.rello_fit.append(rfit_err)
                 tmp_val.relhi_fit.append(rfit_err)
 
@@ -734,6 +808,28 @@ if __name__ == "__main__":
         # now do the unpolarized ones
         cp = 'plus_left' # this works if the binning for all the pol is the same
 
+        ## first prepare the graphs to be used in the loop below
+        # retrieve the graphs for unpolarized xsec
+        nameGraphTotTheory_xsec = "hXsec{n}_{c}_unpolarized".format(n=hGrNameKey,c=charge)
+        nameGraphTotTheory_xsecnorm = "hXsecNorm{n}_{c}_unpolarized".format(n=hGrNameKey,c=charge)
+        nameGraphTotTheory_A4 = "hA4{n}_{c}".format(n=hGrNameKey,c=charge)
+        nameGraphTotTheory_A0 = "hA0{n}_{c}".format(n=hGrNameKey,c=charge)
+        nameGraphPDF_xsec = "hXsecPDF_{c}_unpolarized".format(c=charge)
+        nameGraphPDF_xsecnorm = "hXsecNormPDF_{c}_unpolarized".format(c=charge)
+        nameGraphPDF_A4 = "hA4PDF_{c}".format(c=charge)
+        nameGraphPDF_A0 = "hA0PDF_{c}".format(c=charge)
+        nameGraphs_TotTheory = {"sumxsec"     : nameGraphTotTheory_xsec,
+                                "sumxsecnorm" : nameGraphTotTheory_xsecnorm,
+                                "a0"          : nameGraphTotTheory_A0,
+                                "a4"          : nameGraphTotTheory_A4
+        }
+        nameGraphs_PDF = {"sumxsec"     : nameGraphPDF_xsec,
+                          "sumxsecnorm" : nameGraphPDF_xsecnorm,
+                          "a0"          : nameGraphPDF_A0,
+                          "a4"          : nameGraphPDF_A4
+        }
+        ## done with graphs
+        
         xsec_params = ['sumxsecnorm','a0','a4'] if options.normxsec else ['sumxsec']
         for xs in xsec_params:
             tmp_val = valueClass('values_{xs}_{charge}_unpolarized'.format(xs=xs,charge=charge))
@@ -743,66 +839,88 @@ if __name__ == "__main__":
             normsigma = normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else normsigmaOut
             if doAltExp: alt_normsigma = alt_normsigmaIn if abs(ybins[cp][iy])<MAXYFORNORM else alt_normsigmaOut
 
+            xs_nominal = []
+            alt_xs_nominal = []
+
+            for iy,y in enumerate(ybinwidths[cp]):
+                # here will use the graphs for the bands, overriding the rest
+                # will use band for totTheory, but it is the same
+                xval = ROOT.Double(0)
+                yval = ROOT.Double(0)  
+                theoryBandsNoWpt[nameGraphs_TotTheory[xs]].GetPoint(iy,xval,yval)
+                xs_nominal.append(yval)
+                altyval = ROOT.Double(0)  
+                theoryBands[nameGraphs_TotTheory[xs]].GetPoint(iy,xval,altyval)
+                alt_xs_nominal.append(altyval)
+            angcoeff_nominal[xs] = xs_nominal
+            alt_angcoeff_nominal[xs] = alt_xs_nominal
+
             for iy,y in enumerate(ybinwidths[cp]):
                 if iy in bkgYBins: continue
                 parname = 'W{charge}_Ybin_{iy}_{xs}'.format(charge=charge,iy=iy,xs=xs)
                 #print parname
                 ybinwidth_scale = 1.
                 scale = 1.
-                xskey=xs
                 if xs=='sumxsec':
                     ybinwidth_scale = ybinwidths[cp][iy]
                     scale = LUMINOSITY
                 elif xs=='sumxsecnorm':
                     ybinwidth_scale = ybinwidths[cp][iy]
-                    xskey = xs.replace('norm','') # to use the expected xsec values, which have to be normalized
+                #
 
-                tmp_val.val.append(abs(angcoeff_nominal[xskey][iy]/ybinwidth_scale))
+                # can now use the actual key
+                # note that the angular coefficients might come negative
+                # although I think the fit returns positive because of 
+                # the order of the L R 0 passed to polgroup.
+                # Removing abs value here to see what the fit returns
+                tmp_val.val.append(angcoeff_nominal[xs][iy]/ybinwidth_scale)
                 if doAltExp:
-                    tmp_val.altval.append(abs(alt_angcoeff_nominal[xskey][iy]/ybinwidth_scale))
-                experr = angcoeff_systematics[xskey][iy]/ybinwidth_scale
-                experr_pdfonly = angcoeff_pdfsystematics[xskey][iy]/ybinwidth_scale
-                tmp_val.ehi.append(experr)
-                tmp_val.elo.append(experr) # symmetric for the expected
-                tmp_val.ehi2.append(experr_pdfonly)
-                tmp_val.elo2.append(experr_pdfonly) # symmetric for the expected
+                    tmp_val.altval.append(alt_angcoeff_nominal[xs][iy]/ybinwidth_scale)  
+                experr_high = theoryBands[nameGraphs_TotTheory[xs]].GetErrorYhigh(iy)/ybinwidth_scale
+                experr_low  = theoryBands[nameGraphs_TotTheory[xs]].GetErrorYlow(iy)/ybinwidth_scale
+                tmp_val.ehi.append(experr_high)
+                tmp_val.elo.append(experr_low)
+                # pdfonly actually includes alpha, which is part of PDFs
+                experr_pdfonly_high = theoryBands[nameGraphs_PDF[xs]].GetErrorYhigh(iy)/ybinwidth_scale
+                experr_pdfonly_low  = theoryBands[nameGraphs_PDF[xs]].GetErrorYlow(iy)/ybinwidth_scale
+                tmp_val.ehi2.append(experr_pdfonly_high)
+                tmp_val.elo2.append(experr_pdfonly_low) 
                 
-                if xs=='sumxsecnorm':
-                    tmp_val.val[-1] = tmp_val.val[-1]/normsigma
-                    if doAltExp:
-                        tmp_val.altval[-1] = tmp_val.altval[-1]/alt_normsigma
-                    tmp_val.ehi[-1] = tmp_val.ehi[-1]/normsigma
-                    tmp_val.elo[-1] = tmp_val.elo[-1]/normsigma
-                    tmp_val.ehi2[-1] = tmp_val.ehi2[-1]/normsigma
-                    tmp_val.elo2[-1] = tmp_val.elo2[-1]/normsigma
-                elif xs=='sumxsec':
-                    scale *= float(nChan)
+                #print "NORMSIGMA = " + str(normsigma)
+                
+                if xs=='sumxsec':
+                    scale *= float(nChan) 
                 else:
-                    pass # a0, a4 are already normalized
+                    pass # sumxsecnorm, a0, a4 are already normalized
         
                 xsec_fit = valuesAndErrors[parname]
         
-                tmp_val.val_fit.append(xsec_fit[0]/ybinwidth_scale/scale)
+                val_fit_backup = xsec_fit[0]/ybinwidth_scale/scale
+                tmp_val.val_fit.append(val_fit_backup)
                 tmp_val.elo_fit.append(abs(xsec_fit[0]-xsec_fit[1])/ybinwidth_scale/scale)
                 tmp_val.ehi_fit.append(abs(xsec_fit[0]-xsec_fit[2])/ybinwidth_scale/scale)
 
                 if xs=='a4': # this is close to 0, bettter the difference wrt ratio
-                    relv = tmp_val.val[-1] - tmp_val.val_fit[-1]
-                    experrrel = angcoeff_systematics[xskey][iy]
-                    experrrel_pdfonly = angcoeff_pdfsystematics[xskey][iy]
+                    relv = tmp_val.val[-1] - val_fit_backup
+                    experrrel_high = experr_high
+                    experrrel_low = experr_low
+                    experrrel_pdfonly_high = experr_pdfonly_high
+                    experrrel_pdfonly_low  = experr_pdfonly_low
                 else: 
-                    relv = tmp_val.val[-1]/tmp_val.val_fit[-1]
-                    experrrel = angcoeff_systematics[xskey][iy]/angcoeff_nominal[xskey][iy]
-                    experrrel_pdfonly = angcoeff_pdfsystematics[xskey][iy]/angcoeff_nominal[xskey][iy]
+                    relv = tmp_val.val[-1]/val_fit_backup
+                    experrrel_high = experr_high/val_fit_backup
+                    experrrel_low = experr_low/val_fit_backup
+                    experrrel_pdfonly_high = experr_pdfonly_high/val_fit_backup
+                    experrrel_pdfonly_low = experr_pdfonly_low/val_fit_backup
+
                 tmp_val.relv. append(relv)
-                tmp_val.rello.append(experrrel)
-                tmp_val.relhi.append(experrrel) # symmetric for the expected
-                tmp_val.rello2.append(experrrel_pdfonly)
-                tmp_val.relhi2.append(experrrel_pdfonly) # symmetric for the expected
+                tmp_val.rello.append(experrrel_low)
+                tmp_val.relhi.append(experrrel_high) 
+                tmp_val.rello2.append(experrrel_pdfonly_low)
+                tmp_val.relhi2.append(experrrel_pdfonly_high)
                 
                 units = '(pb)' if xs=='sumxsec' else ''
-                print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,
-                                                                                                                                          val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
+                print "par = {parname}, expected value = {sigma:.3f} {units}   fitted = {val:.3f} + {ehi:.3f} - {elo:.3f} {units}".format(parname=parname, sigma=tmp_val.val[-1],units=units,val=tmp_val.val_fit[-1],ehi=tmp_val.ehi_fit[-1],elo=tmp_val.elo_fit[-1])
                 if xs=='a4':
                     relv_fit = 0.
                     rello_fit = tmp_val.elo_fit[-1]
@@ -830,22 +948,31 @@ if __name__ == "__main__":
         for pol in signal_polarizations:
             cp = 'plus_'+pol
             tmp_val = valueClass('asymmetry_'+pol)
+
+            # get graph for asymmetry to retrieve band
+            # use the one with total theory (the QCD scales are basically cancelled)
+            nameGraphs_TotTheory = "hAsym{n}_{p}".format(n=hGrNameKey,p=pol)
+            nameGraphs_PDF = "hAsymPDF_{p}".format(p=pol)
+        
             for iy,y in enumerate(ybinwidths[cp]):
                 if iy in bkgYBins: continue
-                chasy_val = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
-                                                   xsec_systematics_allCharges['plus'][pol][iy], xsec_systematics_allCharges['minus'][pol][iy])
-                chasy_val_pdfonly = utilities.getChargeAsy(xsec_nominal_allCharges['plus'][pol][iy],     xsec_nominal_allCharges['minus'][pol][iy],
-                                                           xsec_pdfsystematics_allCharges['plus'][pol][iy], xsec_pdfsystematics_allCharges['minus'][pol][iy])
+
+                xval = ROOT.Double(0)
+                yval = ROOT.Double(0)                  
+                altyval = ROOT.Double(0)                  
+                theoryBandsNoWpt[nameGraphs_TotTheory].GetPoint(iy,xval,yval)
+                theoryBands[nameGraphs_TotTheory].GetPoint(iy,xval,altyval)
+                tmp_val.val .append(yval)
                 if doAltExp:
-                    chasy_altval = utilities.getChargeAsy(alt_xsec_nominal_allCharges['plus'][pol][iy],     alt_xsec_nominal_allCharges['minus'][pol][iy],
-                                                          xsec_systematics_allCharges['plus'][pol][iy],     xsec_systematics_allCharges['minus'][pol][iy]) # assumes the same error band for nominal and alternative, which is ~true for pt-unw and pt-w samples
-                tmp_val.val .append(chasy_val['asy'][0])
-                if doAltExp:
-                    tmp_val.altval .append(chasy_altval['asy'][0])
-                tmp_val.ehi.append(chasy_val['asy'][1])
-                tmp_val.elo.append(chasy_val['asy'][1])
-                tmp_val.ehi2.append(chasy_val_pdfonly['asy'][1])
-                tmp_val.elo2.append(chasy_val_pdfonly['asy'][1])
+                    tmp_val.altval .append(altyval)
+                ehi = theoryBands[nameGraphs_TotTheory].GetErrorYhigh(iy)
+                elo = theoryBands[nameGraphs_TotTheory].GetErrorYlow(iy)
+                ehi_pdf = theoryBands[nameGraphs_PDF].GetErrorYhigh(iy)
+                elo_pdf = theoryBands[nameGraphs_PDF].GetErrorYlow(iy)
+                tmp_val.ehi.append(ehi)
+                tmp_val.elo.append(elo)
+                tmp_val.ehi2.append(ehi_pdf)
+                tmp_val.elo2.append(elo_pdf)
 
                 if options.type == 'toys':
                     asy_fit = utilities.getAsymmetryFromToys(pol,channel,iy,options.infile)
@@ -858,10 +985,10 @@ if __name__ == "__main__":
                 # on the charge asymmetry, which is A~0, better to show the difference 
                 # Afit - Aexp wrt the ratio. The error on "exp" diff shows the error on Aexp, while the error bar the error on Afit
                 tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
-                tmp_val.rello.append(chasy_val['asy'][1])
-                tmp_val.relhi.append(chasy_val['asy'][1])
-                tmp_val.rello2.append(chasy_val_pdfonly['asy'][1])
-                tmp_val.relhi2.append(chasy_val_pdfonly['asy'][1])
+                tmp_val.rello.append(elo)
+                tmp_val.relhi.append(ehi)
+                tmp_val.rello2.append(elo_pdf)
+                tmp_val.relhi2.append(ehi_pdf)
 
                 tmp_val.relv_fit .append(0.)
                 tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
@@ -875,50 +1002,45 @@ if __name__ == "__main__":
             asymmetryValues[pol] = tmp_val        
         plotValues(asymmetryValues,'asymmetry',channel,options, polarizations=signal_polarizations)
             
+        
+        # get graph for asymmetry to retrieve band
+        # use the one with total theory (the QCD scales are basically cancelled)
+        nameGraphs_TotTheory = "hAsym{n}_unpolarized".format(n=hGrNameKey)
+        nameGraphs_PDF = "hAsymPDF_unpolarized"
+
         # now do the unpolarized ones
         tmp_val = valueClass('values_asymmetry_unpolarized')
         for iy,y in enumerate(ybinwidths['plus_left']): # this assumes that all the 3 polarizations have the same binning
-            if iy in bkgYBins: continue
-            xval = {'plus': 0, 'minus': 0}; xerr = {'plus': 0, 'minus': 0}; xerr_pdfonly = {'plus': 0, 'minus': 0}
-            alt_xval = {'plus': 0, 'minus': 0}
-            for charge in ['plus','minus']:
-                for pol in polarizations:
-                    xval[charge] += xsec_nominal_allCharges[charge][pol][iy]
-                    xerr[charge] += pow(xsec_systematics_allCharges[charge][pol][iy],2)
-                    xerr_pdfonly[charge] += pow(xsec_pdfsystematics_allCharges[charge][pol][iy],2)
-                    if doAltExp: alt_xval[charge] += alt_xsec_nominal_allCharges[charge][pol][iy]
-                        
-                xerr[charge] = math.sqrt(xerr[charge])
-                xerr_pdfonly[charge] = math.sqrt(xerr_pdfonly[charge])
 
-            chasy_val = utilities.getChargeAsy(xval['plus'], xval['minus'],
-                                               xerr['plus'], xerr['minus'])
-            chasy_val_pdfonly = utilities.getChargeAsy(xval['plus'], xval['minus'],
-                                                       xerr_pdfonly['plus'], xerr_pdfonly['minus'])
-
+            if iy in bkgYBins: continue            
+            xval = ROOT.Double(0)
+            yval = ROOT.Double(0)                  
+            altyval = ROOT.Double(0)                  
+            theoryBandsNoWpt[nameGraphs_TotTheory].GetPoint(iy,xval,yval)
+            theoryBands[nameGraphs_TotTheory].GetPoint(iy,xval,altyval)
+            tmp_val.val .append(yval)
             if doAltExp:
-                chasy_altval = utilities.getChargeAsy(alt_xval['plus'], alt_xval['minus'],
-                                                      xerr['plus'], xerr['minus'])
-            
-            tmp_val.val .append(chasy_val['asy'][0])
-            if doAltExp:
-                tmp_val.altval .append(chasy_altval['asy'][0])
-            tmp_val.ehi.append(chasy_val['asy'][1])
-            tmp_val.elo.append(chasy_val['asy'][1])
-            tmp_val.ehi2.append(chasy_val_pdfonly['asy'][1])
-            tmp_val.elo2.append(chasy_val_pdfonly['asy'][1])
+                tmp_val.altval .append(altyval)
+            ehi = theoryBands[nameGraphs_TotTheory].GetErrorYhigh(iy)
+            elo = theoryBands[nameGraphs_TotTheory].GetErrorYlow(iy)
+            ehi_pdf = theoryBands[nameGraphs_PDF].GetErrorYhigh(iy)
+            elo_pdf = theoryBands[nameGraphs_PDF].GetErrorYlow(iy)
+            tmp_val.ehi.append(ehi)
+            tmp_val.elo.append(elo)
+            tmp_val.ehi2.append(ehi_pdf)
+            tmp_val.elo2.append(elo_pdf)
 
-            if options.type == 'hessian': # should make the right expression from toys, if needed... 
+            if options.type == 'hessian': 
                 asy_fit = valuesAndErrors['W_Ybin_{iy}_chargemetaasym'.format(iy=iy)]
             tmp_val.val_fit .append(asy_fit[0])
             tmp_val.elo_fit.append(abs(asy_fit[0]-asy_fit[1]))
             tmp_val.ehi_fit.append(abs(asy_fit[0]-asy_fit[2]))
 
             tmp_val.relv. append(tmp_val.val[-1] - tmp_val.val_fit[-1])
-            tmp_val.rello.append(chasy_val['asy'][1])
-            tmp_val.relhi.append(chasy_val['asy'][1])
-            tmp_val.rello2.append(chasy_val_pdfonly['asy'][1])
-            tmp_val.relhi2.append(chasy_val_pdfonly['asy'][1])
+            tmp_val.rello.append(elo)
+            tmp_val.relhi.append(ehi)
+            tmp_val.rello2.append(elo_pdf)
+            tmp_val.relhi2.append(ehi_pdf)
 
             tmp_val.relv_fit .append(0.)
             tmp_val.rello_fit.append(tmp_val.elo_fit[-1])
@@ -929,5 +1051,7 @@ if __name__ == "__main__":
             tmp_val.rhi.append(abs(ybins[cp][iy]-tmp_val.rap[-1]))
 
         tmp_val.makeGraphs()
+        #print "CHECK"
         plotUnpolarizedValues(tmp_val,'asymmetry',channel,options)
+        #print "END CHECK"
             
