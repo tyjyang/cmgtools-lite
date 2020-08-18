@@ -1,3 +1,4 @@
+
 cardsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep'
 fitsdir = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/barolo-decfsr/fitsout_2019-11-08/'
 fitsdir_el = '/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/barolo-decfsr/fitsout_2019-11-08/'

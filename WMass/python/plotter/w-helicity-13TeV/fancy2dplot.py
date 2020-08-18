@@ -4,14 +4,15 @@ from array import array
 ROOT.gROOT.SetBatch()
 
 #infile = ROOT.TFile('~mdunser/www/private/w-helicity-13TeV/templates/2018-09-29-unrolled/templates_2D_plus.root' ,'read')
-infile = ROOT.TFile('/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/templates/2019-09-30/templates_2D_plus.root' ,'read')
+#infile = ROOT.TFile('/afs/cern.ch/user/m/mdunser/www/private/w-helicity-13TeV/templates/2019-09-30/templates_2D_plus.root' ,'read') # private file
+infile = ROOT.TFile('/afs/cern.ch/user/m/mdunser/public/templates_2D_plus.root' ,'read') # public file
 
 hists = []
 names = []
 
-h1 = infile.Get('Wplus_right_mu_Ybin_0') ; hists.append(h1); names.append('W^{+}_{right}: 0.0 < |y_{W}| < 0.25')
-h2 = infile.Get('Wplus_right_mu_Ybin_2') ; hists.append(h2); names.append('W^{+}_{right}: 0.5 < |y_{W}| < 0.75')
-h3 = infile.Get('Wplus_left_mu_Ybin_8')  ; hists.append(h3); names.append('W^{+}_{left}: 2.0 < |y_{W}| < 2.25')
+h1 = infile.Get('Wplus_right_mu_Ybin_0') ; hists.append(h1); names.append('W^{+}_{R}: |y_{W}| < 0.25')
+h2 = infile.Get('Wplus_right_mu_Ybin_2') ; hists.append(h2); names.append('W^{+}_{R}: 0.5 < |y_{W}| < 0.75')
+h3 = infile.Get('Wplus_left_mu_Ybin_8')  ; hists.append(h3); names.append('W^{+}_{L}: 2.0 < |y_{W}| < 2.25')
 #h4 = infile.Get('Wplus_left_Wplus_left_mu_Ybin_11') ; hists.append(h4)
 
 ROOT.TColor.CreateGradientColorTable(3,
@@ -34,11 +35,12 @@ lat.SetTextSize(0.05)
 cutoff = 0.0015
 
 colors = [ROOT.kAzure-7, ROOT.kRed+1, ROOT.kGreen+1]
-styles = [3001, 3002, 3002, 3008]
+#styles = [3001, 3002, 3002, 3008] # original
+styles = [3001, 3002, 3002]
 
-ROOT.gStyle.SetHatchesSpacing(0.01)
+ROOT.gStyle.SetHatchesSpacing(0.01) # does not work for style < 3144
 
-c1 = ROOT.TCanvas('asdf','',1200,900)
+c1 = ROOT.TCanvas('asdf','',2400,1800)
 c1.cd()
 
 marginR = 0.02
@@ -68,13 +70,16 @@ for ih,hist in enumerate(hists):
     hist.SetFillColor(colors[ih])
     hist.SetLineColor(colors[ih])
     
-    hist.GetYaxis().SetTitleFont(42)
-    hist.GetYaxis().SetTitleSize(0.05)
-    hist.GetYaxis().SetLabelSize(0.05)
+    if not ih:
+        hist.GetYaxis().SetTitleFont(42)
+        hist.GetYaxis().SetTitleSize(0.05)
+        hist.GetYaxis().SetLabelSize(0.05)
+        hist.GetYaxis().SetTitle("Lepton p_{T} (GeV)")
     
-    hist.GetXaxis().SetTitleFont(42)
-    hist.GetXaxis().SetTitleSize(0.05)
-    hist.GetXaxis().SetLabelSize(0.05)
+        hist.GetXaxis().SetTitleFont(42)
+        hist.GetXaxis().SetTitleSize(0.05)
+        hist.GetXaxis().SetLabelSize(0.05)
+        hist.GetXaxis().SetTitle("Lepton #eta")
 
     leg.AddEntry(hist, names[ih], 'f')
     
@@ -85,5 +90,9 @@ lat.DrawLatex(0.86, 0.92, '13 TeV')
 
 leg.Draw('same')
     
-c1.SaveAs('~mdunser/www/private/w-helicity-13TeV/paperPlots/template_example.pdf')
-c1.SaveAs('~mdunser/www/private/w-helicity-13TeV/paperPlots/template_example.png')
+#c1.SaveAs('~mdunser/www/private/w-helicity-13TeV/paperPlots/template_example.pdf')
+#c1.SaveAs('~mdunser/www/private/w-helicity-13TeV/paperPlots/template_example.png')
+outdir = "plots/helicityAnalysis/plots4FinalReading/compareTemplate/"
+os.makedirs(outdir)
+c1.SaveAs(outdir+'template_example.pdf')
+c1.SaveAs(outdir+'template_example.png')

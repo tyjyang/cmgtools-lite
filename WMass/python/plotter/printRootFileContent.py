@@ -14,6 +14,9 @@ parser.add_option('-i', '--inherith',       dest='inherit',        default='', t
 parser.add_option('-r', '--regexp',         dest='regexp',         default='', type='string', help='Filter output passing a regular expression to be matched in the object name')
 parser.add_option(      '--print-min-negative', dest='printMinNegative', default=False, action='store_true', help='If true, print also minimum bin content when negative (only for histograms)')
 parser.add_option(      '--print-integral-cap-negative', dest='printIntegralCapNegative', default=False, action='store_true', help='If true, print integral when capping negative bin to 0 (print also ratio with actual integral')
+parser.add_option(      '--print-axis-label-histogram', dest='printAxisLabelHisto', default='', type='string', help='If given, print axis labels of histogram with this name (everything else in the file will be skipped, and other options might be ignored). For a TH2, the x axis is chosen')
+parser.add_option(      '--print-branch-tree', dest='printBranchTree', default='', type='string', help='If given, print names of branches in tree with this name (everything else in the file will be skipped, and other options might be ignored).')
+
 (options, args) = parser.parse_args()
 
 if len(sys.argv) < 1:
@@ -37,6 +40,11 @@ if not options.silent:
         
 for k in tf.GetListOfKeys() :
     name=k.GetName()
+    if options.printAxisLabelHisto != "" and name != options.printAxisLabelHisto:
+        continue
+    if options.printBranchTree != "" and name != options.printBranchTree:
+        continue
+
     if len(options.regexp) and not re.match(options.regexp,name): continue
     if len(options.exclude_regexp) and re.match(options.exclude_regexp,name): continue
     obj=k.ReadObj()
@@ -47,6 +55,15 @@ for k in tf.GetListOfKeys() :
     integralOnlyNonNegativeBin = 0.0
     minBinContent = 1
     if (obj.ClassName().startswith("TH") and obj.InheritsFrom("TH1")):
+
+        if options.printAxisLabelHisto != "" and name == options.printAxisLabelHisto:
+            print "-"*30
+            print "Labels of histogram %s" % name
+            print "-"*30
+            for ib in range(1,1+obj.GetNbinsX()):
+                print "{: <10} {l}".format(ib,l=obj.GetXaxis().GetBinLabel(ib))
+            print "-"*30
+
         integral = obj.Integral() 
         minBinContent = obj.GetBinContent(obj.GetMinimumBin())
         if options.printIntegralCapNegative:
@@ -64,6 +81,20 @@ for k in tf.GetListOfKeys() :
                                                                  m=str(minBinContent) if (options.printMinNegative and minBinContent < 0) else "")
         elif options.output_format == "name":
             print "%s" % name
+
+
+    if (obj.ClassName().startswith("TTree") or obj.InheritsFrom("TTree")):
+        print "-"*30
+        print "Branches of tree %s" % name
+        print "-"*30
+        lok = obj.GetListOfLeaves()
+        for ip,p in enumerate(lok):
+            print "{: <10} {l}".format(ip,l=p.GetName())
+        print "-"*30
+        
+
+if options.printAxisLabelHisto != "" or options.printBranchTree != "":
+    quit()
 
 print "########################################"
 print "########################################"

@@ -103,12 +103,12 @@ if __name__ == "__main__":
     additionalText = ""
     additionalTextLatex = ""
     ptRangeText = "p_{{T}}^{{{l}}} #in [{ptmin:3g}, {ptmax:3g}] GeV".format(l="l", ptmin=genBins.ptBins[0], ptmax=genBins.ptBins[-1])
-    etaRangeText = "|#eta|^{{{l}}} #in [{etamin:3g}, {etamax:3g}]".format(l=" l", etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
+    etaRangeText = "|#eta^{{{l}}}| #in [{etamin:3g}, {etamax:3g}]".format(l=" l", etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
 
 
     for name in names:
         chargeSign = "+" if "plus" in name else "-" if "minus" in name else ""
-        xaxisTitle = 'dressed lepton p_{T} (GeV)' if "1Dpt" in name else 'dressed lepton |#eta|'
+        xaxisTitle = 'Dressed lepton p_{T} (GeV)' if "1Dpt" in name else 'Dressed lepton |#eta|'
         yaxisTitle = ""
         if "ChAsym" in name: yaxisTitle = "Asymmetry::0,0.25"
         elif "DiffXsec" in name:
@@ -154,23 +154,23 @@ if __name__ == "__main__":
             canvas = canvUnroll
             if "_eta" in name:
                 #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                xaxisTitle = "Unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                 for ipt in range(0,genBins.Npt):
                     #varBinRanges.append("p_{{T}} #in [{ptmin:3g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
                     varBinRanges.append("#splitline{{[{ptmin:3g}, {ptmax:.3g}]}}{{GeV}}".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
             else:
                 #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                xaxisTitle = "Unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                 for ieta in range(0,genBins.Neta):
                     #varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
                     varBinRanges.append("[{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
 
-        labelRatio = "lep/comb.::0.8,1.2"
+        labelRatio = "Lep/comb.::0.8,1.2"
         ratioPanelSize = 0.4
         if "unrollTo1D" in name:
-            labelRatio = "lep/comb.::0.8,1.2"
+            labelRatio = "Lep/comb.::0.8,1.2"
             ratioPanelSize = 0.48
         drawMuElComparison(hLepton[name], hMuon[name], hElectron[name],xaxisTitle,yaxisTitle,cname,
                            outname, labelRatioTmp=labelRatio, legendCoords=legendCoords,

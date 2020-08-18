@@ -74,15 +74,16 @@ def singleChargeUnrolled(h1d,shift,nCharges=2,nMaskedCha=2):
         h1d_shifted.SetBinError(b+1,h1d.GetBinError(b+shift+1))
     return h1d_shifted
 
-def prepareLegend(legWidth=0.50,textSize=0.035,xmin=0.75,ncols=3):
+def prepareLegend(legWidth=0.50,textSize=0.035,xmin=0.2,ncols=3,channel="mu"):
     if ncols<9:
-        (x1,y1,x2,y2) = (xmin-legWidth, .70, .85, 0.87)
+        (x1,y1,x2,y2) = (xmin, .67 if channel=="mu" else 0.6, xmin+legWidth, 0.88)
     else: # unrolled
-        (x1,y1,x2,y2) = (xmin, .82, .95, 0.89)
+        (x1,y1,x2,y2) = (xmin, .77, xmin+legWidth, 0.895)
     leg = ROOT.TLegend(x1,y1,x2,y2)
+    if ncols<9:
+        leg.SetFillColor(0)
+        leg.SetFillColorAlpha(0,0.6)
     leg.SetNColumns(ncols)
-    leg.SetFillColor(0)
-    leg.SetFillColorAlpha(0,0.6)
     leg.SetShadowColor(0)
     leg.SetLineColor(0)
     leg.SetBorderSize(0)
@@ -99,7 +100,7 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     ## Prepare split screen
     plotformat = (2400,800) if veryWide else (600,750)
     c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
-    if not 'projection' in prefix:
+    if veryWide:
         ROOT.gStyle.SetPadLeftMargin(0.05 if veryWide else 0.18)
         ROOT.gStyle.SetPadRightMargin(0.02 if veryWide else 0.13)
         ROOT.gStyle.SetPadTopMargin(marT)
@@ -107,10 +108,14 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
         c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
         p1 = ROOT.TPad("pad1","pad1",0,0.29,1,0.99);
         p1.SetBottomMargin(0.03);
+        p1.SetTickx(1)
+        p1.SetTicky(1)
         p1.Draw();
         p2 = ROOT.TPad("pad2","pad2",0,0,1,0.31);
         p2.SetTopMargin(0);
         p2.SetBottomMargin(0.5);
+        p2.SetTickx(1)
+        p2.SetTicky(1)
         p2.SetFillStyle(0);
         p2.Draw();
         p1.cd();
@@ -127,19 +132,28 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
         ##ROOT.gStyle.SetPadBottomMargin(0.33)
         c1.cd()
     ## Draw absolute prediction in top frame
-    offset = 0.35 if veryWide else 1.4
+    offset = 0.37 if veryWide else 1.4
     htot.GetYaxis().SetTitleOffset(offset)
     htot.SetTitle('')
-    htot.GetYaxis().SetTitleSize(0.05)
     htot.GetYaxis().SetLabelSize(0.04)
     if veryWide:
-        htot.GetXaxis().SetTitleSize(0.10)
-        htot.GetXaxis().SetLabelSize(0.20)
+        htot.GetYaxis().SetTitleSize(0.054)
+        htot.GetXaxis().SetTitleSize(0.052)
+        htot.GetXaxis().SetLabelSize(0.028)
+        #htot.GetXaxis().SetLabelOffset(0.05)
+        htot.GetYaxis().SetTickLength(0.01)
     else:
-        htot.GetXaxis().SetTitleSize(0.05)
-        htot.GetXaxis().SetLabelSize(0.04)
-    htot.GetXaxis().SetTitle(htot.GetXaxis().GetTitle().replace('lepton','electron' if channel=='el' else 'muon'))
-    htot.GetYaxis().SetTickLength(0.01)
+        htot.GetYaxis().SetTitleSize(0.054)
+        htot.GetXaxis().SetTitleSize(0.054)
+        htot.GetXaxis().SetLabelSize(0.045)
+        htot.GetYaxis().SetTickLength(0.02)
+        ROOT.TGaxis.SetMaxDigits(3)
+
+    if veryWide:
+        htot.GetXaxis().SetTitle(htot.GetXaxis().GetTitle().replace('lepton','electron' if channel=='el' else 'muon'))
+    else:
+        htot.GetXaxis().SetTitle(htot.GetXaxis().GetTitle().replace('lepton','Electron' if channel=='el' else 'Muon'))
+
     htot.Draw("HIST")
     #htot.SetLabelOffset(9999.0);
     #htot.SetTitleOffset(9999.0);
@@ -149,16 +163,15 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
     hdata.Draw("E SAME")
     htot.Draw("AXIS SAME")
     totalError = utilities.doShadedUncertainty(htot)            
-    legend.Draw()
     lat = ROOT.TLatex()
     lat.SetNDC(); lat.SetTextFont(42)
     if veryWide:
-        x1 = 0.09; x2 = 0.85
+        x1 = 0.09; x2 = 0.855
         lat.SetTextSize(0.08)
     else:
         x1 = 0.26; x2 = 0.65
-        lat.SetTextSize(0.04)
-    lat.DrawLatex(x1, 0.92, '#bf{CMS}') #it{Preliminary}')
+        lat.SetTextSize(0.045)
+    lat.DrawLatex(x1, 0.92, '#bf{CMS}') #it{Preliminary}')    
     lat.DrawLatex(x2, 0.92, '35.9 fb^{-1} (13 TeV)')
     
 
@@ -182,6 +195,7 @@ def plotOne(charge,channel,stack,htot,hdata,legend,outdir,prefix,suffix,veryWide
             for i in range(0,len(textForLines)): # we need nptBins texts
                 bintext.DrawLatex(etarange*i + etarange/6., 0.7 *ymaxBackup, textForLines[i])
 
+    legend.Draw()
 
     if not 'projection' in prefix:
         p2.cd()
@@ -240,16 +254,16 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
     unity.GetXaxis().SetTitleFont(42)
 
     if doWide:
-        unity.GetXaxis().SetTitleSize(0.18)
-        unity.GetXaxis().SetLabelSize(0.2)
-        unity.GetXaxis().SetTitleOffset(1.1)
+        unity.GetXaxis().SetTitleSize(0.2)
+        unity.GetXaxis().SetLabelSize(0.18)
+        unity.GetXaxis().SetTitleOffset(1.15)
     else:
         unity.GetXaxis().SetTitleSize(0.14)
         unity.GetXaxis().SetLabelSize(0.01)
         unity.GetXaxis().SetTitleOffset(0.9)
     
     unity.GetXaxis().SetLabelFont(42)
-    unity.GetXaxis().SetLabelOffset(0.007)
+    unity.GetXaxis().SetLabelOffset(0.014 if doWide else 0.007)
     unity.GetYaxis().SetNdivisions(505)
     unity.GetYaxis().SetTitleFont(42)
     unity.GetYaxis().SetTitleSize(0.14)
@@ -261,7 +275,7 @@ def doRatioHists(data,total,maxRange,fixRange=False,ylabel="Data/pred.",yndiv=50
     total.GetXaxis().SetLabelOffset(999) ## send them away
     total.GetXaxis().SetTitleOffset(999) ## in outer space
     total.GetYaxis().SetTitleSize(0.06)
-    unity.GetYaxis().SetTitleOffset(0.15 if doWide else 1.48)
+    unity.GetYaxis().SetTitleOffset(0.17 if doWide else 1.48)
     total.GetYaxis().SetLabelSize(0.05)
     total.GetYaxis().SetLabelOffset(0.007)
     #$ROOT.gStyle.SetErrorX(0.0);
@@ -307,8 +321,8 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix, drawVertLines="
     hratio.GetYaxis().SetLabelSize(0.11)
     hratio.GetYaxis().SetLabelOffset(0.01)
     hratio.GetYaxis().SetDecimals(True) 
-    hratio.GetYaxis().SetTitle('post-fit/pre-fit')
-    hratio.GetXaxis().SetTitle('unrolled {flav} (#eta,p_{{T}}) bin'.format(flav='electron' if channel=='el' else 'muon'))
+    hratio.GetYaxis().SetTitle('Post-fit/pre-fit')
+    hratio.GetXaxis().SetTitle('Unrolled {flav} (#eta,p_{{T}}) bin'.format(flav='electron' if channel=='el' else 'muon'))
     hratio.GetYaxis().SetTitleOffset(0.40)
     hratio.SetLineColor(ROOT.kBlack)
     hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
@@ -378,7 +392,7 @@ if __name__ == "__main__":
     parser.add_option(     '--no2Dplot', dest="no2Dplot", default=False, action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
     parser.add_option('-m','--n-mask-chan', dest='nMaskedChannel', default=1, type='int', help='Number of masked channels in the fit for each charge')
     parser.add_option(     '--suffix', dest="suffix", default='', type='string', help="define suffix for each plot");
-    parser.add_option(     '--reverseUnrolling', dest="reverseUnrolling", default=False, action='store_true', help="do the unrolling in the ohter way around (pt in eta chunks)");
+    parser.add_option(     '--reverseUnrolling', dest="reverseUnrolling", default=False, action='store_true', help="do the unrolling in the other way around (pt in eta chunks)");
     (options, args) = parser.parse_args()
 
     groupJobs=5 # used in make_helicity_cards.py
@@ -522,7 +536,7 @@ if __name__ == "__main__":
                                                           
             # do backgrounds now
             procs=["Flips","Z","Top","DiBosons","TauDecaysW","data_fakes","obs"]
-            titles=["charge flips","Drell-Yan","t quark","Diboson","W#rightarrow#tau#nu","QCD","Data"]
+            titles=["Charge flips","Drell-Yan","t quark","Diboson","W#rightarrow^{ }#tau#nu","QCD","Data"]
             procsAndTitles = dict(zip(procs,titles))
             for i,p in enumerate(procs):
                 keyplot = p if 'obs' in p else p+'_'+prepost
@@ -560,7 +574,7 @@ if __name__ == "__main__":
             colors = {'Wplus_long' : ROOT.kGray+1,   'Wplus_left' : ROOT.kAzure-4,  'Wplus_right' : ROOT.kGreen+1,
                       'Wminus_long': ROOT.kYellow+1, 'Wminus_left': ROOT.kViolet-1, 'Wminus_right': ROOT.kAzure+1,
                       'Top'        : ROOT.kGreen+2,  'DiBosons'   : ROOT.kViolet+2, 'TauDecaysW'  : ROOT.kPink,       
-                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kGray+1,   'data_fakes'  : ROOT.kGray+2,
+                      'Z'          : ROOT.kAzure+2,  'Flips'      : ROOT.kOrange+1,   'data_fakes'  : ROOT.kGray+2,
                       'Wplus_unpol': ROOT.kRed+2,    'Wminus_unpol': ROOT.kRed+2 }
          
             for p,h in all_procs.iteritems():
@@ -585,18 +599,23 @@ if __name__ == "__main__":
                 htot = hdata.Clone('tot_{ch}'.format(ch=charge)); htot.Reset(); htot.Sumw2()
                 stack = ROOT.THStack("stack_{sfx}_{ch}".format(sfx=prepost,ch=charge),"")
                 
-                leg = prepareLegend()
-            
+                leg = prepareLegend(xmin=0.2,legWidth=0.75,channel=channel, textSize=0.038)
+                helper_proj_list = {}
                 for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k)):
                     keycolor = key.replace('_prefit','').replace('_postfit','')
                     if key=='obs' or 'unpol' in key or prepost not in key: continue
                     proj1d = all_procs[key].ProjectionX(all_procs[key].GetName()+charge+"_px",1,nbinsProj+1,"e") if  projection=='X' else all_procs[key].ProjectionY(all_procs[key].GetName()+charge+"_py",1,nbinsProj+1,"e")
                     proj1d.SetFillColor(colors[keycolor])
+                    helper_proj_list[key] = proj1d
                     stack.Add(proj1d)
                     htot.Add(proj1d) 
-                    leg.AddEntry(proj1d,procsAndTitles[keycolor],'F')
          
+                # sort legend properly (data, signal, and the rest, fortunately signal has the largest yields)
                 leg.AddEntry(hdata,'Data','PE')
+                for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k),reverse=True):       
+                    keycolor = key.replace('_prefit','').replace('_postfit','')
+                    if key=='obs' or 'unpol' in key or prepost not in key: continue  
+                    leg.AddEntry(helper_proj_list[key],procsAndTitles[keycolor],'F')
                 
                 hexpfull.GetYaxis().SetRangeUser(0, 1.8*max(htot.GetMaximum(), hdata.GetMaximum()))
                 hexpfull.GetYaxis().SetTitle('Events')
@@ -613,7 +632,7 @@ if __name__ == "__main__":
             htot_unrolled  = hdata_unrolled.Clone('unrolled_{sfx}_{ch}_full'.format(sfx=prepost,ch=charge)); htot_unrolled.Reset(); htot_unrolled.Sumw2()
             htot_unrolled.SetDirectory(None)
             stack_unrolled = ROOT.THStack("stack_unrolled_{sfx}_{ch}".format(sfx=prepost,ch=charge),"") 
-            leg_unrolled = prepareLegend(xmin=0.4,textSize=0.045,ncols=10)
+            leg_unrolled = prepareLegend(legWidth=0.8,xmin=0.12,textSize=0.07,ncols=10 if channel=='el' else 9,channel=channel)
             output_txt = ''
             print '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
             print 'nbinsX of hdata_unrolled', hdata_unrolled.GetNbinsX()
@@ -624,13 +643,20 @@ if __name__ == "__main__":
                 proc_unrolled.SetFillColor(colors[keycolor])
                 stack_unrolled.Add(proc_unrolled)
                 htot_unrolled.Add(proc_unrolled)
-                leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor],'F')
                 output_txt += '{pname:25s} {nevents:15.2f} +- {nerr:6.2f} \n'.format(pname=key, nevents=histo.Integral(), nerr=0.)
             output_txt += '------------------------\ndata: \t\t {nevents:.0f} \n'.format(nevents=hdata_unrolled.Integral())
+
+            # sort legend properly (data, signal, and the rest, fortunately signal has the largest yields)
             leg_unrolled.AddEntry(hdata_unrolled,'Data','PE')
+            for key,histo in sorted(all_procs.iteritems(), key=lambda (k,v): (v.integral,k),reverse=True):
+                keycolor = key.replace('_prefit','').replace('_postfit','')
+                if key=='obs' or 'unpol' in key or prepost not in key: continue
+                proc_unrolled = all_procs_unrolled[key]
+                leg_unrolled.AddEntry(proc_unrolled,procsAndTitles[keycolor],'F')
+                
             htot_unrolled.GetYaxis().SetRangeUser(0, 1.8*max(htot_unrolled.GetMaximum(), hdata_unrolled.GetMaximum()))
             htot_unrolled.GetYaxis().SetTitle('Events')
-            htot_unrolled.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
+            htot_unrolled.GetXaxis().SetTitle('Unrolled lepton (#eta,p_{T}) bin')
             if options.reverseUnrolling:
                 plotOne(charge,channel,stack_unrolled,htot_unrolled,hdata_unrolled,leg_unrolled,outname,'unrolled_reverse',suffix,True)
             else:

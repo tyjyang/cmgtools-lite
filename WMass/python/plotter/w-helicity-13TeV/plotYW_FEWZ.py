@@ -6,6 +6,9 @@ import numpy as np
 from plotYWCompatibility import makeCanvas,makePads
 from convertFEWZ import *
 
+# EXAMPLE, for Final Reading
+# python w-helicity-13TeV/plotYW_FEWZ.py -d plots/helicityAnalysis/YWcompatibility_testNewBands_pdfOnly/rapiditySpectra/ --pdfonly
+
 # hardcoded binwidth !!! Nice, eh?
 bwidth = 0.25
 
@@ -89,9 +92,9 @@ def plotOneRatio(ratioGraphs,mcname,color,fillstyle,isBottomPlot=False,asymmetry
                 ratio.GetYaxis().SetRangeUser(0.8,1.2)
                 ratio.GetYaxis().SetTitle('Theory/Data')
             else:
-                ratio.GetYaxis().SetRangeUser(-0.1,0.1)
+                ratio.GetYaxis().SetRangeUser(-0.11,0.11)
                 ratio.GetYaxis().SetTitle('Theory-Data')
-            ratio.GetYaxis().SetNdivisions(505,ROOT.kFALSE)
+            #ratio.GetYaxis().SetNdivisions(505,ROOT.kFALSE)
             ratio.GetYaxis().SetLabelSize(0.12)
             ratio.GetYaxis().SetTitleSize(0.16)
             ratio.GetYaxis().SetTitleOffset(0.5)
@@ -101,12 +104,12 @@ def plotOneRatio(ratioGraphs,mcname,color,fillstyle,isBottomPlot=False,asymmetry
             ratio.SetLineColor(ROOT.kBlack)
             ratio.SetMarkerColor(ROOT.kBlack)
             ratio.SetMarkerSize(2)
-            ratio.Draw('pe')
+            ratio.Draw('ple')
 
-    leg = makeFullLegend(ratioGraphs[:2],
-                          [mcname,'data'],
-                          ['f','pe'],ymin=0.70,xmax=0.7,ncols=2,textSize=0.09)
-                                                     #0.75               #0.08
+    leg = makeFullLegend([ratioGraphs[1],ratioGraphs[0]],
+                          ['Measured',mcname],
+                          ['ple','f'],ymin=0.65,xmax=0.85,ymax=0.93,ncols=2,textSize=0.12)
+                                          #0.7      #0.7               
     leg.Draw()
     leg.SetName("leg"+mcname)
 
@@ -150,7 +153,7 @@ def plotMCaNLO(values,ratios,fewzvals_nnpdf31,fewzvals_ct18,plotname,outdir):
     graphs = values.GetListOfGraphs()
     yranges = {'+': (2200,3600),
                '-': (1600,3500),
-               ' ': (-0.05,0.30)
+               ' ': (-0.01,0.34)
                }
     ybincenters = []
     for i,gr in enumerate(graphs): 
@@ -196,9 +199,11 @@ def plotMCaNLO(values,ratios,fewzvals_nnpdf31,fewzvals_ct18,plotname,outdir):
     graphs[1].SetLineWidth(1)
     graphs[1].Draw('PE')
 
-    leg0 = makeFullLegend([graphs[0],graphs[2],fewz_nnpdf31_Gr,fewz_ct18_Gr,graphs[1]],
-                          ['MC@NLO NNPDF3.0','MC@NLO* NNPDF3.0','FEWZ NNPDF3.1','FEWZ CT18','data'],
-                          ['f','l','f','f','pl'],ncols=2,textSize=0.03)
+    leg0 = makeFullLegend([graphs[1],graphs[0],fewz_nnpdf31_Gr,fewz_ct18_Gr,graphs[2]],
+                          ['Measured','MC@NLO NNPDF3.0','FEWZ NNPDF3.1','FEWZ CT18','MC@NLO* NNPDF3.0'],
+                          ['ple','f','f','f','l'],ncols=2,
+                          xmin=0.23,ymin=0.67,xmax=0.91,ymax=0.9, 
+                          textSize=0.04)
     leg0.Draw()
 
     ## save in a ROOT file
@@ -238,7 +243,7 @@ def plotMCaNLO(values,ratios,fewzvals_nnpdf31,fewzvals_ct18,plotname,outdir):
     lat.SetNDC(); lat.SetTextFont(42)
     lat.DrawLatex(0.2, 0.97, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.60, 0.97, '35.9 fb^{-1} (13 TeV)')
-    lat.DrawLatex(0.25, 0.57,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if ch=='-' else "#nu"))
+    lat.DrawLatex(0.25, 0.72,  'W^{{{ch}}} #rightarrow l^{{{ch}}}{nu}'.format(ch=ch,nu="#bar{#nu}" if ch=='-' else "#nu"))
     lat2 = ROOT.TLatex()
     lat2.SetNDC(); lat2.SetTextFont(42);  lat2.SetTextSize(0.04);
     lat2.DrawLatex(0.90, 0.012, '|y_{W}|')

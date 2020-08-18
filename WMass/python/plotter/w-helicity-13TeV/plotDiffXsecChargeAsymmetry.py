@@ -273,7 +273,7 @@ if __name__ == "__main__":
     #                                                                          etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
     etaRangeText = "|#eta^{{{l}}}| < {etamax:3g}".format(l="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                               etamin=genBins.etaBins[0], etamax=genBins.etaBins[-1])
-    labelRatioDataExp = "exp./obs.::0.9,1.1" if options.invertRatio else "obs./exp.::0.9,1.1"
+    labelRatioDataExp = "Exp./obs.::0.9,1.1" if options.invertRatio else "Obs./exp.::0.9,1.1"
 
     hChAsymm = ROOT.TH2F("hChAsymm_{lep}".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
                          genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
@@ -462,8 +462,8 @@ if __name__ == "__main__":
     canvas = ROOT.TCanvas("canvas","",800,700)
     canvas1D = ROOT.TCanvas("canvas1D","",1000,1000)
 
-    xaxisTitle = 'dressed %s |#eta|' % lepton
-    yaxisTitle = 'dressed %s p_{T} (GeV)' % lepton
+    xaxisTitle = 'Dressed %s |#eta|' % lepton
+    yaxisTitle = 'Dressed %s p_{T} (GeV)' % lepton
     if options.ptRange != "template":
         ptmin,ptmax = options.ptRange.split(',')
         yaxisTitle = yaxisTitle + "::%s,%s" % (ptmin, ptmax)
@@ -518,7 +518,7 @@ if __name__ == "__main__":
                                                                                     pttext=ptRangeText,
                                                                                     txc=texCoord)
         legendCoords = "0.2,0.4,0.75,0.85"
-        drawSingleTH1(hChAsymm1Deta,xaxisTitle,"charge asymmetry",
+        drawSingleTH1(hChAsymm1Deta,xaxisTitle,"Charge asymmetry",
                       "chargeAsym1D_eta_{fl}".format(fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1, drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
@@ -529,7 +529,7 @@ if __name__ == "__main__":
         additionalText = "W #rightarrow {lep}^{{ }}#nu;{etatext}::{txc},0.08,0.04".format(lep="e" if channel == "el" else "#mu" if channel == "mu" else "l", 
                                                                                    etatext=etaRangeText,
                                                                                    txc=texCoord)
-        drawSingleTH1(hChAsymm1Dpt,yaxisTitle,"charge asymmetry",
+        drawSingleTH1(hChAsymm1Dpt,yaxisTitle,"Charge asymmetry",
                       "chargeAsym1D_pt_{fl}".format(fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1, drawLineLowerPanel="",
                       passCanvas=canvas1D, lumi=options.lumiInt,
@@ -558,7 +558,7 @@ if __name__ == "__main__":
 
         icharge += 1
         print ""
-        xaxisTitle = 'dressed %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
+        xaxisTitle = 'Dressed %s |#eta|' % lepton  # it will be modified later, so I have to restore it here
 
 
         chargeSign = "+" if charge == "plus" else "-"
@@ -1109,7 +1109,7 @@ if __name__ == "__main__":
                                                                                              pttext=ptRangeText,
                                                                                              txc=texCoord) 
         legendCoords = "0.2,0.4,0.75,0.85" if charge == "plus" else "0.2,0.4,0.4,0.5"
-        drawSingleTH1(hDiffXsec_1Deta,xaxisTitle,"d#sigma/d|#eta| [pb]",
+        drawSingleTH1(hDiffXsec_1Deta,xaxisTitle,"d#sigma/d|#eta| (pb)",
                       "xsec_eta_abs_{ch}_{fl}".format(ch=charge,fl=channel),
                       outname,labelRatioTmp="Rel.Unc.::0.9,1.1",legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                       passCanvas=canvas1D, lumi=options.lumiInt,
@@ -1199,14 +1199,14 @@ if __name__ == "__main__":
 
             if unrollAlongEta:
                 #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                xaxisTitle = "Unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                 for ipt in range(0,genBins.Npt):
                     #varBinRanges.append("p_{{T}} #in [{ptmin:.2g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
                     varBinRanges.append("#splitline{{[{ptmin:.2g}, {ptmax:.3g}]}}{{GeV}}".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
             else:
                 #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                xaxisTitle = "unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                xaxisTitle = "Unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                 vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                 for ieta in range(0,genBins.Neta):
                     #varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
@@ -1241,7 +1241,7 @@ if __name__ == "__main__":
 
                 h1D_chargeAsym[unrollAlongEta] = getTH1fromTH2(hChAsymm, h2Derr=None, unrollAlongX=unrollAlongEta)        
                 h1D_chargeAsym[unrollAlongEta].SetDirectory(tfOut)
-                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"charge asymmetry::0.0,1.0",
+                drawSingleTH1(h1D_chargeAsym[unrollAlongEta], xaxisTitle,"Charge asymmetry::0.0,1.0",
                               "unrolledChargeAsym_{var}_{fl}".format(var=unrollVar,fl=channel),
                               outname,labelRatioTmp=ratioYaxis,draw_both0_noLog1_onlyLog2=1,drawLineLowerPanel="", 
                               passCanvas=canvUnroll,lumi=options.lumiInt,
@@ -1271,7 +1271,7 @@ if __name__ == "__main__":
                 #hChargeAsym_exp = None
                 # if icharge == 2:
                 #     hChargeAsym_exp = ROOT.TH2F("hChargeAsym_{lep}_exp".format(lep=lepton),
-                #                                 "charge asymmetry: {Wch}".format(Wch=Wchannel),
+                #                                 "Charge asymmetry: {Wch}".format(Wch=Wchannel),
                 #                                 genBins.Neta, array('d',genBins.etaBins), genBins.Npt, array('d',genBins.ptBins))
 
                 #     hChAsymm1Deta_exp = ROOT.TH1F("hChAsymm1Deta_{lep}_exp".format(lep=lepton),"Charge asymmetry: {Wch}".format(Wch=Wchannel),
@@ -1329,7 +1329,7 @@ if __name__ == "__main__":
                 #         binCount += 1
                         
                 #         if icharge == 2:
-                #             # charge asymmetry
+                #             # Charge asymmetry
                 #             central = utilities.getDiffXsecAsymmetryFromHessianFast(ieta-1,ipt-1,
                 #                                                                    nHistBins=2000, minHist=0., maxHist=1., 
                 #                                                                    tree=treeexp, getGen=getExpFromGen)         
@@ -1449,14 +1449,14 @@ if __name__ == "__main__":
 
                     if unrollAlongEta:
                         #xaxisTitle = xaxisTitle + " = 1 + ipt + ieta * %d; ipt in [%d,%d], ieta in [%d,%d]" % (nptbins-1,0,nptbins-1,0,netabins-1)
-                        xaxisTitle = "unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
+                        xaxisTitle = "Unrolled dressed lepton |#eta| bin: |#eta| #in [%.1f, %.1f]" % (genBins.etaBins[0], genBins.etaBins[-1])
                         vertLinesArg = "{a},{b}".format(a=genBins.Npt,b=genBins.Neta)
                         for ipt in range(0,genBins.Npt):
                             #varBinRanges.append("p_{{T}} #in [{ptmin:.2g}, {ptmax:.3g}]".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
                             varBinRanges.append("#splitline{{[{ptmin:.2g}, {ptmax:.3g}]}}{{GeV}}".format(ptmin=genBins.ptBins[ipt], ptmax=genBins.ptBins[ipt+1]))
                     else:
                         #xaxisTitle = xaxisTitle + " = 1 + ieta + ipt * %d; ipt in [%d,%d], ieta in [%d,%d]" % (netabins-1,0,nptbins-1,0,netabins-1)
-                        xaxisTitle = "unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
+                        xaxisTitle = "Unrolled dressed lepton p_{T} bin: p_{T} #in [%.3g, %.3g] GeV" % (genBins.ptBins[0], genBins.ptBins[-1])
                         vertLinesArg = "{a},{b}".format(a=genBins.Neta,b=genBins.Npt)
                         for ieta in range(0,genBins.Neta):
                             #varBinRanges.append("|#eta| #in [{etamin:.1f}, {etamax:.1f}]".format(etamin=genBins.etaBins[ieta], etamax=genBins.etaBins[ieta+1]))
@@ -1501,7 +1501,7 @@ if __name__ == "__main__":
                                           histMCpartialUnc=h1D_pmaskedexp_norm_PDF[(unrollAlongEta,charge)],histMCpartialUncLegEntry="PDFs #oplus #alpha_{S}",skipPreliminary=options.skipPreliminary,nSplitUnrolledBins=options.nSplitUnrolledBins)
 
 
-                    # do also charge asymmetry (only once if running on both charges)
+                    # do also Charge asymmetry (only once if running on both charges)
                     if icharge == 2:
                         
                         additionalTextBackup = additionalText
@@ -1522,8 +1522,8 @@ if __name__ == "__main__":
                         h1D_chargeAsym_TotTheory[unrollAlongEta] = getUnrolledGraph(hChargeAsymTotTheory,genBins.Neta, genBins.Npt,
                                                                                     unrollAlongX=unrollAlongEta) 
                         drawXsecAndTheoryband(h1D_chargeAsym[unrollAlongEta], h1D_chargeAsym_TotTheory[unrollAlongEta],
-                                              xaxisTitle.replace("cross section", "charge asymmetry"),
-                                              "charge asymmetry::0,0.65", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
+                                              xaxisTitle.replace("cross section", "Charge asymmetry"),
+                                              "Charge asymmetry::0,0.65", "unrolledChargeAsym_{var}_{fl}_dataAndExp".format(var=unrollVar,fl=channel),
                                               outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,passCanvas=canvUnroll,
                                               lumi=options.lumiInt,drawVertLines=vertLinesArg, textForLines=varBinRanges, 
                                               lowerPanelHeight=0.4, moreText=additionalText,leftMargin=leftMargin, rightMargin=rightMargin, 
@@ -1534,7 +1534,7 @@ if __name__ == "__main__":
 
                 # now data/prediction for the 1D xsection and charge asymmetry
                 ###############
-                xaxisTitle = 'dressed %s |#eta|' % lepton
+                xaxisTitle = 'Dressed %s |#eta|' % lepton
                 additionalTextBackup = additionalText
                 #additionalText = "W^{{{chs}}} #rightarrow {lep}#nu;{pttext}::0.45,0.8,0.75,0.9".format(chs=" "+chargeSign,lep="e" if channel == "el" else "#mu" if channel == "mu" else "l",
                 #                                                                                       pttext=ptRangeText) # pass x1,y1,x2,y2
@@ -1545,7 +1545,7 @@ if __name__ == "__main__":
                                                                                                                       pttext=ptRangeText,
                                                                                                                       txc=texCoord) 
                 legendCoords = "0.18,0.58,0.75,0.85" if charge == "plus" else "0.18,0.58,0.4,0.5" # does not include space for PDF line (created automatically inside)                
-                drawXsecAndTheoryband(hDiffXsec_1Deta,hDiffXsecTotTheory_1Deta[charge],xaxisTitle,"d#sigma/d|#eta| [pb]",
+                drawXsecAndTheoryband(hDiffXsec_1Deta,hDiffXsecTotTheory_1Deta[charge],xaxisTitle,"d#sigma/d|#eta| (pb)",
                                       "xsec_eta_abs_{ch}_{fl}_dataAndExp".format(ch=charge,fl=channel),
                                       outname,labelRatioTmp=labelRatioDataExp,legendCoords=legendCoords, draw_both0_noLog1_onlyLog2=1,
                                       passCanvas=canvas1D, lumi=options.lumiInt,
@@ -1621,7 +1621,7 @@ if __name__ == "__main__":
                     labelRatioDataExp_asym = labelRatioDataExp
                     labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::-0.01,0.01"
                     labelRatioDataExp_asym = labelRatioDataExp_asym.replace("/","-") # use difference   
-                    drawXsecAndTheoryband(hChAsymm1Deta, hChargeAsymTotTheory_1Deta, xaxisTitle, "charge asymmetry::0.06,0.25",
+                    drawXsecAndTheoryband(hChAsymm1Deta, hChargeAsymTotTheory_1Deta, xaxisTitle, "Charge asymmetry::0.06,0.25",
                                           "chargeAsym1D_eta_{fl}_dataAndExp".format(fl=channel),
                                           outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,
                                           passCanvas=canvas1D,lumi=options.lumiInt, legendCoords=legendCoords,
@@ -1636,7 +1636,7 @@ if __name__ == "__main__":
                                                                                                txc=texCoord)
                     labelRatioDataExp_asym = str(labelRatioDataExp.split("::")[0]) + "::-0.05,0.05"
                     labelRatioDataExp_asym = labelRatioDataExp_asym.replace("/","-") # use difference   
-                    drawXsecAndTheoryband(hChAsymm1Dpt, hChargeAsymTotTheory_1Dpt, yaxisTitle, "charge asymmetry::0.0,0.25",
+                    drawXsecAndTheoryband(hChAsymm1Dpt, hChargeAsymTotTheory_1Dpt, yaxisTitle, "Charge asymmetry::0.0,0.25",
                                           "chargeAsym1D_pt_{fl}_dataAndExp".format(fl=channel),
                                           outname,labelRatioTmp=labelRatioDataExp_asym,draw_both0_noLog1_onlyLog2=1,
                                           passCanvas=canvas1D,lumi=options.lumiInt, legendCoords=legendCoords,

@@ -482,7 +482,12 @@ if __name__ == "__main__":
         if key == "asym" or key == "ratio":
             xsectextData = "%.4f #pm %.4f" % (h.GetBinContent(1), h.GetBinError(1))
         else:
-            xsectextData = "%.0f #pm %.0f pb" % (h.GetBinContent(1), h.GetBinError(1))
+            # if h.GetBinError(1) < 100:
+            #     xsectextData = "%.3f #pm %.3f nb" % (0.001*h.GetBinContent(1), 0.001*h.GetBinError(1))
+            # else:
+            #     xsectextData = "%.2f #pm %.2f nb" % (0.001*h.GetBinContent(1), 0.001*h.GetBinError(1))
+            xsectextData = "%.2f #pm %.2f nb" % (0.001*h.GetBinContent(1), 0.001*h.GetBinError(1))
+
 
         fline = key
         if key == "asym" or key == "ratio":
@@ -508,9 +513,9 @@ if __name__ == "__main__":
                                                                       htotTheory[ik].GetErrorXhigh(0), 
                                                                       htotTheory[ik].GetErrorXlow(0))
         else:
-            xsectextTheo = "%.0f^{ +%.0f}_{ -%.0f} pb" % (centralTheoryVal, 
-                                                                   htotTheory[ik].GetErrorXhigh(0), 
-                                                                   htotTheory[ik].GetErrorXlow(0))
+            xsectextTheo = "%.2f^{ +%.2f}_{ -%.2f} nb" % (0.001*centralTheoryVal, 
+                                                          0.001*htotTheory[ik].GetErrorXhigh(0), 
+                                                          0.001*htotTheory[ik].GetErrorXlow(0))
         # if key == "asym":
         #     xsectextTheo = "%.4f + %.4f - %.4f" % (centralTheoryVal, 
         #                                                               htotTheory[ik].GetErrorXhigh(0), 
@@ -548,7 +553,7 @@ if __name__ == "__main__":
             frame.SetMarkerColor(ROOT.kWhite)
             frame.SetMarkerSize(0)
             frame.GetXaxis().SetLabelSize(0.05)
-            frame.GetXaxis().SetTitle("ratio (measured/prediction) of fiducial cross sections")
+            frame.GetXaxis().SetTitle("Ratio (measured/prediction) of fiducial cross sections")
             frame.GetXaxis().SetTitleOffset(1.2)
             frame.GetXaxis().SetTitleSize(0.05)
             frame.GetXaxis().SetRangeUser(xmin,xmax)
@@ -594,7 +599,7 @@ if __name__ == "__main__":
             #latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured #pm uncertainty (lumi #oplus syst)}")
             latMeas.DrawLatex(xtext, thisy+0.1, "#bf{Measured #pm total uncertainty}")
             latMeas.SetTextColor(theoryTextColor)
-            latMeas.DrawLatex(xtext, thisy-0.4, "#bf{Theory prediction}")
+            latMeas.DrawLatex(xtext, thisy-0.4, "#bf{Theoretical prediction}")
     # end loop
 
     horizline = ROOT.TLine(xmin,0,xmax,0)
@@ -612,7 +617,7 @@ if __name__ == "__main__":
     #leg.SetFillStyle(0)
     leg.SetBorderSize(0)
     leg.SetNColumns(1)
-    leg.AddEntry(gr[0],"measured","LP")
+    leg.AddEntry(gr[0],"Measured","LP")
     leg.AddEntry(htotTheory[ik],"MadGraph5_aMC@NLO","LF")
     leg.AddEntry(hpdf[ik],"PDFs #oplus #alpha_{S}","LF")
     leg.Draw("same")

@@ -4,6 +4,9 @@
 # When run on the W+ W- combined fit it also makes charge asymmetry plot:
 # python plotYW.py --type toys --infile toys_wboth.root -y cards_el/binningYW.txt -C plus,minus -o plots --xsecfiles Wel_plus_shapes_xsec.root,Wel_minus_shapes_xsec.root
 
+# for FR
+# python w-helicity-13TeV/plotYWCompatibility.py  -C plus,minus --xsecfiles /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec_baremc.root,/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_minus_shapes_xsec_baremc.root -y /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/binningYW.txt  --infile-lep /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitslep/barolo-decfsr/fitsout_2019-11-08//fitresults_123456789_poim1_exp0_bbb1.root --infile-mu /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsmu/barolo-decfsr/fitsout_2019-11-08//fitresults_123456789_poim1_exp0_bbb1.root --infile-el /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/fitsel/barolo-decfsr/fitsout_2019-11-08//fitresults_123456789_poim1_exp0_bbb1.root --outdir plots/helicityAnalysis/YWcompatibility_testNewBands//rapiditySpectra/ --suffix floatingPOIs_hessian_bbb1_syst1_data_lep_comp  --longBkg --nolong  --altxsecfiles /afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_plus_shapes_xsec.root,/afs/cern.ch/work/e/emanuele/wmass/heppy/CMSSW_8_0_25/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/cards_lep/Wlep_minus_shapes_xsec.root
+
 import ROOT, datetime, array, os, math, re
 ROOT.gROOT.SetBatch(True)
 ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -159,24 +162,24 @@ def makeFullLegend(values):
     legRight = ROOT.TLegend(0.35, 0.60, 0.90, 0.75)
     legRight.SetFillStyle(0)
     legRight.SetBorderSize(0)
-    legRight.AddEntry(values[('mu','right')] .graph_fit    , 'data #mu' , 'p')
-    legRight.AddEntry(values[('el','right')].graph_fit     , 'data e'   , 'p')
-    legRight.AddEntry(values[('lep','right')].graph_fit    , 'data comb', 'p')
+    legRight.AddEntry(values[('mu','right')] .graph_fit    , 'Measured #mu' , 'p')
+    legRight.AddEntry(values[('el','right')].graph_fit     , 'Measured e'   , 'p')
+    legRight.AddEntry(values[('lep','right')].graph_fit    , 'Measured comb', 'p')
     legs.append(legRight)
     return legs
 
 def makeFullLegendUnpol(values):
     doAltExp = (len(values['lep'].altval)>0)
     # expected values
-    leg = ROOT.TLegend(0.25, 0.58, 0.55, 0.88)
+    leg = ROOT.TLegend(0.25, 0.55, 0.65, 0.9)
     leg.SetFillStyle(0)
     leg.SetBorderSize(0)
+    leg.AddEntry(values['mu'] .graph_fit , 'Measured #mu', 'ple')
+    leg.AddEntry(values['el'] .graph_fit , 'Measured e', 'ple')
+    leg.AddEntry(values['lep'].graph_fit , 'Measured comb ', 'ple')
     leg.AddEntry(values['lep'] .graph    , REFMC, 'f')
     if doAltExp:
         leg.AddEntry(values['lep'] .altgraph    , REFMC+'*', 'l')
-    leg.AddEntry(values['mu'] .graph_fit , 'data #mu', 'pl')
-    leg.AddEntry(values['el'] .graph_fit , 'data e', 'pl')
-    leg.AddEntry(values['lep'].graph_fit , 'data comb ', 'pl')
     return leg
 
 def plotValues(values,charge,channel,options):
@@ -288,7 +291,6 @@ def plotValues(values,charge,channel,options):
             values[('lep',pol)].graph_rel.Draw("2 SAME")
             ## x axis fiddling
             values[('lep',pol)].graph_fit_rel.GetXaxis().SetRangeUser(0., options.maxRapidity)
-            values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.04)
             values[('lep',pol)].graph_fit_rel.GetXaxis().SetLabelSize(0.0)
             values[('lep',pol)].graph_fit_rel.GetXaxis().SetTitleSize(0.0)
             ## y axis fiddling
@@ -341,7 +343,7 @@ def plotValues(values,charge,channel,options):
             comps["comp_"+pol].Draw('Pa')
             ## x axis fiddling
             comps["comp_"+pol].GetXaxis().SetRangeUser(0., options.maxRapidity)
-            comps["comp_"+pol].GetXaxis().SetLabelSize(0.1)
+            comps["comp_"+pol].GetXaxis().SetLabelSize(0.12)
             ## y axis fiddling
             comps["comp_"+pol].GetYaxis().SetTitleOffset(0.4)
             comps["comp_"+pol].GetYaxis().SetTitleSize(0.18)
@@ -359,7 +361,7 @@ def plotValues(values,charge,channel,options):
             subpadLegends["comp_lep_"+pol] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["comp_lep_"+pol].SetFillStyle(0); subpadLegends["comp_lep_"+pol].SetBorderSize(0)
             subpadLegends["comp_lep_"+pol].SetNColumns(2)
             labels_pol = {'left':'L','right':'R','long':'0'} 
-            legtitle = "Data #mu - e" if charge=='asymmetry' else "Data #mu / e" 
+            legtitle = "Measured #mu - e" if charge=='asymmetry' else "Measured #mu / e" 
             subpadLegends["comp_lep_"+pol].AddEntry(comps["comp_"+pol],'{legtitle} (W_{{{pol}}})'.format(legtitle=legtitle,pol=labels_pol[pol]),'pl')
             subpadLegends["comp_lep_"+pol].Draw('same')
 
@@ -439,8 +441,8 @@ def plotUnpolarizedValues(values,charge,channel,options):
         mg.GetYaxis().SetTitle(titles[valkey])
         mg.GetYaxis().SetRangeUser(ranges[valkey][0],ranges[valkey][1])
 
-        mg.GetYaxis().SetTitleSize(0.06)
-        mg.GetYaxis().SetLabelSize(0.04)
+        mg.GetYaxis().SetTitleSize(0.065)
+        mg.GetYaxis().SetLabelSize(0.05)
         mg.GetYaxis().SetTitleOffset(1.4)
         mg.GetYaxis().CenterTitle()
 
@@ -511,9 +513,12 @@ def plotUnpolarizedValues(values,charge,channel,options):
         lines["horiz_line_comb"].SetLineStyle(ROOT.kDashed);
         lines["horiz_line_comb"].Draw("Lsame");
         
-        subpadLegends["leg_lep"] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["leg_lep"].SetFillStyle(0); subpadLegends["leg_lep"].SetBorderSize(0)
+        subpadLegends["leg_lep"] = ROOT.TLegend(0.25, 0.75, 0.72, 0.9); subpadLegends["leg_lep"].SetFillStyle(0); subpadLegends["leg_lep"].SetBorderSize(0)
         subpadLegends["leg_lep"].SetNColumns(2)
-        subpadLegends["leg_lep"].AddEntry(values['lep'].graph_fit_rel,'Data comb','fpl')
+        values['lep'].graph_fit_rel.SetMarkerSize(2)
+        values['lep'].graph_fit_rel.SetLineWidth(2)
+        values['lep'].graph_rel.SetLineWidth(1)
+        subpadLegends["leg_lep"].AddEntry(values['lep'].graph_fit_rel,'Measured comb','fple')
         subpadLegends["leg_lep"].AddEntry(values['lep'].graph_rel,'Theory','f')
         subpadLegends["leg_lep"].Draw('same')
 
@@ -535,11 +540,12 @@ def plotUnpolarizedValues(values,charge,channel,options):
         comp.SetFillColor(values['mu'].color)
         comp.SetMarkerStyle(ROOT.kFullCircle)
         comp.SetMarkerSize(2)
+        comp.SetLineWidth(2)
 
         comp.Draw('Pa')
         ## x axis fiddling
         comp.GetXaxis().SetRangeUser(0., options.maxRapidity)
-        comp.GetXaxis().SetLabelSize(0.1)
+        comp.GetXaxis().SetLabelSize(0.12)
         ## y axis fiddling
         comp.GetYaxis().SetTitleOffset(0.4)
         comp.GetYaxis().SetTitleSize(0.18)
@@ -555,10 +561,10 @@ def plotUnpolarizedValues(values,charge,channel,options):
         lines["horiz_line_comp"].SetLineStyle(ROOT.kDashed);
         lines["horiz_line_comp"].Draw("Lsame");
 
-        subpadLegends["comp_lep"] = ROOT.TLegend(0.25, 0.8, 0.5, 0.9); subpadLegends["comp_lep"].SetFillStyle(0); subpadLegends["comp_lep"].SetBorderSize(0)
+        subpadLegends["comp_lep"] = ROOT.TLegend(0.25, 0.75, 0.72, 0.9); subpadLegends["comp_lep"].SetFillStyle(0); subpadLegends["comp_lep"].SetBorderSize(0)
         subpadLegends["comp_lep"].SetNColumns(2)
-        legtitle = "Data #mu - e" if charge=='asymmetry' else "Data #mu / e"
-        subpadLegends["comp_lep"].AddEntry(comp,legtitle,'pl')
+        legtitle = "Measured #mu - e" if charge=='asymmetry' else "Measured #mu / e"
+        subpadLegends["comp_lep"].AddEntry(comp,legtitle,'ple')
         subpadLegends["comp_lep"].Draw('same')
 
     c2.cd()
@@ -566,9 +572,9 @@ def plotUnpolarizedValues(values,charge,channel,options):
     lat.DrawLatex(0.2, 0.97, '#bf{CMS}') #it{Preliminary}')
     lat.DrawLatex(0.60, 0.97, '35.9 fb^{-1} (13 TeV)')
     if charge == 'asymmetry':
-        lat.DrawLatex(0.25, 0.60,  'W^{{{ch}}} #rightarrow l^{{{ch} }}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+        lat.DrawLatex(0.25, 0.55,  'W^{{{ch}}} #rightarrow l^{{{ch} }}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     else:
-        lat.DrawLatex(0.25, 0.60,  'W^{{ {ch}}} #rightarrow l^{{ {ch} }}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+        lat.DrawLatex(0.25, 0.55,  'W^{{ {ch}}} #rightarrow l^{{ {ch} }}{nu}'.format(ch=ch,nu="#bar{#nu}" if charge=='minus' else "#nu"))
     lat.DrawLatex(0.85, 0.025, '|y_{W}|')
     for ext in ['png', 'pdf']: #, 'C', 'root']:
         c2.SaveAs('{n}.{ext}'.format(n=plotname, ext=ext))

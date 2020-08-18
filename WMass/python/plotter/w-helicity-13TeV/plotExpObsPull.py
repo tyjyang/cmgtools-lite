@@ -149,7 +149,7 @@ if __name__ == "__main__":
     gr_prefit.SetFillColor(ROOT.kAzure+6)
     gr_prefit.SetMarkerColor(ROOT.kAzure+6)
     gr_prefit.Draw('P2')
-    leg.AddEntry(gr_prefit,'pre-fit','f')
+    leg.AddEntry(gr_prefit,'Pre-fit','f')
     
     gr_prefit.GetXaxis().SetNdivisions(npars+1,ROOT.kFALSE)
     gr_prefit.GetYaxis().SetNdivisions(2*int(maxz))
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     gr_expected.SetFillColor(ROOT.kOrange+7)
     gr_expected.SetMarkerColor(ROOT.kOrange+7)
     gr_expected.Draw('P2')
-    leg.AddEntry(gr_expected,'post-fit expected','f')
+    leg.AddEntry(gr_expected,'Post-fit expected','f')
     
     # observed
     gr_observed = ROOT.TGraphErrors(npars,x,yobs,zero,eyobs)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     gr_observed.SetMarkerStyle(ROOT.kFullCircle)
     gr_observed.SetMarkerSize(1)
     gr_observed.Draw('P EZ')
-    leg.AddEntry(gr_observed,'post-fit observed')
+    leg.AddEntry(gr_observed,'Post-fit observed')
 
     lat.DrawLatex(marginL, 0.92, '#bf{CMS}')
     lat.DrawLatex(0.80, 0.92, '35.9 fb^{-1} (13 TeV)')

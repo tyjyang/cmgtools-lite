@@ -14,15 +14,16 @@ onlyData = 1
 corrXsecStat = 1 # default should be 1, i.e. combinetf had option correlate-xsec-stat, else 0
 
 skipInclusivePlot = 1
-skipPlot = 0
+skipPlot = 1
 skipTemplate = 1
-skipDiffNuis = 1
+skipDiffNuis = 1  
+skipDiffNuis4HEPdata = 1  # will use HEPDATA format for labels
 skipPostfit = 1  # only for Data
 skipCorr = 1
 skipCorr1D = 1
-skipCorrAll4HEPdata = 1
+skipCorrAll4HEPdata = 0
 skipImpacts = 1
-skipImpactsAll4HEPdata = 1
+skipImpactsAll4HEPdata = 1 # no longer needed, unless one wants to show all the systs
 skipImpactsEtaPt = 1
 skipMuElComparison = 1
 #outFolderComparison = "test_nativeMCatNLOxsecW_profileLepScale_cropNegBinNomi_uncorrFSRbyFlav_clipSyst1p3_clipSigSyst1p15_clipPtScale1p15_decorrPtScaleSystByEta_noSplitElePtSystByPt_FSRshapeOnly" # update name here when using skipMuElComparison, or just use postfix
@@ -339,6 +340,26 @@ for fit in fits:
 
     print ""
     print "="*30
+    print "POSTFIT NUISANCES"
+    print ""
+
+    ## POSTFIT NUISANCES
+    command = "python w-helicity-13TeV/diffNuisances.py"
+    command += " --infile cards/{fd}/fit/{typedir}/fitresults_{s}_{fit}_{pf}.root".format(fd=folder,typedir=typedir,s=seed,fit=fit,pf=postfix)
+    command += " --outdir plots/diffXsecAnalysis_new/{lep}/{fd}/diffNuisancesHEPDATA/{pf}/".format(lep=lepton,fd=folder, pf=postfix)
+    command += " -a --format html --type hessian  --suffix  {fit} ".format(fit=fit)
+    command += " --etaptbinfile cards/{fd}/binningPtEta.txt --use-hepdata-labels -c {fl} ".format(fd=folder, fl=flavour)
+    for poi in diffNuisances_pois:
+        tmpcommand = command + " --pois '{poi}' ".format(poi=poi)
+        if not skipDiffNuis4HEPdata:
+            print ""    
+            print tmpcommand
+            if not dryrun:
+                os.system(tmpcommand)
+
+
+    print ""
+    print "="*30
     print "POSTFIT PLOTS"
     print ""
 
@@ -422,7 +443,7 @@ for fit in fits:
         command += " --nContours 51 --type hessian --suffix  {fit} --matrix-type {mt} --which-matrix covariance --divide-covariance-by-bin-area --margin 0.18,0.11,0.08,0.22 ".format(fit=fit, mt=matrixType)
         command += " --etaptbinfile cards/{fd}/binningPtEta.txt --canvasSize '1200,1000' ".format(fd=folder)
         tmpcommand = command + " --params '{poiRegexp}' --show-all-nuisances ".format(poiRegexp=poiRegexp)
-        tmpcommand += " --parNameCanvas AllPoisAndNuis_{poi} -c {fl} ".format(poi=poiRegexp.replace(".*",""), fl=flavour)
+        tmpcommand += " --parNameCanvas AllPoisAndNuis_{poi} -c {fl} --use-hepdata-labels ".format(poi=poiRegexp.replace(".*",""), fl=flavour)
         if not skipCorrAll4HEPdata:
             print ""
             print tmpcommand
