@@ -166,22 +166,29 @@ class MCAnalysis:
                     raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
 
                 rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
-                if options.remotePath:
-                    rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
-                elif os.path.exists(rootfile+".url"): #(not os.path.exists(rootfile)) and :
-                    rootfile = open(rootfile+".url","r").readline().strip()
-                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
-                    # Heppy calls the tree just 'tree.root'
-                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                    prepath = ''
-                    if not 'root:/' in rootfile:
-                        if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
-                        elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
-                    rootfile = prepath+rootfile
-                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
-                    # Heppy calls the tree just 'tree.root'
-                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                    rootfile = open(rootfile+".url","r").readline().strip()
+                if options.noHeppyTree:
+                    # under development, to run on any kind of root file
+                    # print "cname = %s" % cname
+                    rootfile = "%s/%s.root" % (basepath, treename)                    
+                    print "rootfile: %s" % rootfile
+                    print "objname : %s" % objname
+                else:
+                    if options.remotePath:
+                        rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
+                    elif os.path.exists(rootfile+".url"): #(not os.path.exists(rootfile)) and :
+                        rootfile = open(rootfile+".url","r").readline().strip()
+                    elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
+                        # Heppy calls the tree just 'tree.root'
+                        rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
+                        prepath = ''
+                        if not 'root:/' in rootfile:
+                            if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
+                            elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
+                        rootfile = prepath+rootfile
+                    elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
+                        # Heppy calls the tree just 'tree.root'
+                        rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
+                        rootfile = open(rootfile+".url","r").readline().strip()
 
                 ## needed temporarily
                 pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
@@ -198,60 +205,73 @@ class MCAnalysis:
                 if pname in self._allData: self._allData[pname].append(tty)
                 else                     : self._allData[pname] =     [tty]
                 if "data" not in pname:
-                    useHistoForWeight = False
-                    maxGenWgt = None
-                    if options.weight and len(options.maxGenWeightProc):
-                        for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                            if re.match(procRegExp,pname):
-                                #tmp_maxGenWgt is a string, convert to float
-                                maxGenWgt = abs(float(tmp_maxGenWgt))
-                                log10_maxGenWgt = math.log10(maxGenWgt)
-                                print "INFO: %s -> clipping genWeight to |x| < %s with distrGenWeights" % (pname,tmp_maxGenWgt)
-                                useHistoForWeight = True
-                                ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                                tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                                histo_sumgenweight = tmp_rootfile.Get('distrGenWeights')
-                                if not histo_sumgenweight:
-                                    raise RuntimeError, "Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
-                                minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
-                                maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
-                                n_sumgenweight = histo_sumgenweight.Integral(minBin,maxBin)
-                                tmp_rootfile.Close()
-
-                    ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
-                    # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                    # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                    # histo_count        = tmp_rootfile.Get('Count')
-                    # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
-                    # n_count        = histo_count       .GetBinContent(1)
-                    # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
-                    # tmp_rootfile.Close()
-
-                    #do always read this file as well, not to modify the following 'if' statement
-                    pckobj  = pickle.load(open(pckfile,'r'))
-                    counters = dict(pckobj)
-                    # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
-                    ## this needed for now...
-                    if ('Sum Weights' in counters) and options.weight:
-                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                        is_w = 1; 
-                        if useHistoForWeight:
-                            total_w += n_sumgenweight ## ROOT histo version
-                            scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2], str(maxGenWgt))
-                        else:                            
-                            total_w += counters['Sum Weights']
-                            scale = "genWeight*(%s)" % field[2]
-                    elif not options.weight:
-                        scale = 1
-                        total_w = 1
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                        is_w = 0
+                    if options.noHeppyTree:
+                        if options.weight:
+                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 1
+                            total_w = 1.0  # not really used for general trees at the moment
+                            scale = "(%s)" % field[2]
+                        else:
+                            scale = "1"
+                            total_w = 1 # not really used for general trees at the moment
+                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 0
                     else:
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                        is_w = 0;
-                        # total_w += n_count ## ROOT histo version
-                        total_w += counters['All Events']
-                        scale = "(%s)" % field[2]
+                        useHistoForWeight = False
+                        maxGenWgt = None
+                        if options.weight and len(options.maxGenWeightProc):
+                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
+                                if re.match(procRegExp,pname):
+                                    #tmp_maxGenWgt is a string, convert to float
+                                    maxGenWgt = abs(float(tmp_maxGenWgt))
+                                    log10_maxGenWgt = math.log10(maxGenWgt)
+                                    print "INFO: %s -> clipping genWeight to |x| < %s with distrGenWeights" % (pname,tmp_maxGenWgt)
+                                    useHistoForWeight = True
+                                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                                    tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                                    histo_sumgenweight = tmp_rootfile.Get('distrGenWeights')
+                                    if not histo_sumgenweight:
+                                        raise RuntimeError, "Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
+                                    minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
+                                    maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
+                                    n_sumgenweight = histo_sumgenweight.Integral(minBin,maxBin)
+                                    tmp_rootfile.Close()
+
+                        ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
+                        # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                        # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                        # histo_count        = tmp_rootfile.Get('Count')
+                        # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                        # n_count        = histo_count       .GetBinContent(1)
+                        # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+                        # tmp_rootfile.Close()
+
+                        #do always read this file as well, not to modify the following 'if' statement
+                        pckobj  = pickle.load(open(pckfile,'r'))
+                        counters = dict(pckobj)
+                        # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
+                        ## this needed for now...
+                        if ('Sum Weights' in counters) and options.weight:
+                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 1; 
+                            if useHistoForWeight:
+                                total_w += n_sumgenweight ## ROOT histo version
+                                scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2], str(maxGenWgt))
+                            else:                            
+                                total_w += counters['Sum Weights']
+                                scale = "genWeight*(%s)" % field[2]
+                        elif not options.weight:
+                            scale = 1
+                            total_w = 1
+                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 0
+                        else:
+                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 0;
+                            # total_w += n_count ## ROOT histo version
+                            total_w += counters['All Events']
+                            scale = "(%s)" % field[2]
+                    # closes if options.noHeppyTree
                     if len(field) == 4: scale += "*("+field[3]+")"
                     for p0,s in options.processesToScale:
                         for p in p0.split(","):
@@ -674,6 +694,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("-t", "--tree",          dest="tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--fom", "--figure-of-merit", dest="figureOfMerit", type="string", default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
     parser.add_option("--max-genWeight-procs", dest="maxGenWeightProc", type="string", nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes");
+    parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
 
 
 if __name__ == "__main__":
