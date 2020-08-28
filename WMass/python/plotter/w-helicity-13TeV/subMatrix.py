@@ -269,7 +269,10 @@ def niceNameHEPDATA(name,genBins="",forceLep="",drawRangeInLabel=False, isHelici
                 ywl = genYwBins[charge_pol][iyw]
                 ywh = genYwBins[charge_pol][iyw+1]
                 #nn = "{wch}#rightarrow{lep}#nu {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
-            nn = "${wch}_{{{pol}}}$, $|y_{{W}}| \in$ [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,pol=pol_sub,ywl=ywl,ywh=ywh)
+            if pol_sub == "":
+                nn = "${wch}$, $|y_{{W}}| \in$ [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,ywl=ywl,ywh=ywh)
+            else:
+                nn = "${wch}_{{{pol}}}$, $|y_{{W}}| \in$ [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,pol=pol_sub,ywl=ywl,ywh=ywh)
             
             if name.startswith("norm_"):  # normalization systematics for bins not fitted as pois
                 nn = "norm.syst. " + nn
@@ -482,7 +485,6 @@ def niceNameHEPDATA(name,genBins="",forceLep="",drawRangeInLabel=False, isHelici
             etabinsEffSyst = [0,1.0,1.5,2.4] if "mu" in name else [0,1.0,1.5,1.9,2.1,2.4]
         low = etabinsEffSyst[n]
         high = etabinsEffSyst[n+1]
-        # use double '\' for abs, because '\a' is a special character
         return "eff.syst., ${l}<|\eta|<{h}$, ${lep}$".format(lep="\mu" if "mu" in name else "e",l=low,h=high)
 
     elif "fsr" in name:
@@ -573,7 +575,7 @@ if __name__ == "__main__":
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec')
     parser.add_option(     '--ywbinfile',   dest='ywbinfile',   default='',  type='string', help='Yw binning used for labels with helicity')
     parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu|lep), if not given it is inferred from the inputs, but might be wrong depending on naming conventions')
-    parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs')
+    parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs (for fixed POI fit with no real POI it is suggested using --params "NOTEXISTING", otherwise leaving --params empty makes all nuisances be treated as POI for the sake of building the matrix)')
     parser.add_option('--which-matrix',  dest='whichMatrix',     default='both', type='string', help='Which matrix: covariance|correlation|both')
     parser.add_option(     '--divide-covariance-by-bin-area', dest='divideCovarianceBybinArea',    default=False, action='store_true', help='Divide covariance by bin area (2D xsec) or bin width (1D xsec)')
     parser.add_option(     '--skipLatexOnTop', dest='skipLatexOnTop',    default=False, action='store_true', help='Do not write "CMS blabla" on top (mainly useful when a title is needed)')
@@ -784,7 +786,7 @@ if __name__ == "__main__":
 
     # to help sorting with helicity
     # if using more helicity and Y bins, sort by hel,Ybin
-    helSorted = { "left" : 1, "right" : 2, "long" : 3}
+    helSorted = { "left" : 1, "right" : 2, "long" : 3, "Ybin" : 4} # Ybin appears for unpolarized quantities
     chargeSorted = { "Wplus" : 1, "Wminus" : 2}
     lepSorted = { "mu" : 1, "el" : 2}
 
@@ -801,7 +803,7 @@ if __name__ == "__main__":
     if options.ywbinfile:
         params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
         params = sorted(params, key= lambda x: (1 if "left" in x else 2 if "right" in x else "3") if '_Ybin_' in x else 0)
-        params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-2])) if '_Ybin_' in x else 0)
+        params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-2])) if ('_Ybin_' in x and "norm_" not in x) else 0)
     else:
         params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
         params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
