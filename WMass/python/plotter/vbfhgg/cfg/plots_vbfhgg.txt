@@ -1,0 +1,16 @@
+dipho_mass: dipho_mass: 100,0,200; XTitle="M_{#gamma#gamma} (GeV)", Legend='TC', IncludeOverflows=True
+
+dipho_leadEta: dipho_leadEta: 50,-2.5,2.5; XTitle="leading photon #eta", Legend='TC', IncludeOverflows=True
+
+dipho_subleadEta: dipho_subleadEta: 50,-2.5,2.5; XTitle="subleading photon #eta", Legend='TC', IncludeOverflows=True
+
+dipho_leadPt: dipho_leadPt: 100,0,500; XTitle="leading photon p_{T} (GeV)", Legend='TC', IncludeOverflows=True
+
+dipho_subleadPt: dipho_subleadPt: 100,0,500; XTitle="subleading photon p_{T} (GeV)", Legend='TC', IncludeOverflows=True
+
+dipho_PToM: dipho_PToM: 100,0,10; XTitle="p_{T}^{#gamma#gamma}/M_{#gamma#gamma}", Legend='TC', IncludeOverflows=True
+
+dijet_abs_dEta: dijet_abs_dEta: 100,0,10; XTitle="dijet |#Delta#eta|", Legend='TC', IncludeOverflows=True
+
+dijet_Mjj: dijet_Mjj: 100,0,5000; XTitle="M_{jj} (GeV)", Legend='TC', IncludeOverflows=True
+
