@@ -304,8 +304,6 @@ def drawTH1(htmp,
     for ext in ["png","pdf"]:
         canvas.SaveAs(outdir + "{pfx}{hname}.{ext}".format(pfx=prefix,hname=("_"+outhistname) if len(outhistname) else "",ext=ext))
 
-
-
 #########################################################################
 
 
@@ -970,7 +968,7 @@ def drawDataAndMC(h1, h2,
         leg.AddEntry(h1,str(legendEntries[0]),"LPE")
         leg.AddEntry(h2,str(legendEntries[1]),"LF")        
     else:
-        leg.AddEntry(h1,"measured","LPE")
+        leg.AddEntry(h1,"Measured","LPE")
         leg.AddEntry(h2,"MadGraph5_aMC@NLO","LF")
     if histMCpartialUnc != None:
         leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
@@ -1585,6 +1583,10 @@ def drawMuElComparison(hlep, hmu, hel,
 
     # h1 is data, h2 in MC
     
+    isBigUnrolledPlot = True
+    if leftMargin > 0.1:
+        isBigUnrolledPlot = False
+
     combColor = ROOT.kGray # ROOT.kYellow
 
     #if (rebinFactorX): 
@@ -1596,7 +1598,7 @@ def drawMuElComparison(hlep, hmu, hel,
     yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     yRatioAxisName,setRatioYAxisRangeFromUser,yminRatio,ymaxRatio = getAxisRangeFromUser(labelRatioTmp)
 
-    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.6
+    yAxisTitleOffset = 0.54 if isBigUnrolledPlot else 1.45
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -1615,6 +1617,8 @@ def drawMuElComparison(hlep, hmu, hel,
     if lowerPanelHeight: 
         canvas.SetBottomMargin(lowerPanelHeight)
         pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+        if isBigUnrolledPlot:
+            pad2.SetBottomMargin(0.15)
         pad2.SetTopMargin(1-lowerPanelHeight)
         pad2.SetRightMargin(rightMargin)
         pad2.SetLeftMargin(leftMargin)
@@ -1624,7 +1628,7 @@ def drawMuElComparison(hlep, hmu, hel,
 
 
     frame = hlep.Clone("frame")
-    frame.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
+    frame.GetXaxis().SetLabelSize(0.058 if isBigUnrolledPlot else 0.04) 
     frame.SetStats(0)
 
     #hlep.SetLineColor(ROOT.kGreen+2) # kBlack
@@ -1655,12 +1659,12 @@ def drawMuElComparison(hlep, hmu, hel,
     else:
         hlep.GetXaxis().SetTitle(xAxisName)
         hlep.GetXaxis().SetTitleOffset(1.2)
-        hlep.GetXaxis().SetTitleSize(0.05)
-        hlep.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
+        hlep.GetXaxis().SetTitleSize(0.055 if isBigUnrolledPlot else 0.05)
+        hlep.GetXaxis().SetLabelSize(0.04 if isBigUnrolledPlot else 0.055)
     hlep.GetYaxis().SetTitle(yAxisName)
     hlep.GetYaxis().SetTitleOffset(yAxisTitleOffset)
-    hlep.GetYaxis().SetTitleSize(0.05)
-    hlep.GetYaxis().SetLabelSize(0.04)
+    hlep.GetYaxis().SetTitleSize(0.053 if isBigUnrolledPlot else 0.05)
+    hlep.GetYaxis().SetLabelSize(0.048 if isBigUnrolledPlot else 0.04)
     hlep.GetYaxis().SetDecimals()
     hlep.GetYaxis().SetRangeUser(ymin, ymax)    
     hlep.GetYaxis().SetTickSize(0.01)
@@ -1708,9 +1712,9 @@ def drawMuElComparison(hlep, hmu, hel,
     #leg.SetFillStyle(0)
     #leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
-    leg.AddEntry(hlep,"combination","LFPE")
-    leg.AddEntry(hmu,"muon","LPE")
-    leg.AddEntry(hel,"electron","LPE")
+    leg.AddEntry(hlep,"Combination","LFPE")
+    leg.AddEntry(hmu,"Muon","LPE")
+    leg.AddEntry(hel,"Electron","LPE")
     if len(moreText):
         leg.AddEntry(None,realtext,"")
     #leg.AddEntry(hleperr,"Uncertainty","LF")
@@ -1798,10 +1802,10 @@ def drawMuElComparison(hlep, hmu, hel,
         latCMS = ROOT.TLatex()
         latCMS.SetNDC();
         latCMS.SetTextFont(42)
-        latCMS.SetTextSize(0.045)
+        latCMS.SetTextSize(0.057)
         latCMS.DrawLatex(leftMargin, 0.95, '#bf{CMS}' + (' #it{Preliminary}' if not skipPreliminary else ''))
-        if lumi != None: latCMS.DrawLatex(0.85+(0.04-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-        else:            latCMS.DrawLatex(0.90+(0.04-rightMargin), 0.95, '(13 TeV)' % lumi)
+        if lumi != None: latCMS.DrawLatex(0.85+(0.02-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+        else:            latCMS.DrawLatex(0.90+(0.02-rightMargin), 0.95, '(13 TeV)' % lumi)
 
     if lowerPanelHeight:
         pad2.Draw()
@@ -1815,13 +1819,14 @@ def drawMuElComparison(hlep, hmu, hel,
         frame.GetYaxis().SetNdivisions(5)
         frame.GetYaxis().SetTitle(yRatioAxisName)
         frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
-        frame.GetYaxis().SetTitleSize(0.05)
-        frame.GetYaxis().SetLabelSize(0.04)
+        frame.GetYaxis().SetTitleSize(0.057 if isBigUnrolledPlot else 0.05)
+        frame.GetYaxis().SetLabelSize(0.048 if isBigUnrolledPlot else 0.045)
         frame.GetYaxis().CenterTitle()
         frame.GetXaxis().SetTitle(xAxisName)
         if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
-        frame.GetXaxis().SetTitleOffset(1.2)
-        frame.GetXaxis().SetTitleSize(0.05)
+        frame.GetXaxis().SetLabelSize(0.058 if isBigUnrolledPlot else 0.04)
+        frame.GetXaxis().SetTitleOffset(1.18 if isBigUnrolledPlot else 1.2)
+        frame.GetXaxis().SetTitleSize(0.058 if isBigUnrolledPlot else 0.05)
 
         #ratio = copy.deepcopy(hlep.Clone("ratio"))
         #den_noerr = copy.deepcopy(h2.Clone("den_noerr"))
@@ -1900,7 +1905,7 @@ def drawMuElComparison(hlep, hmu, hel,
         rootfilename = outdir + canvasName + ".root"
         rfHep = ROOT.TFile.Open(rootfilename,"recreate")
         if not rfHep:
-            print "Error in drawXsecAndTheoryband(): could not open root file %s" % rootfilename
+            print "Error in drawMuElComparison(): could not open root file %s" % rootfilename
             quit()
         rfHep.cd()
         hlep.Write("combination")
@@ -2379,6 +2384,12 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         print "ABORT"
         print "="*30
         quit()
+
+    # might pass as an option, but for now it works fine
+    isBigUnrolledPlot = True
+    if leftMargin > 0.1:
+        isBigUnrolledPlot = False
+
     
     # moreText is used to pass some text to write somewhere (TPaveText is used)
     # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
@@ -2427,13 +2438,13 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
     colorBandTot = {"line" : ROOT.kPink-6,
                     "fill" : ROOT.kPink-6} # try kRed+1 with 50% transparent #  + 6 # try -3, -9, +1, -4, -2, +6
     centralLineColor = colorBandPart["line"]
-    linewidth = 2 if leftMargin > 0.1 else 1
+    linewidth = 1 if isBigUnrolledPlot else 2
     fcalphaPart = 0.6 # 0.5
     fcalphaTot = 0.66 # 0.9
     fsPart = 1001
     fsTot = 1001
 
-    yAxisTitleOffset = 1.45 if leftMargin > 0.1 else 0.63
+    yAxisTitleOffset = 0.62 if isBigUnrolledPlot else 1.45
 
     addStringToEnd(outdir,"/",notAddIfEndswithMatch=True)
     createPlotDirAndCopyPhp(outdir)
@@ -2458,6 +2469,8 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         if lowerPanelHeight: 
             canvas.SetBottomMargin(lowerPanelHeight)
             pad2 = ROOT.TPad("pad2","pad2",0,0.,1,0.9)
+            if isBigUnrolledPlot:
+                pad2.SetBottomMargin(0.15)
             pad2.SetTopMargin(1-lowerPanelHeight)
             pad2.SetRightMargin(rightMargin)
             pad2.SetLeftMargin(leftMargin)
@@ -2526,7 +2539,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
 
 
         frame = h1_true.Clone("frame")
-        frame.GetXaxis().SetLabelSize(0.04 if leftMargin > 0.1 else 0.05)
+        frame.GetXaxis().SetLabelSize(0.058 if isBigUnrolledPlot else 0.04)
         frame.SetStats(0)
 
         h1_true.SetLineColor(ROOT.kBlack)
@@ -2539,7 +2552,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         if ymin == ymax == 0.0:
             ymin,ymax = getMinMaxHisto(h1_true,excludeEmpty=True,sumError=True)            
             ymin *= 0.9
-            ymax *= (1.1 if leftMargin > 0.1 else 2.0)
+            ymax *= (2.0 if isBigUnrolledPlot else 1.1)
             if ymin < 0: ymin = 0
             #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
 
@@ -2554,13 +2567,12 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         else:
             h1_true.GetXaxis().SetTitle(xAxisName)
             h1_true.GetXaxis().SetTitleOffset(1.2)
-            h1_true.GetXaxis().SetTitleSize(0.05)
-            h1_true.GetXaxis().SetLabelSize(0.04)
-            h1_true.GetXaxis().SetLabelSize(0.05)
+            h1_true.GetXaxis().SetTitleSize(0.055 if isBigUnrolledPlot else 0.05) #0.05
+            h1_true.GetXaxis().SetLabelSize(0.055)
         h1_true.GetYaxis().SetTitle(yAxisName)
         h1_true.GetYaxis().SetTitleOffset(yAxisTitleOffset)
-        h1_true.GetYaxis().SetTitleSize(0.05)
-        h1_true.GetYaxis().SetLabelSize(0.04)
+        h1_true.GetYaxis().SetTitleSize(0.055 if isBigUnrolledPlot else 0.05)     #0.05
+        h1_true.GetYaxis().SetLabelSize(0.042 if isBigUnrolledPlot else 0.04)
         h1_true.GetYaxis().SetDecimals()
         h1_true.GetYaxis().SetRangeUser(ymin, ymax)    
         h1_true.GetYaxis().SetTickSize(0.01)
@@ -2610,7 +2622,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             #if histMCpartialUnc_true != None: nColumnsLeg = 3
         legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
         lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
-        if leftMargin > 0.1:
+        if not isBigUnrolledPlot:
             if histMCpartialUnc_true != None:
                 ly2 = ly2 + 0.5 * (ly2 - ly1) # add one more row (for unrolled everything is on the same line
         else:
@@ -2620,15 +2632,16 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
                 nColumnsLeg += 1
 
         leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
-        #leg.SetFillColor(0)
-        #leg.SetFillStyle(0)
-        #leg.SetBorderSize(0)
+        if not isBigUnrolledPlot:
+            leg.SetFillColor(0)
+            leg.SetFillStyle(0)
+            leg.SetBorderSize(0)
         leg.SetNColumns(nColumnsLeg)
         if len(legendEntries):
             leg.AddEntry(h1_true,str(legendEntries[0]),"LPE")
             leg.AddEntry(h2_true,str(legendEntries[1]),"LF")        
         else:
-            leg.AddEntry(h1_true,"measured","LPE")
+            leg.AddEntry(h1_true,"Measured","LPE")
             leg.AddEntry(h2_true,"MadGraph5_aMC@NLO","LF")
         if histMCpartialUnc_true != None:
             leg.AddEntry(h3,histMCpartialUncLegEntry,"LF")
@@ -2688,7 +2701,7 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
         # redraw legend, or vertical lines appear on top of it
         leg.Draw("same")
 
-        if len(moreText) and leftMargin > 0.1:
+        if len(moreText) and not isBigUnrolledPlot:
             realtext = moreText.split("::")[0]
             x1,y1,x2,y2 = 0.7,0.8,0.9,0.9
             if "::" in moreText:
@@ -2725,17 +2738,17 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
       # }
 
         setTDRStyle()
-        if leftMargin > 0.1:
+        if not isBigUnrolledPlot:
             if lumi != None: CMS_lumi(canvas,lumi,True,skipPreliminary, offsetLumi=0.02)
             else:            CMS_lumi(canvas,"",True,skipPreliminary)
         else:
             latCMS = ROOT.TLatex()
             latCMS.SetNDC();
             latCMS.SetTextFont(42)
-            latCMS.SetTextSize(0.045)
+            latCMS.SetTextSize(0.057)
             latCMS.DrawLatex(leftMargin, 0.95, '#bf{CMS}' + (' #it{Preliminary}' if not skipPreliminary else ''))
-            if lumi != None: latCMS.DrawLatex(0.85+(0.04-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-            else:            latCMS.DrawLatex(0.90+(0.04-rightMargin), 0.95, '(13 TeV)' % lumi)
+            if lumi != None: latCMS.DrawLatex(0.85+(0.02-rightMargin), 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+            else:            latCMS.DrawLatex(0.90+(0.02-rightMargin), 0.95, '(13 TeV)' % lumi)
 
         if lowerPanelHeight:
             pad2.Draw()
@@ -2748,14 +2761,14 @@ def drawXsecAndTheoryband(h1, h2,  # h1 is data, h2 is total uncertainty band
             frame.GetYaxis().SetNdivisions(5)
             frame.GetYaxis().SetTitle(yRatioAxisName)
             frame.GetYaxis().SetTitleOffset(yAxisTitleOffset)
-            frame.GetYaxis().SetTitleSize(0.05)
-            frame.GetYaxis().SetLabelSize(0.04)
+            frame.GetYaxis().SetTitleSize(0.055 if isBigUnrolledPlot else 0.05)
+            frame.GetYaxis().SetLabelSize(0.048 if isBigUnrolledPlot else 0.04)
             frame.GetYaxis().SetDecimals()
             frame.GetYaxis().CenterTitle()
             frame.GetXaxis().SetTitle(xAxisName)
             if setXAxisRangeFromUser: frame.GetXaxis().SetRangeUser(xmin,xmax)
-            frame.GetXaxis().SetTitleOffset(1.2)
-            frame.GetXaxis().SetTitleSize(0.05)
+            frame.GetXaxis().SetTitleOffset(1.16 if isBigUnrolledPlot else 1.2)
+            frame.GetXaxis().SetTitleSize(0.061 if isBigUnrolledPlot else 0.05)
 
             #ratio = copy.deepcopy(h1.Clone("ratio"))
             #den_noerr = copy.deepcopy(h2.Clone("den_noerr"))

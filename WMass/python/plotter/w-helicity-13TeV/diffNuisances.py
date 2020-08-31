@@ -21,7 +21,10 @@ from optparse import OptionParser
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from make_diff_xsec_cards import get_ipt_from_process_name
 from make_diff_xsec_cards import get_ieta_from_process_name
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
 from subMatrix import niceName
+from subMatrix import niceNameHEPDATA
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -50,6 +53,10 @@ if __name__ == "__main__":
     parser.add_option('-N','--show-N' , dest='showN',    default=0, type=int, help='To be used with -R: it shows only the N nuisances ranked. If not positive, no limit is used')    
     parser.add_option(     '--lower-limit-pull' , dest='lowerLimitPull', default=-1.0, type='float', help='To be used with -R. Take only nuisances with pull above this value (in absolute value). If negative, use no limit')    
     parser.add_option(     '--upper-limit-sigma' , dest='upperLimitSigma', default=-1.0, type='float', help='To be used with -R. Take only nuisances with postfit sigma below this value . If negative, use no limit')    
+    parser.add_option(     '--use-hepdata-labels', dest='useHepdataLabels',    default=False, action='store_true', help='Write axis labels using latex for hepdata, with some name polishing')
+    parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu|lep), to force lepton flavor when writing some systematics in HEPDATA with --use-hepdata-labels')
+    parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec. Only needed with --use-hepdata-labels')
+    parser.add_option(     '--ywbinfile',   dest='ywbinfile',   default='',  type='string', help='Yw binning used for labels with helicity. Only needed with --use-hepdata-labels')
     (options, args) = parser.parse_args()
     infile = options.infile
     infile_exp = options.expInfile
@@ -64,6 +71,33 @@ if __name__ == "__main__":
         print "Error: option -R requires pull|sigma as argument. Abort"
         quit()
     
+    ## retrieve binning
+    ## needed to prepare hepdata entries
+    ## not needed if not using option --use-hepdata-labels
+    if options.etaptbinfile and options.ywbinfile:
+        print "Error: options --etaptbinfile and --ywbinfile are incompatible. Choose only one based on the fit"
+        quit()
+
+    if options.etaptbinfile:
+        print "HERE for 2D xsec"
+        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
+        genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    elif options.ywbinfile:
+        print "HERE for helicity"
+        ybinfile = open(options.ywbinfile, 'r')
+        genBins = eval(ybinfile.read())
+        ybinfile.close()
+    else:
+        genBins = ""
+    
+    print "="*30
+    print "Gen binning:"
+    print "-"*30
+    if options.etaptbinfile:
+        genBins.printBinAll() 
+    else:
+        print genBins
+    print "="*30
 
     #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
     pois_regexps = list(options.pois.split(','))
@@ -185,7 +219,8 @@ if __name__ == "__main__":
             nuis_p_i+=1
             hist_fit_s.SetBinContent(nuis_p_i,val_f)
             hist_fit_s.SetBinError(nuis_p_i,err_f)
-            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,niceName(name.replace('CMS_','')))
+            thisname = niceNameHEPDATA(name,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True,isHelicity=True if options.ywbinfile else False) if options.useHepdataLabels else niceName(name)
+            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i, thisname)
             hist_fit_1d  .Fill(max(pmin,min(pmax-0.01,val_f)))
             hist_fit_1d_e.Fill(max(pmin,min(pmax-0.01,err_f-1.)))
 
@@ -344,7 +379,8 @@ if __name__ == "__main__":
                 if options.showN > 0 and index_name > options.showN:
                     break 
                 else:
-                    binNumber = hist_fit_s.GetXaxis().FindFixBin(niceName(n.replace('CMS_','')))
+                    thisname = niceNameHEPDATA(n,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True,isHelicity=True if options.ywbinfile else False) if options.useHepdataLabels else niceName(n)
+                    binNumber = hist_fit_s.GetXaxis().FindFixBin(thisname)
                     if binNumber == -1:
                         print "Error when filling hist_fit_s_ranked. Could not find label %s from hist_fit_s" % n
                         quit()

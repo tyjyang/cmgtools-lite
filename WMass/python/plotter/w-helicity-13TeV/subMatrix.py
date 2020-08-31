@@ -73,7 +73,7 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
         # inclusive xsec poi
         nn  = '#mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
         if forceLep: nn = '#mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
-        return "W({l}#nu) fiducial".format(l=nn)
+        return "W({l}#nu) (asymmetry) fiducial".format(l=nn)
 
     if re.match("Wratio.*ratiometaratio",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
         # inclusive xsec poi
@@ -221,6 +221,333 @@ def niceName(name,genBins="",forceLep="",drawRangeInLabel=False):
 
     else:  
         return name
+
+def niceNameHEPDATA(name,genBins="",forceLep="",drawRangeInLabel=False, isHelicity=False):
+
+    # try a simple but understandable form
+    # use plain latex and not tlatex for math symbols: i.e. $\mu$ instead of #mu
+
+    if re.match("W.*sumxsec",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        nn  = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        if forceLep: nn = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        chs = "+" if "plus" in name else "-" if "minus" in name else ""
+        if chs == "":
+            return "$W\\rightarrow {l}\\nu$ fiducial".format(l=nn)
+        else:
+            return "$W^{{{ch}}}\\rightarrow {l}\\nu$ fiducial".format(ch=chs,l=nn)
+
+    if re.match("Wasym.*chargemetaasym",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        nn  = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        if forceLep: nn = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        return "$W\\rightarrow {l}\\nu$ (asymmetry) fiducial".format(l=nn)
+
+    if re.match("Wratio.*ratiometaratio",name) and all(x not in name for x in ["_Ybin", "_ieta_", "_ipt_"]):
+        # inclusive xsec poi
+        #nn  = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+        #if forceLep: nn = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+        return "$W^{+}$/$W^{-}$ fiducial"
+
+
+    if '_Ybin' in name:
+        genYwBins = genBins
+        if drawRangeInLabel:
+            charge = "plus" if "plus" in name else "minus" if "minus" in name else ""
+            wch = "W^{+}" if "plus" in name else "W^{-}" if "minus" in name else "W"
+            lep = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            pol = "left" if 'left' in name else "right" if "right" in name else "long" if "long" in name else "unpolarized"
+            pol_sub = "L" if 'left' in name else "R" if "right" in name else "0" if "long" in name else ""
+            ywl,ywh = 0.0,0.0
+            if genYwBins:
+                iyw = int((name.split("_Ybin_")[1]).split("_")[0])
+                # get key to read binning (same for all charges and polarizations, but let's stay general
+                # in case charge was not set, take key for "plus" charge and cross fingers
+                # similarly, use left for binning when pol is unpolarized
+                charge_pol = "{ch}_{pol}".format(ch=charge if charge != "" else "plus",pol=pol if pol!="unpolarized" else "left")  
+                ywl = genYwBins[charge_pol][iyw]
+                ywh = genYwBins[charge_pol][iyw+1]
+                #nn = "{wch}#rightarrow{lep}#nu {pol}: |y_{{W}}| #in [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,lep=lep,pol=pol,ywl=ywl,ywh=ywh)
+            if pol_sub == "":
+                nn = "${wch}$, $|y_{{W}}| \in$ [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,ywl=ywl,ywh=ywh)
+            else:
+                nn = "${wch}_{{{pol}}}$, $|y_{{W}}| \in$ [{ywl:1.2f},{ywh:1.2f}]".format(wch=wch,pol=pol_sub,ywl=ywl,ywh=ywh)
+            
+            if name.startswith("norm_"):  # normalization systematics for bins not fitted as pois
+                nn = "norm.syst. " + nn
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+            if 'plus' in name: nn += 'W+ '
+            elif 'minus' in name: nn += 'W- '
+            else: nn += 'W '
+            if 'left' in name: nn += 'left '
+            elif 'right' in name: nn += 'right '
+            elif 'long' in name: nn += 'long '
+            else: nn += 'unpolarized '
+            idx = -2 if (name.endswith('mu') or any([x in name for x in ['masked','sumxsec','charge','a0','a4']])) else -1
+            nn += name.split('_')[idx]
+            if 'eff_unc' in name:
+                nn = '#epsilon_{unc}^{'+nn+'}'
+        return nn
+
+    elif '_ieta_' in name and '_ipt_' in name:
+        genEtaPtBins = genBins
+        ieta,ipt = get_ieta_ipt_from_process_name(name)
+        if drawRangeInLabel:
+            etal,etah = 0.0,0.0
+            ptl,pth = 0.0,0.0
+            if genEtaPtBins:
+                etal = genEtaPtBins.etaBins[ieta]
+                etah = genEtaPtBins.etaBins[ieta+1]
+                ptl = genEtaPtBins.ptBins[ipt]
+                pth = genEtaPtBins.ptBins[ipt+1]
+            wch = 'W^{+}' if 'plus' in name else 'W^{-}' if 'minus' in name else 'W'
+            lep = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            #nn = "{wch}#rightarrow{lep}#nu: |#eta|-p_{{T}} #in [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,etal=etal,etah=etah,ptl=ptl,pth=pth)
+            nn = "${wch}$, $|\eta|$-$p_{{T}} \in$ [{etal:1.1f},{etah:1.1f}]-[{ptl:3g},{pth:3g}]".format(wch=wch,etal=etal,etah=etah,ptl=ptl,pth=pth)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            nn += "i#eta, ip_{{T}} = {neta}, {npt} ".format(neta=ieta,npt=ipt)
+        return nn
+
+    elif '_ieta_' in name:
+        genEtaPtBins = genBins
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+        # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        ieta = int((name.split("_ieta_")[1]).split("_")[0])
+        # nn += "i#eta = {neta}".format(neta=ieta)
+        nn = ""
+        if drawRangeInLabel:
+            etal,etah = 0.0,0.0
+            if genEtaPtBins:
+                etal = genEtaPtBins.etaBins[ieta]
+                etah = genEtaPtBins.etaBins[ieta+1]
+            wch = 'W^{+}' if 'plus' in name else 'W^{-}' if 'minus' in name else 'W'
+            lep = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            nn = "${wch}$, $|\eta^{{{lep}}}| \in$ [{etal:1.1f},{etah:1.1f}]".format(wch=wch,lep=lep,etal=etal,etah=etah)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '            
+            nn += "i#eta = {neta}".format(neta=ieta)
+            
+        return nn
+
+    elif '_ipt_' in name:
+        genEtaPtBins = genBins
+        # nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+        # nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+        ipt = int((name.split("_ipt_")[1]).split("_")[0])
+        # nn += "ip_{{T}} = {npt}".format(npt=ipt)
+        nn = ""
+        if drawRangeInLabel:
+            ptl,pth = 0.0,0.0
+            if genEtaPtBins:
+                ptl = genEtaPtBins.ptBins[ipt]
+                pth = genEtaPtBins.ptBins[ipt+1]
+            wch = 'W^{+}' if 'plus' in name else 'W^{-}' if 'minus' in name else 'W'
+            lep = '\mu' if '_mu_' in name else 'el' if '_el_' in name else 'l'
+            if forceLep: lep = '\mu' if forceLep == "mu" else 'e' if forceLep == "el" else 'l'
+            nn = "${wch}$, $p_{{T}}^{{{lep}}} \in$ [{ptl:3g},{pth:3g}]".format(wch=wch,lep=lep,ptl=ptl,pth=pth)
+        else:
+            nn  = '#mu: ' if '_mu_' in name else 'el: ' if '_el_' in name else ''
+            nn += 'W+ ' if 'plus' in name else 'W- ' if 'minus' in name else 'W '
+            nn += "ip_{{T}} = {npt}".format(npt=ipt)
+        return nn
+
+    elif re.match( "Fakes(Eta|EtaCharge|PtNorm|PtSlope)Uncorrelated.*",name):
+
+        num = re.findall(r'\d+', name) # get number
+        pfx = name.split(num[0])[1]    # split on number and read what's on the right
+        leptonCharge = ""
+        if len(pfx):
+            if "plus" in pfx or "minus" in pfx:
+                leptonCharge = "{lep}^{chs}".format(lep="\mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-")
+            else:
+                leptonCharge = "{lep}".format(lep="\mu" if "mu" in pfx else "e")
+        tmpvar = ""
+        FakesBins = []
+        pt_or_eta = ""
+        # eta binning for fakes systematics (PtNorm uses another one chosen below)
+        if isHelicity:
+            if "mu" in pfx:
+                FakesBins = [-2.4] + [round(-2.0+0.5*i,1) for i in range(9)] + [2.4] 
+            else:
+                FakesBins = [-2.5] + [round(-2.4+0.2*i,1) for i in range(25)] + [2.5]
+        else:
+            FakesBins = [-2.4,-2.1,-1.5,-1.0,-0.5,0.0,0.5,1.0,1.5,2.1,2.4]
+
+        if "FakesEtaCharge" in name: 
+            tmpvar = "$\eta$-norm-chargeUncorr"
+            pt_or_eta = "\eta"
+        elif "FakesEta" in name: 
+            tmpvar = "$\eta$-norm"
+            pt_or_eta = "\eta"
+        elif "FakesPtSlope" in name: 
+            tmpvar = "$p_{T}$-shape"    
+            pt_or_eta = "\eta"
+        elif "FakesPtNorm" in name: 
+            tmpvar = "$p_{T}$-norm"
+            pt_or_eta = "p_{T}"
+            # for pt norm has to bin on pt
+            if isHelicity:
+                FakesBins = [26, 29, 32, 35, 38, 41, 45] if "mu" in pfx else [30, 35, 40, 45]
+            else:
+                FakesBins = [26, 33, 36, 40.5, 45, 50, 56] if "mu" in pfx else [30, 36, 40.5, 45, 50, 56]
+            
+        #print "{n} FakeBins[{m}]".format(n=name,m=num)
+        n = int(num[0])
+        vlow = FakesBins[n-1]
+        vhigh = FakesBins[n]
+        return "QCD bkg {var}, ${l}<{v}<{h}$, ${lepCh}$".format(var=tmpvar, l=vlow, v=pt_or_eta, h=vhigh, lepCh=leptonCharge)
+
+    elif re.match(".*EffStat\d+.*",name):
+
+        ## utility arrays for the effstat binning
+        _etaBinsEffStatMu = [round(-2.4 + 0.1* x,1) for x in range(0,49)]
+        _etaBinsEffStatEl_diffXsec = [round(-2.5 + 0.1* x,1) for x in range(0,51)] # then first and last bins were not used, so the index in the nuis name starts from 2 and ends at 49
+        _etaBinsEffStatEl_helicity = [-2.5,-2.4,-2.3,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.6,-1.566,-1.4442,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.4442,1.566,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5] # here the index in nuis name goes from 1 to 52, because the nuisances were defined based on the reco-eta binning rather than on the actual systs, so the gap between EB and EE induces two more bins than it should have beeen normally
+
+        num = re.findall(r'\d+', name) # get number (there will be two of them, need the second)
+        pfx = name.split("EffStat"+str(num[1]))[1]    # split on second number and read what's on the right
+        leptonCharge = ""
+        if len(pfx):
+            leptonCharge = "{lep}^{chs}".format(lep="\mu" if "mu" in pfx else "e", chs = "+" if "plus" in pfx else "-" if "minus" in pfx else "")
+        n2 = int(num[1])
+        etaBinsEffStat = _etaBinsEffStatMu if "mu" in pfx else _etaBinsEffStatEl_helicity if isHelicity else _etaBinsEffStatEl_diffXsec
+        etalow  = str(etaBinsEffStat[n2-1])
+        etahigh = str(etaBinsEffStat[n2])
+        return "Eff.stat. param.{n1}, ${l}<\eta<{h}$, ${lepCh}$".format(n1=num[0],l=etalow,h=etahigh,lepCh=leptonCharge)
+
+    elif "L1PrefireEleEffSyst" in name:
+        num = re.findall(r'\d+', name) # get number
+        #print "{n} L1PrefireEleEffSys[{m}]".format(n=name,m=num)
+        n = int(num[1]) # use second number, the first is '1' in 'L1Prefire...'
+        etabinsPrefire = []
+        if isHelicity:
+            etabinsPrefire = [-2.5,  -2.35, -2.2, -2.0, -1.5, 1.5, 2.0, 2.2, 2.35, 2.5]
+            # n will go from 0 to 7 (skipping bin in barrel, so only 8 bins)
+            if n > 3: n = n + 1 # have to skip bin in [-1.5, 1.5]
+        else:
+            etabinsPrefire = [-2.4, -2.1, -1.9, -1.5, 1.5, 1.9, 2.1, 2.4]
+            # n will go from 0 to 5 (skipping bin in barrel, so only 6 bins)
+            if n > 2: n = n + 1 # have to skip bin in [-1.5, 1.5]
+        low = etabinsPrefire[n]
+        high = etabinsPrefire[n+1]
+        return "L1-trigger electron eff.syst., ${l}<\eta<{h}$".format(l=low,h=high)
+
+    elif "OutOfAccPrefireSyst" in name:
+        sign = "<" if "0" in name else ">"
+        return "L1-trigger electron eff.syst. for Drell-Yan, $\eta{sign}0$".format(sign=sign)
+
+    elif re.match( "smooth(el|mu)scale.*",name):
+        num = re.findall(r'\d+', name) # get number 
+        n = 0
+        n2 = 0
+        n3 = 0
+        lep = "\mu" if "smoothmu" in name else "e"
+        if "scaleStat" in name: 
+            n = int(num[0])
+            return "$p_{{T}}^{{{lep}}}$ scale stat.{n}".format(lep=lep,n=n)
+        else:
+            n = int(num[0])
+            n2 = int(num[1])
+            if isHelicity:
+                etabinsPtSyst = [-2.4, -2.1, 0.0, 2.1, 2.4] if "smoothmu" in name else [-2.5, -2.1, -1.5, -1.0, 0.0, 1.0, 1.5, 2.1, 2.5]
+                low = str(etabinsPtSyst[n2])
+                high = str(etabinsPtSyst[n2+1])
+                ptText = ""
+                if lep == "e": # electron syst is divided in two pt bins at 42 GeV
+                    n2 = int(num[2])
+                    ptText = ", $p_{{T}}^{{{lep}}}{sign}42$".format(lep=lep,sign="<" if n2==0 else ">")
+                return "$p_{{T}}^{{{lep}}}$ scale syst.{n}, ${l}<\eta<{h}${ch}{t}".format(lep=lep,n=n,l=low,h=high,ch=", charge +" if "plus" in name else ", charge -" if "minus" in name else "",t=ptText)
+            else:
+                etabinsPtSyst = [0.0, 2.1, 2.4] if "smoothmu" in name else [0.0, 1.0, 1.5, 2.1, 2.4]
+                # match the 'P' to select positive eta side
+                if re.match(".*etaside\d+P(plus|minus)*",name): 
+                    low = str(etabinsPtSyst[n2])
+                    high = str(etabinsPtSyst[n2+1])
+                else:
+                    low = "-"+str(etabinsPtSyst[n2+1])
+                    high = "-"+str(etabinsPtSyst[n2])
+                return "$p_{{T}}^{{{lep}}}$ scale syst.{n}, ${l}<\eta<{h}${ch}".format(lep=lep,n=n,l=low,h=high,ch=", charge +" if "plus" in name else ", charge -" if "minus" in name else "")
+
+    elif "TnPEffSyst" in name or "TestEffSyst" in name:
+        num = re.findall(r'\d+', name) # get number
+        #print "{n} EffSyst[{m}]".format(n=name,m=num)
+        n = int(num[0])
+        if isHelicity:
+            etabinsEffSyst = [0,1.0,1.5,2.4] if "mu" in name else [0,1.0,1.5,2.0,2.5]
+        else:
+            etabinsEffSyst = [0,1.0,1.5,2.4] if "mu" in name else [0,1.0,1.5,1.9,2.1,2.4]
+        low = etabinsEffSyst[n]
+        high = etabinsEffSyst[n+1]
+        return "eff.syst., ${l}<|\eta|<{h}$, ${lep}$".format(lep="\mu" if "mu" in name else "e",l=low,h=high)
+
+    elif "fsr" in name:
+        return "{lep} QED final state radiation".format(lep="muon" if "Mu" in name else "electron")
+
+    elif name == "mW":
+        return "$m_W$"
+
+    elif any(x in name for x in ["muR", "muF", "muRmuF"]):
+        scale = "$\mu_{R}\mu_{F}$" if "muRmuF" in name else "$\mu_{R}$" if "muR" in name else "$\mu_{F}$"
+        charge = "+" if "plus" in name else "-" if "minus" in name else ""
+        pol = "L" if "left" in name else "R" if "right" in name else "0" if "long" in name else ""
+        if any(x == name for x in ["muR", "muF", "muRmuF"]):
+            return "{s} (Drell-Yan bkg)".format(s=scale)
+        else:
+            num = re.findall(r'\d+', name) # get number
+            n = int(num[0]) # goes from 1 to 10
+            ptWbins = [0.0, 2.9, 4.7, 6.7, 9.0, 11.8, 15.0, 20.1, 27.2, 40.2, 13000.0]
+            low = ptWbins[n-1]
+            high = ptWbins[n]
+            if isHelicity:
+                if pol != "":
+                    wch = "$W^{{{c}}}_{{{p}}}$".format(c=charge,p=pol)
+                    txt = "(W signal)"
+                else:
+                    wch = "$W^{{{c}}}$".format(c=charge)
+                    txt = "($W\\rightarrow\\tau\\nu$ bkg)"
+            else:
+                wch = "$W^{{{c}}}$".format(c=charge)
+                txt = "(W signal and $W\\rightarrow\\tau\\nu$ bkg)"
+            if n == 10:
+                return "{s} {w}, $p_{{T}}^{{W}}>{l}$ {t}".format(w=wch,s=scale,l=low,t=txt)
+            else:
+                return "{s} {w}, ${l}<p_{{T}}^{{W}}<{h}$ {t}".format(w=wch,s=scale,l=low,h=high,t=txt)
+
+    elif "alpha" in name:
+        return "$\\alpha_{S}$"
+
+    elif "pdf" in name:
+        num = re.findall(r'\d+', name) # get number                                               
+        n = int(num[0]) # goes from 1 to 10            return "$\alpha_{S}$"
+        return "Hessian {i}".format(i=n)
+
+    elif name.startswith("CMS_"):
+        if "lumi" in name:
+            return "luminosity"
+        elif "Tau" in name:
+            return "$W\\rightarrow\\tau\\nu$ bkg norm."
+        elif "VV" in name:
+            return "Diboson bkg norm."
+        elif "Top" in name:
+            return "t quark bkg norm."
+        elif "flips" in name:
+            return "Charge flips bkg norm."
+        elif "bkg_lepeff" in name:
+            return "eff.syst. bkg, ${l}$".format(l="e" if "We" in name else "\mu")
+        elif "lepVeto" in name:
+            return "second lepton veto, ${l}$".format(l="e" if "We" in name else "\mu")
+        else:
+            return name
+
+    else:  
+        return name
         
 
 if __name__ == "__main__":
@@ -248,17 +575,29 @@ if __name__ == "__main__":
     parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec')
     parser.add_option(     '--ywbinfile',   dest='ywbinfile',   default='',  type='string', help='Yw binning used for labels with helicity')
     parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu|lep), if not given it is inferred from the inputs, but might be wrong depending on naming conventions')
-    parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs')
+    parser.add_option(     '--show-all-nuisances', dest='showAllNuisances',    default=False, action='store_true', help='Show all nuisances in the matrix (e.g. to prepare HEPdata entries): this implies that option --params is only used to filter POIs (for fixed POI fit with no real POI it is suggested using --params "NOTEXISTING", otherwise leaving --params empty makes all nuisances be treated as POI for the sake of building the matrix)')
     parser.add_option('--which-matrix',  dest='whichMatrix',     default='both', type='string', help='Which matrix: covariance|correlation|both')
     parser.add_option(     '--divide-covariance-by-bin-area', dest='divideCovarianceBybinArea',    default=False, action='store_true', help='Divide covariance by bin area (2D xsec) or bin width (1D xsec)')
     parser.add_option(     '--skipLatexOnTop', dest='skipLatexOnTop',    default=False, action='store_true', help='Do not write "CMS blabla" on top (mainly useful when a title is needed)')
+    parser.add_option(     '--use-hepdata-labels', dest='useHepdataLabels',    default=False, action='store_true', help='Write axis labels using latex for hepdata, with some name polishing')
+    parser.add_option(     '--old-paper-style', dest='oldPaperStyle',    default=False, action='store_true', help='This option is meant to reproduce the plots in the paper, where the style was slightly different than what is implemented now (e.g. for axis labels)')
     (options, args) = parser.parse_args()
 
-    if options.divideCovarianceBybinArea and not options.whichMatrix == "covariance":
-        print "Warning: you are not using a covariance matrix, but correlation one"
-        print "Then, option --divide-covariance-by-bin-area will be ignored"
-        options.divideCovarianceBybinArea = False
+    if options.divideCovarianceBybinArea:
+        if not options.whichMatrix == "covariance":
+            print "Warning: you are not using a covariance matrix, but correlation one"
+            print "Then, option --divide-covariance-by-bin-area will be ignored"
+            options.divideCovarianceBybinArea = False
+        if not options.etaptbinfile and not options.ywbinfile:
+            print "Error: option --divide-covariance-by-bin-area require a file with binning."
+            print "Please specify one using either --etaptbinfile or --ywbinfile"
+            quit()
         
+    if options.oldPaperStyle and options.useHepdataLabels:
+        print "Error: options --old-paper-style and --use-hepdata-labels are not compatible."
+        print "Please select only one of them and try again"
+        quit()
+
     ROOT.TColor.CreateGradientColorTable(3,
                                       array ("d", [0.00, 0.50, 1.00]),
                                       ##array ("d", [1.00, 1.00, 0.00]),
@@ -447,7 +786,7 @@ if __name__ == "__main__":
 
     # to help sorting with helicity
     # if using more helicity and Y bins, sort by hel,Ybin
-    helSorted = { "left" : 1, "right" : 2, "long" : 3}
+    helSorted = { "left" : 1, "right" : 2, "long" : 3, "Ybin" : 4} # Ybin appears for unpolarized quantities
     chargeSorted = { "Wplus" : 1, "Wminus" : 2}
     lepSorted = { "mu" : 1, "el" : 2}
 
@@ -464,6 +803,7 @@ if __name__ == "__main__":
     if options.ywbinfile:
         params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else 0)
         params = sorted(params, key= lambda x: (1 if "left" in x else 2 if "right" in x else "3") if '_Ybin_' in x else 0)
+        params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-2])) if ('_Ybin_' in x and "norm_" not in x) else 0)
     else:
         params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else 0)
         params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else 0)
@@ -485,7 +825,7 @@ if __name__ == "__main__":
         params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'FakesPtSlopeUncorrelated' in x else 0)   
         # sort by charge if needed     
         # I think it is useful that different charges are separated in the matrix, it is easier to read it 
-        params = sorted(params, key = lambda x: 0 if "right" in x else -1 if "left" in x else -1)
+        #params = sorted(params, key = lambda x: 0 if "right" in x else -1 if "left" in x else -1)
 
     print "sorted params = ", params
 
@@ -548,7 +888,10 @@ if __name__ == "__main__":
     for i,x in enumerate(params):
         sys.stdout.write('Row {num}/{tot}   \r'.format(num=i,tot=nParams))
         sys.stdout.flush()
-        new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True)
+        if options.useHepdataLabels:
+            new_x = niceNameHEPDATA(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True,isHelicity=True if options.ywbinfile else False)
+        else:
+            new_x = niceName(x,genBins=genBins,forceLep=options.channel,drawRangeInLabel=False if options.oldPaperStyle else True)
         th2_sub.GetXaxis().SetBinLabel(i+1, new_x)
         th2_sub.GetYaxis().SetBinLabel(i+1, new_x)
         th2_cov.GetXaxis().SetBinLabel(i+1, new_x)
@@ -604,8 +947,9 @@ if __name__ == "__main__":
             lat.SetNDC(); lat.SetTextFont(42)
             if not options.skipLatexOnTop:
                 offsetLatex = c.GetLeftMargin()-0.15
+                rightTextOffset = 0.56 if options.oldPaperStyle else 0.58
                 lat.DrawLatex(0.15+offsetLatex, 0.95, '#bf{CMS}') #it{Preliminary}')
-                lat.DrawLatex(0.58+offsetLatex, 0.95, '35.9 fb^{-1} (13 TeV)')
+                lat.DrawLatex(rightTextOffset+offsetLatex, 0.95, '35.9 fb^{-1} (13 TeV)')
 
             if options.verticalLabelsX: tmp_mat.LabelsOption("v","X")
             if nbins >= 20: tmp_mat.LabelsOption("v","X")

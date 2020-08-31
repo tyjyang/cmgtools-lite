@@ -168,19 +168,19 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
         ## the four graphs exist now. now starting to draw them
         ## ===========================================================
         if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in polarizations)==len(polarizations):
-            leg = ROOT.TLegend(0.43, 0.78 if skipLong else 0.75, 0.93, 0.88)
+            leg = ROOT.TLegend(0.2, 0.78 if skipLong else 0.75, 0.93, 0.88)
         #if sum(hasattr(values[pol],'graph') and hasattr(values[pol],'graph_fit') for pol in ['left','right','long'])==3:
         #    leg = ROOT.TLegend(0.40, 0.80, 0.90, 0.90)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
+            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
             leg.AddEntry(values['left'] .graph     , 'W_{{L}} ({mc})'.format(mc=REFMC) , 'f')
             if doAltExp:
                 leg.AddEntry(values['left'] .altgraph     , 'W_{{L}} ({mc}*)'.format(mc=REFMC) , 'l')
-            leg.AddEntry(values['left'] .graph_fit , 'W_{L} (fit)', 'pl')
+            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.AddEntry(values['right'].graph     , 'W_{{R}} ({mc})'.format(mc=REFMC) , 'f')
             if doAltExp:
                 leg.AddEntry(values['right'].altgraph     , 'W_{{R}} ({mc}*)'.format(mc=REFMC) , 'l')
-            leg.AddEntry(values['right'].graph_fit , 'W_{R} (fit)', 'pl') 
             leg.SetNColumns(3 if doAltExp else 3)
             if not skipLong:
                 leg.AddEntry(values['long'] .graph     , 'W_{{0}} ({mc})'.format(mc=REFMC) , 'f')
@@ -205,7 +205,8 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             mg.GetXaxis().SetLabelSize(0)
             if charge=='asymmetry':
                 mg.GetYaxis().SetTitle('Charge asymmetry')
-                mg.GetYaxis().SetRangeUser(-0.1,0.4)
+                # -0.05,0.45 instead of -0.1,0.4 not to overlap with legend
+                mg.GetYaxis().SetRangeUser(-0.05,0.45) 
             else:
                 if options.normxsec: 
                     #mg.GetYaxis().SetTitle('#frac{d#sigma}{#sigma_{tot}^{fit}} / d|Y_{W}|')
@@ -280,7 +281,7 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
                     values[hel].mg.GetXaxis().SetLabelSize(0.04)
                     ## y axis fiddling
                     values[hel].mg.GetYaxis().SetTitleOffset(1.8)
-                    values[hel].mg.GetYaxis().SetTitleSize(0.04)
+                    values[hel].mg.GetYaxis().SetTitleSize(0.045)
                     values[hel].mg.GetYaxis().SetLabelSize(0.04)
                     values[hel].mg.GetYaxis().SetTitle(yaxtitle)
                     values[hel].mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])
@@ -293,9 +294,9 @@ def plotValues(values,charge,channel,options, polarizations=['left','right','lon
             lat.DrawLatex(0.62, 0.94, '35.9 fb^{-1} (13 TeV)')
             flavor = "#mu" if channel == "mu" else "e" if channel=='el' else 'l'
             if charge == 'asymmetry':
-                lat.DrawLatex(0.20, 0.80,  'W^{{{ch}}} #rightarrow {lep}^{{{ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+                lat.DrawLatex(0.2, 0.63,  'W^{{{ch}}} #rightarrow {lep}^{{{ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
             else:
-                lat.DrawLatex(0.20, 0.80,  'W^{{ {ch}}} #rightarrow {lep}^{{ {ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
+                lat.DrawLatex(0.2, 0.43,  'W^{{ {ch}}} #rightarrow {lep}^{{ {ch} }}{nu}'.format(ch=ch,lep=flavor,nu="#bar{#nu}" if charge=='minus' else "#nu"))
 
             lat.DrawLatex(0.88, 0.03, '|y_{W}|')
         for ext in ['png', 'pdf']: #, 'root']:
@@ -372,7 +373,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             leg = ROOT.TLegend(legx1, legy1, legx2, legy2)
             leg.SetFillStyle(0)
             leg.SetBorderSize(0)
-            leg.AddEntry(values.graph_fit , 'data', 'pl')
+            leg.AddEntry(values.graph_fit , 'Measured', 'pl')
             leg.AddEntry(values.graph     , REFMC, 'f')
             if doAltExp:
                 leg.AddEntry(values.graph     , REFMC+'*', 'l')
@@ -469,7 +470,7 @@ def plotUnpolarizedValues(values,charge,channel,options):
             values.mg.GetXaxis().SetLabelSize(0.04)
             ## y axis fiddling
             values.mg.GetYaxis().SetTitleOffset(1.8)
-            values.mg.GetYaxis().SetTitleSize(0.04)
+            values.mg.GetYaxis().SetTitleSize(0.045)
             values.mg.GetYaxis().SetLabelSize(0.04)
             values.mg.GetYaxis().SetTitle(yaxtitle)
             values.mg.GetYaxis().SetRangeUser(yaxrange[0],yaxrange[1])

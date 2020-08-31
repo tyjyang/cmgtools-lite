@@ -145,7 +145,7 @@ def addSmoothLeptonScaleSyst(infile, regexp, charge, isMu,
     recoBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])        # this create a class to manage the binnings
     binning = [recoBins.Neta, recoBins.etaBins, recoBins.Npt, recoBins.ptBins]
     etaPtBinningVecGen = getDiffXsecBinning(indir+'/binningPtEta.txt', "gen")  # this get two vectors with eta and pt binning
-    genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])        # this create a class to
+    genBins = templateBinning(etaPtBinningVecGen[0],etaPtBinningVecGen[1])        # this create a class to manage the binnings
     tmp_infile = ROOT.TFile(infile, 'read')
     fnameTag = "SmoothScaleSystRochester" if isMu else "SmoothScaleSystElectron"
     outfile = ROOT.TFile(outdir+'/{n}_{flav}_{ch}.root'.format(n=fnameTag,flav=flav,ch=charge), 'recreate')

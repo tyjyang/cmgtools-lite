@@ -164,10 +164,12 @@ if __name__ == '__main__':
                 print "NOW RUNNING WITH REVERSE UNROLLING OPTION: ",reverse
                 cmd  = 'python w-helicity-13TeV/postFitPlots.py --no2Dplot '
                 cmd += ' {inf} {cd} --outdir {od} --suffix {suf} {rev} '.format(inf=results[tmp_file], cd=results['cardsdir'], od=tmp_outdir, suf=tmp_file.replace('postfit',''), rev=reverse)
-                os.system(cmd)
+                print cmd
+                #os.system(cmd)
             for charge in ['plus','minus']:
                 cmdpull = 'python w-helicity-13TeV/monsterPull.py -i {od}/plots_{suf}.root -d unrolled_{ch} --suffix {suf}'.format(od=tmp_outdir,suf=tmp_file.replace('postfit',''),ch=charge)
-                os.system(cmdpull)
+                #print cmdpull
+                #os.system(cmdpull)
 
     ## plot impacts
     ## ================================
@@ -210,7 +212,7 @@ if __name__ == '__main__':
                     cmd = 'python w-helicity-13TeV/impactPlots.py {fr} -o {od} --nuisgroups {ng} --pois {pois} -y {cd}/binningYW.txt --target {tg} --suffix summary_{sfx} --longBkg '.format(fr=results[tmp_file], od=tmp_outdir, pois=POIsForSummary[target], cd=results['cardsdir'], tg=target, sfx=tmp_suffix, ng=target_nuisgroups)
                     if re.match('.*asym|A\d',target): cmd += ' --absolute '
                     print cmd
-                    os.system(cmd)
+                    #os.system(cmd)
 
     ## do this at the end, it takes the longest
     ## diff nuisances

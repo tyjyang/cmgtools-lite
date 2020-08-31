@@ -41,7 +41,7 @@ wplus_mtwtk    : mt_2(LepGood1_calPt,LepGood1_phi,met_trkPt,met_trkPhi) : 150,0.
 wplus_etal1gen : GenLepPreFSR_eta[0]                                : 100,-7.,7.; XTitle="#eta^{e} (gen\, W^{+})"
 wplus_ptl1gen  : GenLepPreFSR_pt[0]                                 : 70,0.,70.; XTitle="p_{T}^{e} (gen\, W^{+})"
 #wplus_wy       : prefsrw_y                                              : 48,-6.,6. ; XTitle="Y_{W} (W^{+})"
-wplus_wy       : prefsrw_y                                              : 240,-6.,6. ; XTitle="Y_{W} (W^{+})", , Legend='TC'
+wplus_wy       : prefsrw_y                                              : 240,-6.,6. ; XTitle="Y_{W}", , Legend='TC'
 #wplus_abswy    : abs(prefsrw_y)                                         : 24,0.,6. ; XTitle="Y_{W} (W^{+})"
 wplus_abswy    : abs(prefsrw_y)                                         : 120,0.,6. ; XTitle="Y_{W} (W^{+})"
 wplus_wpt      : prefsrw_pt                                             : 100,0.,100. ; XTitle="p_{T}^{W} (W^{+})"

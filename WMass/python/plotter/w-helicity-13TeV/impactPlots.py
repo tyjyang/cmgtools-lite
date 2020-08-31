@@ -15,19 +15,19 @@ utilities = utilities.util()
 
 
 def niceSystName(label):
-    if 'lepScale' in label: niceName = 'lepton p_{T} scale'
-    elif 'OtherBkg' in label: niceName = 'other bkg'
+    if 'lepScale' in label: niceName = 'Lepton p_{T} scale'
+    elif 'OtherBkg' in label: niceName = 'Other bkg'
     elif 'pdfs' in label: niceName = 'PDFs #oplus #alpha_{S}'
     elif 'binByBinStat' in label: niceName = 'MC statistical'
-    elif 'EffStat' in label: niceName = 'efficiency stat.'
+    elif 'EffStat' in label: niceName = 'Efficiency stat.'
     elif 'Fakes' in label: niceName = 'QCD bkg.'
-    elif 'OtherExp' in label: niceName = 'other experimental'
-    elif 'lumi' in label: niceName = 'luminosity'
+    elif 'OtherExp' in label: niceName = 'Other experimental'
+    elif 'lumi' in label: niceName = 'Luminosity'
     elif 'QCDTheo' in label: niceName = '#mu_{F}, #mu_{R}, #mu_{F+R}'
     elif 'QEDTheo' in label: niceName = 'FSR'
-    elif 'stat' in label: niceName = 'statistical'
+    elif 'stat' in label: niceName = 'Statistical'
     elif 'Total' in label: niceName = 'Total'
-    elif 'EffSyst' in label: niceName = 'efficiency syst.'
+    elif 'EffSyst' in label: niceName = 'Efficiency syst.'
     elif 'L1Prefire' in label: niceName = 'L1 prefire'
     else: niceName = label
     return niceName
@@ -97,7 +97,7 @@ yAxisRange_target = {"mu":          [1.e-1, 100],
                      "xsec":        [1.e-1, 100],
                      "xsecnorm":    [1.e-1, 100],
                      "unpolxsec":   [8.e-2,100.],
-                     "unpolxsecnorm": [1.e-1,50.],
+                     "unpolxsecnorm": [7.e-2,70.],
                      "asym":        [5.e-4,1.8],
                      "unpolasym":   [5.e-4,1.],
                      "A0":          [5.e-4,2.],
@@ -518,8 +518,8 @@ if __name__ == "__main__":
                 else: sign='+' if charge is 'plus' else '-' 
                 # leave a space before - sign, otherwise - is too close to W (in the png it gets too far instead, ROOT magic!)
                 polLetter = {"left" : "L", "right" : "R", "long" : "0"}
-                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}#nu".format(pol="" if pol=="unpolarized" else polLetter[pol],
-                                                                                    chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+                thischannel = "W_{{{pol}}}^{{{chsign}}} #rightarrow {fl}^{{{chsign} }}{nusign}".format(pol="" if pol=="unpolarized" else polLetter[pol],
+                                                                                                      chsign=sign if sign != "-" else (" "+sign),fl=flavour,nusign="#nu" if sign!="-" else "#bar{#nu}")
                 header = "#bf{{Uncertainties in {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 #header = "#bf{{{p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
                 leg.SetHeader(header)            
@@ -621,7 +621,7 @@ if __name__ == "__main__":
                 summaries[(charge,nuisgroup)].SetLineWidth(2)
                 # summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton |#eta|')
                 # if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
-                #     summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton p_{T} [GeV]')
+                #     summaries[(charge,nuisgroup)].GetXaxis().SetTitle('lepton p_{T} (GeV)')
                 # summaries[(charge,nuisgroup)].GetXaxis().SetTitleSize(0.06)
                 # summaries[(charge,nuisgroup)].GetXaxis().SetLabelSize(0.04)
                 # summaries[(charge,nuisgroup)].GetYaxis().SetTitleSize(0.06)
@@ -728,7 +728,7 @@ if __name__ == "__main__":
             else: 
                 sign='+' if charge is 'plus' else '-'
             # leave a space before - sign, otherwise - is too close to W in the pdf (in the png it gets too far instead, ROOT magic!)
-            thischannel = "W^{{{chsign}}}#rightarrow {fl}#nu".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour)
+            thischannel = "W^{{{chsign}}}#rightarrow {fl}^{{{chsign} }}{nusign}".format(chsign=sign if sign != "-" else (" "+sign),fl=flavour,nusign="#nu" if sign!="-" else "#bar{#nu}")
             varRangeText = etaRangeText if any(options.target == x for x in ["ptxsec", "ptxsecnorm", "ptasym"]) else ptRangeText  
             header = "#bf{{Uncertainties in {p} for {ch}}}".format(p=poiName_target[options.target], ch=thischannel)
             #header = "#bf{{{p} for {ch}     {ptt}}}".format(p=poiName_target[options.target], ch=thischannel, ptt=varRangeText)
@@ -753,11 +753,11 @@ if __name__ == "__main__":
                     if options.target in ["ptxsec", "ptxsecnorm", "ptasym"]:
                         xmin = ptmin
                         xmax = ptmax
-                        summaries[(charge,ng)].GetXaxis().SetTitle('dressed lepton p_{T} [GeV]')
+                        summaries[(charge,ng)].GetXaxis().SetTitle('Dressed lepton p_{T} (GeV)')
                     else:
                         xmin = etamin
                         xmax = etamax
-                        summaries[(charge,ng)].GetXaxis().SetTitle('dressed lepton |#eta|')
+                        summaries[(charge,ng)].GetXaxis().SetTitle('Dressed lepton |#eta|')
                 summaries[(charge,ng)].GetXaxis().SetRangeUser(xmin,xmax)
                 summaries[(charge,ng)].SetMarkerStyle(groupPainter[ng][0])
                 summaries[(charge,ng)].SetMarkerColor(groupPainter[ng][1]); 
