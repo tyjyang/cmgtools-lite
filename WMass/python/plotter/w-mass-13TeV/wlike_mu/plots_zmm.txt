@@ -1,0 +1,75 @@
+lepDphi: deltaPhi(LepGood1_phi,LepGood2_phi): 64,-3.2,3.2 ; XTitle="lepton #Delta#phi", Legend='TC', IncludeOverflows=True
+
+lepDR: deltaR(LepGood1_eta,LepGood1_phi,LepGood2_eta,LepGood2_phi): 125,0,5.0 ; XTitle="lepton #Delta R", Legend='TC', IncludeOverflows=True
+
+mediumMuonId: returnChargeVal(LepGood1_mediumMuonId,LepGood1_charge,LepGood2_mediumMuonId,LepGood2_charge,evt): 3,0,3 ; XTitle="charged muon medium ID", Legend='TC', IncludeOverflows=True
+
+
+ptl1: ptMuFull(LepGood1_calPt,LepGood1_eta): 30,26,56 ; XTitle="leading muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+etal1: LepGood1_eta: 48,-2.4,2.4 ; XTitle="leading muon #eta", Legend='TC', IncludeOverflows=False
+
+ptl2: ptMuFull(LepGood2_calPt,LepGood2_eta): 30,26,56 ; XTitle="trailing muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+etal2: LepGood2_eta: 48,-2.4,2.4 ; XTitle="trailing muon #eta", Legend='TC', IncludeOverflows=False
+
+iso1: LepGood1_relIso04: 50,0.0,0.5 ; XTitle="leading muon isolation #DeltaR 04", Legend='TC', IncludeOverflows=True, Logy=True
+iso2: LepGood2_relIso04: 50,0.0,0.5 ; XTitle="trailing muon isolation #DeltaR 04", Legend='TC', IncludeOverflows=True,Logy=True
+
+
+zmass: mass_2(LepGood1_calPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_calPt,LepGood2_eta,LepGood2_phi,0.1057): 60,60,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False
+
+mt_wlike: mt_wlike(LepGood1_calPt,LepGood1_phi,LepGood1_charge,LepGood2_calPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt): 60,0,120; XTitle="W-like transverse mass", Legend='TC', IncludeOverflows=False
+
+ptl1plus: varLepPlusFromPair(ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_pdgId,ptMuFull(LepGood2_calPt,LepGood2_eta),LepGood2_pdgId): 30,26,56 ; XTitle="positive muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptl1minus: varLepMinusFromPair(ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_pdgId,ptMuFull(LepGood2_calPt,LepGood2_eta),LepGood2_pdgId): 30,26,56 ; XTitle="negative muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+etal1plus: varLepPlusFromPair(LepGood1_eta,LepGood1_pdgId,LepGood2_eta,LepGood2_pdgId): 48,-2.4,2.4 ; XTitle="positive muon #eta", Legend='TL', IncludeOverflows=False
+
+etal1minus: varLepMinusFromPair(LepGood1_eta,LepGood1_pdgId,LepGood2_eta,LepGood2_pdgId): 48,-2.4,2.4 ; XTitle="negative muon #eta", Legend='TL', IncludeOverflows=False
+
+etaBothLep: LepGood_eta: 48,-2.4,2.4 ; XTitle="both muons #eta", Legend='TL', IncludeOverflows=False
+
+ptBothLep: LepGood_calPt: 30,26,56 ; XTitle="both muons p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+etaBothLep: LepGood_eta: 48,-2.4,2.4 ; XTitle="both muons #eta", Legend='TC', IncludeOverflows=False
+
+ptl1__etal1: LepGood1_calPt\:LepGood1_eta: 48,-2.4,2.4,30,26,56 ; XTitle='leading muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
+
+ptl2__etal2: LepGood2_calPt\:LepGood2_eta: 48,-2.4,2.4,30,26,56 ; XTitle='trailing muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
+
+ptl1__etal1_both: LepGood_calPt\:LepGood_eta: 48,-2.4,2.4,30,26,56 ; XTitle='both muons #eta', YTitle='both muons p_{T} [GeV]', Legend='TR'
+
+ptl1__etal1_minus: varLepMinusFromPair(ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_pdgId,ptMuFull(LepGood2_calPt,LepGood2_eta),LepGood2_pdgId)\:varLepMinusFromPair(LepGood1_eta,LepGood1_pdgId,LepGood2_eta,LepGood2_pdgId): 48,-2.4,2.4,30,26,56 ; XTitle='negative muon #eta', YTitle='negative muon p_{T} [GeV]', Legend='TR'
+
+ptl1__etal1_plus: varLepPlusFromPair(ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_pdgId,ptMuFull(LepGood2_calPt,LepGood2_eta),LepGood2_pdgId)\:varLepPlusFromPair(LepGood1_eta,LepGood1_pdgId,LepGood2_eta,LepGood2_pdgId): 48,-2.4,2.4,30,26,56 ; XTitle='positive muon #eta', YTitle='positive muon p_{T} [GeV]', Legend='TR'
+
+sip3d: returnChargeVal(LepGood1_sip3d,LepGood1_charge,LepGood2_sip3d,LepGood2_charge,evt): 75,0,3.0; XTitle="sip3d with respect to PV (significance)", Legend='TC', IncludeOverflows=True
+
+ip3d: returnChargeVal(LepGood1_ip3d,LepGood1_charge,LepGood2_ip3d,LepGood2_charge,evt): 100,0,0.005; XTitle="ip3d with respect to PV (absolute value) [cm]", Legend='TC', IncludeOverflows=True, Logy=True
+
+dxy: returnChargeVal(LepGood1_dxy,LepGood1_charge,LepGood2_dxy,LepGood2_charge,evt): 200,-0.005,0.005; XTitle="dxy with respect to PV [cm]", Legend='TC', IncludeOverflows=True, Logy=True
+
+dz: returnChargeVal(LepGood1_dz,LepGood1_charge,LepGood2_dz,LepGood2_charge,evt): 200,-0.005,0.005; XTitle="dz with respect to PV [cm]", Legend='TC', IncludeOverflows=True, Logy=True
+
+iso04: returnChargeVal(LepGood1_relIso04,LepGood1_charge,LepGood2_relIso04,LepGood2_charge,evt): 50,0.0,0.5 ; XTitle="charged muon isolation #DeltaR 04", Legend='TC', IncludeOverflows=True, Logy=True
+
+iso03: returnChargeVal(LepGood1_relIso03,LepGood1_charge,LepGood2_relIso03,LepGood2_charge,evt): 50,0.0,0.5 ; XTitle="charged muon isolation #DeltaR 03", Legend='TC', IncludeOverflows=True, Logy=True
+
+miniRelIso: returnChargeVal(LepGood1_miniRelIso,LepGood1_charge,LepGood2_miniRelIso,LepGood2_charge,evt): 50,0.0,0.5 ; XTitle="charged muon miniRelIso", Legend='TC', IncludeOverflows=True, Logy=True
+
+zmassLogy: mass_2(LepGood1_calPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_calPt,LepGood2_eta,LepGood2_phi,0.1057): 60,60,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False, Logy=True
+
+zmassFull: mass_2(LepGood1_calPt,LepGood1_eta,LepGood1_phi,0.1057,LepGood2_calPt,LepGood2_eta,LepGood2_phi,0.1057): 60,0,120; XTitle="Z mass", Legend='TC', IncludeOverflows=False
+
+
+pt__eta: returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,30,26,56 ; XTitle='charged muon #eta', YTitle='charged muon p_{T} [GeV]', Legend='TR'
+
+ptl1__phil1: returnChargeVal(LepGood1_calPt,LepGood1_charge,LepGood2_calPt,LepGood2_charge,evt)\:returnChargeVal(LepGood1_phi,LepGood1_charge,LepGood2_phi,LepGood2_charge,evt): 64,-3.2,3.2,30,26,56 ; XTitle='charged muon #phi', YTitle='charged muon p_{T} [GeV]', Legend='TR'
+
+phil1__etal1: returnChargeVal(LepGood1_phi,LepGood1_charge,LepGood2_phi,LepGood2_charge,evt)\:returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt): 48,-2.4,2.4,64,-3.2,3.2 ; XTitle='charged muon #eta', YTitle='charged muon #phi', Legend='TR'
+
+lepDphi: deltaPhi(LepGood1_phi,LepGood2_phi): 64,-3.2,3.2 ; XTitle="lepton #Delta#phi", Legend='TC', IncludeOverflows=True
+
+lepDR: deltaR(LepGood1_eta,LepGood1_phi,LepGood2_eta,LepGood2_phi): 50,0,1.0 ; XTitle="lepton #Delta R", Legend='TC', IncludeOverflows=True
+
+mediumMuonId: returnChargeVal(LepGood1_mediumMuonId,LepGood1_charge,LepGood2_mediumMuonId,LepGood2_charge,evt): 3,0,3 ; XTitle="charged muon medium ID", Legend='TC', IncludeOverflows=True
+

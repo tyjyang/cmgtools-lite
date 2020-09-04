@@ -1,0 +1,28 @@
+## for trigger matching, can use either pT or DR, because I only need to require it is > 0 (set to -999 if no match)
+# all W decays
+
+
+data: SingleMuon_Run2016* : triggerMatchWlike(isOddEvent(evt),LepGood_matchedTrgObjMuDR[0],LepGood_matchedTrgObjMuDR[1],LepGood_matchedTrgObjTkMuDR[0],LepGood_matchedTrgObjTkMuDR[1],LepGood_pdgId[0],LepGood_pdgId[1])
+
+
+Top: TTTo2L2Nu_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: TTToSemilepton_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: TBarToLeptons_tch_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: TBar_tWch_noFullyHad_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: TToLeptons_tch_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: T_tWch_noFullyHad_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+Top: TToLeptons_sch_*                      : xsec                             ; FillColor=ROOT.kOrange+2 , Label="Top", NormSystematic=0.09
+
+Top2l : TTLep_pow_part*                      : xsec                             ; FillColor=ROOT.kGreen+2 , Label="Top (2l)", NormSystematic=0.09
+
+VV_incl  : WW_*       : xsec   ; FillColor=ROOT.kGreen+2, Label="VV (incl)", NormSystematic=0.03
+VV_incl  : WZ_*       : xsec   ; FillColor=ROOT.kGreen+2, Label="VV (incl)", NormSystematic=0.05
+VV_incl  : ZZ_*       : xsec   ; FillColor=ROOT.kGreen+2, Label="VV (incl)", NormSystematic=0.05
+
+VV_excl  : WWTo*       : xsec   ; FillColor=ROOT.kViolet+2, Label="VV (excl)", NormSystematic=0.03
+VV_excl  : WZTo*       : xsec   ; FillColor=ROOT.kViolet+2, Label="VV (excl)", NormSystematic=0.05
+VV_excl  : ZZTo*       : xsec   ; FillColor=ROOT.kViolet+2, Label="VV (excl)", NormSystematic=0.05
+
+
+
+QCD_Mu15  : QCD_Mu15_*      : xsec       ; FillColor=ROOT.kGray , Label="QCD (MC)", NormSystematic=1.0

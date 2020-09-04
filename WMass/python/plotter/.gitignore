@@ -1,0 +1,11 @@
+*.pyc
+*_cc.d
+*_cc.so
+*.pcm
+mdunser.cc
+
+# local folders
+my_old_wmass_lep/
+myinstructions/
+mypythontest/
+cards/

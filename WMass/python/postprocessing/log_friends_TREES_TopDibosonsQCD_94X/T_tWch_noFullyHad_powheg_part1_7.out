@@ -1,0 +1,67 @@
+   T_tWch_noFullyHad_powheg_part1   MC  13 chunks
+
+
+I have 1 taks to process
+I'm using the following list of modules DEFAULT_MODULES
+this is jobs [('T_tWch_noFullyHad_powheg_part1', 'MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/T_tWch_noFullyHad_powheg_part1/treeProducerWMass/tree.root', 5424845.0, '_Friend_T_tWch_noFullyHad_powheg_part1.chunk7', False, xrange(1750000, 2000000), 7)]
+Modules to run:  []   name =  puWeight
+Loading puWeight from CMGTools.WMass.postprocessing.examples.puWeightProducer 
+Running on dataset =  T_tWch_noFullyHad_powheg_part1
+TFile: name=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/data/pileup/mcPU_2016_W94XnoCutsWithGenWeights_nTrueInt.root, title=, option=READ
+TFile: name=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/data/pileup/PileupData_GoldenMuonJSON_Full2016.root, title=, option=READ
+Load C++ Worker
+Modules to run:  []   name =  muCalibratedWithStatVar
+Loading muCalibratedWithStatVar from CMGTools.WMass.postprocessing.examples.lepVarProducer 
+Running on dataset =  T_tWch_noFullyHad_powheg_part1
+did not find EnergyScaleCorrection shared object, rebuilding
+trying to load all the rochester correction libraries
+did not find legacy data roccor. rebuilding...
+done building legacy data roccor.
+Modules to run:  []   name =  jetAllReCleaner
+Loading jetAllReCleaner from CMGTools.WMass.postprocessing.examples.jetReCleaner 
+Running on dataset =  T_tWch_noFullyHad_powheg_part1
+Load C++ Worker
+Modules to run:  []   name =  jetReCleaner
+Loading jetReCleaner from CMGTools.WMass.postprocessing.examples.jetReCleaner 
+Running on dataset =  T_tWch_noFullyHad_powheg_part1
+Load C++ Worker
+Modules to run:  []   name =  genQEDJets
+Loading genQEDJets from CMGTools.WMass.postprocessing.examples.genFriendProducer 
+Running on dataset =  T_tWch_noFullyHad_powheg_part1
+Will write selected trees to MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/
+Normalization of nTrueInt_Wnopt: 3.68902e+10
+Normalization of pileup: 3.68902e+10
+Weights for variable nTrueInt_Wnopt with a number of bins equal to 102:
+1 0.3634 0.9215 1.196 0.96 1.118 1.157 0.9675 0.9293 0.9192 0.8823 0.9553 1.062 1.116 1.167 1.194 1.2 1.193 1.177 1.14 1.092 1.06 1.047 1.046 1.047 1.048 1.06 1.077 1.092 1.106 1.122 1.108 1.097 1.051 0.992 0.9144 0.8237 0.7175 0.6087 0.5019 0.4029 0.3076 0.2264 0.1622 0.1123 0.07656 0.05052 0.03159 0.01992 0.01212 0.007355 0.004361 0.002593 0.001553 0.0009624 0.0007219 0.0006632 0.0007233 0.0009289 0.001329 0.001772 0.003222 0.004042 0.00487 0.005064 0.005658 0.005309 0.004846 0.004101 0.003977 0.003686 0.003306 0.002672 0.002286 0.001878 0.00167 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
+Final weights: 
+1 0.3634 0.9215 1.196 0.96 1.118 1.157 0.9675 0.9293 0.9192 0.8823 0.9553 1.062 1.116 1.167 1.194 1.2 1.193 1.177 1.14 1.092 1.06 1.047 1.046 1.047 1.048 1.06 1.077 1.092 1.106 1.122 1.108 1.097 1.051 0.992 0.9144 0.8237 0.7175 0.6087 0.5019 0.4029 0.3076 0.2264 0.1622 0.1123 0.07656 0.05052 0.03159 0.01992 0.01212 0.007355 0.004361 0.002593 0.001553 0.0009624 0.0007219 0.0006632 0.0007233 0.0009289 0.001329 0.001772 0.003222 0.004042 0.00487 0.005064 0.005658 0.005309 0.004846 0.004101 0.003977 0.003686 0.003306 0.002672 0.002286 0.001878 0.00167 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
+begin job of lepCalProducer
+initializing all the rochester correction objects
+initializing the egamma calibrator
+Processed  1750000/ 3207588 entries (elapsed time     0.4s, curr speed   25.641 kHz, avg speed 4487.179 kHz), accepted        1/       1 events (100.00%)
+Processed  1760000/ 3207588 entries (elapsed time    19.6s, curr speed    0.520 kHz, avg speed   89.750 kHz), accepted    10001/   10001 events (100.00%)
+Processed  1770000/ 3207588 entries (elapsed time    38.5s, curr speed    0.528 kHz, avg speed   45.926 kHz), accepted    20001/   20001 events (100.00%)
+Processed  1780000/ 3207588 entries (elapsed time    58.9s, curr speed    0.492 kHz, avg speed   30.246 kHz), accepted    30001/   30001 events (100.00%)
+Processed  1790000/ 3207588 entries (elapsed time    79.3s, curr speed    0.490 kHz, avg speed   22.581 kHz), accepted    40001/   40001 events (100.00%)
+Processed  1800000/ 3207588 entries (elapsed time    98.8s, curr speed    0.511 kHz, avg speed   18.213 kHz), accepted    50001/   50001 events (100.00%)
+Processed  1810000/ 3207588 entries (elapsed time   118.0s, curr speed    0.521 kHz, avg speed   15.335 kHz), accepted    60001/   60001 events (100.00%)
+Processed  1820000/ 3207588 entries (elapsed time   135.9s, curr speed    0.560 kHz, avg speed   13.393 kHz), accepted    70001/   70001 events (100.00%)
+Processed  1830000/ 3207588 entries (elapsed time   153.0s, curr speed    0.583 kHz, avg speed   11.958 kHz), accepted    80001/   80001 events (100.00%)
+Processed  1840000/ 3207588 entries (elapsed time   169.1s, curr speed    0.623 kHz, avg speed   10.882 kHz), accepted    90001/   90001 events (100.00%)
+Processed  1850000/ 3207588 entries (elapsed time   184.9s, curr speed    0.631 kHz, avg speed   10.004 kHz), accepted   100001/  100001 events (100.00%)
+Processed  1860000/ 3207588 entries (elapsed time   200.8s, curr speed    0.631 kHz, avg speed    9.264 kHz), accepted   110001/  110001 events (100.00%)
+Processed  1870000/ 3207588 entries (elapsed time   216.7s, curr speed    0.627 kHz, avg speed    8.629 kHz), accepted   120001/  120001 events (100.00%)
+Processed  1880000/ 3207588 entries (elapsed time   255.7s, curr speed    0.257 kHz, avg speed    7.353 kHz), accepted   130001/  130001 events (100.00%)
+Processed  1890000/ 3207588 entries (elapsed time   271.7s, curr speed    0.625 kHz, avg speed    6.957 kHz), accepted   140001/  140001 events (100.00%)
+Processed  1900000/ 3207588 entries (elapsed time   287.6s, curr speed    0.626 kHz, avg speed    6.605 kHz), accepted   150001/  150001 events (100.00%)
+Processed  1910000/ 3207588 entries (elapsed time   304.2s, curr speed    0.604 kHz, avg speed    6.279 kHz), accepted   160001/  160001 events (100.00%)
+Processed  1920000/ 3207588 entries (elapsed time   320.1s, curr speed    0.630 kHz, avg speed    5.998 kHz), accepted   170001/  170001 events (100.00%)
+Processed  1930000/ 3207588 entries (elapsed time   336.0s, curr speed    0.628 kHz, avg speed    5.744 kHz), accepted   180001/  180001 events (100.00%)
+Processed  1940000/ 3207588 entries (elapsed time   375.2s, curr speed    0.255 kHz, avg speed    5.170 kHz), accepted   190001/  190001 events (100.00%)
+Processed  1950000/ 3207588 entries (elapsed time   391.1s, curr speed    0.632 kHz, avg speed    4.987 kHz), accepted   200001/  200001 events (100.00%)
+Processed  1960000/ 3207588 entries (elapsed time   407.0s, curr speed    0.628 kHz, avg speed    4.816 kHz), accepted   210001/  210001 events (100.00%)
+Processed  1970000/ 3207588 entries (elapsed time   423.0s, curr speed    0.625 kHz, avg speed    4.657 kHz), accepted   220001/  220001 events (100.00%)
+Processed  1980000/ 3207588 entries (elapsed time   439.0s, curr speed    0.624 kHz, avg speed    4.510 kHz), accepted   230001/  230001 events (100.00%)
+Processed  1990000/ 3207588 entries (elapsed time   454.9s, curr speed    0.630 kHz, avg speed    4.375 kHz), accepted   240001/  240001 events (100.00%)
+Processed 250000 entries from MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/T_tWch_noFullyHad_powheg_part1/treeProducerWMass/tree.root, selected 250000 entries
+Done MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/tree_Friend_T_tWch_noFullyHad_powheg_part1.chunk7.root

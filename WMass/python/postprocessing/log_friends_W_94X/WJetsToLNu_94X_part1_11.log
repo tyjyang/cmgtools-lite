@@ -1,0 +1,64 @@
+000 (335109.011.000) 05/14 18:00:17 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+022 (335109.011.000) 05/14 18:10:45 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_2@b7g28n0095.cern.ch <188.184.186.30:9618?addrs=188.184.186.30-9618+[2001-1458-301-f8--100-2b]-9618&noUDP&sock=2326_0560_3>
+...
+024 (335109.011.000) 05/14 18:10:53 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_2@b7g28n0095.cern.ch, rescheduling job
+...
+022 (335109.011.000) 05/14 18:11:39 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_3@b7g27n2778.cern.ch <188.184.207.252:9618?addrs=188.184.207.252-9618+[2001-1458-301-7d--100-540]-9618&noUDP&sock=2259_1088_3>
+...
+024 (335109.011.000) 05/14 18:11:39 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_3@b7g27n2778.cern.ch, rescheduling job
+...
+022 (335109.011.000) 05/14 18:12:18 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_3@b7g27n2778.cern.ch <188.184.207.252:9618?addrs=188.184.207.252-9618+[2001-1458-301-7d--100-540]-9618&noUDP&sock=2259_1088_3>
+...
+024 (335109.011.000) 05/14 18:12:26 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_3@b7g27n2778.cern.ch, rescheduling job
+...
+040 (335109.011.000) 05/14 18:13:01 Started transferring input files
+	Transferring to host: <188.184.133.252:9618?addrs=188.184.133.252-9618+[2001-1458-301-a0--100-22c]-9618&noUDP&sock=13605_b402_104704>
+...
+040 (335109.011.000) 05/14 18:13:01 Finished transferring input files
+...
+001 (335109.011.000) 05/14 18:13:02 Job executing on host: <188.184.133.252:9618?addrs=188.184.133.252-9618+[2001-1458-301-a0--100-22c]-9618&noUDP&sock=13418_35dd_3>
+...
+006 (335109.011.000) 05/14 18:13:11 Image size of job updated: 406192
+	317  -  MemoryUsage of job (MB)
+	323972  -  ResidentSetSize of job (KB)
+...
+006 (335109.011.000) 05/14 18:18:12 Image size of job updated: 761656
+	664  -  MemoryUsage of job (MB)
+	679276  -  ResidentSetSize of job (KB)
+...
+006 (335109.011.000) 05/14 18:23:13 Image size of job updated: 860180
+	760  -  MemoryUsage of job (MB)
+	777800  -  ResidentSetSize of job (KB)
+...
+040 (335109.011.000) 05/14 18:24:28 Started transferring output files
+...
+040 (335109.011.000) 05/14 18:24:28 Finished transferring output files
+...
+005 (335109.011.000) 05/14 18:24:28 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:10:18, Sys 0 00:01:02  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:10:18, Sys 0 00:01:02  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	8490  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	8490  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       71        1   2107847 
+	   Memory (MB)          :      760     2000      2000 
+...

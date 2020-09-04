@@ -1,0 +1,44 @@
+000 (334280.011.000) 05/14 16:10:51 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+040 (334280.011.000) 05/14 16:26:03 Started transferring input files
+	Transferring to host: <188.184.133.254:9618?addrs=188.184.133.254-9618+[--1]-9618&noUDP&sock=3291_8e9f_11108>
+...
+040 (334280.011.000) 05/14 16:26:03 Finished transferring input files
+...
+001 (334280.011.000) 05/14 16:26:04 Job executing on host: <188.184.133.254:9618?addrs=188.184.133.254-9618+[--1]-9618&noUDP&sock=2271_4bab_3>
+...
+006 (334280.011.000) 05/14 16:26:12 Image size of job updated: 185828
+	108  -  MemoryUsage of job (MB)
+	110196  -  ResidentSetSize of job (KB)
+...
+006 (334280.011.000) 05/14 16:31:12 Image size of job updated: 483916
+	392  -  MemoryUsage of job (MB)
+	401164  -  ResidentSetSize of job (KB)
+...
+006 (334280.011.000) 05/14 16:36:12 Image size of job updated: 574152
+	480  -  MemoryUsage of job (MB)
+	491400  -  ResidentSetSize of job (KB)
+...
+006 (334280.011.000) 05/14 16:41:10 Image size of job updated: 574316
+	480  -  MemoryUsage of job (MB)
+	491400  -  ResidentSetSize of job (KB)
+...
+040 (334280.011.000) 05/14 16:41:10 Started transferring output files
+...
+040 (334280.011.000) 05/14 16:41:10 Finished transferring output files
+...
+005 (334280.011.000) 05/14 16:41:10 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:13:17, Sys 0 00:01:20  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:13:17, Sys 0 00:01:20  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	13849  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	13849  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       74        1   2193623 
+	   Memory (MB)          :      480     2000      2000 
+...

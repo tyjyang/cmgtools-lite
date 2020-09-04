@@ -1,0 +1,48 @@
+000 (335100.027.000) 05/14 18:00:10 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+040 (335100.027.000) 05/14 18:01:06 Started transferring input files
+	Transferring to host: <128.142.240.54:9618?addrs=128.142.240.54-9618+[--1]-9618&noUDP&sock=3141_de59_10990>
+...
+040 (335100.027.000) 05/14 18:01:06 Finished transferring input files
+...
+001 (335100.027.000) 05/14 18:01:07 Job executing on host: <128.142.240.54:9618?addrs=128.142.240.54-9618+[--1]-9618&noUDP&sock=2277_693c_3>
+...
+006 (335100.027.000) 05/14 18:01:16 Image size of job updated: 175040
+	108  -  MemoryUsage of job (MB)
+	109840  -  ResidentSetSize of job (KB)
+...
+006 (335100.027.000) 05/14 18:06:17 Image size of job updated: 348784
+	337  -  MemoryUsage of job (MB)
+	344856  -  ResidentSetSize of job (KB)
+...
+006 (335100.027.000) 05/14 18:11:18 Image size of job updated: 650724
+	632  -  MemoryUsage of job (MB)
+	646788  -  ResidentSetSize of job (KB)
+...
+006 (335100.027.000) 05/14 18:16:18 Image size of job updated: 781096
+	759  -  MemoryUsage of job (MB)
+	777160  -  ResidentSetSize of job (KB)
+...
+006 (335100.027.000) 05/14 18:21:19 Image size of job updated: 786336
+	765  -  MemoryUsage of job (MB)
+	782400  -  ResidentSetSize of job (KB)
+...
+040 (335100.027.000) 05/14 18:29:01 Started transferring output files
+...
+040 (335100.027.000) 05/14 18:29:01 Finished transferring output files
+...
+005 (335100.027.000) 05/14 18:29:01 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:24:16, Sys 0 00:02:06  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:24:16, Sys 0 00:02:06  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	13877  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	13877  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       73        1   2103844 
+	   Memory (MB)          :      765     2000      2000 
+...

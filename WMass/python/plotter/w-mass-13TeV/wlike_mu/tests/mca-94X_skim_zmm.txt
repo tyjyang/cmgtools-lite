@@ -1,0 +1,6 @@
+data: SingleMuon_Run2016*
+
+Z : ZJToMuMu_powhegMiNNLO_pythia8_photos_testProd_*    : 1990.0   ; FillColor=ROOT.kAzure+2 , Label="Z", NormSystematic=0.04
+
+W   : WJetsToLNu_* : 60400. ; FillColor=ROOT.kRed+2 , Label="W", NormSystematic=0.038
+

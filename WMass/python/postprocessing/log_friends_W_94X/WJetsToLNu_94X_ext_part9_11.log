@@ -1,0 +1,84 @@
+000 (335108.011.000) 05/14 18:00:16 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+022 (335108.011.000) 05/14 18:04:41 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_2@b7g27n4525.cern.ch <188.184.207.229:9618?addrs=188.184.207.229-9618+[2001-1458-301-7d--100-312]-9618&noUDP&sock=2319_3837_3>
+...
+024 (335108.011.000) 05/14 18:04:41 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_2@b7g27n4525.cern.ch, rescheduling job
+...
+022 (335108.011.000) 05/14 18:05:51 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_3@b7g28n0428.cern.ch <188.184.132.6:9618?addrs=188.184.132.6-9618+[2001-1458-301-a0--100-2]-9618&noUDP&sock=2335_31ba_3>
+...
+024 (335108.011.000) 05/14 18:05:51 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_3@b7g28n0428.cern.ch, rescheduling job
+...
+022 (335108.011.000) 05/14 18:06:33 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_3@b7g28n0095.cern.ch <188.184.186.30:9618?addrs=188.184.186.30-9618+[2001-1458-301-f8--100-2b]-9618&noUDP&sock=2326_0560_3>
+...
+024 (335108.011.000) 05/14 18:06:33 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_3@b7g28n0095.cern.ch, rescheduling job
+...
+022 (335108.011.000) 05/14 18:09:30 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_2@b7g28n0823.cern.ch <128.142.240.56:9618?addrs=128.142.240.56-9618+[2001-1458-301-f9--100-3e]-9618&noUDP&sock=2356_9938_3>
+...
+024 (335108.011.000) 05/14 18:09:30 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_2@b7g28n0823.cern.ch, rescheduling job
+...
+040 (335108.011.000) 05/14 18:10:02 Started transferring input files
+	Transferring to host: <128.142.240.20:9618?addrs=128.142.240.20-9618+[2001-1458-301-f9--100-4]-9618&noUDP&sock=29066_6057_1785>
+...
+040 (335108.011.000) 05/14 18:10:02 Finished transferring input files
+...
+001 (335108.011.000) 05/14 18:10:03 Job executing on host: <128.142.240.20:9618?addrs=128.142.240.20-9618+[2001-1458-301-f9--100-4]-9618&noUDP&sock=2375_a184_3>
+...
+006 (335108.011.000) 05/14 18:10:11 Image size of job updated: 71940
+	50  -  MemoryUsage of job (MB)
+	50460  -  ResidentSetSize of job (KB)
+...
+006 (335108.011.000) 05/14 18:15:11 Image size of job updated: 344072
+	335  -  MemoryUsage of job (MB)
+	342956  -  ResidentSetSize of job (KB)
+...
+006 (335108.011.000) 05/14 18:20:12 Image size of job updated: 637380
+	622  -  MemoryUsage of job (MB)
+	636264  -  ResidentSetSize of job (KB)
+...
+006 (335108.011.000) 05/14 18:25:13 Image size of job updated: 776548
+	758  -  MemoryUsage of job (MB)
+	775432  -  ResidentSetSize of job (KB)
+...
+006 (335108.011.000) 05/14 18:30:13 Image size of job updated: 777724
+	759  -  MemoryUsage of job (MB)
+	776608  -  ResidentSetSize of job (KB)
+...
+006 (335108.011.000) 05/14 18:31:28 Image size of job updated: 777724
+	759  -  MemoryUsage of job (MB)
+	776708  -  ResidentSetSize of job (KB)
+...
+040 (335108.011.000) 05/14 18:31:28 Started transferring output files
+...
+040 (335108.011.000) 05/14 18:31:28 Finished transferring output files
+...
+005 (335108.011.000) 05/14 18:31:28 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:18:33, Sys 0 00:01:45  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:18:33, Sys 0 00:01:45  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	8534  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	8534  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :     1.01        1         1 
+	   Disk (KB)            :    78           1    217810 
+	   Memory (MB)          :   759        2000      2000 
+...

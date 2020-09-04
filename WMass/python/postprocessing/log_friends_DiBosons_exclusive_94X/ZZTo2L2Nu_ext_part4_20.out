@@ -1,0 +1,58 @@
+   ZZTo2L2Nu_ext_part4   MC  21 chunks
+
+
+I have 1 taks to process
+I'm using the following list of modules DEFAULT_MODULES
+this is jobs [('ZZTo2L2Nu_ext_part4', 'MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ZZTo2L2Nu_ext_part4/treeProducerWMass/tree.root', 8687780.0, '_Friend_ZZTo2L2Nu_ext_part4.chunk20', False, xrange(5000000, 5154157), 20)]
+Modules to run:  []   name =  puWeight
+Loading puWeight from CMGTools.WMass.postprocessing.examples.puWeightProducer 
+Running on dataset =  ZZTo2L2Nu_ext_part4
+TFile: name=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/data/pileup/mcPU_2016_W94XnoCutsWithGenWeights_nTrueInt.root, title=, option=READ
+TFile: name=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/data/pileup/PileupData_GoldenMuonJSON_Full2016.root, title=, option=READ
+Load C++ Worker
+Modules to run:  []   name =  muCalibratedWithStatVar
+Loading muCalibratedWithStatVar from CMGTools.WMass.postprocessing.examples.lepVarProducer 
+Running on dataset =  ZZTo2L2Nu_ext_part4
+did not find EnergyScaleCorrection shared object, rebuilding
+trying to load all the rochester correction libraries
+did not find legacy data roccor. rebuilding...
+done building legacy data roccor.
+Modules to run:  []   name =  jetAllReCleaner
+Loading jetAllReCleaner from CMGTools.WMass.postprocessing.examples.jetReCleaner 
+Running on dataset =  ZZTo2L2Nu_ext_part4
+Load C++ Worker
+Modules to run:  []   name =  jetReCleaner
+Loading jetReCleaner from CMGTools.WMass.postprocessing.examples.jetReCleaner 
+Running on dataset =  ZZTo2L2Nu_ext_part4
+Load C++ Worker
+Modules to run:  []   name =  genQEDJets
+Loading genQEDJets from CMGTools.WMass.postprocessing.examples.genFriendProducer 
+Running on dataset =  ZZTo2L2Nu_ext_part4
+Will write selected trees to MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/
+Normalization of nTrueInt_Wnopt: 3.68902e+10
+Normalization of pileup: 3.68902e+10
+Weights for variable nTrueInt_Wnopt with a number of bins equal to 102:
+1 0.3634 0.9215 1.196 0.96 1.118 1.157 0.9675 0.9293 0.9192 0.8823 0.9553 1.062 1.116 1.167 1.194 1.2 1.193 1.177 1.14 1.092 1.06 1.047 1.046 1.047 1.048 1.06 1.077 1.092 1.106 1.122 1.108 1.097 1.051 0.992 0.9144 0.8237 0.7175 0.6087 0.5019 0.4029 0.3076 0.2264 0.1622 0.1123 0.07656 0.05052 0.03159 0.01992 0.01212 0.007355 0.004361 0.002593 0.001553 0.0009624 0.0007219 0.0006632 0.0007233 0.0009289 0.001329 0.001772 0.003222 0.004042 0.00487 0.005064 0.005658 0.005309 0.004846 0.004101 0.003977 0.003686 0.003306 0.002672 0.002286 0.001878 0.00167 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
+Final weights: 
+1 0.3634 0.9215 1.196 0.96 1.118 1.157 0.9675 0.9293 0.9192 0.8823 0.9553 1.062 1.116 1.167 1.194 1.2 1.193 1.177 1.14 1.092 1.06 1.047 1.046 1.047 1.048 1.06 1.077 1.092 1.106 1.122 1.108 1.097 1.051 0.992 0.9144 0.8237 0.7175 0.6087 0.5019 0.4029 0.3076 0.2264 0.1622 0.1123 0.07656 0.05052 0.03159 0.01992 0.01212 0.007355 0.004361 0.002593 0.001553 0.0009624 0.0007219 0.0006632 0.0007233 0.0009289 0.001329 0.001772 0.003222 0.004042 0.00487 0.005064 0.005658 0.005309 0.004846 0.004101 0.003977 0.003686 0.003306 0.002672 0.002286 0.001878 0.00167 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
+begin job of lepCalProducer
+initializing all the rochester correction objects
+initializing the egamma calibrator
+Processed  5000000/ 5154157 entries (elapsed time     0.4s, curr speed   27.027 kHz, avg speed 13513.514 kHz), accepted        1/       1 events (100.00%)
+Processed  5010000/ 5154157 entries (elapsed time    30.6s, curr speed    0.330 kHz, avg speed  163.512 kHz), accepted    10001/   10001 events (100.00%)
+Processed  5020000/ 5154157 entries (elapsed time    62.9s, curr speed    0.310 kHz, avg speed   79.822 kHz), accepted    20001/   20001 events (100.00%)
+Processed  5030000/ 5154157 entries (elapsed time    93.2s, curr speed    0.329 kHz, avg speed   53.947 kHz), accepted    30001/   30001 events (100.00%)
+Processed  5040000/ 5154157 entries (elapsed time   124.8s, curr speed    0.317 kHz, avg speed   40.398 kHz), accepted    40001/   40001 events (100.00%)
+Processed  5050000/ 5154157 entries (elapsed time   154.1s, curr speed    0.340 kHz, avg speed   32.762 kHz), accepted    50001/   50001 events (100.00%)
+Processed  5060000/ 5154157 entries (elapsed time   184.4s, curr speed    0.330 kHz, avg speed   27.440 kHz), accepted    60001/   60001 events (100.00%)
+Processed  5070000/ 5154157 entries (elapsed time   212.4s, curr speed    0.357 kHz, avg speed   23.869 kHz), accepted    70001/   70001 events (100.00%)
+Processed  5080000/ 5154157 entries (elapsed time   236.1s, curr speed    0.422 kHz, avg speed   21.516 kHz), accepted    80001/   80001 events (100.00%)
+Processed  5090000/ 5154157 entries (elapsed time   259.7s, curr speed    0.424 kHz, avg speed   19.603 kHz), accepted    90001/   90001 events (100.00%)
+Processed  5100000/ 5154157 entries (elapsed time   283.9s, curr speed    0.412 kHz, avg speed   17.962 kHz), accepted   100001/  100001 events (100.00%)
+Processed  5110000/ 5154157 entries (elapsed time   307.9s, curr speed    0.417 kHz, avg speed   16.596 kHz), accepted   110001/  110001 events (100.00%)
+Processed  5120000/ 5154157 entries (elapsed time   332.2s, curr speed    0.411 kHz, avg speed   15.411 kHz), accepted   120001/  120001 events (100.00%)
+Processed  5130000/ 5154157 entries (elapsed time   400.5s, curr speed    0.146 kHz, avg speed   12.809 kHz), accepted   130001/  130001 events (100.00%)
+Processed  5140000/ 5154157 entries (elapsed time   424.3s, curr speed    0.421 kHz, avg speed   12.115 kHz), accepted   140001/  140001 events (100.00%)
+Processed  5150000/ 5154157 entries (elapsed time   448.7s, curr speed    0.410 kHz, avg speed   11.479 kHz), accepted   150001/  150001 events (100.00%)
+Processed 154157 entries from MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ZZTo2L2Nu_ext_part4/treeProducerWMass/tree.root, selected 154157 entries
+Done MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/tree_Friend_ZZTo2L2Nu_ext_part4.chunk20.root

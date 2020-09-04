@@ -1,0 +1,181 @@
+Universe = vanilla
+Executable = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DataBCDEF/dummy_exec.sh
+use_x509userproxy = true
+Log        = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DataBCDEF/SingleMuon_Run2016B_part5_$(ProcId).log
+Output     = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DataBCDEF/SingleMuon_Run2016B_part5_$(ProcId).out
+Error      = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DataBCDEF/SingleMuon_Run2016B_part5_$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing"
+request_memory = 2000
++MaxRuntime = 14400
++AccountingGroup = "group_u_CMS.CAF.ALCA"
+
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 0  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 1  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 2  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 3  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 4  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 5  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 6  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 7  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 8  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 9  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 10  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 11  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 12  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 13  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 14  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 15  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 16  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 17  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 18  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 19  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 20  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 21  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 22  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 23  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 24  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 25  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 26  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 27  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 28  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 29  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 30  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 31  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 32  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 33  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 34  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 35  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 36  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 37  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 38  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 39  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 40  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 41  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 42  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 43  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 44  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 45  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 46  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 47  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 48  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 49  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 50  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 51  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 52  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 53  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 54  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ -d SingleMuon_Run2016B_part5 -c 55  --friend  
+ queue 1 
+

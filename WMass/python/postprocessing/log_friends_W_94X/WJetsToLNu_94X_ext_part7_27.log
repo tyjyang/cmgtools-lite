@@ -1,0 +1,56 @@
+000 (335106.027.000) 05/14 18:00:14 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+022 (335106.027.000) 05/14 18:03:05 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_2@b7g28n0801.cern.ch <188.184.132.48:9618?addrs=188.184.132.48-9618+[--1]-9618&noUDP&sock=2265_2e19_3>
+...
+024 (335106.027.000) 05/14 18:03:05 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_2@b7g28n0801.cern.ch, rescheduling job
+...
+040 (335106.027.000) 05/14 18:03:46 Started transferring input files
+	Transferring to host: <188.184.133.236:9618?addrs=188.184.133.236-9618+[2001-1458-301-a0--100-5cd]-9618&noUDP&sock=13610_39e3_105462>
+...
+040 (335106.027.000) 05/14 18:03:46 Finished transferring input files
+...
+001 (335106.027.000) 05/14 18:03:47 Job executing on host: <188.184.133.236:9618?addrs=188.184.133.236-9618+[2001-1458-301-a0--100-5cd]-9618&noUDP&sock=13437_3e2a_3>
+...
+006 (335106.027.000) 05/14 18:03:56 Image size of job updated: 233336
+	152  -  MemoryUsage of job (MB)
+	154824  -  ResidentSetSize of job (KB)
+...
+006 (335106.027.000) 05/14 18:08:57 Image size of job updated: 348924
+	337  -  MemoryUsage of job (MB)
+	344820  -  ResidentSetSize of job (KB)
+...
+006 (335106.027.000) 05/14 18:13:57 Image size of job updated: 652368
+	634  -  MemoryUsage of job (MB)
+	648256  -  ResidentSetSize of job (KB)
+...
+006 (335106.027.000) 05/14 18:18:57 Image size of job updated: 781276
+	759  -  MemoryUsage of job (MB)
+	777164  -  ResidentSetSize of job (KB)
+...
+006 (335106.027.000) 05/14 18:23:58 Image size of job updated: 785128
+	763  -  MemoryUsage of job (MB)
+	781016  -  ResidentSetSize of job (KB)
+...
+040 (335106.027.000) 05/14 18:27:56 Started transferring output files
+...
+040 (335106.027.000) 05/14 18:27:57 Finished transferring output files
+...
+005 (335106.027.000) 05/14 18:27:57 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:21:41, Sys 0 00:01:48  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:21:41, Sys 0 00:01:48  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	8533  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	8533  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       71        1   2111764 
+	   Memory (MB)          :      763     2000      2000 
+...

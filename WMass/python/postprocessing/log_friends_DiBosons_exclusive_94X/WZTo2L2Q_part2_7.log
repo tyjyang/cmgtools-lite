@@ -1,0 +1,44 @@
+000 (334265.007.000) 05/14 16:10:42 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+040 (334265.007.000) 05/14 16:13:39 Started transferring input files
+	Transferring to host: <128.142.33.161:9618?addrs=128.142.33.161-9618+[--1]-9618&noUDP&sock=2887_e70e_11120>
+...
+040 (334265.007.000) 05/14 16:13:39 Finished transferring input files
+...
+001 (334265.007.000) 05/14 16:13:40 Job executing on host: <128.142.33.161:9618?addrs=128.142.33.161-9618+[--1]-9618&noUDP&sock=2278_18d5_3>
+...
+006 (334265.007.000) 05/14 16:13:48 Image size of job updated: 83252
+	48  -  MemoryUsage of job (MB)
+	48400  -  ResidentSetSize of job (KB)
+...
+006 (334265.007.000) 05/14 16:18:48 Image size of job updated: 402660
+	375  -  MemoryUsage of job (MB)
+	383776  -  ResidentSetSize of job (KB)
+...
+006 (334265.007.000) 05/14 16:23:49 Image size of job updated: 520908
+	491  -  MemoryUsage of job (MB)
+	502024  -  ResidentSetSize of job (KB)
+...
+006 (334265.007.000) 05/14 16:28:49 Image size of job updated: 522320
+	492  -  MemoryUsage of job (MB)
+	503468  -  ResidentSetSize of job (KB)
+...
+040 (334265.007.000) 05/14 16:32:48 Started transferring output files
+...
+040 (334265.007.000) 05/14 16:32:48 Finished transferring output files
+...
+005 (334265.007.000) 05/14 16:32:48 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:14:27, Sys 0 00:01:36  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:14:27, Sys 0 00:01:36  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	13832  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	13832  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       73        1   2172305 
+	   Memory (MB)          :      492     2000      2000 
+...

@@ -1,0 +1,100 @@
+Universe = vanilla
+Executable = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_TREES_TopDibosonsQCD_94X/dummy_exec.sh
+use_x509userproxy = true
+Log        = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_TREES_TopDibosonsQCD_94X/TTToSemilepton_powheg_part4_$(ProcId).log
+Output     = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_TREES_TopDibosonsQCD_94X/TTToSemilepton_powheg_part4_$(ProcId).out
+Error      = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_TREES_TopDibosonsQCD_94X/TTToSemilepton_powheg_part4_$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing"
+request_memory = 2000
++MaxRuntime = 14400
++AccountingGroup = "group_u_CMS.CAF.ALCA"
+
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 0  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 1  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 2  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 3  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 4  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 5  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 6  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 7  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 8  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 9  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 10  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 11  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 12  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 13  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 14  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 15  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 16  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 17  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 18  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 19  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 20  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 21  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 22  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 23  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 24  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 25  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 26  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 27  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/ MY_EOS_SPACE/heppyNtuples/TREES_TopDibosonsQCD_94X/friends/ -d TTToSemilepton_powheg_part4 -c 28  --friend  
+ queue 1 
+

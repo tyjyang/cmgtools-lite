@@ -1,0 +1,3 @@
+## invert the cut for the OS pair
+cut-change: -169 : 169
+weight: triggerMatchWlike(isOddEvent(evt),LepGood_matchedTrgObjMuPt[0],LepGood_matchedTrgObjMuPt[1],LepGood_matchedTrgObjTkMuPt[0],LepGood_matchedTrgObjTkMuPt[1],LepGood_pdgId[0],LepGood_pdgId[1])

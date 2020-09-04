@@ -1,0 +1,56 @@
+000 (335102.021.000) 05/14 18:00:11 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+022 (335102.021.000) 05/14 18:01:26 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_1@b7g27n6836.cern.ch <188.184.207.128:9618?addrs=188.184.207.128-9618+[2001-1458-301-7d--100-384]-9618&noUDP&sock=2323_f698_3>
+...
+024 (335102.021.000) 05/14 18:01:26 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_1@b7g27n6836.cern.ch, rescheduling job
+...
+040 (335102.021.000) 05/14 18:02:31 Started transferring input files
+	Transferring to host: <188.184.132.61:9618?addrs=188.184.132.61-9618+[2001-1458-301-a0--100-2e]-9618&noUDP&sock=4175_6a43_128638>
+...
+040 (335102.021.000) 05/14 18:02:31 Finished transferring input files
+...
+001 (335102.021.000) 05/14 18:02:32 Job executing on host: <188.184.132.61:9618?addrs=188.184.132.61-9618+[2001-1458-301-a0--100-2e]-9618&noUDP&sock=2427_4c71_3>
+...
+006 (335102.021.000) 05/14 18:02:40 Image size of job updated: 81108
+	58  -  MemoryUsage of job (MB)
+	59284  -  ResidentSetSize of job (KB)
+...
+006 (335102.021.000) 05/14 18:07:40 Image size of job updated: 350328
+	310  -  MemoryUsage of job (MB)
+	316840  -  ResidentSetSize of job (KB)
+...
+006 (335102.021.000) 05/14 18:12:41 Image size of job updated: 651284
+	604  -  MemoryUsage of job (MB)
+	617788  -  ResidentSetSize of job (KB)
+...
+006 (335102.021.000) 05/14 18:17:41 Image size of job updated: 785828
+	735  -  MemoryUsage of job (MB)
+	752332  -  ResidentSetSize of job (KB)
+...
+006 (335102.021.000) 05/14 18:22:41 Image size of job updated: 787268
+	737  -  MemoryUsage of job (MB)
+	753772  -  ResidentSetSize of job (KB)
+...
+040 (335102.021.000) 05/14 18:27:24 Started transferring output files
+...
+040 (335102.021.000) 05/14 18:27:24 Finished transferring output files
+...
+005 (335102.021.000) 05/14 18:27:24 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:22:11, Sys 0 00:01:47  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:22:11, Sys 0 00:01:47  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	11582  -  Run Bytes Sent By Job
+	10917  -  Run Bytes Received By Job
+	11582  -  Total Bytes Sent By Job
+	10917  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       71        1   2099701 
+	   Memory (MB)          :      737     2000      2000 
+...

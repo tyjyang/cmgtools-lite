@@ -1,0 +1,13 @@
+python /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/mcPlots.py -f -l 35.9 --s2v --tree treeProducerWMass --obj tree --lspam "#bf{CMS} #it{Preliminary}" --legendFontSize 0.05 /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/w-mass-13TeV/wlike_mu/tests/mca-94X_zmm.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/w-mass-13TeV/wlike_mu/tests/cuts_zmm.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/w-mass-13TeV/wlike_mu/tests/plots_zmm.txt --noCms -j 8 --sP "pt,eta,pt_eta,zpt,mt_wlike,zmass,nJetClean,jetCleanEta1,jetCleanPt1,jetCleanEta2,jetCleanPt2" -P /afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V2/ -F Friends /afs/cern.ch/work/e/emanuele/TREES/SKIM_2LEP_wlike_mu_V2/friends/tree_Friend_{cname}.root -W "puw2016_nTrueInt_36fb(nTrueInt)*_get_muonSF_recoToSelection(LepGood1_pdgId,LepGood1_kalPt,LepGood1_eta)*_get_muonSF_recoToSelection(LepGood2_pdgId,LepGood2_kalPt,LepGood2_eta)*prefireJetsWeight(returnChargeVal(LepGood1_eta,LepGood1_charge,LepGood2_eta,LepGood2_charge,evt))" --pdir /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/Wlike/TREE_4_WLIKE_MU/testToDelete/ --n-column-legend 2 --setLegendCoordinates 0.2,0.77,0.9,0.92 -p "data,Z,data_fakes,Top2l,VV" --allProcInLegend --noLegendRatioPlot --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange -A twolep evenEvents "isEvenEvent(evt)" -A twolep mt_wlike "mt_wlike(LepGood1_kalPt,LepGood1_phi,LepGood1_charge,LepGood2_kalPt,LepGood2_phi,LepGood2_charge,met_pt,met_phi,evt) > 45" --max-entries 100 
+Will save plots to  /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/Wlike/TREE_4_WLIKE_MU/testToDelete//plots_zmm.root
+cut set:  all cuts
+    plot:  pt
+    plot:  eta
+    plot:  zmass
+    plot:  mt_wlike
+    plot:  zpt
+    plot:  nJetClean
+    plot:  jetCleanEta1
+    plot:  jetCleanPt1
+    plot:  jetCleanEta2
+    plot:  jetCleanPt2

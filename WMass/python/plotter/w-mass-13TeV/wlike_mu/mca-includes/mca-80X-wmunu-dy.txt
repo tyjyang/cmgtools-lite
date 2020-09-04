@@ -1,0 +1,22 @@
+# the reweighting should work identical to before
+# signal from the weighted uncut sample
+# Z xsec from FEWZ 3.1 and NNPDF 3.1: https://twiki.cern.ch/twiki/bin/viewauth/CMS/StandardModelCrossSectionsat13TeV
+Zplus_ac  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGray+1   , FakeRate="w-mass-13TeV/fractionReweighting/weight_c_plus.txt" , Label="Z+ ac"
+Zplus_a0  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGray+1   , FakeRate="w-mass-13TeV/fractionReweighting/weight_0_plus.txt" , Label="Z+ a0"
+Zplus_a1  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kBlue+1   , FakeRate="w-mass-13TeV/fractionReweighting/weight_1_plus.txt" , Label="Z+ a1"
+Zplus_a2  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGreen+1  , FakeRate="w-mass-13TeV/fractionReweighting/weight_2_plus.txt" , Label="Z+ a2"
+Zplus_a3  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kRed+1    , FakeRate="w-mass-13TeV/fractionReweighting/weight_3_plus.txt" , Label="Z+ a3"
+Zplus_a4  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kCyan+1   , FakeRate="w-mass-13TeV/fractionReweighting/weight_4_plus.txt" , Label="Z+ a4"
+Zplus_a5  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kYellow+1 , FakeRate="w-mass-13TeV/fractionReweighting/weight_5_plus.txt" , Label="Z+ a5"
+Zplus_a6  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kAzure+1  , FakeRate="w-mass-13TeV/fractionReweighting/weight_6_plus.txt" , Label="Z+ a6"
+Zplus_a7  : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kMagenta+1, FakeRate="w-mass-13TeV/fractionReweighting/weight_7_plus.txt" , Label="Z+ a7"
+
+Zminus_ac : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGray-2   , FakeRate="w-mass-13TeV/fractionReweighting/weight_c_minus.txt", Label="Z- ac"
+Zminus_a0 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGray-2   , FakeRate="w-mass-13TeV/fractionReweighting/weight_0_minus.txt", Label="Z- a0"
+Zminus_a1 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kBlue-2   , FakeRate="w-mass-13TeV/fractionReweighting/weight_1_minus.txt", Label="Z- a1"
+Zminus_a2 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kGreen-2  , FakeRate="w-mass-13TeV/fractionReweighting/weight_2_minus.txt", Label="Z- a2"
+Zminus_a3 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kRed-2    , FakeRate="w-mass-13TeV/fractionReweighting/weight_3_minus.txt", Label="Z- a3"
+Zminus_a4 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kCyan-2   , FakeRate="w-mass-13TeV/fractionReweighting/weight_4_minus.txt", Label="Z- a4"
+Zminus_a5 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kYellow-2 , FakeRate="w-mass-13TeV/fractionReweighting/weight_5_minus.txt", Label="Z- a5"
+Zminus_a6 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kAzure-2  , FakeRate="w-mass-13TeV/fractionReweighting/weight_6_minus.txt", Label="Z- a6"
+Zminus_a7 : ZJToMuMu_powhegMiNNLO_pythia8_photos_* : 2025.7 : 1 ; FillColor=ROOT.kMagenta-2, FakeRate="w-mass-13TeV/fractionReweighting/weight_7_minus.txt", Label="Z- a7"

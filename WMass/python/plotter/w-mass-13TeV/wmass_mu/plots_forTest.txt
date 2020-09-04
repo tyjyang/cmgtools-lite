@@ -1,0 +1,66 @@
+ptl1: ptMuFull(LepGood1_rocPt,LepGood1_eta): 39,26,65 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptl1coarse: ptMuFull(LepGood1_rocPt,LepGood1_eta): 19,26,64 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+etal1: LepGood1_eta: 48,-2.4,2.4 ; XTitle="muon #eta", Legend='TC', IncludeOverflows=False
+
+etal1coarse: LepGood1_eta: 24,-2.4,2.4 ; XTitle="muon #eta", Legend='TC', IncludeOverflows=False
+
+ptl1__etal1: LepGood1_rocPt\:LepGood1_eta: 48,-2.4,2.4,39,26,65 ; XTitle='muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
+
+ptl1_56: ptMuFull(LepGood1_rocPt,LepGood1_eta): 30,26,56 ; XTitle="muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+ptl1_56__etal1: LepGood1_rocPt\:LepGood1_eta: 48,-2.4,2.4,30,26,56 ; XTitle='muon #eta', YTitle='muon p_{T} [GeV]', Legend='TR'
+
+
+isol1: LepGood1_relIso04: 50,0.0,0.5 ; XTitle="muon isolation #DeltaR 04", Legend='TC', IncludeOverflows=True, Logy=True
+
+muonId: LepGood1_mediumMuonId: 3,0,3; XTitle="muon medium ID flag", Legend='TC', IncludeOverflows=True
+
+awayJet_pt: LepGood_awayJet_pt : 60,20,80; XTitle="jet p_{T} [GeV]", Legend='TR', IncludeOverflows=False
+
+awayJet_eta: LepGood_awayJet_eta : 50,-2.5,2.5 ; XTitle="jet #eta", Legend='TL', IncludeOverflows=False
+
+mt: mt_2(met_pt,met_phi,ptMuFull(LepGood1_rocPt,LepGood1_eta),LepGood1_phi) : 60,20,140 ; XTitle="m_{T} (PFMET\,muon) [GeV]", Legend='TL', IncludeOverflows=True
+
+mtcoarse: mt_2(met_pt,met_phi,ptMuFull(LepGood1_rocPt,LepGood1_eta),LepGood1_phi) : 30,0,120 ; XTitle="m_{T} (PFMET\,muon) [GeV]", Legend='TL', IncludeOverflows=True
+
+
+mt_jet_mu: mt_2(LepGood_awayJet_pt,LepGood_awayJet_phi,ptMuFull(LepGood1_rocPt,LepGood1_eta),LepGood1_phi) : 60,20,140 ; XTitle="m_{T} (jet\,muon) [GeV]", Legend='TL', IncludeOverflows=False
+
+mass_jet_mu: mass_2(LepGood_awayJet_pt,LepGood_awayJet_eta,LepGood_awayJet_phi,0,ptMuFull(LepGood1_rocPt,LepGood1_eta),LepGood1_eta,LepGood1_phi,0.1057000) : 50,40,140 ; XTitle="mass (jet\,mu) [GeV]", Legend='TL', IncludeOverflows=False
+
+dphiLepAwayJet : abs(deltaPhi(LepGood1_phi,LepGood_awayJet_phi)) : 32,0.0,3.2; XTitle="#Delta#phi(muon\,away-jet)", Legend='TL', IncludeOverflows=True, Logy=True
+
+detaLepAwayJet : abs(LepGood1_eta-LepGood_awayJet_eta) : 50,0.0,5; XTitle="#Delta#eta(muon\,away-jet)", Legend='TR', IncludeOverflows=True
+
+dRLepAwayJet : deltaR(LepGood1_eta,LepGood1_phi,LepGood_awayJet_eta,LepGood_awayJet_phi) : 50,0.0,5; XTitle="#Delta R(muon\,away-jet)", Legend='TR', IncludeOverflows=True
+
+dxy: LepGood1_dxy: 1000,-5.0,5.0; XTitle="dxy with respect to PV [cm]", Legend='TC', IncludeOverflows=True, Logy=True
+
+dz: LepGood1_dz: 1000,-50.0,50.0; XTitle="dz with respect to PV [cm]", Legend='TC', IncludeOverflows=True, Logy=True
+
+iso03: LepGood1_relIso03: 50,0.0,0.5 ; XTitle="muon isolation #DeltaR 03", Legend='TC', IncludeOverflows=True, Logy=True
+
+miniRelIso: LepGood1_miniRelIso: 50,0.0,0.5 ; XTitle="muon miniRelIso", Legend='TC', IncludeOverflows=True, Logy=True
+
+nVert: nVert: 50,0,50; XTitle="number of vertices", Legend='TC', IncludeOverflows=True
+
+met_pt: met_pt: 40,0,80; XTitle="PF met", Legend='TC', IncludeOverflows=True
+
+dzVertex_gen_primary: primaryVertex_z-genVertez_z: 200,-1.0,1.0; XTitle="vertex #Deltaz (gen-reco) [cm]", Legend='TC', IncludeOverflows=False, Logy=True
+
+dzVertex_gen_primary_largeRange: primaryVertex_z-genVertez_z: 600,-60.0,60.0; XTitle="vertex #Deltaz (gen-reco) [cm]", Legend='TC', IncludeOverflows=False, Logy=True
+
+#genWptDressed: pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]) : 50,0,100 ; XTitle="W gen-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=True
+
+
+dzVertex_gen_primary__Wpt: (primaryVertex_z-genVertez_z)\:pt_2(GenLepDressed_pt[0],GenLepDressed_phi[0],GenPromptNu_pt[0],GenPromptNu_phi[0]) : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=False
+
+dzVertex_gen_primary__dressedLepPt: (primaryVertex_z-genVertez_z)\:GenLepDressed_pt[0]: 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" leading dressed lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+dzVertex_gen_primary__recoLepPt: (primaryVertex_z-genVertez_z)\:LepGood_pt[0]: 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" reco lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+
+dzVertex_gen_primary__ptReco_over_ptGen: (primaryVertex_z-genVertez_z)\:safeRatio(LepGood1_rocPt,GenLepDressed_pt[0],1.0): 200,0.5,1.5,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]", XTitle="lepton p_{T}^{reco}/p_{T}^{gen}", Legend='TL', IncludeOverflows=False
+
+ptReco_over_ptGen: safeRatio(LepGood1_rocPt,GenLepDressed_pt[0],1.0): 100,0.5,1.5; XTitle="lepton p_{T}^{reco}/p_{T}^{gen}", Legend='TL', IncludeOverflows=False, Logy=True

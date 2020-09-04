@@ -1,0 +1,44 @@
+000 (323084.017.000) 05/11 15:54:56 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+022 (323084.017.000) 05/11 15:56:14 Job disconnected, attempting to reconnect
+    Socket between submit and execute hosts closed unexpectedly
+    Trying to reconnect to slot1_1@b7g28n0801.cern.ch <188.184.132.48:9618?addrs=188.184.132.48-9618+[--1]-9618&noUDP&sock=2265_2e19_3>
+...
+024 (323084.017.000) 05/11 15:56:14 Job reconnection failed
+    Job not found at execution machine
+    Can not reconnect to slot1_1@b7g28n0801.cern.ch, rescheduling job
+...
+040 (323084.017.000) 05/11 15:57:49 Started transferring input files
+	Transferring to host: <128.142.240.43:9618?addrs=128.142.240.43-9618+[--1]-9618&noUDP&sock=3285_545f_9609>
+...
+040 (323084.017.000) 05/11 15:57:49 Finished transferring input files
+...
+001 (323084.017.000) 05/11 15:57:50 Job executing on host: <128.142.240.43:9618?addrs=128.142.240.43-9618+[--1]-9618&noUDP&sock=2275_0a0c_3>
+...
+006 (323084.017.000) 05/11 15:57:58 Image size of job updated: 291964
+	207  -  MemoryUsage of job (MB)
+	211756  -  ResidentSetSize of job (KB)
+...
+006 (323084.017.000) 05/11 16:02:58 Image size of job updated: 570428
+	477  -  MemoryUsage of job (MB)
+	487564  -  ResidentSetSize of job (KB)
+...
+040 (323084.017.000) 05/11 16:07:49 Started transferring output files
+...
+040 (323084.017.000) 05/11 16:07:49 Finished transferring output files
+...
+005 (323084.017.000) 05/11 16:07:49 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:08:19, Sys 0 00:01:03  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:08:19, Sys 0 00:01:03  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	13864  -  Run Bytes Sent By Job
+	10941  -  Run Bytes Received By Job
+	13864  -  Total Bytes Sent By Job
+	10941  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       74        1   2128213 
+	   Memory (MB)          :      477     2000      2000 
+...

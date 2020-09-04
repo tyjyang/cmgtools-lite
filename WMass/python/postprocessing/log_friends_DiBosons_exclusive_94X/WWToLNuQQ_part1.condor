@@ -1,0 +1,25 @@
+Universe = vanilla
+Executable = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DiBosons_exclusive_94X/dummy_exec.sh
+use_x509userproxy = true
+Log        = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DiBosons_exclusive_94X/WWToLNuQQ_part1_$(ProcId).log
+Output     = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DiBosons_exclusive_94X/WWToLNuQQ_part1_$(ProcId).out
+Error      = /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/log_friends_DiBosons_exclusive_94X/WWToLNuQQ_part1_$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing"
+request_memory = 2000
++MaxRuntime = 14400
++AccountingGroup = "group_u_CMS.CAF.ALCA"
+
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/ -d WWToLNuQQ_part1 -c 0  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/ -d WWToLNuQQ_part1 -c 1  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/ -d WWToLNuQQ_part1 -c 2  --friend  
+ queue 1 
+
+arguments =  postproc_batch.py -N 250000 -t treeProducerWMass --signals WJetsToLNu,DYJetsToLL,ZJToMuMu --moduleList DEFAULT_MODULES MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/ MY_EOS_SPACE/heppyNtuples/TREES_DiBosons_exclusive_94X/friends/ -d WWToLNuQQ_part1 -c 3  --friend  
+ queue 1 
+

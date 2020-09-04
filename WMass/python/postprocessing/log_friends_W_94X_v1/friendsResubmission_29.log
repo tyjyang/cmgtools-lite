@@ -1,0 +1,48 @@
+000 (335115.029.000) 05/14 18:59:41 Job submitted from host: <188.184.95.166:9618?addrs=188.184.95.166-9618+[2001-1458-201-e4--100-7a0]-9618&alias=tbird02.cern.ch&noUDP&sock=schedd_2138722_faad_3>
+...
+040 (335115.029.000) 05/14 19:00:21 Started transferring input files
+	Transferring to host: <137.138.51.250:9618?addrs=137.138.51.250-9618+[--1]-9618&noUDP&sock=2579_e382_3624>
+...
+040 (335115.029.000) 05/14 19:00:21 Finished transferring input files
+...
+001 (335115.029.000) 05/14 19:00:22 Job executing on host: <137.138.51.250:9618?addrs=137.138.51.250-9618+[--1]-9618&noUDP&sock=1460_045c_3>
+...
+006 (335115.029.000) 05/14 19:00:31 Image size of job updated: 190420
+	110  -  MemoryUsage of job (MB)
+	111956  -  ResidentSetSize of job (KB)
+...
+006 (335115.029.000) 05/14 19:05:32 Image size of job updated: 433852
+	340  -  MemoryUsage of job (MB)
+	347248  -  ResidentSetSize of job (KB)
+...
+006 (335115.029.000) 05/14 19:10:33 Image size of job updated: 729488
+	628  -  MemoryUsage of job (MB)
+	642824  -  ResidentSetSize of job (KB)
+...
+006 (335115.029.000) 05/14 19:15:33 Image size of job updated: 864488
+	760  -  MemoryUsage of job (MB)
+	777824  -  ResidentSetSize of job (KB)
+...
+006 (335115.029.000) 05/14 19:20:34 Image size of job updated: 868688
+	764  -  MemoryUsage of job (MB)
+	782024  -  ResidentSetSize of job (KB)
+...
+040 (335115.029.000) 05/14 19:23:23 Started transferring output files
+...
+040 (335115.029.000) 05/14 19:23:23 Finished transferring output files
+...
+005 (335115.029.000) 05/14 19:23:23 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:20:16, Sys 0 00:02:10  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:20:16, Sys 0 00:02:10  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	14074  -  Run Bytes Sent By Job
+	10970  -  Run Bytes Received By Job
+	14074  -  Total Bytes Sent By Job
+	10970  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 1           
+	   Disk (KB)            :       73        1   2181229 
+	   Memory (MB)          :      764     4000      4000 
+...

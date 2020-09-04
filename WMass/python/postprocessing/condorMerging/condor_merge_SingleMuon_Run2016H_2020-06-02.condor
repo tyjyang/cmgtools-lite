@@ -1,0 +1,15 @@
+Executable = mergeScript.sh
+use_x509userproxy = true
+Log        = log_merge_SingleMuon_Run2016H_$(ProcId).log
+Output     = log_merge_SingleMuon_Run2016H_$(ProcId).out
+Error      = log_merge_SingleMuon_Run2016H_$(ProcId).error
+getenv      = True
+
+transfer_input_files  = fullMergeTrees.py
+
+environment = "LS_SUBCWD=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing/condorMerging"
+request_memory = 2000
++MaxRuntime = 7200
+
++AccountingGroup = "group_u_CMS.CAF.ALCA"
+

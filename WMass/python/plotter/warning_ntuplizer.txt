@@ -1,0 +1,15 @@
+ bin variables out of range
+%MSG
+%MSG-e SimpleJetCorrectionUncertainty: 
+ bin variables out of range
+%MSG
+%MSG-e SimpleJetCorrectionUncertainty: 
+ bin variables out of range
+%MSG
+Warning: 1 out of 6 jets flagged bad by JEC.
+%MSG-e SimpleJetCorrectionUncertainty: 
+ bin variables out of range
+
+%MSG-w MagneticField|FieldOutsideValidity:
+ Point  (55.1769,-229.764,366.294)  is outside the validity region of OAEParametrizedMagneticField
+%MSG

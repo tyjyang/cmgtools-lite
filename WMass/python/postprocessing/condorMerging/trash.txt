@@ -1,0 +1,12 @@
+Will perform a strict integrity check on every single file
+Submitted jobs won't perform check
+Warning: no SkimReport.pck found in folder SingleMuon_Run2016G_Chunk79
+Warning: no SkimReport.pck found in folder SingleMuon_Run2016H_Chunk4
+for dataset SingleMuon_Run2016H i will merge 30 files per chunk for roughly 1 chunks
+for dataset SingleMuon_Run2016G i will merge 32 files per chunk for roughly 8 chunks
+this was just a dry run...
+Listing files to resubmit below
+cmgResubChunk -q HTCondor -t 4000 /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/Trees_Data2016_ErasGH_2020_05_07_recover//SingleMuon_Run2016G_Chunk79
+cmgResubChunk -q HTCondor -t 4000 /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/Trees_Data2016_ErasGH_2020_05_07_recover//SingleMuon_Run2016G_Chunk248
+cmgResubChunk -q HTCondor -t 4000 /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/Trees_Data2016_ErasGH_2020_05_07_recover//SingleMuon_Run2016H_Chunk4
+...done

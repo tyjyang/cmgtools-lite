@@ -1,0 +1,1097 @@
+Could not find platform independent libraries <prefix>
+Could not find platform dependent libraries <exec_prefix>
+Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+Traceback (most recent call last):
+  File "/cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/py2-sqlalchemy/1.1.4-fmblme/lib/python2.7/site-packages/site.py", line 73, in <module>
+    __boot()
+  File "/cvmfs/cms.cern.ch/slc7_amd64_gcc630/external/py2-sqlalchemy/1.1.4-fmblme/lib/python2.7/site-packages/site.py", line 3, in __boot
+    import os
+ImportError: No module named os
+Error in <TGClient::TGClient>: can't open display "localhost:12.0", switching to batch mode...
+ In case you run from a remote ssh session, reconnect with ssh -Y
+Info in <ACLiC>: unmodified script has already been compiled and loaded
+SysError in <TFile::Flush>: error flushing file MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/tree_Friend_SingleMuon_Run2016B_part1.chunk12.root (Input/output error)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt, nbytes=-1, entry=214239
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_awayJet_pt, nbytes=-1, entry=214280
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_awayJet_eta, nbytes=-1, entry=214280
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_awayJet_phi, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_step1, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat0, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat1, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat2, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat3, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat4, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat5, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat6, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat7, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat8, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat9, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat10, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat11, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat12, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat13, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat14, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat15, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat16, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat17, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat18, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat19, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat20, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat21, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat22, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat23, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat24, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat25, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat26, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat27, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat28, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat29, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat30, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat31, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat32, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat33, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat34, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat35, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat36, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat37, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat38, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat39, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat40, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat41, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat42, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat43, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat44, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat45, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat46, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat47, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat48, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat49, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat50, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat51, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat52, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat53, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat54, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat55, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat56, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat57, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat58, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat59, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat60, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat61, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat62, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat63, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat64, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat65, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat66, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat67, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat68, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat69, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat70, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat71, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat72, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat73, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat74, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat75, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat76, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat77, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat78, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat79, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat80, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat81, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat82, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat83, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat84, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat85, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat86, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat87, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat88, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat89, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat90, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat91, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat92, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat93, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat94, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat95, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat96, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat97, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat98, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.LepGood_rocPt_stat99, nbytes=-1, entry=214280
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.JetAll_Clean_pt, nbytes=-1, entry=216764
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.JetAll_Clean_eta, nbytes=-1, entry=216764
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.JetAll_Clean_phi, nbytes=-1, entry=216764
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.JetAll_Clean_mass, nbytes=-1, entry=216764
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.Jet_Clean_pt, nbytes=-1, entry=218900
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.Jet_Clean_eta, nbytes=-1, entry=218900
+ This error is symptomatic of a Tree created as a memory-resident Tree
+ Instead of doing:
+    TTree *T = new TTree(...)
+    TFile *f = new TFile(...)
+ you should do:
+    TFile *f = new TFile(...)
+    TTree *T = new TTree(...)
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.Jet_Clean_phi, nbytes=-1, entry=218900
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::Fill>: Failed to write out basket.
+
+Error in <TTree::Fill>: Failed filling branch:Friends.Jet_Clean_mass, nbytes=-1, entry=218900
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Error in <TBranch::TBranch::WriteBasketImpl>: basket's WriteBuffer failed.
+
+Traceback (most recent call last):
+  File "postproc_batch.py", line 277, in <module>
+    ret = dict(map(_runIt, jobs))
+TypeError: cannot convert dictionary update sequence element #0 to a sequence

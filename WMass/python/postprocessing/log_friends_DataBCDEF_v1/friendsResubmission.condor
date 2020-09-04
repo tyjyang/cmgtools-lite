@@ -1,0 +1,377 @@
+Universe = vanilla
+Executable = log_friends_DataBCDEF_v1//dummy_exec.sh
+use_x509userproxy = true
+Log        = log_friends_DataBCDEF_v1//friendsResubmission_$(ProcId).log
+Output     = log_friends_DataBCDEF_v1//friendsResubmission_$(ProcId).out
+Error      = log_friends_DataBCDEF_v1//friendsResubmission_$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD=/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/postprocessing"
+request_memory = 4000
++MaxRuntime = 15000 
+
++AccountingGroup = "group_u_CMS.CAF.ALCA"
+
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016C_part1 -c 9  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016C_part1 -c 20  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016C_part1 -c 21  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016C_part1 -c 22  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 25  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 26  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 27  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 28  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 29  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 31  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part4 -c 32  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part6 -c 13  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 10  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 17  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part2 -c 8  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 32  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 33  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 34  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 35  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 36  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 37  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 38  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 39  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 40  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 41  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 42  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 43  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 44  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 45  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 46  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 47  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 48  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 49  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 50  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 51  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 52  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 53  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 54  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part5 -c 55  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 12  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 13  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 14  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 15  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 16  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 17  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 18  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 19  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 20  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 21  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 22  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 23  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 24  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 25  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 26  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 27  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 28  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 29  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 30  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 31  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 32  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 33  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 34  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 35  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 36  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 37  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 38  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 39  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 40  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 41  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 42  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 43  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 44  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 45  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 46  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 47  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 48  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 49  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 50  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 51  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 52  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 53  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 54  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 55  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 56  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 57  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 58  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 59  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part1 -c 60  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 31  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 32  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 33  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 34  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 35  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 36  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 37  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 38  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 39  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 40  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 41  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 42  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 43  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 44  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 45  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 46  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 47  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 48  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 49  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 50  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 51  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 52  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 53  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 54  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 55  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 56  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 57  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 58  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 59  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 60  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 61  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 62  
+queue 1 
+
+arguments =  postproc_batch.py MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/ MY_EOS_SPACE/heppyNtuples/TREES_SingleMuon2016BCDEF_94X/friends/ --friend -N 250000 -d SingleMuon_Run2016B_part3 -c 63  
+queue 1 
+
