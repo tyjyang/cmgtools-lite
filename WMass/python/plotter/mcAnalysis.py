@@ -168,10 +168,13 @@ class MCAnalysis:
                 rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
                 if options.noHeppyTree:
                     # under development, to run on any kind of root file
-                    # print "cname = %s" % cname
-                    rootfile = "%s/%s.root" % (basepath, treename)                    
-                    print "rootfile: %s" % rootfile
-                    print "objname : %s" % objname
+                    #print "cname = %s" % cname
+                    if "TreeName" in extra:
+                        rootfile = "%s/%s.root" % (basepath, treename)                    
+                    else:
+                        rootfile = "%s/%s" % (basepath, cname)                    
+                    #print "rootfile: %s" % rootfile
+                    #print "objname : %s" % objname
                 else:
                     if options.remotePath:
                         rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
