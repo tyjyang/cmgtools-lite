@@ -2,9 +2,23 @@ dipho_mass: dipho_mass: 100,30,230; XTitle="M_{#gamma#gamma} (GeV)", Legend='TC'
 
 dipho_mass_narrow: dipho_mass: 40,100,180; XTitle="M_{#gamma#gamma} (GeV)", Legend='TC', IncludeOverflows=True
 
+dipho_mass_higgs: dipho_mass: 30,110,140; XTitle="M_{#gamma#gamma} (GeV)", Legend='TC', IncludeOverflows=True
+
 dipho_leadEta: dipho_leadEta: 50,-2.5,2.5; XTitle="Leading photon #eta", Legend='TC', IncludeOverflows=True
 
 dipho_subleadEta: dipho_subleadEta: 50,-2.5,2.5; XTitle="Subleading photon #eta", Legend='TC', IncludeOverflows=True
+
+dipho_leadR9: dipho_leadR9: 60,0.5,1.1; XTitle="Leading photon R_{9}", Legend='TC', IncludeOverflows=True
+
+dipho_subleadR9: dipho_subleadR9: 60,0.5,1.1; XTitle="Subleading photon R_{9}", Legend='TC', IncludeOverflows=True
+
+dipho_lead_sieie: dipho_lead_sieie: 50,0,0.05; XTitle="Leading photon #sigma_{i#etai#eta}", Legend='TC', IncludeOverflows=True
+
+dipho_sublead_sieie: dipho_sublead_sieie: 50,0,0.05; XTitle="Subleading photon #sigma_{i#etai#eta}", Legend='TC', IncludeOverflows=True
+
+dipho_lead_hoe: dipho_lead_hoe: 50,0,0.05; XTitle="Leading photon H/E", Legend='TC', IncludeOverflows=True
+
+dipho_sublead_hoe: dipho_sublead_hoe: 50,0,0.05; XTitle="Subleading photon H/E", Legend='TC', IncludeOverflows=True
 
 dipho_leadPt: dipho_leadPt: 100,0,500; XTitle="Leading photon p_{T} (GeV)", Legend='TC', IncludeOverflows=True, Logy=True
 
@@ -29,3 +43,11 @@ dijet_mva : dijet_mva  : 50,-1,1; XTitle="VBF MVA value", Legend='TC', IncludeOv
 dipho_dijet_MVA : dipho_dijet_MVA  : 50,-1,1; XTitle="VBF #gamma#gamma jj MVA value", Legend='TC', IncludeOverflows=True, Logy=True
 
 dipho_mva : dipho_mva  : 50,-1,1; XTitle="#gamma#gamma MVA value", Legend='TC', IncludeOverflows=True, Logy=True
+
+sigmarv : sigmarv: 25,0,0.05; XTitle="per-event mass resolution (right vertex)", Legend='TC', IncludeOverflows=True
+
+sigmawv : sigmawv: 25,0,0.05; XTitle="per-event mass resolution (wrong vertex)", Legend='TC', IncludeOverflows=True
+
+CosPhi : CosPhi: 100,-1.0,1.0; XTitle="cos(#Delta#phi) between photons", Legend='TC', IncludeOverflows=True, Logy=True
+
+vtxprob : vtxprob: 50,-0,1.0; XTitle="per-event probability to pick correct vertex", Legend='TC', IncludeOverflows=True, Logy=True
