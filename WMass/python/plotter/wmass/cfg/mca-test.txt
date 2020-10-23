@@ -1,0 +1,1 @@
+W   : SMP-RunIISummer16NanoAODv7-00336_11* : 1.0; FillColor=ROOT.kRed+2,  , Label="W", NormSystematic=0.1, ObjName="Events"

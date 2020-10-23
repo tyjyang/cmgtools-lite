@@ -175,6 +175,16 @@ class MCAnalysis:
                         rootfile = "%s/%s" % (basepath, cname)                    
                     #print "rootfile: %s" % rootfile
                     #print "objname : %s" % objname
+                elif options.nanoaodTree:
+                    # under development, to run on nanoaod (similar to case above, but that 
+                    # is for another purpose, so keep it separate for now)
+                    print "cname = %s" % cname
+                    if "TreeName" in extra:
+                        rootfile = "%s/%s.root" % (basepath, treename)                    
+                    else:
+                        rootfile = "%s/%s" % (basepath, cname)                    
+                    print "rootfile: %s" % rootfile
+                    print "objname : %s" % objname
                 else:
                     if options.remotePath:
                         rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
@@ -219,6 +229,63 @@ class MCAnalysis:
                             total_w = 1 # not really used for general trees at the moment
                             if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                             is_w = 0
+                    elif options.nanoaodTree:
+
+                        maxGenWgt = None
+                        sumGenWeights = 1.0
+                        nUnweightedEvents = 1.0
+                        if options.weight and len(options.maxGenWeightProc):
+                            # get sum of weights from Events tree, filtering some events with large weights
+                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
+                                if re.match(procRegExp,pname):
+                                    #tmp_maxGenWgt is a string, convert to float
+                                    maxGenWgt = abs(float(tmp_maxGenWgt))
+                                    print "INFO: %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
+                                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                                    #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                                    tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                                    tmp_tree = tmp_rootfile.Get('Events')
+                                    if not tmp_tree or tmp_tree == None:
+                                        raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
+                                    nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < maxGenWgt")           
+                                    tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                                    sumGenWeights = tmp_hist.Integral()
+                                    tmp_rootfile.Close()
+                        else:
+                            # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
+                            ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                            #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                            tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                            tmp_tree = tmp_rootfile.Get('Runs')
+                            if not tmp_tree or tmp_tree == None:
+                                raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                            tmp_tree.Draw("1>>sumweights", "genEventSumw")
+                            tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                            sumGenWeights = tmp_hist.Integral()
+                            tmp_tree.Draw("1>>sumcount", "genEventCount")
+                            tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
+                            nUnweightedEvents = tmp_hist2.Integral()
+                            tmp_rootfile.Close()                            
+
+                        if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
+                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 1; 
+                            total_w += sumGenWeights
+                            if maxGenWgt != None:
+                                scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
+                            else:
+                                scale = "genWeight*(%s)" % field[2]
+                        elif not options.weight:
+                            scale = "1"
+                            total_w = 1
+                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 0
+                        else: # case for unweighted events for MC
+                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                            is_w = 0;
+                            # total_w += n_count ## ROOT histo version
+                            total_w += nUnweightedEvents
+                            scale = "(%s)" % field[2]
                     else:
                         useHistoForWeight = False
                         maxGenWgt = None
@@ -251,7 +318,7 @@ class MCAnalysis:
 
                         #do always read this file as well, not to modify the following 'if' statement
                         pckobj  = pickle.load(open(pckfile,'r'))
-                        counters = dict(pckobj)
+                        counters = dict(pckobj)                            
                         # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
                         ## this needed for now...
                         if ('Sum Weights' in counters) and options.weight:
@@ -264,7 +331,7 @@ class MCAnalysis:
                                 total_w += counters['Sum Weights']
                                 scale = "genWeight*(%s)" % field[2]
                         elif not options.weight:
-                            scale = 1
+                            scale = "1"
                             total_w = 1
                             if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                             is_w = 0
@@ -698,6 +765,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("--fom", "--figure-of-merit", dest="figureOfMerit", type="string", default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
     parser.add_option("--max-genWeight-procs", dest="maxGenWeightProc", type="string", nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes");
     parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
+    parser.add_option("--nanoaod-tree",         dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
 
 
 if __name__ == "__main__":
