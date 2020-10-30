@@ -1,4 +1,9 @@
-muon_pt: Muon_pt[0]: 40,20,60; XTitle="Muon p_{T} (GeV)", Legend='TC', IncludeOverflows=True
+muon_pt: Muon_pt[0]: 40,20,60; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta: Muon_eta[0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_pt_eta: Muon_pt[0]\:Muon_eta[0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+
+PV_z: PV_z: 100,-20,20; XTitle="Primary vertex z (cm)", Legend='TC', IncludeOverflows=True
+
+OtherPV_z: OtherPV_z: 100,-20,20; XTitle="Other primary vertex z (cm)", Legend='TC', IncludeOverflows=True

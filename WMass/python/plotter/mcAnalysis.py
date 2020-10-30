@@ -144,7 +144,10 @@ class MCAnalysis:
             if match:
                 cnamesWithPath = []
                 for treepath in options.path:
-                    cnamesWithPath += (list(glob.iglob("%s/%s*" % (treepath,match.group(0)))))
+                    if 'SubPath' in extra:
+                        cnamesWithPath += (list(glob.iglob("%s/%s/%s*" % (treepath,extra['SubPath'],match.group(0)))))
+                    else:
+                        cnamesWithPath += (list(glob.iglob("%s/%s*" % (treepath,match.group(0)))))
                 cnames = [os.path.basename(cname) for cname in cnamesWithPath]
             else: cnames = [ x.strip() for x in field[1].split("+") ]
             total_w = 0.; to_norm = False; ttys = [];
@@ -156,10 +159,14 @@ class MCAnalysis:
                     if cname == ffrom: cname = fto
                 treename = extra["TreeName"] if "TreeName" in extra else options.tree 
                 objname  = extra["ObjName"]  if "ObjName"  in extra else options.obj
+                subpath  = extra["SubPath"]  if "SubPath"  in extra else ""
+                if subpath != "" and not subpath.endswith("/"):
+                    subpath += "/"
+                print "subpath = %s" % subpath
 
                 basepath = None
                 for treepath in options.path:
-                    if os.path.exists(treepath+"/"+cname):
+                    if os.path.exists(treepath+"/"+subpath+cname):
                         basepath = treepath
                         break
                 if not basepath:
@@ -180,9 +187,9 @@ class MCAnalysis:
                     # is for another purpose, so keep it separate for now)
                     print "cname = %s" % cname
                     if "TreeName" in extra:
-                        rootfile = "%s/%s.root" % (basepath, treename)                    
-                    else:
-                        rootfile = "%s/%s" % (basepath, cname)                    
+                        rootfile = "%s/%s%s.root" % (basepath, subpath, treename)                    
+                    else:                        
+                        rootfile = "%s/%s%s" % (basepath, subpath, cname)                    
                     print "rootfile: %s" % rootfile
                     print "objname : %s" % objname
                 else:
@@ -247,7 +254,7 @@ class MCAnalysis:
                                     tmp_tree = tmp_rootfile.Get('Events')
                                     if not tmp_tree or tmp_tree == None:
                                         raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
-                                    nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < maxGenWgt")           
+                                    nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
                                     tmp_hist = ROOT.gROOT.FindObject("sumweights")
                                     sumGenWeights = tmp_hist.Integral()
                                     tmp_rootfile.Close()

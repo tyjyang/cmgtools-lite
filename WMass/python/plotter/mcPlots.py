@@ -787,7 +787,8 @@ class PlotMaker:
         self._dir = tdir
         ROOT.gROOT.ProcessLine(".x tdrstyle.cc")
         # ROOT.gROOT.ProcessLine(".L smearer.cc+") # this should not be here, smearer has already been compiled (if smearer_cc.so not in ROOT.gSystem.GetLibraries())
-        ROOT.gStyle.SetOptStat(0)
+        if not options.drawStatBox:
+            ROOT.gStyle.SetOptStat(0)
         ROOT.gStyle.SetOptTitle(0)
         if self._options.perBin and not "txt" in self._options.printPlots: raise RuntimeError, "Error: cannot print yields per bin if txt option not given" 
  
@@ -1405,6 +1406,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--palette", dest="palette", type="int", default=57, help="Set color palette (only for 2D histograms)")
     parser.add_option("--allProcInLegend", dest="allProcInLegend", action="store_true", default=False, help="Put all processes in legend, regardless their integral.")
     parser.add_option("--forceFillColorNostackMode", dest="forceFillColorNostackMode", type="string", default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
+    parser.add_option("--drawStatBox", dest="drawStatBox", action="store_true", default=False, help="Draw stat box");
 
 
 if __name__ == "__main__":
