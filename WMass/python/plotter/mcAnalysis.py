@@ -140,20 +140,53 @@ class MCAnalysis:
                 for p in p0.split(","):
                     if re.match(p+"$", field[1]): skipMe = True
             if skipMe: continue
-            match=re.match("(\S+)\*",field[1]) 
-            if match:
-                cnamesWithPath = []
-                for treepath in options.path:
-                    if 'SubPath' in extra:
-                        cnamesWithPath += (list(glob.iglob("%s/%s/%s*" % (treepath,extra['SubPath'],match.group(0)))))
-                    else:
-                        cnamesWithPath += (list(glob.iglob("%s/%s*" % (treepath,match.group(0)))))
-                cnames = [os.path.basename(cname) for cname in cnamesWithPath]
-            else: cnames = [ x.strip() for x in field[1].split("+") ]
+            cnamesWithPath = []
+
+            if options.nanoaodTree:    
+                field1_regexp = re.compile(field[1])
+                subpath = extra['SubPath'] if 'SubPath' in extra else ".*"
+                subPath_regexp = re.compile(subpath)
+                pathsToSearch = options.path
+                if 'TreePath' in extra:
+                    if '[XXX]' in extra['TreePath']:                        
+                        if 'XXX' in extra:
+                            XXX = extra['XXX'].split(',')
+                            pathsToSearch = [extra['TreePath'].replace("[XXX]", x) for x in XXX]
+                        else:
+                            print "Error >>> Process %s '[XXX]' found in TreePath, but XXX not defined in MCA file" % (pname)
+                            quit()
+                print "INFO >>> Process %s -> searching files in %s" % (pname,repr(pathsToSearch))
+                for treepath in pathsToSearch:
+                    for dirpath, dirnames, filenames in os.walk(treepath):
+                        # either use regexp or simply that subpath is in the path (so one doesn't need 
+                        # to start subpath with .* for a proper match if a word without wildcards is used)
+                        if subPath_regexp.match(dirpath+"/") or subpath in (dirpath+"/"):
+                            filtered_fnames = [f for f in filenames if f.endswith(".root") and field1_regexp.match(f)]
+                            for filename in filtered_fnames:
+                                cnamesWithPath.append(os.path.join(dirpath, filename))
+                print "INFO >>> Process %s -> %d files selected" % (pname,len(cnamesWithPath))
+            else:
+                match=re.match("(\S+)\*",field[1]) 
+                if match:
+                    for treepath in options.path:
+                        if 'SubPath' in extra:
+                            cnamesWithPath += (list(glob.iglob("%s/%s/%s*" % (treepath,extra['SubPath'],match.group(0)))))
+                        else:
+                            cnamesWithPath += (list(glob.iglob("%s/%s*" % (treepath,match.group(0)))))
+                    cnames = [os.path.basename(cname) for cname in cnamesWithPath]
+                else: cnames = [ x.strip() for x in field[1].split("+") ]
             total_w = 0.; to_norm = False; ttys = [];
             is_w = -1
             pname0 = pname
-            for cname in cnames:
+
+            if options.weight and len(options.maxGenWeightProc):
+                for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
+                    if re.match(procRegExp,pname):
+                        print "INFO >>> Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
+
+            #for cname in cnames:            
+            for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
+                cname = os.path.basename(cnameWithPath)
                 if options.useCnames: pname = pname0+"."+cname
                 for (ffrom, fto) in options.filesToSwap:
                     if cname == ffrom: cname = fto
@@ -162,15 +195,20 @@ class MCAnalysis:
                 subpath  = extra["SubPath"]  if "SubPath"  in extra else ""
                 if subpath != "" and not subpath.endswith("/"):
                     subpath += "/"
-                print "subpath = %s" % subpath
+                #print "subpath = %s" % subpath
 
                 basepath = None
-                for treepath in options.path:
-                    if os.path.exists(treepath+"/"+subpath+cname):
-                        basepath = treepath
-                        break
-                if not basepath:
-                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
+                if options.nanoaodTree and os.path.exists(os.path.dirname(cnameWithPath)):
+                    basepath = cnameWithPath
+                    if not basepath:
+                        raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, pathsToSearch))
+                else:
+                    for treepath in options.path:
+                        if os.path.exists(treepath+"/"+subpath+cname):
+                            basepath = treepath
+                            break
+                    if not basepath:
+                        raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
 
                 rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
                 if options.noHeppyTree:
@@ -185,13 +223,10 @@ class MCAnalysis:
                 elif options.nanoaodTree:
                     # under development, to run on nanoaod (similar to case above, but that 
                     # is for another purpose, so keep it separate for now)
-                    print "cname = %s" % cname
-                    if "TreeName" in extra:
-                        rootfile = "%s/%s%s.root" % (basepath, subpath, treename)                    
-                    else:                        
-                        rootfile = "%s/%s%s" % (basepath, subpath, cname)                    
-                    print "rootfile: %s" % rootfile
-                    print "objname : %s" % objname
+                    rootfile = cnameWithPath
+                    #print "cname = %s" % cname
+                    #print "rootfile: %s" % rootfile
+                    #print "objname : %s" % objname
                 else:
                     if options.remotePath:
                         rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
@@ -247,7 +282,6 @@ class MCAnalysis:
                                 if re.match(procRegExp,pname):
                                     #tmp_maxGenWgt is a string, convert to float
                                     maxGenWgt = abs(float(tmp_maxGenWgt))
-                                    print "INFO: %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
                                     ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
                                     #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
                                     tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
@@ -302,7 +336,6 @@ class MCAnalysis:
                                     #tmp_maxGenWgt is a string, convert to float
                                     maxGenWgt = abs(float(tmp_maxGenWgt))
                                     log10_maxGenWgt = math.log10(maxGenWgt)
-                                    print "INFO: %s -> clipping genWeight to |x| < %s with distrGenWeights" % (pname,tmp_maxGenWgt)
                                     useHistoForWeight = True
                                     ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
                                     tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
