@@ -1,8 +1,8 @@
 <use name="CommonTools/Utils"/>
 <use name="TrackingTools/IPTools"/>
-<use name="MagneticField/UniformEngine"/>
+<!-- <use name="MagneticField/UniformEngine"/> -->
 <use name="MagneticField/ParametrizedEngine"/>
-<use name="EgammaAnalysis/ElectronTools"/>
+<!-- <use name="EgammaAnalysis/ElectronTools"/> -->
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="RecoVertex/KalmanVertexFit"/>
 <use name="roottmva"/>

@@ -13,7 +13,7 @@
 <use   name="DataFormats/HepMCCandidate"/>
 <use   name="fastjet"/>
 <use   name="ktjet"/>
-<use   name="EgammaAnalysis/ElectronTools"/>
+<!-- <use   name="EgammaAnalysis/ElectronTools"/> -->
 <use   name="boost"/>
 <export>
    <lib name="1"/>
