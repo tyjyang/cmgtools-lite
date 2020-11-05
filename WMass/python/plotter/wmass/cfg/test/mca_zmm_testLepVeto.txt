@@ -1,0 +1,5 @@
+#Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+
+Z_1GenInAccept: SMP-RunIISummer16NanoAODv7-00336_.* : 1976.17: isOutAccEtaPt(GenDressedLepton_eta[0],GenDressedLepton_pt[0],-2.4,2.4,26,60) || isOutAccEtaPt(GenDressedLepton_eta[1],GenDressedLepton_pt[1],-2.4,2.4,26,60); FillColor=ROOT.kRed+2, Label="Z (1 out acc)", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+
+Z_2GenInAccept: SMP-RunIISummer16NanoAODv7-00336_.* : 1976.17: isInAccEtaPt(GenDressedLepton_eta[0],GenDressedLepton_pt[0],-2.4,2.4,26,60) && isInAccEtaPt(GenDressedLepton_eta[1],GenDressedLepton_pt[1],-2.4,2.4,26,60); FillColor=ROOT.kAzure+2, Label="Z (2 in acc)", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"

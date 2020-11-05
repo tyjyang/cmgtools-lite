@@ -36,3 +36,22 @@ zmass  : mass_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057128,Muon_pt[1],Muon_eta
 zpt : pt_2(Muon_pt[0],Muon_phi[0],Muon_pt[1],Muon_phi[1]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR'
 
 zy : rapidity_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057128,Muon_pt[1],Muon_eta[1],Muon_phi[1],0.1057128): 50,-2.5,2.5 ; XTitle="reco Z rapidity", Legend='TR'
+
+nJet : nJet: 6,-0.5,5.5 ; XTitle="number of jets", Legend='TR'
+
+
+muon_pt_ss: Muon_pt: 35,25,60; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_eta_ss: Muon_eta: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
+
+deltaRgenMu: deltaR(GenDressedLepton_eta[0],GenDressedLepton_phi[0],GenDressedLepton_eta[1],GenDressedLepton_phi[1]): 80,0,4; XTitle="#DeltaR(#mu\,#mu) (dressed gen muons)", Legend='TC', IncludeOverflows=True
+
+# eta and pt of gen muon from Z that was not reconstructed when selecting events in W phase space
+
+genMuFailReco_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]): 80,-4.0,4.0; XTitle="gen muon #eta (failed reco)", Legend='TC', IncludeOverflows=True
+
+genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1]): 35,20,80; XTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
+
+genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1])\:varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
+

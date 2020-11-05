@@ -1822,6 +1822,41 @@ bool isEvenEvent(ULong64_t evt) {
 
 }
 
+bool isInAccEtaPt(Float_t eta, Float_t pt, 
+		  Float_t etalow, Float_t etahigh, 
+		  Float_t ptlow, Float_t pthigh) {
+
+  if (eta > etalow and eta < etahigh and pt > ptlow and pt < pthigh) 
+    return 1;
+  else 
+    return 0;
+
+}
+
+bool isOutAccEtaPt(Float_t eta, Float_t pt, 
+		   Float_t etalow, Float_t etahigh, 
+		   Float_t ptlow, Float_t pthigh) {
+
+  if (isInAccEtaPt(eta,pt,etalow,etahigh,ptlow,pthigh))
+    return 0;
+  else
+    return 1;		   
+
+}
+
+// return value for gen lepton from Z that was not reconstructed when selecting events in W phase space
+// so it is not a generic functions, assume you pass the reco muon pdgId (for first and only reco muon) to get the corresponding gen, assuming matching was done elsewhere and one is already selecting opposite charge leptons elsewhere 
+// it also assumes the same pdgId was already selected for reco and gen, so only
+float varGenLepFailReco(Int_t recoLepPdgId, Int_t genLep1_pdgId, Float_t genLep1_var, Float_t genLep2_var) {
+
+  if (genLep1_pdgId == recoLepPdgId) 
+    return genLep2_var;
+  else
+    return genLep1_var;
+
+}
+
+
 float safeRatio(float num, float den, float safe = 1.0) {
   return (den != 0.0) ? (num/den) : safe;
 }

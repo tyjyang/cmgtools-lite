@@ -73,8 +73,8 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True,
         print "Error in getMaxHisto(): dim = %d is not supported. Exit" % dim
         quit()
 
-    maxval = 0
-    minval = 0
+    maxval = -sys.float_info.max
+    minval = sys.float_info.max
     firstValidBin = -1
     for ibin in range (1,nbins+1):
         if excludeUnderflow and h.IsBinUnderflow(ibin): continue

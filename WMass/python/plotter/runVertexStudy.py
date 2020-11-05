@@ -13,7 +13,7 @@ cutfile  = path + "w-mass-13TeV/wmass_mu/cuts_wmu_VertexStudy.txt"
 plotfile = path + "w-mass-13TeV/wmass_mu/plots_forTest.txt"
 proc = "QCD" # Wnopt
 # 
-#plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt"
+plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt"
 
 # this script is meant to run the study on vertex using W MC or other MC
 
