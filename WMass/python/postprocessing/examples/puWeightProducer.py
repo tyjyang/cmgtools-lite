@@ -7,7 +7,7 @@ from CMGTools.WMass.postprocessing.framework.datamodel import Collection
 from CMGTools.WMass.postprocessing.framework.eventloop import Module
 
 class puWeightProducer(Module):
-    def __init__(self,myfile,targetfile,myhist="pu_mc",targethist="pileup",name="puWeight",norm=True,verbose=False,nvtx_var="nTrueInt"):
+    def __init__(self,myfile,targetfile,myhist="pu_mc",targethist="pileup",name="puWeight",norm=True,verbose=False,nvtx_var="Pileup_nTrueInt"):
         self.myh = self.loadHisto(myfile,myhist)
         self.targeth = self.loadHisto(targetfile,targethist)
         self.name = name

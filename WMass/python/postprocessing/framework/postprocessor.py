@@ -9,7 +9,7 @@ from CMGTools.WMass.postprocessing.framework.output import FriendOutput, FullOut
 from CMGTools.WMass.postprocessing.framework.preskimming import preSkim
 
 class PostProcessor :
-    def __init__(self,outputDir,inputFiles,cut=None,branchsel=None,modules=[],compression="LZMA:9",friend=False,postfix=None,json=None,noOut=False,justcount=False,eventRange=None):
+    def __init__(self,outputDir,inputFiles,cut=None,branchsel=None,modules=[],compression="LZMA:9",friend=False,postfix=None,json=None,noOut=False,justcount=False,eventRange=None,treeName="tree",prefixRootFileName=None):
 	self.outputDir=outputDir
 	self.inputFiles=inputFiles
 	self.cut=cut
@@ -21,6 +21,8 @@ class PostProcessor :
 	self.friend=friend
 	self.justcount=justcount
         self.eventRange=eventRange
+        self.treeName=treeName
+        self.prefixRootFileName=prefixRootFileName
  	self.branchsel = BranchSelection(branchsel) if branchsel else None 
     def run(self) :
     	if not self.noOut:
@@ -79,7 +81,7 @@ class PostProcessor :
                 inFile = ROOT.TFile.Open(fname)
 
 	    #get input tree
-	    inTree = inFile.Get("tree")
+	    inTree = inFile.Get(self.treeName)
 
 	    # pre-skimming
 	    elist,jsonFilter = preSkim(inTree, self.json, self.cut)
@@ -96,7 +98,10 @@ class PostProcessor :
 		inTree = InputTree(inTree, elist) 
 
 	    # prepare output file
-	    outFileName = os.path.join(self.outputDir, os.path.basename(fname).replace(".root",outpostfix+".root"))
+            if self.prefixRootFileName != None:
+                outFileName = os.path.join(self.outputDir, self.prefixRootFileName + outpostfix+".root")
+            else:
+                outFileName = os.path.join(self.outputDir, os.path.basename(fname).replace(".root",outpostfix+".root"))
 	    outFile = ROOT.TFile.Open(outFileName, "RECREATE", "", compressionLevel)
 	    if compressionLevel: outFile.SetCompressionAlgorithm(compressionAlgo)
 

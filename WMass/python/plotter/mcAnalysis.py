@@ -278,6 +278,7 @@ class MCAnalysis:
                         nUnweightedEvents = 1.0
                         if options.weight and len(options.maxGenWeightProc):
                             # get sum of weights from Events tree, filtering some events with large weights
+                            # this assumes the trees are unskimmed!!
                             for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                                 if re.match(procRegExp,pname):
                                     #tmp_maxGenWgt is a string, convert to float
@@ -288,6 +289,17 @@ class MCAnalysis:
                                     tmp_tree = tmp_rootfile.Get('Events')
                                     if not tmp_tree or tmp_tree == None:
                                         raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
+                                    # check the tree was not skimmed                                    
+                                    nEvents = tmp_tree.GetEntries()
+                                    tmp_tree_runs = tmp_rootfile.Get('Runs')
+                                    if not tmp_tree_runs or tmp_tree_runs == None:
+                                        raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                                    for i,event in enumerate(tmp_tree_runs):
+                                        nGenEvents = event.genEventSumw
+                                        if i: break
+                                    if nEvents != nGenEvents:
+                                        raise RuntimeError, "You are trying to remove large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
+                                    ## check was ok
                                     nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
                                     tmp_hist = ROOT.gROOT.FindObject("sumweights")
                                     sumGenWeights = tmp_hist.Integral()
