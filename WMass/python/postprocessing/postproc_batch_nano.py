@@ -84,8 +84,8 @@ if __name__ == "__main__":
     parser.add_option("-I", "--import", dest="imports",  type="string", default=[], action="append", nargs=2, help="Import modules (python package, comma-separated list of ");
     parser.add_option("-z", "--compression",  dest="compression", type="string", default=("LZMA:9"), help="Compression: none, or (algo):(level) ")
     parser.add_option("-d", "--dataset", dest="datasets",  type="string", default=[], action="append", help="Process only this dataset (or dataset if specified multiple times)");
-    parser.add_option(      "--dataset-rgx", dest="datasetsRgx",  type="string", default=None, help="Process only datasets that match this regexp (or comma-separated list of regexp)");
-    parser.add_option("-c", "--chunk",   dest="chunks",    type="int",    default=[], action="append", help="Process only these chunks (works only if a single dataset is selected with -d)");
+    parser.add_option(      "--dataset-rgx", dest="datasetsRgx",  type="string", default=None, help="Process only datasets that match this regexp (or comma-separated list of regexp). Usually it can be used to match a single root file when making tests");
+    parser.add_option("-c", "--chunk",   dest="chunks",    type="int",    default=[], action="append", help="Process only these chunks (mainly for local tests)");
     parser.add_option("-N", "--events",  dest="chunkSize", type="int",    default=1000000, help="Default chunk size when splitting trees");
     parser.add_option("-p", "--pretend", dest="pretend",   action="store_true", default=False, help="Don't run anything");
     parser.add_option("-j", "--jobs",    dest="jobs",      type="int",    default=1, help="Use N threads");
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     parser.add_option("--env",   dest="env", type="string", default="condor", help="Give the environment on which you want to use the batch system (lsf,condor). Default: condor");
     parser.add_option("--run",   dest="runner",  type="string", default="lxbatch_runner.sh", help="Give the runner script (default: lxbatch_runner.sh)");
     parser.add_option("--mconly", dest="mconly",  action="store_true", default=False, help="Run only on MC samples");
-    parser.add_option("--signals", dest="signals", default="WJetsToLNu,DYJetsToLL,ZJToMuMu", help="declare signals (CSV list) [%default]",type='string');
+    parser.add_option("--signals", dest="signals", default="DYJetsToMuMu,WplusJetsToMuNu,WminusJetsToMuNu", help="declare signals (CSV list) [%default]",type='string');
     parser.add_option("-m", "--modules", dest="modules",  type="string", default=[], action="append", help="Run only these modules among the imported ones");
     parser.add_option(      "--moduleList", dest="moduleList",  type="string", default='DEFAULT_MODULES', help="use this list as a starting point for the modules to run [%default]")
 
@@ -111,9 +111,9 @@ if __name__ == "__main__":
         #print 'this is args:', args
         parser.print_help()
         sys.exit(1)
-    if len(options.chunks) != 0 and len(options.datasets) != 1:
-        print "must specify a single dataset with -d if using -c to select chunks"
-        sys.exit(1)
+    #if len(options.chunks) != 0 and len(options.datasets) != 1:
+    #    print "must specify a single dataset with -d if using -c to select chunks"
+    #    sys.exit(1)
 
     if len(options.datasets) == 0 and options.friend:
         print "Must pass one or more dataset names when making friends, these will be used to "
