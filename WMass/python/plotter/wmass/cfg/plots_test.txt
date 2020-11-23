@@ -29,6 +29,8 @@ muon_pt_wlike: returnChargeVal(Muon_pt[0],Muon_charge[0],Muon_pt[1],Muon_charge[
 
 muon_eta_wlike: returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_charge[1],event): 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_eta_wlike_rebin: returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_charge[1],event): 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
 mt_wlike_ChsMET: mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_phi[1],Muon_charge[1],ChsMET_pt,ChsMET_phi,event): 40,40,120; XTitle="W-like m_{T}(#mu\,ChsMET) (GeV)", Legend='TC', IncludeOverflows=True
 
 zmass  : mass_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057128,Muon_pt[1],Muon_eta[1],Muon_phi[1],0.1057128): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True
@@ -55,3 +57,4 @@ genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], Ge
 
 genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1])\:varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
 
+Pileup_nTrueInt: Pileup_nTrueInt: 100,0,100; XTitle="Pileup_nTrueInt", Legend='TC', IncludeOverflows=False

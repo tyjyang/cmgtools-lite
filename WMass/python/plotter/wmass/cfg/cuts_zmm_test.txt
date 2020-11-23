@@ -1,12 +1,13 @@
 alwaystrue : 1
 trigger    : HLT_IsoMu24 > 0 || HLT_IsoTkMu24 > 0
 twomuon    : nMuon == 2 && nElectron == 0
+trigMatch  : triggerMatchWlike_nano(Muon_hasTriggerMatch[0],Muon_charge[0],Muon_hasTriggerMatch[1],Muon_charge[1],event)
 osmuon     : Muon_pdgId[0] * Muon_pdgId[1] == -169
 accept     : abs(Muon_eta[0]) < 2.4 && valueInsideRange(Muon_pt[0],26.0,60.0) && abs(Muon_eta[1]) < 2.4 && valueInsideRange(Muon_pt[1],26.0,60.0)
 muonID     : Muon_mediumId[0] == 1 && Muon_mediumId[1] == 1
 pfRelIso04 : Muon_pfRelIso04_all[0] < 0.15 && Muon_pfRelIso04_all[1] < 0.15
-dxy        : abs(Muon_dxy[0]) < 0.02 && abs(Muon_dxy[1]) < 0.02
-dz         : abs(Muon_dz[0]) < 0.1 && abs(Muon_dz[1]) < 0.1
+dxy        : abs(Muon_dxy[0]) < 0.05 && abs(Muon_dxy[1]) < 0.05
+dz         : abs(Muon_dz[0]) < 0.2 && abs(Muon_dz[1]) < 0.2
 mZ         : valueInsideRange(mass_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057128,Muon_pt[1],Muon_eta[1],Muon_phi[1],0.1057128),60.,120.)
 #mt_ChsMET: mt_2(Muon_pt[0],Muon_phi[0],ChsMET_pt,ChsMET_phi) > 40.
 mt_wlike   : mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_phi[1],Muon_charge[1],ChsMET_pt,ChsMET_phi,event) > 45.0

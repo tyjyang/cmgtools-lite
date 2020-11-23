@@ -20,6 +20,7 @@ from CMGTools.WMass.postprocessing.framework.postprocessor import PostProcessor
 ## --log friends_log/ --submit --env lxbatch --queue 1nd (optional, default 8nh)
 
 DEFAULT_MODULES = [("CMGTools.WMass.postprocessing.examples.puWeightProducer", "puWeight"),
+                   ("CMGTools.WMass.postprocessing.examples.triggerMatchProducer", "muTrigMatch")
                    #("CMGTools.WMass.postprocessing.examples.lepVarProducer","muCalibratedWithStatVar"),
                    #("CMGTools.WMass.postprocessing.examples.jetReCleaner","jetReCleaner,jetAllReCleaner"),
                    #("CMGTools.WMass.postprocessing.examples.genFriendProducer","genQEDJets"),
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     parser.add_option("-r", "--runtime",    type=int, default=480, help="Condor runtime. In minutes.");
     parser.add_option(      "--memory",     type=int, default=2000, help="Condor memory. In MB.");
     parser.add_option("-s", "--submit",    action='store_true', default=False, help="Submit the jobs to lsf/condor.");
-    parser.add_option("-t", "--tree",    dest="tree",      default='treeProducerWMass', help="Pattern for tree name");
+    parser.add_option("-t", "--tree",    dest="tree",      default='Events', help="Pattern for tree name");
     parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
     parser.add_option("--env",   dest="env", type="string", default="condor", help="Give the environment on which you want to use the batch system (lsf,condor). Default: condor");
     parser.add_option("--run",   dest="runner",  type="string", default="lxbatch_runner.sh", help="Give the runner script (default: lxbatch_runner.sh)");
@@ -119,8 +120,8 @@ if __name__ == "__main__":
         print "Must pass one or more dataset names when making friends, these will be used to "
         print "create the subfolders containing the friend trees."
         print "This will have to match a part of the path to trees passed as args[0]."
-        print "For instance, one can pass Run2016G for data (SingleMuon or whatever will be added "
-        print "automatically here), or WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos for MC."
+        print "For instance, one has to pass Run2016G for data (not SingleMuon_Run2016G), "
+        print "or WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos for MC."
         print "The match could be smaller (e.g. WplusJetsToMuNu), but better to have the full field "
         print "that appears between two '/' in the path"
         sys.exit(1)
@@ -143,6 +144,7 @@ if __name__ == "__main__":
     # so glob(treedir will return the root files with full path)
     for fnameWithPath in glob(treedir):
         fname = fnameWithPath
+        if not fname.endswith(".root"): continue
         
         if os.path.exists(fname):
             shortfname = os.path.basename(fnameWithPath)
@@ -169,7 +171,8 @@ if __name__ == "__main__":
             for x in primaryDatasetsData:
                 if x in fnameWithPath:
                     data = True
-                    dataset = x + "_" + dataset
+                    #dataset = x + "_" + dataset
+
             if data and options.mconly: continue
             ## construct proper xrootd file path
             prepath = ''
@@ -247,23 +250,43 @@ if __name__ == "__main__":
             print "ERROR. Scheduler ",options.env," not implemented. Choose either 'lsf' or 'condor'."
             sys.exit(1)
 
-        basecmd = " {self} -N {chunkSize} -t {tree} --signals {signals} --moduleList {moduleList} {data} {output}".format(
-                    self=sys.argv[0], chunkSize=options.chunkSize, tree=options.tree, signals=options.signals, moduleList=options.moduleList, data=treedir, output=outdir+"/"+dataset+"/")
+        basecmd_tmp = " {self} -N {chunkSize} -t {tree} --signals {signals} --moduleList {moduleList} ".format(self=sys.argv[0], chunkSize=options.chunkSize, tree=options.tree, signals=options.signals, moduleList=options.moduleList)
 
         friendPost = ""
         if options.friend: 
             friendPost += " --friend " 
         cmds = []
+        # name identifies the sample, it is the same for all files, at least at the moment
+        # one wants a single condor submit file for each sample, managing all jobs
+        firstname = ""
+        nameChanged = False
         for (name,fin,sample_nevt,fout,data,_range,chunk) in jobs:
+            
+            if firstname == "":
+                firstname = name
+                nameChanged = True
+            elif firstname != name:
+                firstname = name
+                nameChanged = True
+            else:
+                nameChanged = False
+
+            finNoPrepath = fin.replace("root://eosuser.cern.ch//","").replace("root://eoscms.cern.ch//","")
+            basecmd = basecmd_tmp + " {data} {output}".format(data=finNoPrepath, output=outdir+"/"+dataset+"/")
+
             if not chunk or chunk == -1:
-                condorSubFile = writeCondorCfg(logdir,name,maxRunTime=options.runtime,maxMemory=options.memory)
+                if nameChanged:
+                    condorSubFile = writeCondorCfg(logdir,name,maxRunTime=options.runtime,maxMemory=options.memory)
             #if chunk != -1:
             if options.env == 'condor':
                 tmp_f = open(condorSubFile, 'a')
-                tmp_f.write('arguments = {base} -d {data} {chunk} {post} \n queue 1 \n\n'.format(base=basecmd, data=name, chunk='' if chunk == -1 else '-c '+str(chunk), post=friendPost))
+                tmp_f.write('arguments = {base} -d {data} {chunk} {post} \nqueue 1 \n\n'.format(base=basecmd, data=name, chunk='' if chunk == -1 else '-c '+str(chunk), post=friendPost))
                 tmp_f.close()
                 if chunk <= 0:
-                    cmds.append('condor_submit ' + condorSubFile)
+                    if nameChanged:
+                        # the command is here, it just tracks the condor submit file name
+                        # we might still be adding arguments in the condor submit file itself
+                        cmds.append('condor_submit ' + condorSubFile)
             else:
                 print 'option --env MUST be condor (which it is by default)'
         for cmd in cmds:

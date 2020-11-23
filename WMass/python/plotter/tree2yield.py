@@ -140,13 +140,14 @@ def cropNegativeBins(histo):
 
 
 class TreeToYield:
-    def __init__(self,root,options,scaleFactor=1.0,name=None,cname=None,settings={},objname=None):
+    def __init__(self,root,options,scaleFactor=1.0,name=None,cname=None,settings={},objname=None, frienddir=None):
         self._name  = name  if name != None else root
         self._cname = cname if cname != None else self._name
         self._fname = root
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
+        self._frienddir = frienddir if frienddir else ""
         self._weight  = (options.weight and 'data' not in self._name and '2012' not in self._name and '2011' not in self._name )
         self._isdata = 'data' in self._name
         if self._isdata:
@@ -259,18 +260,22 @@ class TreeToYield:
         if 'Friends' in self._settings: friendOpts += self._settings['Friends']
         if 'FriendsSimple' in self._settings: friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._settings['FriendsSimple'] ]
         for tf_tree,tf_file in friendOpts:
-#            print 'Adding friend',tf_tree,tf_file
+            # print 'Adding friend',tf_tree,tf_file
             basepath = None
-            for treepath in getattr(self._options, 'path', []):
-                if self._cname in os.listdir(treepath):
-                    basepath = treepath
-                    break
-            if not basepath:
-                raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
-
-            tf_filename = tf_file.format(name=self._name, cname=self._cname, P=basepath)
+            if self._options.nanoaodTree:
+                friend_cname = os.path.basename(self._cname)
+            else:
+                for treepath in getattr(self._options, 'path', []):
+                    if self._cname in os.listdir(treepath):
+                        basepath = treepath
+                        break
+                if not basepath:
+                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
+                friend_cname = self._cname
+            tf_filename = tf_file.format(name=self._name, cname=friend_cname, P=basepath, fd=self._frienddir)
             if os.path.exists(tf_filename+".url"):
                 tf_filename = open(tf_filename+".url","r").readline().strip()
+            # print 'Adding friend',tf_tree,tf_filename
             tf = self._tree.AddFriend(tf_tree, tf_filename),
             self._friends.append(tf)
         self._isInit = True

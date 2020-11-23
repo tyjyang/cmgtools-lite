@@ -1263,6 +1263,86 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 //============================
 
+TFile *_file_trigger_leptonSF_fast_mu_plus = NULL;
+TH2F *_histo_trigger_leptonSF_fast_mu_plus = NULL;
+TFile *_file_trigger_leptonSF_fast_mu_minus = NULL;
+TH2F *_histo_trigger_leptonSF_fast_mu_minus = NULL;
+TFile *_file_selection_leptonSF_fast_mu_plus = NULL;
+TH2F *_histo_selection_leptonSF_fast_mu_plus = NULL;
+TFile *_file_selection_leptonSF_fast_mu_minus = NULL;
+TH2F *_histo_selection_leptonSF_fast_mu_minus = NULL;
+
+float _get_muonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, float eta2, int charge2, ULong64_t event) {
+
+  // to be improved, still experimental
+  float pt = returnChargeVal(pt1,charge1,pt2,charge2,event);
+  float eta = returnChargeVal(eta1,charge1,eta2,charge2,event);
+  int charge = returnChargeVal(charge1,charge1,charge2,charge2,event);
+  
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  string hSFname = "EGamma_SF2D";
+
+  // trigger
+  if (!_histo_trigger_leptonSF_fast_mu_plus) {
+    _file_trigger_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuPlus.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_fast_mu_plus = (TH2F*)(_file_trigger_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  }
+  if (!_histo_trigger_leptonSF_fast_mu_minus) {
+    _file_trigger_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuMinus.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_fast_mu_minus = (TH2F*)(_file_trigger_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  }
+  // selection
+  if (!_histo_selection_leptonSF_fast_mu_plus) {
+    _file_selection_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuPlus.root",_cmssw_base_.c_str()),"read");
+    _histo_selection_leptonSF_fast_mu_plus = (TH2F*)(_file_selection_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  }
+  if (!_histo_selection_leptonSF_fast_mu_minus) {
+    _file_selection_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuMinus.root",_cmssw_base_.c_str()),"read");
+    _histo_selection_leptonSF_fast_mu_minus = (TH2F*)(_file_selection_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  }
+
+  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_fast_mu_plus : _histo_trigger_leptonSF_fast_mu_minus );
+  int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
+  int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
+
+  float out = histTrigger->GetBinContent(etabin,ptbin);
+
+  TH2F *histSelectionPlus  = _histo_selection_leptonSF_fast_mu_plus;
+  TH2F *histSelectionMinus = _histo_selection_leptonSF_fast_mu_minus;
+  float ptPlus = 0;
+  float ptMinus = 0;
+  float etaPlus = 0;
+  float etaMinus = 0;
+  if (charge1 > 0) {
+    ptPlus = pt1;
+    etaPlus = eta1;
+    ptMinus = pt2;
+    etaMinus = eta2;
+  } else {
+    ptPlus = pt2;
+    etaPlus = eta2;
+    ptMinus = pt1;
+    etaMinus = eta1;
+  }
+
+  etabin = std::max(1, std::min(histSelectionPlus->GetNbinsX(), histSelectionPlus->GetXaxis()->FindFixBin(etaPlus)));
+  ptbin  = std::max(1, std::min(histSelectionPlus->GetNbinsY(), histSelectionPlus->GetYaxis()->FindFixBin(ptPlus)));
+  out *= histSelectionPlus->GetBinContent(etabin,ptbin);
+  etabin = std::max(1, std::min(histSelectionMinus->GetNbinsX(), histSelectionMinus->GetXaxis()->FindFixBin(etaMinus)));
+  ptbin  = std::max(1, std::min(histSelectionMinus->GetNbinsY(), histSelectionMinus->GetYaxis()->FindFixBin(ptMinus)));
+  out *= histSelectionMinus->GetBinContent(etabin,ptbin);
+
+  return out;
+
+
+}
+
+//============================
+
 TFile *_file_eleTrigger_EBeta0p1 = NULL;
 TH2F *_histo_eleTrigger_EBeta0p1 = NULL;
 TFile *_file_eleTrigger_EEeta0p1 = NULL;
@@ -1809,7 +1889,6 @@ bool triggerMatchWlike(bool isOddEvent, // pass positive or negative number, dep
 
 }
 
-
 bool isOddEvent(ULong64_t evt) {
 
   return (evt%2) ? 1 : 0;       
@@ -1819,6 +1898,26 @@ bool isOddEvent(ULong64_t evt) {
 bool isEvenEvent(ULong64_t evt) {
 
   return (evt%2) ? 0 : 1;       
+
+}
+
+bool triggerMatchWlike_nano(int match1, int ch1, int match2, int ch2, ULong64_t evt) {
+
+  if (isOddEvent(evt)) {
+    if (ch1 > 0 and match1 > 0) 
+      return true;
+    else if (ch2 > 0 and match2 > 0) 
+      return true;
+    else 
+      return false;
+  } else {
+    if (ch1 < 0 and match1 > 0) 
+      return true;
+    else if (ch2 < 0 and match2 > 0) 
+      return true;
+    else 
+      return false;
+  }
 
 }
 

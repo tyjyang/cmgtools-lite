@@ -193,6 +193,19 @@ class MCAnalysis:
                 treename = extra["TreeName"] if "TreeName" in extra else options.tree 
                 objname  = extra["ObjName"]  if "ObjName"  in extra else options.obj
                 subpath  = extra["SubPath"]  if "SubPath"  in extra else ""
+                friendDir = extra['FriendDir'] if 'FriendDir' in extra else ""
+                if '[XXX]' in friendDir:
+                    if "XXX" in extra:
+                        XXX = extra['XXX'].split(',')
+                        friendDir_tmp = friendDir
+                        for x in XXX:                            
+                            if friendDir_tmp.replace("[XXX]",x) in cnameWithPath:
+                                friendDir = friendDir.replace("[XXX]",x)
+                                # print "FriendDir = ",friendDir
+                    else:
+                        print "Error >>> Process %s '[XXX]' found in FriendDir, but XXX not defined in MCA file" % (pname)
+                        quit()
+
                 if subpath != "" and not subpath.endswith("/"):
                     subpath += "/"
                 #print "subpath = %s" % subpath
@@ -248,7 +261,7 @@ class MCAnalysis:
                 ## needed temporarily
                 pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
-                tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname); ttys.append(tty)
+                tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); ttys.append(tty)
                 if signal: 
                     self._signals.append(tty)
                     self._isSignal[pname] = True
@@ -295,9 +308,10 @@ class MCAnalysis:
                                     if not tmp_tree_runs or tmp_tree_runs == None:
                                         raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
                                     for i,event in enumerate(tmp_tree_runs):
-                                        nGenEvents = event.genEventSumw
+                                        nGenEvents = event.genEventCount
                                         if i: break
                                     if nEvents != nGenEvents:
+                                        print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
                                         raise RuntimeError, "You are trying to remove large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
                                     ## check was ok
                                     nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           

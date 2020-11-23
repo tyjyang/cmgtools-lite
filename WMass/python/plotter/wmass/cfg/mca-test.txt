@@ -1,11 +1,18 @@
-data: .*; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", XXX="G\,H"
+data: .*; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", FriendDir="Run2016[XXX]", XXX="G\,H"
+
+# test data
+#data: FBA72527-8279-0241-9F60-DDA281B98935.root; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", FriendDir="Run2016[XXX]", XXX="G\,H"
+
 
 Wplus   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
 
 WplusPart: SMP-RunIISummer16NanoAODv7-00336_11.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
 
-Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
 
 Zpart: SMP-RunIISummer16NanoAODv7-00336_11.* : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+
+Ztest: SMP-RunIISummer16NanoAODv7-00336_111.root : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
+
 
 data_fakes_ss: .*, 1.0; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", XXX="G\,H", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data.txt", Label="Fakes (SS)", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30

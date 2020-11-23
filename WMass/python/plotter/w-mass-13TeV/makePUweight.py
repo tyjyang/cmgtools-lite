@@ -19,20 +19,51 @@ oldWeights = [0.3505407355600995, 0.8996968628890968, 1.100322319466069, 0.95625
 
 newWeights = []
 
-datafile = "MyDataPileupHistogram.root"
-dataname = "pileup"
-useWMC = 0
+normalizeIntegralUpToBin = 66 # this would usually correspond to the max bin where there is enough stat in data and MC, above which weird weights can be observed. Those large weights are set to cropHighWeight, and we don't care about renormalizing the distributions again to correct the weights
+# It might make sense to run the script a first time with the full integral to get a clue about the ideal value, and then run again with customized range 
+doDataVSdata = False # if True it overrides isPreVFP below
+isPreVFP = True
+maxWeightWarning = 5.0  # at the end issue a warning if weight > this value
+cropHighWeight = 1      # crop values larger than maxWeightWarning, setting them to this value (i.e. use 1 for no reweighting, or same as maxWeightWarning)
 #mcfile   = "mcPU_2016_W94XnoCuts_onfirst10extParts_nTrueInt.root" # no genWeight
 #mcname   = "h_nTrueInt"
 #
-if useWMC:
-    mcfile = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/Wlike/TEST/nTrueInt_Wnocuts_94X//plots_zmm.root"
-    mcname   = "nTrueInt_Wnopt"
-    outdir   = "plots/Wlike/TEST/puweights_genWeightMC/"
+if doDataVSdata:
+    mcfile   = "pileupStuff/MyDataPileupHistogram_2016Legacy_FpostHIPMandGH.root"
+    mcname   = "pileup"
+    mcLabel  = "data FtoH"
+    #
+    datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_upTo2016FwithHIPM.root"
+    dataname = "pileup"
+    dataLabel = "data BtoF"
+    #
+    outdir   = "plots/testNanoAOD/PU_weights/2016_dataVSdata/"
+    lumi     = "19.3" 
+    ratioLabel = "pre/post VFP::0.0,1.5"
+elif isPreVFP:
+    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"    
+    mcname   = "Pileup_nTrueInt_Wplus"
+    mcLabel  = "W MC (preVFP)"    
+    #
+    datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_upTo2016FwithHIPM.root"
+    dataname = "pileup"
+    dataLabel = "data"
+    #
+    outdir   = "plots/testNanoAOD/PU_weights/2016_preVFP/"
+    lumi     = "19.3" 
+    ratioLabel = "data/MC::0.0,1.5"
 else:
-    mcfile = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/Wlike/TEST/nTrueInt_ZpilotMW_94X_clipHugeWeights//plots_zmm.root"
-    mcname   = "nTrueInt_ZphotosNoWeight"
-    outdir   = "plots/Wlike/TEST/puweights_genWeightMC_ZPilotMw/"
+    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Z_postVFP.root"
+    mcname   = "Pileup_nTrueInt_Z"
+    mcLabel  = "Z MC (postVFP)"
+    #
+    datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_FpostHIPMandGH.root"
+    dataname = "pileup"
+    dataLabel = "data"
+    #
+    outdir   = "plots/testNanoAOD/PU_weights/2016_postVFP/"
+    lumi     = "16.6" 
+    ratioLabel = "data/MC::0.0,1.5"
 
 tf = ROOT.TFile.Open(datafile)
 datahist = tf.Get(dataname)
@@ -63,9 +94,9 @@ if datahist.GetXaxis().GetBinLowEdge(1+nbins) != mchist.GetXaxis().GetBinLowEdge
 #    print "Warning: histograms not compatible"
 #    quit()
 
-mchist.Scale(datahist.Integral()/mchist.Integral())
-ratio = datahist.Clone("puWeight_2016_94X")
-oldratio = datahist.Clone("puWeight_2016_80X")
+mchist.Scale(datahist.Integral(0,normalizeIntegralUpToBin)/mchist.Integral(0,normalizeIntegralUpToBin))
+ratio = datahist.Clone("puWeight_2016_UL")
+oldratio = datahist.Clone("puWeight_2016_ReReco")
 ratio.Reset("ICESM")
 oldratio.Reset("ICESM")
 
@@ -83,34 +114,39 @@ for i in range(1,1+nbins):
 #drawTH1(ratio,"number of true interactions","PU weight ()",outdir,ratio.GetName(),"","900,800",None,"")
 
 hists = [datahist,mchist]
-legEntries = ["data","MC"]
+legEntries = [dataLabel,mcLabel]
 drawNTH1(hists,legEntries,"number of true interactions","Events","comparePU_data_MC",outdir,
-         labelRatioTmp="data/MC::0.0,1.5",legendCoords="0.7,0.9,0.76,0.9",canvasSize="900,900",
-         lumi="36.3")
+         labelRatioTmp=ratioLabel,legendCoords="0.6,0.9,0.76,0.9",canvasSize="900,900",
+         lumi=lumi)
 
 hists = [ratio,oldratio]
 legEntries = ["new","SMP-18-012"]
-drawNTH1(hists,legEntries,"number of true interactions","PU weight","comparePU_94X_80X",outdir,
-         labelRatioTmp="new/old::0.5,1.5",legendCoords="0.6,0.95,0.76,0.9",canvasSize="900,900",
-         lumi="36.3")
+drawNTH1(hists,legEntries,"number of true interactions","PU weight","comparePU_UL_ReReco",outdir,
+         labelRatioTmp="new/old::0.5,1.5",legendCoords="0.5,0.95,0.76,0.9",canvasSize="900,900",
+         lumi=lumi)
 
 mchistWeight = mchist.Clone("mchistWeight")
 for i in range(1,1+nbins):
     mchistWeight.SetBinContent(i,newWeights[i-1]*mchistWeight.GetBinContent(i))
 hists = [datahist,mchistWeight]
-legEntries = ["data","MC (weight)"]
+legEntries = [dataLabel,mcLabel+" (weight)"]
 drawNTH1(hists,legEntries,"number of true interactions","Events","comparePU_data_MCweight",outdir,
-         labelRatioTmp="data/MC::0.95,1.05",legendCoords="0.6,0.9,0.76,0.9",canvasSize="900,900",
-         lumi="36.3")
+         labelRatioTmp=ratioLabel,legendCoords="0.5,0.9,0.76,0.9",canvasSize="900,900",
+         lumi=lumi)
+
+print ""
+print "-"*30
+for i in range(0,nbins):
+    if newWeights[i] > maxWeightWarning:
+        print "nPU = %d -> weight = %.3f %s" % (i+1,newWeights[i], "cropping to 1.0" if cropHighWeight else "")
+        if cropHighWeight:
+            newWeights[i] = 1.0
+print "-"*30
+print ""
 
 print ""
 print "Printing new PU weghts"
 print "-"*30
 print newWeights
 print "-"*30
-
-maxWeightWarning = 2.0
-for i in range(0,nbins):
-    if newWeights[i]> maxWeightWarning:
-        print "nPU = %d -> weight = %.3f" % (i+1,newWeights[i])
 
