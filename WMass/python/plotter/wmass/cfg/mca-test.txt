@@ -10,7 +10,7 @@ WplusPart: SMP-RunIISummer16NanoAODv7-00336_11.* : 11572.19; FillColor=ROOT.kRed
 
 Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
 
-Zpart: SMP-RunIISummer16NanoAODv7-00336_11.* : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+Zpart: SMP-RunIISummer16NanoAODv7-00336_11.* : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/",TreePath="/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/"
 
 Ztest: SMP-RunIISummer16NanoAODv7-00336_111.root : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
 

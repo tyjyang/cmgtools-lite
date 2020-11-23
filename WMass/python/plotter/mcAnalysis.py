@@ -155,6 +155,12 @@ class MCAnalysis:
                         else:
                             print "Error >>> Process %s '[XXX]' found in TreePath, but XXX not defined in MCA file" % (pname)
                             quit()
+                    else:                        
+                        pathsToSearch = [extra['TreePath']]
+                else:
+                    if not options.path:
+                        print "Warning: you didn't specify a path to ntuples with option -P, but process %s has no 'TreePath' key in the MCA file. Please specify a valid path." % pname
+                        quit()
                 print "INFO >>> Process %s -> searching files in %s" % (pname,repr(pathsToSearch))
                 for treepath in pathsToSearch:
                     for dirpath, dirnames, filenames in os.walk(treepath):
@@ -849,7 +855,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] tree.root cuts.txt")
     addMCAnalysisOptions(parser)
     (options, args) = parser.parse_args()
-    if not options.path: options.path = ['./']
+    if not options.path and not options.nanoaodTree: options.path = ['./']
     tty = TreeToYield(args[0],options) if ".root" in args[0] else MCAnalysis(args[0],options)
     cf  = CutsFile(args[1],options)
     for cutFile in args[2:]:

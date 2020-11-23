@@ -24,3 +24,27 @@ git push -u origin wmass106X_$YOUR_GITHUB_REPOSITORY
 cd $CMSSW_BASE/src && scram b -j 8
 
 
+#####
+
+# Instructions to run plots on nanoaod
+#
+# can run mcPlots.py with option --nanoaod-tree (defined in mcAnalysis.py).
+# need to set the mca file to get the correct path to root files (check WMass/python/plotter/wmass/cfg/mca-test.txt)
+# in the mca file, some keywords are added
+# TreePath allows one to specify the path (as with option -P, so one can run on root files in different folders)
+# SubPath can be used to match a specific folder inside the general path passed to option -P (it can be used as an exact match or a regular expression)
+
+# Example command
+#
+# it assumes you have a link named 'plots' pointing to your web page
+# MC samples are searched in /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/ (with option -P), while the path to data is specified in the mca file
+# one could also not use option -P and specify all paths in the mca file directly (if the path is in common among many samples it is cleaner to use option -P, and override it with TreePath key only for those samples with a different path)
+#
+#
+python ${CMSSW_BASE}/src/CMGTools/WMass/python/plotter/mcPlots.py -f -l 16.2 --s2v --lspam "#bf{CMS} #it{Preliminary}" ${CMSSW_BASE}/src/CMGTools/WMass/python/plotter/wmass/cfg/mca-test.txt ${CMSSW_BASE}/src/CMGTools/WMass/python/plotter/wmass/cfg/cuts_test.txt ${CMSSW_BASE}/src/CMGTools/WMass/python/plotter/wmass/cfg/plots_test.txt --noCms  --sP "muon_eta,muon_pt" -P /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/ -W "1.0" --pdir ${CMSSW_BASE}/src/CMGTools/WMass/python/plotter/plots/testNanoAOD/TEST_COMMAND/ -p "data,WplusPart,Zpart"  --legendFontSize 0.035 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  --nanoaod-tree  -j 8 --max-genWeight-procs "W|Z" "50000.0" --clip-genWeight-toMax --noLegendRatioPlot --showRatio --maxRatioRange 0.8 1.2 --fixRatioRange -A onemuon chargeplus "Muon_charge[0] > 0"
+#
+#
+# --max-genWeight-procs can be used to specify a maximum genWeight for some processes matching the regular expression given as first argument.
+# By default this will reject events with larger weight. 
+# If option --clip-genWeight-toMax is passed as well, the events are not rejected, but the genWeight is changed to the value specified by --max-genWeight-procs for the appropriate process
+
