@@ -182,7 +182,10 @@ class MCAnalysis:
             if options.weight and len(options.maxGenWeightProc):
                 for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                     if re.match(procRegExp,pname):
-                        print "INFO >>> Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
+                        if options.clipGenWeightToMax:
+                            print "INFO >>> Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
+                        else:
+                            print "INFO >>> Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt)
 
             #for cname in cnames:            
             for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
@@ -291,7 +294,7 @@ class MCAnalysis:
                         nUnweightedEvents = 1.0
                         if options.weight and len(options.maxGenWeightProc):
                             # get sum of weights from Events tree, filtering some events with large weights
-                            # this assumes the trees are unskimmed!!
+                            # this assumes the trees are unskimmed to correctly compute the sum!!
                             for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                                 if re.match(procRegExp,pname):
                                     #tmp_maxGenWgt is a string, convert to float
@@ -312,9 +315,15 @@ class MCAnalysis:
                                         if i: break
                                     if nEvents != nGenEvents:
                                         print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
-                                        raise RuntimeError, "You are trying to remove large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
+                                        raise RuntimeError, "You are trying to remove or clip large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
                                     ## check was ok
-                                    nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
+                                    if options.clipGenWeightToMax:
+                                        # set weight to max
+                                        # TMath::Sign(a,b) returns a with the sign of b
+                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
+                                    else:
+                                        # reject event with weight > max
+                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
                                     tmp_hist = ROOT.gROOT.FindObject("sumweights")
                                     sumGenWeights = tmp_hist.Integral()
                                     tmp_rootfile.Close()
@@ -829,7 +838,8 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("--scaleplot", dest="plotscalemap", type="string", default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
     parser.add_option("-t", "--tree",          dest="tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_option("--fom", "--figure-of-merit", dest="figureOfMerit", type="string", default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
-    parser.add_option("--max-genWeight-procs", dest="maxGenWeightProc", type="string", nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes");
+    parser.add_option("--max-genWeight-procs", dest="maxGenWeightProc", type="string", nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
+    parser.add_option("--clip-genWeight-toMax",         dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
     parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
     parser.add_option("--nanoaod-tree",         dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
 
