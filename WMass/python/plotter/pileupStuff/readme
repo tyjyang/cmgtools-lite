@@ -1,0 +1,5 @@
+PU prifiles in data obtained with these commands
+
+pileupCalc.py -i Cert_271036-278770_13TeV_Legacy2016_Collisions16_JSON_upTo2016FwithHIPM.txt --inputLumiJSON /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/PileUp/pileup_latest.txt --calcMode true --minBiasXsec 69200 --maxPileupBin 100 --numPileupBins 100 MyDataPileupHistogram_2016Legacy_upTo2016FwithHIPM.root
+
+pileupCalc.py -i Cert_271036-278770_13TeV_Legacy2016_Collisions16_JSON_FpostHIPMandGH.txt --inputLumiJSON /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/PileUp/pileup_latest.txt --calcMode true --minBiasXsec 69200 --maxPileupBin 100 --numPileupBins 100 MyDataPileupHistogram_2016Legacy_FpostHIPMandGH.root
