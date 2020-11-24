@@ -1,0 +1,11 @@
+# local tests
+
+# data
+python postproc_batch_nano.py "/eos/cms/store/data/Run2016*/SingleMuon/NANOAOD/Nano02Dec2019-v1/*/*" /eos/cms/store/cmst3/group/wmass/mciprian/testFriendsNanoaod/ --friend --log logs_friends_nano/ -d Run2016H -c 0 -N 20000 --dataset-rgx ".*CEDFF3A7-F35F-7F47-B046-29E3C2EC2CBE.root"
+
+# MC
+python postproc_batch_nano.py "/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/*/NanoAODv7/*/*/*" /eos/cms/store/cmst3/group/wmass/mciprian/testFriendsNanoaod/ --friend --log logs_friends_nano/ -d DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos -d WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos -c 0 -c 1 -N 20000 --dataset-rgx ".*SMP-RunIISummer16NanoAODv7-00336_100.root"
+
+
+# condor jobs (DY here)
+python postproc_batch_nano.py "/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/*/NanoAODv7/*/*/*" /eos/cms/store/cmst3/group/wmass/mciprian/friendsNanoAODv7/ --friend --log logs_friends_nano_dy/ -N 50000000 --submit  --runtime 360 -d DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos
