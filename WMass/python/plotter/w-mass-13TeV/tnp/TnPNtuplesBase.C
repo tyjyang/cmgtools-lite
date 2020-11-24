@@ -1,11 +1,34 @@
 #ifndef TnPNtuplesBase_cxx
 #define TnPNtuplesBase_cxx
+
 #include "TnPNtuplesBase.h"
 #include <TH2.h>
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <iostream>
 #include <TLorentzVector.h>
+#include <TH1F.h>
+
+#include <stdio.h>                                                                                                  
+#include <stdlib.h>
+#include <cstdlib> //as stdlib.h
+#include <cstdio>
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <sstream>      // std::istringstream ; to read array of numbers from a line in a file
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>      // std::pair
+#include <iomanip> //for input/output manipulators
+
+
+// #include <TROOT.h>
+// #include <TChain.h>
+// #include <TFile.h>
+// #include <TString.h>
+// #include <TH1F.h>
 
 using namespace std;
 
@@ -19,6 +42,120 @@ void TnPNtuplesBase::setOutfile(TString outfilepath){
 
 bool TnPNtuplesBase::isTagLepton(int jj){
   return true;
+}
+
+bool TnPNtuplesBase::getStatusFlag(Int_t flags, int index) { 
+  return ((flags >> index) & 1);
+}
+
+//std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFromJson(const string myJsonFile = "") {
+void TnPNtuplesBase::makeMapFromJson(const string myJsonFile = "") {
+
+  // format is 
+  // run: [ls1,ls2] [ls3,ls4] [...]  note that spaces are important
+  // given a json, this format can be obtained with myFormatJson.py
+  string run;
+  string lumiBlocks;
+  std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > runsAndLumiBlocks;
+
+  string jsonFile = Form(myJsonFile.c_str());
+
+  ifstream inputFile(jsonFile.c_str());
+
+  //cout << "Printing content of " << myJsonFile << endl;
+
+  if (inputFile.is_open()) {
+
+    while (inputFile >> run) {
+
+      // read line without first object that was put in run (the space separates objects in the line)
+      getline(inputFile, lumiBlocks);  
+
+      run.assign(run,0,6); // run has 6 digits
+      //cout << run << " --> ";
+
+      vector< pair<UInt_t,UInt_t> > blocks;
+      stringstream ss(lumiBlocks);     
+      string block;
+
+      while (ss >> block) {
+
+    	//cout << block << " ";
+
+    	size_t pos = block.find(",");
+    	UInt_t LSin, LSfin;
+    	string num1, num2;
+    	// we have block = "[a,b]" where a and b are integers. We want to get a and b
+    	num1.assign(block,1,pos);
+    	num2.assign(block,pos+1,block.size()-1);
+    	LSin  = (UInt_t) std::stoi(num1);
+    	LSfin = (UInt_t) std::stoi(num2);
+    	// cout << "LSin,LSfin = " << LSin << "," << LSfin << endl;
+    	blocks.push_back(std::make_pair(LSin,LSfin));
+
+      }
+
+      //runsAndLumiBlocks[run] = blocks;
+      //cout << endl;
+      runsAndLumiBlocks.insert ( std::pair< UInt_t, std::vector< std::pair<UInt_t,UInt_t > > >((UInt_t) stoi(run), blocks) );
+      //      runsAndLumiBlocks.at(stoi(run)) = blocks;
+
+    }
+
+    /////////////////////////
+    // check that it works
+    cout << "printing map ..." << endl;
+    for (std::map<UInt_t, vector< pair<UInt_t,UInt_t> > >::iterator it = runsAndLumiBlocks.begin(); it != runsAndLumiBlocks.end(); ++it) {
+      cout << it->first << " --> "; 
+      for (UInt_t i = 0; i < it->second.size(); i++) {
+    	cout << "[" << it->second.at(i).first << "," << it->second.at(i).second << "]  ";
+      } 
+      cout << endl;
+    }
+    cout << endl;
+    ///////////////////////////
+
+  } else {
+    
+    cout << "Error in makeMapFromJson(): could not open file " << jsonFile << endl;
+    exit(EXIT_FAILURE);
+
+  }
+
+
+  fJsonMap = runsAndLumiBlocks;
+  //return runsAndLumiBlocks;
+
+}
+
+Bool_t TnPNtuplesBase::isGoodRunLS(Bool_t isData, UInt_t run, UInt_t lumis) {
+  
+  // for MC thsi fucntion always return true
+  if (not isData) return true;
+
+  // I should make it load the json somewhere else, something like loading the FR file
+  // if (theJsonMap.empty()) theJsonMap = makeMapFromJson(formattedJson);
+
+  // if (theJsonMap.empty()) {
+  //   cout << "Warning in isGoodRunLS(): mymap is empty. Returning false, but please check what's happening!" << endl;
+  //   return false;
+  // }
+
+  if ( fJsonMap.find(run) == fJsonMap.end() ) return false; // run not found
+
+  Bool_t LSfound = false;
+
+  for (UInt_t i = 0; i < fJsonMap.at(run).size() && !LSfound; ++i) {
+    
+    // evaluate second value, skip if lumis is bigger (block does not contain it)
+    if (lumis >  fJsonMap.at(run).at(i).second) continue;  
+    // if arrive here, check lower boundary
+    if (lumis >= fJsonMap.at(run).at(i).first ) LSfound = true;
+
+  }
+
+  return LSfound;
+    
 }
 
 void TnPNtuplesBase::Loop(int maxentries) {} // Loop method
@@ -47,13 +184,9 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("probe_lep_charge"       , &probe_lep_charge       , "probe_lep_charge/F");
   outTree_->Branch("probe_lep_pdgId"        , &probe_lep_pdgId        , "probe_lep_pdgId/I");
 
-  outTree_->Branch("probe_eleTrgPt"         , &probe_eleTrgPt         , "probe_eleTrgPt/F");
-  outTree_->Branch("probe_muTrgPt"          , &probe_muTrgPt          , "probe_muTrgPt/F");
-  outTree_->Branch("probe_tkMuTrgPt"        , &probe_tkMuTrgPt        , "probe_tkMuTrgPt/F");
+  outTree_->Branch("probe_triggerMatch"     , &probe_triggerMatch     , "probe_triggerMatch/I");
 
   outTree_->Branch("probe_lep_matchMC"      , &probe_lep_matchMC      , "probe_lep_matchMC/I");
-  outTree_->Branch("probe_lep_hltSafeId"    , &probe_lep_hltSafeId    , "probe_lep_hltSafeId/I");
-  outTree_->Branch("probe_lep_customId"     , &probe_lep_customId     , "probe_lep_customId/I");
   outTree_->Branch("probe_lep_tightCharge"  , &probe_lep_tightCharge  , "probe_lep_tightCharge/I");
   outTree_->Branch("probe_lep_fullLepId"    , &probe_lep_fullLepId    , "probe_lep_fullLepId/I");
   outTree_->Branch("probe_lep_alsoTag"      , &probe_lep_alsoTag      , "probe_lep_alsoTag/I");

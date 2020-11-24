@@ -196,7 +196,7 @@ def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
     return SYSTFILEALL
 
 def addKaMuCaSysts():
-    for idir in ['Up','Dn']:
+    for idir in ['Up','Down']:
         for i in range(133):
             kamucasysts.append('kalPtErr{i}{idir}'.format(i=i,idir=idir))
         kamucasysts.append('kalPtClosureErr{idir}'.format(idir=idir))
