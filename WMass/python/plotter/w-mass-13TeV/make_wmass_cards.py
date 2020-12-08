@@ -320,14 +320,14 @@ if __name__ == "__main__":
     if options.wlike:
         POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
         NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
-        SIGPROC='Z'
+        SIGPROC='Zmumu'
         SIGSUFFIX='dy'
     else:
-        POSCUT=" -A alwaystrue positive 'LepGood1_charge>0' "
-        NEGCUT=" -A alwaystrue negative 'LepGood1_charge<0' "        
-        SIGPROC='W'
+        POSCUT=" -A alwaystrue positive 'Muon_charge[0]>0' "
+        NEGCUT=" -A alwaystrue negative 'Muon_charge[0]<0' "        
+        SIGPROC='Wmunu'
         SIGSUFFIX='sig'
-    antiSIGPROC = 'Z' if SIGPROC=='W' else 'W'
+    antiSIGPROC = 'Zmumu' if SIGPROC=='Wmunu' else 'Wmunu'
 
     print 'these are angular coefficients ', coefficients
 
@@ -348,72 +348,74 @@ if __name__ == "__main__":
                 for charge in ['plus', 'minus']:
                     antich = 'plus' if charge == 'minus' else 'minus'
                     ## 0 is nominal, all the theory variations are non-zero
-                    if ivar==0: 
-                        IARGS = ARGS
-                    else: 
-                        if 'kalPt' in var:
-                            IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
-                            SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
+                    for prepost in ['pre', 'post']:
+                        antiprepost = 'pre' in prepost == 'post' else 'post'
+                        if ivar==0: 
+                            IARGS = ARGS
+                        else: 
+                            if 'kalPt' in var:
+                                IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
+                                SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
+                            else:
+                                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                                IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                            print "Running the systematic: ",var
+                        ## ---
+                        job_group =  [] ## group
+
+                        ## now go and make the submit commands
+                        print "Making card for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
+                        ycut = POSCUT if charge=='plus' else NEGCUT
+                        ## exclude the anti charge and the anti coefficients
+                        if antich in var: 
+                            print "skipping because ",antich," is in ",var
+                            continue
+                        excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
+                        xpsel=' --xp "{sig}_{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
+                        ## ---
+
+                        ## make necessary directories
+                        if not os.path.exists(outdir): 
+                            os.mkdir(outdir)
+                        if options.queue and not os.path.exists(outdir+"/jobs"): 
+                            os.mkdir(outdir+"/jobs")
+                        ## ---
+
+                        ## make specific names and such
+                        syst = '' if ivar==0 else var
+                        ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
+                        if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
+                        dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
+
+                        ## reweight the boson-pT here
+                        zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
+
+                        ## construct the full weight to be applied
+                        fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
+                        BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
+
+                        ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
+                        ## do not do by pdf weight if pdfmatch:
+                        ## do not do by pdf weight     BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
+                        ## ---
+
+                        ## now we accumulate all the commands to be run for all processes
+                        if options.queue:
+                            mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                            fullJobList.add(mkShCardsCmd)
+
+                        ## i would suggest not ever going into this else statement ... 
                         else:
-                            IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                            IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                        print "Running the systematic: ",var
-                    ## ---
-                    job_group =  [] ## group
-
-                    ## now go and make the submit commands
-                    print "Making card for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
-                    ycut = POSCUT if charge=='plus' else NEGCUT
-                    ## exclude the anti charge and the anti coefficients
-                    if antich in var: 
-                        print "skipping because ",antich," is in ",var
-                        continue
-                    excl_anticoeff = ','.join(SIGPROC+charge+'_'+ac+'.*' for ac in anticoeff)
-                    xpsel=' --xp "{sig}{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
-                    ## ---
-
-                    ## make necessary directories
-                    if not os.path.exists(outdir): 
-                        os.mkdir(outdir)
-                    if options.queue and not os.path.exists(outdir+"/jobs"): 
-                        os.mkdir(outdir+"/jobs")
-                    ## ---
-
-                    ## make specific names and such
-                    syst = '' if ivar==0 else var
-                    ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
-                    if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
-                    dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
-                    
-                    ## reweight the boson-pT here
-                    zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
-
-                    ## construct the full weight to be applied
-                    fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
-                    BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
-
-                    ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
-                    ## do not do by pdf weight if pdfmatch:
-                    ## do not do by pdf weight     BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
-                    ## ---
-
-                    ## now we accumulate all the commands to be run for all processes
-                    if options.queue:
-                        mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                        fullJobList.add(mkShCardsCmd)
-
-                    ## i would suggest not ever going into this else statement ... 
-                    else:
-                        cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
-                        if options.dryRun: print cmd
-                        else:
-                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                            out, err = p.communicate() 
-                            result = out.split('\n')
-                            for lin in result:
-                                if not lin.startswith('#'):
-                                    print(lin)
-                    ## ---
+                            cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
+                            if options.dryRun: print cmd
+                            else:
+                                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                                out, err = p.communicate() 
+                                result = out.split('\n')
+                                for lin in result:
+                                    if not lin.startswith('#'):
+                                        print(lin)
+                        ## ---
     
     ## this is for all the background cards, excluding the Z(W) for Wmass(Wlike)
     if options.bkgdataCards:

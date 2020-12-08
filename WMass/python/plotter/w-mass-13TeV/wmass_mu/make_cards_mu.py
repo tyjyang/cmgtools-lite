@@ -34,6 +34,7 @@ if __name__ == '__main__':
     parser.add_option("--syst"         , dest="addSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--genw"                         , action="store_true", default=False, help="use genw (dressed leptons) instead of prefsrw.");
     parser.add_option("-r", "--run", dest="run", type="string", default="sb", help="Which components to run: s for signal, b for backgrounds or sb for both");
+    parser.add_option("--max-genWeight", dest="maxGenWeight", type="string", default="50000.0", help="Maximum gen weight to be used for Z and W samples (with any decay). Weights larger than this value will be set to it.");
     (options, args) = parser.parse_args()
     
     if options.suffix: OUTDIR += ('_%s' % options.suffix)
@@ -51,6 +52,7 @@ if __name__ == '__main__':
         if options.dryRun: cmd += '  --dry-run '
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if not options.genw: cmd += ' --wvar prefsrw '
+        cmd += ' --nanoaod-tree --max-genWeight-procs "W.*|Z.*" "{m}" --clip-genWeight-toMax '.format(m=options.maxGenWeight)
         cmd += ' -g 5 '
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Z '#--vpt-weight W --vpt-weight TauDecaysW '

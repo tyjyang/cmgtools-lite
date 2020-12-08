@@ -95,6 +95,7 @@ outdir  = options.outdir+"/" if options.outdir else "./"
 
 
 myout = outdir;
+if not os.path.exists(myout): os.mkdir(myout)
 
 report={}
 
@@ -187,10 +188,12 @@ for name in systsEnv.keys():
     # we plan to have only templates* or alternateShape* nuisance parameters
     effmap0  = {}
     effmap12 = {}
+    mode = ""
     for p in procs:
         effect = "-"
         effect0  = "-"
         effect12 = "-"
+        mode = ""
         for entry in systsEnv[name]:
             procmap,amount,mode = entry[:3]
             if re.match(procmap, p):

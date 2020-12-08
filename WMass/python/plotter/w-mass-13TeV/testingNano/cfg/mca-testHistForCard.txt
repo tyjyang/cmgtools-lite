@@ -1,6 +1,6 @@
 data: .*; SubPath=".*DATA/"
 
-Wmunu_plus_post   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
+Wmunu_plus_post   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
 
 Wmunu_plus_pre   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", SubPath="WplusJetsToMuNu_preVFP_addVars"
 
