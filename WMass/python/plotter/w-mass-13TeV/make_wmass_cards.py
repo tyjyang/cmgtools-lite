@@ -2,9 +2,15 @@
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
-# import some parameters from wmass_parameters.py, they are also used by other scripts
-from wmass_parameters import *
 
+def getShFile(jobdir, name):
+    tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
+    tmp_srcfile = open(tmp_srcfile_name, 'w')
+    tmp_srcfile.write("#! /bin/sh\n")
+    tmp_srcfile.write("ulimit -c 0 -S\n")
+    tmp_srcfile.write("ulimit -c 0 -H\n")
+    tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
+    return tmp_srcfile_name, tmp_srcfile
 
 def wptBinsScales(i):
     wptbins = [0.0, 1.971, 2.949, 3.838, 4.733, 5.674, 6.684, 7.781, 8.979, 10.303, 11.777, 13.435, 15.332, 17.525, 20.115, 23.245, 27.173, 32.414, 40.151, 53.858, 13000.0]
@@ -214,15 +220,15 @@ if __name__ == "__main__":
     parser.add_option("-b", "--bkgdata-cards", dest="bkgdataCards", action="store_true", default=False, help="Make the background and data part of the datacards");
     parser.add_option("-W", "--weight", dest="weightExpr", default="-W 1", help="Event weight expression (default 1)");
     parser.add_option("-P", "--path", dest="path", type="string",default=None, help="Path to directory with input trees and pickle files");
-    parser.add_option("-C", "--channel", dest="channel", type="string", default='el', help="Channel. either 'el' or 'mu'");
+    parser.add_option("-C", "--channel", dest="channel", type="string", default='mu', help="Channel. either 'el' or 'mu'");
     parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
     parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--qed-syst", dest="addQEDSyst", action="store_true", default=False, help="Add QED scale systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--kamuca-syst", dest="addKaMuCaSyst", action="store_true", default=False, help="Add Kalman Filter muon momentum scale correction systematics");
-    parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeShapeCards commands");
+    parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeHistogramsWMass commands");
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
-    parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,TauDecaysW,Z).");
+    parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,Z).");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
     (options, args) = parser.parse_args()
     
@@ -260,7 +266,7 @@ if __name__ == "__main__":
     os.system("cp %s %s" % (CUTFILE, outdir))
     os.system("cp %s %s" % (MCA, outdir))
     
-    ## save template binning (eta on X, pt on y axis)                                                                                                                       
+    ## save template binning (eta on X, pt on y axis)
     ptEta_binfile = open(outdir+'/binningPtEta.txt','w')
     ptEta_binfile.write("#Template binning: eta-pt on x-y axis\n")
     ptEta_binfile.write("reco: "+binning+"\n")
@@ -307,13 +313,10 @@ if __name__ == "__main__":
     BASECONFIG=os.path.dirname(MCA)
     ## use rel paths if options.queue:
     ## use rel paths     ARGS = ARGS.replace(BASECONFIG,os.getcwd()+"/"+BASECONFIG)
-    OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj tree "+FASTTEST
-    if not os.path.exists(outdir): os.makedirs(outdir)
-    OPTIONS+=" -F Friends '{P}/friends/tree_Friend_{cname}.root' "
+    OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj Events "+FASTTEST
     if not options.notUnroll2D:
         OPTIONS+=" --2d-binning-function unroll2Dto1D "
     
-
     if options.wlike:
         POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
         NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
@@ -396,12 +399,12 @@ if __name__ == "__main__":
 
                     ## now we accumulate all the commands to be run for all processes
                     if options.queue:
-                        mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         fullJobList.add(mkShCardsCmd)
 
                     ## i would suggest not ever going into this else statement ... 
                     else:
-                        cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                        cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
                         if options.dryRun: print cmd
                         else:
                             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
@@ -431,12 +434,12 @@ if __name__ == "__main__":
 
             ## accumulate the commands to be run
             if options.queue:
-                mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
+                mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
                 fullJobList.add(mkShCardsCmd)
 
             ## i would suggest not ever going into this else statement ... 
             else:
-                cmd = "python makeShapeCards.py "+ARGS+" "+BIN_OPTS
+                cmd = "python makeHistogramsWMass.py "+ARGS+" "+BIN_OPTS
                 if options.dryRun: print cmd
                 else:
                     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
@@ -485,11 +488,11 @@ if __name__ == "__main__":
 
                 ## accumulate the commands to be run
                 if options.queue:
-                    mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     fullJobList.add(mkShCardsCmd)
                 ## i would suggest not ever going into this else statement ... 
                 else:
-                    cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                    cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
                     if options.dryRun: print cmd
                     else:
                         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
@@ -532,11 +535,11 @@ if __name__ == "__main__":
 
                 ## accumulate the commands to be run
                 if options.queue:
-                    mkShCardsCmd = "python makeShapeCards.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     fullJobList.add(mkShCardsCmd)
                 ## i would suggest not ever going into this else statement ...
                 else:
-                    cmd = "python makeShapeCards.py "+IARGS+" "+BIN_OPTS
+                    cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
                     if options.dryRun: print cmd
                     else:
                         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
@@ -546,17 +549,7 @@ if __name__ == "__main__":
                             if not lin.startswith('#'):
                                 print(lin)
                 ## ---
-    
-    ## not sure why this function is here, but who cares
-    def getShFile(jobdir, name):
-        tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
-        tmp_srcfile = open(tmp_srcfile_name, 'w')
-        tmp_srcfile.write("#! /bin/sh\n")
-        tmp_srcfile.write("ulimit -c 0 -S\n")
-        tmp_srcfile.write("ulimit -c 0 -H\n")
-        tmp_srcfile.write("cd {cmssw};\neval $(scramv1 runtime -sh);\ncd {d};\n".format( d= os.getcwd(), cmssw = os.environ['CMSSW_BASE']))
-        return tmp_srcfile_name, tmp_srcfile
-    
+        
     ## now loop on all the accumulated jobs that we have from above
     if len(fullJobList):
         reslist = list(fullJobList)
@@ -638,6 +631,8 @@ if __name__ == "__main__":
         ## special permissions for people in CMG
         if os.environ['USER'] in ['mdunser', 'psilva', 'bendavid', 'kelong']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+        if os.environ['USER'] in ['mciprian']:
+            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"\n\n\n')
         for sf in sourcefiles:
             condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
         condor_file.close()

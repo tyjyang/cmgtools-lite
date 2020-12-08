@@ -1,0 +1,12 @@
+data: .*; SubPath=".*DATA/"
+
+Wmunu_plus_post   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
+
+Wmunu_plus_pre   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", SubPath="WplusJetsToMuNu_preVFP_addVars"
+
+Zmumu_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
+Zmumu_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
+
+Ztautau_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
+Ztautau_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
+
