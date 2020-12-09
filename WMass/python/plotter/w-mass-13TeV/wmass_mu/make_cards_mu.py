@@ -55,5 +55,5 @@ if __name__ == '__main__':
         cmd += ' --nanoaod-tree --max-genWeight-procs "W.*|Z.*" "{m}" --clip-genWeight-toMax '.format(m=options.maxGenWeight)
         cmd += ' -g 5 '
         cmd += ' --decorrelateSignalScales '
-        cmd += ' --vpt-weight Z '#--vpt-weight W --vpt-weight TauDecaysW '
+        cmd += ' --vpt-weight Zmumu '#--vpt-weight Wmunu --vpt-weight Wtaunu ' # check if easier to use regular expressions to catch cases inside PROG
         os.system(cmd)

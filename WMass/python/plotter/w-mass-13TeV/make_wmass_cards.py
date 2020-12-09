@@ -3,7 +3,7 @@ from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 
-def getShFile(jobdir, name):
+def getShFile(jobdir, name, options):
     tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
     tmp_srcfile = open(tmp_srcfile_name, 'w')
     tmp_srcfile.write("#! /bin/sh\n")
@@ -213,6 +213,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt outdir ")
     parser.add_option("-q", "--queue",    dest="queue",     type="string", default=None, help="Run jobs on lxbatch instead of locally");
+    parser.add_option("-n", "--job-name",    dest="jobName",     type="string", default=None, help="Select name for condor jobs (by default they are identified by the cluster ID)");
     parser.add_option("-l", "--lumi",    dest="integratedLuminosity",     type="float", default=35.9, help="Integrated luminosity");
     parser.add_option("--dry-run", dest="dryRun",    action="store_true", default=False, help="Do not run the job, only print the command");
     parser.add_option("--decorrelateSignalScales", action="store_true", default=False, help="Treat qcd scales uncorrelated for left/right/long");
@@ -348,74 +349,72 @@ if __name__ == "__main__":
                 for charge in ['plus', 'minus']:
                     antich = 'plus' if charge == 'minus' else 'minus'
                     ## 0 is nominal, all the theory variations are non-zero
-                    for prepost in ['pre', 'post']:
-                        antiprepost = 'pre' in prepost == 'post' else 'post'
-                        if ivar==0: 
-                            IARGS = ARGS
-                        else: 
-                            if 'kalPt' in var:
-                                IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
-                                SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
-                            else:
-                                IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
-                                IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                            print "Running the systematic: ",var
-                        ## ---
-                        job_group =  [] ## group
-
-                        ## now go and make the submit commands
-                        print "Making card for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
-                        ycut = POSCUT if charge=='plus' else NEGCUT
-                        ## exclude the anti charge and the anti coefficients
-                        if antich in var: 
-                            print "skipping because ",antich," is in ",var
-                            continue
-                        excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
-                        xpsel=' --xp "{sig}_{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,TauDecaysW.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
-                        ## ---
-
-                        ## make necessary directories
-                        if not os.path.exists(outdir): 
-                            os.mkdir(outdir)
-                        if options.queue and not os.path.exists(outdir+"/jobs"): 
-                            os.mkdir(outdir+"/jobs")
-                        ## ---
-
-                        ## make specific names and such
-                        syst = '' if ivar==0 else var
-                        ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
-                        if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
-                        dcname = "{sig}{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
-
-                        ## reweight the boson-pT here
-                        zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC=='W' else 1)
-
-                        ## construct the full weight to be applied
-                        fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
-                        BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
-
-                        ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
-                        ## do not do by pdf weight if pdfmatch:
-                        ## do not do by pdf weight     BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
-                        ## ---
-
-                        ## now we accumulate all the commands to be run for all processes
-                        if options.queue:
-                            mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
-                            fullJobList.add(mkShCardsCmd)
-
-                        ## i would suggest not ever going into this else statement ... 
+                    if ivar==0: 
+                        IARGS = ARGS
+                    else: 
+                        if 'kalPt' in var:
+                            IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
+                            SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
                         else:
-                            cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
-                            if options.dryRun: print cmd
-                            else:
-                                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                                out, err = p.communicate() 
-                                result = out.split('\n')
-                                for lin in result:
-                                    if not lin.startswith('#'):
-                                        print(lin)
-                        ## ---
+                            IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                            IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                        print "Running the systematic: ",var
+                    ## ---
+                    job_group =  [] ## group
+
+                    ## now go and make the submit commands
+                    print "Making card for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
+                    ycut = POSCUT if charge=='plus' else NEGCUT
+                    ## exclude the anti charge and the anti coefficients
+                    if antich in var: 
+                        print "skipping because ",antich," is in ",var
+                        continue
+                    excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
+                    xpsel=' --xp "{sig}_{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,Wtaunu.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
+                    ## ---
+
+                    ## make necessary directories
+                    if not os.path.exists(outdir): 
+                        os.mkdir(outdir)
+                    if options.queue and not os.path.exists(outdir+"/jobs"): 
+                        os.mkdir(outdir+"/jobs")
+                    ## ---
+
+                    ## make specific names and such
+                    syst = '' if ivar==0 else var
+                    ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
+                    if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
+                    dcname = "{sig}_{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
+
+                    ## reweight the boson-pT here
+                    zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC.startswith("W") else 1)
+
+                    ## construct the full weight to be applied
+                    fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
+                    BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
+
+                    ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
+                    ## do not do by pdf weight if pdfmatch:
+                    ## do not do by pdf weight     BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
+                    ## ---
+
+                    ## now we accumulate all the commands to be run for all processes
+                    if options.queue:
+                        mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        fullJobList.add(mkShCardsCmd)
+
+                    ## i would suggest not ever going into this else statement ... 
+                    else:
+                        cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
+                        if options.dryRun: print cmd
+                        else:
+                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                            out, err = p.communicate() 
+                            result = out.split('\n')
+                            for lin in result:
+                                if not lin.startswith('#'):
+                                    print(lin)
+                    ## ---
     
     ## this is for all the background cards, excluding the Z(W) for Wmass(Wlike)
     if options.bkgdataCards:
@@ -426,7 +425,7 @@ if __name__ == "__main__":
             xpsel=' --xp "{sig}.*" '.format(sig=SIGPROC)
 
             if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-                xpsel+=' --xp "{antisig}.*,TauDecaysW.*" '.format(antisig=antiSIGPROC)   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
+                xpsel+=' --xp "{antisig}.*,Wtaunu.*" '.format(antisig=antiSIGPROC)   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
             ## ---
 
             ## now make the names of the cards etc
@@ -454,7 +453,7 @@ if __name__ == "__main__":
     
     ## this is for background cards which include the Z(W) samples for Wmass (Wlike)
     if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
-        antiSIGSUFFIX = 'dy' if SIGPROC=='W' else 'sig'
+        antiSIGSUFFIX = 'dy' if SIGPROC.startswith('W') else 'sig'
         antisig_syst = ['_'+antiSIGSUFFIX+'_nominal']+[x for x in pdfsysts+inclqcdsysts if antiSIGSUFFIX in x] # for the Z in W mass the QCDscales are unbinned, for Wlike the W QCD scales are also unbinned => only need inclqcdsysts
 
         ## loop on the Z(W) related systematics for Wmass (Wlike)
@@ -483,7 +482,7 @@ if __name__ == "__main__":
                 dcname = "{antisig}_{channel}_{charge}{syst}".format(antisig=antiSIGPROC,channel=options.channel, charge=charge,syst=syst)
 
                 ## construct the final weight. reweight also the DY to whatever new pT spectrum we want
-                zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=1 if SIGPROC=='W' else 0)
+                zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=1 if SIGPROC.startswith('W') else 0)
                 fullWeight = options.weightExpr+'*'+zptWeight if antiSIGPROC in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
@@ -524,14 +523,14 @@ if __name__ == "__main__":
 
                 print "Making card for WTau process with charge ", charge
                 chcut = POSCUT if charge=='plus' else NEGCUT
-                xpsel=' --xp "[^TauDecaysW]*" --asimov '
+                xpsel=' --xp "[^Wtaunu]*" --asimov '
                 syst = '' if ivar==0 else var
 
                 ## make names for files etc again
-                dcname = "TauDecaysW_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                dcname = "Wtaunu_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
                 ## construct full reweighting weight. boson-pT reweighting here again
                 zptWeight = 'dyptWeight({wvar}_pt,0)'.format(wvar=options.wvar)
-                fullWeight = options.weightExpr+'*'+zptWeight if 'TauDecaysW' in options.procsToPtReweight else options.weightExpr
+                fullWeight = options.weightExpr+'*'+zptWeight if 'Wtaunu' in options.procsToPtReweight else options.weightExpr
                 BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
                 ## ---
 
@@ -591,14 +590,14 @@ if __name__ == "__main__":
         ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first for speedup
         for ib in bkglist:
             pm = 'plus' if 'positive' in ib else 'minus'
-            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm, options)
             tmp_srcfile.write(ib)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
     
         ## now do the others.
         for ij in range(njobs):
-            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij)
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij, options)
             tmp_n = options.groupJobs
             while len(reslist) and tmp_n:
                 tmp_pycmd = reslist[0]
@@ -625,23 +624,27 @@ if __name__ == "__main__":
     Error      = {jd}/$(ProcId).error
     getenv      = True
     environment = "LS_SUBCWD={here}"
-    request_memory = 4000
-    +MaxRuntime = {rt}\n
+    request_memory = 2000
+    +MaxRuntime = {rt}
     '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         ## ---
-
+    
+        if options.jobName != None:
+            condor_file.write('+JobBatchName = "{n}"'.format(n=options.jobName))
         ## special permissions for people in CMG
         if os.environ['USER'] in ['mdunser', 'psilva', 'bendavid', 'kelong']:
-            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n\n\n')
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"')
         if os.environ['USER'] in ['mciprian']:
-            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"\n\n\n')
+            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"')
+        condor_file.write('\n\n\n')
+
         for sf in sourcefiles:
             condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
         condor_file.close()
         ## ---
     
         ## now just finish up, either submitting or just printing the commands
-        print 'i have {n} jobs to submit!'.format(n=len(subcommands))
+        print 'I have {n} jobs to submit!'.format(n=len(subcommands))
         if options.dryRun:
             print 'running dry, printing the commands...'
             print 'condor_submit ',condor_file_name

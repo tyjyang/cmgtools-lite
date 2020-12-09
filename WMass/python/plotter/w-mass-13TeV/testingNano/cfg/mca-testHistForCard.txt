@@ -1,12 +1,19 @@
 data: .*; SubPath=".*DATA/"
 
-Wmunu_plus_post   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
+#Wmunu_plus_post   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
+#Wmunu_plus_pre   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", SubPath="WplusJetsToMuNu_preVFP_addVars"
+#Zmumu_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
+#Zmumu_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
 
-Wmunu_plus_pre   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", SubPath="WplusJetsToMuNu_preVFP_addVars"
+#Ztautau_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
+#Ztautau_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
 
-Zmumu_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
-Zmumu_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
+# let's merge pre/post
 
-Ztautau_post   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", SubPath="DYJetsToMuMu_postVFP_addVars"
-Ztautau_pre   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (preVFP)", SubPath="DYJetsToMuMu_preVFP_addVars"
+Wmunu_plus   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W^{+}#rightarrow#mu#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
+
+Zmumu   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z#rightarrow#mu#mu", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+
+Ztautau   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z#rightarrow#tau#tau", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+
 
