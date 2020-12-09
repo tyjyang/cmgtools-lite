@@ -1,4 +1,4 @@
-data: .*; SubPath=".*DATA/"
+data: .*20.*; SubPath=".*DATA/"
 
 #Wmunu_plus_post   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (postVFP)", SubPath="WplusJetsToMuNu_postVFP_addVars"
 #Wmunu_plus_pre   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", SubPath="WplusJetsToMuNu_preVFP_addVars"
@@ -10,10 +10,14 @@ data: .*; SubPath=".*DATA/"
 
 # let's merge pre/post
 
-Wmunu_plus   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W^{+}#rightarrow#mu#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
+Wmunu_plus   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
 
-Zmumu   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z#rightarrow#mu#mu", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+# accounts for branching ratio of tau to muon (PDG in 2018 says BR=17.3936+/-0.0384 %)
+Wtaunu_plus   : .*_20_.* : 0.17394*11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#tau\#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
 
-Ztautau   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z#rightarrow#tau#tau", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+Zmumu   : .*_20_.* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+
+# filter efficiency 0.5802 accounts for "at least 1 tau decaying into either mu or ele
+Ztautau   : .*_20_.* : 0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
 
 

@@ -230,7 +230,8 @@ if __name__ == "__main__":
     parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeHistogramsWMass commands");
     parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,Z).");
-    parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
+    parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");    
+    parser.add_option('--add-option', dest="addOptions", type="string", default=None, help="add these options to the option string when running the histograms");
     (options, args) = parser.parse_args()
     
     if not options.wvar in ['genw', 'prefsrw']:
@@ -317,7 +318,12 @@ if __name__ == "__main__":
     OPTIONS=" -P "+T+" --s2v -j "+str(J)+" -l "+str(luminosity)+" -f --obj Events "+FASTTEST
     if not options.notUnroll2D:
         OPTIONS+=" --2d-binning-function unroll2Dto1D "
-    
+    if options.addOptions:
+        OPTIONS += options.addOptions
+    #print "-"*30
+    #print OPTIONS
+    #print "-"*30
+
     if options.wlike:
         POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
         NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
@@ -370,7 +376,7 @@ if __name__ == "__main__":
                         print "skipping because ",antich," is in ",var
                         continue
                     excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
-                    xpsel=' --xp "{sig}_{antich}.*,{ahel},Flips,{antisig}.*,Top,DiBosons,Wtaunu.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
+                    xpsel=' --xp "{sig}_{antich}.*,{ahel},{antisig}.*,Top,DiBosons,Wtaunu.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
                     ## ---
 
                     ## make necessary directories
@@ -601,7 +607,7 @@ if __name__ == "__main__":
             tmp_n = options.groupJobs
             while len(reslist) and tmp_n:
                 tmp_pycmd = reslist[0]
-                tmp_srcfile.write(tmp_pycmd)
+                tmp_srcfile.write(tmp_pycmd+'\n')
                 reslist.remove(tmp_pycmd)
                 tmp_n -= 1
             tmp_srcfile.close()
@@ -617,26 +623,25 @@ if __name__ == "__main__":
         condor_file_name = jobdir+'/condor_submit_'+('background' if options.bkgdataCards else 'signal')+'.condor'
         condor_file = open(condor_file_name,'w')
         condor_file.write('''Universe = vanilla
-    Executable = {de}
-    use_x509userproxy = true
-    Log        = {jd}/$(ProcId).log
-    Output     = {jd}/$(ProcId).out
-    Error      = {jd}/$(ProcId).error
-    getenv      = True
-    environment = "LS_SUBCWD={here}"
-    request_memory = 2000
-    +MaxRuntime = {rt}
-    '''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
+Executable = {de}
+use_x509userproxy = true
+Log        = {jd}/$(ProcId).log
+Output     = {jd}/$(ProcId).out
+Error      = {jd}/$(ProcId).error
+getenv      = True
+environment = "LS_SUBCWD={here}"
+request_memory = 2000
++MaxRuntime = {rt}\n'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         ## ---
     
         if options.jobName != None:
-            condor_file.write('+JobBatchName = "{n}"'.format(n=options.jobName))
+            condor_file.write('+JobBatchName = "{n}"\n'.format(n=options.jobName))
         ## special permissions for people in CMG
         if os.environ['USER'] in ['mdunser', 'psilva', 'bendavid', 'kelong']:
-            condor_file.write('+AccountingGroup = "group_u_CMST3.all"')
+            condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
         if os.environ['USER'] in ['mciprian']:
-            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"')
-        condor_file.write('\n\n\n')
+            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"\n')
+        condor_file.write('\n\n')
 
         for sf in sourcefiles:
             condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))

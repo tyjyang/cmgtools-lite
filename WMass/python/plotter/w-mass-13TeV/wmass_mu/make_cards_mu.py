@@ -52,7 +52,8 @@ if __name__ == '__main__':
         if options.dryRun: cmd += '  --dry-run '
         if options.addSyst: cmd += '  --pdf-syst --qcd-syst '
         if not options.genw: cmd += ' --wvar prefsrw '
-        cmd += ' --nanoaod-tree --max-genWeight-procs "W.*|Z.*" "{m}" --clip-genWeight-toMax '.format(m=options.maxGenWeight)
+        optsForHisto = ' --nanoaod-tree --max-genWeight-procs \'W.*|Z.*\' \'{m}\' --clip-genWeight-toMax '.format(m=options.maxGenWeight)
+        cmd += ' --add-option "{opt}"'.format(opt=optsForHisto)
         cmd += ' -g 5 '
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Zmumu '#--vpt-weight Wmunu --vpt-weight Wtaunu ' # check if easier to use regular expressions to catch cases inside PROG
