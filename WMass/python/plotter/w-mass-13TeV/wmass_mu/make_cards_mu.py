@@ -23,7 +23,7 @@ etabinning = '['+','.join('{a:.1f}'.format(a=i) for i in binningeta)+']'
 ptbinning = '['+','.join(str(i) for i in range(26,46))+']'
 
 BINNING      = '\''+etabinning+'*'+ptbinning+'\''
-WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(Pileup_nTrueInt)*PrefireWeight\' ' # to be updated
+WEIGHTSTRING = ' \'puw2016_nTrueInt_36fb(Pileup_nTrueInt)*_get_muonSF_fast_wmass(Muon_pt[0],Muon_eta[0],Muon_charge[0])*PrefireWeight\' '  # _get_muonSF_fast_wmass applies trigger and selection SF all at once
 OUTDIR       = 'wmass_%s' % datetime.now().strftime('%Y_%m_%d')
     
 if __name__ == '__main__':
@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage='%prog [options]')
     parser.add_option('-s', '--suffix' , dest='suffix' , type='string'      , default=None , help='Append a suffix to the default outputdir (wmass_<date>)');
     parser.add_option('-d', '--dry-run', dest='dryRun' , action='store_true', default=False, help='Do not run the job, only print the command');
+    parser.add_option("-p", "--print-only", dest="printOnly",   action="store_true", default=False, help="Just print commands, do not execute anything in this script");
     parser.add_option("--syst"         , dest="addSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
     parser.add_option("--genw"                         , action="store_true", default=False, help="use genw (dressed leptons) instead of prefsrw.");
     parser.add_option("-r", "--run", dest="run", type="string", default="sb", help="Which components to run: s for signal, b for backgrounds or sb for both");
@@ -57,4 +58,8 @@ if __name__ == '__main__':
         cmd += ' -g 5 '
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Zmumu '#--vpt-weight Wmunu --vpt-weight Wtaunu ' # check if easier to use regular expressions to catch cases inside PROG
-        os.system(cmd)
+        if options.printOnly:
+            print cmd
+            print ""
+        else:
+            os.system(cmd)
