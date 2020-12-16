@@ -3,8 +3,8 @@ from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 
-def getShFile(jobdir, name, options):
-    tmp_srcfile_name = jobdir+'/job_{t}_{i}.sh'.format(i=name,t='sig' if options.signalCards else 'bkg')
+def getShFile(jobdir, name):
+    tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
     tmp_srcfile = open(tmp_srcfile_name, 'w')
     tmp_srcfile.write("#! /bin/sh\n")
     tmp_srcfile.write("ulimit -c 0 -S\n")
@@ -37,16 +37,29 @@ def getCondorTime(qstr):
         retval = int(qstr)*60*60
     return int(retval)
 
+def printSysts(systs=[],process="Wmunu"):
+    if len(systs):
+        print '-'*30
+        print "Have these systematics on {p}:".format(p=process)
+        print systs
+        print '-'*30
 
-NPDFSYSTS=60 # Hessian variations of NNPDF 3.0
+
+NVPTBINS=2 # usually it would be 10, use less for tests
+NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests
 nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
-pdfsysts=[] # array containing the PDFs signal variations
-qcdsysts=[] # array containing the QCD scale signal variations
-inclqcdsysts=[] # array containing the inclusive QCD scale variations for Z
-etaeffsysts=[] # array containing the uncorrelated efficiency systematics vs eta
-fsrsysts=[] # array containing (only) the PHOTOS/PYTHIA fsr reweighitng
-kamucasysts=[] # array containing the kalman filter muon momentum scale systematics
-coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
+#
+# dictionaries associating an array containing systs variations to each relevant process
+pdfsysts={} # PDFs variations
+qcdsysts={} # QCD scale variations (binned in W boson pt)
+inclqcdsysts={} # inclusive QCD scale variations (e.g. for Z)
+etaeffsysts={} # uncorrelated efficiency systematics vs eta
+fsrsysts={} # (only) the PHOTOS/PYTHIA fsr reweighitng
+kamucasysts={} # kalman filter muon momentum scale systematics
+
+#coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
+coefficients = [''] # simplifies life for now, but do not use empty array, or it will inhibit some loops
+data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"]
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -63,16 +76,16 @@ def getMcaIncl(mcafile,incl_mca='incl_sig'):
             break
     return incl_file
 
-def writeNominalSingleMCA(mcafile,odir,incl_mca='incl_dy'):
+def writeNominalSingleMCA(mcafile,odir,incl_mca='incl_zmumu'):
     incl_file=getMcaIncl(mcafile,incl_mca)
-    proc = incl_mca.split('_')[1]
-    postfix = "_{proc}_nominal".format(proc=proc)
-    mcafile_nominal = open("{odir}/mca{pfx}.txt".format(odir=odir,pfx=postfix), "w")
+    process = incl_mca.split('_')[1]
+    postfix = "_nominal"
+    mcafile_nominal = open("{odir}/mca_{p}{pfx}.txt".format(odir=odir,p=process,pfx=postfix), "w")
     mcafile_nominal.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="1." \n')
-    nominals.append(proc)
+    nominals.append(process)
     print "written nominal mca relative to ",incl_mca
 
-def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='incl_sig',append=False):
+def writePdfSystsToMCA(mcafile,odir,vec_weight="pdfWeightNNPDF",syst="pdf",incl_mca='incl_wmunu',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
@@ -82,16 +95,19 @@ def writePdfSystsToMCA(mcafile,odir,vec_weight="hessWgt",syst="pdf",incl_mca='in
         filename = "%s/mca_systs.txt" % odir
         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
     for i in range(1,NPDFSYSTS+1):
-        postfix = "_{proc}_{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,idx=i)
-        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+        process = incl_mca.split('_')[1]
+        postfix = "_{syst}{idx}".format(syst=syst,idx=i)
+        mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
         mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+vec_weight+str(i)+'", PostFix="'+postfix+'" \n')
-        pdfsysts.append(postfix)
+        if process not in pdfsysts:
+            pdfsysts[process] = []
+        pdfsysts[process].append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
 
 ## this function here is pretty important to do all the theory systematics
 ## ---
-def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[],append=False,ptBinned=True,overrideDecorrelation=False):
+def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_wmunu',scales=[],append=False,ptBinned=True,overrideDecorrelation=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
 
@@ -103,64 +119,91 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_sig',scales=[
         filename = "%s/mca_systs.txt" % odir
         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))    
 
+    scaleVarToNtupleVar = {
+        "muRUp"    : "scaleWeightMuR2MuF1",
+        "muRDn"    : "scaleWeightMuR05MuF1",
+        "muFUp"    : "scaleWeightMuR1MuF2",
+        "muFDn"    : "scaleWeightMuR1MuF05",
+        "muRmuFUp" : "scaleWeightMuR2MuF2",
+        "muRmuFDn" : "scaleWeightMuR05MuF05"
+    }
+
+    process = incl_mca.split('_')[1]
     ## make the mcas for the scales and mW and stuff
     for scale in scales:
 
         ## mW now doesn't just have Up and Down. make many
         if scale == "mW":
+
+            #############################
+            # FIXME: STILL TO BE UPDATED
+            #############################
+
             ## loop on all the masses we want. in index of 5 MeV variations each
             masses  = ['mass_{m}'.format(m = j).replace('-','m') for j in range(-20,0)]
             masses += ['mass_0']
             masses += ['mass_p{m}'.format(m = j).replace('-','m') for j in range(1,21)]
 
             for mass in masses:
-                postfix = "_{proc}_{syst}{mval}".format(proc=incl_mca.split('_')[1],syst=scale,mval=mass)
-                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                postfix = "_{syst}{mval}".format(syst=scale,mval=mass)
+                mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
 
                 ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
                 fstring = str(mass)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
-                qcdsysts.append(postfix)
+                if process not in qcdsysts:
+                    qcdsysts[process] = []
+                qcdsysts[process].append(postfix)
 
         else:
             ## all the others as usual with an Up and Down variation
             for idir in ['Up','Dn']:
-                postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
-                mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                postfix = "_{syst}{idir}".format(syst=scale,idir=idir)
+                mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
                 if 'muR' in scale or 'muF' in scale:
     
+                    scaleVar = scaleVarToNtupleVar["{sc}{idir}".format(sc=scale,idir=idir)]
                     ## for the signal keep as is for the QCD scales
                     if ptBinned:
-                        for ipt in range(1,11): ## start from 1 to 10
+                        for ipt in range(1,1+NVPTBINS): ## start from 1 to 10
                             for coeff in coefficients if options.decorrelateSignalScales and not overrideDecorrelation else ['']:
                                 for pm in ['plus', 'minus']:
                                     ## have to redo the postfix for these
-                                    postfix = "_{proc}_{coeff}{syst}{ipt}{ch}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir,ipt=ipt,coeff=coeff,ch=pm)
-                                    mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
+                                    postfix = "_{coeff}{syst}{ipt}{ch}{idir}".format(syst=scale,idir=idir,ipt=ipt,coeff=coeff,ch=pm)
+                                    mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
                                     ptcut = wptBinsScales(ipt)
-                                    wgtstr = 'TMath::Power(qcd_{sc}{idir}\,({wv}_pt>={ptlo}&&{wv}_pt<{pthi}))'.format(sc=scale,idir=idir,wv=options.wvar,ptlo=ptcut[0],pthi=ptcut[1])
+                                    wgtstr = 'TMath::Power({sc}\,(Vpt_preFSR>={ptlo}&&Vpt_preFSR<{pthi}))'.format(sc=scaleVar,ptlo=ptcut[0],pthi=ptcut[1])
                                     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                                    qcdsysts.append(postfix)
+                                    if process not in qcdsysts:
+                                        qcdsysts[process] = []
+                                    qcdsysts[process].append(postfix)
                     else:
-                        ## for the Z only do the unnumbered ones
-                        postfix = "_{proc}_{syst}{idir}".format(proc=incl_mca.split('_')[1],syst=scale,idir=idir)
-                        mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-                        wgtstr = 'qcd_{sc}{idir}'.format(sc=scale,idir=idir)
+                        ## for the Z only do the unnumbered ones                        
+                        mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
+                        wgtstr = '{sc}'.format(sc=scaleVar)
                         mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
-                        inclqcdsysts.append(postfix)
+                        if process not in inclqcdsysts:
+                            inclqcdsysts[process] = []
+                        inclqcdsysts[process].append(postfix)
     
-                else: ## alphaS is left here. keep as is i guess
-                    ## don't do mW here again
+                else: ## alphaS is left here
+                    ## don't do mW here again, although it should not be found here
                     if "mW" in scale:
                         continue
                     ## ---
-                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="qcd_'+scale+idir+'", PostFix="'+postfix+'" \n')
-                    qcdsysts.append(postfix)
-                    inclqcdsysts.append(postfix)
+                    wgtstr = "pdfWeightNNPDF101" if idir == "Up" else "pdfWeightNNPDF102"
+                    mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+wgtstr+'", PostFix="'+postfix+'" \n')
+                    if process not in inclqcdsysts:
+                        inclqcdsysts[process] = []
+                    inclqcdsysts[process].append(postfix)
+                    # was like that, but why would alpha go in both arrays? keep commented
+                    #if process not in qcdsysts:
+                    #    qcdsysts[process] = []
+                    #qcdsysts.append(postfix)
     
     print "written ",syst," systematics relative to ",incl_mca
 
-def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_sig',append=False):
+def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_mca='incl_wmunu',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
     if len(incl_file)==0: 
@@ -171,36 +214,44 @@ def writeEfficiencyStatErrorSystsToMCA(mcafile,odir,channel,syst="EffStat",incl_
         if not os.path.exists(filename): os.system('cp {mca_orig} {mca_syst}'.format(mca_orig=mcafile,mca_syst=filename))
     etalo = -2.5 if channel=='el' else -2.4001
     deta = 0.1; nbins = int(2*abs(etalo)/deta)
+    process = incl_mca.split('_')[1]
     for i in range(0,nbins):
         etamin=etalo + i*deta; etamax=etalo + (i+1)*deta;
         # 3 parameters used in the Erf fit vs pt per eta bin
         for ipar in xrange(3):
-            postfix = "_{proc}_ErfPar{ipar}{syst}{idx}".format(proc=incl_mca.split('_')[1],syst=syst,ipar=ipar,idx=i+1)
-            mcafile_syst = open(filename, 'a') if append else open("%s/mca%s.txt" % (odir,postfix), "w")
-            weightFcn = 'effSystEtaBins({ipar}\,LepGood1_pdgId\,LepGood1_eta\,LepGood1_pt\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
+            postfix = "_ErfPar{ipar}{syst}{idx}".format(syst=syst,ipar=ipar,idx=i+1)
+            mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
+            weightFcn = 'effSystEtaBins({ipar}\,Muon_pdgId[0]\,Muon_eta[0]\,Muon_pt[0]\,{emin:.1f}\,{emax:.1f})'.format(ipar=ipar,emin=etamin,emax=etamax)
             mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
             etaeffsysts.append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
-def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_sig',append=False):
+# FIXEM: this is probably obsolete, keep for reference for now
+def writeFSRSystsToMCA(mcafile,odir,syst="fsr",incl_mca='incl_wmunu',append=False):
     open("%s/systEnv-dummy.txt" % odir, 'a').close()
     incl_file=getMcaIncl(mcafile,incl_mca)
-    postfix = "_{proc}_{syst}".format(proc=incl_mca.split('_')[1],syst=syst)
-    mcafile_syst = open("%s/mca%s.txt" % (odir,postfix), "w")
+    process = incl_mca.split('_')[1]
+    postfix = "_{syst}".format(syst=syst)
+    mcafile_syst = open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
+    # this is going to be fully changed, probably
     weightFcn = 'fsrPhotosWeightSimple(GenLepDressed_pdgId[0]\,GenLepDressed_pt[0]\,GenLepBare_pt[0])'
     mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+weightFcn+'", PostFix="'+postfix+'" \n')
-    fsrsysts.append(postfix)
+    if process not in fsrsysts:
+        fsrsysts[process] = []
+    fsrsysts[process].append(postfix)
     print "written ",syst," systematics relative to ",incl_mca
 
-def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
-    SYSTFILEALL=('.').join(filename.split('.')[:-1])+"-all.txt"
-    copyfile(filename,SYSTFILEALL)
-    systfile=open(SYSTFILEALL,"a")
-    for i in range(NPDFSYSTS/2):
-        systfile.write(syst+str(i+1)+"  : "+sample+" : .* : pdf"+str(i+1)+" : templates\n")
-    print "written pdf syst configuration to ",SYSTFILEALL
-    return SYSTFILEALL
+# not used for now, let's comment it
+# def writePdfSystsToSystFile(filename,sample="W.*",syst="CMS_W_pdf"):
+#     SYSTFILEALL=('.').join(filename.split('.')[:-1])+"-all.txt"
+#     copyfile(filename,SYSTFILEALL)
+#     systfile=open(SYSTFILEALL,"a")
+#     for i in range(NPDFSYSTS/2):
+#         systfile.write(syst+str(i+1)+"  : "+sample+" : .* : pdf"+str(i+1)+" : templates\n")
+#     print "written pdf syst configuration to ",SYSTFILEALL
+#     return SYSTFILEALL
 
+# obsolete
 def addKaMuCaSysts():
     for idir in ['Up','Dn']:
         for i in range(133):
@@ -223,25 +274,23 @@ if __name__ == "__main__":
     parser.add_option("-P", "--path", dest="path", type="string",default=None, help="Path to directory with input trees and pickle files");
     parser.add_option("-C", "--channel", dest="channel", type="string", default='mu', help="Channel. either 'el' or 'mu'");
     parser.add_option("--not-unroll2D", dest="notUnroll2D", action="store_true", default=False, help="Do not unroll the TH2Ds in TH1Ds needed for combine (to make 2D plots)");
-    parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_sig directive in the MCA file)");
-    parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_sig directive in the MCA file)");
-    parser.add_option("--qed-syst", dest="addQEDSyst", action="store_true", default=False, help="Add QED scale systematics to the signal (need incl_sig directive in the MCA file)");
+    parser.add_option("--pdf-syst", dest="addPdfSyst", action="store_true", default=False, help="Add PDF systematics to the signal (need incl_xxx directive in the MCA file)");
+    parser.add_option("--qcd-syst", dest="addQCDSyst", action="store_true", default=False, help="Add QCD scale systematics to the signal (need incl_xxx directive in the MCA file)");
+    parser.add_option("--qed-syst", dest="addQEDSyst", action="store_true", default=False, help="Add QED scale systematics to the signal (need incl_xxx directive in the MCA file)");
     parser.add_option("--kamuca-syst", dest="addKaMuCaSyst", action="store_true", default=False, help="Add Kalman Filter muon momentum scale correction systematics");
     parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=20, help="group signal jobs so that one job runs multiple makeHistogramsWMass commands");
-    parser.add_option('-w', "--wvar", type="string", default='prefsrw', help="switch between genw and prefsrw. those are the only options (default %default)");
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,Z).");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");    
     parser.add_option('--add-option', dest="addOptions", type="string", default=None, help="add these options to the option string when running the histograms");
     (options, args) = parser.parse_args()
     
-    if not options.wvar in ['genw', 'prefsrw']:
-        print 'the W variable has to be either "genw" or "prefsrw". exiting...'
-        quit()
-    
     if len(sys.argv) < 6:
         parser.print_usage()
         quit()
         
+    print ""
+    print "="*30
+    print ""
     FASTTEST=''
     #FASTTEST='--max-entries 1000 '
     T=options.path
@@ -259,10 +308,13 @@ if __name__ == "__main__":
         os.makedirs("cards/")
     outdir="cards/"+args[5]
     
-    if not os.path.exists(outdir): os.mkdir(outdir)
-    if options.queue and not os.path.exists(outdir+"/jobs"): 
-        os.mkdir(outdir+"/jobs")
-        os.mkdir(outdir+"/mca")
+    if not os.path.exists(outdir): 
+        os.mkdir(outdir)
+    if options.queue:
+        foldersToCreate = ["/jobs", "/mca", "/logs", "/outs", "/errs"]
+        for f in foldersToCreate:
+            if not os.path.exists(outdir+f): 
+                os.mkdir(outdir+f)
     
     # copy some cfg for bookkeeping
     os.system("cp %s %s" % (CUTFILE, outdir))
@@ -277,33 +329,40 @@ if __name__ == "__main__":
     
     if options.addPdfSyst:
         # write the additional systematic samples in the MCA file
-        writePdfSystsToMCA(MCA,outdir+"/mca") # on W + jets 
-        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # on DY + jets
-        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtau') # on WTau
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wmunu') # on W + jets 
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_wtaunu') # on WTau
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_zmumu') # on DY + jets
+        writePdfSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_ztautau') # overkilling?
         # write the complete systematics file (this was needed when trying to run all systs in one job)
         # SYSTFILEALL = writePdfSystsToSystFile(SYSTFILE)
     if options.addQCDSyst:
         scales = ['muR','muF',"muRmuF", "alphaS"]
         if options.wlike:
             wmasses = []
-            zmasses = ["mW"]
+            zmasses = [] # ["mW"]
             ptBinnedScalesForW = False
         else:
-            wmasses = ["mW"]
+            wmasses = [] #["mW"]
             zmasses = []
             ptBinnedScalesForW = True
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+wmasses,incl_mca='incl_sig' ,ptBinned=ptBinnedScalesForW)
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+zmasses,incl_mca='incl_dy'  ,ptBinned=False)
-        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_wtau',ptBinned=False,overrideDecorrelation=True)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+wmasses,incl_mca='incl_wmunu',
+                                ptBinned=ptBinnedScalesForW, overrideDecorrelation=False)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_wtaunu',
+                                ptBinned=ptBinnedScalesForW, overrideDecorrelation=True)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+zmasses,incl_mca='incl_zmumu',
+                                ptBinned=options.wlike, overrideDecorrelation=True)
+        writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_ztautau',
+                                ptBinned=options.wlike, overrideDecorrelation=True)
     if options.addQEDSyst:
         if options.wlike:
-            writeFSRSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_dy') # DY + jets
+            writeFSRSystsToMCA(MCA,outdir+"/mca",incl_mca='incl_zmumu') # DY + jets
         else:
             writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
     
-    if len(pdfsysts+qcdsysts)>1:
-        for proc in ['dy','wtau']:
-            if proc not in nominals: writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
+    # apparently needed to make mca for nominal samples to run faster, to be checked
+    for proc in ['zmumu','wtaunu','ztautau']:
+        if proc not in nominals: 
+            writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
     
     if options.addKaMuCaSyst:
         addKaMuCaSysts()
@@ -328,72 +387,84 @@ if __name__ == "__main__":
         POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
         NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
         SIGPROC='Zmumu'
-        SIGSUFFIX='dy'
+        SIGSUFFIX='zmumu'
     else:
         POSCUT=" -A alwaystrue positive 'Muon_charge[0]>0' "
         NEGCUT=" -A alwaystrue negative 'Muon_charge[0]<0' "        
         SIGPROC='Wmunu'
-        SIGSUFFIX='sig'
+        SIGSUFFIX='wmunu'
     antiSIGPROC = 'Zmumu' if SIGPROC=='Wmunu' else 'Wmunu'
 
-    print 'these are angular coefficients ', coefficients
+    #print 'these are angular coefficients ', coefficients
+    print ""
+    print ""
 
     fullJobList = set()
     if options.signalCards:
         print "MAKING SIGNAL PART!"
-        wsyst = ['']+[x for x in pdfsysts+qcdsysts+inclqcdsysts+etaeffsysts+fsrsysts if SIGSUFFIX in x]
-        wsyst += kamucasysts
-        ## loop on all the variations
-        for ivar,var in enumerate(wsyst):
-            SYST_OPTION = ''
-            ## loop on all the angular coefficients
+        sigsyst = ['']
+        if SIGSUFFIX in pdfsysts:
+            sigsyst += pdfsysts[SIGSUFFIX]
+        if SIGSUFFIX in qcdsysts:
+            sigsyst += qcdsysts[SIGSUFFIX]
+        if SIGSUFFIX in inclqcdsysts:
+            sigsyst += inclqcdsysts[SIGSUFFIX]
+        if SIGSUFFIX in etaeffsysts:
+            sigsyst += etaeffsysts[SIGSUFFIX]
+        if SIGSUFFIX in fsrsysts:
+            sigsyst += fsrsysts[SIGSUFFIX]
+        sigsyst += kamucasysts
+        printSysts(systs=sigsyst,process=SIGPROC)
+
+        ## loop on both charges
+        for charge in ['plus', 'minus']:
+            antich = 'plus' if charge == 'minus' else 'minus'
+            ycut = POSCUT if charge=='plus' else NEGCUT
+
             for coeff in coefficients:
+                print "Making histograms for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
                 ## get the list of all other coefficients
                 anticoeff = [proc for proc in coefficients if not proc==coeff]
-                if any(i in var for i in anticoeff) and options.decorrelateSignalScales: continue ## this might work. but who knows...
-                ## loop on both charges
-                for charge in ['plus', 'minus']:
-                    antich = 'plus' if charge == 'minus' else 'minus'
+                ## loop on all the variations
+                for ivar,var in enumerate(sigsyst):
+                    ## exclude the anti charge and the anti coefficients
+                    if antich in var: 
+                        #print "skipping because ",antich," is in ",var
+                        continue
+                    if len(anticoeff) and any(i in var for i in anticoeff) and options.decorrelateSignalScales: 
+                        continue ## this might work. but who knows...
+                    SYST_OPTION = ''
                     ## 0 is nominal, all the theory variations are non-zero
                     if ivar==0: 
                         IARGS = ARGS
                     else: 
+                        ## keep kamuca part here for now, but will need to be updated
                         if 'kalPt' in var:
                             IARGS = re.sub(r'LepGood(\d+)_pt',r'LepGood\g<1>_kalPt{systvar}'.format(systvar=var.replace('kalPt','')),ARGS)
                             SYST_OPTION = ' --replace-var LepGood1_pt LepGood1_{systvar} --replace-var LepGood2_pt LepGood2_{systvar} '.format(systvar=var)
                         else:
-                            IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                            IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_{p}{syst}.txt".format(outdir=outdir,p=SIGSUFFIX,syst=var))
                             IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                        print "Running the systematic: ",var
+                        # let's not print too many things
+                        # print "Running the systematic: ",var
                     ## ---
                     job_group =  [] ## group
 
                     ## now go and make the submit commands
-                    print "Making card for signal process {coeff} with charge {ch} ".format(coeff=coeff,ch=charge)
-                    ycut = POSCUT if charge=='plus' else NEGCUT
-                    ## exclude the anti charge and the anti coefficients
-                    if antich in var: 
-                        print "skipping because ",antich," is in ",var
-                        continue
-                    excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
-                    xpsel=' --xp "{sig}_{antich}.*,{ahel},{antisig}.*,Top,DiBosons,Wtaunu.*,data.*" --asimov '.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge,ahel=excl_anticoeff)
-                    ## ---
-
-                    ## make necessary directories
-                    if not os.path.exists(outdir): 
-                        os.mkdir(outdir)
-                    if options.queue and not os.path.exists(outdir+"/jobs"): 
-                        os.mkdir(outdir+"/jobs")
-                    ## ---
+                    xpsel=' --xp "{sig}_{antich}.*,{antisig}.*,Top,DiBosons,Ztautau.*,Wtaunu.*,data.*"'.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge)
+                    if len(anticoeff):
+                        excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
+                        xpsel += " --xp {ahel}".format(ahel=excl_anticoeff)
+                    xpsel += " --asimov "
 
                     ## make specific names and such
                     syst = '' if ivar==0 else var
                     ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
                     if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
-                    dcname = "{sig}_{charge}_{coeff}_{channel}{syst}".format(sig=SIGPROC, charge=charge, coeff=coeff, channel=options.channel,syst=syst)
+                    dcname = "{sig}_{charge}{coeff}{syst}".format(sig=SIGPROC, charge=charge, coeff="" if coeff=='' else ('_'+coeff+'_'),syst=syst)
 
                     ## reweight the boson-pT here
-                    zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=0 if SIGPROC.startswith("W") else 1)
+                    zptWeight = 'dyptWeight(Vpt_preFSR,{isZ})'.format(isZ=0 if SIGPROC=="Wmunu" else 1)
 
                     ## construct the full weight to be applied
                     fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
@@ -408,154 +479,186 @@ if __name__ == "__main__":
                     if options.queue:
                         mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                         fullJobList.add(mkShCardsCmd)
-
-                    ## i would suggest not ever going into this else statement ... 
-                    else:
-                        cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
-                        if options.dryRun: print cmd
-                        else:
-                            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                            out, err = p.communicate() 
-                            result = out.split('\n')
-                            for lin in result:
-                                if not lin.startswith('#'):
-                                    print(lin)
                     ## ---
     
-    ## this is for all the background cards, excluding the Z(W) for Wmass(Wlike)
+    ## this is for all the background cards, excluding the Z(W) for Wmass(Wlike), Wtaunu, and Ztautau
     if options.bkgdataCards:
         print "MAKING BKG and DATA PART:\n"
+        # will split data from other backgrounds, and also split data in multiple eras for faster jobs
         ## again loop on both charges
         for charge in ['plus','minus']:
-            ## remove W or Z signal processes and others that aren't needed
-            xpsel=' --xp "{sig}.*" '.format(sig=SIGPROC)
-
-            if len(pdfsysts+qcdsysts)>1: # 1 is the nominal 
-                xpsel+=' --xp "{antisig}.*,Wtaunu.*" '.format(antisig=antiSIGPROC)   # adding .* to tau will be necessary if we ever decide to use lepeff and XXscale on that as well
-            ## ---
-
-            ## now make the names of the cards etc
+            print "Making histograms for other background processes with charge ", charge
             chargecut = POSCUT if charge=='plus' else NEGCUT
-            dcname = "bkg_and_data_{channel}_{charge}".format(channel=options.channel, charge=charge)
+            ## remove W or Z signal processes and others that aren't needed            
+            xpsel=' --xp "{sig}.*,{antisig}.*,Wtaunu.*,Ztautau.*,data.*" '.format(sig=SIGPROC,antisig=antiSIGPROC) 
+            ## now make the names of the cards etc
+            dcname = "otherBkgHisto_{charge}".format(charge=charge)
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
-
             ## accumulate the commands to be run
             if options.queue:
                 mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = ARGS+" "+BIN_OPTS)
                 fullJobList.add(mkShCardsCmd)
-
-            ## i would suggest not ever going into this else statement ... 
-            else:
-                cmd = "python makeHistogramsWMass.py "+ARGS+" "+BIN_OPTS
-                if options.dryRun: print cmd
-                else:
-                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                    out, err = p.communicate() 
-                    result = out.split('\n')
-                    for lin in result:
-                        if not lin.startswith('#'):
-                            print(lin)
+            ##
             ## ---
+            ## now data for different eras
+            ## see /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/dec2020/DATA_NanoV8/
+            for era in data_eras:
+                print "Making histograms for data {e} with charge {ch}".format(e=era,ch=charge)
+                excluded_eras = ["data_{e}".format(e=e) for e in data_eras if e != era]
+                psel=" -p data --pg 'data := data_{era}' --xp '{x}'".format(era=era, x=",".join(excluded_eras))
+                ## now make the names of the cards etc
+                dcname = "dataHisto_{era}_{charge}".format(era=era,charge=charge)
+                BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + psel + chargecut
+                ## accumulate the commands to be run
+                if options.queue:
+                    mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(args = ARGS+" "+BIN_OPTS)
+                    fullJobList.add(mkShCardsCmd)
+                ## ---
+
+
     
     ## this is for background cards which include the Z(W) samples for Wmass (Wlike)
-    if options.bkgdataCards and len(pdfsysts+inclqcdsysts)>1:
-        antiSIGSUFFIX = 'dy' if SIGPROC.startswith('W') else 'sig'
-        antisig_syst = ['_'+antiSIGSUFFIX+'_nominal']+[x for x in pdfsysts+inclqcdsysts if antiSIGSUFFIX in x] # for the Z in W mass the QCDscales are unbinned, for Wlike the W QCD scales are also unbinned => only need inclqcdsysts
-
-        ## loop on the Z(W) related systematics for Wmass (Wlike)
-        for ivar,var in enumerate(antisig_syst):
-            ## loop on both charges
-            for charge in ['plus','minus']:
-                antich = 'plus' if charge == 'minus' else 'minus'
-                
+        antiSIGSUFFIX = 'zmumu' if SIGPROC=='Wmunu' else 'wmunu'
+        antisigsyst = [''] # nominal
+        if antiSIGSUFFIX in pdfsysts: 
+            antisigsyst += pdfsysts[antiSIGSUFFIX]        
+        if antiSIGSUFFIX in qcdsysts: 
+            antisigsyst += qcdsysts[antiSIGSUFFIX]
+        if antiSIGSUFFIX in inclqcdsysts:
+            antisigsyst += inclqcdsysts[antiSIGSUFFIX]
+        printSysts(systs=antisigsyst,process=antiSIGPROC)
+        ## loop on both charges
+        for charge in ['plus','minus']:
+            print "Making histograms for",antiSIGPROC," process with charge ", charge
+            chcut = POSCUT if charge=='plus' else NEGCUT
+            antich = 'plus' if charge == 'minus' else 'minus'
+            ## loop on the Z(W) related systematics for Wmass (Wlike)
+            for ivar,var in enumerate(antisigsyst):
+    
                 ## nominal first, then the variations
                 if ivar==0: 
                     # the following would be faster with DY-only, but it misses the lines for the Z_lepeff systs
-                    # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_dy_nominal.txt".format(outdir=outdir))
+                    # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_zmumu_nominal.txt".format(outdir=outdir))
                     IARGS = ARGS
                 else: 
-                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_{p}{syst}.txt".format(outdir=outdir,p=antiSIGSUFFIX,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                    print "Running the DY with systematic: ",var
+                    # print "Running Zmumu with systematic: ",var
 
                 ## ---
-                print "Making card for ",antiSIGSUFFIX, " process with charge ", charge
-                chcut = POSCUT if charge=='plus' else NEGCUT
-                xpsel=' --xp "[^{antisig}]*" --asimov '.format(antisig=antiSIGPROC)
+                # exclude everything that does not start with antiSIGPROC 
+                # for Wmass the antisignal is the Zmumu, and the charge is not in process name in the mca file
+                # for Wlike, the antisignal is Wmunu and has to pick the samples with proper charge
+                psel=' -p "^{antisig}_{ch}.*" --asimov '.format(antisig=antiSIGPROC,ch="" if SIGPROC=='Wmunu' else charge)
                 syst = '' if ivar==0 else var
 
                 ## make names for the files and outputs
-                dcname = "{antisig}_{channel}_{charge}{syst}".format(antisig=antiSIGPROC,channel=options.channel, charge=charge,syst=syst)
+                dcname = "{antisig}_{charge}{syst}".format(antisig=antiSIGPROC, charge=charge,syst=syst)
 
                 ## construct the final weight. reweight also the DY to whatever new pT spectrum we want
-                zptWeight = 'dyptWeight({wvar}_pt,{isZ})'.format(wvar=options.wvar,isZ=1 if SIGPROC.startswith('W') else 0)
+                zptWeight = 'dyptWeight(Vpt_preFSR,{isZ})'.format(isZ=1 if SIGPROC=='Wmunu' else 0)
                 fullWeight = options.weightExpr+'*'+zptWeight if antiSIGPROC in options.procsToPtReweight else options.weightExpr
-                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + psel + chcut
                 ## ---
 
                 ## accumulate the commands to be run
                 if options.queue:
                     mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     fullJobList.add(mkShCardsCmd)
-                ## i would suggest not ever going into this else statement ... 
-                else:
-                    cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
-                    if options.dryRun: print cmd
-                    else:
-                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                        out, err = p.communicate() 
-                        result = out.split('\n')
-                        for lin in result:
-                            if not lin.startswith('#'):
-                                print(lin)
                 ## ---
     
-    ## repetition for WTau, but better to keep Z/Tau cards separated (faster jobs)
-    if options.bkgdataCards and len(pdfsysts+qcdsysts)>1:
-        wtausyst = ['_wtau_nominal']+[x for x in pdfsysts+qcdsysts+inclqcdsysts if 'wtau' in x] # for the W mass the QCD scales are binned, for Wlike they are unbinned, so need qcdsysts+inclqcdsysts to be general
+    ## repetition for Wtau, but better to keep Z/Tau cards separated (faster jobs)
+        wtausyst = [''] # nominal
+        if "wtaunu" in pdfsysts:
+            wtausyst += pdfsysts["wtaunu"]    
+        if "wtaunu" in qcdsysts:
+            wtausyst += qcdsysts["wtaunu"]
+        if "wtaunu" in inclqcdsysts:
+            wtausyst += inclqcdsysts["wtaunu"]        
+        printSysts(systs=wtausyst,process="Wtaunu")
         ## loop on systmatic variations
-        for ivar,var in enumerate(wtausyst):
+        for charge in ['plus','minus']:
+            print "Making histograms for Wtaunu process with charge ", charge
             ## loop on both charges
-            for charge in ['plus','minus']:
-                antich = 'plus' if charge == 'minus' else 'minus'
-
+            chcut = POSCUT if charge=='plus' else NEGCUT
+            antich = 'plus' if charge == 'minus' else 'minus'
+            for ivar,var in enumerate(wtausyst):
+        
                 ## 0 is nominal again
                 if ivar==0: 
-                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtau_nominal.txt".format(outdir=outdir))
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtaunu_nominal.txt".format(outdir=outdir))
                 else: 
-                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtaunu{syst}.txt".format(outdir=outdir,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
-                    print "Running the WTau with systematic: ",var
+                    # print "Running the Wtaunu with systematic: ",var
 
-                print "Making card for WTau process with charge ", charge
-                chcut = POSCUT if charge=='plus' else NEGCUT
-                xpsel=' --xp "[^Wtaunu]*" --asimov '
+                # exclude everything that does not start with Wtaunu with the proper charge
+                psel=' -p "^Wtaunu_{ch}.*" --asimov '.format(antisig=antiSIGPROC,ch=charge)
                 syst = '' if ivar==0 else var
 
                 ## make names for files etc again
-                dcname = "Wtaunu_{channel}_{charge}{syst}".format(channel=options.channel, charge=charge,syst=syst)
+                dcname = "Wtaunu_{charge}{syst}".format(charge=charge,syst=syst)
                 ## construct full reweighting weight. boson-pT reweighting here again
-                zptWeight = 'dyptWeight({wvar}_pt,0)'.format(wvar=options.wvar)
+                zptWeight = 'dyptWeight(Vpt_preFSR,0)'
                 fullWeight = options.weightExpr+'*'+zptWeight if 'Wtaunu' in options.procsToPtReweight else options.weightExpr
-                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + xpsel + chcut
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + psel + chcut
                 ## ---
 
                 ## accumulate the commands to be run
                 if options.queue:
                     mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
                     fullJobList.add(mkShCardsCmd)
-                ## i would suggest not ever going into this else statement ...
-                else:
-                    cmd = "python makeHistogramsWMass.py "+IARGS+" "+BIN_OPTS
-                    if options.dryRun: print cmd
-                    else:
-                        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                        out, err = p.communicate() 
-                        result = out.split('\n')
-                        for lin in result:
-                            if not lin.startswith('#'):
-                                print(lin)
                 ## ---
+
+#########
+########
+
+    ## repetition for Ztautau
+        ztausyst = [''] # nominal
+        if "ztautau" in pdfsysts:
+            ztausyst += pdfsysts["ztautau"]
+        if "ztautau" in qcdsysts:
+            ztausyst += qcdsysts["ztautau"]
+        if "ztautau" in inclqcdsysts:
+            ztausyst += inclqcdsysts["ztautau"]
+        printSysts(systs=ztausyst,process="Ztautau")
+        ## loop on systmatic variations
+        for charge in ['plus','minus']:
+            print "Making histograms for Ztautau process with charge ", charge
+            ## loop on both charges
+            chcut = POSCUT if charge=='plus' else NEGCUT
+            antich = 'plus' if charge == 'minus' else 'minus'
+            for ivar,var in enumerate(ztausyst):
+        
+                ## 0 is nominal again
+                if ivar==0: 
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_ztautau_nominal.txt".format(outdir=outdir))
+                else: 
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_ztautau{syst}.txt".format(outdir=outdir,syst=var))
+                    IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
+                    # print "Running the Ztautau with systematic: ",var
+
+                # exclude everything that does not start with Ztautau with the proper charge
+                psel=' -p "^Ztautau_.*" --asimov '
+                syst = '' if ivar==0 else var
+
+                ## make names for files etc again
+                dcname = "Ztautau_{charge}{syst}".format(charge=charge,syst=syst)
+                ## construct full reweighting weight. boson-pT reweighting here again
+                zptWeight = 'dyptWeight(Vpt_preFSR,1)'
+                fullWeight = options.weightExpr+'*'+zptWeight if 'Ztautau' in options.procsToPtReweight else options.weightExpr
+                BIN_OPTS=OPTIONS + " -W '" + fullWeight + "'" + " -o "+dcname+" --od "+outdir + psel + chcut
+                ## ---
+
+                ## accumulate the commands to be run
+                if options.queue:
+                    mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                    fullJobList.add(mkShCardsCmd)
+                ## ---
+
+
+#######
+#######
         
     ## now loop on all the accumulated jobs that we have from above
     if len(fullJobList):
@@ -574,12 +677,20 @@ if __name__ == "__main__":
         ## ---
     
         ## split the list into non-bkg and bkg_and_data
-        bkglist = [i for i in reslist if     'bkg_and_data' in i]
-        reslist = [i for i in reslist if not 'bkg_and_data' in i]
+        bkglist = []
+        datalist = []
+        siglist = []
+        for i in reslist:
+            if 'otherBkgHisto_' in i:
+                bkglist.append(i)
+            elif 'dataHisto_' in i:
+                datalist.append(i)
+            else:
+                siglist.append(i)
     
         ## get the number of total submit jobs from the bunching
-        nj = len(reslist)
-        print 'full number of python commands to submit', nj+len(bkglist)
+        nj = len(siglist)
+        print 'full number of python commands to submit', nj+len(bkglist)+len(datalist)
         print '   ... grouping them into bunches of', options.groupJobs
         
         if not nj%options.groupJobs:
@@ -589,26 +700,37 @@ if __name__ == "__main__":
         ## ---
         
         jobdir = outdir+'/jobs/'
-        os.system('mkdir -p '+jobdir)
+        logdir = outdir+'/logs/'
+        outdirCondor = outdir+'/outs/'
+        errdir = outdir+'/errs/'
+
         subcommands = []
     
         sourcefiles = []
         ## a bit awkward, but this keeps the bkg and data jobs separate. do the backgrounds first for speedup
         for ib in bkglist:
-            pm = 'plus' if 'positive' in ib else 'minus'
-            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm, options)
+            pm = 'plus' if '-A alwaystrue positive' in ib else 'minus'
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
+            tmp_srcfile.write(ib)
+            tmp_srcfile.close()
+            sourcefiles.append(tmp_srcfile_name)
+
+        for ib in datalist:
+            pm = 'plus' if '-A alwaystrue positive' in ib else 'minus'
+            era = ib.split("data := data_")[1].split("'")[0]
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'data_'+era+'_'+pm)
             tmp_srcfile.write(ib)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
     
         ## now do the others.
         for ij in range(njobs):
-            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, ij, options)
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, "sig_"+str(ij))
             tmp_n = options.groupJobs
-            while len(reslist) and tmp_n:
-                tmp_pycmd = reslist[0]
+            while len(siglist) and tmp_n:
+                tmp_pycmd = siglist[0]
                 tmp_srcfile.write(tmp_pycmd+'\n')
-                reslist.remove(tmp_pycmd)
+                siglist.remove(tmp_pycmd)
                 tmp_n -= 1
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
@@ -625,13 +747,13 @@ if __name__ == "__main__":
         condor_file.write('''Universe = vanilla
 Executable = {de}
 use_x509userproxy = true
-Log        = {jd}/$(ProcId).log
-Output     = {jd}/$(ProcId).out
-Error      = {jd}/$(ProcId).error
+Log        = {ld}/$(ProcId).log
+Output     = {od}/$(ProcId).out
+Error      = {ed}/$(ProcId).error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 2000
-+MaxRuntime = {rt}\n'''.format(de=os.path.abspath(dummy_exec.name), jd=os.path.abspath(jobdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
++MaxRuntime = {rt}\n'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         ## ---
     
         if options.jobName != None:

@@ -22,8 +22,8 @@ newWeights = []
 normalizeIntegralUpToBin = 100 # this would usually correspond to the max bin where there is enough stat in data and MC, above which weird weights can be observed. Those large weights are set to cropHighWeight, and we don't care about renormalizing the distributions again to correct the weights
 # It might make sense to run the script a first time with the full integral to get a clue about the ideal value, and then run again with customized range 
 doDataVSdata = False # if True it overrides isPreVFP below
-doInclusiveData = False # overrides isPreVFP, but overridden by doDataVSdata
-isPreVFP = False
+doInclusiveData = True # overrides isPreVFP, but overridden by doDataVSdata
+isPreVFP = True
 maxWeightWarning = 5.0  # at the end issue a warning if weight > this value
 cropHighWeight = 1      # crop values larger than maxWeightWarning, setting them to this value (i.e. use 1 for no reweighting, or same as maxWeightWarning)
 #mcfile   = "mcPU_2016_W94XnoCuts_onfirst10extParts_nTrueInt.root" # no genWeight
