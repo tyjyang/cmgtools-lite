@@ -4,11 +4,13 @@ data: .*; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02De
 #data: FBA72527-8279-0241-9F60-DDA281B98935.root; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", FriendDir="Run2016[XXX]", XXX="G\,H"
 
 
-Wplus   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+Wplus   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
 
-WplusPart: SMP-RunIISummer16NanoAODv7-00336_11.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+WplusPart: SMP-RunIISummer16NanoAODv7-00336_[1-2]1.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
 
-Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
+
+Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+#, FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
 
 Zpart: SMP-RunIISummer16NanoAODv7-00336_11.* : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/",TreePath="/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/"
 
@@ -16,3 +18,25 @@ Ztest: SMP-RunIISummer16NanoAODv7-00336_111.root : 1976.17; FillColor=ROOT.kAzur
 
 
 data_fakes_ss: .*, 1.0; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", XXX="G\,H", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data.txt", Label="Fakes (SS)", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30
+
+Wplus_preVFP   : .* : 11572.19; FillColor=ROOT.kRed+2, Label="W+ (preVFP)", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+
+Z_postVFP   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z (postVFP)", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/"
+
+
+#
+# tests
+#
+
+# prefire
+WplusPartNomi: SMP-RunIISummer16NanoAODv7-00336_[1-3]1.* : 11572.19; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/", FillStyle=3002
+
+WplusPartPrefire: SMP-RunIISummer16NanoAODv7-00336_[1-3]1.*: 11572.19: L1PreFiringWeight_Nom; FillColor=ROOT.kBlack, Label="W+ (prefire)", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+
+WplusPartPrefireDn: SMP-RunIISummer16NanoAODv7-00336_[1-3]1.*: 11572.19: L1PreFiringWeight_Dn; FillColor=ROOT.kAzure+1, Label="W+ (prefire Dn)", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+
+WplusPartPrefireUp: SMP-RunIISummer16NanoAODv7-00336_[1-3]1.*: 11572.19: L1PreFiringWeight_Up; FillColor=ROOT.kGreen+2, Label="W+ (prefire Up)", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/"
+
+
+# nJet with cleaning or ID
+WplusPartNomi: SMP-RunIISummer16NanoAODv7-00336_[1-2]1.* : 11572.19: Jet_jetId>0; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/", FillStyle=3002

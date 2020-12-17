@@ -295,7 +295,7 @@ float* _getFakeRate(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=0) {
     // this is the case where you expect electrons but get a muon, or viceversa
     // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
     // do not issue warning messages here, unless it is for testing
-    //std::cout << "Error in fakeRateWeight_promptRateCorr_1l_i_smoothed: hist_fr == 0. It seems the flavour is not what you expect. Returning 0" << std::endl;	
+    std::cout << "Error in fakeRateWeight_promptRateCorr_1l_i_smoothed: hist_fr == 0. It seems the flavour is not what you expect. Returning 0" << std::endl;	
     return 0;
   }
 
@@ -372,6 +372,7 @@ float* _getFakeRate(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=0) {
   static float rates[2];
   rates[0] = pr;
   rates[1] = fr;
+  //std::cout << "fr, pr = " << fr << "," << pr << std::endl;
   return rates;
 }
 
@@ -450,8 +451,8 @@ float* _getFakeRateWmass(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=
 
 float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { 
 
-  // float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
-  float* rates = _getFakeRateWmass(lpt,leta,lpdgId,iFR,iPR);
+  float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
+  //float* rates = _getFakeRateWmass(lpt,leta,lpdgId,iFR,iPR);
   float pr = rates[0];
   float fr = rates[1];
 
@@ -459,8 +460,8 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
 
   // safety thing
   if (pr <= fr) {
-    //std::cout << "### Error in weight: FR >= PR. Please check!" << std::endl;
-    //std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    // std::cout << "### Error in weight: FR >= PR. Please check!" << std::endl;
+    // std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
     return 0;
   } 
 
@@ -473,7 +474,7 @@ float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpd
     weight = fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
   }
 
-
+  // std::cout << "passWP = " << passWP << "\t Weight for data_fakes = " << weight << std::endl;
   return weight;
 
 }

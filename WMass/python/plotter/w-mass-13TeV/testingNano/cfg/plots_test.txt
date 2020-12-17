@@ -58,3 +58,5 @@ genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], Ge
 genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1])\:varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
 
 Pileup_nTrueInt: Pileup_nTrueInt: 100,0,100; XTitle="Pileup_nTrueInt", Legend='TC', IncludeOverflows=False
+
+PV_npvsGood: PV_npvsGood: 80,0,80; XTitle="PV_npvsGood", Legend='TC', IncludeOverflows=False

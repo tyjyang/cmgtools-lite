@@ -19,9 +19,10 @@ oldWeights = [0.3505407355600995, 0.8996968628890968, 1.100322319466069, 0.95625
 
 newWeights = []
 
-normalizeIntegralUpToBin = 66 # this would usually correspond to the max bin where there is enough stat in data and MC, above which weird weights can be observed. Those large weights are set to cropHighWeight, and we don't care about renormalizing the distributions again to correct the weights
+normalizeIntegralUpToBin = 100 # this would usually correspond to the max bin where there is enough stat in data and MC, above which weird weights can be observed. Those large weights are set to cropHighWeight, and we don't care about renormalizing the distributions again to correct the weights
 # It might make sense to run the script a first time with the full integral to get a clue about the ideal value, and then run again with customized range 
 doDataVSdata = False # if True it overrides isPreVFP below
+doInclusiveData = True # overrides isPreVFP, but overridden by doDataVSdata
 isPreVFP = True
 maxWeightWarning = 5.0  # at the end issue a warning if weight > this value
 cropHighWeight = 1      # crop values larger than maxWeightWarning, setting them to this value (i.e. use 1 for no reweighting, or same as maxWeightWarning)
@@ -40,9 +41,23 @@ if doDataVSdata:
     outdir   = "plots/testNanoAOD/PU_weights/2016_dataVSdata/"
     lumi     = "19.3" 
     ratioLabel = "pre/post VFP::0.0,1.5"
+elif doInclusiveData:
+    #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"  # made with genWeights
+    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
+    mcname   = "Pileup_nTrueInt_Wplus_preVFP" # or Pileup_nTrueInt_Z_postVFP, the profile is the same
+    mcLabel  = "W MC (preVFP)"    
+    #
+    datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_all2016.root"
+    dataname = "pileup"
+    dataLabel = "data (all)"
+    #
+    outdir   = "plots/testNanoAOD/PU_weights/2016_allData/"
+    lumi     = "35.9" 
+    ratioLabel = "data/MC::0.0,1.5"
 elif isPreVFP:
-    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"    
-    mcname   = "Pileup_nTrueInt_Wplus"
+    #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"  # with genWeight
+    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
+    mcname   = "Pileup_nTrueInt_Wplus_preVFP"
     mcLabel  = "W MC (preVFP)"    
     #
     datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_upTo2016FwithHIPM.root"
@@ -53,8 +68,9 @@ elif isPreVFP:
     lumi     = "19.3" 
     ratioLabel = "data/MC::0.0,1.5"
 else:
-    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Z_postVFP.root"
-    mcname   = "Pileup_nTrueInt_Z"
+    #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Z_postVFP.root" # with genWeights
+    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
+    mcname   = "Pileup_nTrueInt_Z_postVFP"
     mcLabel  = "Z MC (postVFP)"
     #
     datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_FpostHIPMandGH.root"

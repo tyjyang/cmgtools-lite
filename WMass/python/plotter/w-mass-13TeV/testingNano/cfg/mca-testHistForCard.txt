@@ -1,0 +1,22 @@
+incl_data    : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-data.txt"
+
+incl_datafakes : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
+
+incl_wmunu   : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-wmunu.txt"
+incl_zmumu   : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-zmumu.txt"
+incl_wtaunu  : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-wtaunu.txt"
+incl_ztautau : + ; IncludeMca="w-mass-13TeV/testingNano/cfg/mca-includes/mca-ztautau.txt"
+
+#data: .*20.*; SubPath=".*DATA/"
+
+#Wmunu_plus   : .*_430_.* : 11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
+
+# accounts for branching ratio of tau to muon (PDG in 2018 says BR=17.3936+/-0.0384 %)
+#Wtaunu_plus   : .*_20_.* : 0.17394*11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#tau\#nu", SubPath=".*WplusJetsToTauNu_(post|pre)VFP_addVars"
+
+#Zmumu   : .*_20_.* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+
+# filter efficiency 0.5802 accounts for "at least 1 tau decaying into either mu or ele
+#Ztautau   : .*_20_.* : 0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_(post|pre)VFP_addVars"
+
+

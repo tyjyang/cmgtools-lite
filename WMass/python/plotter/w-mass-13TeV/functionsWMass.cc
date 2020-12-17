@@ -1338,6 +1338,49 @@ float _get_muonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, floa
 
   return out;
 
+}
+
+// details like histograms and location might be updated
+float _get_muonSF_fast_wmass(float pt, float eta, int charge) {
+
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  string hSFname = "EGamma_SF2D";
+
+  // trigger
+  if (!_histo_trigger_leptonSF_fast_mu_plus) {
+    _file_trigger_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuPlus.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_fast_mu_plus = (TH2F*)(_file_trigger_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  }
+  if (!_histo_trigger_leptonSF_fast_mu_minus) {
+    _file_trigger_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuMinus.root",_cmssw_base_.c_str()),"read");
+    _histo_trigger_leptonSF_fast_mu_minus = (TH2F*)(_file_trigger_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  }
+  // selection
+  if (!_histo_selection_leptonSF_fast_mu_plus) {
+    _file_selection_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuPlus.root",_cmssw_base_.c_str()),"read");
+    _histo_selection_leptonSF_fast_mu_plus = (TH2F*)(_file_selection_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  }
+  if (!_histo_selection_leptonSF_fast_mu_minus) {
+    _file_selection_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuMinus.root",_cmssw_base_.c_str()),"read");
+    _histo_selection_leptonSF_fast_mu_minus = (TH2F*)(_file_selection_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  }
+
+  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_fast_mu_plus : _histo_trigger_leptonSF_fast_mu_minus );
+  int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
+  int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
+  float out = histTrigger->GetBinContent(etabin,ptbin);
+
+  TH2F *histSelection = ( charge > 0 ? _histo_selection_leptonSF_fast_mu_plus : _histo_selection_leptonSF_fast_mu_minus);
+  etabin = std::max(1, std::min(histSelection->GetNbinsX(), histSelection->GetXaxis()->FindFixBin(eta)));
+  ptbin  = std::max(1, std::min(histSelection->GetNbinsY(), histSelection->GetYaxis()->FindFixBin(pt)));
+  out *= histSelection->GetBinContent(etabin,ptbin);
+
+  return out;
+
 
 }
 
