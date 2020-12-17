@@ -505,7 +505,7 @@ if __name__ == "__main__":
             for era in data_eras:
                 print "Making histograms for data {e} with charge {ch}".format(e=era,ch=charge)
                 excluded_eras = ["data_{e}".format(e=e) for e in data_eras if e != era]
-                psel=" -p data --pg 'data := data_{era}' --xp '{x}'".format(era=era, x=",".join(excluded_eras))
+                psel=" -p 'data,data_fakes' --pg 'data := data_{era}' --xp '{x}'".format(era=era, x=",".join(excluded_eras))
                 ## now make the names of the cards etc
                 dcname = "dataHisto_{era}_{charge}".format(era=era,charge=charge)
                 BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + psel + chargecut
