@@ -1407,13 +1407,13 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--allProcInLegend", dest="allProcInLegend", action="store_true", default=False, help="Put all processes in legend, regardless their integral.")
     parser.add_option("--forceFillColorNostackMode", dest="forceFillColorNostackMode", type="string", default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
     parser.add_option("--drawStatBox", dest="drawStatBox", action="store_true", default=False, help="Draw stat box");
+    parser.add_option("-o", "--out", dest="out", default=None, help="Output file name. by default equal to plots -'.txt' +'.root'");
 
 
 if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(usage="%prog [options] mc.txt cuts.txt plots.txt")
     addPlotMakerOptions(parser)
-    parser.add_option("-o", "--out", dest="out", default=None, help="Output file name. by default equal to plots -'.txt' +'.root'");
     (options, args) = parser.parse_args()
     mca  = MCAnalysis(args[0],options)
     cuts = CutsFile(args[1],options)

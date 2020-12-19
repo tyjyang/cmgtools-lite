@@ -1,0 +1,26 @@
+# use options --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp data_G,data_H
+# to exlude samples you don't want to run on (G and H) and group all the remaining data together 
+# reminder: mcAnalysis identify data as "data", while "dataXXX" will not be considered data (unless you use the --pg trick)
+#
+# data per era (but need to use trick above when running mcAnalysis.py
+data_B: .*_20.*; SubPath=".*DATA_NanoV8/Run2016B/"
+data_C: .*_20.*; SubPath=".*DATA_NanoV8/Run2016C/"
+data_D: .*_20.*; SubPath=".*DATA_NanoV8/Run2016D/"
+data_E: .*_20.*; SubPath=".*DATA_NanoV8/Run2016E/"
+data_F: .*_20.*; SubPath=".*DATA_NanoV8/Run2016F/"
+data_F_postVFP: .*_20.*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
+data_G: .*_20.*; SubPath=".*DATA_NanoV8/Run2016G/"
+data_H: .*_20.*; SubPath=".*DATA_NanoV8/Run2016H/"
+
+#data: .*; SubPath=".*DATA_NanoV8/"
+
+Wmunu_plus   : .*_20.* : 11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WplusJetsToMuNu_(post|pre)VFP_addVars"
+Wmunu_minus   : .*_20.* : 8562.66; FillColor=ROOT.kRed+2, Label="W^{-}\#rightarrow\#mu\#nu", SubPath=".*WminusJetsToMuNu_(post|pre)VFP_addVars"
+
+Wtaunu_plus   : .*_20.* : 0.17394*11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#tau\#nu", SubPath=".*WplusJetsToTauNu_(post|pre)VFP_addVars"
+Wtaunu_minus   : .*_20.* : 0.17394*8562.66; FillColor=ROOT.kRed+2, Label="W^{-}\#rightarrow\#tau\#nu", SubPath=".*WminusJetsToTauNu_(post|pre)VFP_addVars"
+
+Zmumu   : .*_20.* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_(post|pre)VFP_addVars"
+
+Ztautau   : .*_20.* : 0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_(post|pre)VFP_addVars"
+
