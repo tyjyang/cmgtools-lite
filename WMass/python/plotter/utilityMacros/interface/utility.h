@@ -930,7 +930,7 @@ TObject* getObjectCloneFromFile(TFile* inputFile = NULL, const string& hvarName 
   if (sampleDir == "") hvar = (TObject*) inputFile->Get((hvarName).c_str());
   else hvar = (TObject*) inputFile->Get((sampleDir + "/" + hvarName).c_str());
   if (!hvar || hvar == NULL) {
-    cout << "Error in getObjectCloneFromFile(): object '" << hvarName << "' not found in file (directory is " << sampleDir << "). End of programme." << endl;
+    cout << "Error in getObjectCloneFromFile(): object '" << hvarName << "' not found in file '" << inputFile->GetName() << "' (directory is '" << sampleDir << "'). End of programme." << endl;
     exit(EXIT_FAILURE);
   }
 

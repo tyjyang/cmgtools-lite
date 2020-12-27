@@ -7,7 +7,7 @@ const static int smoothPolinDegree = 2;
 const static Double_t xMaxFitFakeRateData = (smoothPolinDegree == 1) ? 48 : 65; // for muons, can set it to at least 55
 const static Bool_t drawPol1NarrowRange = (smoothPolinDegree == 1 and xMaxFitFakeRateData > 48) ? true : false;  // set first argument as false not to draw the fit in narrow range (only for pol1) 
 const static Bool_t smoothPromptRateAlwaysPol1 = false;  // false if you want to use pol1
-static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 30 : 30; // can use 32 for pol1 // for muons, the value is hardcoded to always be 26
+static const Double_t ptMin_fitRangeData = (smoothPolinDegree == 2) ? 26 : 30; // can use 32 for pol1 // for muons, the value is hardcoded to always be 26
 const static Bool_t excludePoints_Data = false;
 static const Double_t ptMin_excludeRangeData = 37; // used only if excludePoints_Data = true
 static const Double_t ptMax_excludeRangeData = 50;  // used only if excludePoints_Data = true
@@ -722,16 +722,16 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   TGraphAsymmErrors* fr_data_subEWKMC = nullptr;
   TGraphAsymmErrors* fr_data_subScaledUpEWKMC = nullptr;
   TGraphAsymmErrors* fr_data_subScaledDownEWKMC = nullptr;
-  TGraphAsymmErrors* fr_w = nullptr;
-  TGraphAsymmErrors* fr_z = nullptr;
-  TGraphAsymmErrors* fr_wpt = nullptr; // reweighted zpt
-  TGraphAsymmErrors* fr_zpt = nullptr; // reweighted zpt
+  TGraphAsymmErrors* fr_wlnu = nullptr;
+  TGraphAsymmErrors* fr_zll = nullptr;
+  //TGraphAsymmErrors* fr_wtaunu = nullptr; // don't need it for now
+  //TGraphAsymmErrors* fr_ztautau = nullptr; // don't need it for now
   TGraphAsymmErrors* fr_vv = nullptr;
   TGraphAsymmErrors* fr_top = nullptr;
   TGraphAsymmErrors* fr_qcd = nullptr;
-  TGraphAsymmErrors* fr_ewk = nullptr; // all EWK
+  TGraphAsymmErrors* fr_ewk = nullptr; // all EWK (W,Z, to leptons or taus, Top and Dibosons)
   TGraphAsymmErrors* fr_top_vv = nullptr; // Top+DiBosons
-  TGraphAsymmErrors* fr_wz = nullptr; // W+Z
+  TGraphAsymmErrors* fr_wz = nullptr; // W+Z (to leptons or taus)
 
   string detId = isEB ? "EB" : "EE";
   string yrange = isEB ? "0.25,1.4" : "0,1.4";  // range for plotting all graphs
@@ -744,10 +744,12 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
   createPlotDirAndCopyPhp(outDir);
   adjustSettings_CMS_lumi(outDir);
 
-  vector<string> processes = {"data", "data_sub", "QCD", 
-			      hasReweightedWZpt ? "Wpt" : "W", 
-			      hasReweightedWZpt ? "Zpt" : "Z",
-			      "DiBosons", "Top"};
+  vector<string> processes = {"data", "data_sub", //"QCD", 
+			      hasReweightedWZpt ? "Wpt" : "Wmunu", 
+			      hasReweightedWZpt ? "Zpt" : "Zmumu",
+			      hasReweightedWZpt ? "Wpt" : "Wtaunu", 
+			      hasReweightedWZpt ? "Zpt" : "Ztautau"};
+			      //"DiBosons", "Top"};
 
   vector<TH1*> hpass;
   vector<TH1*> hntot;
@@ -1024,7 +1026,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     if (processes[j] == "QCD") {
       hpass.back() = hpass.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
       hntot.back() = hntot.back()->Rebin(nBinsQCD,"",ptBinBoundariesQCD.data());
-    } else if (processes[j] == "W" || processes[j] == "Z" || processes[j] == "Wpt" || processes[j] == "Zpt") {
+    } else if (processes[j].find("W") != std::string::npos || processes[j].find("Z") != std::string::npos) {
       hpass_ewk_scaledUp->Add(hpass.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);   
       hntot_ewk_scaledUp->Add(hntot.back(), 1.+ subtrEWK_nSigma*scaleFactor[processes[j]]);  
       hpass_ewk_scaledDown->Add(hpass.back(), 1. - subtrEWK_nSigma*scaleFactor[processes[j]]);   
@@ -1058,21 +1060,29 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
     }
 
 
-    if (processes[j] == "W") {
+    if (processes[j] == "Wmunu") {
 
-      fr_w = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+      fr_wlnu = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
     } else if (processes[j] == "Wpt") {
 
-      fr_w = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+      fr_wlnu = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
-    } else if (processes[j] == "Z") {
+    } else if (processes[j] == "Zmumu") {
 
-      fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+      fr_zll = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
+    // } else if (processes[j] == "Wtaunu") {
+
+    //   fr_wtaunu = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+
+    // } else if (processes[j] == "Ztautau") {
+
+    //   fr_ztautau = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
     } else if (processes[j] == "Zpt") {
 
-      fr_z = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
+      fr_zll = new TGraphAsymmErrors(hpass.back(), hntot.back(), "cl=0.683 b(1,1) mode");
 
     } else if (processes[j] == "DiBosons") {
 
@@ -1161,8 +1171,8 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       colorList.push_back(kBlue);
       legendEntries.push_back("W,Z MC (prompt rate)");
     } else {
-      gr.push_back(fr_w);
-      gr.push_back(fr_z);
+      gr.push_back(fr_wlnu);
+      gr.push_back(fr_zll);
       colorList.push_back(kBlue);
       colorList.push_back(kAzure+2);    
       legendEntries.push_back("W MC (prompt rate)");
@@ -1272,7 +1282,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
       
     } else {
 
-      ptr_w = fitGraph(fr_w, isEB, Form("%s::%f,%f",ptXaxisName.c_str(),ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_w_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"w/", "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false, nullptr, false, -1, -1, isMuon, etaLow,etaHigh);
+      ptr_w = fitGraph(fr_wlnu, isEB, Form("%s::%f,%f",ptXaxisName.c_str(),ptMin,ptMax), Form("Prompt Rate::%s",yrange_w.c_str()), Form("fr_wlnu_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"w/", "W MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false, nullptr, false, -1, -1, isMuon, etaLow,etaHigh);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
       for (UInt_t ipar = 0; ipar < ptr_w->NPar(); ++ipar) {        
@@ -1280,7 +1290,7 @@ void doFakeRateGraphPlots(const string& inputFileName = "",
 	frSmoothParameter_w->SetBinError(etaBinTH1,ipar+1,ptr_w->ParError(ipar));
       }
 
-      ptr_z = fitGraph(fr_z, isEB, Form("%s::%f,%f",ptXaxisName.c_str(),ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_z_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"z/", "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false, nullptr, false, -1, -1, isMuon, etaLow,etaHigh);
+      ptr_z = fitGraph(fr_zll, isEB, Form("%s::%f,%f",ptXaxisName.c_str(),ptMin,ptMax), Form("Prompt Rate::%s",yrange_z.c_str()), Form("fr_zll_%s_%s",detId.c_str(),plotPostFix.c_str()), outDirFits+"z/", "Z MC (prompt rate)", legCoordFit,inputLuminosity,false, true, 1.0, false, nullptr, false, -1, -1, isMuon, etaLow,etaHigh);
       // fit is Y=a*X+b
       // bin n.1 is for b (first parameter of pol1), bin n.2 is for a 
       for (UInt_t ipar = 0; ipar < ptr_z->NPar(); ++ipar) {  
@@ -1403,8 +1413,10 @@ void makeFakeRateGraphPlotsAndSmoothing(const string& inputFilePath = "www/wmass
 
   // use cross section uncertainty
   // might want to use an eta-dependent factor for W
-  scaleFactor["W"] = 0.038;
-  scaleFactor["Z"] = 0.04;
+  scaleFactor["Wmunu"] = 0.038;
+  scaleFactor["Zmumu"] = 0.04;
+  scaleFactor["Wtaunu"] = 0.038;
+  scaleFactor["Ztautau"] = 0.04;
   scaleFactor["Wpt"] = 0.038;
   scaleFactor["Zpt"] = 0.04;
   scaleFactor["Top"] = 0.09;

@@ -3250,3 +3250,100 @@ def dressed2D(h1d,binning,name,title=''):
         h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
     h2_backrolled_1 = roll1Dto2D(h1d, h2_1 )
     return h2_backrolled_1
+
+#==============================
+
+def drawGraphCMS(grList, 
+                 xAxisNameTmp = "xAxis", 
+		 yAxisNameTmp = "yAxis", 
+		 canvasName = "default",
+		 outputDIR = "./",
+		 leg_roc = None, # text for legend
+                 legendCoords = "0.5,0.15,0.9,0.35;2", # number after ; sets the number of columns
+                 lumi = None,
+                 vecMCcolors = [ROOT.kBlack, ROOT.kRed, ROOT.kGreen+2, ROOT.kBlue, ROOT.kOrange+1, ROOT.kCyan+2, ROOT.kGray+2],
+		 etabinText = "",
+                 canvasSize="800,800",
+                 passCanvas=None,
+             ):
+
+
+    adjustSettings_CMS_lumi()
+    xAxisName = ""
+    xmin = 0
+    xmax = 0
+    xAxisName,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(xAxisNameTmp)
+    #
+    yAxisName = ""
+    ymin = 0
+    ymax = 0
+    yAxisName,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(yAxisNameTmp)
+
+    nGraphs = len(grList)
+
+    cw,ch = canvasSize.split(',')
+    canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
+    canvas.SetTickx(1)
+    canvas.SetTicky(1)
+    canvas.cd()
+    canvas.SetFillColor(0)
+    canvas.SetGrid()
+    canvas.SetLeftMargin(0.14)
+    canvas.SetRightMargin(0.06)
+    canvas.cd()
+
+    nColumnsLeg = 1
+    if ";" in legendCoords: 
+        nColumnsLeg = int(legendCoords.split(";")[1])
+    legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
+    lx1,ly1,lx2,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
+    leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
+    leg.SetFillColor(0)
+    leg.SetFillStyle(0)
+    leg.SetBorderSize(0)
+    leg.SetNColumns(nColumnsLeg)
+
+    for ig in range(0,nGraphs):
+        grList[ig].SetMarkerStyle(20);
+        grList[ig].SetMarkerColor(vecMCcolors[ig]);
+        grList[ig].SetLineColor(vecMCcolors[ig]);
+        grList[ig].SetLineWidth(2);
+        grList[ig].SetFillColor(vecMCcolors[ig]);
+        if ig == 0: 
+            grList[ig].Draw("ap")
+        else: 
+            grList[ig].Draw("p same");
+        leg.AddEntry(grList[ig],leg_roc[ig],"LF");        
+
+    leg.Draw("same")
+    canvas.RedrawAxis("sameaxis")
+
+    grList[0].GetXaxis().SetTitleSize(0.05);
+    grList[0].GetXaxis().SetLabelSize(0.04);
+    grList[0].GetYaxis().SetTitleOffset(1.3);
+    grList[0].GetYaxis().SetTitleSize(0.05);
+    grList[0].GetYaxis().SetLabelSize(0.04);
+    grList[0].GetXaxis().SetTitle(xAxisName.c_str());
+    grList[0].GetYaxis().SetTitle(yAxisName.c_str());
+    if setXAxisRangeFromUser:
+        grList[0].GetXaxis().SetRangeUser(xmin,xmax);
+    if setYAxisRangeFromUser:
+        grList[0].GetYaxis().SetRangeUser(ymin,ymax);
+
+    setTDRStyle() # check if it doesn't screw things up
+    if lumi != None: 
+        CMS_lumi(canvas,lumi,True,False)
+    else:   
+        CMS_lumi(canvas,"",True,False)
+
+    etabin = ROOT.TLatex()
+    etabin.SetNDC(); # not sure it is needed
+    etabin.SetTextSize(0.05);
+    etabin.SetTextFont(42);
+    etabin.SetTextColor(ROOT.kBlack);
+    etabin.DrawLatex(0.15,0.15,etabinText);
+
+    canvas.RedrawAxis("sameaxis");
+
+    for ext in [".png",".pdf"]:
+        canvas.SaveAs(outputDIR+canvasName+ext)

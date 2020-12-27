@@ -141,12 +141,39 @@ float mt_wlike_samesign_random(float pt1, float phi1, float pt2, float phi2, flo
 float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, float met, float phimet, ULong64_t evt) {
   
   //if (ch1 == ch2) return mt_wlike_samesign(pt1,phi1,pt2,phi2,met,phimet);
+  float ptL  = 0.0;
+  float phiL = 0.0;
 
-  float ptL  = returnChargeVal(pt1,ch1,pt2,ch2,evt);
-  float phiL = returnChargeVal(phi1,ch1,phi2,ch2,evt);
+  float ptl  = 0.0;
+  float phil = 0.0;
 
-  float ptl   = returnChargeVal(pt1,ch2,pt2,ch1,evt);
-  float phil = returnChargeVal(phi1,ch2,phi2,ch1,evt);
+  // positive (negative) leptons on odd (even) events
+  if (isOddEvent(event)) {
+    if (ch1 > 0) {
+      ptL = pt1;
+      phiL = phi1;
+      ptl = pt2;
+      phil = phi2;
+    } else {
+      ptL = pt2;
+      phiL = phi2;
+      ptl = pt1;
+      phil = phi1;
+    }
+  } else {
+    if (ch1 < 0) {
+      ptL = pt1;
+      phiL = phi1;
+      ptl = pt2;
+      phil = phi2;
+    } else {
+      ptL = pt2;
+      phiL = phi2;
+      ptl = pt1;
+      phil = phi1;
+    }
+  }
+
   TVector2 pl = TVector2();
   pl.SetMagPhi(ptl,phil);
 
@@ -1275,9 +1302,33 @@ TH2F *_histo_selection_leptonSF_fast_mu_minus = NULL;
 float _get_muonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, float eta2, int charge2, ULong64_t event) {
 
   // to be improved, still experimental
-  float pt = returnChargeVal(pt1,charge1,pt2,charge2,event);
-  float eta = returnChargeVal(eta1,charge1,eta2,charge2,event);
-  int charge = returnChargeVal(charge1,charge1,charge2,charge2,event);
+  float pt = 0.0;
+  float eta = 0.0;
+  int charge = 0.0;
+
+  // positive (negative) leptons on odd (even) events
+  if (isOddEvent(event)) {
+    if (charge1 > 0) {
+      pt = pt1;
+      eta = eta1;
+      charge = charge1;
+    } else {
+      pt = pt2;
+      eta = eta2;
+      charge = charge2;
+    }
+  } else {
+    if (charge1 < 0) {
+      pt = pt1;
+      eta = eta1;
+      charge = charge1;
+    } else {
+      pt = pt2;
+      eta = eta2;
+      charge = charge2;
+    }
+  }
+
   
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;

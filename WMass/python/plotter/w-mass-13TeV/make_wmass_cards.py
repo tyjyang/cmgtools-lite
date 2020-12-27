@@ -345,6 +345,7 @@ if __name__ == "__main__":
             wmasses = [] #["mW"]
             zmasses = []
             ptBinnedScalesForW = True
+        # overrideDecorrelation is used to avoid decorrelating systs by angular coefficients
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+wmasses,incl_mca='incl_wmunu',
                                 ptBinned=ptBinnedScalesForW, overrideDecorrelation=False)
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_wtaunu',
@@ -384,8 +385,8 @@ if __name__ == "__main__":
     #print "-"*30
 
     if options.wlike:
-        POSCUT=" -A alwaystrue positive 'evt%2 != 0' "
-        NEGCUT=" -A alwaystrue negative 'evt%2 == 0' "    
+        POSCUT=" -A alwaystrue positive 'event%2 != 0' "
+        NEGCUT=" -A alwaystrue negative 'event%2 == 0' "    
         SIGPROC='Zmumu'
         SIGSUFFIX='zmumu'
     else:
