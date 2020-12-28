@@ -361,7 +361,8 @@ if __name__ == "__main__":
             writeFSRSystsToMCA(MCA,outdir+"/mca") # on W + jets
     
     # apparently needed to make mca for nominal samples to run faster, to be checked
-    for proc in ['zmumu','wtaunu','ztautau']:
+    procs_nomi_mca = ['wtaunu','ztautau'] + (['wmunu'] if options.wlike else ['zmumu'])
+    for proc in procs_nomi_mca:
         if proc not in nominals: 
             writeNominalSingleMCA(MCA,outdir+"/mca",incl_mca='incl_{p}'.format(p=proc))
     
@@ -449,14 +450,20 @@ if __name__ == "__main__":
                         # let's not print too many things
                         # print "Running the systematic: ",var
                     ## ---
-                    job_group =  [] ## group
 
                     ## now go and make the submit commands
-                    xpsel=' --xp "{sig}_{antich}.*,{antisig}.*,Top,DiBosons,Ztautau.*,Wtaunu.*,data.*"'.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge)
+                    xpsel=' --xp "{sig}_{antich}.*,{antisig}.*,Top,DiBosons,Ztautau.*,Wtaunu.*,data.*"'.format(sig=SIGPROC,antisig=antiSIGPROC,antich=antich,ch=charge)                        
                     if len(anticoeff):
                         excl_anticoeff = ','.join(SIGPROC+"_"+charge+'_'+ac+'.*' for ac in anticoeff)
                         xpsel += " --xp {ahel}".format(ahel=excl_anticoeff)
                     xpsel += " --asimov "
+
+                    ## for Wlike, must transform process name for signal (Zmumu) into Zmumu_plus or Zmumu_minus.
+                    ## one could directly change the name of the histogram inside the output root file, after it has been created, but maybe better to do it now.
+                    ## This can be achieved either by using the IncludeMca statement and adding the '_plus' or '_minus' postfix to the process name, or by using the --pg option to change the signal process name
+                    ## for now we will try the second option
+                    if options.wlike:
+                        xpsel += " -p Zmumu_{ch} --pg 'Zmumu_{ch} := Zmumu' ".format(ch=charge)
 
                     ## make specific names and such
                     syst = '' if ivar==0 else var
@@ -506,7 +513,7 @@ if __name__ == "__main__":
             for era in data_eras:
                 print "Making histograms for data {e} with charge {ch}".format(e=era,ch=charge)
                 excluded_eras = ["data_{e}".format(e=e) for e in data_eras if e != era]
-                psel=" -p 'data,data_fakes' --pg 'data := data_{era}' --xp '{x}'".format(era=era, x=",".join(excluded_eras))
+                psel=" -p 'data,data_fakes' --pg 'data := data_{era}' --pg 'data_fakes := data_{era}_fakes' --xp '{x}'".format(era=era, x=",".join(excluded_eras))
                 ## now make the names of the cards etc
                 dcname = "dataHisto_{era}_{charge}".format(era=era,charge=charge)
                 BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + psel + chargecut
@@ -538,9 +545,8 @@ if __name__ == "__main__":
     
                 ## nominal first, then the variations
                 if ivar==0: 
-                    # the following would be faster with DY-only, but it misses the lines for the Z_lepeff systs
-                    # IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_zmumu_nominal.txt".format(outdir=outdir))
-                    IARGS = ARGS
+                    # the following would be faster with DY-only, but it misses processes for possible systematics, like the lines for the Z_lepeff systs that we had in the past
+                    IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_{p}_nominal.txt".format(outdir=outdir,p=antiSIGSUFFIX))
                 else: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_{p}{syst}.txt".format(outdir=outdir,p=antiSIGSUFFIX,syst=var))
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
@@ -681,18 +687,22 @@ if __name__ == "__main__":
         bkglist = []
         datalist = []
         siglist = []
-        for i in reslist:
-            if 'otherBkgHisto_' in i:
+        for n,i in enumerate(reslist):
+            #print "%d)\n %s\n\n" % (n,i)
+            if '-o otherBkgHisto_' in i:
                 bkglist.append(i)
-            elif 'dataHisto_' in i:
+            elif '-o dataHisto_' in i:
                 datalist.append(i)
             else:
                 siglist.append(i)
     
+        print "\n#sig = %s\n#bkg = %d\n#data = %d" %(len(siglist),len(bkglist),len(datalist))
+        print "Note: #sig is the number of real signal jobs when option -s was specified, otherwise it is simply the number of jobs that are not data or other backgrounds (currently they include W/Z->tau and anti-signal) \n"
+
         ## get the number of total submit jobs from the bunching
         nj = len(siglist)
         print 'full number of python commands to submit', nj+len(bkglist)+len(datalist)
-        print '   ... grouping them into bunches of', options.groupJobs
+        print '   ... grouping #sig into bunches of', options.groupJobs
         
         if not nj%options.groupJobs:
             njobs = int(nj/options.groupJobs)
@@ -725,8 +735,9 @@ if __name__ == "__main__":
             sourcefiles.append(tmp_srcfile_name)
     
         ## now do the others.
+        tag = "sig_" if options.signalCards else "otherSig_"
         for ij in range(njobs):
-            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, "sig_"+str(ij))
+            tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, tag+str(ij))
             tmp_n = options.groupJobs
             while len(siglist) and tmp_n:
                 tmp_pycmd = siglist[0]
@@ -763,7 +774,7 @@ request_memory = 2000
         if os.environ['USER'] in ['mdunser', 'psilva', 'bendavid', 'kelong']:
             condor_file.write('+AccountingGroup = "group_u_CMST3.all"\n')
         if os.environ['USER'] in ['mciprian']:
-            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA.all"\n')
+            condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA"\n')
         condor_file.write('\n\n')
 
         for sf in sourcefiles:

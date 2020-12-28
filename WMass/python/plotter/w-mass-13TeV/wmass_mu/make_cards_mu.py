@@ -8,6 +8,7 @@ CUTFILE      = BASECONFIG+'/cuts_testHistForCard.txt'
 CUTFILE_WLIKE = BASECONFIG+'/cuts_testHistForCard_wlike.txt'
 SYSTFILE     = BASECONFIG+'/systsEnv.txt'
 
+LUMIWEIGHT = 1.0 # because MC samples defined in the MCA are already normalized to the luminosity corresponding to either pre or postVFP (otherwise if using 35.9 here one should divide the event weight in WEIGHTSTRING by 35.9)
 QUEUE        = '1nd'
 VAR          = '\'Muon_pt[0]:Muon_eta[0]\''
 
@@ -39,6 +40,8 @@ if __name__ == '__main__':
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
     (options, args) = parser.parse_args()
     
+    if options.wlike:
+        OUTDIR = OUTDIR.replace("wmass_","wlike_")
     if options.suffix: 
         OUTDIR += ('_%s' % options.suffix)
     if options.outdir != "": 
@@ -55,11 +58,14 @@ if __name__ == '__main__':
         WEIGHTSTRING = WEIGHTSTRING_WLIKE
 
     for c in components:
-        cmd='python ' + ' '.join([PROG,MCA,CUTFILE,VAR,BINNING,SYSTFILE,OUTDIR,'-C mu']) + \
-            (' -W %s ' % WEIGHTSTRING) + (' -P %s ' % TREEPATH) + (' -q %s ' % QUEUE) + c
-        if options.dryRun: cmd += '  --dry-run '
-        if options.addSyst: cmd += '  --pdf-syst --qcd-syst '        
-        if options.wlike: cmd += ' --wlike '
+        cmd='python ' + ' '.join([PROG,MCA,CUTFILE,VAR,BINNING,SYSTFILE,OUTDIR,c])
+        cmd += ' -W {w} -P {p} -l {l} -q {q} -C mu '.format(w=WEIGHTSTRING,p=TREEPATH,l=LUMIWEIGHT,q=QUEUE)
+        if options.dryRun: 
+            cmd += '  --dry-run '
+        if options.addSyst: 
+            cmd += '  --pdf-syst --qcd-syst '        
+        if options.wlike: 
+            cmd += ' --wlike '
         if 'b' in c:
             cmd += ' -n bkg '
         elif 's' in c:
