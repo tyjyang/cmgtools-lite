@@ -40,3 +40,16 @@ WplusPartPrefireUp: SMP-RunIISummer16NanoAODv7-00336_[1-3]1.*: 11572.19: L1PreFi
 
 # nJet with cleaning or ID
 WplusPartNomi: SMP-RunIISummer16NanoAODv7-00336_[1-2]1.* : 11572.19: Jet_jetId>0; FillColor=ROOT.kRed+2, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath=".*WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201022_231658/0000/", FillStyle=3002
+
+
+
+###
+### to get PU profile (will use unweighted events, so the cross section and luminosity could be omitted)
+# sum charges + and - 
+Wmunu_preVFP   : .* : 19.3*11572.19; FillColor=ROOT.kRed+2, Label="W\#rightarrow\#mu\#nu preVFP", SubPath=".*WplusJetsToMuNu_preVFP_addVars"
+Wmunu_preVFP   : .* : 19.3*8562.66; FillColor=ROOT.kRed+2, Label="W\#rightarrow\#mu\#nu preVFP", SubPath=".*WminusJetsToMuNu_preVFP_addVars"
+# sum charges + and - 
+Wmunu_postVFP   : .* : 16.6*11572.19; FillColor=ROOT.kBlack, Label="W\#rightarrow\#mu\#nu postVFP", SubPath=".*WplusJetsToMuNu_postVFP_addVars"
+Wmunu_postVFP   : .* : 19.3*8562.66; FillColor=ROOT.kBlack, Label="W\#rightarrow\#mu\#nu postVFP", SubPath=".*WminusJetsToMuNu_postVFP_addVars"
+##########
+##########

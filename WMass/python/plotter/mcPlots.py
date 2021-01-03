@@ -415,7 +415,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     ROOT.RooMsgService.instance().setGlobalKillBelow(gKill)
     
 
-def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
+def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,onlyStatErrorsOnRef=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
     numkeys = [ "data" ]
     if len(ratioNumsWithData): 
         for p in pmap.iterkeys():                
@@ -483,7 +483,10 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
         unity.SetBinContent(b, 1 if n > 0 else 0)
         unity0.SetBinContent(b,  1 if n > 0 else 0)
         if errorsOnRef:
-            unity.SetBinError(b, e/n if n > 0 else 0)
+            if onlyStatErrorsOnRef:
+                unity.SetBinError(b, 0)
+            else:
+                unity.SetBinError(b, e/n if n > 0 else 0)
             unity0.SetBinError(b, e0/n if n > 0 else 0)
         else:
             unity.SetBinError(b, 0)
@@ -513,7 +516,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity0.SetMarkerStyle(1);
     unity0.SetMarkerColor(ROOT.kBlue-7);
     ROOT.gStyle.SetErrorX(0.5);
-    if errorsOnRef:
+    if errorsOnRef and not onlyStatErrorsOnRef:
         unity.Draw("E2");
     else:
         unity.Draw("AXIS");
@@ -523,10 +526,10 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
         unity.SetFillStyle(3013);
         unity0.SetFillStyle(3013);
         if errorsOnRef:
-            unity.Draw("AXIS SAME");
+            if not onlyStatErrorsOnRef: unity.Draw("AXIS SAME");
             unity0.Draw("E2 SAME");
     else:
-        if total != totalSyst and errorsOnRef:
+        if (total != totalSyst or onlyStatErrorsOnRef) and errorsOnRef:
             unity0.Draw("E2 SAME");
     rmin = float(pspec.getOption("RMin",rmin))
     rmax = float(pspec.getOption("RMax",rmax))
@@ -591,7 +594,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     leg1.SetTextFont(42)
     leg1.SetTextSize(0.035*0.7/0.3)
     leg1.AddEntry(unity, "total bkg. unc.", "F")
-    if showStatTotLegend: leg1.Draw()
+    if showStatTotLegend and not onlyStatErrorsOnRef: leg1.Draw()
     global legendratio0_, legendratio1_
     legendratio0_ = leg0
     legendratio1_ = leg1
@@ -1167,7 +1170,7 @@ class PlotMaker:
                 if doRatio:
                     p2.cd(); 
                     rdata,rnorm,rnorm2,rline = doRatioHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
-                                                            fitRatio=options.fitRatio, errorsOnRef=options.errorBandOnRatio, 
+                                                            fitRatio=options.fitRatio, errorsOnRef=options.errorBandOnRatio, onlyStatErrorsOnRef=options.onlyStatErrorOnRatio,
                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, 
                                                             doWide=doWide, showStatTotLegend=(False if options.noLegendRatioPlot else True),
                                                             errorBarsOnRatio = options.errorBarsOnRatio,
@@ -1355,6 +1358,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_option("--ratioNums", dest="ratioNums", type="string", default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
     parser.add_option("--ratioYLabel", dest="ratioYLabel", type="string", default="Data/pred.", help="Y axis label of the ratio histogram.")
     parser.add_option("--noErrorBandOnRatio", dest="errorBandOnRatio", action="store_false", default=True, help="Do not show the error band on the reference in the ratio plots")
+    parser.add_option("--onlyStatErrorOnRatio", dest="onlyStatErrorOnRatio", action="store_true", default=False, help="Show only stat error on reference in ratio plots (when --noErrorBandOnRatio is False)")
     parser.add_option("--noErrorBarsOnRatio", dest="errorBarsOnRatio", action="store_false", default=True, help="Do not show the error bars on the ratio plots (affect each numerator, unlike --noErrorBandOnRatio")
     parser.add_option("--fitRatio", dest="fitRatio", type="int", default=None, help="Fit the ratio with a polynomial of the specified order")
     parser.add_option("--scaleSigToData", dest="scaleSignalToData", action="store_true", default=False, help="Scale all signal processes so that the overall event yield matches the observed one")

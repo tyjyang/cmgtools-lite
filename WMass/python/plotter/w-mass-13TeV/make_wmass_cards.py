@@ -45,8 +45,8 @@ def printSysts(systs=[],process="Wmunu"):
         print '-'*30
 
 
-NVPTBINS=2 # usually it would be 10, use less for tests
-NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests
+NVPTBINS=10 # usually it would be 10, use less for tests, e.g. 2
+NPDFSYSTS=100 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
 nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
 #
 # dictionaries associating an array containing systs variations to each relevant process
@@ -458,18 +458,21 @@ if __name__ == "__main__":
                         xpsel += " --xp {ahel}".format(ahel=excl_anticoeff)
                     xpsel += " --asimov "
 
-                    ## for Wlike, must transform process name for signal (Zmumu) into Zmumu_plus or Zmumu_minus.
-                    ## one could directly change the name of the histogram inside the output root file, after it has been created, but maybe better to do it now.
-                    ## This can be achieved either by using the IncludeMca statement and adding the '_plus' or '_minus' postfix to the process name, or by using the --pg option to change the signal process name
-                    ## for now we will try the second option
-                    if options.wlike:
-                        xpsel += " -p Zmumu_{ch} --pg 'Zmumu_{ch} := Zmumu' ".format(ch=charge)
-
                     ## make specific names and such
                     syst = '' if ivar==0 else var
                     ## for kamuca corrections, there is not any _sigsuffix, so add an "_" to distinguish better the files
                     if 'kalPt' in var: syst = '_{sfx}_{var}'.format(sfx=SIGSUFFIX,var=var)
-                    dcname = "{sig}_{charge}{coeff}{syst}".format(sig=SIGPROC, charge=charge, coeff="" if coeff=='' else ('_'+coeff+'_'),syst=syst)
+                    dcname = "{sig}_{charge}{coeff}{syst}".format(sig=SIGPROC, charge=charge, coeff="" if coeff=='' else ('_'+coeff),syst=syst)
+
+                    ## for Wlike, must transform process name for signal (Zmumu) into Zmumu_plus or Zmumu_minus.
+                    ## one could directly change the name of the histogram inside the output root file, after it has been created, but maybe better to do it now.
+                    ## This can be achieved either by using the IncludeMca statement and adding the '_plus' or '_minus' postfix to the process name, or by using the --pg option to change the signal process name
+                    ## for now we will try the second option, where the new process name is basically dcname (because one has to include the general case with systematics)
+                    if options.wlike:
+                        #xpsel += " -p Zmumu_{ch} --pg 'Zmumu_{ch} := Zmumu' ".format(ch=charge)
+                        syst_postfix = "" if ivar==0 else syst
+                        xpsel += " -p {dc} --pg '{dc} := Zmumu{s}' ".format(dc=dcname,s=syst_postfix)
+
 
                     ## reweight the boson-pT here
                     zptWeight = 'dyptWeight(Vpt_preFSR,{isZ})'.format(isZ=0 if SIGPROC=="Wmunu" else 1)

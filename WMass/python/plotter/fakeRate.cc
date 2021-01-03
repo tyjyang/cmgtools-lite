@@ -56,14 +56,13 @@ TH2 * PRi_mu[30] = {0};
 TH2 * PR_el = 0;
 TH2 * PRi_el[20] = {0};
 
-TH2 * FRcorrection = 0;
-TH2 * FRcorrection_i[5];
+// test, idea is to have nominal fake/promp rate with all variations in the same histogram, to facilitate their loading and usage (eta-pt vs variation index)
+// first bin (i=1) corresponds to nominal
+TH3 * FR3D_mu = 0;
+TH3 * PR3D_mu = 0;
+TH3 * FR3D_el = 0;
+TH3 * PR3D_el = 0;
 
-// following few lines are obsolete
-TH2 * FRnormSyst_el = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)
-TH2 * FRnormSyst_el_i[3] = {0}; // will only have up and down, but let's use 3 to include a nominal variation
-TH2 * FRnormSyst_mu = 0;  // normalization systematics for FR asaf pt and eta (equivalent to lnN nuisance parameter for each template bin)
-TH2 * FRnormSyst_mu_i[3] = {0};
 
 bool loadFRHisto(const std::string &histoName, const std::string file, const char *name) {
 
@@ -94,12 +93,6 @@ bool loadFRHisto(const std::string &histoName, const std::string file, const cha
   else if (TString(histoName).Contains("angular_7")) { histo = & angular_7; }
   else if (TString(histoName).BeginsWith("PR_mu_i")) {histo = & PR_temp; hptr2 = & PRi_mu[TString(histoName).ReplaceAll("PR_mu_i","").Atoi()];}
   else if (TString(histoName).BeginsWith("PR_el_i")) {histo = & PR_temp; hptr2 = & PRi_el[TString(histoName).ReplaceAll("PR_el_i","").Atoi()];}
-  else if (histoName == "FRnormSyst_el")  { histo = & FRnormSyst_el;  hptr2 = & FRnormSyst_el_i[0];}
-  else if (histoName == "FRnormSyst_mu")  { histo = & FRnormSyst_mu;  hptr2 = & FRnormSyst_mu_i[0];}
-  else if (TString(histoName).BeginsWith("FRnormSyst_el_i")) {histo = & FR_normSyst_temp; hptr2 = & FRnormSyst_el_i[TString(histoName).ReplaceAll("FRnormSyst_el_i","").Atoi()];}
-  else if (TString(histoName).BeginsWith("FRnormSyst_mu_i")) {histo = & FR_normSyst_temp; hptr2 = & FRnormSyst_mu_i[TString(histoName).ReplaceAll("FRnormSyst_mu_i","").Atoi()];}
-  else if (histoName == "FR_correction")  { histo = & FRcorrection; hptr2 = & FRcorrection_i[0]; }
-  else if (TString(histoName).BeginsWith("FR_correction_i")) {histo = & FRcorr_temp; hptr2 = & FRcorrection_i[TString(histoName).ReplaceAll("FRcorrection_i","").Atoi()];}
   if (histo == 0)  {
     std::cerr << "ERROR: histogram " << histoName << " is not defined in fakeRate.cc." << std::endl;
     return 0;
@@ -147,6 +140,10 @@ bool loadFRHisto3D(const std::string &histoName, const std::string file, const c
   if      (TString(histoName).Contains("helicityFractions_0")) { histo = & helicityFractions_0; }
   else if (TString(histoName).Contains("helicityFractions_L")) { histo = & helicityFractions_L; }
   else if (TString(histoName).Contains("helicityFractions_R")) { histo = & helicityFractions_R; }
+  else if (TString(histoName).Contains("muonFakeRate3D")) { histo = & FR3D_mu; }
+  else if (TString(histoName).Contains("muonPromptRate3D")) { histo = & PR3D_mu; }
+  else if (TString(histoName).Contains("electronFakeRate3D")) { histo = & FR3D_el; }
+  else if (TString(histoName).Contains("electronPromptRate3D")) { histo = & PR3D_el; }
   if (histo == 0)  {
     std::cerr << "ERROR: histogram " << histoName << " is not defined in fakeRate.cc." << std::endl;
     return 0;
@@ -189,37 +186,6 @@ bool loadFRHisto3D(const std::string &histoName, const std::string file, const c
 
 }
 
-//===============================================================
-
-float getFakeRatenormWeight(float lpt, float leta, int lpdgId, int ivar = 0) {
-
-  if (!ivar) return 1.0; // this is a special case: the "nominal" FRnormSyst TH1 was never created (it would be FR_el or FR_mu)
-  // only the variations are considered here
-  // ivar == 1: up variation
-  // ivar == 2: down variation
-
-  if (FRnormSyst_el_i[ivar] == 0 && FRnormSyst_mu_i[ivar] == 0) {
-    std::cout << "Error in getFakeRatenormWeight(): both histograms are 0. Returning 0" << std::endl;	
-    return 0;
-  } 
-
-  int fid = abs(lpdgId);   
-  TH2 *hist = (fid == 11 ? FRnormSyst_el_i[ivar] : FRnormSyst_mu_i[ivar]);
-  if (hist == 0) {
-    std::cout << "Error in getFakeRatenormWeight(): hist == 0. Returning 0" << std::endl;	
-    return 0;
-  } 
-
-  // do we need a weight just as a function of eta or pt as well?
-  float absleta = std::abs(leta);
-  int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindBin(absleta)));
-  int ptbin  = std::max(1, std::min(hist->GetNbinsX(), hist->GetYaxis()->FindBin(lpt)));
-  
-  // TH1 content is a fraction, like 30%, so we return 1 +/- var
-  float var = hist->GetBinContent(etabin, ptbin);
-  return (ivar == 1) ? (1 + var) : (1 - var);
-  
-}
 
 //===============================================================
 
@@ -449,6 +415,86 @@ float* _getFakeRateWmass(float lpt, float leta, int lpdgId,  int iFR=0, int iPR=
 
 //======================
 
+float* _getFakeRate3DWmass(float lpt, float leta, int lpdgId,  int iFR=1, int iPR=1) {
+
+  // this function reads the FR/PR from a histogram, it does not derive it reading the parameters of a 
+  // functional form used to interpolate FR/PR
+  //
+  // WARNING: THE HISTOGRAM HAS PT ON X AXIS AND ETA ON Y AXIS
+  //
+
+  double feta = std::fabs(leta); 
+  int fid = abs(lpdgId); 
+
+  TH3 *hist_fr = (fid == 11 ? FR3D_mu : FR3D_el);
+  TH3 *hist_pr = (fid == 11 ? PR3D_mu : PR3D_el);
+  if (hist_fr == 0 || hist_pr == 0) {
+    // this is the case where you expect electrons but get a muon, or viceversa
+    // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
+    // do not issue warning messages here, unless it is for testing
+    //std::cout << "Error in _getFakeRateWmass: hist_fr == 0 || hist_pr == 0. It seems the flavour is not what you expect. Returning 0" << std::endl;	
+    return 0;
+  }
+
+  Bool_t hasNegativeEta = (hist_fr->GetYaxis()->GetBinLowEdge(1) < 0) ? true : false;
+
+  // FR and PR histogram should have same binning, but let's make it general
+  //
+  // First FR
+  int etabin = std::max(1, std::min(hist_fr->GetNbinsY(), hist_fr->GetYaxis()->FindBin(hasNegativeEta ? leta : feta)));
+  int ptbin = std::max(1, std::min(hist_fr->GetNbinsX(), hist_fr->GetXaxis()->FindBin(lpt)));
+  float fr = hist_fr->GetBinContent(ptbin, etabin, iFR);
+    // and now PR
+  etabin = std::max(1, std::min(hist_pr->GetNbinsY(), hist_pr->GetYaxis()->FindBin(hasNegativeEta ? leta : feta)));
+  ptbin = std::max(1, std::min(hist_pr->GetNbinsX(), hist_pr->GetXaxis()->FindBin(lpt)));
+  float pr = hist_pr->GetBinContent(ptbin, etabin, iPR);
+    
+  // safety checks
+  if (fr >= pr) return 0;
+  if (pr > 1.0) pr = 1.0;  // just in case
+
+
+  static float rates[2];
+  rates[0] = pr;
+  rates[1] = fr;
+  return rates;
+}
+
+
+
+//======================
+
+float fakeRateWeight_1lep(float lpt, float leta, int lpdgId, bool passWP, int iFR=1, int iPR=1) { 
+
+  float* rates = _getFakeRate3DWmass(lpt,leta,lpdgId,iFR,iPR);
+  float pr = rates[0];
+  float fr = rates[1];
+
+  float weight;
+
+  // safety thing
+  if (pr <= fr) {
+    // std::cout << "### Error in weight: FR >= PR. Please check!" << std::endl;
+    // std::cout << " pt: " << lpt << " eta:" << leta << " pdgid: " << lpdgId << std::endl;
+    return 0;
+  } 
+
+  if (passWP) {
+    // tight
+    // returning a negative weight
+    weight = fr*(pr-1)/(pr-fr); // pr=1 --> return 0
+  } else {
+    // not tight (but still loose)
+    weight = fr*pr/(pr-fr);  // pr=1 --> return fr/(1-fr)
+  }
+
+  // std::cout << "passWP = " << passWP << "\t Weight for data_fakes = " << weight << std::endl;
+  return weight;
+
+}
+
+//--------------------------------
+
 float fakeRateWeight_promptRateCorr_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, int iPR=0) { 
 
   float* rates = _getFakeRate(lpt,leta,lpdgId,iFR,iPR);
@@ -605,92 +651,6 @@ float fakeRateWeight_promptRateCorr_2l_i_smoothed(float lpt1, float leta1, int l
 
 
 //==============================
-
-float fakeRateWeight_1l_i_smoothed(float lpt, float leta, int lpdgId, bool passWP, int iFR=0) { //, int expected_pdgId=11) {
-  if (!passWP) {
-    double fpt = lpt; double feta = std::fabs(leta); int fid = abs(lpdgId); 
-    // int fAbsExpected_pdgId = abs(expected_pdgId);
-    // if (fid != fAbsExpected_pdgId) {
-    //   return 0;
-    // }
-    if (FRi_el[iFR] == 0 and FRi_mu[iFR] == 0) {
-      // this is the case where the histogram was not loaded correctly (one is 0 because you use the other flavour)
-      std::cout << "Error in fakeRateWeight_1l_i_smoothed: hist == 0. Returning 0" << std::endl;	
-      return 0;
-    } 
-    TH2 *hist = (fid == 11 ? FRi_el[iFR] : FRi_mu[iFR]);
-    if (hist == 0) {
-      // this is the case where you expect electrons but get a muon, or viceversa
-      // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
-      // do not issue warnign mewssages here, unless it is for testing
-      //std::cout << "Error in fakeRateWeight_1l_i_smoothed: hist == 0. Returning 0" << std::endl;	
-      //std::cout << "pdg ID = " << lpdgId << std::endl;
-      return 0;
-    }
-    Bool_t hasNegativeEta = (hist->GetXaxis()->GetBinLowEdge(1) < 0);
-    int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindBin(hasNegativeEta ? leta : feta)));
-    float p0 = hist->GetBinContent(etabin, 1);
-    float p1 = hist->GetBinContent(etabin, 2);
-    if      (iFR==1) p0 += hist->GetBinError(etabin, 1);
-    else if (iFR==2) p0 -= hist->GetBinError(etabin, 1);
-    else if (iFR==3) p1 += hist->GetBinError(etabin, 2);
-    else if (iFR==4) p1 -= hist->GetBinError(etabin, 2);
-    float fr = p0 + p1*lpt;
-    return fr/(1-fr);
-
-  } else return 0;
-}
-
-
-float fakeRateWeight_1l_i_smoothed_FRcorr(float lpt, float leta, int lpdgId, bool passWP, int iFR=0, float var=-999, int iFRcorr=0) { //, int expected_pdgId=11) {
-  if (!passWP) {
-    double fpt = lpt; double feta = std::fabs(leta); int fid = abs(lpdgId); 
-    // int fAbsExpected_pdgId = abs(expected_pdgId);
-    // if (fid != fAbsExpected_pdgId) {
-    //   return 0;
-    // }
-    if (FRi_el[iFR] == 0 and FRi_mu[iFR] == 0) {
-      // this is the case where the histogram was not loaded correctly (one is 0 because you use the other flavour)
-      std::cout << "Error in fakeRateWeight_1l_i_smoothed: hist == 0. Returning 0" << std::endl;	
-      return 0;
-    } 
-    TH2 *hist = (fid == 11 ? FRi_el[iFR] : FRi_mu[iFR]);
-    if (hist == 0) {
-      // this is the case where you expect electrons but get a muon, or viceversa
-      // Indeed, selection is evaluated as 1 or 0 multiplying the event weight in TTree::Draw(...), so you potentially have all flavours here
-      // do not issue warnign mewssages here, unless it is for testing
-      //std::cout << "Error in fakeRateWeight_1l_i_smoothed: hist == 0. Returning 0" << std::endl;	
-      //std::cout << "pdg ID = " << lpdgId << std::endl;
-      return 0;
-    }
-    int etabin = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindBin(feta)));
-    float p0 = hist->GetBinContent(etabin, 1);
-    float p1 = hist->GetBinContent(etabin, 2);
-    if      (iFR==1) p0 += hist->GetBinError(etabin, 1);
-    else if (iFR==2) p0 -= hist->GetBinError(etabin, 1);
-    else if (iFR==3) p1 += hist->GetBinError(etabin, 2);
-    else if (iFR==4) p1 -= hist->GetBinError(etabin, 2);
-    float fr = p0 + p1*lpt;
-
-    // FR correction (iFRcorr > 0 not supported yet, could be used for variations)
-    float FRcorrection = 1;
-    TH2 *hist_FRcorr = 0;
-    if (var > -999) {
-      hist_FRcorr = FRcorrection_i[iFRcorr];
-      if (hist_FRcorr == 0) {
-	std::cout << "Error in fakeRateWeight_1l_i_smoothed_FRcorr: hist_FRcorr == 0. Applying no correction (i.e. 1)" << std::endl;
-	//return 0;
-      } else {
-	int varbin = std::max(1, std::min(hist_FRcorr->GetNbinsX(), hist_FRcorr->GetXaxis()->FindBin(var))); 
-	etabin = std::max(1, std::min(hist_FRcorr->GetNbinsY(), hist_FRcorr->GetYaxis()->FindBin(leta))); 
-	FRcorrection = hist_FRcorr->GetBinContent(varbin,etabin); 
-      }
-    }
-
-    return FRcorrection * fr/(1-fr);
-
-  } else return 0;
-}
 
 
 float fakeRateWeight_1l_i(float lpt, float leta, int lpdgId, bool passWP, int iFR) {

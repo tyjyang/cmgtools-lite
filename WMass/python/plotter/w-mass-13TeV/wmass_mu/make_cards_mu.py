@@ -1,6 +1,14 @@
 import os
 from datetime import datetime
 
+# example
+# python w-mass-13TeV/wmass_mu/make_cards_mu.py --syst [--wlike]
+# without --syst only the nominal histogram are made
+# use -d or -p for tests (-p only prints command created here, while -d also runs PROG but without submitting jobs)
+# use '-r s' or '-r b' to run on only signal or only backgrounds+data (default is '-r sb' for both)
+# use -s to specify a suffix for folder name
+# use -o to specify full name for output folder (might be useful when running signal and backgrounds separately in different days, but please check that important files are not overwritten (should not))
+
 PROG         = 'w-mass-13TeV/make_wmass_cards.py'
 BASECONFIG   = 'w-mass-13TeV/testingNano/cfg'
 MCA          = BASECONFIG+'/mca-testHistForCard.txt'
