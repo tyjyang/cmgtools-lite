@@ -47,16 +47,26 @@ muon_pt_ss: Muon_pt: 35,25,60; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOv
 muon_eta_ss: Muon_eta: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
 
-deltaRgenMu: deltaR(GenDressedLepton_eta[0],GenDressedLepton_phi[0],GenDressedLepton_eta[1],GenDressedLepton_phi[1]): 80,0,4; XTitle="#DeltaR(#mu\,#mu) (dressed gen muons)", Legend='TC', IncludeOverflows=True
+deltaRgenMu: deltaR(GenPart_eta[GenPart_preFSRLepIdx1],GenPart_phi[GenPart_preFSRLepIdx1],GenPart_eta[GenPart_preFSRLepIdx2],GenPart_phi[GenPart_preFSRLepIdx2]): 80,0,4; XTitle="#DeltaR(#mu\,#mu) (dressed gen muons)", Legend='TC', IncludeOverflows=True
 
 # eta and pt of gen muon from Z that was not reconstructed when selecting events in W phase space
 
-genMuFailReco_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]): 80,-4.0,4.0; XTitle="gen muon #eta (failed reco)", Legend='TC', IncludeOverflows=True
+genMuFailReco_eta: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx2]): 80,-4.0,4.0; XTitle="gen muon #eta (failed reco)", Legend='TC', IncludeOverflows=True
 
-genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1]): 35,20,80; XTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
+genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx2]): 35,20,80; XTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
 
-genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_pt[0], GenDressedLepton_pt[1])\:varGenLepFailReco(Muon_pdgId[0], GenDressedLepton_pdgId[0], GenDressedLepton_eta[0], GenDressedLepton_eta[1]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
+genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx2])\:varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx2]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
+
+###
+# for PU profile
 
 Pileup_nTrueInt: Pileup_nTrueInt: 100,0,100; XTitle="Pileup_nTrueInt", Legend='TC', IncludeOverflows=False
 
 PV_npvsGood: PV_npvsGood: 80,0,80; XTitle="PV_npvsGood", Legend='TC', IncludeOverflows=False
+
+####
+# for vertex study
+
+dzVertex_gen_primary__Wpt: (GenVtx_z-PV_z)\:pt_2(GenPart_pt[GenPart_preFSRLepIdx1],GenPart_phi[GenPart_preFSRLepIdx1],GenPart_pt[GenPart_preFSRLepIdx2],GenPart_phi[GenPart_preFSRLepIdx2]) : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=False
+
+dzVertex_gen_primary__dressedLepPt: (GenVtx_z-PV_z)\:if3(fabs(GenPart_pdgId[GenPart_preFSRLepIdx1])==13,GenPart_pt[GenPart_preFSRLepIdx1],GenPart_pt[GenPart_preFSRLepIdx2]): 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" leading dressed lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False

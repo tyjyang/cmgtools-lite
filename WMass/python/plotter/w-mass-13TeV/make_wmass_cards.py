@@ -3,6 +3,17 @@ from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 
+def printReturnValueInScript(fileObj, scriptName=None):
+    fileObj.write('retval=$?\n') # must be evaluated immediately after the python command in the shell script
+    if scriptName != None:
+        fileObj.write('echo "Script name = %s"\n' % scriptName)
+    fileObj.write('echo "return value = ${retval}"\n')
+    fileObj.write('if [[ $retval != 0 ]]; then\n')
+    fileObj.write('    exit $retval\n')
+    fileObj.write('fi\n')
+    fileObj.write('\n')
+
+
 def getShFile(jobdir, name):
     tmp_srcfile_name = jobdir+'/job_{i}.sh'.format(i=name)
     tmp_srcfile = open(tmp_srcfile_name, 'w')
@@ -282,6 +293,8 @@ if __name__ == "__main__":
     parser.add_option('--vpt-weight', dest='procsToPtReweight', action="append", default=[], help="processes to be reweighted according the measured/predicted DY pt. Default is none (possible W,Z).");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");    
     parser.add_option('--add-option', dest="addOptions", type="string", default=None, help="add these options to the option string when running the histograms");
+    parser.add_option('--auto-resub', dest='automaticResubmission', action="store_true", default=False, help="Use condor features for automatic job resubmission in case of failures");
+    parser.add_option("--n-resub", dest="nResubmissions", type=int, default=2, help="Number of automatic resubmission to be attempted in case of failure when running a job (needs --auto-resub)");
     (options, args) = parser.parse_args()
     
     if len(sys.argv) < 6:
@@ -726,6 +739,8 @@ if __name__ == "__main__":
             pm = 'plus' if '-A alwaystrue positive' in ib else 'minus'
             tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'bkg_'+pm)
             tmp_srcfile.write(ib)
+            if options.automaticResubmission: 
+                printReturnValueInScript(tmp_srcfile, tmp_srcfile_name)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
 
@@ -734,6 +749,8 @@ if __name__ == "__main__":
             era = ib.split("data := data_")[1].split("'")[0]
             tmp_srcfile_name, tmp_srcfile = getShFile(jobdir, 'data_'+era+'_'+pm)
             tmp_srcfile.write(ib)
+            if options.automaticResubmission: 
+                printReturnValueInScript(tmp_srcfile, tmp_srcfile_name)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
     
@@ -747,6 +764,8 @@ if __name__ == "__main__":
                 tmp_srcfile.write(tmp_pycmd+'\n')
                 siglist.remove(tmp_pycmd)
                 tmp_n -= 1
+                if options.automaticResubmission: 
+                    printReturnValueInScript(tmp_srcfile, tmp_srcfile_name)
             tmp_srcfile.close()
             sourcefiles.append(tmp_srcfile_name)
         ## ---
@@ -754,21 +773,37 @@ if __name__ == "__main__":
         ## now on to the usual condor magic
         dummy_exec = open(jobdir+'/dummy_exec.sh','w')
         dummy_exec.write('#!/bin/bash\n')
-        dummy_exec.write('bash $*\n')
+        dummy_exec.write('script=$1\n')
+        dummy_exec.write('bash $script\n')
+        dummy_exec.write('retval=$?\n')
+        # make exit code for success explicit, it can be used by condor to resubmit jobs
+        if options.automaticResubmission:
+            dummy_exec.write('attempt=$2\n')
+            dummy_exec.write('echo "attempt = ${attempt}"\n')
+        dummy_exec.write('echo "script = ${script}"\n')
+        dummy_exec.write('echo "final return value = ${retval}"\n')
+        dummy_exec.write('exit $retval\n')
         dummy_exec.close()
     
         condor_file_name = jobdir+'/condor_submit_'+('background' if options.bkgdataCards else 'signal')+'.condor'
         condor_file = open(condor_file_name,'w')
-        condor_file.write('''Universe = vanilla
-Executable = {de}
-use_x509userproxy = true
-Log        = {ld}/$(ProcId).log
-Output     = {od}/$(ProcId).out
-Error      = {ed}/$(ProcId).error
+        condor_file.write('Universe = vanilla\n')
+        condor_file.write('Executable = {de}\n'.format(de=os.path.abspath(dummy_exec.name)))
+        condor_file.write('use_x509userproxy = true\n')
+        # keep one .log in case of resubmission, text is appended there
+        # but create a different .err and .out when resubmitting failures automatically
+        condor_file.write('''
+Log         = {ld}/{sb}_$(ClusterId)_$(ProcId).log
+Output      = {od}/{sb}_$(ClusterId)_$(ProcId){text}.out
+Error       = {ed}/{sb}_$(ClusterId)_$(ProcId){text}.error
 getenv      = True
 environment = "LS_SUBCWD={here}"
 request_memory = 2000
-+MaxRuntime = {rt}\n'''.format(de=os.path.abspath(dummy_exec.name), ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), ed=os.path.abspath(errdir), rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
++MaxRuntime = {rt}\n'''.format(ld=os.path.abspath(logdir), od=os.path.abspath(outdirCondor), 
+                               ed=os.path.abspath(errdir), 
+                               sb="sig" if options.signalCards else "bkg",
+                               text="_trial$$([NumJobStarts])" if options.automaticResubmission else "",
+                               rt=getCondorTime(options.queue), here=os.environ['PWD'] ) )
         ## ---
     
         if options.jobName != None:
@@ -780,8 +815,19 @@ request_memory = 2000
             condor_file.write('+AccountingGroup = "group_u_CMS.CAF.ALCA"\n')
         condor_file.write('\n\n')
 
+        # can retry up tp N times, if the job fails
+        # when it fails, keep it on hold for 1 minute before releasing it again 
+        # (in case the error was due to temporary problems in either the filesystem or eos itself)
+        if options.automaticResubmission: 
+            condor_file.write('''
+max_retries = {n}
+success_exit_code = 0
+retry_until = (ExitCode == 0) && (NumJobStarts < {n1})
++OnExitHold   = (ExitCode != 0) && (NumJobStarts < {n1})
+periodic_release =  (NumJobStarts < {n1}) && ((time() - EnteredCurrentStatus) > 60)\n\n'''.format(n=options.nResubmissions,n1=options.nResubmissions+1))
+
         for sf in sourcefiles:
-            condor_file.write('arguments = {sf} \nqueue 1 \n\n'.format(sf=os.path.abspath(sf)))
+            condor_file.write('arguments = {sf} {trial}\nqueue 1 \n\n'.format(sf=os.path.abspath(sf),trial="$$([NumJobStarts])" if options.automaticResubmission else ""))
         condor_file.close()
         ## ---
     

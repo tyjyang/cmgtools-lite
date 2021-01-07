@@ -276,4 +276,15 @@ for n,h in report.iteritems():
 workspace.Close()
 
 print "Wrote to ",myout+binname+".input.root"
-
+# now check goodness of file, if bad returns an exit code different from 0
+f = ROOT.TFile.Open(myout+binname+".input.root", "READ")
+if f.IsZombie():    
+    print 'file is probably corrupted'
+    sys.exit(100)
+if f.TestBit(ROOT.TFile.kRecovered):
+    print 'file is in fishy state, was recovered'
+    sys.exit(101)
+if f.GetListOfKeys().GetSize()==0:
+    print 'file is bad, has no keys'
+    sys.exit(102)
+print "File is in good state :)"

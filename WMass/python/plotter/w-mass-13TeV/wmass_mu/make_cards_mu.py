@@ -46,6 +46,7 @@ if __name__ == '__main__':
     parser.add_option("-r", "--run", dest="run", type="string", default="sb", help="Which components to run: s for signal, b for backgrounds or sb for both");
     parser.add_option("--max-genWeight", dest="maxGenWeight", type="string", default="50000.0", help="Maximum gen weight to be used for Z and W samples (with any decay). Weights larger than this value will be set to it.");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
+    parser.add_option('--auto-resub', dest='automaticResubmission', action="store_true", default=False, help="Use condor features for automatic job resubmission in case of failures");
     (options, args) = parser.parse_args()
     
     if options.wlike:
@@ -78,6 +79,8 @@ if __name__ == '__main__':
             cmd += ' -n bkg '
         elif 's' in c:
             cmd += ' -n sig '
+        if options.automaticResubmission:
+            cmd += ' --auto-resub --n-resub 2 ' 
         optsForHisto = ' --nanoaod-tree --max-genWeight-procs \'W.*|Z.*\' \'{m}\' --clip-genWeight-toMax '.format(m=options.maxGenWeight)
         cmd += ' --add-option "{opt}"'.format(opt=optsForHisto)
         cmd += ' -g 5 '

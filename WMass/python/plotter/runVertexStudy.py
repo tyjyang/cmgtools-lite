@@ -4,13 +4,12 @@ import os, subprocess, re
 import ROOT
 
 #workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
-workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
-
+workingPoints = ["alwaystrue", "onemuon", "trigger", "muonID", "pfRelIso04", "mtl1pf40", "vertex"]
 
 path = "{cmssw}/src/CMGTools/WMass/python/plotter/".format(cmssw=os.environ['CMSSW_BASE'])
 mcafile  = path + "w-mass-13TeV/wmass_mu/mca_wmu_forTest.txt"
-cutfile  = path + "w-mass-13TeV/wmass_mu/cuts_wmu_VertexStudy.txt"
-plotfile = path + "w-mass-13TeV/wmass_mu/plots_forTest.txt"
+cutfile  = path + "w-mass-13TeV/testingNano/cfg/test/cuts_vertexStudy.txt"
+plotfile = path + "w-mass-13TeV/testingNano/cfg/plots_forTest.txt"
 proc = "QCD" # Wnopt
 # 
 plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt"
