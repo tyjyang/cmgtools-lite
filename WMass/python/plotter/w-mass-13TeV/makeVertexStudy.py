@@ -15,10 +15,18 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
+use2Lep = True
 # plots/vertexStudy/ask1orMoreLep
-outdir = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_antiMatch/compareEfficiency"
+outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/WmunuSamples/compareEfficiency_minus"
+#outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples/compareEfficiency"
+if use2Lep:
+    outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples_2Lep/compareEfficiency"
 
-inputfolder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW_9_4_12/src/CMGTools/WMass/python/plotter/plots/vertexStudy/newNtuplesNoSkim_antiMatch/"
+inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/WmunuSamples/"
+#inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples/"
+if use2Lep:
+    inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples_2Lep/"
+
 # inputfiles = {"1::genEtaPt"                : "W_94X_noRecoCuts_genEtaPt26to56",
 #               "2::fullSel_NoMtNoIsoNoID"   : "W_94X_allRecoCuts_noMtNoIsoNoID",
 #               "3::fullSel_NoMtNoIso"       : "W_94X_allRecoCuts_noMtNoIso",
@@ -28,30 +36,32 @@ inputfolder = "/afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/rel_slc7/CMSSW
 #               "7::1lepInAccept"            : "W_94X_1lepInAccept",
 #           }
 
-#workingPoints = ["alwaystrue", "genEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
-#colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
-#markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
-
-workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+#workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
+workingPoints = ["alwaystrue", "onemuon", "trigger", "muonID", "pfRelIso04", "mtl1pf40", "vertex"]
 colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
+if use2Lep:
+    workingPoints[1] = "twomuon"
+
 markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
 
 #range for efficiency plot
 effLow = 0.5
 effHigh = 1.05
 
+#process = "Wmunu_minus" # to get the process name inside the root file
+process = "Zmumu" # to get the process name inside the root file
 absDzVal = 0.1 # 1 mm        
 # Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.01 width
 # dressed lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
 var = "Wpt"
 genWPtLow = 0.0
 genWPtHigh = 100.0
-rebinWPt = 5 # default 2
-var = "dressedLepPt"
+rebinWPt = 1 # default binning is 2 GeV, so rebinWpt = 2 makes it 4 GeV
+#var = "dressedLepPt"
 genLepPtLow = 26.0
 genLepPtHigh = 100.0
-rebinLepPt = 8 # default 1
-hname = "dzVertex_gen_primary__{v}_Wnopt".format(v=var)
+rebinLepPt = 2 # default binning is 1 GeV, so rebinLepPt = 2 makes it 2 GeV    
+hname = "dzVertex_gen_primary__{v}_{p}".format(v=var,p=process)
 
 if __name__ == "__main__":
 
@@ -82,7 +92,7 @@ if __name__ == "__main__":
         print "Cut: " + str(key)
         print "-"*30
         print
-        inputfile = inputfolder + key + "/plots_forTest.root"
+        inputfile = inputfolder + key + "/plots_test.root"
         tf = ROOT.TFile.Open(inputfile)        
         h2 =   tf.Get(hname)
         h2.SetDirectory(0)
@@ -164,7 +174,7 @@ if __name__ == "__main__":
             print "Empty overflow bin"
         print "\n"*2
     
-    sortkeys = sortkeys[:5]
+    #sortkeys = sortkeys[:5]
 
     adjustSettings_CMS_lumi()    
     createPlotDirAndCopyPhp(outdir)
@@ -185,7 +195,8 @@ if __name__ == "__main__":
         hists[k].SetLineColor(colors[i])
         hists[k].SetMarkerColor(colors[i])
         hists[k].SetLineWidth(2)
-        hists[k].SetMarkerStyle(markers[i])
+        hists[k].SetMarkerStyle(markers[i])        
+        print "%d) %s " % (i,k)
         if i:
             hists[k].Draw("LPSAME")
         else:
@@ -201,7 +212,7 @@ if __name__ == "__main__":
             hists[k].GetYaxis().SetTitleSize(0.05)
             hists[k].GetYaxis().SetLabelSize(0.04)
             hists[k].GetYaxis().SetRangeUser(effLow,effHigh)
-    leg = ROOT.TLegend(0.15,0.15,0.9,0.35)
+    leg = ROOT.TLegend(0.15,0.15,0.9,0.35+(0.05 if len(sortkeys) > 6 else 0.0))
     leg.SetFillColor(0)
     leg.SetFillStyle(0)
     leg.SetFillColorAlpha(0,0.6)
@@ -308,4 +319,5 @@ if __name__ == "__main__":
     for ext in ["png","pdf"]:
         csel.SaveAs(outdir + "/selectionEfficiency.{ext}".format(v=var,ext=ext))
 
+        
         

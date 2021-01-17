@@ -7,12 +7,14 @@ import ROOT
 workingPoints = ["alwaystrue", "onemuon", "trigger", "muonID", "pfRelIso04", "mtl1pf40", "vertex"]
 
 path = "{cmssw}/src/CMGTools/WMass/python/plotter/".format(cmssw=os.environ['CMSSW_BASE'])
-mcafile  = path + "w-mass-13TeV/wmass_mu/mca_wmu_forTest.txt"
+mcafile  = path + "w-mass-13TeV/testingNano/cfg/test/mca_vertexStudy.txt"
 cutfile  = path + "w-mass-13TeV/testingNano/cfg/test/cuts_vertexStudy.txt"
-plotfile = path + "w-mass-13TeV/testingNano/cfg/plots_forTest.txt"
-proc = "QCD" # Wnopt
+plotfile = path + "w-mass-13TeV/testingNano/cfg/plots_test.txt"
+#proc = "Wmunu_minus,Wmunu_plus" #
+proc = "Zmumu" #
 # 
-plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt"
+plots = "dzVertex_gen_primary__Wpt,dzVertex_gen_primary__dressedLepPt" # we actually use the preFSR lepton, but name didn't change
+# for Z events in 2-lepton phase space, dressedLepPt is always the pt of one of the lepton with the same charge (don't remember which one)
 
 # this script is meant to run the study on vertex using W MC or other MC
 
@@ -24,9 +26,17 @@ if __name__ == "__main__":
     parser.add_option("-o", "--outdir", dest="outdir", type="string", default=None, help="Output folder for all plots (each one will be in a specific subfolder)");
     parser.add_option("-n", "--job-name", dest="jobName",   type="string", default="vertexStudy", help="Name assigned to jobs");
     parser.add_option("--ntuples-path",   dest="ntuplesPath", type="string", default="/eos/cms/store/cmst3/group/wmass/mciprian/heppyNtuples/TREES_W_VERTEXSTUDY_94X_V2/", help="Path to ntuples")
+    # /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/dec2020/
+    parser.add_option(     '--doZ', dest="doZ", action="store_true", default=False, help="Run on Z events with 2-lepton phase space")
     (options, args) = parser.parse_args() 
 
     ntuplesPath = options.ntuplesPath
+
+    if options.doZ:
+        workingPoints[1] = "twomuon"
+        cutfile = cutfile.replace("cuts_vertexStudy.txt","cuts_vertexStudy_2lep.txt")
+        proc = "Zmumu"
+
 
     ## constructing the command and arguments to run in condor submit file
     runner = "%s/src/CMGTools/WMass/python/postprocessing/lxbatch_runner.sh" % os.environ['CMSSW_BASE']
@@ -60,7 +70,7 @@ Output     = {ld}/$(ProcId).out
 Error      = {ld}/$(ProcId).error
 getenv      = True
 request_memory = 2000
-+MaxRuntime = 7200
++MaxRuntime = 43200
 +JobBatchName = "{name}"\n
 '''.format(runner=runner,ld=options.logdir,name=options.jobName))
         if os.environ['USER'] in ['mdunser', 'psilva']:
@@ -73,11 +83,12 @@ request_memory = 2000
         for wp in workingPoints:
             cmd = "python mcPlots.py "
             cmd += " {mca} {cut} {plot}".format(mca=mcafile,cut=cutfile,plot=plotfile)
-            cmd += " -f -l 35.9 --s2v --tree treeProducerWMass --obj tree --noCms -j 8 "
+            cmd += " -f -l 35.9 --s2v --obj Events --noCms -j 8 "
             cmd += " --legendFontSize 0.05 --setLegendCoordinates 0.2,0.77,0.9,0.92 --allProcInLegend --noLegendRatioPlot --n-column-legend 2 "            
             cmd += " --sP {plots} ".format(plots=plots)
-            cmd += " -P {ntp} -F Friends {ntp}friends/tree_Friend_{{cname}}.root ".format(ntp=ntuplesPath)
-            cmd += " -p {proc} -W 1.0 -U {wp} --pdir {o}/{wp}/ ".format(proc=proc,o=outdir,wp=wp)        
+            cmd += " -P {ntp} ".format(ntp=ntuplesPath)
+            cmd += " -p {proc} -W (1/35.9)*puWeight*PrefireWeight -U {wp} --pdir {o}/{wp}/ ".format(proc=proc,o=outdir,wp=wp)        
+            cmd += " --nanoaod-tree --max-genWeight-procs W|Z 50000.0 --clip-genWeight-toMax "
             cmdargs = [x.strip() for x in cmd.split()]
             strargs=''
             for a in cmdargs: # join do not preserve " or '

@@ -3,6 +3,7 @@
 *_cc.so
 *.pcm
 mdunser.cc
+mciprian.cc
 
 # local folders
 my_old_wmass_lep/
