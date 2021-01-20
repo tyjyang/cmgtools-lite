@@ -1,0 +1,5 @@
+Wtaunu_plus   : .*_20_.* : 19.3*0.17394*11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#tau\#nu", SubPath=".*WplusJetsToTauNu_preVFP_addVars"
+Wtaunu_plus   : .*_20_.* : 16.6*0.17394*11572.19; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#tau\#nu", SubPath=".*WplusJetsToTauNu_postVFP_addVars"
+
+Wtaunu_minus   : .*_20_.* : 19.3*0.17394*8562.66; FillColor=ROOT.kRed+2, Label="W^{-}\#rightarrow\#tau\#nu", SubPath=".*WminusJetsToTauNu_preVFP_addVars"
+Wtaunu_minus   : .*_20_.* : 16.6*0.17394*8562.66; FillColor=ROOT.kRed+2, Label="W^{-}\#rightarrow\#tau\#nu", SubPath=".*WminusJetsToTauNu_postVFP_addVars"

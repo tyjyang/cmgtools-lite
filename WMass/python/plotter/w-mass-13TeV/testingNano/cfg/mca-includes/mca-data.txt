@@ -1,0 +1,27 @@
+# use options --pg 'data := data_B,data_C,data_D,data_E,data_F' --xp data_G,data_H
+# to exlude samples you don't want to run on (G and H) and group all the remaining data together 
+# reminder: mcAnalysis identify data as "data", while "dataXXX" will not be considered data (unless you use the --pg trick)
+
+# inclusive data
+#data: .*_0_.*; SubPath=".*DATA_NanoV8/"
+
+# data per era (but need to use trick above when running mcAnalysis.py
+# data_B: .*; SubPath=".*DATA_NanoV8/Run2016B/"
+# data_C: .*; SubPath=".*DATA_NanoV8/Run2016C/"
+# data_D: .*; SubPath=".*DATA_NanoV8/Run2016D/"
+# data_E: .*; SubPath=".*DATA_NanoV8/Run2016E/"
+# data_F: .*; SubPath=".*DATA_NanoV8/Run2016F/"
+# data_F_postVFP: .*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
+# data_G: .*; SubPath=".*DATA_NanoV8/Run2016G/"
+# data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
+
+## for tests with a single file
+data_B: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016B/"
+data_C: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016C/"
+data_D: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016D/"
+data_E: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016E/"
+data_F: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016F/"
+data_F_postVFP: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
+data_G: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016G/"
+data_H: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016H/"
+
