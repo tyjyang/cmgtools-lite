@@ -354,7 +354,10 @@ class MCAnalysis:
                             is_w = 1; 
                             total_w += sumGenWeights
                             if maxGenWgt != None:
-                                scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
+                                if options.clipGenWeightToMax:
+                                    scale = "(%s)*TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % (field[2],str(maxGenWgt))
+                                else:
+                                    scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
                             else:
                                 scale = "genWeight*(%s)" % field[2]
                         elif not options.weight:
