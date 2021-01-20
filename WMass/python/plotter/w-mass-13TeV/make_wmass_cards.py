@@ -56,8 +56,8 @@ def printSysts(systs=[],process="Wmunu"):
         print '-'*30
 
 
-NVPTBINS=10 # usually it would be 10, use less for tests, e.g. 2
-NPDFSYSTS=100 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
+NVPTBINS=2 # usually it would be 10, use less for tests, e.g. 2
+NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
 nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
 #
 # dictionaries associating an array containing systs variations to each relevant process
@@ -514,7 +514,7 @@ if __name__ == "__main__":
             print "Making histograms for other background processes with charge ", charge
             chargecut = POSCUT if charge=='plus' else NEGCUT
             ## remove W or Z signal processes and others that aren't needed            
-            xpsel=' --xp "{sig}.*,{antisig}.*,Wtaunu.*,Ztautau.*,data.*" '.format(sig=SIGPROC,antisig=antiSIGPROC) 
+            xpsel=' --asimov --xp "{sig}.*,{antisig}.*,Wtaunu.*,Ztautau.*,data.*" '.format(sig=SIGPROC,antisig=antiSIGPROC) 
             ## now make the names of the cards etc
             dcname = "otherBkgHisto_{charge}".format(charge=charge)
             BIN_OPTS=OPTIONS + " -W '" + options.weightExpr + "'" + " -o "+dcname+" --od "+outdir + xpsel + chargecut
@@ -616,7 +616,7 @@ if __name__ == "__main__":
                     # print "Running the Wtaunu with systematic: ",var
 
                 # exclude everything that does not start with Wtaunu with the proper charge
-                psel=' -p "^Wtaunu_{ch}.*" --asimov '.format(antisig=antiSIGPROC,ch=charge)
+                psel=' -p "^Wtaunu_{ch}.*" --asimov '.format(ch=charge)
                 syst = '' if ivar==0 else var
 
                 ## make names for files etc again
@@ -662,7 +662,7 @@ if __name__ == "__main__":
                     # print "Running the Ztautau with systematic: ",var
 
                 # exclude everything that does not start with Ztautau with the proper charge
-                psel=' -p "^Ztautau_.*" --asimov '
+                psel=' -p "^Ztautau.*" --asimov '
                 syst = '' if ivar==0 else var
 
                 ## make names for files etc again
