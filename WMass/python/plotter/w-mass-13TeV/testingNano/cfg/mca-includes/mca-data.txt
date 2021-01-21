@@ -16,12 +16,12 @@
 # data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
 
 ## for tests with a single file
-data_B: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016B/"
-data_C: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016C/"
-data_D: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016D/"
-data_E: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016E/"
-data_F: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016F/"
-data_F_postVFP: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
-data_G: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016G/"
-data_H: .*_1_.*; SubPath=".*DATA_NanoV8/Run2016H/"
+data_B: .*; SubPath=".*DATA_NanoV8/Run2016B/"
+data_C: .*; SubPath=".*DATA_NanoV8/Run2016C/"
+data_D: .*; SubPath=".*DATA_NanoV8/Run2016D/"
+data_E: .*; SubPath=".*DATA_NanoV8/Run2016E/"
+data_F: .*; SubPath=".*DATA_NanoV8/Run2016F/"
+data_F_postVFP: .*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
+data_G: .*; SubPath=".*DATA_NanoV8/Run2016G/"
+data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
 

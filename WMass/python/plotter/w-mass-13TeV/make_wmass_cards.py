@@ -55,7 +55,7 @@ def printSysts(systs=[],process="Wmunu"):
         print systs
         print '-'*30
 
-
+MASSVARIATIONS = [10* i for i in range(1,11)] # to pick the proper branches such as massShift10MeVUp
 NVPTBINS=2 # usually it would be 10, use less for tests, e.g. 2
 NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
 nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
@@ -143,23 +143,17 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_wmunu',scales
     ## make the mcas for the scales and mW and stuff
     for scale in scales:
 
-        ## mW now doesn't just have Up and Down. make many
+        ## mW weights managed here
         if scale == "mW":
 
-            #############################
-            # FIXME: STILL TO BE UPDATED
-            #############################
-
-            ## loop on all the masses we want. in index of 5 MeV variations each
-            masses  = ['mass_{m}'.format(m = j).replace('-','m') for j in range(-20,0)]
-            masses += ['mass_0']
-            masses += ['mass_p{m}'.format(m = j).replace('-','m') for j in range(1,21)]
+            masses = []
+            for idir in ['Up','Down']:
+                for mvar in MASSVARIATIONS:
+                    masses.append("massShift%dMeV%s", % (mvar,idir))
 
             for mass in masses:
-                postfix = "_{syst}{mval}".format(syst=scale,mval=mass)
+                postfix = "_{m}".format(m=mass)
                 mcafile_syst = open(filename, 'a') if append else open("%s/mca_%s%s.txt" % (odir,process,postfix), "w")
-
-                ## central mass is 80419 MeV, the closest we have to that is 80420. will scale +- 50 MeV, i.e. 80470 for Up and 80370 for Dn
                 fstring = str(mass)
                 mcafile_syst.write(incl_mca+postfix+'   : + ; IncludeMca='+incl_file+', AddWeight="'+fstring+'", PostFix="'+postfix+'" \n')
                 if process not in qcdsysts:
@@ -355,7 +349,7 @@ if __name__ == "__main__":
             zmasses = [] # ["mW"]
             ptBinnedScalesForW = False
         else:
-            wmasses = [] #["mW"]
+            wmasses = ["mW"]
             zmasses = []
             ptBinnedScalesForW = True
         # overrideDecorrelation is used to avoid decorrelating systs by angular coefficients
@@ -494,11 +488,6 @@ if __name__ == "__main__":
                     fullWeight = options.weightExpr+'*'+zptWeight if SIGPROC in options.procsToPtReweight else options.weightExpr
                     BIN_OPTS = OPTIONS + " -W '" + fullWeight+ "'" + " -o "+dcname+" --od "+outdir + xpsel + ycut + SYST_OPTION
 
-                    ## do not do by pdf weight pdfmatch = re.search('pdf(\d+)',var)
-                    ## do not do by pdf weight if pdfmatch:
-                    ## do not do by pdf weight     BIN_OPTS += " -W 'pdfRatioHel(abs(prefsrw_y),prefsrw_pt,prefsrw_costcs,evt,{pol},{ipdf})' ".format(pol=helmap[helicity],ipdf=pdfmatch.group(1))
-                    ## ---
-
                     ## now we accumulate all the commands to be run for all processes
                     if options.queue:
                         mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
@@ -558,7 +547,9 @@ if __name__ == "__main__":
             antich = 'plus' if charge == 'minus' else 'minus'
             ## loop on the Z(W) related systematics for Wmass (Wlike)
             for ivar,var in enumerate(antisigsyst):
-    
+                if antich in var: 
+                    #print "skipping because ",antich," is in ",var
+                    continue
                 ## nominal first, then the variations
                 if ivar==0: 
                     # the following would be faster with DY-only, but it misses processes for possible systematics, like the lines for the Z_lepeff systs that we had in the past
@@ -570,9 +561,9 @@ if __name__ == "__main__":
 
                 ## ---
                 # exclude everything that does not start with antiSIGPROC 
-                # for Wmass the antisignal is the Zmumu, and the charge is not in process name in the mca file
+                # for Wmass the antisignal is the Zmumu, and charge should not be used in the histogram name
                 # for Wlike, the antisignal is Wmunu and has to pick the samples with proper charge
-                psel=' -p "^{antisig}_{ch}.*" --asimov '.format(antisig=antiSIGPROC,ch="" if SIGPROC=='Wmunu' else charge)
+                psel=' -p "^{antisig}{ch}.*" --asimov '.format(antisig=antiSIGPROC,ch="" if SIGPROC=='Wmunu' else ("_"+charge))
                 syst = '' if ivar==0 else var
 
                 ## make names for the files and outputs
@@ -590,7 +581,7 @@ if __name__ == "__main__":
                     fullJobList.add(mkShCardsCmd)
                 ## ---
     
-    ## repetition for Wtau, but better to keep Z/Tau cards separated (faster jobs)
+    ## repetition for Wtau
         wtausyst = [''] # nominal
         if "wtaunu" in pdfsysts:
             wtausyst += pdfsysts["wtaunu"]    
@@ -606,7 +597,9 @@ if __name__ == "__main__":
             chcut = POSCUT if charge=='plus' else NEGCUT
             antich = 'plus' if charge == 'minus' else 'minus'
             for ivar,var in enumerate(wtausyst):
-        
+                if antich in var: 
+                    #print "skipping because ",antich," is in ",var
+                    continue        
                 ## 0 is nominal again
                 if ivar==0: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_wtaunu_nominal.txt".format(outdir=outdir))
@@ -652,7 +645,9 @@ if __name__ == "__main__":
             chcut = POSCUT if charge=='plus' else NEGCUT
             antich = 'plus' if charge == 'minus' else 'minus'
             for ivar,var in enumerate(ztausyst):
-        
+                if antich in var: 
+                    #print "skipping because ",antich," is in ",var
+                    continue
                 ## 0 is nominal again
                 if ivar==0: 
                     IARGS = ARGS.replace(MCA,"{outdir}/mca/mca_ztautau_nominal.txt".format(outdir=outdir))
@@ -661,7 +656,7 @@ if __name__ == "__main__":
                     IARGS = IARGS.replace(SYSTFILE,"{outdir}/mca/systEnv-dummy.txt".format(outdir=outdir))
                     # print "Running the Ztautau with systematic: ",var
 
-                # exclude everything that does not start with Ztautau with the proper charge
+                # exclude everything that does not start with Ztautau
                 psel=' -p "^Ztautau.*" --asimov '
                 syst = '' if ivar==0 else var
 

@@ -1,2 +1,2 @@
-Ztautau   : .*_20_.* : 19.3*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars"
-Ztautau   : .*_20_.* : 16.6*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars"
+Ztautau   : .* : 19.3*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars"
+Ztautau   : .* : 16.6*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars"
