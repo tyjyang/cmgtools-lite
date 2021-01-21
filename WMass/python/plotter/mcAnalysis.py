@@ -144,6 +144,11 @@ class MCAnalysis:
 
             if options.nanoaodTree:    
                 field1_regexp = re.compile(field[1])
+                if len(options.filterProcessFiles):
+                    for procRegexp,filterRegExp in options.filterProcessFiles:
+                        if re.match(procRegexp,field[0]): 
+                            field1_regexp = re.compile(filterRegExp)
+                                
                 subpath = extra['SubPath'] if 'SubPath' in extra else ".*"
                 subPath_regexp = re.compile(subpath)
                 pathsToSearch = options.path
@@ -851,7 +856,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("--clip-genWeight-toMax",         dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
     parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
     parser.add_option("--nanoaod-tree",         dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
-
+    parser.add_option("--filter-proc-files", dest="filterProcessFiles", type="string", nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
 
 if __name__ == "__main__":
     from optparse import OptionParser
