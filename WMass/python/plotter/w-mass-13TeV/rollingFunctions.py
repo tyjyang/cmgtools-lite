@@ -27,10 +27,10 @@ def dressed2D(h1d,binning,name,title=''):
         h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
     #h2_backrolled_1 = roll1Dto2D(h1_1, h2_1 )
     h2_backrolled_1 = roll1Dto2D(h1d, h2_1 )
-    h2_backrolled_1 .GetXaxis().SetTitle('lepton #eta')
-    h2_backrolled_1 .GetYaxis().SetTitle('lepton p_{T} (GeV)')
-    h2_backrolled_1 .GetZaxis().SetRangeUser(0.01*h2_backrolled_1.GetMaximum(),1.1*h2_backrolled_1.GetMaximum())
-    #h2_backrolled_1 .GetZaxis().SetRangeUser(0,1.1*h2_backrolled_1.GetMaximum())
+    # better to avoid these settings here
+    #h2_backrolled_1 .GetXaxis().SetTitle('lepton #eta')
+    #h2_backrolled_1 .GetYaxis().SetTitle('lepton p_{T} (GeV)')
+    #h2_backrolled_1 .GetZaxis().SetRangeUser(0.01*h2_backrolled_1.GetMaximum(),1.1*h2_backrolled_1.GetMaximum())
     return h2_backrolled_1
 
 def unroll2Dto1D(h,newname='',cropNegativeBins=True, silent=False):

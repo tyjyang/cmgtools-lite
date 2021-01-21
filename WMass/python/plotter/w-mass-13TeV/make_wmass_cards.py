@@ -55,7 +55,7 @@ def printSysts(systs=[],process="Wmunu"):
         print systs
         print '-'*30
 
-MASSVARIATIONS = [10* i for i in range(1,11)] # to pick the proper branches such as massShift10MeVUp
+MASSVARIATIONS = [10* i for i in range(1,3)] # max would be 11, to pick the proper branches such as massShift10MeVUp
 NVPTBINS=2 # usually it would be 10, use less for tests, e.g. 2
 NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
 nominals=[] # array containing the nominal for single process for which we have dedicated corrections (not included in bkg_and_data)
@@ -149,7 +149,7 @@ def writeQCDScaleSystsToMCA(mcafile,odir,syst="qcd",incl_mca='incl_wmunu',scales
             masses = []
             for idir in ['Up','Down']:
                 for mvar in MASSVARIATIONS:
-                    masses.append("massShift%dMeV%s", % (mvar,idir))
+                    masses.append("massShift{v}MeV{d}".format(v=mvar,d=idir))
 
             for mass in masses:
                 postfix = "_{m}".format(m=mass)

@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser.add_option("--max-genWeight", dest="maxGenWeight", type="string", default="50000.0", help="Maximum gen weight to be used for Z and W samples (with any decay). Weights larger than this value will be set to it.");
     parser.add_option('--wlike', dest='wlike', action="store_true", default=False, help="Make cards for the wlike analysis. Default is wmass");
     parser.add_option('--auto-resub', dest='automaticResubmission', action="store_true", default=False, help="Use condor features for automatic job resubmission in case of failures");
+    parser.add_option('-g', "--group-jobs", dest="groupJobs", type=int, default=5, help="group signal or signal-like jobs (e.g. Wmunu or Wtaunu) so that one job runs multiple makeHistogramsWMass commands");
     (options, args) = parser.parse_args()
     
     if options.wlike:
@@ -83,7 +84,7 @@ if __name__ == '__main__':
             cmd += ' --auto-resub --n-resub 2 ' 
         optsForHisto = ' --nanoaod-tree --max-genWeight-procs \'W.*|Z.*\' \'{m}\' --clip-genWeight-toMax '.format(m=options.maxGenWeight)
         cmd += ' --add-option "{opt}"'.format(opt=optsForHisto)
-        cmd += ' -g 5 '
+        cmd += ' -g {g} '.format(g=options.groupJobs)
         cmd += ' --decorrelateSignalScales '
         cmd += ' --vpt-weight Zmumu --vpt-weight Ztautau' #--vpt-weight Wmunu --vpt-weight Wtaunu ' # check if easier to use regular expressions to catch cases inside PROG        
         if options.printOnly:
