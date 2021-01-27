@@ -55,6 +55,7 @@ def printSysts(systs=[],process="Wmunu"):
         print systs
         print '-'*30
 
+data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"]
 MASSVARIATIONS = [10* i for i in range(1,3)] # max would be 11, to pick the proper branches such as massShift10MeVUp
 NVPTBINS=2 # usually it would be 10, use less for tests, e.g. 2
 NPDFSYSTS=2 # Hessian variations (from 1 to 100), use less for tests, e.g. 2 
@@ -70,7 +71,6 @@ kamucasysts={} # kalman filter muon momentum scale systematics
 
 #coefficients = ['ac'] + ['a'+str(i) for i in range(8)]
 coefficients = [''] # simplifies life for now, but do not use empty array, or it will inhibit some loops
-data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"]
 
 def getMcaIncl(mcafile,incl_mca='incl_sig'):
     incl_file=''
@@ -353,12 +353,16 @@ if __name__ == "__main__":
             zmasses = []
             ptBinnedScalesForW = True
         # overrideDecorrelation is used to avoid decorrelating systs by angular coefficients
+        # Wmunu
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+wmasses,incl_mca='incl_wmunu',
                                 ptBinned=ptBinnedScalesForW, overrideDecorrelation=False)
+        # Wtaunu
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_wtaunu',
                                 ptBinned=ptBinnedScalesForW, overrideDecorrelation=True)
+        # Zmumu
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales+zmasses,incl_mca='incl_zmumu',
                                 ptBinned=options.wlike, overrideDecorrelation=True)
+        # Ztautau
         writeQCDScaleSystsToMCA(MCA,outdir+"/mca",scales=scales        ,incl_mca='incl_ztautau',
                                 ptBinned=options.wlike, overrideDecorrelation=True)
     if options.addQEDSyst:

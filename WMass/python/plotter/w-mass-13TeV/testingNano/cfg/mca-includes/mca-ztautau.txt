@@ -1,2 +1,4 @@
-Ztautau   : .* : 19.3*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars"
-Ztautau   : .* : 16.6*0.5802*1976.17 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars"
+# 19.3*0.5802*1976.17 = 22128.875
+# 16.6*0.5802*1976.17 = 19033.126
+Ztautau   : .* : 22128.875 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars"
+Ztautau   : .* : 19033.126 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars"

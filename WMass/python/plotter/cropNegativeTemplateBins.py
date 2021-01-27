@@ -11,12 +11,21 @@ import root_numpy
 # nominal templates (no need to touch the alternate as well)
 # note that, by default, this function modify the original input file
 
-def cropNegativeContent(h, silent=True):
+def cropNegativeContent(h, silent=True, cropError=False):
+
+    dim = h.GetDimension()
+    nbins = 0
+    if   dim == 1: nbins = h.GetNbinsX() + 2
+    elif dim == 2: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2)
+    elif dim == 3: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2) * (h.GetNbinsZ() + 2)
+
     integral = h.Integral()
-    for i in xrange(h.GetNbinsX()):
-        nom  = h.GetBinContent(i+1)
+    for i in range(nbins):
+        nom  = h.GetBinContent(i)
         if nom<0.0: 
-            h.SetBinContent(i+1, 0)
+            h.SetBinContent(i, 0)
+            if cropError:
+                h.SetBinError(i, 0)
     integralNonNeg = h.Integral()
     if not silent:
         print "{n}: original integral = {i} changed by {r}".format(n=h.GetName(),

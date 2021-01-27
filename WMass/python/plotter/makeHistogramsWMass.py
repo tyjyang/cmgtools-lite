@@ -6,6 +6,8 @@ from CMGTools.WMass.plotter.mcAnalysis import *
 import re, sys, os, os.path
 import math
 
+from cropNegativeTemplateBins import cropNegativeContent
+
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
     # same for normalization
@@ -76,6 +78,7 @@ parser.add_option("--asimov", dest="asimov", action="store_true", default=False,
 parser.add_option("--2d-binning-function",dest="binfunction", type="string", default=None, help="Function used to bin the 2D histogram: for now can be None or unroll2Dto1D")
 parser.add_option("--infile",dest="infile", type="string", default=None, help="File to read histos from (to reuse the one made with --savefile)")
 parser.add_option("--savefile",dest="savefile", type="string", default=None, help="File to save histos to (this has only those produced by getPlotsRaw() )")
+parser.add_option("--crop-negative-bin", dest="cropNegativeBin", action="store_true", default=False, help="Set negative bins to 0")
 
 (options, args) = parser.parse_args()
 
@@ -119,6 +122,10 @@ if options.asimov:
     if len(tomerge): report['data_obs'] = mergePlots("x_data_obs", tomerge) 
 else:
     report['data_obs'] = report['data'].Clone("x_data_obs") 
+
+if options.cropNegativeBin:
+    for p,h in report.iteritems():
+        cropNegativeContent(h,silent=False)        
 
 allyields = dict([(p,h.Integral()) for p,h in report.iteritems()])
 procs = []

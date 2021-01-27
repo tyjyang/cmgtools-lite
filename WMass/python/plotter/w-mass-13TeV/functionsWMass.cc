@@ -47,6 +47,18 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
+float getValFromTH2(TH2*h = NULL, float x = 0.0, float y = 0.0) {
+
+  if (!h) {
+    cout << "Error in getValFromTH2(): uninitialized histogram. Abort" << endl;
+    exit(EXIT_FAILURE);
+  }
+  int xbin = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindFixBin(x)));
+  int ybin  = std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindFixBin(y)));
+  return h->GetBinContent(xbin,ybin);
+
+}
+
 bool isOddEvent(ULong64_t evt) {
 
   return (evt%2) ? 1 : 0;       
@@ -855,6 +867,96 @@ float _get_muonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, floa
   return out;
 
 }
+
+
+TFile *_file_allSF = NULL;
+// 3 elements, depending on what dataset period one is using for the scale factors
+TH2F *_histo_trigger_minus[3] = {NULL, NULL, NULL}; 
+TH2F *_histo_trigger_plus[3] = {NULL, NULL, NULL};
+TH2F *_histo_iso[3] = {NULL, NULL, NULL};
+TH2F *_histo_idip[3] = {NULL, NULL, NULL};
+TH2F *_histo_tracking[3] = {NULL, NULL, NULL};
+
+float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, float eta2, int charge2, ULong64_t event, int era = 0) {
+
+  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
+  string dataEraForSF = "BtoH";
+  if (era == 1) 
+    dataEraForSF = "BtoF";
+  else if (era == 2 )
+    dataEraForSF = "GtoH";
+
+  // to be improved, still experimental
+  float pt = 0.0;
+  float eta = 0.0;
+  int charge = 0.0;
+  // positive (negative) leptons on odd (even) events
+  if (isOddEvent(event)) {
+    if (charge1 > 0) {
+      pt = pt1;
+      eta = eta1;
+      charge = charge1;
+    } else {
+      pt = pt2;
+      eta = eta2;
+      charge = charge2;
+    }
+  } else {
+    if (charge1 < 0) {
+      pt = pt1;
+      eta = eta1;
+      charge = charge1;
+    } else {
+      pt = pt2;
+      eta = eta2;
+      charge = charge2;
+    }
+  }
+
+  
+  if (_cmssw_base_ == "") {
+    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+  }
+
+  // open the single file we have
+  if (!_file_allSF) {
+    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
+  }
+
+  // trigger
+  if (!_histo_trigger_plus[era]) {
+    _histo_trigger_plus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
+  }
+  if (!_histo_trigger_minus[era]) {
+    _histo_trigger_minus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
+  }
+  // ID + ip (interaction point, i.e. dz and dxy)
+  if (!_histo_idip[era]) {
+    _histo_idip[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
+  }
+  if (!_histo_tracking[era]) {
+    _histo_tracking[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
+  }
+  if (!_histo_iso[era]) {
+    _histo_iso[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
+  }
+
+
+  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
+  float sf = getValFromTH2(histTrigger,eta,pt);
+  sf *= getValFromTH2(_histo_idip[era],eta1,pt1) * getValFromTH2(_histo_idip[era],eta2,pt2);
+  sf *= getValFromTH2(_histo_tracking[era],eta1,pt1) * getValFromTH2(_histo_tracking[era],eta2,pt2);
+  // sf *= getValFromTH2(_histo_iso[era],eta1,pt1) * getValFromTH2(_histo_iso[era],eta2,pt2);
+  // for SF validation the SF for iso should be applied on the second lepton only if it had passed the trigger
+  // so we should not apply this SF, but then also not applying thr isolation cut on that leg, but only on the
+  // selected one
+  sf *= getValFromTH2(_histo_iso[era],eta,pt);
+
+  return sf;
+
+}
+
 
 // details like histograms and location might be updated
 float _get_muonSF_fast_wmass(float pt, float eta, int charge) {
