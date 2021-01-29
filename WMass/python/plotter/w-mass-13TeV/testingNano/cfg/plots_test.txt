@@ -31,6 +31,13 @@ muon_eta_wlike: returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_char
 
 muon_eta_wlike_rebin: returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_charge[1],event): 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_pt_wlike_other: returnChargeVal(Muon_pt[0],Muon_charge[1],Muon_pt[1],Muon_charge[0],event): 30,25,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_eta_wlike_other: returnChargeVal(Muon_eta[0],Muon_charge[1],Muon_eta[1],Muon_charge[0],event): 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
+muon_eta_wlike_rebin_other: returnChargeVal(Muon_eta[0],Muon_charge[1],Muon_eta[1],Muon_charge[0],event): 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
+
 muon_pt_eta_wlike: returnChargeVal(Muon_pt[0],Muon_charge[0],Muon_pt[1],Muon_charge[1],event)\:returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_charge[1],event): 24,-2.4,2.4,29,26,55 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
 

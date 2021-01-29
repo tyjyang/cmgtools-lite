@@ -8,19 +8,27 @@ data_G: .*; SubPath=".*DATA_NanoV8/Run2016G/"
 data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
 
 
-Zmumu_postVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
+Zmumu_postVFP   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
 
-Zmumu_preVFP   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+Zmumu_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
 
-Zmumu_all   : .* : 70944.503 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_(pre|post)VFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,0)"
+Zmumu_all   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,0)"
+Zmumu_all   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,0)"
 
 Ztautau_preVFP   : .* : 22128.875 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
 
 Ztautau_postVFP   : .* : 19033.126 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
 
-Ztautau_all   : .* : 41162.001 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_(pre|post)VFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,0)"
+Ztautau_all   : .* : 22128.875 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,0)"
+Ztautau_all   : .* : 19033.126 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
 
-ZallPerEra   : .* : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
-ZallPerEra   : .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
-ZallPerEra   : .* : 22128.875 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
-ZallPerEra   : .* : 19033.126 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+ZallPerEra   : .* : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+ZallPerEra   : .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
+ZallPerEra   : .* : 22128.875 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+ZallPerEra   : .* : 19033.126 ; FillColor=ROOT.kRed+2, Label="Z (perEra)", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
+
+ZnoSF   : .* : 38140.081 ; FillColor=ROOT.kBlue, Label="Z (no SF)", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+ZnoSF   : .* : 32804.422 ; FillColor=ROOT.kBlue, Label="Z (no SF)", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
+ZnoSF   : .* : 22128.875 ; FillColor=ROOT.kBlue, Label="Z (no SF)", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,1)"
+ZnoSF   : .* : 19033.126 ; FillColor=ROOT.kBlue, Label="Z (no SF)", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,event\,2)"
+
