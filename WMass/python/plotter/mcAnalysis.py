@@ -50,6 +50,109 @@ class MCAnalysis:
                 self._premap.append((re.compile(k.strip()+"$"), to))
         self.readMca(samples,options)
 
+
+    def getSumGenWeightMC(self, pname, rootfile):
+
+        isTChain = False
+        chain = None
+        if not isinstance(rootfile,str):
+            # then rootfile is a list of files
+            print "Building chains to compute sum of gen weights ..."
+            isTChain = True
+            chain = ROOT.TChain("Events","chainToComputeSumWeight_Events")
+            chainRuns = ROOT.TChain("Runs","chainToComputeSumWeight_Runs")
+            for f in rootfile:
+                chain.Add(f)
+                chainRuns.Add(f)
+            print "Done building chains!"
+
+
+        maxGenWgt = None
+        sumGenWeights = 1.0
+        nUnweightedEvents = 1.0
+        if self._options.weight and len(self._options.maxGenWeightProc):
+            # get sum of weights from Events tree, filtering some events with large weights
+            # this assumes the trees are unskimmed to correctly compute the sum!!
+            for procRegExp,tmp_maxGenWgt in self._options.maxGenWeightProc:
+                if re.match(procRegExp,pname):
+                    #tmp_maxGenWgt is a string, convert to float
+                    maxGenWgt = fabs(float(tmp_maxGenWgt))
+                    if isTChain:
+                        tmp_tree = chain
+                        if not tmp_tree or tmp_tree == None:
+                            raise RuntimeError, "Can't get chain with tree Events in function getSumGenWeightMC().\n"
+                        nEvents = tmp_tree.GetEntries()
+                        tmp_tree_runs = chainRuns
+                        if not tmp_tree_runs or tmp_tree_runs == None:
+                            raise RuntimeError, "Can't get chain with tree Runs in function getSumGenWeightMC().\n"
+                        nGenEvents = 0
+                        for i,event in enumerate(tmp_tree_runs): # this is few events, equal to number of files
+                            nGenEvents += event.genEventCount
+        
+                    else:
+                        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                        #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                        tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                        tmp_tree = tmp_rootfile.Get('Events')
+                        if not tmp_tree or tmp_tree == None:
+                            raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
+                    # check the tree was not skimmed                                    
+                        nEvents = tmp_tree.GetEntries()
+                        tmp_tree_runs = tmp_rootfile.Get('Runs')
+                        if not tmp_tree_runs or tmp_tree_runs == None:
+                            raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                        for i,event in enumerate(tmp_tree_runs): # should be one event only
+                            nGenEvents = event.genEventCount
+                            if i: break
+
+                    if nEvents != nGenEvents:
+                        print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
+                        raise RuntimeError, "You are trying to remove or clip large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
+                        ## check was ok
+
+                    tmp_hist = ROOT.TH1D("sumweights","",1,0,10)
+                    if self._options.clipGenWeightToMax:
+                        # set weight to max
+                        # TMath::Sign(a,b) returns a with the sign of b
+                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
+                    else:
+                        # reject event with weight > max
+                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
+                    #tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                    sumGenWeights = tmp_hist.Integral()
+                    if not isTChain:
+                        tmp_rootfile.Close()
+
+        else:
+            if isTChain:
+                tmp_tree = chain
+                if not tmp_tree or tmp_tree == None:
+                    raise RuntimeError, "Can't get chain with tree Runs\n"
+            else:
+                # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
+                ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                tmp_tree = tmp_rootfile.Get('Runs')
+                if not tmp_tree or tmp_tree == None:
+                    raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+
+            tmp_hist = ROOT.TH1D("sumweights","",1,0,10)
+            tmp_hist2 = ROOT.TH1D("sumcount","",1,0,10)
+            tmp_tree.Draw("1>>sumweights", "genEventSumw")
+            tmp_hist = ROOT.gROOT.FindObject("sumweights")
+            sumGenWeights = tmp_hist.Integral()
+            tmp_tree.Draw("1>>sumcount", "genEventCount")
+            tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
+            nUnweightedEvents = tmp_hist2.Integral()
+            if not isTChain:
+                tmp_rootfile.Close()                            
+
+        if isTChain:
+            print ">>> pname = %s   sumGenWeights = %f " % (pname,sumGenWeights)
+        return (maxGenWgt, sumGenWeights, nUnweightedEvents)
+
+
     def readMca(self,samples,options,addExtras={},field0_addExtras=""):
 
         # when called with not empty addExtras, issue a warning in case you are overwriting settings
@@ -141,7 +244,10 @@ class MCAnalysis:
                     if re.match(p+"$", field[1]): skipMe = True
             if skipMe: continue
             cnamesWithPath = []
-
+            
+            #print ">>> printing line"
+            #print line
+            #print ">>>"
             if options.nanoaodTree:    
                 field1_regexp = re.compile(field[1])
                 if len(options.filterProcessFiles):
@@ -186,6 +292,7 @@ class MCAnalysis:
                             cnamesWithPath += (list(glob.iglob("%s/%s*" % (treepath,match.group(0)))))
                     cnames = [os.path.basename(cname) for cname in cnamesWithPath]
                 else: cnames = [ x.strip() for x in field[1].split("+") ]
+
             total_w = 0.; to_norm = False; ttys = [];
             is_w = -1
             pname0 = pname
@@ -198,8 +305,14 @@ class MCAnalysis:
                         else:
                             print "INFO >>> Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt)
 
-            #for cname in cnames:            
-            for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
+            ### CHECKPOINT
+            tch = None # TChain, yet to be defined, done below
+            list_rootfiles = [] # files that will be used in the TChain, if applicable (should be equal to allFiles)
+            allFiles = cnamesWithPath if len(cnamesWithPath) else cnames
+            nAllFiles = len(allFiles)
+
+            for cnameWithPath in allFiles:
+
                 cname = os.path.basename(cnameWithPath)
                 if options.useCnames: pname = pname0+"."+cname
                 for (ffrom, fto) in options.filesToSwap:
@@ -275,7 +388,26 @@ class MCAnalysis:
                 ## needed temporarily
                 pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
-                tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); ttys.append(tty)
+                ## MIDDLE CHECKPOINT
+                #tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); 
+                if options.useTChain:
+                    if tch == None:
+                        tch = ROOT.TChain(objname,pname)
+                    #print rootfile
+                    tch.Add(rootfile)
+                    list_rootfiles.append(rootfile)
+                    if len(list_rootfiles) == nAllFiles:
+                        tty = TreeToYield(tch, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); 
+                        ttys.append(tty)
+                    else:
+                        # basically accumulate all files for the chain, and then go to the rest of the code, 
+                        # which would be the same for each file belonging to a given process, so we should not be
+                        # missing anythin, hopefully
+                        continue
+                else:
+                    tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); 
+                    ttys.append(tty)
+
                 if signal: 
                     self._signals.append(tty)
                     self._isSignal[pname] = True
@@ -300,59 +432,7 @@ class MCAnalysis:
                             is_w = 0
                     elif options.nanoaodTree:
 
-                        maxGenWgt = None
-                        sumGenWeights = 1.0
-                        nUnweightedEvents = 1.0
-                        if options.weight and len(options.maxGenWeightProc):
-                            # get sum of weights from Events tree, filtering some events with large weights
-                            # this assumes the trees are unskimmed to correctly compute the sum!!
-                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                                if re.match(procRegExp,pname):
-                                    #tmp_maxGenWgt is a string, convert to float
-                                    maxGenWgt = abs(float(tmp_maxGenWgt))
-                                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                                    #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                                    tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
-                                    tmp_tree = tmp_rootfile.Get('Events')
-                                    if not tmp_tree or tmp_tree == None:
-                                        raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
-                                    # check the tree was not skimmed                                    
-                                    nEvents = tmp_tree.GetEntries()
-                                    tmp_tree_runs = tmp_rootfile.Get('Runs')
-                                    if not tmp_tree_runs or tmp_tree_runs == None:
-                                        raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
-                                    for i,event in enumerate(tmp_tree_runs):
-                                        nGenEvents = event.genEventCount
-                                        if i: break
-                                    if nEvents != nGenEvents:
-                                        print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
-                                        raise RuntimeError, "You are trying to remove or clip large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
-                                    ## check was ok
-                                    if options.clipGenWeightToMax:
-                                        # set weight to max
-                                        # TMath::Sign(a,b) returns a with the sign of b
-                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
-                                    else:
-                                        # reject event with weight > max
-                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
-                                    tmp_hist = ROOT.gROOT.FindObject("sumweights")
-                                    sumGenWeights = tmp_hist.Integral()
-                                    tmp_rootfile.Close()
-                        else:
-                            # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
-                            ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                            #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                            tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
-                            tmp_tree = tmp_rootfile.Get('Runs')
-                            if not tmp_tree or tmp_tree == None:
-                                raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
-                            tmp_tree.Draw("1>>sumweights", "genEventSumw")
-                            tmp_hist = ROOT.gROOT.FindObject("sumweights")
-                            sumGenWeights = tmp_hist.Integral()
-                            tmp_tree.Draw("1>>sumcount", "genEventCount")
-                            tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
-                            nUnweightedEvents = tmp_hist2.Integral()
-                            tmp_rootfile.Close()                            
+                        (maxGenWgt, sumGenWeights, nUnweightedEvents) = self.getSumGenWeightMC(pname, list_rootfiles if options.useTChain else rootfile)
 
                         if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
                             if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
@@ -457,7 +537,9 @@ class MCAnalysis:
                     for p in p0.split(","):
                         if re.match(p+"$", pname): tty.setOption('NormSystematic', float(p1))
                 if pname not in self._rank: self._rank[pname] = len(self._rank)
+            ### END CHECKPOINT
             if to_norm: 
+                print ">>> Total sumgenweights (pname = %s) = %s" % (pname,str(total_w))
                 for tty in ttys: 
                     if options.weight: 
                         tty.setScaleFactor("%s*%g" % (scale, 1000.0/total_w))
@@ -857,6 +939,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
     parser.add_option("--nanoaod-tree",         dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
     parser.add_option("--filter-proc-files", dest="filterProcessFiles", type="string", nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
+    parser.add_option("--use-tchain",         dest="useTChain", action="store_true", default=False, help="Use TChain to manage all files per process (should be faster). Only implemented when using --nanoaod-tree, and doesn' work with --split-factor N and N > 1");
 
 if __name__ == "__main__":
     from optparse import OptionParser
