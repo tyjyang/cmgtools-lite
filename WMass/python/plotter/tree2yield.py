@@ -15,9 +15,12 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from copy import *
 
-from CMGTools.WMass.plotter.cutsFile import *
-from CMGTools.WMass.plotter.fakeRate import *
-from CMGTools.TTHAnalysis.plotter.mcCorrections import *
+## marc from CMGTools.WMass.plotter.cutsFile import *
+## marc from CMGTools.WMass.plotter.fakeRate import *
+## marc from CMGTools.TTHAnalysis.plotter.mcCorrections import *
+from cutsFile import *
+from fakeRate import *
+from mcCorrections import *
 #from CMGTools.WMass.plotter.mcCorrections import *
 
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
@@ -28,6 +31,10 @@ if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries():
 
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc")
+
+ROOT.gInterpreter.ProcessLine(".L functions.cc+")
+ROOT.gInterpreter.ProcessLine(".L jsonManager.cc+")
+ROOT.gInterpreter.ProcessLine(".L w-mass-13TeV/functionsWMass.cc+")
 
 def scalarToVector(x):
     x0 = x
@@ -143,6 +150,7 @@ class TreeToYield:
     def __init__(self,root,options,scaleFactor=1.0,name=None,cname=None,settings={},objname=None, frienddir=None):
         self._name  = name  if name != None else root
         self._cname = cname if cname != None else self._name
+        print('in treetoyield init, this is root and type(root)', root, type(root))
         self._fname = root
         self._isInit = False
         self._options = options
@@ -237,21 +245,25 @@ class TreeToYield:
             ret = mcc(ret,self._name,self._cname,cut)
         return ret
     def _init(self):
-        if "root://" in self._fname:
-            ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-#            ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
-            #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=200000") # worse than 65k
-            #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=32768") # worse than 65k
-            self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=65535") # good
-            #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=0") #worse than 65k
-        else:
-            self._tfile = ROOT.TFile.Open(self._fname)
-        if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
-        t = self._tfile.Get(self._objname)
-        if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
-        self._tree  = t
+        print 'this is self._fname', self._fname
+        ## marc if type(self._fname) == type(ROOT.RDataFrame):
+        ## marc     print 'i am in the ifiifi'
+        ## marc elif "root://" in self._fname:
+        ## marc     ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+#       ## marc      ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
+        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=200000") # worse than 65k
+        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=32768") # worse than 65k
+        ## marc     self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=65535") # good
+        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=0") #worse than 65k
+
+        ## marc else:
+        ## marc     self._tfile = ROOT.TFile.Open(self._fname)
+        ## marc if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
+        ##t = self._tfile.Get(self._objname)
+        ##if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
+        self._tree  = self._fname ## just set the tree to the rdataframe
         #self._tree.SetCacheSize(10*1000*1000)
-        if "root://" in self._fname: self._tree.SetCacheSize()
+        #if "root://" in self._fname: self._tree.SetCacheSize()
         self._friends = []
         friendOpts = self._options.friendTrees[:]
         friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._options.friendTreesSimple]
@@ -278,6 +290,7 @@ class TreeToYield:
             # print 'Adding friend',tf_tree,tf_filename
             tf = self._tree.AddFriend(tf_tree, tf_filename),
             self._friends.append(tf)
+        print 'done with init'
         self._isInit = True
         
     def getTree(self):
@@ -391,6 +404,7 @@ class TreeToYield:
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
     def getPlot(self,plotspec,cut,fsplit=None,closeTreeAfter=False):
+        print 'in getplot of tty'
         ret = self.getPlotRaw(plotspec.name, plotspec.expr, plotspec.bins, cut, plotspec, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
         # fold overflow
         if ret.ClassName() in [ "TH1F", "TH1D" ] :
@@ -433,6 +447,7 @@ class TreeToYield:
             cut = self.adaptExpr(cut,cut=True)
         return cut
     def getPlotRaw(self,name,expr,bins,cut,plotspec,fsplit=None,closeTreeAfter=False):
+        justthecut = cut
         unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
         if not self._isInit: self._init()
         if self._appliedCut != None:
@@ -452,24 +467,58 @@ class TreeToYield:
 #        print cut 
 #        print expr
         (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
+        print 'these are the entries', firstEntry, maxEntries
         if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
         histo = makeHistFromBinsAndSpec("dummy",expr,bins,plotspec)
         canKeys = (histo.ClassName() == "TH1D" and bins[0] != "[")
         if histo.ClassName != "TH2D" or self._name == "data": unbinnedData2D = False
         if unbinnedData2D:
+            print 'now gonna perform the draw command 1'
             nent = self._tree.Draw("%s" % expr, cut, "", maxEntries, firstEntry)
             if nent == 0: return ROOT.TGraph(0)
             graph = ROOT.gROOT.FindObject("Graph").Clone(name) #ROOT.gPad.GetPrimitive("Graph").Clone(name)
             return graph
         drawOpt = "goff"
         if "TProfile" in histo.ClassName(): drawOpt += " PROF";
-        self._tree.Draw("%s>>%s" % (expr,"dummy"), cut, drawOpt, maxEntries, firstEntry)
+        print 'now gonna perform the draw command 2'
+    
+        ## self._tree.Draw("%s>>%s" % (expr,"dummy"), cut, drawOpt, maxEntries, firstEntry)
+        histo_model = ROOT.RDF.TH1DModel(histo)
+        #print 'at name', name
+        #print 'expr', expr
+        #print 'drawopt', drawOpt
+        #print 'self.weightString',  self._weightString
+        #print 'self._scaleFactor',  self._scaleFactor
+        #print 'this is cut', cut
+        if self._weight:
+            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+        else:
+            wgt = '1.' ## wtf is that marc
+
+        #print 'weighting by', wgt
+        #print 'this is the self._tree', self._tree
+        #print 'this is the type of self._tree', type(self._tree)
+        #print 'this is the self._fname', self._fname
+        #print 'this is the type of self._fname', type(self._fname)
+        #print 'this is self._cname', self._cname
+        tmp_weight = self._cname+'_'+name+'_weight'
+        tmp_var    = self._cname+'_'+name+'_var'
+        self._tree = self._tree.Define(tmp_var   , expr)
+        self._tree = self._tree.Define(tmp_weight, wgt)
+        #print 'filtering now with cut', justthecut
+        self._tree = self._tree.Filter(justthecut)
+        histo = self._tree.Histo1D(histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+
+        #print 'this is histo', histo1
+        #print 'this is integral of histo', histo1.Integral()
         if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
             #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
             if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
                 ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
             (nb,xmin,xmax) = bins.split(",")
             histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
+            print 'now gonna perform the draw command 3'
             self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
             self.negativeCheck(histo)
             histo.SetDirectory(0)
@@ -507,17 +556,24 @@ class TreeToYield:
         self._appliedCut = cut
         self._elist = elist
     def cutToElist(self,cut,fsplit=None):
+        print 'beginning of cuttoelist'
         if not self._isInit: self._init()
-        if self._weight:
-            if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-            else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
-        else: cut = self.adaptExpr(cut,cut=True)
+        print 'afetr init'
+        ##marcif self._weight:
+        ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
+        ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+        ##marcelse: cut = self.adaptExpr(cut,cut=True)
+        cut = self.adaptExpr(cut,cut=True)
         if self._options.doS2V: cut  = scalarToVector(cut)
         (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        elist = ROOT.gDirectory.Get('elist')
-        if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
-        return elist
+        print 'now gonna perform the draw command 4'
+        ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+        ## apply a cut, rdf style
+        print ' i am filtering with', cut
+        self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+        ## marc elist = ROOT.gDirectory.Get('elist')
+        ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
+        ## marc return elist
     def clearCut(self):
         #if not self._isInit: raise RuntimeError, "Error, clearing a cut on something that wasn't even initialized"
         self._appliedCut = None

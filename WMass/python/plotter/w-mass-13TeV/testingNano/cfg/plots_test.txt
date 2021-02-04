@@ -2,6 +2,8 @@
 
 muon_pt: Muon_pt[0]: 35,25,60; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
+nmuon: nMuon: 4,-0.5,3.5 ; XTitle="number of muons", Legend='TR', IncludeOverflows=True
+
 muon_eta: Muon_eta[0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
 mt_ChsMET: mt_2(Muon_pt[0],Muon_phi[0],ChsMET_pt,ChsMET_phi): 50,20,120; XTitle="m_{T}(#mu\,ChsMET) (GeV)", Legend='TC', IncludeOverflows=True

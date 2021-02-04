@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 #from mcAnalysis import *
-from CMGTools.WMass.plotter.mcAnalysis import *
-import CMGTools.WMass.plotter.CMS_lumi as CMS_lumi
+## marc from CMGTools.WMass.plotter.mcAnalysis import *
+## marc import CMGTools.WMass.plotter.CMS_lumi as CMS_lumi
+from mcAnalysis import *
+import CMS_lumi as CMS_lumi
 import itertools, math
 
 CMS_lumi.writeExtraText = 1
@@ -824,9 +826,12 @@ class PlotMaker:
                 matchspec = [ p for p in pspecs if p.name == self._options.preFitData ]
                 if not matchspec: raise RuntimeError, "Error: plot %s not found" % self._options.preFitData
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
+            print ' this is pspecs', pspecs
             for pspec in pspecs:
                 print "    plot: ",pspec.name
                 pmap = mca.getPlots(pspec,cut,makeSummary=True)
+                print 'this is pmap', pmap
+                exit(0)
                 #
                 # blinding policy
                 blind = pspec.getOption('Blinded','None') if 'data' in pmap else 'None'

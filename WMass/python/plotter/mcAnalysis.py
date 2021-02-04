@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 #from tree2yield import *
-from CMGTools.WMass.plotter.tree2yield import *
-from CMGTools.WMass.plotter.projections import *
-from CMGTools.WMass.plotter.figuresOfMerit import FOM_BY_NAME
+## marc from CMGTools.WMass.plotter.tree2yield import *
+## marc from CMGTools.WMass.plotter.projections import *
+## marc from CMGTools.WMass.plotter.figuresOfMerit import FOM_BY_NAME
+from tree2yield import *
+from projections import *
+from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
+
+ROOT.ROOT.EnableImplicitMT()
+#ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
 
 #_T0 = long(ROOT.gSystem.Now())
 
@@ -199,264 +205,299 @@ class MCAnalysis:
                             print "INFO >>> Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt)
 
             #for cname in cnames:            
-            for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
-                cname = os.path.basename(cnameWithPath)
-                if options.useCnames: pname = pname0+"."+cname
-                for (ffrom, fto) in options.filesToSwap:
-                    if cname == ffrom: cname = fto
-                treename = extra["TreeName"] if "TreeName" in extra else options.tree 
-                objname  = extra["ObjName"]  if "ObjName"  in extra else options.obj
-                subpath  = extra["SubPath"]  if "SubPath"  in extra else ""
-                friendDir = extra['FriendDir'] if 'FriendDir' in extra else ""
-                if '[XXX]' in friendDir:
-                    if "XXX" in extra:
-                        XXX = extra['XXX'].split(',')
-                        friendDir_tmp = friendDir
-                        for x in XXX:                            
-                            if friendDir_tmp.replace("[XXX]",x) in cnameWithPath:
-                                friendDir = friendDir.replace("[XXX]",x)
-                                # print "FriendDir = ",friendDir
-                    else:
-                        print "Error >>> Process %s '[XXX]' found in FriendDir, but XXX not defined in MCA file" % (pname)
-                        quit()
+            ##marc print 'this is the first for loop, maybe', (cnamesWithPath if len(cnamesWithPath) else cnames)
+            ##marc print 'this is the length of the loop', len((cnamesWithPath if len(cnamesWithPath) else cnames))
 
-                if subpath != "" and not subpath.endswith("/"):
-                    subpath += "/"
-                #print "subpath = %s" % subpath
-
-                basepath = None
-                if options.nanoaodTree and os.path.exists(os.path.dirname(cnameWithPath)):
-                    basepath = cnameWithPath
-                    if not basepath:
-                        raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, pathsToSearch))
+            ## marc for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
+            tmp_names = ROOT.std.vector('string')()
+            #print cnamesWithPath
+            for n in cnamesWithPath: 
+                tmp_names.push_back(n.replace('/eos/cms/','root://eoscms.cern.ch//'))
+            tmp_rdf = ROOT.RDataFrame(options.obj, tmp_names)
+            #tmp_histo = ROOT.TH1D('foo', 'foo', 100, 0., 150.)
+            #tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
+            #tmp_histo = tmp_rdf.Histo1D('nMuon')#Muon_pt[0]')
+            #print 'this is integral', tmp_histo.Integral()
+            #exit(0)
+            
+            print 'this is tmp_rdf right after making it', tmp_rdf
+            ## cname = os.path.basename(cnameWithPath)
+            if options.useCnames: pname = pname0+"."+cname
+            for (ffrom, fto) in options.filesToSwap:
+                if cname == ffrom: cname = fto
+            treename = extra["TreeName"] if "TreeName" in extra else options.tree 
+            objname  = extra["ObjName"]  if "ObjName"  in extra else options.obj
+            subpath  = extra["SubPath"]  if "SubPath"  in extra else ""
+            friendDir = extra['FriendDir'] if 'FriendDir' in extra else ""
+            if '[XXX]' in friendDir:
+                if "XXX" in extra:
+                    XXX = extra['XXX'].split(',')
+                    friendDir_tmp = friendDir
+                    for x in XXX:                            
+                        if friendDir_tmp.replace("[XXX]",x) in cnameWithPath:
+                            friendDir = friendDir.replace("[XXX]",x)
+                            # print "FriendDir = ",friendDir
                 else:
-                    for treepath in options.path:
-                        if os.path.exists(treepath+"/"+subpath+cname):
-                            basepath = treepath
-                            break
-                    if not basepath:
-                        raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
+                    print "Error >>> Process %s '[XXX]' found in FriendDir, but XXX not defined in MCA file" % (pname)
+                    quit()
 
-                rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
+            if subpath != "" and not subpath.endswith("/"):
+                subpath += "/"
+            #print "subpath = %s" % subpath
+
+            basepath = None
+            if options.nanoaodTree:# marc and os.path.exists(os.path.dirname(cnameWithPath)):
+                basepath = 'foobar'#cnameWithPath
+                if not basepath:
+                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, pathsToSearch))
+            else:
+                for treepath in options.path:
+                    if os.path.exists(treepath+"/"+subpath+cname):
+                        basepath = treepath
+                        break
+                if not basepath:
+                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
+
+            ## marc rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
+            rootfile = 'asdfasfsd'
+            if options.noHeppyTree:
+                # under development, to run on any kind of root file
+                #print "cname = %s" % cname
+                if "TreeName" in extra:
+                    rootfile = "%s/%s.root" % (basepath, treename)                    
+                else:
+                    rootfile = "%s/%s" % (basepath, cname)                    
+                #print "rootfile: %s" % rootfile
+                #print "objname : %s" % objname
+            elif options.nanoaodTree:
+                # under development, to run on nanoaod (similar to case above, but that 
+                # is for another purpose, so keep it separate for now)
+                rootfile = 'not important'#cnameWithPath
+                #print "cname = %s" % cname
+                #print "rootfile: %s" % rootfile
+                #print "objname : %s" % objname
+            else:
+                if options.remotePath:
+                    rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
+                elif os.path.exists(rootfile+".url"): #(not os.path.exists(rootfile)) and :
+                    rootfile = open(rootfile+".url","r").readline().strip()
+                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
+                    # Heppy calls the tree just 'tree.root'
+                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
+                    prepath = ''
+                    if not 'root:/' in rootfile:
+                        if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
+                        elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
+                    rootfile = prepath+rootfile
+                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
+                    # Heppy calls the tree just 'tree.root'
+                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
+                    rootfile = open(rootfile+".url","r").readline().strip()
+
+            ## needed temporarily
+            pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % ('foobar') #cname
+
+            #print 'now making a tty instance for options', rootfile, options, extra, pname, cname, objname, friendDir
+            ## marc tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); ttys.append(tty)
+            tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, objname=objname, frienddir=friendDir); ttys.append(tty)
+            if signal: 
+                self._signals.append(tty)
+                self._isSignal[pname] = True
+            elif pname == "data":
+                self._data.append(tty)
+            else:
+                self._isSignal[pname] = False
+                self._backgrounds.append(tty)
+            if pname in self._allData: self._allData[pname].append(tty)
+            else                     : self._allData[pname] =     [tty]
+            if "data" not in pname:
                 if options.noHeppyTree:
-                    # under development, to run on any kind of root file
-                    #print "cname = %s" % cname
-                    if "TreeName" in extra:
-                        rootfile = "%s/%s.root" % (basepath, treename)                    
+                    if options.weight:
+                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 1
+                        total_w = 1.0  # not really used for general trees at the moment
+                        scale = "(%s)" % field[2]
                     else:
-                        rootfile = "%s/%s" % (basepath, cname)                    
-                    #print "rootfile: %s" % rootfile
-                    #print "objname : %s" % objname
+                        scale = "1"
+                        total_w = 1 # not really used for general trees at the moment
+                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 0
                 elif options.nanoaodTree:
-                    # under development, to run on nanoaod (similar to case above, but that 
-                    # is for another purpose, so keep it separate for now)
-                    rootfile = cnameWithPath
-                    #print "cname = %s" % cname
-                    #print "rootfile: %s" % rootfile
-                    #print "objname : %s" % objname
-                else:
-                    if options.remotePath:
-                        rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
-                    elif os.path.exists(rootfile+".url"): #(not os.path.exists(rootfile)) and :
-                        rootfile = open(rootfile+".url","r").readline().strip()
-                    elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
-                        # Heppy calls the tree just 'tree.root'
-                        rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                        prepath = ''
-                        if not 'root:/' in rootfile:
-                            if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
-                            elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
-                        rootfile = prepath+rootfile
-                    elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
-                        # Heppy calls the tree just 'tree.root'
-                        rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                        rootfile = open(rootfile+".url","r").readline().strip()
 
-                ## needed temporarily
-                pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
-
-                tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); ttys.append(tty)
-                if signal: 
-                    self._signals.append(tty)
-                    self._isSignal[pname] = True
-                elif pname == "data":
-                    self._data.append(tty)
-                else:
-                    self._isSignal[pname] = False
-                    self._backgrounds.append(tty)
-                if pname in self._allData: self._allData[pname].append(tty)
-                else                     : self._allData[pname] =     [tty]
-                if "data" not in pname:
-                    if options.noHeppyTree:
-                        if options.weight:
-                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 1
-                            total_w = 1.0  # not really used for general trees at the moment
-                            scale = "(%s)" % field[2]
-                        else:
-                            scale = "1"
-                            total_w = 1 # not really used for general trees at the moment
-                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 0
-                    elif options.nanoaodTree:
-
-                        maxGenWgt = None
-                        sumGenWeights = 1.0
-                        nUnweightedEvents = 1.0
-                        if options.weight and len(options.maxGenWeightProc):
-                            # get sum of weights from Events tree, filtering some events with large weights
-                            # this assumes the trees are unskimmed to correctly compute the sum!!
-                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                                if re.match(procRegExp,pname):
-                                    #tmp_maxGenWgt is a string, convert to float
-                                    maxGenWgt = abs(float(tmp_maxGenWgt))
-                                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                                    #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                                    tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
-                                    tmp_tree = tmp_rootfile.Get('Events')
-                                    if not tmp_tree or tmp_tree == None:
-                                        raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
-                                    # check the tree was not skimmed                                    
-                                    nEvents = tmp_tree.GetEntries()
-                                    tmp_tree_runs = tmp_rootfile.Get('Runs')
-                                    if not tmp_tree_runs or tmp_tree_runs == None:
-                                        raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
-                                    for i,event in enumerate(tmp_tree_runs):
-                                        nGenEvents = event.genEventCount
-                                        if i: break
-                                    if nEvents != nGenEvents:
-                                        print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
-                                        raise RuntimeError, "You are trying to remove or clip large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
-                                    ## check was ok
-                                    if options.clipGenWeightToMax:
-                                        # set weight to max
-                                        # TMath::Sign(a,b) returns a with the sign of b
-                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
-                                    else:
-                                        # reject event with weight > max
-                                        nUnweightedEvents = tmp_tree.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
-                                    tmp_hist = ROOT.gROOT.FindObject("sumweights")
-                                    sumGenWeights = tmp_hist.Integral()
-                                    tmp_rootfile.Close()
-                        else:
-                            # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
-                            ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                            #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                            tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
-                            tmp_tree = tmp_rootfile.Get('Runs')
-                            if not tmp_tree or tmp_tree == None:
-                                raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
-                            tmp_tree.Draw("1>>sumweights", "genEventSumw")
-                            tmp_hist = ROOT.gROOT.FindObject("sumweights")
-                            sumGenWeights = tmp_hist.Integral()
-                            tmp_tree.Draw("1>>sumcount", "genEventCount")
-                            tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
-                            nUnweightedEvents = tmp_hist2.Integral()
-                            tmp_rootfile.Close()                            
-
-                        if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
-                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 1; 
-                            total_w += sumGenWeights
-                            if maxGenWgt != None:
+                    maxGenWgt = None
+                    sumGenWeights = 1.0
+                    nUnweightedEvents = 1.0
+                    if options.weight and len(options.maxGenWeightProc):
+                        # get sum of weights from Events tree, filtering some events with large weights
+                        # this assumes the trees are unskimmed to correctly compute the sum!!
+                        print 'this is maxGenWeightProc', options.maxGenWeightProc
+                        for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
+                            if re.match(procRegExp,pname):
+                                #tmp_maxGenWgt is a string, convert to float
+                                maxGenWgt = abs(float(tmp_maxGenWgt))
+                                ## marc ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                                ## marc #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                                ## marc tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                                ## marc tmp_tree = tmp_rootfile.Get('Events')
+                                ## marc if not tmp_tree or tmp_tree == None:
+                                ## marc     raise RuntimeError, "Can't get tree Events from %s.\n" % rootfile
+                                ## marc # check the tree was not skimmed                                    
+                                ## marc nEvents = tmp_tree.GetEntries()
+                                ## marc tmp_tree_runs = tmp_rootfile.Get('Runs')
+                                ## marc if not tmp_tree_runs or tmp_tree_runs == None:
+                                ## marc     raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                                ## marc for i,event in enumerate(tmp_tree_runs):
+                                ## marc     nGenEvents = event.genEventCount
+                                ## marc     if i: break
+                                ## marc if nEvents != nGenEvents:
+                                ## marc     print "nEvents = %d    nGenEvents = %f" % (nEvents,nGenEvents)
+                                ## marc     raise RuntimeError, "You are trying to remove or clip large gen weights, so I am recomputing the sum of gen weights excluding them.\nHowever, it seems the file\n%s\n you are using contains a skimmed tree.\nIn this way the sum of gen weights will be wrong" % rootfile
+                                ## marc ## check was ok
+                                ##3h_sumw = ROOT.TH1D('sumweights', 'sumweights', 1, 0.5, 1.5)
+                                ##3h_sumweights = ROOT.RDF.TH1DModel(h_sumw) 
+                                ##3print 'this is tmp_rdf', tmp_rdf
                                 if options.clipGenWeightToMax:
-                                    scale = "(%s)*TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % (field[2],str(maxGenWgt))
+                                    # set weight to max
+                                    # TMath::Sign(a,b) returns a with the sign of b
+                                    #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
+                                    tmp_rdf = tmp_rdf.Define('const1', '1.')
+                                    tmp_rdf = tmp_rdf.Define('myweight', 'fabs(genWeight) > {s} ? genWeight / fabs(genWeight) * {s} : genWeight'.format(s=maxGenWgt))
+                                    #tmp_rdf = tmp_rdf.Define('myweight', 'TMath::Sign( TMath::Min(TMath::Abs(genWeight),%s), genWeight)' % str(maxGenWgt) )
+                                    h_sumweights = tmp_rdf.Histo1D( ('sumweights', 'sumweights', 1, 0.5, 1.5) , 'const1', 'myweight' )
                                 else:
-                                    scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
-                            else:
-                                scale = "genWeight*(%s)" % field[2]
-                        elif not options.weight:
-                            scale = "1"
-                            total_w = 1
-                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 0
-                        else: # case for unweighted events for MC
-                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 0;
-                            # total_w += n_count ## ROOT histo version
-                            total_w += nUnweightedEvents
-                            scale = "(%s)" % field[2]
+                                    # reject event with weight > max
+                                    print 'in some other else command here'
+                                    #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
+                                    h_sumweights = tmp_rdf.Histo1D(('sumweights', 'sumweights', 1, 0.5, 1.5) , '1', "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt)) 
+                                #tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                                sumGenWeights = h_sumweights.Integral()
+                                print ' this is the new sumgenWeights', sumGenWeights
+                                ## marc tmp_rootfile.Close()
                     else:
-                        useHistoForWeight = False
-                        maxGenWgt = None
-                        if options.weight and len(options.maxGenWeightProc):
-                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                                if re.match(procRegExp,pname):
-                                    #tmp_maxGenWgt is a string, convert to float
-                                    maxGenWgt = abs(float(tmp_maxGenWgt))
-                                    log10_maxGenWgt = math.log10(maxGenWgt)
-                                    useHistoForWeight = True
-                                    ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                                    tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                                    histo_sumgenweight = tmp_rootfile.Get('distrGenWeights')
-                                    if not histo_sumgenweight:
-                                        raise RuntimeError, "Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
-                                    minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
-                                    maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
-                                    n_sumgenweight = histo_sumgenweight.Integral(minBin,maxBin)
-                                    tmp_rootfile.Close()
+                        # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
+                        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                        #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                        tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+                        tmp_tree = tmp_rootfile.Get('Runs')
+                        if not tmp_tree or tmp_tree == None:
+                            raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                        print 'doing a draw here for some reason'
+                        tmp_tree.Draw("1>>sumweights", "genEventSumw")
+                        tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                        sumGenWeights = tmp_hist.Integral()
+                        print 'doing another draw here for some reason'
+                        tmp_tree.Draw("1>>sumcount", "genEventCount")
+                        tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
+                        nUnweightedEvents = tmp_hist2.Integral()
+                        tmp_rootfile.Close()                            
 
-                        ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
-                        # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-                        # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-                        # histo_count        = tmp_rootfile.Get('Count')
-                        # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
-                        # n_count        = histo_count       .GetBinContent(1)
-                        # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
-                        # tmp_rootfile.Close()
-
-                        #do always read this file as well, not to modify the following 'if' statement
-                        pckobj  = pickle.load(open(pckfile,'r'))
-                        counters = dict(pckobj)                            
-                        # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
-                        ## this needed for now...
-                        if ('Sum Weights' in counters) and options.weight:
-                            if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 1; 
-                            if useHistoForWeight:
-                                total_w += n_sumgenweight ## ROOT histo version
-                                scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2], str(maxGenWgt))
-                            else:                            
-                                total_w += counters['Sum Weights']
-                                scale = "genWeight*(%s)" % field[2]
-                        elif not options.weight:
-                            scale = "1"
-                            total_w = 1
-                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 0
+                    if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
+                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 1; 
+                        total_w += sumGenWeights
+                        if maxGenWgt != None:
+                            if options.clipGenWeightToMax:
+                                # marc scale = "(%s)*TMath::Sign(min(abs(genWeight),%s),genWeight)" % (field[2],str(maxGenWgt))
+                                scale = '(%s)* genWeight/fabs(genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
+                            else:
+                                scale = "genWeight*(%s)*(std::abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
                         else:
-                            if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
-                            is_w = 0;
-                            # total_w += n_count ## ROOT histo version
-                            total_w += counters['All Events']
-                            scale = "(%s)" % field[2]
-                    # closes if options.noHeppyTree
-                    if len(field) == 4: scale += "*("+field[3]+")"
-                    for p0,s in options.processesToScale:
-                        for p in p0.split(","):
-                            if re.match(p+"$", pname): scale += "*("+s+")"
-                    to_norm = True
-                elif len(field) == 2:
-                    pass
-                elif len(field) == 3:
-                    tty.setScaleFactor(field[2])
+                            scale = "genWeight*(%s)" % field[2]
+                    elif not options.weight:
+                        scale = "1"
+                        total_w = 1
+                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 0
+                    else: # case for unweighted events for MC
+                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 0;
+                        # total_w += n_count ## ROOT histo version
+                        total_w += nUnweightedEvents
+                        scale = "(%s)" % field[2]
                 else:
-                    print "Poorly formatted line: ", field
-                    raise RuntimeError                    
-                # Adjust free-float and fixed from command line
-                for p0 in options.processesToFloat:
+                    useHistoForWeight = False
+                    maxGenWgt = None
+                    if options.weight and len(options.maxGenWeightProc):
+                        for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
+                            if re.match(procRegExp,pname):
+                                #tmp_maxGenWgt is a string, convert to float
+                                maxGenWgt = abs(float(tmp_maxGenWgt))
+                                log10_maxGenWgt = math.log10(maxGenWgt)
+                                useHistoForWeight = True
+                                ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                                tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                                histo_sumgenweight = tmp_rootfile.Get('distrGenWeights')
+                                if not histo_sumgenweight:
+                                    raise RuntimeError, "Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
+                                minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
+                                maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
+                                n_sumgenweight = histo_sumgenweight.Integral(minBin,maxBin)
+                                tmp_rootfile.Close()
+
+                    ## get the counts from the histograms instead of pickle file (smart, but extra load for ROOT from EOS it seems)
+                    # ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+                    # tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+                    # histo_count        = tmp_rootfile.Get('Count')
+                    # histo_sumgenweight = tmp_rootfile.Get('SumGenWeights')
+                    # n_count        = histo_count       .GetBinContent(1)
+                    # n_sumgenweight = (histo_sumgenweight.GetBinContent(1) if histo_sumgenweight else n_count)
+                    # tmp_rootfile.Close()
+
+                    #do always read this file as well, not to modify the following 'if' statement
+                    pckobj  = pickle.load(open(pckfile,'r'))
+                    counters = dict(pckobj)                            
+                    # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
+                    ## this needed for now...
+                    if ('Sum Weights' in counters) and options.weight:
+                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 1; 
+                        if useHistoForWeight:
+                            total_w += n_sumgenweight ## ROOT histo version
+                            scale = "genWeight*(%s)*(abs(genWeight)<%s)" % (field[2], str(maxGenWgt))
+                        else:                            
+                            total_w += counters['Sum Weights']
+                            scale = "genWeight*(%s)" % field[2]
+                    elif not options.weight:
+                        scale = "1"
+                        total_w = 1
+                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 0
+                    else:
+                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        is_w = 0;
+                        # total_w += n_count ## ROOT histo version
+                        total_w += counters['All Events']
+                        scale = "(%s)" % field[2]
+                # closes if options.noHeppyTree
+                if len(field) == 4: scale += "*("+field[3]+")"
+                for p0,s in options.processesToScale:
                     for p in p0.split(","):
-                        if re.match(p+"$", pname): tty.setOption('FreeFloat', True)
-                for p0 in options.processesToFix:
-                    for p in p0.split(","):
-                        if re.match(p+"$", pname): tty.setOption('FreeFloat', False)
-                for p0, p1 in options.processesToPeg:
-                    for p in p0.split(","):
-                        if re.match(p+"$", pname): tty.setOption('PegNormToProcess', p1)
-                for p0, p1 in options.processesToSetNormSystematic:
-                    for p in p0.split(","):
-                        if re.match(p+"$", pname): tty.setOption('NormSystematic', float(p1))
-                if pname not in self._rank: self._rank[pname] = len(self._rank)
+                        if re.match(p+"$", pname): scale += "*("+s+")"
+                to_norm = True
+            elif len(field) == 2:
+                pass
+            elif len(field) == 3:
+                tty.setScaleFactor(field[2])
+            else:
+                print "Poorly formatted line: ", field
+                raise RuntimeError                    
+            # Adjust free-float and fixed from command line
+            for p0 in options.processesToFloat:
+                for p in p0.split(","):
+                    if re.match(p+"$", pname): tty.setOption('FreeFloat', True)
+            for p0 in options.processesToFix:
+                for p in p0.split(","):
+                    if re.match(p+"$", pname): tty.setOption('FreeFloat', False)
+            for p0, p1 in options.processesToPeg:
+                for p in p0.split(","):
+                    if re.match(p+"$", pname): tty.setOption('PegNormToProcess', p1)
+            for p0, p1 in options.processesToSetNormSystematic:
+                for p in p0.split(","):
+                    if re.match(p+"$", pname): tty.setOption('NormSystematic', float(p1))
+            if pname not in self._rank: self._rank[pname] = len(self._rank)
+
+            ##end of removing this dumb loop
+
             if to_norm: 
                 for tty in ttys: 
                     if options.weight: 
@@ -557,17 +598,26 @@ class MCAnalysis:
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
         return self.getPlots(PlotSpec(name,expr,bins,{}),cut,process,nodata,makeSummary,closeTreeAfter)
     def getPlots(self,plotspec,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
+        print 'i am in getPlots'
+        #print 'this is plotspec', plotspec
+        #exit(0)
         ret = { }
         allSig = []; allBg = []
         tasks = []
+        retlist = []
         for key,ttys in self._allData.iteritems():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
-                tasks.append((key,tty,plotspec,cut,None,closeTreeAfter))
+                #print 'this is key', key
+                #print 'this is tty', tty
+                #print 'this is tty._fname', tty._fname
+                #tasks.append((key,tty,plotspec,cut,None,closeTreeAfter))
+                retlist.append( (key, tty.getPlot(plotspec, cut, None, False)) ) 
         if self._options.splitFactor > 1 or  self._options.splitFactor == -1:
             tasks = self._splitTasks(tasks)
-        retlist = self._processTasks(_runPlot, tasks, name="plot "+plotspec.name)
+        print 'this is retlist', retlist
+        #retlist = self._processTasks(_runPlot, tasks, name="plot "+plotspec.name)
         ## then gather results with the same process
         mergemap = {}
         for (k,v) in retlist: 
@@ -616,20 +666,24 @@ class MCAnalysis:
         tasks = []; revmap = {}
         for key,ttys in self._allData.iteritems():
             for tty in ttys:
-                revmap[id(tty)] = tty
-                tasks.append( (id(tty), tty, cut, None) )
-        if self._options.splitFactor > 1 or self._options.splitFactor == -1:
-            tasks = self._splitTasks(tasks)
-        retlist = self._processTasks(_runApplyCut, tasks, name="apply cut "+cut)
-        if self._options.splitFactor > 1 or self._options.splitFactor == -1:
-            aggregated = {}
-            for ttid, elist in retlist:
-                if ttid not in aggregated: aggregated[ttid] = elist
-                else:                      aggregated[ttid].Add(elist)
-            retlist = aggregated.items()
-        for ttid, elist in retlist:
-            tty = revmap[ttid]
-            tty.applyCutAndElist(cut, elist)
+                tty.cutToElist(cut)
+        ## marc rdf style        revmap[id(tty)] = tty
+        ## marc rdf style        tasks.append( (id(tty), tty, cut, None) )
+        ## marc rdf style## marc print 'this is tasks', tasks
+        ## marc rdf style## marc print 'this is splitfactor', self._options.splitFactor
+        ## marc rdf styleif self._options.splitFactor > 1 or self._options.splitFactor == -1:
+        ## marc rdf style    tasks = self._splitTasks(tasks)
+        ## marc rdf styleretlist = self._processTasks(_runApplyCut, tasks, name="apply cut "+cut)
+        ## marc rdf styleprint 'i am nooooooooooooooooooooow hereeeee'
+        ## marc rdf styleif self._options.splitFactor > 1 or self._options.splitFactor == -1:
+        ## marc rdf style    aggregated = {}
+        ## marc rdf style    for ttid, elist in retlist:
+        ## marc rdf style        if ttid not in aggregated: aggregated[ttid] = elist
+        ## marc rdf style        else:                      aggregated[ttid].Add(elist)
+        ## marc rdf style    retlist = aggregated.items()
+        ## marc rdf stylefor ttid, elist in retlist:
+        ## marc rdf style    tty = revmap[ttid]
+        ## marc rdf style    tty.applyCutAndElist(cut, elist)
     def clearCut(self):
         for key,ttys in self._allData.iteritems():
             for tty in ttys:
@@ -781,6 +835,7 @@ class MCAnalysis:
     def _processTasks(self,func,tasks,name=None):
         #timer = ROOT.TStopwatch()
         #print "Starting job %s with %d tasks, %d threads" % (name,len(tasks),self._options.jobs)
+        print 'self._options.jobs', self._options.jobs
         if self._options.jobs == 0: 
             retlist = map(func, tasks)
         else:

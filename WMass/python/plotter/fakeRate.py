@@ -12,10 +12,14 @@ def compileMacro(x,basedir=os.environ['CMSSW_BASE']):
 
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
    compileMacro("src/CMGTools/WMass/python/plotter/fakeRate.cc")
+   #compileMacro("fakeRate.cc")
 
-from CMGTools.TTHAnalysis.plotter.mcCorrections import SimpleCorrection
+##marc from CMGTools.TTHAnalysis.plotter.mcCorrections import SimpleCorrection
+from mcCorrectionsTTH import SimpleCorrection
 #from CMGTools.WMass.plotter.mcCorrections import SimpleCorrection
-from CMGTools.WMass.plotter.cutsFile import *
+##marc from CMGTools.WMass.plotter.cutsFile import *
+from cutsFile import *
+
 
 _loads = {}
 class FakeRate:
@@ -39,7 +43,8 @@ class FakeRate:
             elif fields[0] == "cut-change": 
                 self._cutMods.append( SimpleCorrection(fields[1],fields[2],onlyForCuts=True) )
             elif fields[0].startswith("load-histo"):
-                data = "%s/src/CMGTools/WMass/data/" % os.environ['CMSSW_BASE'];
+                ## marc data = "%s/src/CMGTools/WMass/data/" % os.environ['CMSSW_BASE'];
+                data = "../../data/"
                 fname = fields[2].replace("$DATA",data)
                 hname = fields[3] if len(fields) >= 4 else fields[1]
                 if fields[1] in _loads:
