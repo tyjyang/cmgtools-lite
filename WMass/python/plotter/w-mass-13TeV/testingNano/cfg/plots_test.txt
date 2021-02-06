@@ -20,6 +20,7 @@ mt_DeepMetRespTune: mt_2(Muon_pt[0],Muon_phi[0],DeepMETResponseTune_pt,DeepMETRe
 mt_DeepMetResoTune: mt_2(Muon_pt[0],Muon_phi[0],DeepMETResolutionTune_pt,DeepMETResolutionTune_phi): 50,20,120; XTitle="m_{T}(#mu\,DeepMETResolutionTune) (GeV)", Legend='TC', IncludeOverflows=True
 
 muon_pt_eta: Muon_pt[0]\:Muon_eta[0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+muon_pt_eta_phi: Muon_phi[0]\:Muon_pt[0]\:Muon_eta[0]: 48,-2.4,2.4,34,26,60,20,-3.14,3.14 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', ZTitle='muon phi', Legend='TR'
 
 PV_z: PV_z: 100,-20,20; XTitle="Primary vertex z (cm)", Legend='TC', IncludeOverflows=True
 

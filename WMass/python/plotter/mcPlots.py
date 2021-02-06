@@ -992,6 +992,7 @@ class PlotMaker:
 
                 if not self._options.emptyStack and stack.GetNhists() == 0:
                     print "ERROR: for %s, all histograms are empty\n " % pspec.name
+                    print 'this is stack', stack
                     return
 
                 # define aspect ratio

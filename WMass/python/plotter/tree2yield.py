@@ -505,6 +505,15 @@ class TreeToYield:
                 self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[1])
                 self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[0])
                 tmp_histo  = self._tree.Histo2D(tmp_histo_model, tmp_varx, tmp_vary, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+            elif tmp_histo.ClassName() == 'TH3D':
+                tmp_histo_model = ROOT.RDF.TH3DModel(tmp_histo)
+                tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
+                tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
+                tmp_varz    = self._cname+'_'+plotspec.name+'_varz'
+                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[2])
+                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[1])
+                self._tree = self._tree.Define(tmp_varz   , plotspec.expr.split(':')[0])
+                tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)#, drawOpt, maxEntries, firstEntry)
 
                 ##print 'this is th2d.Integral()', tmp_histo.Integral()
 
