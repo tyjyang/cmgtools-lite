@@ -687,10 +687,11 @@ class MCAnalysis:
             for ttid, entries in retlist:
                 ttymap[ttid].setEntries(entries)
     def applyCut(self,cut):
-        tasks = []; revmap = {}
-        for key,ttys in self._allData.iteritems():
-            for tty in ttys:
-                tty.cutToElist(cut)
+        pass
+        ## marc rdf styletasks = []; revmap = {}
+        ## marc rdf stylefor key,ttys in self._allData.iteritems():
+        ## marc rdf style    for tty in ttys:
+        ## marc rdf style        tty.cutToElist(cut)
         ## marc rdf style        revmap[id(tty)] = tty
         ## marc rdf style        tasks.append( (id(tty), tty, cut, None) )
         ## marc rdf style## marc print 'this is tasks', tasks
@@ -709,6 +710,7 @@ class MCAnalysis:
         ## marc rdf style    tty = revmap[ttid]
         ## marc rdf style    tty.applyCutAndElist(cut, elist)
     def clearCut(self):
+        pass ## rdf
         for key,ttys in self._allData.iteritems():
             for tty in ttys:
                 tty.clearCut() 

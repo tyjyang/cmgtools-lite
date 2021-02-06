@@ -652,10 +652,11 @@ class TreeToYield:
         ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
         ## marc return elist
     def clearCut(self):
-        #if not self._isInit: raise RuntimeError, "Error, clearing a cut on something that wasn't even initialized"
-        self._appliedCut = None
-        self._elist = None
-        if self._isInit: self._tree.SetEntryList(None)
+        pass # rdf style
+        # rdf style#if not self._isInit: raise RuntimeError, "Error, clearing a cut on something that wasn't even initialized"
+        # rdf styleself._appliedCut = None
+        # rdf styleself._elist = None
+        # rdf styleif self._isInit: self._tree.SetEntryList(None)
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:
