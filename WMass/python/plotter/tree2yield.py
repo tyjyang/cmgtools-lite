@@ -490,11 +490,23 @@ class TreeToYield:
                 return graph
             drawOpt = "goff"
             if "TProfile" in tmp_histo.ClassName(): drawOpt += " PROF";
-    
-            tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
-            tmp_var    = self._cname+'_'+plotspec.name+'_var'
-            self._tree = self._tree.Define(tmp_var   , plotspec.expr)
-            tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+
+            if tmp_histo.ClassName() == 'TH1D':
+                tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
+                tmp_var    = self._cname+'_'+plotspec.name+'_var'
+                self._tree = self._tree.Define(tmp_var   , plotspec.expr)
+                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+            elif tmp_histo.ClassName() == 'TH2D':
+                #print 'this is now plotspec.name and self._cname', plotspec.name, self._cname
+                #print 'this is now plotspec.expr.split(:)[1] and 0', plotspec.expr.split(':')[1], plotspec.expr.split(':')[0]
+                tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)
+                tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
+                tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
+                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[1])
+                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[0])
+                tmp_histo  = self._tree.Histo2D(tmp_histo_model, tmp_varx, tmp_vary, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+
+                ##print 'this is th2d.Integral()', tmp_histo.Integral()
 
             histos.append(tmp_histo)
 

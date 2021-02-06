@@ -677,6 +677,8 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         ratio.SetContour(100)
         ratios.append(ratio)
 
+    print 'this is ratios', ratios
+
     return ratios
 
 def doStatTests(total,data,test,legendCorner):
@@ -1315,6 +1317,8 @@ class PlotMaker:
                                     rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
                                                            ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel,ratioNumsWithData=options.ratioNumsWithData)
                                     for r in rdata:
+                                        if r == None:
+                                            continue
                                         r.Draw(pspec.getOption("PlotMode","COLZ0"))
                                         if drawBox != None:
                                             # liner = ROOT.TLine()
