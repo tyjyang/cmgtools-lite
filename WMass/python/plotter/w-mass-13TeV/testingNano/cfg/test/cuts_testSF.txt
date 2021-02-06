@@ -1,7 +1,6 @@
 alwaystrue : 1
 twomuon    : nVetoElectrons == 0 && nMuon >= 2 && Idx_mu1 >= 0 && Idx_mu2 >= 0 
 trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[Idx_mu1],Muon_charge[Idx_mu1],Muon_hasTriggerMatch[Idx_mu2],Muon_charge[Idx_mu2],event)
-#oppositecharge : Muon_pdgId[Idx_mu1] * Muon_pdgId[Idx_mu2] == -169
 oppositecharge : Vtype_subcat%2 == 0
 accept     : abs(Muon_eta[Idx_mu1]) < 2.4 && abs(Muon_eta[Idx_mu2]) < 2.4 && valueInsideRange(Muon_pt[Idx_mu1],26,55) && valueInsideRange(Muon_pt[Idx_mu2],26,55)
 muonID     : Muon_mediumId[Idx_mu1] == 1 && Muon_mediumId[Idx_mu2] == 1

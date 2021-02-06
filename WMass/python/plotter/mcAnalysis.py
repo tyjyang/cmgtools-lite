@@ -51,20 +51,73 @@ class MCAnalysis:
         self.readMca(samples,options)
 
 
+    def getSumGenWeightMCfromHisto(self, pname, rootfile, verbose=False):
+
+        maxGenWgt = None
+        sumGenWeights = 1.0
+        nUnweightedEvents = 1.0
+
+        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
+        #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
+        tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+ 
+        if self._options.weight and len(self._options.maxGenWeightProc):
+            # get sum of weights from histograms, filtering some events with large weights
+            for procRegExp,tmp_maxGenWgt in self._options.maxGenWeightProc:
+                if re.match(procRegExp,pname):
+                    #tmp_maxGenWgt is a string, convert to float
+                    maxGenWgt = fabs(float(tmp_maxGenWgt))
+                    log10_maxGenWgt = math.log10(maxGenWgt)
+                    histo_sumgenweight = tmp_rootfile.Get('hGenWeights')
+                    if not histo_sumgenweight:
+                        raise RuntimeError, "Can't get histogram hGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
+                    minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
+                    maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
+                    sumGenWeights = histo_sumgenweight.Integral(minBin,maxBin)                  
+                    if self._options.clipGenWeightToMax:
+                        # then the other histogram, whose integral is the number of events before any cut
+                        histo_numweight = tmp_rootfile.Get('hNumWeights')
+                        if not histo_numweight:
+                            raise RuntimeError, "Can't get histogram hNumWeights from %s.\nMake sure it is available when using option --max-genWeight-procs and --clip-genWeight-toMax" % rootfile      
+                        # get actual upper threshold based on the bin edge
+                        maxGenWgt = math.pow(10.0,histo_sumgenweight.GetXaxis().GetBinUpEdge(maxBin))
+                        if verbose:
+                            print "INFO >>> Process %s -> actual genWeight threshold set to %s" % (pname,str(maxGenWgt))
+                        nLargeWeight = histo_numweight.Integral(0,max(0,minBin-1)) + histo_numweight.Integral(min(histo_numweight.GetNbinsX()+1,maxBin+1), histo_numweight.GetNbinsX()+1)
+                        sumGenWeights += (nLargeWeight*maxGenWgt) 
+                        nUnweightedEvents = histo_numweight.Integral(0,histo_numweight.GetNbinsX()+1)
+        else:
+            # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
+            tmp_tree = tmp_rootfile.Get('Runs')
+            if not tmp_tree or tmp_tree == None:
+                raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+            tmp_hist = ROOT.TH1D("sumweights","",1,0,10)
+            tmp_hist2 = ROOT.TH1D("sumcount","",1,0,10)
+            tmp_tree.Draw("1>>sumweights", "genEventSumw")
+            tmp_hist = ROOT.gROOT.FindObject("sumweights")
+            sumGenWeights = tmp_hist.Integral()
+            tmp_tree.Draw("1>>sumcount", "genEventCount")
+            tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
+            nUnweightedEvents = tmp_hist2.Integral()
+
+        tmp_rootfile.Close()                            
+        return (maxGenWgt, sumGenWeights, nUnweightedEvents)
+
+
     def getSumGenWeightMC(self, pname, rootfile):
 
         isTChain = False
         chain = None
         if not isinstance(rootfile,str):
             # then rootfile is a list of files
-            print "Building chains to compute sum of gen weights ..."
+            print "Building chain to compute sum of gen weights ..."
             isTChain = True
             chain = ROOT.TChain("Events","chainToComputeSumWeight_Events")
             chainRuns = ROOT.TChain("Runs","chainToComputeSumWeight_Runs")
             for f in rootfile:
                 chain.Add(f)
                 chainRuns.Add(f)
-            print "Done building chains!"
+            print "Done building chain!"
 
 
         maxGenWgt = None
@@ -149,7 +202,8 @@ class MCAnalysis:
                 tmp_rootfile.Close()                            
 
         if isTChain:
-            print ">>> pname = %s   sumGenWeights = %f " % (pname,sumGenWeights)
+            print "Done computing sum of gen weights!"
+            #print ">>> pname = %s   sumGenWeights = %f " % (pname,sumGenWeights)
         return (maxGenWgt, sumGenWeights, nUnweightedEvents)
 
 
@@ -311,8 +365,8 @@ class MCAnalysis:
             allFiles = cnamesWithPath if len(cnamesWithPath) else cnames
             nAllFiles = len(allFiles)
 
+            iFile = 0
             for cnameWithPath in allFiles:
-
                 cname = os.path.basename(cnameWithPath)
                 if options.useCnames: pname = pname0+"."+cname
                 for (ffrom, fto) in options.filesToSwap:
@@ -367,6 +421,14 @@ class MCAnalysis:
                     #print "cname = %s" % cname
                     #print "rootfile: %s" % rootfile
                     #print "objname : %s" % objname
+                    #
+                    prepath = ''
+                    if not 'root:/' in rootfile:
+                        if '/eos/user/' in rootfile: 
+                            prepath = 'root://eosuser.cern.ch//'
+                        elif '/eos/cms/store/' in rootfile: 
+                            prepath = 'root://eoscms.cern.ch//'
+                    rootfile = prepath+rootfile
                 else:
                     if options.remotePath:
                         rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
@@ -389,11 +451,14 @@ class MCAnalysis:
                 pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % cname
 
                 ## MIDDLE CHECKPOINT
-                #tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); 
                 if options.useTChain:
                     if tch == None:
                         tch = ROOT.TChain(objname,pname)
                     #print rootfile
+                    nCurrentFileInChain = len(list_rootfiles)
+                    if nCurrentFileInChain%2 == 0:
+                        sys.stdout.write('>>> Creating chain {0:.2%}  \r'.format(float(nCurrentFileInChain+1)/nAllFiles))
+                        sys.stdout.flush()
                     tch.Add(rootfile)
                     list_rootfiles.append(rootfile)
                     if len(list_rootfiles) == nAllFiles:
@@ -432,7 +497,12 @@ class MCAnalysis:
                             is_w = 0
                     elif options.nanoaodTree:
 
-                        (maxGenWgt, sumGenWeights, nUnweightedEvents) = self.getSumGenWeightMC(pname, list_rootfiles if options.useTChain else rootfile)
+                        #(maxGenWgt, sumGenWeights, nUnweightedEvents) = self.getSumGenWeightMC(pname, list_rootfiles if options.useTChain else rootfile)
+                        (maxGenWgt, sumGenWeights, nUnweightedEvents) = self.getSumGenWeightMCfromHisto(pname, rootfile, verbose=(iFile==0))
+                        sys.stdout.write('INFO >>> preparing files {0:.2%}  \r'.format(float(iFile+1)/nAllFiles))
+                        sys.stdout.flush()
+
+
 
                         if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
                             if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
@@ -537,9 +607,10 @@ class MCAnalysis:
                     for p in p0.split(","):
                         if re.match(p+"$", pname): tty.setOption('NormSystematic', float(p1))
                 if pname not in self._rank: self._rank[pname] = len(self._rank)
+                iFile += 1
             ### END CHECKPOINT
             if to_norm: 
-                print ">>> Total sumgenweights (pname = %s) = %s" % (pname,str(total_w))
+                print ">>> Total sumgenweights = %s (process = %s)" % (str(total_w),pname)
                 for tty in ttys: 
                     if options.weight: 
                         tty.setScaleFactor("%s*%g" % (scale, 1000.0/total_w))

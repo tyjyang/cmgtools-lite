@@ -82,6 +82,7 @@ float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
 
 }
 
+
 float returnPlusVal(float val1, int ch1, float val2, int ch2){
   
   // return value of the lepton with desired charge, without looking at event parity
@@ -874,10 +875,12 @@ TFile *_file_allSF = NULL;
 TH2F *_histo_trigger_minus[3] = {NULL, NULL, NULL}; 
 TH2F *_histo_trigger_plus[3] = {NULL, NULL, NULL};
 TH2F *_histo_iso[3] = {NULL, NULL, NULL};
+TH2F *_histo_isonotrig[3] = {NULL, NULL, NULL};
 TH2F *_histo_idip[3] = {NULL, NULL, NULL};
 TH2F *_histo_tracking[3] = {NULL, NULL, NULL};
 
-float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, float eta2, int charge2, ULong64_t event, int era = 0) {
+// I think the function cannot have more than 8 arguments, let's see
+float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatch1, float pt2, float eta2, int charge2, int trigMatch2, ULong64_t event, int era = 0) {
 
   // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
   string dataEraForSF = "BtoH";
@@ -941,6 +944,9 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, f
   if (!_histo_iso[era]) {
     _histo_iso[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
   }
+  if (!_histo_isonotrig[era]) {
+    _histo_isonotrig[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
+  }
 
 
   TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
@@ -951,7 +957,11 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, f
   // for SF validation the SF for iso should be applied on the second lepton only if it had passed the trigger
   // so we should not apply this SF, but then also not applying thr isolation cut on that leg, but only on the
   // selected one
-  sf *= getValFromTH2(_histo_iso[era],eta,pt);
+  // sf *= getValFromTH2(_histo_iso[era],eta,pt);
+  TH2F *histIso1 = (trigMatch1 ? _histo_iso[era] : _histo_isonotrig[era]);
+  TH2F *histIso2 = (trigMatch2 ? _histo_iso[era] : _histo_isonotrig[era]);
+  sf *= getValFromTH2(histIso1,eta1,pt1) * getValFromTH2(histIso2,eta2,pt2);
+  // cout << " sf = " << sf << endl;
 
   return sf;
 
