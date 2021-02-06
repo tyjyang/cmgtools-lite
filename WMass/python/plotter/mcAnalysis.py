@@ -172,7 +172,7 @@ class MCAnalysis:
                     if not options.path:
                         print "Warning: you didn't specify a path to ntuples with option -P, but process %s has no 'TreePath' key in the MCA file. Please specify a valid path." % pname
                         quit()
-                print "INFO >>> Process %s -> searching files in %s" % (pname,repr(pathsToSearch))
+                print "INFO >>> Process %s -> searching for files in %s/%s" % (pname,repr(pathsToSearch),subpath)
                 for treepath in pathsToSearch:
                     for dirpath, dirnames, filenames in os.walk(treepath):
                         # either use regexp or simply that subpath is in the path (so one doesn't need 
@@ -220,7 +220,6 @@ class MCAnalysis:
             #print 'this is integral', tmp_histo.Integral()
             #exit(0)
             
-            print 'this is tmp_rdf right after making it', tmp_rdf
             ## cname = os.path.basename(cnameWithPath)
             if options.useCnames: pname = pname0+"."+cname
             for (ffrom, fto) in options.filesToSwap:
@@ -330,7 +329,6 @@ class MCAnalysis:
                     if options.weight and len(options.maxGenWeightProc):
                         # get sum of weights from Events tree, filtering some events with large weights
                         # this assumes the trees are unskimmed to correctly compute the sum!!
-                        print 'this is maxGenWeightProc', options.maxGenWeightProc
                         for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                             if re.match(procRegExp,pname):
                                 #tmp_maxGenWgt is a string, convert to float
@@ -597,7 +595,7 @@ class MCAnalysis:
         return ret
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
         return self.getPlots(PlotSpec(name,expr,bins,{}),cut,process,nodata,makeSummary,closeTreeAfter)
-    def getPlots(self,plotspec,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
+    def getPlots(self,plotspecs,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
         print 'i am in getPlots'
         #print 'this is plotspec', plotspec
         #exit(0)
@@ -613,44 +611,70 @@ class MCAnalysis:
                 #print 'this is tty', tty
                 #print 'this is tty._fname', tty._fname
                 #tasks.append((key,tty,plotspec,cut,None,closeTreeAfter))
-                retlist.append( (key, tty.getPlot(plotspec, cut, None, False)) ) 
+                
+                retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) ) 
         if self._options.splitFactor > 1 or  self._options.splitFactor == -1:
             tasks = self._splitTasks(tasks)
         print 'this is retlist', retlist
         #retlist = self._processTasks(_runPlot, tasks, name="plot "+plotspec.name)
         ## then gather results with the same process
+
         mergemap = {}
         for (k,v) in retlist: 
             if k not in mergemap: mergemap[k] = []
             mergemap[k].append(v)
         ## and finally merge them
-        ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+        print 'this is mergemap', mergemap
 
-        rescales = []
-        self.compilePlotScaleMap(self._options.plotscalemap,rescales)
-        for p,v in ret.items():
-            for regexp in rescales:
-                if re.match(regexp[0],p): v.Scale(regexp[1])
+        ##mergemaps = []
+        ##for iplot in range(len(plotspecs)):
+        ##    tmp_mergemap = {}
+        ##    for (k,v) in retlist: 
+        ##        if not k in tmp_mergemap: tmp_mergemap[k] = []
+        ##        tmp_mergemap[k].append(v[iplot])
+        ##    mergemaps.append(tmp_mergemap)
 
-        regroups = [] # [(compiled regexp,target)]
-        self.compilePlotMergeMap(self._options.plotmergemap,regroups)
-        for regexp in regroups: ret = self.regroupPlots(ret,regexp,plotspec)
+        ##print 'this is now mergemaps!!!!!', mergemaps
+            
 
-        # if necessary project to different lumi, energy,
-        if self._projection:
-            self._projection.scalePlots(ret)
-        if makeSummary:
-            allSig = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == True  ]
-            allBg  = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == False ]
-            if self._signals and not ret.has_key('signal') and len(allSig) > 0:
-                ret['signal'] = mergePlots(plotspec.name+"_signal", allSig)
-                ret['signal'].summary = True
-            if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
-                ret['background'] = mergePlots(plotspec.name+"_background",allBg)
-                ret['background'].summary = True
 
-        #print "DONE getPlots at %.2f" % (0.001*(long(ROOT.gSystem.Now()) - _T0))
-        return ret
+        rets = []
+        for ip,plotspec in enumerate(plotspecs):
+            mergemap = {}
+            for (k,v) in retlist: 
+                if not k in mergemap: mergemap[k] = []
+                mergemap[k].append(v[ip])
+            #mergemaps.append(tmp_mergemap)
+
+            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+
+            rescales = []
+            self.compilePlotScaleMap(self._options.plotscalemap,rescales)
+            for p,v in ret.items():
+                for regexp in rescales:
+                    if re.match(regexp[0],p): v.Scale(regexp[1])
+
+            regroups = [] # [(compiled regexp,target)]
+            self.compilePlotMergeMap(self._options.plotmergemap,regroups)
+            for regexp in regroups: ret = self.regroupPlots(ret,regexp,plotspec)
+
+            # if necessary project to different lumi, energy,
+            if self._projection:
+                self._projection.scalePlots(ret)
+            if makeSummary:
+                allSig = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == True  ]
+                allBg  = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == False ]
+                if self._signals and not ret.has_key('signal') and len(allSig) > 0:
+                    ret['signal'] = mergePlots(plotspec.name+"_signal", allSig)
+                    ret['signal'].summary = True
+                if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
+                    ret['background'] = mergePlots(plotspec.name+"_background",allBg)
+                    ret['background'].summary = True
+
+            rets.append(ret)
+
+            #print "DONE getPlots at %.2f" % (0.001*(long(ROOT.gSystem.Now()) - _T0))
+        return rets
     def prepareForSplit(self):
         ttymap = {}
         for key,ttys in self._allData.iteritems():

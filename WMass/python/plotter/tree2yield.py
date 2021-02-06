@@ -403,42 +403,44 @@ class TreeToYield:
             return [ npass, sqrt(npass), npass ]
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
-    def getPlot(self,plotspec,cut,fsplit=None,closeTreeAfter=False):
+    def getManyPlots(self,plotspecs,cut,fsplit=None,closeTreeAfter=False):
         print 'in getplot of tty'
-        ret = self.getPlotRaw(plotspec.name, plotspec.expr, plotspec.bins, cut, plotspec, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
+        ##ret = self.getManyPlotsRaw(plotspec.name, plotspec.expr, plotspec.bins, cut, plotspec, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
+        rets = self.getManyPlotsRaw(cut, plotspecs, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
         # fold overflow
-        if ret.ClassName() in [ "TH1F", "TH1D" ] :
-            n = ret.GetNbinsX()
-            if plotspec.getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
-                ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
-                ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
-                ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
-                ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
-                ret.SetBinContent(0,0)
-                ret.SetBinContent(n+1,0)
-                ret.SetBinContent(0,0)
-                ret.SetBinContent(n+1,0)
-            if plotspec.getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
-                ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
-                ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
-                ret.SetBinContent(n+1,0)
-                ret.SetBinContent(n+1,0)
-            if plotspec.getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
-                ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
-                ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
-                ret.SetBinContent(0,0)
-                ret.SetBinContent(0,0)
-            rebin = plotspec.getOption('rebinFactor',0)
-            if plotspec.bins[0] != "[" and rebin > 1 and n > 5:
-                while n % rebin != 0: rebin -= 1
-                if rebin != 1: ret.Rebin(rebin)
-            if plotspec.getOption('Density',False):
-                for b in xrange(1,n+1):
-                    ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
-                    ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
-        self._stylePlot(ret,plotspec)
-        ret._cname = self._cname
-        return ret
+        for iret,ret in enumerate(rets):
+            if ret.ClassName() in [ "TH1F", "TH1D" ] :
+                n = ret.GetNbinsX()
+                if plotspecs[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
+                    ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
+                    ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
+                    ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
+                    ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
+                    ret.SetBinContent(0,0)
+                    ret.SetBinContent(n+1,0)
+                    ret.SetBinContent(0,0)
+                    ret.SetBinContent(n+1,0)
+                if plotspecs[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
+                    ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
+                    ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
+                    ret.SetBinContent(n+1,0)
+                    ret.SetBinContent(n+1,0)
+                if plotspecs[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
+                    ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
+                    ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
+                    ret.SetBinContent(0,0)
+                    ret.SetBinContent(0,0)
+                rebin = plotspecs[iret].getOption('rebinFactor',0)
+                if plotspecs[iret].bins[0] != "[" and rebin > 1 and n > 5:
+                    while n % rebin != 0: rebin -= 1
+                    if rebin != 1: ret.Rebin(rebin)
+                if plotspecs[iret].getOption('Density',False):
+                    for b in xrange(1,n+1):
+                        ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
+                        ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
+            self._stylePlot(ret,plotspecs[iret])
+            ret._cname = self._cname
+        return rets
     def getWeightForCut(self,cut):
         if self._weight:
             if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
@@ -446,6 +448,81 @@ class TreeToYield:
         else:
             cut = self.adaptExpr(cut,cut=True)
         return cut
+    def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
+        if not self._isInit: self._init()
+        retlist = []
+        justthecut = cut
+        if self._options.doS2V:
+            justthecut  = scalarToVector(justthecut)
+        ## weigth is always the same for each plot
+        if self._weight:
+            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+        else:
+            wgt = '1.' ## wtf is that marc
+
+        tmp_weight = self._cname+'_weight'
+        self._tree = self._tree.Define(tmp_weight, wgt)
+
+        ## now filter the rdf with just the cut
+        self._tree = self._tree.Filter(justthecut)
+
+        histos = []
+
+        for plotspec in plotspecs:
+            unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
+
+            tmp_expr = self.adaptExpr(plotspec.expr)
+            if self._options.doS2V:
+                tmp_expr = scalarToVector(tmp_expr)
+
+            ## marc: this following line should be removed i think
+            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
+            #if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
+            tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+            canKeys = (tmp_histo.ClassName() == "TH1D" and plotspec.bins[0] != "[")
+            if tmp_histo.ClassName != "TH2D" or self._name == "data": unbinnedData2D = False
+            ## marc: something to fix here
+            if unbinnedData2D:
+                nent = self._tree.Draw("%s" % plotspec.expr, cut, "", maxEntries, firstEntry)
+                if nent == 0: return ROOT.TGraph(0)
+                graph = ROOT.gROOT.FindObject("Graph").Clone(plotspec.name)
+                return graph
+            drawOpt = "goff"
+            if "TProfile" in tmp_histo.ClassName(): drawOpt += " PROF";
+    
+            tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
+            tmp_var    = self._cname+'_'+plotspec.name+'_var'
+            self._tree = self._tree.Define(tmp_var   , plotspec.expr)
+            tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+
+            histos.append(tmp_histo)
+
+            #print 'this is histo', histo1
+            #print 'this is integral of histo', histo1.Integral()
+        for histo in histos:
+            ## marc: don't really know what this does...
+            if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
+                #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
+                if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
+                    ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
+                (nb,xmin,xmax) = bins.split(",")
+                histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
+                print 'now gonna perform the draw command 3'
+                self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
+                self.negativeCheck(histo)
+                histo.SetDirectory(0)
+                if closeTreeAfter: self._tfile.Close()
+                return histo.GetHisto().Clone(plotspec.name)
+            #elif not self._isdata and self.getOption("KeysPdf",False):
+            #else:
+            #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))
+            self.negativeCheck(histo)
+            histo.SetDirectory(0)
+        if closeTreeAfter: self._tfile.Close()
+
+        return histos
+
     def getPlotRaw(self,name,expr,bins,cut,plotspec,fsplit=None,closeTreeAfter=False):
         justthecut = cut
         unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
@@ -642,7 +719,7 @@ def addTreeToYieldOptions(parser):
     parser.add_option("--s2v", "--scalar2vector",     dest="doS2V",    action="store_true", default=False, help="Do scalar to vector conversion") 
     parser.add_option("--neg", "--allow-negative-results",     dest="allowNegative",    action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
     parser.add_option("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
-    parser.add_option("--max-entries",     dest="maxEntries", default=1000000000, type="int", help="Max entries to process in each tree") 
+    parser.add_option("--max-entries",     dest="maxEntries", default=1000000000000, type="int", help="Max entries to process in each tree") 
     parser.add_option("--max-entries-not-data",     dest="maxEntriesNotData", default=False, action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
     parser.add_option("-L", "--load-macro",  dest="loadMacro",   type="string", action="append", default=[], help="Load the following macro, with .L <file>+");
 
@@ -665,10 +742,12 @@ def mergePlots(name,plots):
     if "TGraph" in one.ClassName():
         others = ROOT.TList()
         for two in plots[1:]: 
-            others.Add(two)
+            twoc = two.Clone(name+'foobar')
+            others.Add(twoc)
         one.Merge(others)
     else:         
         for two in plots[1:]: 
-            one.Add(two)
+            twoc = two.Clone(name+'foobar')
+            one.Add(twoc)
     return one
 

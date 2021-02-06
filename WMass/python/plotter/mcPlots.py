@@ -827,20 +827,20 @@ class PlotMaker:
                 if not matchspec: raise RuntimeError, "Error: plot %s not found" % self._options.preFitData
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             print ' this is pspecs', pspecs
-            for pspec in pspecs:
+            pmaps = mca.getPlots(pspecs,cut,makeSummary=True)
+            for ipspec,pspec in enumerate(pspecs):
                 print "    plot: ",pspec.name
-                pmap = mca.getPlots(pspec,cut,makeSummary=True)
-                print 'this is pmap', pmap
-                exit(0)
+                #pmap = mca.getPlots(pspec,cut,makeSummary=True)
+                #exit(0)
                 #
                 # blinding policy
-                blind = pspec.getOption('Blinded','None') if 'data' in pmap else 'None'
+                blind = pspec.getOption('Blinded','None') if 'data' in pmaps[ipspec] else 'None'
                 if self._options.unblind == True: blind = 'None'
                 xblind = [9e99,-9e99]
                 if re.match(r'(bin|x)\s*([<>]?)\s*(\+|-)?\d+(\.\d+)?|(\+|-)?\d+(\.\d+)?\s*<\s*(bin|x)\s*<\s*(\+|-)?\d+(\.\d+)?', blind):
                     xfunc = (lambda h,b: b)             if 'bin' in blind else (lambda h,b : h.GetXaxis().GetBinCenter(b));
                     test  = eval("lambda bin : "+blind) if 'bin' in blind else eval("lambda x : "+blind) 
-                    hdata = pmap['data']
+                    hdata = pmaps[ipspec]['data']
                     for b in xrange(1,hdata.GetNbinsX()+1):
                         if test(xfunc(hdata,b)):
                             #print "blinding bin %d, x = [%s, %s]" % (b, hdata.GetXaxis().GetBinLowEdge(b), hdata.GetXaxis().GetBinUpEdge(b))
@@ -854,14 +854,14 @@ class PlotMaker:
                 #
                 # Pseudo-data?
                 if self._options.pseudoData:
-                    if "data" in pmap: raise RuntimeError, "Can't use --pseudoData if there's also real data (maybe you want --xp data?)"
+                    if "data" in pmaps[ipspec]: raise RuntimeError, "Can't use --pseudoData if there's also real data (maybe you want --xp data?)"
                     if "background" in self._options.pseudoData:
-                        pdata = pmap["background"]
+                        pdata = pmaps[ipspec]["background"]
                         pdata = pdata.Clone(str(pdata.GetName()).replace("_background","_data"))
                     elif "all" in self._options.pseudoData:
-                        pdata = pmap["background"]
+                        pdata = pmaps[ipspec]["background"]
                         pdata = pdata.Clone(str(pdata.GetName()).replace("_background","_data"))
-                        if "signal" in pmap: pdata.Add(pmap["signal"])
+                        if "signal" in pmaps[ipspec]: pdata.Add(pmaps[ipspec]["signal"])
                     else:
                         raise RuntimeError, "Pseudo-data option %s not supported" % self._options.pseudoData
                     if "asimov" not in self._options.pseudoData:
@@ -876,36 +876,36 @@ class PlotMaker:
                                 pdata.SetBinError(ix, iy, sqrt(pdata.GetBinContent(ix, iy)))
                         else:
                             raise RuntimeError, "Can't make pseudo-data for %s" % pdata.ClassName()
-                    pmap["data"] = pdata
+                    pmaps[ipspec]["data"] = pdata
                 #
                 if not makeStack: 
-                    for k,v in pmap.iteritems():
+                    for k,v in pmaps[ipspec].iteritems():
                         if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
                         dir.WriteTObject(v)
                     continue
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
-                hists = [v for k,v in pmap.iteritems() if k != 'data']
+                hists = [v for k,v in pmaps[ipspec].iteritems() if k != 'data']
                 #print "CHECK %d" % len(hists)
                 total = hists[0].Clone(pspec.name+"_total"); total.Reset()
                 totalSyst = hists[0].Clone(pspec.name+"_totalSyst"); totalSyst.Reset()
                 if self._options.plotmode == "norm": 
-                    if 'data' in pmap:
+                    if 'data' in pmaps[ipspec]:
                         total.GetYaxis().SetTitle(total.GetYaxis().GetTitle()+" (normalized)")
                     else:
                         total.GetYaxis().SetTitle("density/bin")
                     total.GetYaxis().SetDecimals(True)
-                if self._options.scaleSignalToData: self._sf = doScaleSigNormData(pspec,pmap,mca)
-                if self._options.scaleBackgroundToData != []: self._sf = doScaleBkgNormData(pspec,pmap,mca,self._options.scaleBackgroundToData)
-                elif self._options.fitData: doNormFit(pspec,pmap,mca)
+                if self._options.scaleSignalToData: self._sf = doScaleSigNormData(pspec,pmaps[ipspec],mca)
+                if self._options.scaleBackgroundToData != []: self._sf = doScaleBkgNormData(pspec,pmaps[ipspec],mca,self._options.scaleBackgroundToData)
+                elif self._options.fitData: doNormFit(pspec,pmaps[ipspec],mca)
                 elif self._options.preFitData and pspec.name == self._options.preFitData:
-                    doNormFit(pspec,pmap,mca,saveScales=True)
+                    doNormFit(pspec,pmaps[ipspec],mca,saveScales=True)
                 #
-                for k,v in pmap.iteritems():
+                for k,v in pmaps[ipspec].iteritems():
                     if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
                     dir.WriteTObject(v)
                 #
-                self.printOnePlot(mca,pspec,pmap,
+                self.printOnePlot(mca,pspec,pmaps[ipspec],
                                   xblind=xblind,
                                   makeCanvas=makeCanvas,
                                   outputDir=dir,
