@@ -141,11 +141,9 @@ def cropNegativeBins(histo):
 
 class TreeToYield:
     def __init__(self,root,options,scaleFactor=1.0,name=None,cname=None,settings={},objname=None, frienddir=None):
-        self._isTChain = False if isinstance(root,str) else True if (root.ClassName() == "TChain") else False
-        self._chain = root if self._isTChain else None
         self._name  = name  if name != None else root
         self._cname = cname if cname != None else self._name
-        self._fname = "thisIsATChainNotAFile" if self._isTChain else root
+        self._fname = root
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
@@ -247,16 +245,10 @@ class TreeToYield:
             self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=65535") # good
             #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=0") #worse than 65k
         else:
-            if not self._isTChain:
-                self._tfile = ROOT.TFile.Open(self._fname)
-        if self._isTChain:
-            t = self._chain
-            if not t: raise RuntimeError, "Cannot initialize chain\n"
-            self._tfile = None
-        else:
-            if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
-            t = self._tfile.Get(self._objname)
-            if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
+            self._tfile = ROOT.TFile.Open(self._fname)
+        if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
+        t = self._tfile.Get(self._objname)
+        if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
         self._tree  = t
         #self._tree.SetCacheSize(10*1000*1000)
         if "root://" in self._fname: self._tree.SetCacheSize()
@@ -267,7 +259,6 @@ class TreeToYield:
         friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in (self._options.friendTreesDataSimple if self._isdata else self._options.friendTreesMCSimple) ]
         if 'Friends' in self._settings: friendOpts += self._settings['Friends']
         if 'FriendsSimple' in self._settings: friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._settings['FriendsSimple'] ]
-        # this part needs more work when using TChain, not implemented now
         for tf_tree,tf_file in friendOpts:
             # print 'Adding friend',tf_tree,tf_file
             basepath = None
@@ -298,15 +289,11 @@ class TreeToYield:
             return self._elist.GetN()
         if self._entries is None:
             if closeFileAfterwards and (not self._isInit):
-                if not self._isTChain:
-                    if "root://" in self._fname: ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
-                    tfile = ROOT.TFile.Open(self._fname)
-                    if not tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
-                    t = tfile.Get(self._objname)
-                    if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
-                else:
-                    t = self._chain
-                    if not t: raise RuntimeError, "Cannot find chain\n"
+                if "root://" in self._fname: ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
+                tfile = ROOT.TFile.Open(self._fname)
+                if not tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
+                t = tfile.Get(self._objname)
+                if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname) 
                 self._entries = t.GetEntries()
             else:
                 self._entries = self.getTree().GetEntries()
@@ -486,14 +473,14 @@ class TreeToYield:
             self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
             self.negativeCheck(histo)
             histo.SetDirectory(0)
-            if closeTreeAfter and not self._isTChain: self._tfile.Close()
+            if closeTreeAfter: self._tfile.Close()
             return histo.GetHisto().Clone(name)
         #elif not self._isdata and self.getOption("KeysPdf",False):
         #else:
         #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))
         self.negativeCheck(histo)
         histo.SetDirectory(0)
-        if closeTreeAfter and not self._isTChain: self._tfile.Close()
+        if closeTreeAfter: self._tfile.Close()
         return histo.Clone(name)
     def negativeCheck(self,histo):
         if not self._options.allowNegative and not self._name in self._options.negAllowed: 
