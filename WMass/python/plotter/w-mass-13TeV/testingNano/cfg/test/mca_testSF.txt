@@ -6,6 +6,7 @@ data_F: .*; SubPath=".*DATA_NanoV8/Run2016F/"
 data_F_postVFP: .*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
 data_G: .*; SubPath=".*DATA_NanoV8/Run2016G/"
 data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
+fullData: .*; SubPath=".*DATA_NanoV8/"
 
 
 Zmumu_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,1)"

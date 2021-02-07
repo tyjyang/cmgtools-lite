@@ -1,46 +1,19 @@
 ## MAIN SAMPLES
-#incl_sigincl          : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sigincl.txt", SkipMe=True
 
-incl_sig              : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt"
-incl_bkgmc            : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-bkgmc.txt"
-incl_dy               : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-dy.txt"
-incl_wtau             : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-wtau.txt"
+##data: .*; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", FriendDir="Run2016[XXX]", XXX="G\,H"
 
-incl_datafakes        : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/FRfast/fakeRate_application_data.txt", Label="Fakes", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30, PostFix='_fakes'
-
-## DATA
-incl_data             : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt"
-
-## SYSTEMATICS 
-
-## lepton efficiency systematics
-# use prefire as SF3 instead of 1 for real reco SF, otherwise the variation computed by multiplying for prefire a posteriori might be wrong
-#incl_sig_lepeff_Up  : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRelUp(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1.)", SkipMe=True, PostFix='_lepeff_Up'
-#incl_sig_lepeff_Dn  : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRelDn(LepGood1_pdgId\,LepGood1_pt\,LepGood1_eta\,LepGood1_SF1\,LepGood1_SF2\,1.)", SkipMe=True, PostFix='_lepeff_Dn'
-
-# need to use correct scale factors for trigger and the rest. Pass prefiring as if it was SF3, otherwise the variation gets wrong (prefiring would be applied as another multiplicative factor after scaling the SF weights, while one wants to include it in the SF weight, and then vary it by a global uncertainty)
-# here we use these new functions lepSFRmuUp and lepSFRmuDn defined in functionsWMass.cc
-
-#incl_sig_lepeff_Up  : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Up'
-#incl_sig_lepeff_Dn  : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-80X-wmunu-sig.txt", AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", SkipMe=True, PostFix='_lepeff_Dn'
-
-# on 29/03/2019lep efficiency for Z was missing !!!!
-#Z_lepeff_Up   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Up", NormSystematic=0.04, SkipMe=True
-#Z_lepeff_Dn   : DYJetsToLL_M50_* : 2008.4*3; FillColor=ROOT.kAzure+2, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="Z lep scale Dn", NormSystematic=0.04, SkipMe=True
-
-# TauDecaysW_lepeff_Up   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuUp(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Up", NormSystematic=0.04, SkipMe=True
-# TauDecaysW_lepeff_Dn   : TauDecaysW_* : 3.*20508.9; FillColor=ROOT.kSpring+9, AddWeight="lepSFRmuDn(LepGood1_pdgId\,LepGood1_calPt\,LepGood1_eta\,LepGood_charge[0]\,LepGood1_SF2)", Label="W\#rightarrow\#tau\#nu lep scale Dn", NormSystematic=0.04, SkipMe=True
-
- 
-## # fake-lepton background systematics (shape systematics)
-incl_datafakes_FRmu_slope_Up : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopeup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_slope_Up' , FillColor=ROOT.kGreen-1
-incl_datafakes_FRmu_slope_Dn : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-slopedown.txt", SkipMe=True, PostFix='_fakes_FRmu_slope_Dn' , FillColor=ROOT.kBlue-1
-
-## continuous shape in eta
-#incl_datafakes_FRmu_continuous_Up : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousup.txt"  , SkipMe=True, PostFix='_fakes_FRmu_continuous_Up'
-#incl_datafakes_FRmu_continuous_Dn : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/fakerate-vars/fakeRate-frdata-mu-continuousdown.txt", SkipMe=True, PostFix='_fakes_FRmu_continuous_Dn'
+# test data
+#data: FBA72527-8279-0241-9F60-DDA281B98935.root; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", FriendDir="Run2016[XXX]", XXX="G\,H"
 
 
-## systematic with varied awayjet pT to 45 (from 30) GeV
-#incl_datafakes_FRmu_awayJetPt45 : + ; IncludeMca="w-mass-13TeV/wmass_mu/mca-includes/mca-data.txt", FakeRate="w-mass-13TeV/wmass_mu/fakerate-vars/fakeRate_application_jetPt45_data.txt", SkipMe=True, PostFix='_fakes_FRmu_awayJetPt45'
+Wplus+  : SMP-RunIISummer16NanoAODv8-wmassNano_60.* : 11572.19; FillColor=ROOT.kAzure-4, Label="W+", NormSystematic=0.04, ObjName="Events", SubPath="WplusJetsToMuNu_postVFP/"
 
+Zpart   : SMP-RunIISummer16NanoAODv8-wmassNano_31.* : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath="DYJetsToMuMu_postVFP_addVars/"
+
+##Z   : .* : 1976.17 ; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
+##
+##
+##Ztest: SMP-RunIISummer16NanoAODv7-00336_111.root : 1976.17; FillColor=ROOT.kAzure+2, Label="Z", NormSystematic=0.04, ObjName="Events", SubPath=".*DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv7/201025_173845/0000/", FriendDir="DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos"
+##
+##
+##data_fakes_ss: .*, 1.0; TreePath="/eos/cms/store/data/Run2016[XXX]/SingleMuon/NANOAOD/Nano02Dec2019-v1/", SubPath=".*/", ObjName="Events", XXX="G\,H", FakeRate="w-mass-13TeV/wlike_mu/FRfast/sameSign_application_data.txt", Label="Fakes (SS)", FillColor=ROOT.kGray+2, FillStyle=3005, NormSystematic=0.30

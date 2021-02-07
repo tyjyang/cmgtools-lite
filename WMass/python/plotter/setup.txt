@@ -1,0 +1,12 @@
+## call this for a python3 setup (this will not work with cmgtools)
+/data/shared/singularity/pythonrootdevf32.sif
+
+## call this for python 2
+/data/shared/singularity/python2rootdevf32.sif
+
+
+## once singularity is loaded, make sure it finds the right paths for the scripts:
+export CMSSW_BASE=/afs/cern.ch/work/m/mdunser/public/cmssw/w-mass-13TeV/CMSSW_10_6_18/
+
+## root 6.22, in case anyone needs it
+source /cvmfs/sft.cern.ch/lcg/app/releases/ROOT/6.22.02/x86_64-centos7-gcc48-opt/bin/thisroot.sh

@@ -1,10 +1,11 @@
-#
 alwaystrue : 1
-trigger    : (HLT_BIT_HLT_IsoMu24_v > 0 || HLT_BIT_HLT_IsoTkMu24_v > 0 )
-onelep     : nLepGood == 1
-mu         : abs(LepGood1_pdgId)==13
-kinAccept  : ptMuFull(LepGood1_calPt,LepGood1_eta) > 26. && abs(LepGood1_eta) < 2.4 && ptMuFull(LepGood1_calPt,LepGood1_eta) < 45
-muMediumId  : LepGood1_mediumMuonId  > 0
-muTightIso : LepGood1_relIso04 < 0.15
-##
-mtl1pf40   : mt_2(ptMuFull(LepGood1_calPt,LepGood1_eta),LepGood1_phi,met_pt,met_phi) > 40.
+onemuon    : Idx_mu1 > -1
+elveto     : nVetoElectrons == 0
+trigger    : HLT_SingleMu24 > 0
+accept     : abs(Muon_eta[Idx_mu1]) < 2.4 && Muon_pt[Idx_mu1] > 32 && Muon_pt[Idx_mu1] < 48
+muonID     : Muon_mediumId[Idx_mu1] == 1
+pfRelIso04 : Muon_pfRelIso04_all[Idx_mu1] < 0.15
+dxy        : abs(Muon_dxy[Idx_mu1]) < 0.05
+dz         : abs(Muon_dz[Idx_mu1]) < 0.2
+mt_ChsMET: mt_2(Muon_pt[Idx_mu1],Muon_phi[Idx_mu1],MET_T1_pt,MET_T1_phi) > 40.
+## filters missing etc.
