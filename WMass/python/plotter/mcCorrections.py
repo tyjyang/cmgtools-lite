@@ -3,21 +3,14 @@ import os
 
 import ROOT
 
-# this is defined in fakeRate.py, which imports some classes of this script. For now I don't want to move the definition here, as every other.py imports fakeRate.py
-def compileMacro_clone(x,basedir=os.environ['CMSSW_BASE']):
-    ROOT.gROOT.ProcessLine(".L %s/%s+" % (os.environ['CMSSW_BASE'],x));                                                                
-    # success = ROOT.gSystem.CompileMacro("%s/%s" % (os.environ['CMSSW_BASE'],x),"k")
-    # if not success:
-    #     print ("Loading and compiling %s failed! Exit" % x)
-    #     quit()
-
+from fakeRate import compileMacro
 
 if "/smearer_cc.so" not in ROOT.gSystem.GetLibraries(): 
     #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/smearer.cc+" % os.environ['CMSSW_BASE']);  # keep for future references and debug
-    compileMacro_clone("src/CMGTools/WMass/python/plotter/smearer.cc")
+    compileMacro("src/CMGTools/WMass/python/plotter/smearer.cc")
 if "/mcCorrections_cc.so" not in ROOT.gSystem.GetLibraries(): 
     #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/mcCorrections.cc+" % os.environ['CMSSW_BASE']);
-    compileMacro_clone("src/CMGTools/WMass/python/plotter/mcCorrections.cc")
+    compileMacro("src/CMGTools/WMass/python/plotter/mcCorrections.cc")
 
 class SimpleCorrection:
     def __init__(self,find,replace,procMatch=None,componentMatch=None,onlyForCuts=False,alsoData=False):
