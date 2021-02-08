@@ -150,7 +150,7 @@ class TreeToYield:
     def __init__(self,root,options,scaleFactor=1.0,name=None,cname=None,settings={},objname=None, frienddir=None):
         self._name  = name  if name != None else root
         self._cname = cname if cname != None else self._name
-        print('in treetoyield init, this is root and type(root)', root, type(root))
+        #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
         self._isInit = False
         self._options = options
@@ -245,7 +245,7 @@ class TreeToYield:
             ret = mcc(ret,self._name,self._cname,cut)
         return ret
     def _init(self):
-        print 'this is self._fname', self._fname
+        # print 'this is self._fname', self._fname
         ## marc if type(self._fname) == type(ROOT.RDataFrame):
         ## marc     print 'i am in the ifiifi'
         ## marc elif "root://" in self._fname:
@@ -495,7 +495,7 @@ class TreeToYield:
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 tmp_var    = self._cname+'_'+plotspec.name+'_var'
                 self._tree = self._tree.Define(tmp_var   , plotspec.expr)
-                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)           
             elif tmp_histo.ClassName() == 'TH2D':
                 #print 'this is now plotspec.name and self._cname', plotspec.name, self._cname
                 #print 'this is now plotspec.expr.split(:)[1] and 0', plotspec.expr.split(':')[1], plotspec.expr.split(':')[0]

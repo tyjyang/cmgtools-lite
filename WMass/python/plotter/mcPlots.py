@@ -677,7 +677,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         ratio.SetContour(100)
         ratios.append(ratio)
 
-    print 'this is ratios', ratios
+    #print 'this is ratios', ratios
 
     return ratios
 
@@ -828,7 +828,7 @@ class PlotMaker:
                 matchspec = [ p for p in pspecs if p.name == self._options.preFitData ]
                 if not matchspec: raise RuntimeError, "Error: plot %s not found" % self._options.preFitData
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
-            print ' this is pspecs', pspecs
+            #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cut,makeSummary=True)
             for ipspec,pspec in enumerate(pspecs):
                 print "    plot: ",pspec.name
@@ -992,7 +992,7 @@ class PlotMaker:
 
                 if not self._options.emptyStack and stack.GetNhists() == 0:
                     print "ERROR: for %s, all histograms are empty\n " % pspec.name
-                    print 'this is stack', stack
+                    #print 'this is stack', stack
                     return
 
                 # define aspect ratio

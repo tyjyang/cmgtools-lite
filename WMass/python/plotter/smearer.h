@@ -1,5 +1,5 @@
-#ifndef TTHAnalysis_plotter_smearer_h
-#define TTHAnalysis_plotter_smearer_h
+#ifndef WMass_plotter_smearer_h
+#define WMass_plotter_smearer_h
 #include <TRandom3.h>
 #include <cmath>
 

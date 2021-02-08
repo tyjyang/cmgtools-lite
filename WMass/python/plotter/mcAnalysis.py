@@ -65,7 +65,7 @@ class MCAnalysis:
 
         ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
         #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-        tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
+        tmp_rootfile = ROOT.TFile.Open(rootfile)
  
         if self._options.weight and len(self._options.maxGenWeightProc):
             # get sum of weights from histograms, filtering some events with large weights
@@ -89,7 +89,7 @@ class MCAnalysis:
                         maxGenWgt = math.pow(10.0,histo_sumgenweight.GetXaxis().GetBinUpEdge(maxBin))
                         if verbose:
                             print "INFO >>> Process %s -> actual genWeight threshold set to %s" % (pname,str(maxGenWgt))
-                        nLargeWeight = histo_numweight.Integral(0,max(0,minBin-1)) + histo_numweight.Integral(min(histo_numweight.GetNbinsX()+1,maxBin+1), histo_numweight.GetNbinsX()+1)
+                        nLargeWeight = -1*histo_numweight.Integral(0,max(0,minBin-1)) + histo_numweight.Integral(min(histo_numweight.GetNbinsX()+1,maxBin+1), histo_numweight.GetNbinsX()+1)
                         sumGenWeights += (nLargeWeight*maxGenWgt) 
                         nUnweightedEvents = histo_numweight.Integral(0,histo_numweight.GetNbinsX()+1)
         else:
@@ -264,7 +264,6 @@ class MCAnalysis:
 
             ### CHECKPOINT
             nAllFiles = len(cnamesWithPath)
-            iFile = 0
             #for cname in cnames:            
             ##marc print 'this is the first for loop, maybe', (cnamesWithPath if len(cnamesWithPath) else cnames)
             ##marc print 'this is the length of the loop', len((cnamesWithPath if len(cnamesWithPath) else cnames))
@@ -386,9 +385,6 @@ class MCAnalysis:
                         if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
                         is_w = 0
                 elif options.nanoaodTree:
-                    #(maxGenWgt, sumGenWeights, nUnweightedEvents) = self.getSumGenWeightMCfromHisto(pname, rootfile, verbose=(iFile==0))
-                    #sys.stdout.write('INFO >>> preparing files {0:.2%}  \r'.format(float(iFile+1)/nAllFiles))
-                    #sys.stdout.flush()
 
                     maxGenWgt = None
                     sumGenWeights = 1.0
@@ -421,25 +417,35 @@ class MCAnalysis:
                                 ##3h_sumw = ROOT.TH1D('sumweights', 'sumweights', 1, 0.5, 1.5)
                                 ##3h_sumweights = ROOT.RDF.TH1DModel(h_sumw) 
                                 ##3print 'this is tmp_rdf', tmp_rdf
-                                if options.clipGenWeightToMax:
-                                    # set weight to max
-                                    # TMath::Sign(a,b) returns a with the sign of b
-                                    #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
-                                    tmp_rdf = tmp_rdf.Define('const1', '1.')
-                                    tmp_rdf = tmp_rdf.Define('myweight', 'fabs(genWeight) > {s} ? genWeight / fabs(genWeight) * {s} : genWeight'.format(s=maxGenWgt))
-                                    #tmp_rdf = tmp_rdf.Define('myweight', 'TMath::Sign( TMath::Min(TMath::Abs(genWeight),%s), genWeight)' % str(maxGenWgt) )
-                                    h_sumweights = tmp_rdf.Histo1D( ('sumweights', 'sumweights', 1, 0.5, 1.5) , 'const1', 'myweight' )
+                                sumFromHisto = True                                
+                                if sumFromHisto:
+                                    for iFile,f in enumerate(cnamesWithPath):
+                                        (maxGenWgt, tmp_sumGenWeights, tmp_nUnweightedEvents) = self.getSumGenWeightMCfromHisto(pname, f, verbose=(iFile==0))
+                                        sys.stdout.write('INFO >>> preparing files {0:.2%}  \r'.format(float(iFile+1)/nAllFiles))
+                                        sys.stdout.flush()
+                                        sumGenWeights += tmp_sumGenWeights
+                                        nUnweightedEvents += tmp_nUnweightedEvents
                                 else:
-                                    # reject event with weight > max
-                                    print 'in some other else command here'
-                                    #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
-                                    h_sumweights = tmp_rdf.Histo1D(('sumweights', 'sumweights', 1, 0.5, 1.5) , '1', "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt)) 
-                                #tmp_hist = ROOT.gROOT.FindObject("sumweights")
-                                sumGenWeights = h_sumweights.Integral()
-                                print ' this is the new sumgenWeights', sumGenWeights
-                                ## marc tmp_rootfile.Close()
+                                    if options.clipGenWeightToMax:
+                                        # set weight to max
+                                        # TMath::Sign(a,b) returns a with the sign of b
+                                        #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "TMath::Sign(TMath::Min(abs(genWeight),%s),genWeight)" % str(maxGenWgt))           
+                                        tmp_rdf = tmp_rdf.Define('const1', '1.')
+                                        tmp_rdf = tmp_rdf.Define('myweight', 'fabs(genWeight) > {s} ? std::copysign(1.0,genWeight) * {s} : genWeight'.format(s=maxGenWgt))
+                                        #tmp_rdf = tmp_rdf.Define('myweight', 'TMath::Sign( TMath::Min(TMath::Abs(genWeight),%s), genWeight)' % str(maxGenWgt) )
+                                        h_sumweights = tmp_rdf.Histo1D( ('sumweights', 'sumweights', 1, 0.5, 1.5) , 'const1', 'myweight' ).GetValue()
+                                    else:
+                                        # reject event with weight > max
+                                        print 'in some other else command here'
+                                        #nUnweightedEvents = tmp_rdf.Draw("1>>sumweights", "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt))           
+                                        h_sumweights = tmp_rdf.Histo1D(('sumweights', 'sumweights', 1, 0.5, 1.5) , '1', "genWeight*(abs(genWeight) < %s)" % str(maxGenWgt)).GetValue() 
+                                    #tmp_hist = ROOT.gROOT.FindObject("sumweights")
+                                    sumGenWeights = h_sumweights.Integral()
+                                    print ' this is the new sumgenWeights', sumGenWeights
+                                    ## marc tmp_rootfile.Close()
                     else:
                         # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
+                        ## Marco this will not work for now, rootfile is no longer defined
                         ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
                         #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
                         tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
@@ -463,7 +469,7 @@ class MCAnalysis:
                         if maxGenWgt != None:
                             if options.clipGenWeightToMax:
                                 # marc scale = "(%s)*TMath::Sign(min(abs(genWeight),%s),genWeight)" % (field[2],str(maxGenWgt))
-                                scale = '(%s)* genWeight/fabs(genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
+                                scale = '(%s)* std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
                             else:
                                 scale = "genWeight*(%s)*(std::abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
                         else:
@@ -681,7 +687,7 @@ class MCAnalysis:
                 retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) ) 
         if self._options.splitFactor > 1 or  self._options.splitFactor == -1:
             tasks = self._splitTasks(tasks)
-        print 'this is retlist', retlist
+        ##print 'this is retlist', retlist
         #retlist = self._processTasks(_runPlot, tasks, name="plot "+plotspec.name)
         ## then gather results with the same process
 
@@ -690,7 +696,7 @@ class MCAnalysis:
             if k not in mergemap: mergemap[k] = []
             mergemap[k].append(v)
         ## and finally merge them
-        print 'this is mergemap', mergemap
+        #print 'this is mergemap', mergemap
 
         ##mergemaps = []
         ##for iplot in range(len(plotspecs)):
