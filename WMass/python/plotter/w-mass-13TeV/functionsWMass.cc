@@ -880,6 +880,15 @@ TH2F *_histo_isonotrig[3] = {NULL, NULL, NULL};
 TH2F *_histo_idip[3] = {NULL, NULL, NULL};
 TH2F *_histo_tracking[3] = {NULL, NULL, NULL};
 
+// float* getParticleVars(float pt1, float eta1, float pt2, float eta2) {
+  
+//   static float vars[] = {pt1, eta1, pt2, eta2};
+//   std::cout << "1) " << pt1 << "   " << eta1 << "   " << pt2 << "   " << eta2 << std::endl;
+//   return vars;
+
+// }
+
+
 // I think the function cannot have more than 8 arguments, let's see
 float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatch1, float pt2, float eta2, int charge2, int trigMatch2, ULong64_t event, int era = 0) {
 
@@ -970,46 +979,56 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
 
 
 // details like histograms and location might be updated
-float _get_muonSF_fast_wmass(float pt, float eta, int charge) {
+float _get_AllMuonSF_fast_wmass(float pt, float eta, int charge, int trigMatch, int era=0) {
 
+  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
+  string dataEraForSF = "BtoH";
+  if (era == 1) 
+    dataEraForSF = "BtoF";
+  else if (era == 2 )
+    dataEraForSF = "GtoH";
+  
   if (_cmssw_base_ == "") {
     cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
     _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
   }
 
-  string hSFname = "EGamma_SF2D";
+  // open the single file we have
+  if (!_file_allSF) {
+    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
+  }
 
   // trigger
-  if (!_histo_trigger_leptonSF_fast_mu_plus) {
-    _file_trigger_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuPlus.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_leptonSF_fast_mu_plus = (TH2F*)(_file_trigger_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  if (!_histo_trigger_plus[era]) {
+    _histo_trigger_plus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
   }
-  if (!_histo_trigger_leptonSF_fast_mu_minus) {
-    _file_trigger_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuMinus.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_leptonSF_fast_mu_minus = (TH2F*)(_file_trigger_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  if (!_histo_trigger_minus[era]) {
+    _histo_trigger_minus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
   }
-  // selection
-  if (!_histo_selection_leptonSF_fast_mu_plus) {
-    _file_selection_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuPlus.root",_cmssw_base_.c_str()),"read");
-    _histo_selection_leptonSF_fast_mu_plus = (TH2F*)(_file_selection_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
+  // ID + ip (interaction point, i.e. dz and dxy)
+  if (!_histo_idip[era]) {
+    _histo_idip[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
   }
-  if (!_histo_selection_leptonSF_fast_mu_minus) {
-    _file_selection_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuMinus.root",_cmssw_base_.c_str()),"read");
-    _histo_selection_leptonSF_fast_mu_minus = (TH2F*)(_file_selection_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
+  if (!_histo_tracking[era]) {
+    _histo_tracking[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
+  }
+  if (!_histo_iso[era]) {
+    _histo_iso[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
+  }
+  if (!_histo_isonotrig[era]) {
+    _histo_isonotrig[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
   }
 
-  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_fast_mu_plus : _histo_trigger_leptonSF_fast_mu_minus );
-  int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
-  int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
-  float out = histTrigger->GetBinContent(etabin,ptbin);
 
-  TH2F *histSelection = ( charge > 0 ? _histo_selection_leptonSF_fast_mu_plus : _histo_selection_leptonSF_fast_mu_minus);
-  etabin = std::max(1, std::min(histSelection->GetNbinsX(), histSelection->GetXaxis()->FindFixBin(eta)));
-  ptbin  = std::max(1, std::min(histSelection->GetNbinsY(), histSelection->GetYaxis()->FindFixBin(pt)));
-  out *= histSelection->GetBinContent(etabin,ptbin);
+  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
+  float sf = getValFromTH2(histTrigger,eta,pt);
+  sf *= getValFromTH2(_histo_idip[era],eta,pt);
+  sf *= getValFromTH2(_histo_tracking[era],eta,pt);
+  TH2F *histIso = (trigMatch ? _histo_iso[era] : _histo_isonotrig[era]);
+  sf *= getValFromTH2(histIso,eta,pt);
+  // cout << " sf = " << sf << endl;
 
-  return out;
-
+  return sf;
 
 }
 

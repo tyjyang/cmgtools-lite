@@ -1,13 +1,14 @@
 alwaystrue : 1
-twomuon    : nVetoElectrons == 0 && nMuon >= 2 && Idx_mu1 >= 0 && Idx_mu2 >= 0 
-trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[Idx_mu1],Muon_charge[Idx_mu1],Muon_hasTriggerMatch[Idx_mu2],Muon_charge[Idx_mu2],event)
-oppositecharge : Vtype_subcat%2 == 0
-accept     : abs(Muon_eta[Idx_mu1]) < 2.4 && abs(Muon_eta[Idx_mu2]) < 2.4 && valueInsideRange(Muon_pt[Idx_mu1],26,55) && valueInsideRange(Muon_pt[Idx_mu2],26,55)
-muonID     : Muon_mediumId[Idx_mu1] == 1 && Muon_mediumId[Idx_mu2] == 1
-pfRelIso04 : Muon_pfRelIso04_all[Idx_mu1] < 0.15 && Muon_pfRelIso04_all[Idx_mu2] < 0.15
-dxy        : abs(Muon_dxy[Idx_mu1]) < 0.05 && abs(Muon_dxy[Idx_mu2]) < 0.05
-dz         : abs(Muon_dz[Idx_mu1]) < 0.2 && abs(Muon_dz[Idx_mu2]) < 0.2
-mZ         : valueInsideRange(mass_2(Muon_pt[Idx_mu1],Muon_eta[Idx_mu1],Muon_phi[Idx_mu1],0.1057,Muon_pt[Idx_mu2],Muon_eta[Idx_mu2],Muon_phi[Idx_mu2],0.1057), 60., 120.)
+twomuon    : nVetoElectrons == 0 && nMuon >= 2
+trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[0],Muon_charge[0],Muon_hasTriggerMatch[1],Muon_charge[1],event)
+#oppositecharge : Vtype_subcat%2 == 0
+oppositecharge : (Muon_charge[0] + Muon_charge[1]) == 0
+accept     : abs(Muon_eta[0]) < 2.4 && abs(Muon_eta[1]) < 2.4 && valueInsideRange(Muon_pt[0],26,55) && valueInsideRange(Muon_pt[1],26,55)
+muonID     : Muon_mediumId[0] == 1 && Muon_mediumId[1] == 1
+pfRelIso04 : Muon_pfRelIso04_all[0] < 0.15 && Muon_pfRelIso04_all[1] < 0.15
+dxy        : abs(Muon_dxy[0]) < 0.05 && abs(Muon_dxy[1]) < 0.05
+dz         : abs(Muon_dz[0]) < 0.2 && abs(Muon_dz[1]) < 0.2
+mZ         : valueInsideRange(mass_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057,Muon_pt[1],Muon_eta[1],Muon_phi[1],0.1057), 60., 120.)
 ## mT cut to be added once we understand what MET to use
-mtl1pf40   : mt_wlike(Muon_pt[Idx_mu1],Muon_phi[Idx_mu1],Muon_charge[Idx_mu1],Muon_pt[Idx_mu2],Muon_phi[Idx_mu2],Muon_charge[Idx_mu2],MET_T1_pt,MET_T1_phi,event) > 40.
+mtl1pf40   : mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_phi[1],Muon_charge[1],MET_T1_pt,MET_T1_phi,event) > 40.
 

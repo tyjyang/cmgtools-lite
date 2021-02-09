@@ -152,6 +152,7 @@ class TreeToYield:
         self._cname = cname if cname != None else self._name
         #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
+        self._sumGenWeights = None # filled with RDF later, and used in options.sumGenWeighFromHisto is False
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
@@ -217,6 +218,8 @@ class TreeToYield:
             self._scaleFactor = scaleFactor
     def getScaleFactor(self):
         return self._scaleFactor
+    def setRDF(self, rdf):
+        self._fname = rdf
     def setFullYield(self,fullYield):
         self._fullYield = fullYield
     def setFullNevt(self,fullNevt):
@@ -290,7 +293,7 @@ class TreeToYield:
             # print 'Adding friend',tf_tree,tf_filename
             tf = self._tree.AddFriend(tf_tree, tf_filename),
             self._friends.append(tf)
-        print 'done with init'
+        #print 'done with init'
         self._isInit = True
         
     def getTree(self):
@@ -404,7 +407,7 @@ class TreeToYield:
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
     def getManyPlots(self,plotspecs,cut,fsplit=None,closeTreeAfter=False):
-        print 'in getplot of tty'
+        #print 'in getplot of tty'
         ##ret = self.getManyPlotsRaw(plotspec.name, plotspec.expr, plotspec.bins, cut, plotspec, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
         rets = self.getManyPlotsRaw(cut, plotspecs, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
         # fold overflow
@@ -462,11 +465,19 @@ class TreeToYield:
             wgt = '1.' ## wtf is that marc
 
         tmp_weight = self._cname+'_weight'
+        #print "In getManyPlotsRaw"
+        #print tmp_weight
         self._tree = self._tree.Define(tmp_weight, wgt)
 
+        ## define the Sum of genWeights before the filter
+        if not self._isdata:
+            self._sumGenWeights = self._tree.Sum("myweight")
         ## now filter the rdf with just the cut
         self._tree = self._tree.Filter(justthecut)
 
+        # do not call it, or it will trigger the loop now
+        #print "sumGenWeights"
+        #print sumGenWeights.GetValue()
         histos = []
 
         for plotspec in plotspecs:
@@ -515,29 +526,32 @@ class TreeToYield:
                 self._tree = self._tree.Define(tmp_varz   , plotspec.expr.split(':')[0])
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)#, drawOpt, maxEntries, firstEntry)
 
-                ##print 'this is th2d.Integral()', tmp_histo.Integral()
-
             histos.append(tmp_histo)
 
-            #print 'this is histo', histo1
-            #print 'this is integral of histo', histo1.Integral()
         for histo in histos:
+            # this is going to trigger the loop, but now all histograms exist so it is ok
+            if not self._isdata and not self._options.sumGenWeighFromHisto:
+                histo.Scale(1./self._sumGenWeights.GetValue())
+                #print self._sumGenWeights.GetValue()
             ## marc: don't really know what this does...
-            if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
-                #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
-                if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
-                    ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
-                (nb,xmin,xmax) = bins.split(",")
-                histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
-                print 'now gonna perform the draw command 3'
-                self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
-                self.negativeCheck(histo)
-                histo.SetDirectory(0)
-                if closeTreeAfter: self._tfile.Close()
-                return histo.GetHisto().Clone(plotspec.name)
+            ## Marco: not needed, it used RooKeysPDF to smooth low stat histogram
+            ## In our case it won't be needed, and evaluating GetEntries() triggers the loop
+            # # if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
+            # #     #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
+            # #     if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
+            # #         ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
+            # #     (nb,xmin,xmax) = bins.split(",")
+            # #     histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
+            # #     print 'now gonna perform the draw command 3'
+            # #     self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
+            # #     self.negativeCheck(histo)
+            # #     histo.SetDirectory(0)
+            # #     if closeTreeAfter: self._tfile.Close()
+            # #     return histo.GetHisto().Clone(plotspec.name)
             #elif not self._isdata and self.getOption("KeysPdf",False):
             #else:
-            #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))
+            #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))            
+
             self.negativeCheck(histo)
             histo.SetDirectory(0)
         if closeTreeAfter: self._tfile.Close()
@@ -545,6 +559,7 @@ class TreeToYield:
         return histos
 
     def getPlotRaw(self,name,expr,bins,cut,plotspec,fsplit=None,closeTreeAfter=False):
+        print "CHECKPOINT!!!!!!!!"
         justthecut = cut
         unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
         if not self._isInit: self._init()
@@ -635,11 +650,12 @@ class TreeToYield:
     def __str__(self):
         mystr = ""
         mystr += str(self._fname) + '\n'
-        mystr += str(self._tfile) + '\n'
+        #mystr += str(self._tfile) + '\n'
         mystr += str(self._weight) + '\n'
         mystr += str(self._scaleFactor)
         return mystr
     def processEvents(self,eventLoop,cut):
+        print "In processEvents in tree2yield.py"
         if not self._isInit: self._init()
         cut = self.adaptExpr(cut,cut=True)
         if self._options.doS2V:

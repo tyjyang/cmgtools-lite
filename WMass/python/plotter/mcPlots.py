@@ -815,7 +815,7 @@ class PlotMaker:
         elist = (self._options.elist == True) or (self._options.elist == 'auto' and len(plots.plots()) > 2)
         for subname, title, cut in sets:
             print "cut set: ",title
-            if elist: mca.applyCut(cut)
+            #if elist: mca.applyCut(cut) # not used for RDF
             dir = self._dir
             if subname:
                 if self._dir.Get(subname):
@@ -888,6 +888,8 @@ class PlotMaker:
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
                 hists = [v for k,v in pmaps[ipspec].iteritems() if k != 'data']
+                #print "sumGenWeights"
+                #print sumGenWeights.GetValue()
                 #print "CHECK %d" % len(hists)
                 total = hists[0].Clone(pspec.name+"_total"); total.Reset()
                 totalSyst = hists[0].Clone(pspec.name+"_totalSyst"); totalSyst.Reset()
@@ -915,7 +917,7 @@ class PlotMaker:
                                   drawBox=self._options.drawBox,
                                   contentAxisTitle=self._options.contentAxisTitle)
 
-            if elist: mca.clearCut()
+            # if elist: mca.clearCut() # no longer used with RDF
 
     def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None, drawBox=None, contentAxisTitle=None):
                 options = self._options
@@ -925,6 +927,9 @@ class PlotMaker:
                 if outputName == None: outputName = pspec.name
                 stack = ROOT.THStack(outputName+"_stack",outputName)
                 hists = [v for k,v in pmap.iteritems() if k != 'data']
+                if not self._options.sumGenWeighFromHisto:
+                    pass
+                    #print "in printOnePlot()"
                 total = hists[0].Clone(outputName+"_total"); total.Reset("ICESM") # ICES is default, but does not reset maximum and minimum (need M as well)
                 totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset("ICESM")
 
@@ -1338,12 +1343,6 @@ class PlotMaker:
                             ROOT.gErrorIgnoreLevel = savErrorLevel;
                 c1.Close()
 
-## not needed anymore, leave for future development
-##def getEvenBinning(histo):
-##    if list(histo.GetXaxis().GetXbins()) == []:
-##        return (histo.GetXaxis().GetXmax()-histo.GetXaxis().GetXmin())/histo.GetXaxis().GetNbins()
-##    return -1
-     
 
 def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     if addAlsoMCAnalysis: addMCAnalysisOptions(parser)
