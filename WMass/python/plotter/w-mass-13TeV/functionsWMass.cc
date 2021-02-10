@@ -903,26 +903,31 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
   float pt = 0.0;
   float eta = 0.0;
   int charge = 0.0;
+  int trigMatch = 0.0;
   // positive (negative) leptons on odd (even) events
   if (isOddEvent(event)) {
     if (charge1 > 0) {
       pt = pt1;
       eta = eta1;
       charge = charge1;
+      trigMatch = trigMatch1;
     } else {
       pt = pt2;
       eta = eta2;
       charge = charge2;
+      trigMatch = trigMatch2;
     }
   } else {
     if (charge1 < 0) {
       pt = pt1;
       eta = eta1;
       charge = charge1;
+      trigMatch = trigMatch1;
     } else {
       pt = pt2;
       eta = eta2;
       charge = charge2;
+      trigMatch = trigMatch2;
     }
   }
 
@@ -960,7 +965,8 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
 
 
   TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
-  float sf = getValFromTH2(histTrigger,eta,pt);
+  //float sf = trigMatch1 ? getValFromTH2(histTrigger,eta,pt) : 1.0;
+  float sf = 1.0;
   sf *= getValFromTH2(_histo_idip[era],eta1,pt1) * getValFromTH2(_histo_idip[era],eta2,pt2);
   sf *= getValFromTH2(_histo_tracking[era],eta1,pt1) * getValFromTH2(_histo_tracking[era],eta2,pt2);
   // sf *= getValFromTH2(_histo_iso[era],eta1,pt1) * getValFromTH2(_histo_iso[era],eta2,pt2);
@@ -968,9 +974,11 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
   // so we should not apply this SF, but then also not applying thr isolation cut on that leg, but only on the
   // selected one
   // sf *= getValFromTH2(_histo_iso[era],eta,pt);
-  TH2F *histIso1 = (trigMatch1 ? _histo_iso[era] : _histo_isonotrig[era]);
-  TH2F *histIso2 = (trigMatch2 ? _histo_iso[era] : _histo_isonotrig[era]);
-  sf *= getValFromTH2(histIso1,eta1,pt1) * getValFromTH2(histIso2,eta2,pt2);
+  //TH2F *histIso1 = (trigMatch1 ? _histo_iso[era] : _histo_isonotrig[era]);
+  //TH2F *histIso2 = (trigMatch2 ? _histo_iso[era] : _histo_isonotrig[era]);
+  TH2F *histIso = _histo_isonotrig[era];
+  sf *= getValFromTH2(histIso,eta1,pt1) * getValFromTH2(histIso,eta2,pt2);
+  //sf *= getValFromTH2(histIso1,eta1,pt1) * getValFromTH2(histIso2,eta2,pt2);
   // cout << " sf = " << sf << endl;
 
   return sf;

@@ -208,6 +208,26 @@ class TreeToYield:
         self._appliedCut = None
         self._elist = None
         self._entries = None
+        self._rdfDefs = {}
+        if self._options.rdfDefineFile:
+            self._rdfDefs = self.getRdfDefinitions(self._options.rdfDefineFile)
+        if len(self._options.rdfDefine):
+            for d in self._options.rdfDefine:
+                tokens = [x.strip() for x in d.split(":")]
+                if len(tokens) == 2:
+                    tokens.append(".*")
+                self._rdfDefs[tokens[0]] = [tokens[1], tokens[2]]
+
+    def getRdfDefinitions(self, filename):
+        with open(filename) as f:
+            lines = [x.strip() for x in f]
+        ret = {}
+        for l in lines:
+            tokens = [x.strip() for x in l.split(":")]
+            # ret[name] = [defExpr, regExpForCname]
+            ret[tokens[0]] = [tokens[1], tokens[2] if len(tokens) == 3 else ".*"]
+        return ret
+
         #print "Done creation  %s for task %s in pid %d " % (self._fname, self._name, os.getpid())
     def setScaleFactor(self,scaleFactor,mcCorrs=True):
         if (not self._options.forceunweight) and scaleFactor != 1: self._weight = True
@@ -467,7 +487,11 @@ class TreeToYield:
         tmp_weight = self._cname+'_weight'
         #print "In getManyPlotsRaw"
         #print tmp_weight
-        self._tree = self._tree.Define(tmp_weight, wgt)
+        self._tree = self._tree.Define(tmp_weight, wgt)        
+        if len(self._rdfDefs):
+            for key in self._rdfDefs:
+                if re.match(self._rdfDefs[key][1],self._cname):
+                    self._tree = self._tree.Define(key, self._rdfDefs[key][0])
 
         ## define the Sum of genWeights before the filter
         if not self._isdata:
@@ -760,6 +784,8 @@ def addTreeToYieldOptions(parser):
     parser.add_option("--max-entries",     dest="maxEntries", default=1000000000000, type="int", help="Max entries to process in each tree") 
     parser.add_option("--max-entries-not-data",     dest="maxEntriesNotData", default=False, action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
     parser.add_option("-L", "--load-macro",  dest="loadMacro",   type="string", action="append", default=[], help="Load the following macro, with .L <file>+");
+    parser.add_option(  "--rdf-define-file",  dest="rdfDefineFile",   type="string", default="", help="Load file with some definitions to be used in RDataFrame");
+    parser.add_option(  "--rdf-define",  dest="rdfDefine",   type="string", action="append", default=[], help="Add some definitions to be used in RDataFrame on the fly, formatted as 'name:definition:regularEpressionForCname'. If the regexp is '.*' it can be omitted. Note that these can override those passed with --rdf-define-file");
 
 def mergeReports(reports):
     import copy
