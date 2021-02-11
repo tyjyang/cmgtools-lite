@@ -208,26 +208,53 @@ class TreeToYield:
         self._appliedCut = None
         self._elist = None
         self._entries = None
-        self._rdfDefs = {}
+        self._rdfDefs = {} # this needs to keep the sorting, so will keep an integer id in the key
+        self._rdfAlias = {}
         if self._options.rdfDefineFile:
             self._rdfDefs = self.getRdfDefinitions(self._options.rdfDefineFile)
+
         if len(self._options.rdfDefine):
             for d in self._options.rdfDefine:
                 tokens = [x.strip() for x in d.split(":")]
                 if len(tokens) == 2:
                     tokens.append(".*")
-                self._rdfDefs[tokens[0]] = [tokens[1], tokens[2]]
+                if any(tokens[0] in key[1] for key in self._rdfDefs):
+                    ind = [key[0] for key in self._rdfDefs if tokens[0] in key[1]][0]
+                    self._rdfDefs[(ind,tokens[0])] = [tokens[1], tokens[2]]
+                else:
+                    self._rdfDefs[(len(self._rdfDefs),tokens[0])] = [tokens[1], tokens[2]]
+        #self.printRdfDefinitions()
 
+        if len(self._options.rdfAlias):
+            for d in self._options.rdfAlias:
+                tokens = [x.strip() for x in d.split(":")]
+                if len(tokens) == 2:
+                    tokens.append(".*")
+                self._rdfAlias[tokens[0]] = [tokens[1], tokens[2]]
+            
+                    
     def getRdfDefinitions(self, filename):
         with open(filename) as f:
-            lines = [x.strip() for x in f]
+            lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
         ret = {}
-        for l in lines:
+        for l in lines:                    
             tokens = [x.strip() for x in l.split(":")]
+            if len(tokens) == 2:
+                tokens.append(".*")
             # ret[name] = [defExpr, regExpForCname]
-            ret[tokens[0]] = [tokens[1], tokens[2] if len(tokens) == 3 else ".*"]
+            ret[(len(ret),tokens[0])] = [tokens[1], tokens[2] if len(tokens) == 3 else ".*"]
         return ret
 
+
+    def printRdfDefinitions(self):
+        print "-"*40
+        print "Have these RDF definitions" 
+        print "-"*40
+        for key in sorted(self._rdfDefs.keys(), key= lambda x: int(x[0])):
+            print "%d) %s : %s" % (key[0],key[1],self._rdfDefs[key])
+        print "-"*40
+
+    
         #print "Done creation  %s for task %s in pid %d " % (self._fname, self._name, os.getpid())
     def setScaleFactor(self,scaleFactor,mcCorrs=True):
         if (not self._options.forceunweight) and scaleFactor != 1: self._weight = True
@@ -488,11 +515,18 @@ class TreeToYield:
         #print "In getManyPlotsRaw"
         #print tmp_weight
         self._tree = self._tree.Define(tmp_weight, wgt)        
-        if len(self._rdfDefs):
-            for key in self._rdfDefs:
-                if re.match(self._rdfDefs[key][1],self._cname):
-                    self._tree = self._tree.Define(key, self._rdfDefs[key][0])
 
+        if len(self._rdfDefs):
+            for key in sorted(self._rdfDefs.keys(), key= lambda x: int(x[0])):
+                if re.match(self._rdfDefs[key][1],self._cname):
+                    self._tree = self._tree.Define(key[1], self._rdfDefs[key][0])
+
+        if len(self._rdfAlias):
+            for key in self._rdfAlias:
+                if re.match(self._rdfAlias[key][1],self._cname):
+                    self._tree = self._tree.Alias(key, self._rdfAlias[key][0])
+
+                    
         ## define the Sum of genWeights before the filter
         if not self._isdata:
             self._sumGenWeights = self._tree.Sum("myweight")
@@ -786,6 +820,7 @@ def addTreeToYieldOptions(parser):
     parser.add_option("-L", "--load-macro",  dest="loadMacro",   type="string", action="append", default=[], help="Load the following macro, with .L <file>+");
     parser.add_option(  "--rdf-define-file",  dest="rdfDefineFile",   type="string", default="", help="Load file with some definitions to be used in RDataFrame");
     parser.add_option(  "--rdf-define",  dest="rdfDefine",   type="string", action="append", default=[], help="Add some definitions to be used in RDataFrame on the fly, formatted as 'name:definition:regularEpressionForCname'. If the regexp is '.*' it can be omitted. Note that these can override those passed with --rdf-define-file");
+    parser.add_option(  "--rdf-alias",  dest="rdfAlias",   type="string", action="append", default=[], help="Use Alias to rename columns in RDataFrame on the fly, formatted as 'newname:oldname:regularEpressionForCname'. If the regexp is '.*' it can be omitted. It is evaluated after the Define commands");
 
 def mergeReports(reports):
     import copy

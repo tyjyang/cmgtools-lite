@@ -32,6 +32,8 @@ OtherPV_z: OtherPV_z: 100,-20,20; XTitle="Other primary vertex z (cm)", Legend='
 
 
 ## W like variables
+muon_pt_ana: Muon_pt[goodMuonsCharge][0]: 30,25,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
 muon_pt_wlike: returnChargeVal(Muon_pt[0],Muon_charge[0],Muon_pt[1],Muon_charge[1],event): 30,25,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta_wlike: returnChargeVal(Muon_eta[0],Muon_charge[0],Muon_eta[1],Muon_charge[1],event): 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
