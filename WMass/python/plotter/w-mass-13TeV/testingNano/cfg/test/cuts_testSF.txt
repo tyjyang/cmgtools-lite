@@ -1,16 +1,16 @@
 alwaystrue : 1
 #twomuon    : nVetoElectrons == 0 && nMuon >= 2
 twomuon    : Sum(vetoMuons)==2 && Sum(goodMuons)==2 
-trigger    : HLT_SingleMu24 > 0
+trigger    : HLT_SingleMu24 > 0 && Muon_hasTriggerMatch[goodMuonsCharge][0]
 #trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[0],Muon_charge[0],Muon_hasTriggerMatch[1],Muon_charge[1],event)
 #oppositecharge : Vtype_subcat%2 == 0
-oppositecharge : (Muon_charge[0] + Muon_charge[1]) == 0
-accept     : abs(Muon_eta[0]) < 2.4 && abs(Muon_eta[1]) < 2.4 && valueInsideRange(Muon_pt[0],26,55) && valueInsideRange(Muon_pt[1],26,55)
-muonID     : Muon_mediumId[0] == 1 && Muon_mediumId[1] == 1
-pfRelIso04 : Muon_pfRelIso04_all[0] < 0.15 && Muon_pfRelIso04_all[1] < 0.15
-dxy        : abs(Muon_dxy[0]) < 0.05 && abs(Muon_dxy[1]) < 0.05
-dz         : abs(Muon_dz[0]) < 0.2 && abs(Muon_dz[1]) < 0.2
-mZ         : valueInsideRange(mass_2(Muon_pt[0],Muon_eta[0],Muon_phi[0],0.1057,Muon_pt[1],Muon_eta[1],Muon_phi[1],0.1057), 60., 120.)
+oppositecharge : (Muon_charge[goodMuons][0] + Muon_charge[goodMuons][1]) == 0
+accept     : abs(Muon_eta[goodMuons][0]) < 2.4 && abs(Muon_eta[goodMuons][1]) < 2.4 && valueInsideRange(Muon_pt[goodMuons][0],26,55) && valueInsideRange(Muon_pt[goodMuons][1],26,55)
+muonID     : Muon_mediumId[goodMuons][0] == 1 && Muon_mediumId[goodMuons][1] == 1
+pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15 && Muon_pfRelIso04_all[goodMuons][1] < 0.15
+dxy        : abs(Muon_dxy[goodMuons][0]) < 0.05 && abs(Muon_dxy[goodMuons][1]) < 0.05
+dz         : abs(Muon_dz[goodMuons][0]) < 0.2 && abs(Muon_dz[goodMuons][1]) < 0.2
+mZ         : valueInsideRange(invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]), 60., 120.)
 ## mT cut to be added once we understand what MET to use
-mtl1pf40   : mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_phi[1],Muon_charge[1],MET_T1_pt,MET_T1_phi,event) > 40.
+mtl1pf40   : mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][1],Muon_phi[goodMuonsOther][1],MET_T1_pt,MET_T1_phi) > 40.
 

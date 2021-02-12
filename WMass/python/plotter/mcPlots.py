@@ -1447,14 +1447,18 @@ if __name__ == "__main__":
     fcut.write("%s\n" % cuts); fcut.close()
     os.system("cp %s %s " % (args[2], re.sub("\.root$","",outname)+"_plots.txt"))
     os.system("cp %s %s " % (args[0], re.sub("\.root$","",outname)+"_mca.txt"))
-    if options.rdfDefineFile or len(options.rdfDefine):
+    if options.rdfDefineFile or len(options.rdfDefine) or len(options.rdfAlias):
         frdfdefine = open(re.sub("\.root$","",outname)+"_rdfdefine.txt","w")
+        frdfdefine.write("## Defines\n")
         if options.rdfDefineFile:
             with open(options.rdfDefineFile) as f:
                 lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
             for l in lines:
                 frdfdefine.write("%s\n" % l)
         for l in options.rdfDefine:
+            frdfdefine.write("%s\n" % l)
+        frdfdefine.write("## Aliases\n")
+        for l in options.rdfAlias:
             frdfdefine.write("%s\n" % l)
         frdfdefine.close()
         

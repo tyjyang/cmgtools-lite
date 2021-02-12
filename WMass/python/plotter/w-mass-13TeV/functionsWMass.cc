@@ -213,6 +213,18 @@ float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, f
 
 }
 
+float mt_wlike_nano(float pt, float phi, float ptOther, float phiOther, float met, float phimet) {
+  
+  TVector2 pl = TVector2();
+  pl.SetMagPhi(ptOther,phiOther);
+
+  TVector2 metv = TVector2();
+  metv.SetMagPhi(met,phimet);
+  TVector2 met_wlike = pl+metv;
+
+  return std::sqrt(2*pt*met_wlike.Mod()*(1-std::cos(phi-met_wlike.Phi())));
+
+}
 
 float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {

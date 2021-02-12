@@ -9,12 +9,17 @@
 #include <map>
 #include <string>
 #include <cmath>
+#include "TROOT.h"
 #include "TH2F.h"
 #include "TVector2.h"
 #include "Math/GenVector/LorentzVector.h"
 #include "Math/GenVector/PtEtaPhiM4D.h"
 
+#include <ROOT/RVec.hxx>
+
 using namespace std;
+using Vec_t = ROOT::VecOps::RVec<float>;
+typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
 
 //// UTILITY FUNCTIONS NOT IN TFORMULA ALREADY
 
@@ -48,19 +53,18 @@ float pt_2(float pt1, float phi1, float pt2, float phi2) {
 }
 
 float rapidity_2(float pt1, float eta1, float phi1, float m1, float pt2, float eta2, float phi2, float m2) {
-    typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
+    //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
     PtEtaPhiMVector p41(pt1,eta1,phi1,m1);
     PtEtaPhiMVector p42(pt2,eta2,phi2,m2);
     return (p41+p42).Rapidity();
 }
-
 
 float mt_2(float pt1, float phi1, float pt2, float phi2) {
     return std::sqrt(2*pt1*pt2*(1-std::cos(phi1-phi2)));
 }
 
 float mass_2_ene(float ene1, float eta1, float phi1, float m1, float ene2, float eta2, float phi2, float m2) {
-    typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
+  //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
     PtEtaPhiMVector unitp41(1.0,eta1,phi1,m1);
     PtEtaPhiMVector unitp42(1.0,eta2,phi2,m2);
     double theta1 = unitp41.Theta();
@@ -73,11 +77,29 @@ float mass_2_ene(float ene1, float eta1, float phi1, float m1, float ene2, float
 }
 
 float mass_2(float pt1, float eta1, float phi1, float m1, float pt2, float eta2, float phi2, float m2) {
-    typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
     PtEtaPhiMVector p41(pt1,eta1,phi1,m1);
     PtEtaPhiMVector p42(pt2,eta2,phi2,m2);
     return (p41+p42).M();
 }
+
+float invariantmass(const Vec_t& pt, const Vec_t& eta, const Vec_t& phi, const Vec_t& m) {
+  PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);
+  PtEtaPhiMVector p2(pt[1], eta[1], phi[1], m[1]);
+  return (p1 + p2).mass();
+}
+
+float rapidity(const Vec_t& pt, const Vec_t& eta, const Vec_t& phi, const Vec_t& m) {
+  //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
+  PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);;
+  PtEtaPhiMVector p2(pt[1], eta[1], phi[1], m[1]);
+  return (p1 + p2).Rapidity();
+}
+
+float transversemomentum(const Vec_t& pt, const Vec_t& phi) {
+  float phidiff = phi[1]-phi[0];
+  return hypot(pt[0] + pt[1] * std::cos(phidiff), pt[1]*std::sin(phidiff));
+}
+
 
 #include "TRandom3.h"
 TRandom3 *randy = NULL;
@@ -212,420 +234,6 @@ float puw2016_nTrueInt_36fb(int nTrueInt) { if (nTrueInt<100) return _puw2016_nT
 float _puw_2016UL[100] = {0.6566053285329763, 0.41144868907530213, 0.8554973866769888, 0.7816231832979451, 0.7620601163880255, 0.44294370235808755, 0.21337916188839076, 0.1861679518260925, 0.26982560763525065, 0.3390190538106666, 0.4661745977152918, 0.624071351258268, 0.7379568044102374, 0.8023578601527022, 0.8459955872327743, 0.8979482340401523, 0.9426709044822664, 0.9729954527622069, 0.9878074496383361, 0.9966455425761672, 1.0099691798677684, 1.0296749744202007, 1.049521661450095, 1.0631150862840977, 1.0718721179591304, 1.0804003995042164, 1.087603306855375, 1.0922484639576304, 1.1002285047846572, 1.1089492682437438, 1.114592478539555, 1.1174652378549064, 1.1225708382402302, 1.1279537608970822, 1.1302795330092479, 1.1367432184190533, 1.1485613627731475, 1.1640128752737666, 1.1833126030571468, 1.20703482909623, 1.2292592420842194, 1.245259922261253, 1.2699117167626013, 1.2899951098429536, 1.348435424711583, 1.3191011175054879, 1.3363059630911416, 1.2218986839950168, 1.1565777584939498, 1.015027055750588, 0.8105109874154754, 0.6490468375922713, 0.4510927481328359, 0.3160235084562487, 0.2899825531248701, 0.21472738198393557, 0.241741259020553, 0.22402553994211524, 0.3195568610430816, 0.5267473763363504, 0.5782504216992813, 0.6471873635674419, 1.075983188715943, 1.3688192568416286, 0.6767765558933262, 0.9204306145749046, 1.0, 1.0, 1.0, 1.0, 1.0, 1.4191352148340897, 1.0, 1.0, 1.0, 1.2691713536696225, 1.0, 1.0, 1.0, 1.8331043321564422, 0.3753243775602727, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 float puw_2016UL(int nTrueInt) { if (nTrueInt<100) return _puw_2016UL[nTrueInt]; else return 0.; }
 
-// functions to assess if events pass given ID cuts
-// isEB can be defined as (LepGood1_etaSc)<1.479 
-// note that 2016 cut-based ID defines thesholds for EB and EE using SuperCluster eta
-// the real ID WP part is in LepGood1_tightId, LepGood1_lostHits and LepGood1_convVeto
-// dxy and dz are not part of the official ID WP, but we use the suggested thresholds anyway
-// https://twiki.cern.ch/twiki/bin/viewauth/CMS/CutBasedElectronIdentificationRun2
-// 
-// list of functions to manage IDs
-// those marked with ** are work in progress (problems with string, format is n tcompatible with TTree::Draw() used by mcPlots.py)
-// -------------------------------
-// pass_dxy_dz
-// pass_lostHits_conVe
-// pass_looseIDnoIso_2016
-// pass_mediumIDnoIso_2016
-// pass_tightIDnoIso_2016
-// pass_workingPointIDnoIso_2016 **
-// pass_isolation_2016 **
-// passFakerateNumerator2016 **
-// isInFakerateApplicationRegion2016 **
-// pass_isolation_WP
-// pass_FakerateNumerator2016
-// pass_FakerateApplicationRegion2016
-//
-//
-// -------------------------------
-
-
-// pass dxy and dz
-bool pass_dxy_dz(const bool isEB = true, 
-		 const float LepGood1_dxy = -999, 
-		 const float LepGood1_dz = -999
-		 ) 
-{
-  
-  if (isEB) return (abs(LepGood1_dxy) < 0.05 && abs(LepGood1_dz) < 0.1);
-  else      return (abs(LepGood1_dxy) < 0.1  && abs(LepGood1_dz) < 0.2);
-
-}
-
-// missing hits and conversion veto
-bool pass_lostHits_conVeto(const int LepGood1_lostHits = -999, 
-			   const int LepGood1_convVeto = -999
-			   ) 
-{
-  return (LepGood1_lostHits <= 1 && LepGood1_convVeto == 1);
-}
-
-
-// loose ID no isolation
-bool pass_looseIDnoIso_2016(const bool  isEB = true, 
-			    const int   LepGood1_tightId = -1, 
-			    const float LepGood1_dxy = -999, 
-			    const float LepGood1_dz = -999,
-			    const int   LepGood1_lostHits = -1,
-			    const int   LepGood1_convVeto = -999
-			    ) 
-{
-
-  return (LepGood1_tightId >= 1 && pass_dxy_dz(isEB,LepGood1_dxy,LepGood1_dz) && pass_lostHits_conVeto(LepGood1_lostHits,LepGood1_convVeto) );
-
-}
-
-// medium ID no isolation
-bool pass_mediumIDnoIso_2016(const bool  isEB = true, 
-			     const int   LepGood1_tightId = -1, 
-			     const float LepGood1_dxy = -999, 
-			     const float LepGood1_dz = -999,
-			     const int   LepGood1_lostHits = -1,
-			     const int   LepGood1_convVeto = -999
-			     ) 
-{
-
-  return (LepGood1_tightId >= 2 && pass_dxy_dz(isEB,LepGood1_dxy,LepGood1_dz) && pass_lostHits_conVeto(LepGood1_lostHits,LepGood1_convVeto) );
-
-}
-
-// tight ID no isolation
-bool pass_tightIDnoIso_2016(const bool  isEB = true, 
-			    const int   LepGood1_tightId = -1, 
-			    const float LepGood1_dxy = -999, 
-			    const float LepGood1_dz = -999,
-			    const int   LepGood1_lostHits = -1,
-			    const int   LepGood1_convVeto = -999
-			    ) 
-{
-
-  return (LepGood1_tightId >= 3 && pass_dxy_dz(isEB,LepGood1_dxy,LepGood1_dz) && pass_lostHits_conVeto(LepGood1_lostHits,LepGood1_convVeto) );
-
-}
-
-/////////////////////////////////////////////////////
-//
-// Following commented functions are work in progress
-// Problems in using string
-//
-/////////////////////////////////////////////////////
-
-// bool pass_workingPointIDnoIso_2016(const string workingPoint = "loose", // loose, medium, tight
-// 				   const bool  isEB = true, 
-// 				   const int   LepGood1_tightId = -1, 
-// 				   const float LepGood1_dxy = -999, 
-// 				   const float LepGood1_dz = -999,
-// 				   const int   LepGood1_lostHits = -1,
-// 				   const int   LepGood1_convVeto = -999
-// 				   ) 
-// {
-
-//   if      (workingPoint == "loose" ) return pass_looseIDnoIso_2016(  isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto);
-//   else if (workingPoint == "medium") return pass_mediumIDnoIso_2016( isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto);
-//   else if (workingPoint == "tight" ) return pass_tightIDnoIso_2016(  isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto);
-//   else {
-//     cout << "Error in function pass_workingPointIDnoIso_2016(): undefined working point "<< workingPoint << ", please check. Exiting ..." <<endl;
-//     exit(EXIT_FAILURE);
-//   }
-
-// }
-
-
-// bool pass_isolation_2016(const string workingPoint = "loose", // loose, medium, tight, custom
-// 			 const bool   isEB = true,
-// 			 const float  LepGood1_relIso04EA = -1,
-// 			 )
-// {
-
-//   // WARNING: test that strings are accepted by mc*.py, currently they are not
-//   // function format should be compatible with TTre::Draw()
-//   std::map<string,float> workingPointIsolation_EB;
-//   workingPointIsolation_EB["veto"  ] = 0.175; 
-//   workingPointIsolation_EB["loose" ] = 0.0994; 
-//   workingPointIsolation_EB["medium"] = 0.0695; 
-//   workingPointIsolation_EB["tight" ] = 0.0588; 
-//   workingPointIsolation_EB["custom"] = 0.2; 
-//   std::map<std::string,float> workingPointIsolation_EE;
-//   workingPointIsolation_EE["veto"  ] = 0.159; 
-//   workingPointIsolation_EE["loose" ] = 0.107; 
-//   workingPointIsolation_EE["medium"] = 0.0821; 
-//   workingPointIsolation_EE["tight" ] = 0.0571; 
-//   workingPointIsolation_EE["custom"] = 0.0821;
-
-//   if (isEB) return LepGood1_relIso04EA < workingPointIsolation_EB[workingPoint];
-//   else      return LepGood1_relIso04EA < workingPointIsolation_EE[workingPoint];
-
-// }
-
-// bool passFakerateNumerator2016(const string workingPoint = "loose", // loose, medium, tight
-// 			       const bool   isEB = true, 
-// 			       const int    LepGood1_tightId = -1, 
-// 			       const float  LepGood1_dxy = -999, 
-// 			       const float  LepGood1_dz = -999,
-// 			       const int    LepGood1_lostHits = -1,
-// 			       const int    LepGood1_convVeto = -999,
-// 			       const float  LepGood1_relIso04EA = -1,
-// 			       const bool   useCustomRelIso04EA = true // use user defined isolation threshold, not the E/gamma value
-// 			       ) 
-// {
-
-//   return (pass_workingPointIDnoIso_2016(workingPoint,isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto) 
-// 	  && 
-// 	  pass_isolation_2016(workingPoint,isEB,LepGood1_relIso04EA,useCustomRelIso04EA)
-// 	  );
-
-// }
-
-
-// bool isInFakerateApplicationRegion2016(const string workingPoint = "loose", // loose, medium, tight
-// 				       const bool   isEB = true, 
-// 				       const int    LepGood1_tightId = -1, 
-// 				       const float  LepGood1_dxy = -999, 
-// 				       const float  LepGood1_dz = -999,
-// 				       const int    LepGood1_lostHits = -1,
-// 				       const int    LepGood1_convVeto = -999,
-// 				       const float  LepGood1_relIso04EA = -1,
-// 				       const bool   useCustomRelIso04EA = true // use user defined isolation threshold, not the E/gamma value
-// 				       ) 
-// {
-
-//   return (not passFakerateNumerator2016(workingPoint,isEB,
-// 					LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,
-// 					LepGood1_relIso04EA,useCustomRelIso04EA
-// 					)
-// 	  );
-
-// }
-
-//==========================
-
-bool pass_isolation_WP(const bool isEB = true, const float  LepGood1_relIso04EA = -1)
-{
-  // custom WP for 2016 data (before final Legacy ReReco, it could be changed for the new last one)
-  return (LepGood1_relIso04EA < (isEB ? 0.2 : 0.0821)); // custom value for EB, medium WP for EE
-}
-
-//==========================
-
-bool pass_looseIsolation_2016(const bool   isEB = true,
-			      const float  LepGood1_relIso04EA = -1
-			      )
-{
-
-  if (isEB) return LepGood1_relIso04EA < 0.0994;
-  else      return LepGood1_relIso04EA < 0.107;
-
-}
-
-//==========================
-
-
-bool pass_mediumIsolation_2016(const bool   isEB = true,
-			       const float  LepGood1_relIso04EA = -1
-			       )
-{
-
-  if (isEB) return LepGood1_relIso04EA < 0.0695;
-  else      return LepGood1_relIso04EA < 0.0821;
-
-}
-
-//==========================
-
-
-bool pass_tightIsolation_2016(const bool   isEB = true,
-			      const float  LepGood1_relIso04EA = -1
-			      )
-{
-
-  if (isEB) return LepGood1_relIso04EA < 0.0588;
-  else      return LepGood1_relIso04EA < 0.0571;
-
-}
-
-//==========================
-
-bool pass_FakerateNumerator_loose2016(const bool   isEB = true, 
-				      const int    LepGood1_tightId = -1, 
-				      const float  LepGood1_dxy = -999, 
-				      const float  LepGood1_dz = -999,
-				      const int    LepGood1_lostHits = -1,
-				      const int    LepGood1_convVeto = -999,
-				      const float  LepGood1_relIso04EA = -1
-				      ) 
-{
-  
-    return (pass_looseIDnoIso_2016(isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto)
-	    && 
-	    pass_looseIsolation_2016(isEB,LepGood1_relIso04EA)
-	    );
-
-}
-
-//============================================
-
-bool pass_FakerateNumerator_medium2016(const bool   isEB = true, 
-				       const int    LepGood1_tightId = -1, 
-				       const float  LepGood1_dxy = -999, 
-				       const float  LepGood1_dz = -999,
-				       const int    LepGood1_lostHits = -1,
-				       const int    LepGood1_convVeto = -999,
-				       const float  LepGood1_relIso04EA = -1
-				       ) 
-{
-  
-    return (pass_mediumIDnoIso_2016(isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto)
-	    && 
-	    pass_mediumIsolation_2016(isEB,LepGood1_relIso04EA)
-	    );
-
-}
-
-//============================================
-
-bool pass_FakerateNumerator2016(const bool   isEB = true, 
-				const int    LepGood1_tightId = -1, 
-				const float  LepGood1_dxy = -999, 
-				const float  LepGood1_dz = -999,
-				const int    LepGood1_lostHits = -1,
-				const int    LepGood1_convVeto = -999,
-				const float  LepGood1_relIso04EA = -1
-				) 
-{
-
-  // EB, loose ID + iso < 0.2
-  // EE full medium ID + iso
-
-  if (isEB) {
-    return (pass_looseIDnoIso_2016(isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto)
-	    && 
-	    pass_isolation_WP(isEB,LepGood1_relIso04EA)
-	    );
-  } else {
-    return (pass_mediumIDnoIso_2016(isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto)
-	    &&
-	    pass_isolation_WP(isEB,LepGood1_relIso04EA)
-	    );
-  }
-
-}
-
-//==========================
-
-
-bool pass_FakerateApplicationRegion2016(const bool   isEB = true, 
-					const int    LepGood1_tightId = -1, 
-					const float  LepGood1_dxy = -999, 
-					const float  LepGood1_dz = -999,
-					const int    LepGood1_lostHits = -1,
-					const int    LepGood1_convVeto = -999,
-					const float  LepGood1_relIso04EA = -1
-					) 
-{
-
-  return (not pass_FakerateNumerator2016(isEB,LepGood1_tightId,LepGood1_dxy,LepGood1_dz,LepGood1_lostHits,LepGood1_convVeto,LepGood1_relIso04EA));
-
-}
-
-
-//==================================================
-
-bool pass_FakerateNum_debug(const bool  isEB = true, 
-			    const int   LepGood1_tightId = -1, 
-			    const float LepGood1_dxy = -999, 
-			    const float LepGood1_dz = -999,
-			    const int   LepGood1_lostHits = -1,
-			    const int   LepGood1_convVeto = -999,
-			    const float LepGood1_relIso04EA = -1
-			    ) 
-{
-
-  // EB, loose ID + iso < 0.2
-  // EE full medium ID + iso
-
-  if (isEB) {
-    return (LepGood1_tightId >= 1 && abs(LepGood1_dxy) <= 0.05 && abs(LepGood1_dxy) <= 0.1 && LepGood1_lostHits <= 1 && LepGood1_convVeto == 1 && LepGood1_relIso04EA <= 0.2);
-  } else {
-    return (LepGood1_tightId >= 2 && abs(LepGood1_dxy) <= 0.1 && abs(LepGood1_dxy) <= 0.2 && LepGood1_lostHits <= 1 && LepGood1_convVeto == 1 && LepGood1_relIso04EA <= 0.0821);
-  }
-
-}
-//==================================================
-
-TVector2 tkmetEleCorr(float tkmet_pt, float tkmet_phi, float lep_pt, float lep_phi) {
-
-  TVector2 trkmet_corr;
-  trkmet_corr.SetMagPhi(tkmet_pt, tkmet_phi);
-
-  // when the electron is not compatible with the primary vertex, its track is not used to compute tkMet (it is a bug in our ntuples)
-  // in that case, add the electron back
-  // We have the following (assuming vectorial object in the equation)
-  // TkMEt_corr = -Sum(pT_tracks_noBadEle) - pT_badEle
-  // in the ntuples we have TkMEt = -Sum(pT_tracks_noBadEle)
-  
-  // here we correct the tkMet 
-  TVector2 badEle;      
-  badEle.SetMagPhi(lep_pt,lep_phi);
-  trkmet_corr -= badEle;  
-
-  return trkmet_corr;
-
-}
-
-//==================================================    
-
-float tkmetEleCorr_pt(float tkmet_pt, float tkmet_phi, float lep_pt, float lep_phi, bool eleTrackIsVertexCompatible) {
-
-  if (eleTrackIsVertexCompatible) return tkmet_pt;
-
-  TVector2 trkmet_corr = tkmetEleCorr(tkmet_pt, tkmet_phi, lep_pt, lep_phi);
-  return trkmet_corr.Mod();
-
-}
-
-
-//==================================================
-
-
-float tkmetEleCorr_phi(float tkmet_pt, float tkmet_phi, float lep_pt, float lep_phi, bool eleTrackIsVertexCompatible) {
-
-  if (eleTrackIsVertexCompatible) return tkmet_phi;
-
-  TVector2 trkmet_corr = tkmetEleCorr(tkmet_pt, tkmet_phi, lep_pt, lep_phi);
-  return trkmet_corr.Phi();
-
-}
-
-
-//==================================================
-
-// call like 
-// tkmt_tkmetEleCorr(met_trkPt,
-// 		     met_trkPhi,
-// 		     ptElFull(LepGood1_calPt,LepGood1_eta),
-// 		     LepGood1_phi, 
-// 		     pass_dxy_dz(abs(LepGood1_eta)<1.479, LepGood1_dxy, LepGood1_dz) && pass_lostHits_conVeto(LepGood1_lostHits, LepGood1_convVeto))
-// The correct definition is actually requiring |dz| < 0.1, which is the condition to be fullfilled to have a charge particle used for TrkMET in out ntuples
-
-float tkmt_tkmetEleCorr(float tkmet_pt, float tkmet_phi, float lep_pt, float lep_phi, bool eleTrackIsVertexCompatible) {
-
-  if (eleTrackIsVertexCompatible) {
-
-    return mt_2(tkmet_pt, tkmet_phi, lep_pt, lep_phi);
-
-  } else {
-
-    // when the electron is not compatible with the primary vertex, its track is not used to compute tkMet (it is a bug in our ntuples)
-    // in that case, add the electron back
-    // We have the following (assuming vectorial object in the equation)
-    // TkMEt_corr = -Sum(pT_tracks_noBadEle) - pT_badEle
-    // in the ntuples we have TkMEt = -Sum(pT_tracks_noBadEle)
-
-    TVector2 trkmet_corr = tkmetEleCorr(tkmet_pt, tkmet_phi, lep_pt, lep_phi); 
-    return mt_2(trkmet_corr.Mod(),trkmet_corr.Phi(),lep_pt,lep_phi);
-
-  }
-
-}
 
 //==================================================
 
