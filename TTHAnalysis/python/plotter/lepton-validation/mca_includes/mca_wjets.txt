@@ -1,1 +1,0 @@
-WJets    : WJetsToLNu_LO :  xsec; FillColor=ROOT.kCyan+2

@@ -1,2 +1,0 @@
-ScaleFactorDY: 1; AlsoData
-ScaleFactorTT: 1; AlsoData

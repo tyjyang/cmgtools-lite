@@ -1,3 +1,0 @@
-incl_tt : + ; IncludeMca="ttH-multilepton/mca-includes/mca-tt-dy-w-st.txt"
-
-incl_data : + ; IncludeMca="ttH-multilepton/mca-includes/mca-data.txt"
