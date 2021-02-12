@@ -247,12 +247,12 @@ class TreeToYield:
 
 
     def printRdfDefinitions(self):
-        print "-"*40
-        print "Have these RDF definitions" 
-        print "-"*40
+        logging.info("-"*40)
+        logging.info("Have these RDF definitions")
+        logging.info("-"*40)
         for key in sorted(self._rdfDefs.keys(), key= lambda x: int(x[0])):
-            print "%d) %s : %s" % (key[0],key[1],self._rdfDefs[key])
-        print "-"*40
+            logging.info("%d) %s : %s" % (key[0],key[1],self._rdfDefs[key]))
+        logging.info("-"*40)
 
     
         #print "Done creation  %s for task %s in pid %d " % (self._fname, self._name, os.getpid())
@@ -411,10 +411,10 @@ class TreeToYield:
             nfmtL+="%7.1f%%"
             fmtlen+=8
 
-        print "cut".center(clen),"yield".center(fmtlen)
-        print "-"*((fmtlen+1)+clen)
+        logging.info("cut".center(clen),"yield".center(fmtlen))
+        logging.info("-"*((fmtlen+1)+clen))
         for i,(cut,(nev,err)) in enumerate(report):
-            print cfmt % cut,
+            logging.info(cfmt % cut,)
             den = report[i-1][1][0] if i>0 else 0
             fraction = nev/float(den) if den > 0 else 1
             if self._options.nMinusOne or self._options.nMinusOneInverted: 
@@ -422,9 +422,9 @@ class TreeToYield:
             toPrint = (nev,)
             if self._options.errors:    toPrint+=(err,)
             if self._options.fractions: toPrint+=(fraction*100,)
-            if self._weight and nev < 1000: print nfmtS % toPrint,
-            else                          : print nfmtL % toPrint,
-            print ""
+            if self._weight and nev < 1000: logging.info(nfmtS % toPrint,)
+            else                          : logging.info(nfmtL % toPrint,)
+            logging.info("")
     def _getCut(self,cut,noweight=False):
         if self._weight and not noweight:
             if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
@@ -617,13 +617,13 @@ class TreeToYield:
         return histos
 
     def getPlotRaw(self,name,expr,bins,cut,plotspec,fsplit=None,closeTreeAfter=False):
-        print "CHECKPOINT!!!!!!!!"
+        logging.info("CHECKPOINT!!!!!!!!")
         justthecut = cut
         unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
         if not self._isInit: self._init()
         if self._appliedCut != None:
             if cut != self._appliedCut: 
-                print "WARNING, for %s:%s, cut was set to '%s' but now plotting with cut '%s'." % (self._name, self._cname, self._appliedCut, cut)
+                logging.warning("For %s:%s, cut was set to '%s' but now plotting with cut '%s'." % (self._name, self._cname, self._appliedCut, cut))
                 #self.clearCut()
             else:
                 #print "INFO, for %s:%s, cut was already set to '%s', will use elist for plotting (%d entries)" % (self._name, self._cname, cut, self._elist.GetN())
@@ -638,20 +638,20 @@ class TreeToYield:
 #        print cut 
 #        print expr
         (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        print 'these are the entries', firstEntry, maxEntries
+        logging.info('these are the entries', firstEntry, maxEntries)
         if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
         histo = makeHistFromBinsAndSpec("dummy",expr,bins,plotspec)
         canKeys = (histo.ClassName() == "TH1D" and bins[0] != "[")
         if histo.ClassName != "TH2D" or self._name == "data": unbinnedData2D = False
         if unbinnedData2D:
-            print 'now gonna perform the draw command 1'
+            logging.info('now gonna perform the draw command 1')
             nent = self._tree.Draw("%s" % expr, cut, "", maxEntries, firstEntry)
             if nent == 0: return ROOT.TGraph(0)
             graph = ROOT.gROOT.FindObject("Graph").Clone(name) #ROOT.gPad.GetPrimitive("Graph").Clone(name)
             return graph
         drawOpt = "goff"
         if "TProfile" in histo.ClassName(): drawOpt += " PROF";
-        print 'now gonna perform the draw command 2'
+        loggin.info('now gonna perform the draw command 2')
     
         ## self._tree.Draw("%s>>%s" % (expr,"dummy"), cut, drawOpt, maxEntries, firstEntry)
         histo_model = ROOT.RDF.TH1DModel(histo)
@@ -689,7 +689,7 @@ class TreeToYield:
                 ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
             (nb,xmin,xmax) = bins.split(",")
             histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
-            print 'now gonna perform the draw command 3'
+            logging.info('now gonna perform the draw command 3')
             self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
             self.negativeCheck(histo)
             histo.SetDirectory(0)
@@ -713,7 +713,7 @@ class TreeToYield:
         mystr += str(self._scaleFactor)
         return mystr
     def processEvents(self,eventLoop,cut):
-        print "In processEvents in tree2yield.py"
+        logging.info("In processEvents in tree2yield.py")
         if not self._isInit: self._init()
         cut = self.adaptExpr(cut,cut=True)
         if self._options.doS2V:
@@ -724,13 +724,13 @@ class TreeToYield:
         eventLoop.endComponent(self)
     def applyCutAndElist(self,cut,elist):
         if self._appliedCut != None and self._appliedCut != cut: 
-            print "WARNING: changing applied cut from %s to %s\n" % (self._appliedCut, cut)
+            logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
         self._appliedCut = cut
         self._elist = elist
     def cutToElist(self,cut,fsplit=None):
-        print 'beginning of cuttoelist'
+        logging.info('beginning of cuttoelist')
         if not self._isInit: self._init()
-        print 'afetr init'
+        logging.info('afetr init')
         ##marcif self._weight:
         ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
         ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
@@ -738,10 +738,10 @@ class TreeToYield:
         cut = self.adaptExpr(cut,cut=True)
         if self._options.doS2V: cut  = scalarToVector(cut)
         (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        print 'now gonna perform the draw command 4'
+        logging.debug('now gonna perform the draw command 4')
         ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
         ## apply a cut, rdf style
-        print ' i am filtering with', cut
+        logging.debug(' i am filtering with', cut)
         self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
         ## marc elist = ROOT.gDirectory.Get('elist')
         ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise

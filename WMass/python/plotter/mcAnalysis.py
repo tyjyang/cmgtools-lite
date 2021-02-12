@@ -7,6 +7,7 @@ from tree2yield import *
 from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
+import logging
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
@@ -76,7 +77,7 @@ class MCAnalysis:
                     log10_maxGenWgt = math.log10(maxGenWgt)
                     histo_sumgenweight = tmp_rootfile.Get('hGenWeights')
                     if not histo_sumgenweight:
-                        raise RuntimeError, "Can't get histogram hGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
+                        raise RuntimeError("Can't get histogram hGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile)
                     minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
                     maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
                     sumGenWeights = histo_sumgenweight.Integral(minBin,maxBin)                  
@@ -84,11 +85,11 @@ class MCAnalysis:
                         # then the other histogram, whose integral is the number of events before any cut
                         histo_numweight = tmp_rootfile.Get('hNumWeights')
                         if not histo_numweight:
-                            raise RuntimeError, "Can't get histogram hNumWeights from %s.\nMake sure it is available when using option --max-genWeight-procs and --clip-genWeight-toMax" % rootfile      
+                            raise RuntimeError("Can't get histogram hNumWeights from %s.\nMake sure it is available when using option --max-genWeight-procs and --clip-genWeight-toMax" % rootfile)
                         # get actual upper threshold based on the bin edge
                         maxGenWgt = math.pow(10.0,histo_sumgenweight.GetXaxis().GetBinUpEdge(maxBin))
                         if verbose:
-                            print "INFO >>> Process %s -> actual genWeight threshold set to %s" % (pname,str(maxGenWgt))
+                            logging.info("Process %s -> actual genWeight threshold set to %s" % (pname,str(maxGenWgt)))
                         nLargeWeight = -1*histo_numweight.Integral(0,max(0,minBin-1)) + histo_numweight.Integral(min(histo_numweight.GetNbinsX()+1,maxBin+1), histo_numweight.GetNbinsX()+1)
                         sumGenWeights += (nLargeWeight*maxGenWgt) 
                         nUnweightedEvents = histo_numweight.Integral(0,histo_numweight.GetNbinsX()+1)
@@ -96,7 +97,7 @@ class MCAnalysis:
             # get sum of weights from Runs tree (faster, but only works if not cutting away large genWeight)
             tmp_tree = tmp_rootfile.Get('Runs')
             if not tmp_tree or tmp_tree == None:
-                raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
+                raise RuntimeError("Can't get tree Runs from %s.\n" % rootfile)
             tmp_hist = ROOT.TH1D("sumweights","",1,0,10)
             tmp_hist2 = ROOT.TH1D("sumcount","",1,0,10)
             tmp_tree.Draw("1>>sumweights", "genEventSumw")
@@ -115,8 +116,8 @@ class MCAnalysis:
         # when called with not empty addExtras, issue a warning in case you are overwriting settings
         if "ALLOW_OVERWRITE_SETTINGS" in addExtras:
             if addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
-                print "### WARNING: found setting ALLOW_OVERWRITE_SETTINGS=True in %s. " % str(field0_addExtras)
-                print "### Will use new settings overwriting those in mca included file %s." % str(samples)                    
+                logging.warning("Found setting ALLOW_OVERWRITE_SETTINGS=True in %s. " % str(field0_addExtras))
+                loggin.warning("Will use new settings overwriting those in mca included file %s." % str(samples))
 
         for line in open(samples,'r'):
             if re.match("\s*#.*", line): continue
@@ -136,11 +137,11 @@ class MCAnalysis:
                     if "ALLOW_OVERWRITE_SETTINGS" in addExtras and addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                         pass
                     else:
-                        raise RuntimeError, 'You are trying to overwrite an extra option (%s - %s ) already set (did you forget ALLOW_OVERWRITE_SETTINGS=True ?)' % (k, v)
+                        raise RuntimeError('You are trying to overwrite an extra option (%s - %s ) already set (did you forget ALLOW_OVERWRITE_SETTINGS=True ?)' % (k, v))
                 extra[k] = v
             field = [f.strip() for f in line.split(':')]
             if len(field) == 1 and field[0] == "*":
-                if len(self._allData): raise RuntimeError, "MCA defaults ('*') can be specified only before all processes"
+                if len(self._allData): raise RuntimeError("MCA defaults ('*') can be specified only before all processes")
                 #print "Setting the following defaults for all samples: "
                 for k,v in extra.iteritems():
                     #print "\t%s: %r" % (k,v)
@@ -178,14 +179,14 @@ class MCAnalysis:
                 self._isSignal[field[0]] = signal
                 continue
             if field[1] == "+": # include an mca into another one, usage:   otherprocesses : + ; IncludeMca="path/to/other/mca.txt"
-                if 'IncludeMca' not in extra: raise RuntimeError, 'You have declared a component with IncludeMca format, but not included this option'
+                if 'IncludeMca' not in extra: raise RuntimeError('You have declared a component with IncludeMca format, but not included this option')
                 extra_to_pass = copy(extra)
                 del extra_to_pass['IncludeMca']
                 self.readMca(extra['IncludeMca'],options,addExtras=extra_to_pass,field0_addExtras=field0noPostFix) # call readMca recursively on included mca files
                 continue
             # Customize with additional weight if requested
             if 'AddWeight' in extra:
-                if len(field)<2: raise RuntimeError, 'You are trying to set an additional weight, but there is no weight initially defined for this component'
+                if len(field)<2: raise RuntimeError('You are trying to set an additional weight, but there is no weight initially defined for this component')
                 elif len(field)==2: field.append(extra['AddWeight'])
                 else: field[2] = '(%s)*(%s)'%(field[2],extra['AddWeight'])
             ## If we have a selection of process names, apply it
@@ -221,15 +222,15 @@ class MCAnalysis:
                             XXX = extra['XXX'].split(',')
                             pathsToSearch = [extra['TreePath'].replace("[XXX]", x) for x in XXX]
                         else:
-                            print "Error >>> Process %s '[XXX]' found in TreePath, but XXX not defined in MCA file" % (pname)
+                            logging.error("Process %s '[XXX]' found in TreePath, but XXX not defined in MCA file" % (pname))
                             quit()
                     else:                        
                         pathsToSearch = [extra['TreePath']]
                 else:
                     if not options.path:
-                        print "Warning: you didn't specify a path to ntuples with option -P, but process %s has no 'TreePath' key in the MCA file. Please specify a valid path." % pname
+                        logging.warning("You didn't specify a path to ntuples with option -P, but process %s has no 'TreePath' key in the MCA file. Please specify a valid path." % pname)
                         quit()
-                print "INFO >>> Process %s -> searching for files in %s/%s" % (pname,repr(pathsToSearch),subpath)
+                logging.info("Process %s -> searching for files in %s/%s" % (pname,repr(pathsToSearch),subpath))
                 for treepath in pathsToSearch:
                     for dirpath, dirnames, filenames in os.walk(treepath):
                         # either use regexp or simply that subpath is in the path (so one doesn't need 
@@ -238,7 +239,7 @@ class MCAnalysis:
                             filtered_fnames = [f for f in filenames if f.endswith(".root") and field1_regexp.match(f)]
                             for filename in filtered_fnames:
                                 cnamesWithPath.append(os.path.join(dirpath, filename))
-                print "INFO >>> Process %s -> %d files selected" % (pname,len(cnamesWithPath))
+                logging.info("Process %s -> %d files selected" % (pname,len(cnamesWithPath)))
             else:
                 match=re.match("(\S+)\*",field[1]) 
                 if match:
@@ -258,9 +259,9 @@ class MCAnalysis:
                 for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                     if re.match(procRegExp,pname):
                         if options.clipGenWeightToMax:
-                            print "INFO >>> Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt)
+                            logging.info("Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt))
                         else:
-                            print "INFO >>> Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt)
+                            logging.info("Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt))
 
             ### CHECKPOINT
             nAllFiles = len(cnamesWithPath)
@@ -300,7 +301,7 @@ class MCAnalysis:
                             friendDir = friendDir.replace("[XXX]",x)
                             # print "FriendDir = ",friendDir
                 else:
-                    print "Error >>> Process %s '[XXX]' found in FriendDir, but XXX not defined in MCA file" % (pname)
+                    logging.error("Process %s '[XXX]' found in FriendDir, but XXX not defined in MCA file" % (pname))
                     quit()
 
             if subpath != "" and not subpath.endswith("/"):
@@ -375,14 +376,14 @@ class MCAnalysis:
             if "data" not in pname:
                 if options.noHeppyTree:
                     if options.weight:
-                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1
                         total_w = 1.0  # not really used for general trees at the moment
                         scale = "(%s)" % field[2]
                     else:
                         scale = "1"
                         total_w = 1 # not really used for general trees at the moment
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0
                 elif options.nanoaodTree:
 
@@ -409,7 +410,7 @@ class MCAnalysis:
                                         tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
                                     else:
                                         # reject event with weight > max
-                                        print 'in some other else command here'
+                                        logging.info('in some other else command here')
                                         tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
                                     # set again tmp_rdf
                                     tty.setRDF(tmp_rdf)
@@ -425,19 +426,19 @@ class MCAnalysis:
                         tmp_rootfile = ROOT.TFile(rootfile+"?readaheadsz=65535")
                         tmp_tree = tmp_rootfile.Get('Runs')
                         if not tmp_tree or tmp_tree == None:
-                            raise RuntimeError, "Can't get tree Runs from %s.\n" % rootfile
-                        print 'doing a draw here for some reason'
+                            raise RuntimeError("Can't get tree Runs from %s.\n" % rootfile)
+                        logging.info('doing a draw here for some reason')
                         tmp_tree.Draw("1>>sumweights", "genEventSumw")
                         tmp_hist = ROOT.gROOT.FindObject("sumweights")
                         sumGenWeights = tmp_hist.Integral()
-                        print 'doing another draw here for some reason'
+                        logging.info('doing another draw here for some reason')
                         tmp_tree.Draw("1>>sumcount", "genEventCount")
                         tmp_hist2 = ROOT.gROOT.FindObject("sumcount")
                         nUnweightedEvents = tmp_hist2.Integral()
                         tmp_rootfile.Close()                            
 
                     if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
-                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1; 
                         if options.sumGenWeighFromHisto:
                             total_w = sumGenWeights
@@ -457,10 +458,10 @@ class MCAnalysis:
                     elif not options.weight:
                         scale = "1"
                         total_w = 1
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0
                     else: # case for unweighted events for MC
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0;
                         # total_w += n_count ## ROOT histo version
                         total_w = nUnweightedEvents
@@ -479,7 +480,7 @@ class MCAnalysis:
                                 tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
                                 histo_sumgenweight = tmp_rootfile.Get('distrGenWeights')
                                 if not histo_sumgenweight:
-                                    raise RuntimeError, "Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile
+                                    raise RuntimeError("Can't get histogram distrGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile)
                                 minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
                                 maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
                                 n_sumgenweight = histo_sumgenweight.Integral(minBin,maxBin)
@@ -500,7 +501,7 @@ class MCAnalysis:
                     # if ( n_count != n_sumgenweight ) and options.weight: ## ROOT histo version
                     ## this needed for now...
                     if ('Sum Weights' in counters) and options.weight:
-                        if (is_w==0): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1; 
                         if useHistoForWeight:
                             total_w += n_sumgenweight ## ROOT histo version
@@ -511,10 +512,10 @@ class MCAnalysis:
                     elif not options.weight:
                         scale = "1"
                         total_w = 1
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0
                     else:
-                        if (is_w==1): raise RuntimeError, "Can't put together a weighted and an unweighted component (%s)" % cnames
+                        if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0;
                         # total_w += n_count ## ROOT histo version
                         total_w += counters['All Events']
@@ -530,7 +531,7 @@ class MCAnalysis:
             elif len(field) == 3:
                 tty.setScaleFactor(field[2])
             else:
-                print "Poorly formatted line: ", field
+                logging.warning("Poorly formatted line: ", field)
                 raise RuntimeError                    
             # Adjust free-float and fixed from command line
             for p0 in options.processesToFloat:
@@ -549,7 +550,7 @@ class MCAnalysis:
 
             if to_norm: 
                 if options.sumGenWeighFromHisto:
-                    print ">>> Total sumgenweights from histograms = %s (process = %s)" % (str(total_w),pname)
+                    ">>> Total sumgenweights from histograms = %s (process = %s)" % (str(total_w),pname)
                 for tty in ttys: 
                     if options.weight: 
                         tty.setScaleFactor("%s*%g" % (scale, 1000.0/total_w))
@@ -590,13 +591,13 @@ class MCAnalysis:
             return options[name] if name in options else default
         elif noThrow:
             return default
-        else: raise RuntimeError, "Can't get option %s for undefined process %s" % (name,process)
+        else: raise RuntimeError("Can't get option %s for undefined process %s" % (name,process))
     def setProcessOption(self,process,name,value):
         if process in self._allData:
             return self._allData[process][0].setOption(name,value)
         elif process in self._optionsOnlyProcesses:
             self._optionsOnlyProcesses[process][name] = value
-        else: raise RuntimeError, "Can't set option %s for undefined process %s" % (name,process)
+        else: raise RuntimeError("Can't set option %s for undefined process %s" % (name,process))
     def getScales(self,process):
         return [ tty.getScaleFactor() for tty in self._allData[process] ] 
     def setScales(self,process,scales):
@@ -660,7 +661,7 @@ class MCAnalysis:
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
-                print "Processing " + key + "..."
+                logging.info("Processing " + key + "...")
                 #print 'this is key', key
                 #print 'this is tty', tty
                 #print 'this is tty._fname', tty._fname
@@ -739,7 +740,7 @@ class MCAnalysis:
             for ttid, entries in retlist:
                 ttymap[ttid].setEntries(entries)
     def applyCut(self,cut):
-        print "Inside applyCut(self,cut) from mcAnalysis.py"
+        logging.info("Inside applyCut(self,cut) from mcAnalysis.py")
         pass
         ## marc rdf styletasks = []; revmap = {}
         ## marc rdf stylefor key,ttys in self._allData.iteritems():
@@ -773,6 +774,8 @@ class MCAnalysis:
             if key != 'data':
                 if self._isSignal[key]: allSig.append((key,reports[key]))
                 else: allBg.append((key,reports[key]))
+        #allSig.sort(key = lambda (n,v): self._rank[n])
+        #allSig.sort(key = lambda (n,v): self._rank[n])
         allSig.sort(key = lambda (n,v): self._rank[n])
         allBg.sort( key = lambda (n,v): self._rank[n])
         table = allSig + allBg
@@ -808,18 +811,18 @@ class MCAnalysis:
             fmtlen+=8
 
         if self._options.txtfmt == "text":
-            print "CUT".center(clen),
+            loggin.info("CUT".center(clen),)
             for h,r in table: 
                 if len("   "+h) <= fmtlen:
-                    print ("   "+h).center(fmtlen),
+                    logging.info(("   "+h).center(fmtlen),)
                 elif len(h) <= fmtlen:
-                    print h.center(fmtlen),
+                    logging.info(h.center(fmtlen),)
                 else:
-                    print h[:fmtlen],
-            print ""
-            print "-"*((fmtlen+1)*len(table)+clen)
+                    logging.info(h[:fmtlen],)
+            logging.info("")
+            logging.info("-"*((fmtlen+1)*len(table)+clen))
             for i,(cut,dummy) in enumerate(table[0][1]):
-                print cfmt % cut,
+                logging.info(cfmt % cut,)
                 for name,report in table:
                     (nev,err,nev_run_upon) = report[i][1]
                     den = report[i-1][1][0] if i>0 else 0
@@ -831,9 +834,9 @@ class MCAnalysis:
                     toPrint = (nev,)
                     if self._options.errors:    toPrint+=(err,)
                     if self._options.fractions: toPrint+=(fraction*100,)
-                    if self._options.weight and nev < 1000: print ( nfmtS if nev > 0.2 else nfmtX) % toPrint,
-                    else                                  : print nfmtL % toPrint,
-                print ""
+                    if self._options.weight and nev < 1000: logging.info(( nfmtS if nev > 0.2 else nfmtX) % toPrint,)
+                    else                                  : logging.info(nfmtL % toPrint,)
+                logging.info("")
         elif self._options.txtfmt in ("tsv","csv","dsv","ssv"):
             sep = { 'tsv':"\t", 'csv':",", 'dsv':';', 'ssv':' ' }[self._options.txtfmt]
             if len(table[0][1]) == 1:
@@ -849,8 +852,8 @@ class MCAnalysis:
                     if self._options.fractions: toPrint+=(fraction*100,)
                     if self._options.weight and nev < 1000: ytxt = ( nfmtS if nev > 0.2 else nfmtX) % toPrint
                     else                                  : ytxt = nfmtL % toPrint
-                    print "%s%s%s" % (k,sep,sep.join(ytxt.split()))
-                print ""
+                    logging.info("%s%s%s" % (k,sep,sep.join(ytxt.split())))
+                logging.info("")
 
     def _getYields(self,ttylist,cuts):
         return mergeReports([tty.getYields(cuts) for tty in ttylist])
@@ -873,7 +876,7 @@ class MCAnalysis:
         for m in inlist:
             to,fro = m.split("=")
             if to[-1] == "+": to = to[:-1]
-            else: raise RuntimeError, 'Incorrect plotmergemap format: %s'%m
+            else: raise RuntimeError('Incorrect plotmergemap format: %s'%m)
             to = to.strip()
             for k in fro.split(","):
                 relist.append((re.compile(k.strip()+"$"), to))
@@ -881,7 +884,7 @@ class MCAnalysis:
         for m in inlist:
             dset,scale = m.split("=")
             if dset[-1] == "*": dset = dset[:-1]
-            else: raise RuntimeError, 'Incorrect plotscalemap format: %s'%m
+            else: raise RuntimeError('Incorrect plotscalemap format: %s'%m)
             relist.append((re.compile(dset.strip()+"$"),float(scale)))
     def regroupReports(self,pmap,regexp):
         patt, to = regexp
@@ -914,7 +917,7 @@ class MCAnalysis:
     def _processTasks(self,func,tasks,name=None):
         #timer = ROOT.TStopwatch()
         #print "Starting job %s with %d tasks, %d threads" % (name,len(tasks),self._options.jobs)
-        print 'self._options.jobs', self._options.jobs
+        logging.info('self._options.jobs', self._options.jobs)
         if self._options.jobs == 0: 
             retlist = map(func, tasks)
         else:

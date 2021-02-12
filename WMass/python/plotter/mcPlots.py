@@ -5,6 +5,9 @@
 from mcAnalysis import *
 import CMS_lumi as CMS_lumi
 import itertools, math
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 CMS_lumi.writeExtraText = 1
 
@@ -47,9 +50,9 @@ class PlotFile:
             field = [f.strip().replace(";",":") for f in line.replace("::",";;").replace("\\:",";").split(':')]
             if len(field) == 1 and field[0] == "*":
                 if len(self._plots): raise RuntimeError, "PlotFile defaults ('*') can be specified only before all plots"
-                print "Setting the following defaults for all plots: "
+                logging.info("Setting the following defaults for all plots: ")
                 for k,v in extra.iteritems():
-                    print "\t%s: %r" % (k,v)
+                    logging.info("\t%s: %r" % (k,v))
                     defaults[k] = v
                 continue
             else:
@@ -83,7 +86,7 @@ def getDataPoissonErrors(h, drawZeroBins=False, drawXbars=False):
         dN = h.GetBinError(i+1);
         if drawZeroBins or N > 0:
             if N > 0 and dN > 0 and abs(dN**2/N-1) > 1e-4: 
-                #print "Hey, this is not Poisson to begin with! %.2f, %.2f, neff = %.2f, yscale = %.5g" % (N, dN, (N/dN)**2, (dN**2/N))
+                logging.debug("This is not Poisson to begin with! %.2f, %.2f, neff = %.2f, yscale = %.5g" % (N, dN, (N/dN)**2, (dN**2/N)))
                 yscale = (dN**2/N)
                 N = (N/dN)**2
             else:
@@ -110,7 +113,7 @@ def getDataPoissonErrors(h, drawZeroBins=False, drawXbars=False):
 def PrintHisto(h):
     if not h:
         return
-    print h.GetName()
+    logging.info("Hist name is %s" % h.GetName())
     c=[]
     if "TH1" in h.ClassName():
         for i in xrange(h.GetNbinsX()):
@@ -120,8 +123,8 @@ def PrintHisto(h):
             for j in xrange(h.GetNbinsY()):
                 c.append((h.GetBinContent(i+1,j+1),h.GetBinError(i+1,j+1)))
     else:
-        print 'not th1 or th2'
-    print c
+        logging.info('Hist is not th1 or th2')
+    logging.info(c)
 
 def doSpam(text,x1,y1,x2,y2,align=12,fill=False,textSize=0.033,_noDelete={}):
     cmsprel = ROOT.TPaveText(x1,y1,x2,y2,"NDC");
@@ -347,7 +350,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
         pdfs.add(hpdf); dontDelete.append(hpdf)
         if mca.getProcessOption(p,'FreeFloat',False):
             normTermName = mca.getProcessOption(p,'PegNormToProcess',p)
-            print "%s scale as %s" % (p, normTermName)
+            logging.info("%s scale as %s" % (p, normTermName))
             normterm = w.factory('prod::norm_%s(%g,syst_%s[1,%g,%g])' % (p, pmap[p].Integral(), normTermName, 0.2, 5))
             dontDelete.append((normterm,))
             coeffs.add(normterm)
@@ -355,7 +358,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
         elif mca.getProcessOption(p,'NormSystematic',0.0) > 0:
             syst = mca.getProcessOption(p,'NormSystematic',0.0)
             normTermName = mca.getProcessOption(p,'PegNormToProcess',p)
-            print "%s scale as %s with %s constraint" % (p, normTermName, syst)
+            logging.info("%s scale as %s with %s constraint" % (p, normTermName, syst))
             normterm = w.factory('expr::norm_%s("%g*pow(%g,@0)",syst_%s[-5,5])' % (p, pmap[p].Integral(), 1+syst, normTermName))
             if not w.pdf("systpdf_%s" % normTermName): 
                 constterm = w.factory('Gaussian::systpdf_%s(syst_%s,0,1)' % (normTermName,normTermName))
@@ -366,7 +369,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
             coeffs.add(normterm)
             procNormMap[p] = normterm
         else:    
-            print "%s is fixed" % p
+            logging.info("%s is fixed" % p)
             normterm = w.factory('norm_%s[%g]' % (p, pmap[p].Integral()))
             dontDelete.append((normterm,))
             coeffs.add(normterm)
@@ -398,10 +401,9 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
            nuis.setVal(val+err)
            v1 =  procNormMap[p].getVal()
            nuis.setVal(val)
-           #print [ p, val, err, v0, v1, (v1-v0)/v0, mca.getProcessOption(p,'NormSystematic',0.0) ]
            fitlog.append("Process %s scaled by %.3f +/- %.3f" % (p,newscale,newscale*(v1-v0)/v0))
            if saveScales:
-              print "Scaling process %s by the extracted scale factor %.3f with rel. syst uncertainty %.3f" % (p,newscale,(v1-v0)/v0)
+              logging.info("Scaling process %s by the extracted scale factor %.3f with rel. syst uncertainty %.3f" % (p,newscale,(v1-v0)/v0))
               mca.setProcessOption(p,'NormSystematic', (v1-v0)/v0);
               mca.scaleUpProcess(p,newscale)
         # recompute totals
@@ -696,9 +698,9 @@ def doStatTests(total,data,test,legendCorner):
         chi2p += (oi-ei)**2 / ei
         chi2gq += (oi-ei)**2 /(ei+dei**2)
         #chi2lp +=
-    print "\tc2p  %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2p,  nb), chi2p,  nb)
-    print "\tc2l  %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2l,  nb), chi2l,  nb)
-    print "\tc2qg %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2gq, nb), chi2gq, nb)
+    logging.info("\tc2p  %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2p,  nb), chi2p,  nb))
+    logging.info("\tc2l  %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2l,  nb), chi2l,  nb))
+    logging.info("\tc2qg %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2gq, nb), chi2gq, nb))
     #print "\tc2lp %.4f (%6.2f/%3d)" % (ROOT.TMath.Prob(chi2lp, nb), chi2lp, nb)
     chi2s = { "chi2l":chi2l, "chi2p":chi2p, "chi2gq":chi2gq, "chi2lp":chi2lp }
     if test in chi2s:
@@ -756,7 +758,7 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
             if len(overrideLegCoord.split(",")) == 4:
                 [x1,y1,x2,y2] = [float(coord) for coord in overrideLegCoord.split(",")]
             else:
-                print "Warning in doLegend(): len(overrideLegCoord.split(",")) != 4 --> option will be ignored"                
+                logging.warning("In doLegend(): len(overrideLegCoord.split(",")) != 4 --> option will be ignored")
 
         #(x1,y1,x2,y2) = (0.2, 0.78,0.9,0.93)  # I just noticed that this line was added by Marc for monster plot (I was getting weird plots)
         # I think this is hardcoding stuff too much (we don't always plot monster plots ;)  )
@@ -814,7 +816,7 @@ class PlotMaker:
                 sets.append((cnsafe,cn,cv))
         elist = (self._options.elist == True) or (self._options.elist == 'auto' and len(plots.plots()) > 2)
         for subname, title, cut in sets:
-            print "cut set: ",title
+            logging.info("cut set: %s" % title)
             #if elist: mca.applyCut(cut) # not used for RDF
             dir = self._dir
             if subname:
@@ -831,7 +833,7 @@ class PlotMaker:
             #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cut,makeSummary=True)
             for ipspec,pspec in enumerate(pspecs):
-                print "    plot: ",pspec.name
+                logging.info("plot: %s" % pspec.name)
                 #pmap = mca.getPlots(pspec,cut,makeSummary=True)
                 #exit(0)
                 #
@@ -946,14 +948,14 @@ class PlotMaker:
                         #if plot.Integral() == 0:
                         #    print 'Warning: plotting histo %s with zero integral, there might be problems in the following'%p
                         if plot.Integral() < 0:
-                            print 'Warning: plotting histo %s with negative integral (%f), the stack plot will probably be incorrect.'%(p,plot.Integral())
+                            logging.warning('Plotting histo %s with negative integral (%f), the stack plot will probably be incorrect.'%(p,plot.Integral()))
                         if 'TH1' in plot.ClassName():
                             for b in xrange(1,plot.GetNbinsX()+1):
-                                if plot.GetBinContent(b)<0: print 'Warning: histo %s has bin %d with negative content (%f), the stack plot will probably be incorrect.'%(p,b,plot.GetBinContent(b))
+                                if plot.GetBinContent(b)<0: logging.warning('Histo %s has bin %d with negative content (%f), the stack plot will probably be incorrect.'%(p,b,plot.GetBinContent(b)))
                         elif 'TH2' in plot.ClassName():
                             for b1 in xrange(1,plot.GetNbinsX()+1):
                                 for b2 in xrange(1,plot.GetNbinsY()+1):
-                                    if plot.GetBinContent(b1,b2)<0: print 'Warning: histo %s has bin %d,%d with negative content (%f), the stack plot will probably be incorrect.'%(p,b1,b2,plot.GetBinContent(b1,b2))
+                                    if plot.GetBinContent(b1,b2)<0: logging.warning('histo %s has bin %d,%d with negative content (%f), the stack plot will probably be incorrect.'%(p,b1,b2,plot.GetBinContent(b1,b2)))
 #                        if plot.Integral() <= 0: continue
                         if mca.isSignal(p): plot.Scale(options.signalPlotScale)
                         if mca.isSignal(p) and options.noStackSig == True: 
@@ -1174,7 +1176,7 @@ class PlotMaker:
                     if "TH1" in new.ClassName():
                         for b in xrange(1,new.GetNbinsX()+1):
                             if abs(new.GetBinContent(b) - ref.GetBinContent(b)) > options.toleranceForDiff*ref.GetBinContent(b):
-                                print "Plot: difference found in %s, bin %d" % (outputName, b)
+                                logging.info("Plot: difference found in %s, bin %d" % (outputName, b))
                                 p1.SetFillColor(ROOT.kYellow-10)
                                 if p2: p2.SetFillColor(ROOT.kYellow-10)
                                 break
@@ -1438,7 +1440,7 @@ if __name__ == "__main__":
         os.system("mkdir -p "+os.path.dirname(outname))
         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+os.path.dirname(outname))
         elif os.path.exists("/pool/ciencias/"): os.system("cp /pool/ciencias/HeppyTrees/RA7/additionalReferenceCode/index.php "+os.path.dirname(outname))
-    print "Will save plots to ",outname
+    logging.info("Will save plots to %s " % outname)
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")
     fcmd.write("%s\n\n" % " ".join(sys.argv))
     fcmd.write("%s\n%s\n" % (args,options))
