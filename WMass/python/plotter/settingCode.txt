@@ -1,0 +1,80 @@
+##########################################
+#### Set Singularity environment to run code from cmswmass2 machine (assuming it was already installed) 
+
+# for python 2
+/data/shared/singularity/python2rootdevf32.sif
+
+# for python 3
+/data/shared/singularity/pythonrootdevf32.sif
+
+# set by hand the CMSSW_BASE variable when you use the code installed as detailed below
+# for me it is
+export CMSSW_BASE=/data/home/mciprian/mycode/CMSSW_10_6_18/
+
+##########################################
+#### Install CMGTools
+
+# NOTE: it is advisable to run the code from a different shell with respect to the one used to install it
+# if you are installing the code, you don't have to use /data/shared/singularity/python2rootdevf32.sif as you would when you want to run the code
+# if you have already used that command in this shell, log out of the machine and log again to reset it
+
+# from lxplus, log into the wmass machine 2, with
+ssh -XY cmswmass2
+
+# set a Centos 7 environment (depending on the CMSSW release you need) and source cmsset_default.sh to use scram
+# note that the cmsenv or cmsrel aliases might not be set already
+cmssw-cc7
+source /cvmfs/cms.cern.ch/cmsset_default.sh
+
+# cmssw-cc7 will set up a Singularity environment where you can proceed with downloading the code
+# if you could use centos 8, it would be enough to source /cvmfs/cms.cern.ch/cmsset_default.sh
+
+# now get the code (assuming you get it from cippy remote repository
+# if you are using your own repository, some steps are not needed (this is specified as a comment below)
+
+# NOTE: on this machine you may have to set up your git configuration, or git cms-init will not work
+# i.e. the following for me (change details with you data)
+git config --global user.name 'Marco Cipriani'
+git config --global user.email 'marco.cipriani@cern.ch'
+git config --global user.github 'cippy
+
+export SCRAM_ARCH="slc7_amd64_gcc700"  # for bash
+cmsrel CMSSW_10_6_18
+cd cmsrel CMSSW_10_6_18/src/
+cmsenv
+git cms-init
+
+# at this point make sure that the environment variable CMSSW_BASE is set
+echo $CMSSW_BASE
+# if empty (but should not be the case), you can set it by hand
+
+# first cmg-cmssw, taking branch heppy_10_6_18_dev_mciprian of cippy (it should be the most up-to-date)
+git remote add cippy-cmg-central https://github.com/cippy/cmg-cmssw.git  -f  -t heppy_10_6_18_dev_mciprian
+
+# get the sparse-checkout to get only PhysicsTools/Heppy/ and PhysicsTools/HeppyCore/ packages
+cp /afs/cern.ch/user/m/mciprian/public/recipe_heppy_106X/sparse-checkout_106X_heppy_cippy .git/info/sparse-checkout
+
+# move to a new branch tracking heppy_10_6_18_dev_mciprian from cippy-cmg-central
+# you may do it from your own repository if you think you already have the updated version of the code
+git checkout -b heppy_10_6_18_dev cippy-cmg-central/heppy_10_6_18_dev_mciprian
+
+# at this point you should only see PhysicsTools/Heppy/ and PhysicsTools/HeppyCore/
+
+# set this environment variable with your github use (or set it by hand if it doesn't work)
+YOUR_GITHUB_REPOSITORY=$(git config user.github)
+git remote add origin git@github.com:$YOUR_GITHUB_REPOSITORY/cmg-cmssw.git
+# the following is not needed if you are getting stuff from your own remote repository
+git push -u origin heppy_10_6_18_dev
+
+# now CMGTools, getting branch wmass106X_mciprian_RDF from cippy
+git clone -o cippy-cmg-central https://github.com/cippy/cmgtools-lite.git -b wmass106X_mciprian_RDF CMGTools
+cd CMGTools
+git remote add origin git@github.com:$YOUR_GITHUB_REPOSITORY/cmgtools-lite.git 
+
+# move to a new branch and push (not needed if you were cloning from your own branch)
+git checkout -b wmass106X_${YOUR_GITHUB_REPOSITORY}_RDF
+git push -u origin wmass106X_${YOUR_GITHUB_REPOSITORY}_RDF
+
+# finally compile and hope for the best
+cd $CMSSW_BASE/src && scram b -j 8
+
