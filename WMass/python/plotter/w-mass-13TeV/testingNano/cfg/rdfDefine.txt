@@ -3,3 +3,4 @@ vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy
 goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
+sum_pt : Numba::sumPt(Muon_pt)

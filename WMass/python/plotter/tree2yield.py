@@ -3,6 +3,8 @@ from math import *
 import re
 import os, os.path
 from array import array
+from collections import OrderedDict
+import numbaDefines
 
 ## safe batch mode
 import sys
@@ -208,50 +210,40 @@ class TreeToYield:
         self._appliedCut = None
         self._elist = None
         self._entries = None
-        self._rdfDefs = {} # this needs to keep the sorting, so will keep an integer id in the key
+        self._rdfDefs = {}
         self._rdfAlias = {}
         if self._options.rdfDefineFile:
             self._rdfDefs = self.getRdfDefinitions(self._options.rdfDefineFile)
+        if self._options.rdfDefine:
+            self._rdfDefs.update(self.getRdfDefinitions(self._options.rdfDefine))
 
-        if len(self._options.rdfDefine):
-            for d in self._options.rdfDefine:
-                tokens = [x.strip() for x in d.split(":")]
-                if len(tokens) == 2:
-                    tokens.append(".*")
-                if any(tokens[0] in key[1] for key in self._rdfDefs):
-                    ind = [key[0] for key in self._rdfDefs if tokens[0] in key[1]][0]
-                    self._rdfDefs[(ind,tokens[0])] = [tokens[1], tokens[2]]
-                else:
-                    self._rdfDefs[(len(self._rdfDefs),tokens[0])] = [tokens[1], tokens[2]]
-        #self.printRdfDefinitions()
-
-        if len(self._options.rdfAlias):
-            for d in self._options.rdfAlias:
-                tokens = [x.strip() for x in d.split(":")]
-                if len(tokens) == 2:
-                    tokens.append(".*")
-                self._rdfAlias[tokens[0]] = [tokens[1], tokens[2]]
-            
+        if self._options.rdfAlias:
+            self._rdfAlias = self.getRdfDefinitions(self._options.rdfAlias)
                     
-    def getRdfDefinitions(self, filename):
-        with open(filename) as f:
-            lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
-        ret = {}
-        for l in lines:                    
-            tokens = [x.strip() for x in l.split(":")]
-            if len(tokens) == 2:
-                tokens.append(".*")
-            # ret[name] = [defExpr, regExpForCname]
-            ret[(len(ret),tokens[0])] = [tokens[1], tokens[2] if len(tokens) == 3 else ".*"]
-        return ret
+    def getRdfDefinitions(self, data):
+        lines = data
+        if type(data) == str and os.path.isfile(data):
+            with open(data) as f:
+                lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
 
+        ret = OrderedDict()
+        for l in lines:                    
+            # This is why you don't define your own config format
+            l = l.replace("::", "--")
+            tokens = [x.strip().replace("--", "::") for x in l.split(":")]
+            name = tokens[0]
+            define = tokens[1]
+            filearg = tokens[2] if len(tokens) > 2 else ".*"
+
+            ret[name] = {"define" : define, "filearg" : filearg}
+        return ret
 
     def printRdfDefinitions(self):
         logging.info("-"*40)
         logging.info("Have these RDF definitions")
         logging.info("-"*40)
-        for key in sorted(self._rdfDefs.keys(), key= lambda x: int(x[0])):
-            logging.info("%d) %s : %s" % (key[0],key[1],self._rdfDefs[key]))
+        for key,value in self._rdfDefs.iteritems():
+            logging.info("{define}) : {args} (for {filearg}".format(name=key, **value))
         logging.info("-"*40)
 
     
@@ -515,16 +507,14 @@ class TreeToYield:
         #print tmp_weight
         self._tree = self._tree.Define(tmp_weight, wgt)        
 
-        if len(self._rdfDefs):
-            for key in sorted(self._rdfDefs.keys(), key= lambda x: int(x[0])):
-                if re.match(self._rdfDefs[key][1],self._cname):
-                    self._tree = self._tree.Define(key[1], self._rdfDefs[key][0])
-
-        if len(self._rdfAlias):
-            for key in self._rdfAlias:
-                if re.match(self._rdfAlias[key][1],self._cname):
-                    self._tree = self._tree.Alias(key, self._rdfAlias[key][0])
-
+        for name, entry in self._rdfDefs.items():
+            if re.match(entry["filearg"], self._cname):
+                print("Defining %s as %s" % (name, entry["define"]))
+                self._tree = self._tree.Define(name, entry["define"])
+            
+        for name,entry in self._rdfAlias.items():
+            if re.match(entry["filearg"], self._cname):
+                self._tree = self._tree.Alias(name, entry["define"])
                     
         ## define the Sum of genWeights before the filter
         if not self._isdata:

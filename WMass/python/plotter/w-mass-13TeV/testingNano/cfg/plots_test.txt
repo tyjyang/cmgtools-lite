@@ -2,6 +2,8 @@
 # Muon_pt[goodMuonsCharge][0] will always be the first muon with the selected charge and passing predefined selection criteria, for W it might be the only muon in the event, for Z it will automatically be the one with desired charge
 # the same is valid for most of the functions
 
+sum_pt: sum_pt: 100,25,200; XTitle="Muon sum p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
 muon_pt: Muon_pt[goodMuonsCharge][0]: 30,25,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta: Muon_eta[goodMuonsCharge][0]: 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
