@@ -132,7 +132,7 @@ class MCAnalysis:
                         (key,val) = [f.strip() for f in setting.split("=",1)]
                         extra[key] = eval(val)
                     else: extra[setting] = True
-            for k,v in addExtras.iteritems():
+            for k,v in addExtras.items():
                 if k in extra: 
                     if "ALLOW_OVERWRITE_SETTINGS" in addExtras and addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                         pass
@@ -143,12 +143,12 @@ class MCAnalysis:
             if len(field) == 1 and field[0] == "*":
                 if len(self._allData): raise RuntimeError("MCA defaults ('*') can be specified only before all processes")
                 #print "Setting the following defaults for all samples: "
-                for k,v in extra.iteritems():
+                for k,v in extra.items():
                     #print "\t%s: %r" % (k,v)
                     self.init_defaults[k] = v
                 continue
             else:
-                for k,v in self.init_defaults.iteritems():
+                for k,v in self.init_defaults.items():
                     if k not in extra: extra[k] = v
             if len(field) <= 1: continue
             if "SkipMe" in extra and extra["SkipMe"] == True and not options.allProcesses: continue
@@ -603,7 +603,7 @@ class MCAnalysis:
     def getYields(self,cuts,process=None,nodata=False,makeSummary=False,noEntryLine=False):
         ## first figure out what we want to do
         tasks = []
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
@@ -618,7 +618,7 @@ class MCAnalysis:
             if k not in mergemap: mergemap[k] = []
             mergemap[k].append(v)
         ## and finally merge them
-        ret = dict([ (k,mergeReports(v)) for k,v in mergemap.iteritems() ])
+        ret = dict([ (k,mergeReports(v)) for k,v in mergemap.items() ])
 
         rescales = []
         self.compilePlotScaleMap(self._options.plotscalemap,rescales)
@@ -636,13 +636,13 @@ class MCAnalysis:
         # and comute totals
         if makeSummary:
             allSig = []; allBg = []
-            for (key,val) in ret.iteritems():
+            for (key,val) in ret.items():
                 if key != 'data':
                     if self._isSignal[key]: allSig.append(ret[key])
                     else: allBg.append(ret[key])
-            if self._signals and not ret.has_key('signal') and len(allSig) > 0:
+            if self._signals and 'signal' not in ret and len(allSig) > 0:
                 ret['signal'] = mergeReports(allSig)
-            if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
+            if self._backgrounds and 'background' not in ret and len(allBg) > 0:
                 ret['background'] = mergeReports(allBg)
         return ret
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
@@ -655,7 +655,7 @@ class MCAnalysis:
         allSig = []; allBg = []
         tasks = []
         retlist = []
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
@@ -696,7 +696,7 @@ class MCAnalysis:
                 mergemap[k].append(v[ip])
             #mergemaps.append(tmp_mergemap)
 
-            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() ])
 
             rescales = []
             self.compilePlotScaleMap(self._options.plotscalemap,rescales)
@@ -712,12 +712,12 @@ class MCAnalysis:
             if self._projection:
                 self._projection.scalePlots(ret)
             if makeSummary:
-                allSig = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == True  ]
-                allBg  = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == False ]
-                if self._signals and not ret.has_key('signal') and len(allSig) > 0:
+                allSig = [v for k,v in ret.items() if k != 'data'and self._isSignal[k] == True  ]
+                allBg  = [v for k,v in ret.items() if k != 'data'and self._isSignal[k] == False ]
+                if self._signals and not 'signal' not in ret and len(allSig) > 0:
                     ret['signal'] = mergePlots(plotspec.name+"_signal", allSig)
                     ret['signal'].summary = True
-                if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
+                if self._backgrounds and 'background' not in ret and len(allBg) > 0:
                     ret['background'] = mergePlots(plotspec.name+"_background",allBg)
                     ret['background'].summary = True
 
@@ -728,7 +728,7 @@ class MCAnalysis:
         return rets
     def prepareForSplit(self):
         ttymap = {}
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             for tty in ttys:
                 if not tty.hasEntries(): 
                     #print "For tty %s/%s, I don't have the number of entries" % (tty._name, tty._cname)
@@ -741,7 +741,7 @@ class MCAnalysis:
         logging.info("Inside applyCut(self,cut) from mcAnalysis.py")
         pass
         ## marc rdf styletasks = []; revmap = {}
-        ## marc rdf stylefor key,ttys in self._allData.iteritems():
+        ## marc rdf stylefor key,ttys in self._allData.items():
         ## marc rdf style    for tty in ttys:
         ## marc rdf style        tty.cutToElist(cut)
         ## marc rdf style        revmap[id(tty)] = tty
@@ -763,7 +763,7 @@ class MCAnalysis:
         ## marc rdf style    tty.applyCutAndElist(cut, elist)
     def clearCut(self):
         pass ## rdf
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             for tty in ttys:
                 tty.clearCut() 
     def prettyPrint(self,reports,makeSummary=True):
@@ -890,7 +890,7 @@ class MCAnalysis:
             if k2 != to and re.match(patt,k2): k2 = to
             if k2 not in mergemap: mergemap[k2]=[]
             mergemap[k2].append(v)
-        return dict([ (k,mergeReports(v)) for k,v in mergemap.iteritems() ])
+        return dict([ (k,mergeReports(v)) for k,v in mergemap.items() ])
     def regroupPlots(self,pmap,regexp,pspec):
         patt, to = regexp
         mergemap={}
@@ -899,7 +899,7 @@ class MCAnalysis:
             if k2 != to and re.match(patt,k2): k2 = to
             if k2 not in mergemap: mergemap[k2]=[]
             mergemap[k2].append(v)
-        return dict([ (k,mergePlots(pspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+        return dict([ (k,mergePlots(pspec.name+"_"+k,v)) for k,v in mergemap.items() ])
     def stylePlot(self,process,plot,pspec,mayBeMissing=False):
         if process in self._allData:
             for tty in self._allData[process]: 

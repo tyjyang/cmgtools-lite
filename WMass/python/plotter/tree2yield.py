@@ -58,7 +58,7 @@ class PlotSpec:
     def setLog(self,name,value):
         self.logs[name] = value
     def allLogs(self):
-        return self.logs.iteritems()
+        return self.logs.items()
 
 def stylePlot(plot,spec,getOption):
         ## Sample specific-options, from self
@@ -133,16 +133,16 @@ def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
 
 def cropNegativeBins(histo):
             if "TH1" in histo.ClassName():
-                for b in xrange(0,histo.GetNbinsX()+2):
+                for b in range(0,histo.GetNbinsX()+2):
                     if histo.GetBinContent(b) < 0: histo.SetBinContent(b, 0.0)
             elif "TH2" in histo.ClassName():
-                for bx in xrange(0,histo.GetNbinsX()+2):
-                    for by in xrange(0,histo.GetNbinsY()+2):
+                for bx in range(0,histo.GetNbinsX()+2):
+                    for by in range(0,histo.GetNbinsY()+2):
                         if histo.GetBinContent(bx,by) < 0: histo.SetBinContent(bx,by, 0.0)
             elif "TH3" in histo.ClassName():
-                for bx in xrange(0,histo.GetNbinsX()+2):
-                    for by in xrange(0,histo.GetNbinsY()+2):
-                        for bz in xrange(0,histo.GetNbinsZ()+2):
+                for bx in range(0,histo.GetNbinsX()+2):
+                    for by in range(0,histo.GetNbinsY()+2):
+                        for bz in range(0,histo.GetNbinsZ()+2):
                             if histo.GetBinContent(bx,by,bz) < 0: histo.SetBinContent(bx,by,bz, 0.0)
 
 
@@ -484,7 +484,7 @@ class TreeToYield:
                     while n % rebin != 0: rebin -= 1
                     if rebin != 1: ret.Rebin(rebin)
                 if plotspecs[iret].getOption('Density',False):
-                    for b in xrange(1,n+1):
+                    for b in range(1,n+1):
                         ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
                         ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
             self._stylePlot(ret,plotspecs[iret])

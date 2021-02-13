@@ -52,12 +52,12 @@ class PlotFile:
             if len(field) == 1 and field[0] == "*":
                 if len(self._plots): raise RuntimeError("PlotFile defaults ('*') can be specified only before all plots")
                 logging.info("Setting the following defaults for all plots: ")
-                for k,v in extra.iteritems():
+                for k,v in extra.items():
                     logging.info("\t%s: %r" % (k,v))
                     defaults[k] = v
                 continue
             else:
-                for k,v in defaults.iteritems():
+                for k,v in defaults.items():
                     if k not in extra: extra[k] = v
             if len(field) <= 2: continue
             if len(options.plotselect):
@@ -82,7 +82,7 @@ def getDataPoissonErrors(h, drawZeroBins=False, drawXbars=False):
     q=(1-0.6827)/2.;
     points = []
     errors = []
-    for i in xrange(h.GetNbinsX()):
+    for i in range(h.GetNbinsX()):
         N = h.GetBinContent(i+1);
         dN = h.GetBinError(i+1);
         if drawZeroBins or N > 0:
@@ -117,11 +117,11 @@ def PrintHisto(h):
     logging.info("Hist name is %s" % h.GetName())
     c=[]
     if "TH1" in h.ClassName():
-        for i in xrange(h.GetNbinsX()):
+        for i in range(h.GetNbinsX()):
             c.append((h.GetBinContent(i+1),h.GetBinError(i+1)))
     elif "TH2" in h.ClassName():
-        for i in xrange(h.GetNbinsX()):
-            for j in xrange(h.GetNbinsY()):
+        for i in range(h.GetNbinsX()):
+            for j in range(h.GetNbinsY()):
                 c.append((h.GetBinContent(i+1,j+1),h.GetBinError(i+1,j+1)))
     else:
         logging.info('Hist is not th1 or th2')
@@ -170,14 +170,14 @@ def reMax(hist,hist2,islog,factorLin=1.3,factorLog=2.0,doWide=False):
     max2 = hist2.GetMaximum()*(factorLog if islog else factorLin)
     # Below, use a protection against cases where uncertainty is much bigger than value (might happen with weird situations or QCD MC)
     if hasattr(hist2,'poissonGraph'):
-       for i in xrange(hist2.poissonGraph.GetN()):
+       for i in range(hist2.poissonGraph.GetN()):
           if (hist2.poissonGraph.GetErrorYhigh(i) > hist2.poissonGraph.GetY()[i]):
               tmpvalue = (factorLog if islog else factorLin) * hist2.poissonGraph.GetY()[i]
           else:
               tmpvalue = (hist2.poissonGraph.GetY()[i] + 1.3*hist2.poissonGraph.GetErrorYhigh(i))
           max2 = max(max2, tmpvalue*(factorLog if islog else factorLin))
     elif "TH1" in hist2.ClassName():
-       for b in xrange(1,hist2.GetNbinsX()+1):
+       for b in range(1,hist2.GetNbinsX()+1):
           if (hist2.GetBinError(b) > hist2.GetBinContent(b)):
               tmpvalue = (factorLog if islog else factorLin) * hist2.GetBinContent(b)
           else:
@@ -191,7 +191,7 @@ def reMax(hist,hist2,islog,factorLin=1.3,factorLog=2.0,doWide=False):
 def doShadedUncertainty(h):
     xaxis = h.GetXaxis()
     points = []; errors = []
-    for i in xrange(h.GetNbinsX()):
+    for i in range(h.GetNbinsX()):
         N = h.GetBinContent(i+1); dN = h.GetBinError(i+1);
         if N == 0 and dN == 0: continue
         x = xaxis.GetBinCenter(i+1);
@@ -212,7 +212,7 @@ def doShadedUncertainty(h):
 
 def doDataNorm(pspec,pmap):
     if "data" not in pmap: return None
-    total = sum([v.Integral() for k,v in pmap.iteritems() if k != 'data' and not hasattr(v,'summary')])
+    total = sum([v.Integral() for k,v in pmap.items() if k != 'data' and not hasattr(v,'summary')])
     sig = pmap["data"].Clone(pspec.name+"_data_norm")
     sig.SetFillStyle(0)
     sig.SetLineColor(1)
@@ -224,12 +224,12 @@ def doDataNorm(pspec,pmap):
     return sig
 
 def doStackSignalNorm(pspec,pmap,individuals,extrascale=1.0,norm=True):
-    total = sum([v.Integral() for k,v in pmap.iteritems() if k != 'data' and not hasattr(v,'summary')])
+    total = sum([v.Integral() for k,v in pmap.items() if k != 'data' and not hasattr(v,'summary')])
     if options.noStackSig:
-        total = sum([v.Integral() for k,v in pmap.iteritems() if not hasattr(v,'summary') and mca.isBackground(k) ])
+        total = sum([v.Integral() for k,v in pmap.items() if not hasattr(v,'summary') and mca.isBackground(k) ])
     if individuals:
         sigs = []
-        for sig in [pmap[x] for x in mca.listSignals() if pmap.has_key(x) and pmap[x].Integral() > 0]:
+        for sig in [pmap[x] for x in mca.listSignals() if x in pmap and pmap[x].Integral() > 0]:
             sig = sig.Clone(sig.GetName()+"_norm")
             sig.SetFillStyle(0)
             sig.SetLineColor(sig.GetFillColor())
@@ -242,7 +242,7 @@ def doStackSignalNorm(pspec,pmap,individuals,extrascale=1.0,norm=True):
         sig = None
         if "signal" in pmap: sig = pmap["signal"].Clone(pspec.name+"_signal_norm")
         else: 
-            sigs = [pmap[x] for x in mca.listBackgrounds() if pmap.has_key(x) and pmap[x].Integral() > 0]
+            sigs = [pmap[x] for x in mca.listBackgrounds() if x in pmap and pmap[x].Integral() > 0]
             sig = sigs[0].Clone(sigs.GetName()+"_norm")
         sig.SetFillStyle(0)
         sig.SetLineColor(206)
@@ -284,7 +284,7 @@ def doScaleSigNormData(pspec,pmap,mca):
         bkg = sig.Clone(); bkg.Reset()
     sf = (data.Integral()-bkg.Integral())/sig.Integral()
     signals = [ "signal" ] + mca.listSignals()
-    for p,h in pmap.iteritems():
+    for p,h in pmap.items():
         if p in signals: h.Scale(sf)
     pspec.setLog("ScaleSig", [ "Signal processes scaled by %g" % sf ] )
     return sf
@@ -299,7 +299,7 @@ def doScaleBkgNormData(pspec,pmap,mca,list = []):
     rm = bkg.Integral() - int
     sf = (data.Integral() - rm) / int
     bkgs = ["background"] + list
-    for p,h in pmap.iteritems():
+    for p,h in pmap.items():
         if p in bkgs: h.Scale(sf)
     return sf
 
@@ -316,19 +316,19 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     x.setBins(data.GetNbinsX())
     obs = ROOT.RooArgList(w.var("x"))
     hdata = pmap['data']; hdata.killbins = False
-    hmc = mergePlots('htemp', [v for (k,v) in pmap.iteritems() if k != 'data'])
-    for b in xrange(1,hmc.GetNbinsX()+2):
+    hmc = mergePlots('htemp', [v for (k,v) in pmap.items() if k != 'data'])
+    for b in range(1,hmc.GetNbinsX()+2):
         if hdata.GetBinContent(b) > 0 and hmc.GetBinContent(b) == 0:
             if not hdata.killbins:
                 hdata = hdata.Clone()
                 hdata.killbins = True
-            for b2 in xrange(b-1,0,-1):
+            for b2 in range(b-1,0,-1):
                 if hmc.GetBinContent(b2) > 0:
                     hdata.SetBinContent(b2, hdata.GetBinContent(b2) + hdata.GetBinContent(b))
                     hdata.SetBinContent(b, 0)
                     break
             if hdata.GetBinContent(b) > 0:
-                for b2 in xrange(b+1,hmc.GetNbinsX()+2):
+                for b2 in range(b+1,hmc.GetNbinsX()+2):
                     if hmc.GetBinContent(b2) > 0:
                         hdata.SetBinContent(b2, hdata.GetBinContent(b2) + hdata.GetBinContent(b))
                         hdata.SetBinContent(b, 0)
@@ -336,7 +336,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
             if hdata.GetBinContent(b) > 0: hdata.SetBinContent(b, 0)
     rdhs = {};
     w.imp = getattr(w, 'import')
-    for p,h in pmap.iteritems():
+    for p,h in pmap.items():
         rdhs[p] = ROOT.RooDataHist("hist_"+p,"",obs,h if p != "data" else hdata)
         w.imp(rdhs[p])
     pdfs   = ROOT.RooArgList()
@@ -414,16 +414,16 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
                 htot.Add(pmap[p])
                 syst = normSystematic
                 if syst > 0:
-                    for b in xrange(1,htot.GetNbinsX()+1):
+                    for b in range(1,htot.GetNbinsX()+1):
                         htot.SetBinError(b, hypot(htot.GetBinError(b), pmap[p].GetBinContent(b)*syst))
     pspec.setLog("Fitting", fitlog)
     ROOT.RooMsgService.instance().setGlobalKillBelow(gKill)
     
 
-def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=None,errorsOnRef=True,onlyStatErrorsOnRef=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
+def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,errorsOnRef=True,onlyStatErrorsOnRef=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
     numkeys = [ "data" ]
     if len(ratioNumsWithData): 
-        for p in pmap.iterkeys():                
+        for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
                 #print "p, s : %s,%s" % (p,s)
                 # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
@@ -438,7 +438,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
         if len(pmap) >= 3 and ratioDen in pmap:   
             numkeys = []
-            for p in pmap.iterkeys():                
+            for p in pmap.keys():                
                 for s in ratioNums.split(","):
                     #print "p, s : %s,%s" % (p,s)
                     # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
@@ -466,7 +466,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     for numkey in numkeys:
         if hasattr(pmap[numkey], 'poissonGraph'):
             ratio = pmap[numkey].poissonGraph.Clone(numkey+"_div"); 
-            for i in xrange(ratio.GetN()):
+            for i in range(ratio.GetN()):
                 x    = ratio.GetX()[i]
                 div  = total.GetBinContent(total.GetXaxis().FindBin(x))
                 ratio.SetPoint(i, x, ratio.GetY()[i]/div if div > 0 else 0)
@@ -483,7 +483,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     unity  = totalSyst.Clone("sim_div");
     unity0 = total.Clone("sim_div");
     rmin, rmax =  1,1
-    for b in xrange(1,unity.GetNbinsX()+1):
+    for b in range(1,unity.GetNbinsX()+1):
         e,e0,n = unity.GetBinError(b), unity0.GetBinError(b), unity.GetBinContent(b)
         unity.SetBinContent(b, 1 if n > 0 else 0)
         unity0.SetBinContent(b,  1 if n > 0 else 0)
@@ -500,16 +500,16 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
         rmax = max([ rmax, 1+2*e/n if n > 0 else 1])
     for ratio in ratios:
         if ratio.ClassName() != "TGraphAsymmErrors":
-            for b in xrange(1,unity.GetNbinsX()+1):
+            for b in range(1,unity.GetNbinsX()+1):
                 if ratio.GetBinContent(b) == 0: continue
                 rmin = min([ rmin, ratio.GetBinContent(b) - 2*ratio.GetBinError(b) ]) 
                 rmax = max([ rmax, ratio.GetBinContent(b) + 2*ratio.GetBinError(b) ])  
         else:
-            for i in xrange(ratio.GetN()):
+            for i in range(ratio.GetN()):
                 rmin = min([ rmin, ratio.GetY()[i] - 2*ratio.GetErrorYlow(i)  ]) 
                 rmax = max([ rmax, ratio.GetY()[i] + 2*ratio.GetErrorYhigh(i) ])  
-    if rmin < maxRange[0] or fixRange: rmin = maxRange[0]; 
-    if rmax > maxRange[1] or fixRange: rmax = maxRange[1];
+    if rmin < marange[0] or firange: rmin = marange[0]; 
+    if rmax > marange[1] or firange: rmax = marange[1];
     if (rmax > 3 and rmax <= 3.4): rmax = 3.4
     if (rmax > 2 and rmax <= 2.4): rmax = 2.4
     unity.SetFillStyle(1001);
@@ -605,10 +605,10 @@ def doRatioHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,fitRatio=Non
     legendratio1_ = leg1
     return (ratios, unity, unity0, line)
 
-def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",ratioNumsWithData=""):
+def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",ratioNumsWithData=""):
     numkeys = [ "data" ]
     if len(ratioNumsWithData):
-        for p in pmap.iterkeys():                
+        for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
                 #print "p, s : %s,%s" % (p,s)
                 # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
@@ -623,7 +623,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
         if len(pmap) >= 3 and ratioDen in pmap:   
             numkeys = []
-            for p in pmap.iterkeys():                
+            for p in pmap.keys():                
                 for s in ratioNums.split(","):
                     #print "p, s : %s,%s" % (p,s)
                     # do we want a match or equality? If I have QCD in numerator but I have processes QCD and QCD_1, I will have 2 matches, and this is not what I want
@@ -640,8 +640,8 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
         else:    
             return (None,None,None,None)
     rmin, rmax =  1,1
-    if fixRange: rmin = maxRange[0] 
-    if fixRange: rmax = maxRange[1]
+    if firange: rmin = marange[0] 
+    if firange: rmax = marange[1]
     rmin = float(pspec.getOption("RMin",rmin))
     rmax = float(pspec.getOption("RMax",rmax))
 
@@ -663,8 +663,8 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,maxRange,fixRange=False,ratioNums=
                           len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
-        for ix in xrange(1,ratio.GetNbinsX()+1):
-            for iy in xrange(1,ratio.GetNbinsY()+1):
+        for ix in range(1,ratio.GetNbinsX()+1):
+            for iy in range(1,ratio.GetNbinsY()+1):
                 r = 0 if total.GetBinContent(ix, iy)==0 else pmap[numkey].GetBinContent(ix, iy)/total.GetBinContent(ix, iy)
                 ratio.SetBinContent(ix, iy, r)
                 ratio.SetBinError  (ix, iy, r*hypot(pmap[numkey].GetBinError(ix, iy)/pmap[numkey].GetBinContent(ix, iy) if pmap[numkey].GetBinContent(ix, iy) else 0,
@@ -689,7 +689,7 @@ def doStatTests(total,data,test,legendCorner):
     #ksprob = data.KolmogorovTest(total,"XN")
     #print "\tKS  %.4f" % ksprob
     chi2l, chi2p, chi2gq, chi2lp, nb = 0, 0, 0, 0, 0
-    for b in xrange(1,data.GetNbinsX()+1):
+    for b in range(1,data.GetNbinsX()+1):
         oi = data.GetBinContent(b)
         ei = total.GetBinContent(b)
         dei = total.GetBinError(b)
@@ -721,7 +721,7 @@ def doStatTests(total,data,test,legendCorner):
 legend_ = None;
 def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,mcStyle="F",legWidth=0.18,legBorder=True,signalPlotScale=None,totalError=None,header="",doWide=False,overrideLegCoord=None,nColumns=1,allProcInLegend=False):
         if (corner == None): return
-        total = sum([x.Integral() for x in pmap.itervalues()])
+        total = sum([x.Integral() for x in pmap.values()])
         sigEntries = []; bgEntries = []
         cutoffTimesTotal = 0.0 if allProcInLegend else cutoff*total
         for p in mca.listSignals(allProcs=True):
@@ -781,7 +781,7 @@ def doLegend(pmap,mca,corner="TR",textSize=0.035,cutoff=1e-2,cutoffSignals=True,
         leg.SetTextSize(textSize)
         if 'data' in pmap: 
             leg.AddEntry(pmap['data'], mca.getProcessOption('data','Label','Data', noThrow=True), 'LPE')
-        total = sum([x.Integral() for x in pmap.itervalues()])
+        total = sum([x.Integral() for x in pmap.values()])
         for (plot,label,style) in sigEntries: leg.AddEntry(plot,label,style)
         for (plot,label,style) in  bgEntries: leg.AddEntry(plot,label,style)
         if totalError: leg.AddEntry(totalError,"total bkg. unc.","F") 
@@ -846,7 +846,7 @@ class PlotMaker:
                     xfunc = (lambda h,b: b)             if 'bin' in blind else (lambda h,b : h.GetXaxis().GetBinCenter(b));
                     test  = eval("lambda bin : "+blind) if 'bin' in blind else eval("lambda x : "+blind) 
                     hdata = pmaps[ipspec]['data']
-                    for b in xrange(1,hdata.GetNbinsX()+1):
+                    for b in range(1,hdata.GetNbinsX()+1):
                         if test(xfunc(hdata,b)):
                             #print "blinding bin %d, x = [%s, %s]" % (b, hdata.GetXaxis().GetBinLowEdge(b), hdata.GetXaxis().GetBinUpEdge(b))
                             hdata.SetBinContent(b,0)
@@ -871,12 +871,12 @@ class PlotMaker:
                         raise RuntimeError("Pseudo-data option %s not supported" % self._options.pseudoData)
                     if "asimov" not in self._options.pseudoData:
                         if "TH1" in pdata.ClassName():
-                            for i in xrange(1,pdata.GetNbinsX()+1):
+                            for i in range(1,pdata.GetNbinsX()+1):
                                 pdata.SetBinContent(i, ROOT.gRandom.Poisson(pdata.GetBinContent(i)))
                                 pdata.SetBinError(i, sqrt(pdata.GetBinContent(i)))
                         elif "TH2" in pdata.ClassName():
-                            for ix in xrange(1,pdata.GetNbinsX()+1):
-                              for iy in xrange(1,pdata.GetNbinsY()+1):
+                            for ix in range(1,pdata.GetNbinsX()+1):
+                              for iy in range(1,pdata.GetNbinsY()+1):
                                 pdata.SetBinContent(ix, iy, ROOT.gRandom.Poisson(pdata.GetBinContent(ix, iy)))
                                 pdata.SetBinError(ix, iy, sqrt(pdata.GetBinContent(ix, iy)))
                         else:
@@ -884,13 +884,13 @@ class PlotMaker:
                     pmaps[ipspec]["data"] = pdata
                 #
                 if not makeStack: 
-                    for k,v in pmaps[ipspec].iteritems():
+                    for k,v in pmaps[ipspec].items():
                         if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
                         dir.WriteTObject(v)
                     continue
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
-                hists = [v for k,v in pmaps[ipspec].iteritems() if k != 'data']
+                hists = [v for k,v in pmaps[ipspec].items() if k != 'data']
                 #print "sumGenWeights"
                 #print sumGenWeights.GetValue()
                 #print "CHECK %d" % len(hists)
@@ -908,7 +908,7 @@ class PlotMaker:
                 elif self._options.preFitData and pspec.name == self._options.preFitData:
                     doNormFit(pspec,pmaps[ipspec],mca,saveScales=True)
                 #
-                for k,v in pmaps[ipspec].iteritems():
+                for k,v in pmaps[ipspec].items():
                     if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
                     dir.WriteTObject(v)
                 #
@@ -929,7 +929,7 @@ class PlotMaker:
                 if plotmode == "auto": plotmode = self._options.plotmode
                 if outputName == None: outputName = pspec.name
                 stack = ROOT.THStack(outputName+"_stack",outputName)
-                hists = [v for k,v in pmap.iteritems() if k != 'data']
+                hists = [v for k,v in pmap.items() if k != 'data']
                 if not self._options.sumGenWeighFromHisto:
                     pass
                     #print "in printOnePlot()"
@@ -951,11 +951,11 @@ class PlotMaker:
                         if plot.Integral() < 0:
                             logging.warning('Plotting histo %s with negative integral (%f), the stack plot will probably be incorrect.'%(p,plot.Integral()))
                         if 'TH1' in plot.ClassName():
-                            for b in xrange(1,plot.GetNbinsX()+1):
+                            for b in range(1,plot.GetNbinsX()+1):
                                 if plot.GetBinContent(b)<0: logging.warning('Histo %s has bin %d with negative content (%f), the stack plot will probably be incorrect.'%(p,b,plot.GetBinContent(b)))
                         elif 'TH2' in plot.ClassName():
-                            for b1 in xrange(1,plot.GetNbinsX()+1):
-                                for b2 in xrange(1,plot.GetNbinsY()+1):
+                            for b1 in range(1,plot.GetNbinsX()+1):
+                                for b2 in range(1,plot.GetNbinsY()+1):
                                     if plot.GetBinContent(b1,b2)<0: logging.warning('histo %s has bin %d,%d with negative content (%f), the stack plot will probably be incorrect.'%(p,b1,b2,plot.GetBinContent(b1,b2)))
 #                        if plot.Integral() <= 0: continue
                         if mca.isSignal(p): plot.Scale(options.signalPlotScale)
@@ -970,7 +970,7 @@ class PlotMaker:
                             if mca.getProcessOption(p,'NormSystematic',0.0) > 0:
                                 syst = mca.getProcessOption(p,'NormSystematic',0.0)
                                 if "TH1" in plot.ClassName():
-                                    for b in xrange(1,plot.GetNbinsX()+1):
+                                    for b in range(1,plot.GetNbinsX()+1):
                                         totalSyst.SetBinError(b, hypot(totalSyst.GetBinError(b), syst*plot.GetBinContent(b)))
                         else:
                             plot.SetLineColor(plot.GetFillColor())
@@ -1175,7 +1175,7 @@ class PlotMaker:
                     new = pmap['signal']
                     ref = pmap['background']
                     if "TH1" in new.ClassName():
-                        for b in xrange(1,new.GetNbinsX()+1):
+                        for b in range(1,new.GetNbinsX()+1):
                             if abs(new.GetBinContent(b) - ref.GetBinContent(b)) > options.toleranceForDiff*ref.GetBinContent(b):
                                 logging.info("Plot: difference found in %s, bin %d" % (outputName, b))
                                 p1.SetFillColor(ROOT.kYellow-10)
@@ -1185,7 +1185,7 @@ class PlotMaker:
                 rdata,rnorm,rnorm2,rline = (None,None,None,None)
                 if doRatio:
                     p2.cd(); 
-                    rdata,rnorm,rnorm2,rline = doRatioHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
+                    rdata,rnorm,rnorm2,rline = doRatioHists(pspec,pmap,total,totalSyst, marange=options.maxRatioRange, firange=options.fixRatioRange,
                                                             fitRatio=options.fitRatio, errorsOnRef=options.errorBandOnRatio, onlyStatErrorsOnRef=options.onlyStatErrorOnRatio,
                                                             ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel, 
                                                             doWide=doWide, showStatTotLegend=(False if options.noLegendRatioPlot else True),
@@ -1252,7 +1252,7 @@ class PlotMaker:
                                 if plot.Integral() <= 0: continue
                                 norm = plot.Integral()
                                 if p not in ["signal","background"] and mca.isSignal(p): norm /= options.signalPlotScale # un-scale what was scaled
-                                stat = sqrt(sum([plot.GetBinError(b)**2 for b in xrange(1,plot.GetNbinsX()+1)]))
+                                stat = sqrt(sum([plot.GetBinError(b)**2 for b in range(1,plot.GetNbinsX()+1)]))
                                 syst = norm * mca.getProcessOption(p,'NormSystematic',0.0) if p not in ["signal", "background"] else 0;
                                 if p == "signal": dump.write(("-"*(maxlen+45))+"\n");
                                 dump.write(fmt % (_unTLatex(mca.getProcessOption(p,'Label',p) if p not in ["signal", "background"] else p.upper()), norm, stat))
@@ -1323,7 +1323,7 @@ class PlotMaker:
                                     # following function is called twice, because we are looping on printplots = pdf and png
                                     # inside the function some histograms are created, which means they are being redefined
                                     # this will issue a warning that a histogram with same name is being replaced, but should be harmless
-                                    rdata = doRatio2DHists(pspec,pmap,total,totalSyst, maxRange=options.maxRatioRange, fixRange=options.fixRatioRange,
+                                    rdata = doRatio2DHists(pspec,pmap,total,totalSyst, marange=options.maxRatioRange, firange=options.fixRatioRange,
                                                            ratioNums=options.ratioNums, ratioDen=options.ratioDen, ylabel=options.ratioYLabel,ratioNumsWithData=options.ratioNumsWithData)
                                     for r in rdata:
                                         if r == None:

@@ -1,11 +1,12 @@
 #!/bin/bash
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export CMSSW_BASE=$(dirname $(dirname $dir))
-plotsdir=$dir/WMass/python/plotter/plots
+plotdir=$dir/WMass/python/plotter/plots
 
-if [ ! -e ${plotdir} ]; then
+if [ -L $plotdir ] && [ ! -e ${plotdir} ]; then
     rm ${plotdir}
 fi
+
 if [ ! -L ${plotdir} ]; then
     echo "Creating symlink to plots directory at" $plotsdir
     # Could also be ~/www
@@ -13,8 +14,13 @@ if [ ! -L ${plotdir} ]; then
     ln -s $wwwdir $plotdir
 fi
 
+p3=1
 if [[ $HOSTNAME == "cmswmass2.cern.ch" ]]; then
-    echo "Setting up singularity"
-    #/data/shared/singularity/python2rootdevf32.sif
-    /data/shared/singularity/pythonrootdevf32.sif
+    if [ $p3 -eq 1 ]; then
+        echo "Setting up singularity for python3"
+        /data/shared/singularity/pythonrootdevf32.sif
+    else
+        echo "Setting up singularity for python2"
+        /data/shared/singularity/python2rootdevf32.sif
+    fi
 fi
