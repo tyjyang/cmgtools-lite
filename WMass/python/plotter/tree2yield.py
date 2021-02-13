@@ -783,42 +783,42 @@ def _copyPlotStyle(self,plotfrom,plotto):
         plotto.GetZaxis().SetNdivisions(plotfrom.GetZaxis().GetNdivisions())
 
 def addTreeToYieldOptions(parser):
-    parser.add_option("-l", "--lumi",           dest="lumi",   type="float", default="1", help="Luminosity (in 1/fb)");
-    parser.add_option("-u", "--unweight",       dest="weight",       action="store_false", default=True, help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
-    parser.add_option("--uf", "--unweight-forced",  dest="forceunweight", action="store_true", default=False, help="Do not use weight even if a fake rate file is given.");
-    parser.add_option("-W", "--weightString",   dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");
-    parser.add_option("-f", "--final",  dest="final", action="store_true", help="Just compute final yield after all cuts");
-    parser.add_option("-e", "--errors",  dest="errors", action="store_true", help="Include uncertainties in the reports");
-    parser.add_option("--tf", "--text-format",   dest="txtfmt", type="string", default="text", help="Output format: text, html");
-    parser.add_option("-S", "--start-at-cut",   dest="startCut",   type="string", help="Run selection starting at the cut matched by this regexp, included.") 
-    parser.add_option("-U", "--up-to-cut",      dest="upToCut",   type="string", help="Run selection only up to the cut matched by this regexp, included.") 
-    parser.add_option("-X", "--exclude-cut", dest="cutsToExclude", action="append", default=[], help="Cuts to exclude (regexp matching cut name), can specify multiple times.") 
-    parser.add_option("-E", "--enable-cut", dest="cutsToEnable", action="append", default=[], help="Cuts to enable if they were disabled in the cut file (regexp matching cut name), can specify multiple times.") 
-    parser.add_option("-I", "--invert-cut",  dest="cutsToInvert",  action="append", default=[], help="Cuts to invert (regexp matching cut name), can specify multiple times.") 
-    parser.add_option("-R", "--replace-cut", dest="cutsToReplace", action="append", default=[], nargs=3, help="Cuts to invert (regexp of old cut name, new name, new cut); can specify multiple times.") 
-    parser.add_option("-A", "--add-cut",     dest="cutsToAdd",     action="append", default=[], nargs=3, help="Cuts to insert (regexp of cut name after which this cut should go, new name, new cut); can specify multiple times.") 
-    parser.add_option("-N", "--n-minus-one", dest="nMinusOne", action="store_true", help="Compute n-minus-one yields and plots")
-    parser.add_option("--select-n-minus-one", dest="nMinusOneSelection", type="string", default=None, help="Select which cuts to do N-1 for (comma separated list of regexps)")
-    parser.add_option("--NI", "--inv-n-minus-one", dest="nMinusOneInverted", action="store_true", help="Compute n-minus-one yields and plots")
-    parser.add_option("--obj", "--objname",    dest="obj", default='tree', help="Pattern for the name of the TTree inside the file");
-    parser.add_option("--RV", "--replace-var", dest="varsToReplace", action="append", default=[], nargs=2, help="Variable to replace(old var name, new var name); can specify multiple times.")
-    parser.add_option("-G", "--no-fractions",  dest="fractions",action="store_false", default=True, help="Don't print the fractions");
-    parser.add_option("-F", "--add-friend",    dest="friendTrees",  action="append", default=[], nargs=2, help="Add a friend tree (treename, filename). Can use {name}, {cname} patterns in the treename") 
-    parser.add_option("--Fs", "--add-friend-simple",    dest="friendTreesSimple",  action="append", default=[], nargs=1, help="Add friends in a directory. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_option("--FMC", "--add-friend-mc",    dest="friendTreesMC",  action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to MC only. Can use {name}, {cname} patterns in the treename") 
-    parser.add_option("--FD", "--add-friend-data",    dest="friendTreesData",  action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to data trees only. Can use {name}, {cname} patterns in the treename") 
-    parser.add_option("--FMCs", "--add-friend-mc-simple",    dest="friendTreesMCSimple",  action="append", default=[], nargs=1, help="Add friends in a directory to MC only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_option("--FDs", "--add-friend-data-simple",    dest="friendTreesDataSimple",  action="append", default=[], nargs=1, help="Add friends in a directory to data only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_option("--mcc", "--mc-corrections",    dest="mcCorrs",  action="append", default=[], nargs=1, help="Load the following file of mc to data corrections") 
-    parser.add_option("--s2v", "--scalar2vector",     dest="doS2V",    action="store_true", default=False, help="Do scalar to vector conversion") 
-    parser.add_option("--neg", "--allow-negative-results",     dest="allowNegative",    action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
-    parser.add_option("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
-    parser.add_option("--max-entries",     dest="maxEntries", default=1000000000000, type="int", help="Max entries to process in each tree") 
-    parser.add_option("--max-entries-not-data",     dest="maxEntriesNotData", default=False, action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
-    parser.add_option("-L", "--load-macro",  dest="loadMacro",   type="string", action="append", default=[], help="Load the following macro, with .L <file>+");
-    parser.add_option(  "--rdf-define-file",  dest="rdfDefineFile",   type="string", default="", help="Load file with some definitions to be used in RDataFrame");
-    parser.add_option(  "--rdf-define",  dest="rdfDefine",   type="string", action="append", default=[], help="Add some definitions to be used in RDataFrame on the fly, formatted as 'name:definition:regularEpressionForCname'. If the regexp is '.*' it can be omitted. Note that these can override those passed with --rdf-define-file");
-    parser.add_option(  "--rdf-alias",  dest="rdfAlias",   type="string", action="append", default=[], help="Use Alias to rename columns in RDataFrame on the fly, formatted as 'newname:oldname:regularEpressionForCname'. If the regexp is '.*' it can be omitted. It is evaluated after the Define commands");
+    parser.add_argument("-l", "--lumi", type=float, default="1", help="Luminosity (in 1/fb)");
+    parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
+    parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
+    parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");
+    parser.add_argument("-f", "--final", action="store_true", help="Just compute final yield after all cuts");
+    parser.add_argument("-e", "--errors", action="store_true", help="Include uncertainties in the reports");
+    parser.add_argument("--tf", "--text-format", dest="txtfmt", type=str, default="text", help="Output format: text, html");
+    parser.add_argument("-S", "--start-at-cut", dest="startCut", type=str, help="Run selection starting at the cut matched by this regexp, included.") 
+    parser.add_argument("-U", "--up-to-cut", dest="upToCut", type=str, help="Run selection only up to the cut matched by this regexp, included.") 
+    parser.add_argument("-X", "--exclude-cut", dest="cutsToExclude", action="append", default=[], help="Cuts to exclude (regexp matching cut name), can specify multiple times.") 
+    parser.add_argument("-E", "--enable-cut", dest="cutsToEnable", action="append", default=[], help="Cuts to enable if they were disabled in the cut file (regexp matching cut name), can specify multiple times.") 
+    parser.add_argument("-I", "--invert-cut", dest="cutsToInvert", action="append", default=[], help="Cuts to invert (regexp matching cut name), can specify multiple times.") 
+    parser.add_argument("-R", "--replace-cut", dest="cutsToReplace", action="append", default=[], nargs=3, help="Cuts to invert (regexp of old cut name, new name, new cut); can specify multiple times.") 
+    parser.add_argument("-A", "--add-cut", dest="cutsToAdd", action="append", default=[], nargs=3, help="Cuts to insert (regexp of cut name after which this cut should go, new name, new cut); can specify multiple times.") 
+    parser.add_argument("-N", "--n-minus-one", dest="nMinusOne", action="store_true", help="Compute n-minus-one yields and plots")
+    parser.add_argument("--select-n-minus-one", dest="nMinusOneSelection", type=str, help="Select which cuts to do N-1 for (comma separated list of regexps)")
+    parser.add_argument("--NI", "--inv-n-minus-one", dest="nMinusOneInverted", action="store_true", help="Compute n-minus-one yields and plots")
+    parser.add_argument("--obj", "--objname", dest="obj", default='tree', help="Pattern for the name of the TTree inside the file");
+    parser.add_argument("--RV", "--replace-var", dest="varsToReplace", action="append", default=[], nargs=2, help="Variable to replace(old var name, new var name); can specify multiple times.")
+    parser.add_argument("-G", "--no-fractions", dest="fractions", action="store_false", default=True, help="Don't print the fractions");
+    parser.add_argument("-F", "--add-friend", dest="friendTrees", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename). Can use {name}, {cname} patterns in the treename") 
+    parser.add_argument("--Fs", "--add-friend-simple", dest="friendTreesSimple", action="append", default=[], nargs=1, help="Add friends in a directory. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
+    parser.add_argument("--FMC", "--add-friend-mc", dest="friendTreesMC", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to MC only. Can use {name}, {cname} patterns in the treename") 
+    parser.add_argument("--FD", "--add-friend-data", dest="friendTreesData", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to data trees only. Can use {name}, {cname} patterns in the treename") 
+    parser.add_argument("--FMCs", "--add-friend-mc-simple", dest="friendTreesMCSimple", action="append", default=[], nargs=1, help="Add friends in a directory to MC only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
+    parser.add_argument("--FDs", "--add-friend-data-simple", dest="friendTreesDataSimple", action="append", default=[], nargs=1, help="Add friends in a directory to data only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
+    parser.add_argument("--mcc", "--mc-corrections", dest="mcCorrs", action="append", default=[], nargs=1, help="Load the following file of mc to data corrections") 
+    parser.add_argument("--s2v", "--scalar2vector", dest="doS2V", action="store_true", help="Do scalar to vector conversion") 
+    parser.add_argument("--neg", "--allow-negative-results", dest="allowNegative", action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
+    parser.add_argument("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
+    parser.add_argument("--max-entries", dest="maxEntries", default=1000000000000, type=int, help="Max entries to process in each tree") 
+    parser.add_argument("--max-entries-not-data", dest="maxEntriesNotData", action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
+    parser.add_argument("-L", "--load-macro", dest="loadMacro", type=str, action="append", default=[], help="Load the following macro, with .L <file>+");
+    parser.add_argument("--rdf-define-file", dest="rdfDefineFile", type=str, default="", help="Load file with some definitions to be used in RDataFrame");
+    parser.add_argument("--rdf-define", dest="rdfDefine", type=str, action="append", default=[], help="Add some definitions to be used in RDataFrame on the fly, formatted as 'name:definition:regularEpressionForCname'. If the regexp is '.*' it can be omitted. Note that these can override those passed with --rdf-define-file");
+    parser.add_argument("--rdf-alias", dest="rdfAlias", type=str, action="append", default=[], help="Use Alias to rename columns in RDataFrame on the fly, formatted as 'newname:oldname:regularEpressionForCname'. If the regexp is '.*' it can be omitted. It is evaluated after the Define commands");
 
 def mergeReports(reports):
     import copy

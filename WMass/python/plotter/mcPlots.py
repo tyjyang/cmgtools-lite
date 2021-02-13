@@ -6,6 +6,7 @@ from mcAnalysis import *
 import CMS_lumi as CMS_lumi
 import itertools, math
 import logging
+import shutil
 
 logging.basicConfig(level=logging.INFO)
 
@@ -901,8 +902,8 @@ class PlotMaker:
                     else:
                         total.GetYaxis().SetTitle("density/bin")
                     total.GetYaxis().SetDecimals(True)
-                if self._options.scaleSignalToData: self._sf = doScaleSigNormData(pspec,pmaps[ipspec],mca)
-                if self._options.scaleBackgroundToData != []: self._sf = doScaleBkgNormData(pspec,pmaps[ipspec],mca,self._options.scaleBackgroundToData)
+                if self._options.scaleSigToData: self._sf = doScaleSigNormData(pspec,pmaps[ipspec],mca)
+                if self._options.scaleBkgToData != []: self._sf = doScaleBkgNormData(pspec,pmaps[ipspec],mca,self._options.scaleBkgToData)
                 elif self._options.fitData: doNormFit(pspec,pmaps[ipspec],mca)
                 elif self._options.preFitData and pspec.name == self._options.preFitData:
                     doNormFit(pspec,pmaps[ipspec],mca,saveScales=True)
@@ -1348,128 +1349,131 @@ class PlotMaker:
 
 def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     if addAlsoMCAnalysis: addMCAnalysisOptions(parser)
-    parser.add_option("--ss",  "--scale-signal", dest="signalPlotScale", default=1.0, type="float", help="scale the signal in the plots by this amount");
-    #parser.add_option("--lspam", dest="lspam",   type="string", default="CMS Simulation", help="Spam text on the left hand side");
-    parser.add_option("--lspam", dest="lspam",   type="string", default="#bf{CMS} #it{Preliminary}", help="Spam text on the left hand side");
-    parser.add_option("--rspam", dest="rspam",   type="string", default="%(lumi) (13 TeV)", help="Spam text on the right hand side");
-    parser.add_option("--addspam", dest="addspam", type = "string", default=None, help="Additional spam text on the top left side, in the frame");
-    parser.add_option("--topSpamSize", dest="topSpamSize",   type="float", default=1.2, help="Zoom factor for the top spam");
-    parser.add_option("--print", dest="printPlots", type="string", default="png,pdf,txt", help="print out plots in this format or formats (e.g. 'png,pdf,txt')");
-    parser.add_option("--pdir", "--print-dir", dest="printDir", type="string", default="plots", help="print out plots in this directory");
-    parser.add_option("--showSigShape", dest="showSigShape", action="store_true", default=False, help="Superimpose a normalized signal shape")
-    parser.add_option("--showIndivSigShapes", dest="showIndivSigShapes", action="store_true", default=False, help="Superimpose normalized shapes for each signal individually")
-    parser.add_option("--showIndivSigs", dest="showIndivSigs", action="store_true", default=False, help="Superimpose shapes for each signal individually (normalized to their expected event yield)")
-    parser.add_option("--noStackSig", dest="noStackSig", action="store_true", default=False, help="Don't add the signal shape to the stack (useful with --showSigShape)")
-    parser.add_option("--showDatShape", dest="showDatShape", action="store_true", default=False, help="Stack a normalized data shape")
-    parser.add_option("--showSFitShape", dest="showSFitShape", action="store_true", default=False, help="Stack a shape of background + scaled signal normalized to total data")
-    parser.add_option("--showMCError", dest="showMCError", action="store_true", default=False, help="Show a shaded area for MC uncertainty")
-    parser.add_option("--showRatio", dest="showRatio", action="store_true", default=False, help="Add a data/sim ratio plot at the bottom")
-    parser.add_option("--ratioDen", dest="ratioDen", type="string", default="background", help="Denominator of the ratio, when comparing MCs")
-    parser.add_option("--ratioNumsWithData", dest="ratioNumsWithData", type="string", default="", help="When plotting data and MC, use also these processes as numerators to make ratio with total/background (useful to plot ratios of unstacked components). Need a comma separated list of processes");
-    parser.add_option("--ratioNums", dest="ratioNums", type="string", default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
-    parser.add_option("--ratioYLabel", dest="ratioYLabel", type="string", default="Data/pred.", help="Y axis label of the ratio histogram.")
-    parser.add_option("--noErrorBandOnRatio", dest="errorBandOnRatio", action="store_false", default=True, help="Do not show the error band on the reference in the ratio plots")
-    parser.add_option("--onlyStatErrorOnRatio", dest="onlyStatErrorOnRatio", action="store_true", default=False, help="Show only stat error on reference in ratio plots (when --noErrorBandOnRatio is False)")
-    parser.add_option("--noErrorBarsOnRatio", dest="errorBarsOnRatio", action="store_false", default=True, help="Do not show the error bars on the ratio plots (affect each numerator, unlike --noErrorBandOnRatio")
-    parser.add_option("--fitRatio", dest="fitRatio", type="int", default=None, help="Fit the ratio with a polynomial of the specified order")
-    parser.add_option("--scaleSigToData", dest="scaleSignalToData", action="store_true", default=False, help="Scale all signal processes so that the overall event yield matches the observed one")
-    parser.add_option("--scaleBkgToData", dest="scaleBackgroundToData", action="append", default=[], help="Scale all background processes so that the overall event yield matches the observed one")
-    parser.add_option("--showSF", dest="showSF", action="store_true", default=False, help="Show scale factor extracted from either --scaleSigToData or --scaleBkgToData on the plot")
-    parser.add_option("--fitData", dest="fitData", action="store_true", default=False, help="Perform a fit to the data")
-    parser.add_option("--preFitData", dest="preFitData", type="string", default=None, help="Perform a pre-fit to the data using the specified distribution, then plot the rest")
-    parser.add_option("--maxRatioRange", dest="maxRatioRange", type="float", nargs=2, default=(0.0, 5.0), help="Min and max for the ratio")
-    parser.add_option("--fixRatioRange", dest="fixRatioRange", action="store_true", default=False, help="Fix the ratio range to --maxRatioRange")
-    parser.add_option("--doStatTests", dest="doStatTests", type="string", default=None, help="Do this stat test: chi2p (Pearson chi2), chi2l (binned likelihood equivalent of chi2)")
-    parser.add_option("--plotmode", dest="plotmode", type="string", default="stack", help="Show as stacked plot (stack), a non-stacked comparison (nostack) and a non-stacked comparison of normalized shapes (norm)")
-    parser.add_option("--rebin", dest="globalRebin", type="int", default="0", help="Rebin all plots by this factor")
-    parser.add_option("--poisson", dest="poisson", action="store_true", default=True, help="Draw Poisson error bars (default)")
-    parser.add_option("--no-poisson", dest="poisson", action="store_false", default=True, help="Don't draw Poisson error bars")
-    parser.add_option("--unblind", dest="unblind", action="store_true", default=False, help="Unblind plots irrespectively of plot file")
-    parser.add_option("--select-plot", "--sP", dest="plotselect", action="append", default=[], help="Select only these plots out of the full file")
-    parser.add_option("--exclude-plot", "--xP", dest="plotexclude", action="append", default=[], help="Exclude these plots from the full file")
-    parser.add_option("--legendWidth", dest="legendWidth", type="float", default=0.25, help="Width of the legend")
-    parser.add_option("--legendBorder", dest="legendBorder", type="int", default=0, help="Use a border in the legend (1=yes, 0=no)")
-    parser.add_option("--legendFontSize", dest="legendFontSize", type="float", default=0.055, help="Font size in the legend (if <=0, use the default)")
-    parser.add_option("--flagDifferences", dest="flagDifferences", action="store_true", default=False, help="Flag plots that are different (when using only two processes, and plotmode nostack")
-    parser.add_option("--toleranceForDiff", dest="toleranceForDiff", default=0.0, type="float", help="set numerical tollerance to define when two histogram bins are considered different");
-    parser.add_option("--pseudoData", dest="pseudoData", type="string", default=None, help="If set to 'background' or 'all', it will plot also a pseudo-dataset made from background (or signal+background) with Poisson fluctuations in each bin.")
-    parser.add_option("--wide", dest="wideplot", action="store_true", default=False, help="Draw a wide canvas")
-    parser.add_option("--verywide", dest="veryWide", action="store_true", default=False, help="Draw a very wide canvas")
-    parser.add_option("--canvasSize", dest="setCanvasSize", type="int", nargs=2, default=(600, 600), help="Set canvas height and width")
-    parser.add_option("--setTitleYoffset", dest="setTitleYoffset", type="float", default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
-    parser.add_option("--setTitleXoffset", dest="setTitleXoffset", type="float", default=0.90, help="Set X axis offset for title. The default is 0.9, which is fine unless there are superscripts, in that case 1.1 is suggested. It should be tuned based on the canvas size and presence of ratio plot.")
-    parser.add_option("--elist", dest="elist", action="store_true", default='auto', help="Use elist (on by default if making more than 2 plots)")
-    parser.add_option("--no-elist", dest="elist", action="store_false", default='auto', help="Don't elist (which are on by default if making more than 2 plots)")
-    if not parser.has_option("--yrange"): parser.add_option("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
-    parser.add_option("--emptyStack", dest="emptyStack", action="store_true", default=False, help="Allow empty stack in order to plot, for example, only signals but no backgrounds.")
-    parser.add_option("--noLegendRatioPlot", dest="noLegendRatioPlot", action="store_true", default=False, help="Remove legend in ratio plot (by default it is drawn)");
-    parser.add_option("--perBin", dest="perBin", action="store_true", default=False, help="Print the contents of every bin in another txt file");
-    parser.add_option("--legendHeader", dest="legendHeader", type="string", default=None, help="Put a header to the legend")
-    parser.add_option("--ratioOffset", dest="ratioOffset", type="float", default=0.0, help="Put an offset between ratio and main pad")
-    parser.add_option("--ratioYLabelSize", dest="ratioYLabelSize", type="float", default=0.14, help="Set size of title for y axis in ratio (note that it might require adjusting the offset")
-    #parser.add_option("--yRangeOverMaxBinContent", dest="yRangeOverMaxBinContent", type="float", default=0.0, help="Used to set Y axis range as this times maximum bin content (does not include uncertainties, which is tipically good for histograms representing counts)")
-    parser.add_option("--noCms", dest="doOfficialCMS", action="store_false", default=True, help="Use official tool to write CMS spam")
-    parser.add_option("--cmsprel", dest="cmsprel", type="string", default="Preliminary", help="Additional text (Simulation, Preliminary, Internal)")
-    parser.add_option("--cmssqrtS", dest="cmssqrtS", type="string", default="13 TeV", help="Sqrt of s to be written in the official CMS text.")
-    parser.add_option("--printBin", dest="printBinning", type="string", default=None, help="Write 'Events/xx' instead of 'Events' on the y axis")
-    parser.add_option("--drawBox", dest="drawBox", type="string", default=None, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
-    parser.add_option("--box-color", dest="boxColor", type="int", default=1, help="Set line color for box (works with --drawBox). Default is black")
-    parser.add_option("--contentAxisTitle", dest="contentAxisTitle", type="string", default=None, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
-    parser.add_option("--setLegendCoordinates", dest="setLegendCoordinates", type="string", default=None, help="Pass a comma separated list of 4 numbers (x1,y1,x2,y2) used to build the legend. It overrides options to set the legend position in MCA, so this option is more suited to create a single plot")
-    parser.add_option("--n-column-legend", dest="nColumnLegend", type="int", default=1, help="Number of columns for legend (for monster plot, 3 is better)")
-    parser.add_option("--updateRootFile", dest="updateRootFile", action="store_true", default=False, help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
-    parser.add_option("--palette", dest="palette", type="int", default=57, help="Set color palette (only for 2D histograms)")
-    parser.add_option("--allProcInLegend", dest="allProcInLegend", action="store_true", default=False, help="Put all processes in legend, regardless their integral.")
-    parser.add_option("--forceFillColorNostackMode", dest="forceFillColorNostackMode", type="string", default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
-    parser.add_option("--drawStatBox", dest="drawStatBox", action="store_true", default=False, help="Draw stat box");
-    parser.add_option("-o", "--out", dest="out", default=None, help="Output file name. by default equal to plots -'.txt' +'.root'");
+    parser.add_argument("--ss",  "--scale-signal", dest="signalPlotScale", default=1.0, type=float, help="scale the signal in the plots by this amount");
+    parser.add_argument("--lspam", type=str, default="#bf{CMS} #it{Preliminary}", help="Spam text on the left hand side");
+    parser.add_argument("--rspam", type=str, default="%(lumi) (13 TeV)", help="Spam text on the right hand side");
+    parser.add_argument("--addspam", type=str, help="Additional spam text on the top left side, in the frame");
+    parser.add_argument("--topSpamSize", type=float, default=1.2, help="Zoom factor for the top spam");
+    parser.add_argument("--print", dest="printPlots", type=str, default="png,pdf,txt", help="print out plots in this format or formats (e.g. 'png,pdf,txt')");
+    parser.add_argument("--pdir", "--print-dir", dest="printDir", type=str, default="plots", help="print out plots in this directory");
+    parser.add_argument("--showSigShape", action="store_true", help="Superimpose a normalized signal shape")
+    parser.add_argument("--showIndivSigShapes", action="store_true", help="Superimpose normalized shapes for each signal individually")
+    parser.add_argument("--showIndivSigs", action="store_true", help="Superimpose shapes for each signal individually (normalized to their expected event yield)")
+    parser.add_argument("--noStackSig", action="store_true", help="Don't add the signal shape to the stack (useful with --showSigShape)")
+    parser.add_argument("--showDatShape", action="store_true", help="Stack a normalized data shape")
+    parser.add_argument("--showSFitShape", action="store_true", help="Stack a shape of background + scaled signal normalized to total data")
+    parser.add_argument("--showMCError", action="store_true", help="Show a shaded area for MC uncertainty")
+    parser.add_argument("--showRatio", action="store_true", help="Add a data/sim ratio plot at the bottom")
+    parser.add_argument("--ratioDen", type=str, help="Denominator of the ratio, when comparing MCs")
+    parser.add_argument("--ratioNumsWithData", type=str, default="", help="When plotting data and MC, use also these processes as numerators to make ratio with total/background (useful to plot ratios of unstacked components). Need a comma separated list of processes");
+    parser.add_argument("--ratioNums", type=str, default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
+    parser.add_argument("--ratioYLabel", type=str, default="Data/pred.", help="Y axis label of the ratio histogram.")
+    parser.add_argument("--noErrorBandOnRatio", dest="errorBandOnRatio", action="store_false", help="Do not show the error band on the reference in the ratio plots")
+    parser.add_argument("--onlyStatErrorOnRatio", dest="onlyStatErrorOnRatio", action="store_true", help="Show only stat error on reference in ratio plots (when --noErrorBandOnRatio is False)")
+    parser.add_argument("--noErrorBarsOnRatio", dest="errorBarsOnRatio", action="store_false", help="Do not show the error bars on the ratio plots (affect each numerator, unlike --noErrorBandOnRatio")
+    parser.add_argument("--fitRatio", type=int, help="Fit the ratio with a polynomial of the specified order")
+    parser.add_argument("--scaleSigToData", action="store_true", help="Scale all signal processes so that the overall event yield matches the observed one")
+    parser.add_argument("--scaleBkgToData", action="append", default=[], help="Scale all background processes so that the overall event yield matches the observed one")
+    parser.add_argument("--showSF", action="store_true", help="Show scale factor extracted from either --scaleSigToData or --scaleBkgToData on the plot")
+    parser.add_argument("--fitData", action="store_true", help="Perform a fit to the data")
+    parser.add_argument("--preFitData", type=str, help="Perform a pre-fit to the data using the specified distribution, then plot the rest")
+    parser.add_argument("--maxRatioRange", type=float, nargs=2, default=(0.0, 5.0), help="Min and max for the ratio")
+    parser.add_argument("--fixRatioRange", action="store_true", help="Fix the ratio range to --maxRatioRange")
+    parser.add_argument("--doStatTests", type=str, help="Do this stat test: chi2p (Pearson chi2), chi2l (binned likelihood equivalent of chi2)")
+    parser.add_argument("--plotmode", type=str, default="stack", help="Show as stacked plot (stack), a non-stacked comparison (nostack) and a non-stacked comparison of normalized shapes (norm)")
+    parser.add_argument("--rebin", dest="globalRebin", type=int, default=0, help="Rebin all plots by this factor")
+    parser.add_argument("--no-poisson", dest="poisson", action="store_false", help="Don't draw Poisson error bars")
+    parser.add_argument("--unblind", action="store_true", help="Unblind plots irrespectively of plot file")
+    parser.add_argument("--select-plot", "--sP", dest="plotselect", action="append", default=[], help="Select only these plots out of the full file")
+    parser.add_argument("--exclude-plot", "--xP", dest="plotexclude", action="append", default=[], help="Exclude these plots from the full file")
+    parser.add_argument("--legendWidth", type=float, default=0.25, help="Width of the legend")
+    parser.add_argument("--legendBorder", type=int, default=0, help="Use a border in the legend (1=yes, 0=no)")
+    parser.add_argument("--legendFontSize", type=float, default=0.055, help="Font size in the legend (if <=0, use the default)")
+    parser.add_argument("--flagDifferences", action="store_true", default=False, help="Flag plots that are different (when using only two processes, and plotmode nostack")
+    parser.add_argument("--toleranceForDiff", default=0.0, type=float, help="set numerical tollerance to define when two histogram bins are considered different");
+    parser.add_argument("--pseudoData", type=str, default=None, help="If set to 'background' or 'all', it will plot also a pseudo-dataset made from background (or signal+background) with Poisson fluctuations in each bin.")
+    parser.add_argument("--wide", dest="wideplot", action="store_true", help="Draw a wide canvas")
+    parser.add_argument("--verywide", dest="veryWide", action="store_true", help="Draw a very wide canvas")
+    parser.add_argument("--canvasSize", dest="setCanvasSize", type=int, nargs=2, default=(600, 600), help="Set canvas height and width")
+    parser.add_argument("--setTitleYoffset", type=float, default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
+    parser.add_argument("--setTitleXoffset", type=float, default=0.90, help="Set X axis offset for title. The default is 0.9, which is fine unless there are superscripts, in that case 1.1 is suggested. It should be tuned based on the canvas size and presence of ratio plot.")
+    parser.add_argument("--elist", action="store_true", help="Use elist (on by default if making more than 2 plots)")
+    parser.add_argument("--no-elist", dest="elist", action="store_false", help="Don't elist (which are on by default if making more than 2 plots)")
+    #if not parser.has_option("--yrange"): parser.add_argument("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
+    parser.add_argument("--yrange", nargs=2, type=float, help="Y axis range");
+    parser.add_argument("--emptyStack", action="store_true", help="Allow empty stack in order to plot, for example, only signals but no backgrounds.")
+    parser.add_argument("--noLegendRatioPlot", action="store_true", help="Remove legend in ratio plot (by default it is drawn)");
+    parser.add_argument("--perBin", action="store_true", help="Print the contents of every bin in another txt file");
+    parser.add_argument("--legendHeader", type=str, help="Put a header to the legend")
+    parser.add_argument("--ratioOffset", type=float, help="Put an offset between ratio and main pad")
+    parser.add_argument("--ratioYLabelSize", type=float, default=0.14, help="Set size of title for y axis in ratio (note that it might require adjusting the offset")
+    parser.add_argument("--noCms", dest="doOfficialCMS", action="store_false", help="Use official tool to write CMS spam")
+    parser.add_argument("--cmsprel", type=str, default="Preliminary", help="Additional text (Simulation, Preliminary, Internal)")
+    parser.add_argument("--cmssqrtS", type=str, default="13 TeV", help="Sqrt of s to be written in the official CMS text.")
+    parser.add_argument("--printBin", dest="printBinning", type=str, help="Write 'Events/xx' instead of 'Events' on the y axis")
+    parser.add_argument("--drawBox", type=str, help="For TH2: draw box with passing comma separated list of coordinates x1,x2,y1,y2. Example: --drawBox 'x1,x2,y1,y2'")
+    parser.add_argument("--box-color", dest="boxColor", type=int, default=1, help="Set line color for box (works with --drawBox). Default is black")
+    parser.add_argument("--contentAxisTitle", type=str, help="Set name of axis with bin content (Y for TH1, Z for TH2), overriding the one set by default or in the MCA file")
+    parser.add_argument("--setLegendCoordinates", type=str, help="Pass a comma separated list of 4 numbers (x1,y1,x2,y2) used to build the legend. It overrides options to set the legend position in MCA, so this option is more suited to create a single plot")
+    parser.add_argument("--n-column-legend", dest="nColumnLegend", type=int, default=1, help="Number of columns for legend (for monster plot, 3 is better)")
+    parser.add_argument("--updateRootFile", action="store_true", help="Open the root file in UPDATE more (useful when you want to add a new histogram without running all the others)");
+    parser.add_argument("--palette", type=int, default=57, help="Set color palette (only for 2D histograms)")
+    parser.add_argument("--allProcInLegend", action="store_true", help="Put all processes in legend, regardless their integral.")
+    parser.add_argument("--forceFillColorNostackMode", type=str, default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
+    parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
+    parser.add_argument("-o", "--out", help="Output file name. by default equal to plots -'.txt' +'.root'");
 
+    parser.add_argument("sampleFile", type=str, help="Text file with sample definitions")
+    parser.add_argument("cutFile", type=str, help="Text file with cut definitions")
+    parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")
 
 if __name__ == "__main__":
-    from optparse import OptionParser
-    parser = OptionParser(usage="%prog [options] mc.txt cuts.txt plots.txt")
+    import argparse
+    parser = argparse.ArgumentParser()
     addPlotMakerOptions(parser)
-    (options, args) = parser.parse_args()
-    mca  = MCAnalysis(args[0],options)
-    cuts = CutsFile(args[1],options)
-    plots = PlotFile(args[2],options)
-    outname  = options.out if options.out else (args[2].replace(".txt","")+".root")
-    if (not options.out) and options.printDir:
-        outname = options.printDir + "/"+os.path.basename(args[2].replace(".txt","")+".root")
-    if os.path.dirname(outname) and not os.path.exists(os.path.dirname(outname)):
-        os.system("mkdir -p "+os.path.dirname(outname))
-        if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+os.path.dirname(outname))
-        elif os.path.exists("/pool/ciencias/"): os.system("cp /pool/ciencias/HeppyTrees/RA7/additionalReferenceCode/index.php "+os.path.dirname(outname))
+    args = parser.parse_args()
+    # TODO: The fact that options is in the global scope is kind of abused. 
+    # Would be better to pass this to the functions that need it. For now, just leaving it
+    options = args
+    mca  = MCAnalysis(args.sampleFile, args)
+    cuts = CutsFile(args.cutFile, args)
+    plots = PlotFile(args.plotFile, args)
+    outname  = args.out if args.out else (args.plotFile.replace(".txt","")+".root")
+    if (not args.out) and args.printDir:
+        outname = args.printDir + "/"+os.path.basename(args.plotFile.replace(".txt","")+".root")
+    outdir = os.path.dirname(outname) 
+    if outdir and not os.path.exists(outdir):
+        os.mkdirs(outdir)
+        htmlpath = "/".join([os.environ["CMSSW_BASE"], "src/CMGTools/templates/index.php"])
+        shutil.copy(html, outdir)
     logging.info("Will save plots to %s " % outname)
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")
     fcmd.write("%s\n\n" % " ".join(sys.argv))
-    fcmd.write("%s\n%s\n" % (args,options))
     fcmd.close()
     fcut = open(re.sub("\.root$","",outname)+"_cuts.txt","w")
     fcut.write("%s\n" % cuts); fcut.close()
-    os.system("cp %s %s " % (args[2], re.sub("\.root$","",outname)+"_plots.txt"))
-    os.system("cp %s %s " % (args[0], re.sub("\.root$","",outname)+"_mca.txt"))
-    if options.rdfDefineFile or len(options.rdfDefine) or len(options.rdfAlias):
+    shutil.copy(args.plotFile, re.sub("\.root$","",outname)+"_plots.txt")
+    shutil.copy(args.sampleFile, re.sub("\.root$","",outname)+"_mca.txt")
+    if args.rdfDefineFile or len(args.rdfDefine) or len(args.rdfAlias):
         frdfdefine = open(re.sub("\.root$","",outname)+"_rdfdefine.txt","w")
         frdfdefine.write("## Defines\n")
-        if options.rdfDefineFile:
-            with open(options.rdfDefineFile) as f:
+        if args.rdfDefineFile:
+            with open(args.rdfDefineFile) as f:
                 lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
             for l in lines:
                 frdfdefine.write("%s\n" % l)
-        for l in options.rdfDefine:
+        for l in args.rdfDefine:
             frdfdefine.write("%s\n" % l)
         frdfdefine.write("## Aliases\n")
-        for l in options.rdfAlias:
+        for l in args.rdfAlias:
             frdfdefine.write("%s\n" % l)
         frdfdefine.close()
         
     #fcut = open(re.sub("\.root$","",outname)+"_cuts.txt")
     #fcut.write(cuts); fcut.write("\n"); fcut.close()
-    rootFileOpenMode = "UPDATE" if options.updateRootFile else "RECREATE"
+    rootFileOpenMode = "UPDATE" if args.updateRootFile else "RECREATE"
     outfile  = ROOT.TFile(outname,rootFileOpenMode)
-    plotter = PlotMaker(outfile,options)
+    plotter = PlotMaker(outfile, args)
     plotter.run(mca,cuts,plots)
     outfile.Close()
-
 
