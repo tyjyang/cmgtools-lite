@@ -3,6 +3,7 @@ from math import *
 import re
 import os, os.path
 from array import array
+import logging
 
 ## safe batch mode
 import sys
@@ -15,13 +16,9 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from copy import *
 
-## marc from CMGTools.WMass.plotter.cutsFile import *
-## marc from CMGTools.WMass.plotter.fakeRate import *
-## marc from CMGTools.TTHAnalysis.plotter.mcCorrections import *
 from cutsFile import *
 from fakeRate import *
 from mcCorrections import *
-#from CMGTools.WMass.plotter.mcCorrections import *
 
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("src/CMGTools/WMass/python/plotter/functions.cc")
@@ -31,10 +28,6 @@ if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries():
 
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc")
-
-ROOT.gInterpreter.ProcessLine(".L functions.cc+")
-ROOT.gInterpreter.ProcessLine(".L jsonManager.cc+")
-ROOT.gInterpreter.ProcessLine(".L w-mass-13TeV/functionsWMass.cc+")
 
 def scalarToVector(x):
     x0 = x

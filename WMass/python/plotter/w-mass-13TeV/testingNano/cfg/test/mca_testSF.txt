@@ -53,3 +53,5 @@ Z_globSF_postVFp   : .* : 19033.126 ; FillColor=ROOT.kRed+2, Label="Z (average S
 
 Zmumu_test_preVFP : .* : 38140.081 ; FillColor=ROOT.kPink+1, Label="Z", SubPath=".*DYJetsToMuMu_preVFP_addVars"
 Zmumu_nomi_preVFP : .* : 38140.081 ; FillColor=ROOT.kBlue+1, Label="Z nomi", SubPath=".*DYJetsToMuMu_preVFP_addVars"
+
+Zmumu_test : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z", SubPath=".*"

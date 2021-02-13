@@ -18,7 +18,13 @@
 #include <ROOT/RVec.hxx>
 
 using namespace std;
-using Vec_t = ROOT::VecOps::RVec<float>;
+
+using Vec_b = ROOT::VecOps::RVec<bool>;
+using Vec_d = ROOT::VecOps::RVec<double>;
+using Vec_f = ROOT::VecOps::RVec<float>;
+using Vec_i = ROOT::VecOps::RVec<int>;
+using Vec_ui = ROOT::VecOps::RVec<unsigned int>;
+
 typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
 
 //// UTILITY FUNCTIONS NOT IN TFORMULA ALREADY
@@ -82,23 +88,65 @@ float mass_2(float pt1, float eta1, float phi1, float m1, float pt2, float eta2,
     return (p41+p42).M();
 }
 
-float invariantmass(const Vec_t& pt, const Vec_t& eta, const Vec_t& phi, const Vec_t& m) {
+float invariantmass(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f& m) {
   PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);
   PtEtaPhiMVector p2(pt[1], eta[1], phi[1], m[1]);
   return (p1 + p2).mass();
 }
 
-float rapidity(const Vec_t& pt, const Vec_t& eta, const Vec_t& phi, const Vec_t& m) {
+float rapidity(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f& m) {
   //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
   PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);;
   PtEtaPhiMVector p2(pt[1], eta[1], phi[1], m[1]);
   return (p1 + p2).Rapidity();
 }
 
-float transversemomentum(const Vec_t& pt, const Vec_t& phi) {
-  float phidiff = phi[1]-phi[0];
+float transversemomentum(const Vec_f& pt, const Vec_f& phi) {
+  float phidiff = phi[1] - phi[0];
   return hypot(pt[0] + pt[1] * std::cos(phidiff), pt[1]*std::sin(phidiff));
 }
+
+Vec_b goodMuonTriggerCandidate(const Vec_i& TrigObj_id, const Vec_f& TrigObj_pt, const Vec_f& TrigObj_l1pt, const Vec_f& TrigObj_l2pt, const Vec_i& TrigObj_filterBits) {
+
+   Vec_b res(TrigObj_id.size(),false); // initialize to 0
+   for (unsigned int i = 0; i < res.size(); ++i) {
+       if (TrigObj_id[i]  != 13 ) continue;
+       if (TrigObj_pt[i]   < 24.) continue;
+       if (TrigObj_l1pt[i] < 22.) continue;
+       if (! (( TrigObj_filterBits[i] & 8) || (TrigObj_l2pt[i] > 10. && (TrigObj_filterBits[i] & 2) )) ) continue;
+       res[i] = true;
+   }
+   // res will be goodTrigObjs in RDF
+   // e.g. RDF::Define("goodTrigObjs","goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)")
+   return res;
+}
+
+Vec_b hasTriggerMatch(const Vec_f& eta, const Vec_f& phi, const Vec_f& TrigObj_eta, const Vec_f& TrigObj_phi) {
+
+   Vec_b res(eta.size(),false); // initialize to 0
+   for (unsigned int i = 0; i < res.size(); ++i) {
+      for (unsigned int jtrig = 0; jtrig < res.size(); ++jtrig) {
+          if (deltaR(eta[i], phi[i], TrigObj_eta[jtrig], TrigObj_phi[jtrig]) < 0.3) {
+              res[i] = true;
+              break; // exit loop on trigger objects, and go to next muon
+          }
+      }
+   }
+   // res will be triggerMatchedMuons in RDF, like
+   // RDF::Define("triggerMatchedMuons","hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])")
+   return res;
+
+}
+
+bool hasTriggerMatch(const float& eta, const float& phi, const Vec_f& TrigObj_eta, const Vec_f& TrigObj_phi) {
+
+  for (unsigned int jtrig = 0; jtrig < TrigObj_eta.size(); ++jtrig) {
+    if (deltaR(eta, phi, TrigObj_eta[jtrig], TrigObj_phi[jtrig]) < 0.3) return true;
+  }
+  return false;
+  
+}
+
 
 
 #include "TRandom3.h"

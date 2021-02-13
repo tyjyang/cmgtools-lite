@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-#from mcAnalysis import *
-## marc from CMGTools.WMass.plotter.mcAnalysis import *
-## marc import CMGTools.WMass.plotter.CMS_lumi as CMS_lumi
+
 from mcAnalysis import *
 import CMS_lumi as CMS_lumi
 import itertools, math
-import logging
 import shutil
 
 logging.basicConfig(level=logging.INFO)
@@ -1443,9 +1440,9 @@ if __name__ == "__main__":
         outname = args.printDir + "/"+os.path.basename(args.plotFile.replace(".txt","")+".root")
     outdir = os.path.dirname(outname) 
     if outdir and not os.path.exists(outdir):
-        os.mkdirs(outdir)
-        htmlpath = "/".join([os.environ["CMSSW_BASE"], "src/CMGTools/templates/index.php"])
-        shutil.copy(html, outdir)
+        os.makedirs(outdir)
+        htmlpath = "/".join([os.environ["CMSSW_BASE"], "src/CMGTools/WMass/python/plotter/templates/index.php"])
+        shutil.copy(htmlpath, outdir)
     logging.info("Will save plots to %s " % outname)
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")
     fcmd.write("%s\n\n" % " ".join(sys.argv))

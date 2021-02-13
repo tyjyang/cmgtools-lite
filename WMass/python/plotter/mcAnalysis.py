@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-#from tree2yield import *
-## marc from CMGTools.WMass.plotter.tree2yield import *
-## marc from CMGTools.WMass.plotter.projections import *
-## marc from CMGTools.WMass.plotter.figuresOfMerit import FOM_BY_NAME
+
 from tree2yield import *
 from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
-import logging
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
