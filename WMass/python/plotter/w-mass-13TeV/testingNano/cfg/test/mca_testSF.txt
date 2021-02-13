@@ -21,7 +21,6 @@ Wmunu_minus   : .* : 16.6*8562.66 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightar
 
 
 Zmumu_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,1)"
-
 Zmumu_postVFP   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,2)"
 
 Zmumu_globSF_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,0)"

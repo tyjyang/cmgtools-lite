@@ -59,10 +59,10 @@ if __name__ == '__main__':
         systs += ['L1PrefireEleEffSyst{idx}el'.format(idx=i) for i in range(0,9)]
         systs += ['OutOfAccPrefireSyst{idx}el'.format(idx=i) for i in range(0,2)]
         nEtaUnc = 10 if muEl=='mu' else 26
-        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
-        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
-        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in xrange(1,nEtaUnc+1)])]
-        systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in xrange(1,nEtaUnc+1) for charge in charges])]
+        systs += [','.join(['FakesEtaUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in range(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtNormUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in range(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesPtSlopeUncorrelated{idx}{flav}'.format(idx=i,flav=muEl) for i in range(1,nEtaUnc+1)])]
+        systs += [','.join(['FakesEtaChargeUncorrelated{idx}{flav}{charge}'.format(idx=i,flav=muEl,charge=charge) for i in range(1,nEtaUnc+1) for charge in charges])]
         tmp_systs = []
         for p,s,n,c in itertools.product(['long', 'left', 'right'], ['muR', 'muF', 'muRmuF'], range(1,11), ['plus','minus']):
             tmp_systs.append('{p}{s}{n}{c}'.format(p=p,s=s,n=n,c=c))

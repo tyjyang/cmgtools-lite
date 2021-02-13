@@ -132,7 +132,7 @@ class MCAnalysis:
                         (key,val) = [f.strip() for f in setting.split("=",1)]
                         extra[key] = eval(val)
                     else: extra[setting] = True
-            for k,v in addExtras.iteritems():
+            for k,v in addExtras.items():
                 if k in extra: 
                     if "ALLOW_OVERWRITE_SETTINGS" in addExtras and addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                         pass
@@ -143,12 +143,12 @@ class MCAnalysis:
             if len(field) == 1 and field[0] == "*":
                 if len(self._allData): raise RuntimeError("MCA defaults ('*') can be specified only before all processes")
                 #print "Setting the following defaults for all samples: "
-                for k,v in extra.iteritems():
+                for k,v in extra.items():
                     #print "\t%s: %r" % (k,v)
                     self.init_defaults[k] = v
                 continue
             else:
-                for k,v in self.init_defaults.iteritems():
+                for k,v in self.init_defaults.items():
                     if k not in extra: extra[k] = v
             if len(field) <= 1: continue
             if "SkipMe" in extra and extra["SkipMe"] == True and not options.allProcesses: continue
@@ -603,7 +603,7 @@ class MCAnalysis:
     def getYields(self,cuts,process=None,nodata=False,makeSummary=False,noEntryLine=False):
         ## first figure out what we want to do
         tasks = []
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
@@ -618,7 +618,7 @@ class MCAnalysis:
             if k not in mergemap: mergemap[k] = []
             mergemap[k].append(v)
         ## and finally merge them
-        ret = dict([ (k,mergeReports(v)) for k,v in mergemap.iteritems() ])
+        ret = dict([ (k,mergeReports(v)) for k,v in mergemap.items() ])
 
         rescales = []
         self.compilePlotScaleMap(self._options.plotscalemap,rescales)
@@ -636,13 +636,13 @@ class MCAnalysis:
         # and comute totals
         if makeSummary:
             allSig = []; allBg = []
-            for (key,val) in ret.iteritems():
+            for (key,val) in ret.items():
                 if key != 'data':
                     if self._isSignal[key]: allSig.append(ret[key])
                     else: allBg.append(ret[key])
-            if self._signals and not ret.has_key('signal') and len(allSig) > 0:
+            if self._signals and 'signal' not in ret and len(allSig) > 0:
                 ret['signal'] = mergeReports(allSig)
-            if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
+            if self._backgrounds and 'background' not in ret and len(allBg) > 0:
                 ret['background'] = mergeReports(allBg)
         return ret
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
@@ -655,7 +655,7 @@ class MCAnalysis:
         allSig = []; allBg = []
         tasks = []
         retlist = []
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
@@ -696,7 +696,7 @@ class MCAnalysis:
                 mergemap[k].append(v[ip])
             #mergemaps.append(tmp_mergemap)
 
-            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() ])
 
             rescales = []
             self.compilePlotScaleMap(self._options.plotscalemap,rescales)
@@ -712,12 +712,12 @@ class MCAnalysis:
             if self._projection:
                 self._projection.scalePlots(ret)
             if makeSummary:
-                allSig = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == True  ]
-                allBg  = [v for k,v in ret.iteritems() if k != 'data'and self._isSignal[k] == False ]
-                if self._signals and not ret.has_key('signal') and len(allSig) > 0:
+                allSig = [v for k,v in ret.items() if k != 'data'and self._isSignal[k] == True  ]
+                allBg  = [v for k,v in ret.items() if k != 'data'and self._isSignal[k] == False ]
+                if self._signals and not 'signal' not in ret and len(allSig) > 0:
                     ret['signal'] = mergePlots(plotspec.name+"_signal", allSig)
                     ret['signal'].summary = True
-                if self._backgrounds and not ret.has_key('background') and len(allBg) > 0:
+                if self._backgrounds and 'background' not in ret and len(allBg) > 0:
                     ret['background'] = mergePlots(plotspec.name+"_background",allBg)
                     ret['background'].summary = True
 
@@ -728,7 +728,7 @@ class MCAnalysis:
         return rets
     def prepareForSplit(self):
         ttymap = {}
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             for tty in ttys:
                 if not tty.hasEntries(): 
                     #print "For tty %s/%s, I don't have the number of entries" % (tty._name, tty._cname)
@@ -741,7 +741,7 @@ class MCAnalysis:
         logging.info("Inside applyCut(self,cut) from mcAnalysis.py")
         pass
         ## marc rdf styletasks = []; revmap = {}
-        ## marc rdf stylefor key,ttys in self._allData.iteritems():
+        ## marc rdf stylefor key,ttys in self._allData.items():
         ## marc rdf style    for tty in ttys:
         ## marc rdf style        tty.cutToElist(cut)
         ## marc rdf style        revmap[id(tty)] = tty
@@ -763,7 +763,7 @@ class MCAnalysis:
         ## marc rdf style    tty.applyCutAndElist(cut, elist)
     def clearCut(self):
         pass ## rdf
-        for key,ttys in self._allData.iteritems():
+        for key,ttys in self._allData.items():
             for tty in ttys:
                 tty.clearCut() 
     def prettyPrint(self,reports,makeSummary=True):
@@ -890,7 +890,7 @@ class MCAnalysis:
             if k2 != to and re.match(patt,k2): k2 = to
             if k2 not in mergemap: mergemap[k2]=[]
             mergemap[k2].append(v)
-        return dict([ (k,mergeReports(v)) for k,v in mergemap.iteritems() ])
+        return dict([ (k,mergeReports(v)) for k,v in mergemap.items() ])
     def regroupPlots(self,pmap,regexp,pspec):
         patt, to = regexp
         mergemap={}
@@ -899,7 +899,7 @@ class MCAnalysis:
             if k2 != to and re.match(patt,k2): k2 = to
             if k2 not in mergemap: mergemap[k2]=[]
             mergemap[k2].append(v)
-        return dict([ (k,mergePlots(pspec.name+"_"+k,v)) for k,v in mergemap.iteritems() ])
+        return dict([ (k,mergePlots(pspec.name+"_"+k,v)) for k,v in mergemap.items() ])
     def stylePlot(self,process,plot,pspec,mayBeMissing=False):
         if process in self._allData:
             for tty in self._allData[process]: 
@@ -959,38 +959,36 @@ class MCAnalysis:
 
 def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     if addTreeToYieldOnesToo: addTreeToYieldOptions(parser)
-    parser.add_option("-j", "--jobs",           dest="jobs", type="int", default=0, help="Use N threads");
-    parser.add_option("--split-factor",         dest="splitFactor", type="int", default=0, help="Use N chunks per sample (-1 means to use the same as what passed to -j, which appears to work well in the average case)");
-    #parser.add_option("--split-dynamic",         dest="splitDynamic", action="store_true", default=True, help="Make the splitting dynamic (reduce the chunks for small samples)");
-    parser.add_option("--split-static",         dest="splitDynamic", action="store_false", default=True, help="Make the splitting dynamic (reduce the chunks for small samples)");
-    #parser.add_option("--split-sort",         dest="splitSort", action="store_true", default=True, help="Make the splitting dynamic (reduce the chunks for small samples)");
-    parser.add_option("--split-nosort",         dest="splitSort", action="store_false", default=True, help="Make the splitting dynamic (reduce the chunks for small samples)");
-    parser.add_option("-P", "--path", dest="path", action="append", type="string", default=[], help="Path to directory with input trees and pickle files. Can supply multiple paths which will be searched in order. (default: ./") 
-    parser.add_option("--RP", "--remote-path",   dest="remotePath",  type="string", default=None,      help="path to remote directory with trees, but not other metadata (default: same as path)") 
-    parser.add_option("-p", "--process", dest="processes", type="string", default=[], action="append", help="Processes to print (comma-separated list of regexp, can specify multiple ones)");
-    parser.add_option("--pg", "--pgroup", dest="premap", type="string", default=[], action="append", help="Group proceses into one. Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times. Note that it is applied _before_ -p, --sp and --xp");
-    parser.add_option("--xf", "--exclude-files", dest="filesToExclude", type="string", default=[], action="append", help="Files to exclude (comma-separated list of regexp, can specify multiple ones)");
-    parser.add_option("--xp", "--exclude-process", dest="processesToExclude", type="string", default=[], action="append", help="Processes to exclude (comma-separated list of regexp, can specify multiple ones)");
-    parser.add_option("--sf", "--swap-files", dest="filesToSwap", type="string", default=[], nargs=2, action="append", help="--swap-files X Y uses file Y instead of X in the MCA");
-    parser.add_option("--sp", "--signal-process", dest="processesAsSignal", type="string", default=[], action="append", help="Processes to set as signal (overriding the '+' in the text file)");
-    parser.add_option("--float-process", "--flp", dest="processesToFloat", type="string", default=[], action="append", help="Processes to set as freely floating (overriding the 'FreeFloat' in the text file; affects e.g. mcPlots with --fitData)");
-    parser.add_option("--fix-process", "--fxp", dest="processesToFix", type="string", default=[], action="append", help="Processes to set as not freely floating (overriding the 'FreeFloat' in the text file; affects e.g. mcPlots with --fitData)");
-    parser.add_option("--peg-process", dest="processesToPeg", type="string", default=[], nargs=2, action="append", help="--peg-process X Y make X scale as Y (equivalent to set PegNormToProcess=Y in the mca.txt)");
-    parser.add_option("--scale-process", dest="processesToScale", type="string", default=[], nargs=2, action="append", help="--scale-process X Y make X scale by Y (equivalent to add it in the mca.txt)");
-    parser.add_option("--process-norm-syst", dest="processesToSetNormSystematic", type="string", default=[], nargs=2, action="append", help="--process-norm-syst X Y sets the NormSystematic of X to be Y (for plots, etc. Overrides mca.txt)");
-    parser.add_option("--AP", "--all-processes", dest="allProcesses", action="store_true", help="Include also processes that are marked with SkipMe=True in the MCA.txt")
-    parser.add_option("--use-cnames",  dest="useCnames", action="store_true", help="Use component names instead of process names (for debugging)")
-    parser.add_option("--project", dest="project", type="string", help="Project to a scenario (e.g 14TeV_300fb_scenario2)")
-    parser.add_option("--plotgroup", dest="plotmergemap", type="string", default=[], action="append", help="Group plots into one. Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times. Note it is applied after plotting.")
-    parser.add_option("--scaleplot", dest="plotscalemap", type="string", default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
-    parser.add_option("-t", "--tree",          dest="tree", default='treeProducerWMass', help="Pattern for tree name");
-    parser.add_option("--fom", "--figure-of-merit", dest="figureOfMerit", type="string", default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
-    parser.add_option("--max-genWeight-procs", dest="maxGenWeightProc", type="string", nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
-    parser.add_option("--clip-genWeight-toMax",         dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
-    parser.add_option("--no-heppy-tree",         dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
-    parser.add_option("--nanoaod-tree",         dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
-    parser.add_option("--filter-proc-files", dest="filterProcessFiles", type="string", nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
-    parser.add_option("--sum-genWeight-fromHisto",         dest="sumGenWeighFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
+    parser.add_argument("-j", "--jobs", type=int, default=0, help="Use N threads");
+    parser.add_argument("--split-factor", dest="splitFactor", type=int, default=0, help="Use N chunks per sample (-1 means to use the same as what passed to -j, which appears to work well in the average case)");
+    parser.add_argument("--split-static", dest="splitDynamic", action="store_false", help="Make the splitting dynamic (reduce the chunks for small samples)");
+    parser.add_argument("--split-nosort", dest="splitSort", action="store_false", help="Make the splitting dynamic (reduce the chunks for small samples)");
+    parser.add_argument("-P", "--path", action="append", type=str, default=[], help="Path to directory with input trees and pickle files. Can supply multiple paths which will be searched in order. (default: ./") 
+    parser.add_argument("--RP", "--remote-path", dest="remotePath", type=str, help="path to remote directory with trees, but not other metadata (default: same as path)") 
+    parser.add_argument("-p", "--process", dest="processes", type=str, default=[], action="append", help="Processes to print (comma-separated list of regexp, can specify multiple ones)");
+    parser.add_argument("--pg", "--pgroup", dest="premap", type=str, default=[], action="append", help="Group proceses into one. Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times. Note that it is applied _before_ -p, --sp and --xp");
+    parser.add_argument("--xf", "--exclude-files", dest="filesToExclude", type=str, default=[], action="append", help="Files to exclude (comma-separated list of regexp, can specify multiple ones)");
+    parser.add_argument("--xp", "--exclude-process", dest="processesToExclude", type=str, default=[], action="append", help="Processes to exclude (comma-separated list of regexp, can specify multiple ones)");
+    parser.add_argument("--sf", "--swap-files", dest="filesToSwap", type=str, default=[], nargs=2, action="append", help="--swap-files X Y uses file Y instead of X in the MCA");
+    parser.add_argument("--sp", "--signal-process", dest="processesAsSignal", type=str, default=[], action="append", help="Processes to set as signal (overriding the '+' in the text file)");
+    parser.add_argument("--float-process", "--flp", dest="processesToFloat", type=str, default=[], action="append", help="Processes to set as freely floating (overriding the 'FreeFloat' in the text file; affects e.g. mcPlots with --fitData)");
+    parser.add_argument("--fix-process", "--fxp", dest="processesToFix", type=str, default=[], action="append", help="Processes to set as not freely floating (overriding the 'FreeFloat' in the text file; affects e.g. mcPlots with --fitData)");
+    parser.add_argument("--peg-process", dest="processesToPeg", type=str, default=[], nargs=2, action="append", help="--peg-process X Y make X scale as Y (equivalent to set PegNormToProcess=Y in the mca.txt)");
+    parser.add_argument("--scale-process", dest="processesToScale", type=str, default=[], nargs=2, action="append", help="--scale-process X Y make X scale by Y (equivalent to add it in the mca.txt)");
+    parser.add_argument("--process-norm-syst", dest="processesToSetNormSystematic", type=str, default=[], nargs=2, action="append", help="--process-norm-syst X Y sets the NormSystematic of X to be Y (for plots, etc. Overrides mca.txt)");
+    parser.add_argument("--AP", "--all-processes", dest="allProcesses", action="store_true", help="Include also processes that are marked with SkipMe=True in the MCA.txt")
+    parser.add_argument("--use-cnames",  dest="useCnames", action="store_true", help="Use component names instead of process names (for debugging)")
+    parser.add_argument("--project", dest="project", type=str, help="Project to a scenario (e.g 14TeV_300fb_scenario2)")
+    parser.add_argument("--plotgroup", dest="plotmergemap", type=str, default=[], action="append", help="Group plots into one. Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times. Note it is applied after plotting.")
+    parser.add_argument("--scaleplot", dest="plotscalemap", type=str, default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
+    parser.add_argument("-t", "--tree", default='treeProducerWMass', help="Pattern for tree name");
+    parser.add_argument("--fom", "--figure-of-merit", dest="figureOfMerit", type=str, default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
+    parser.add_argument("--max-genWeight-procs", dest="maxGenWeightProc", type=str, nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
+    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
+    parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
+    parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
+    parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
+    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeighFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
 
 if __name__ == "__main__":
     from optparse import OptionParser
