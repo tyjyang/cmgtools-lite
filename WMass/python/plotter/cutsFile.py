@@ -4,11 +4,12 @@ import re
 import os, os.path
 from array import array
 from copy import *
+import logging
 
 class CutsFile:
     def __init__(self,txtfileOrCuts,options=None,ignoreEmptyOptionsEnforcement=False):
         if not ignoreEmptyOptionsEnforcement:
-            if not options: raise RuntimeError,'options is empty when passed to CutsFile constructor'
+            if not options: raise RuntimeError('options is empty when passed to CutsFile constructor')
         if type(txtfileOrCuts) == list:
             self._cuts = deepcopy(txtfileOrCuts[:])
         elif isinstance(txtfileOrCuts,CutsFile):
@@ -16,7 +17,7 @@ class CutsFile:
         else:
             self._cuts = []
             file = open(txtfileOrCuts, "r")
-            if not file: raise RuntimeError, "Cannot open "+txtfileOrCuts+"\n"
+            if not file: raise RuntimeError("Cannot open "+txtfileOrCuts+"\n")
             if options:
                 for cr,cn,cv in options.cutsToAdd:
                     if re.match(cr,"entry point"): self._cuts.append((cn,cv))
@@ -53,8 +54,8 @@ class CutsFile:
                         if re.match(cr,name): self._cuts.append((cn,cv))
                     if options.upToCut and re.search(options.upToCut,name):
                         break
-              except ValueError, e:
-                print "Error parsing cut line [%s]" % line.strip()
+              except ValueError(e):
+                logging.error("Failed to parse cut line [%s]" % line.strip())
                 raise 
             if options:
                 for ci in options.cutsToInvert:  self.invert(ci)

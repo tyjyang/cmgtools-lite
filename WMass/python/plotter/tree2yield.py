@@ -127,7 +127,7 @@ def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
             histo.GetYaxis().SetTitle(ey)
             histo.GetZaxis().SetTitle(ez)
         else:
-            raise RuntimeError, "Can't make a plot with %d dimensions" % nvars
+            raise RuntimeError("Can't make a plot with %d dimensions" % nvars)
         histo.Sumw2()
         return histo
 
@@ -310,7 +310,6 @@ class TreeToYield:
         ## marc     self._tfile = ROOT.TFile.Open(self._fname)
         ## marc if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
         ##t = self._tfile.Get(self._objname)
-        ##if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname)
         self._tree  = self._fname ## just set the tree to the rdataframe
         #self._tree.SetCacheSize(10*1000*1000)
         #if "root://" in self._fname: self._tree.SetCacheSize()
@@ -354,9 +353,9 @@ class TreeToYield:
             if closeFileAfterwards and (not self._isInit):
                 if "root://" in self._fname: ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
                 tfile = ROOT.TFile.Open(self._fname)
-                if not tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
+                if not tfile: raise RuntimeError("Cannot open %s\n" % self._fname)
                 t = tfile.Get(self._objname)
-                if not t: raise RuntimeError, "Cannot find tree %s in file %s\n" % (self._objname, self._fname) 
+                if not t: raise RuntimeError("Cannot find tree %s in file %s\n" % (self._objname, self._fname))
                 self._entries = t.GetEntries()
             else:
                 self._entries = self.getTree().GetEntries()
@@ -748,7 +747,6 @@ class TreeToYield:
         ## marc return elist
     def clearCut(self):
         pass # rdf style
-        # rdf style#if not self._isInit: raise RuntimeError, "Error, clearing a cut on something that wasn't even initialized"
         # rdf styleself._appliedCut = None
         # rdf styleself._elist = None
         # rdf styleif self._isInit: self._tree.SetEntryList(None)

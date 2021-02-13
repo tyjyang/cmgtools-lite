@@ -556,8 +556,6 @@ class MCAnalysis:
                         tty.setScaleFactor("%s*%g" % (scale, 1000.0/total_w))
                     else: 
                         tty.setScaleFactor(1)
-        #if len(self._signals) == 0: raise RuntimeError, "No signals!"
-        #if len(self._backgrounds) == 0: raise RuntimeError, "No backgrounds!"
     def listProcesses(self,allProcs=False):
         ret = self.listSignals(allProcs=allProcs) + self.listBackgrounds(allProcs=allProcs)
         if 'data' in self._allData.keys(): ret.append('data')
@@ -774,10 +772,8 @@ class MCAnalysis:
             if key != 'data':
                 if self._isSignal[key]: allSig.append((key,reports[key]))
                 else: allBg.append((key,reports[key]))
-        #allSig.sort(key = lambda (n,v): self._rank[n])
-        #allSig.sort(key = lambda (n,v): self._rank[n])
-        allSig.sort(key = lambda (n,v): self._rank[n])
-        allBg.sort( key = lambda (n,v): self._rank[n])
+        allSig.sort(key = lambda x: self._rank[x[0]])
+        allBg.sort( key = lambda x: self._rank[x[0]])
         table = allSig + allBg
         if makeSummary:
             if len(allSig)>1:
@@ -911,9 +907,9 @@ class MCAnalysis:
                 break
         elif process in self._optionsOnlyProcesses:
             opts = self._optionsOnlyProcesses[process]
-            stylePlot(plot, pspec, lambda key,default : opts[key] if key in opts else default)
+            stylePlot(plot, pspec, lambda x: opts[x[0]] if key in opts else default)
         elif not mayBeMissing:
-            raise KeyError, "Process %r not found" % process
+            raise KeyError("Process %r not found" % process)
     def _processTasks(self,func,tasks,name=None):
         #timer = ROOT.TStopwatch()
         #print "Starting job %s with %d tasks, %d threads" % (name,len(tasks),self._options.jobs)
@@ -954,7 +950,7 @@ class MCAnalysis:
                 for fsplit in fsplits:
                     newtasks_wsize.append( (entries/float(chunks), tuple( (list(task)[:-1]) + [fsplit] ) ) )
             if self._options.splitSort:
-                newtasks_wsize.sort(key = lambda (size,task) : size, reverse = True)
+                newtasks_wsize.sort(key = lambda x : x[0], reverse = True)
                 #for s,t in newtasks_wsize: print "\t%9d %s/%s %s" % (s,t[1]._name, t[1]._cname, t[-1])
             newtasks = [ task for (size,task) in newtasks_wsize ]
         #print "New task list has %d entries; actual split factor %.2f" % (len(newtasks), len(newtasks)/float(len(tasks)))

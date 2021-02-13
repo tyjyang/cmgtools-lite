@@ -49,7 +49,7 @@ class PlotFile:
             line = re.sub("#.*","",line) 
             field = [f.strip().replace(";",":") for f in line.replace("::",";;").replace("\\:",";").split(':')]
             if len(field) == 1 and field[0] == "*":
-                if len(self._plots): raise RuntimeError, "PlotFile defaults ('*') can be specified only before all plots"
+                if len(self._plots): raise RuntimeError("PlotFile defaults ('*') can be specified only before all plots")
                 logging.info("Setting the following defaults for all plots: ")
                 for k,v in extra.iteritems():
                     logging.info("\t%s: %r" % (k,v))
@@ -799,7 +799,7 @@ class PlotMaker:
         if not options.drawStatBox:
             ROOT.gStyle.SetOptStat(0)
         ROOT.gStyle.SetOptTitle(0)
-        if self._options.perBin and not "txt" in self._options.printPlots: raise RuntimeError, "Error: cannot print yields per bin if txt option not given" 
+        if self._options.perBin and not "txt" in self._options.printPlots: raise RuntimeError("Error: cannot print yields per bin if txt option not given")
  
     def run(self,mca,cuts,plots,makeStack=True,makeCanvas=True):
         if self._options.wideplot: ROOT.gStyle.SetTitleYOffset(0.55)
@@ -828,7 +828,7 @@ class PlotMaker:
             pspecs = plots.plots()
             if self._options.preFitData:
                 matchspec = [ p for p in pspecs if p.name == self._options.preFitData ]
-                if not matchspec: raise RuntimeError, "Error: plot %s not found" % self._options.preFitData
+                if not matchspec: raise RuntimeError("Error: plot %s not found" % self._options.preFitData)
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cut,makeSummary=True)
@@ -854,11 +854,11 @@ class PlotMaker:
                             xblind[1] = max(xblind[1],hdata.GetXaxis().GetBinUpEdge(b))
                     #print "final blinded range x = [%s, %s]" % (xblind[0],xblind[1])
                 elif blind != "None":
-                    raise RuntimeError, "Unrecongnized value for 'Blinded' option, stopping here"
+                    raise RuntimeError("Unrecongnized value for 'Blinded' option, stopping here")
                 #
                 # Pseudo-data?
                 if self._options.pseudoData:
-                    if "data" in pmaps[ipspec]: raise RuntimeError, "Can't use --pseudoData if there's also real data (maybe you want --xp data?)"
+                    if "data" in pmaps[ipspec]: raise RuntimeError("Can't use --pseudoData if there's also real data (maybe you want --xp data?)")
                     if "background" in self._options.pseudoData:
                         pdata = pmaps[ipspec]["background"]
                         pdata = pdata.Clone(str(pdata.GetName()).replace("_background","_data"))
@@ -867,7 +867,7 @@ class PlotMaker:
                         pdata = pdata.Clone(str(pdata.GetName()).replace("_background","_data"))
                         if "signal" in pmaps[ipspec]: pdata.Add(pmaps[ipspec]["signal"])
                     else:
-                        raise RuntimeError, "Pseudo-data option %s not supported" % self._options.pseudoData
+                        raise RuntimeError("Pseudo-data option %s not supported" % self._options.pseudoData)
                     if "asimov" not in self._options.pseudoData:
                         if "TH1" in pdata.ClassName():
                             for i in xrange(1,pdata.GetNbinsX()+1):
@@ -879,7 +879,7 @@ class PlotMaker:
                                 pdata.SetBinContent(ix, iy, ROOT.gRandom.Poisson(pdata.GetBinContent(ix, iy)))
                                 pdata.SetBinError(ix, iy, sqrt(pdata.GetBinContent(ix, iy)))
                         else:
-                            raise RuntimeError, "Can't make pseudo-data for %s" % pdata.ClassName()
+                            raise RuntimeError("Can't make pseudo-data for %s" % pdata.ClassName())
                     pmaps[ipspec]["data"] = pdata
                 #
                 if not makeStack: 
@@ -998,7 +998,7 @@ class PlotMaker:
                         total.GetYaxis().SetLabelSize(0.05)
 
                 if not self._options.emptyStack and stack.GetNhists() == 0:
-                    print "ERROR: for %s, all histograms are empty\n " % pspec.name
+                    logging.error("For %s, all histograms are empty\n " % pspec.name)
                     #print 'this is stack', stack
                     return
 

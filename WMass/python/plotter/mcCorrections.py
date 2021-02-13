@@ -4,6 +4,7 @@ import os
 import ROOT
 
 from fakeRate import compileMacro
+import logging
 
 if "/smearer_cc.so" not in ROOT.gSystem.GetLibraries(): 
     #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/smearer.cc+" % os.environ['CMSSW_BASE']);  # keep for future references and debug
@@ -64,19 +65,19 @@ class MCCorrections:
         return "MCCorrections('%s')" % self._file
 
 def printcorrections(myglob):
-    print 'summary of MC corrections'
-    print myglob
+    logging.info('summary of MC corrections')
+    logging.info(myglob)
     def myprint(x):
-        print '%s -> %s   --- data=%s'%(x._find.pattern,x._replace,x.alsoData)
+        logging.info('%s -> %s   --- data=%s'%(x._find.pattern,x._replace,x.alsoData))
     for c in myglob:
         if isinstance(c,MCCorrections):
-            print str(c)
-            print len(c._corrections)
+            logging.info(str(c))
+            logging.info(len(c._corrections))
             for corr in c._corrections:
                 myprint(corr)
         elif isinstance(c,SimpleCorrection):
             myprint(c)
-        else: raise RuntimeError, "Unknown object in corrections list"
+        else: raise RuntimeError("Unknown object in corrections list")
     
 _corrections = []; _corrections_init = []
 def loadMCCorrections(options):

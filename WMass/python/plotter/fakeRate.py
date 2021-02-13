@@ -1,13 +1,13 @@
 import re
 import os
-
 import ROOT
+import logging
 
 def compileMacro(x,basedir=os.environ['CMSSW_BASE']):
     #ROOT.gROOT.ProcessLine(".L %s/%s+" % (os.environ['CMSSW_BASE'],x));
     success = ROOT.gSystem.CompileMacro("%s/%s" % (os.environ['CMSSW_BASE'],x),"k")
     if not success:
-        print ("Loading and compiling %s failed! Exit" % x)
+        logging.error("Loading and compiling %s failed! Exit" % x)
         quit()
 
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
@@ -36,7 +36,7 @@ class FakeRate:
                 line = line.strip()[:-1] + stream.next()
             fields = [x.strip() for x in line.split(":")]
             if fields[0] == "weight":
-                if self._weight is not None: raise RuntimeError, "Duplicate weight definition in fake rate file "+file
+                if self._weight is not None: raise RuntimeError("Duplicate weight definition in fake rate file "+file)
                 self._weight = fields[1]
             elif fields[0] == "change": 
                 self._mods.append( SimpleCorrection(fields[1],fields[2]) )
@@ -61,19 +61,19 @@ class FakeRate:
                 else:
                     ROOT.loadFRHisto3D(fields[1],fname,hname)
             elif fields[0] == 'norm-lumi-override':
-                if self._weight is None: raise RuntimeError, "norm-lumi-override must follow weight declaration in fake rate file "+file
-                if not lumi: raise RuntimeError, "lumi not set in options, cannot apply norm-lumi-override"
-                print "WARNING: normalization overridden from %s/fb to %s/fb in fake rate file %s" % (lumi,fields[1],file)
+                if self._weight is None: raise RuntimeError("norm-lumi-override must follow weight declaration in fake rate file "+file)
+                if not lumi: raise RuntimeError("lumi not set in options, cannot apply norm-lumi-override")
+                logging.warning("normalization overridden from %s/fb to %s/fb in fake rate file %s" % (lumi,fields[1],file))
                 self._weight = '((%s)*(%s)/(%s))' % (self._weight,fields[1],lumi)
             elif fields[0] == 'cut-file':
-                if self._weight is None: raise RuntimeError, "cut-file must follow weight declaration in fake rate file "+file
+                if self._weight is None: raise RuntimeError("cut-file must follow weight declaration in fake rate file "+file)
                 addcuts = CutsFile(fields[1],options=None,ignoreEmptyOptionsEnforcement=True)
                 self._weight = '((%s)*(%s))' % (self._weight,addcuts.allCuts(doProduct=True))
 #                    print "WARNING: cuts loaded from fake rate file "+file
             else:
-                raise RuntimeError, "Unknown directive "+fields[0]
+                raise RuntimeError("Unknown directive "+fields[0])
         if file==files[0]:
-            if self._weight is None: raise RuntimeError, "Missing weight definition in fake rate file "+file
+            if self._weight is None: raise RuntimeError("Missing weight definition in fake rate file "+file)
 #        if len(self._cutMods) == 0: print "WARNING: no directives to change cuts in fake rate file "+filestring
     def weight(self): 
         return self._weight
