@@ -1,9 +1,6 @@
 import ROOT
+import numpy as np
 
 @ROOT.Numba.Declare(["RVec<float>"], "float")
-def sumPt(pts):
-    sumpt = 0
-    for pt in pts:
-        sumpt += pt
-    return sumpt
-
+def maxPt(pts):
+    return np.max(pts) if len(pts) else 0

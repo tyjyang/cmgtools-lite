@@ -509,7 +509,7 @@ class TreeToYield:
 
         for name, entry in self._rdfDefs.items():
             if re.match(entry["filearg"], self._cname):
-                print("Defining %s as %s" % (name, entry["define"]))
+                logging.debug("Defining %s as %s" % (name, entry["define"]))
                 self._tree = self._tree.Define(name, entry["define"])
             
         for name,entry in self._rdfAlias.items():
