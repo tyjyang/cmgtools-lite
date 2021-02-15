@@ -23,6 +23,10 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <utility>
+#include <iostream>
+#include <boost/algorithm/string/join.hpp>
 
 TF1 * helicityFractionSimple_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
 TF1 * helicityFractionSimple_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
@@ -32,8 +36,6 @@ TFile *_file_helicityFractionsSimple = NULL;
 TH2 * helicityFractionsSimple_0 = NULL;
 TH2 * helicityFractionsSimple_L = NULL;
 TH2 * helicityFractionsSimple_R = NULL;
-
-static string _cmssw_base_ = string(getenv("CMSSW_BASE"));
 
 string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
@@ -48,16 +50,12 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
-float getValFromTH2(TH2*h = NULL, float x = 0.0, float y = 0.0) {
+static string _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
 
-  if (!h) {
-    cout << "Error in getValFromTH2(): uninitialized histogram. Abort" << endl;
-    exit(EXIT_FAILURE);
-  }
-  int xbin = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindFixBin(x)));
-  int ybin  = std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindFixBin(y)));
-  return h->GetBinContent(xbin,ybin);
-
+float getValFromTH2(TH2& h, float x = 0.0, float y = 0.0) {
+  int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
+  int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
+  return h.GetBinContent(xbin,ybin);
 }
 
 bool isOddEvent(ULong64_t evt) {
@@ -779,137 +777,53 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-//============================
+std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
 
-TFile *_file_trigger_leptonSF_fast_mu_plus = NULL;
-TH2F *_histo_trigger_leptonSF_fast_mu_plus = NULL;
-TFile *_file_trigger_leptonSF_fast_mu_minus = NULL;
-TH2F *_histo_trigger_leptonSF_fast_mu_minus = NULL;
-TFile *_file_selection_leptonSF_fast_mu_plus = NULL;
-TH2F *_histo_selection_leptonSF_fast_mu_plus = NULL;
-TFile *_file_selection_leptonSF_fast_mu_minus = NULL;
-TH2F *_histo_selection_leptonSF_fast_mu_minus = NULL;
+// Sorry you have to manually keep these consistent
+typedef enum {BToH=0, BToF, GToH} DataEra;
+std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {GToH, "GtoH"}, {GToH, "GtoH"} };
 
-float _get_muonSF_fast_wlike(float pt1, float eta1, int charge1, float pt2, float eta2, int charge2, ULong64_t event) {
-
-  // to be improved, still experimental
-  float pt = 0.0;
-  float eta = 0.0;
-  int charge = 0.0;
-
-  // positive (negative) leptons on odd (even) events
-  if (isOddEvent(event)) {
-    if (charge1 > 0) {
-      pt = pt1;
-      eta = eta1;
-      charge = charge1;
-    } else {
-      pt = pt2;
-      eta = eta2;
-      charge = charge2;
+struct pair_hash
+{
+    template <class T1, class T2>
+    std::size_t operator() (const std::pair<T1, T2> &p) const
+    {
+        return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
     }
-  } else {
-    if (charge1 < 0) {
-      pt = pt1;
-      eta = eta1;
-      charge = charge1;
-    } else {
-      pt = pt2;
-      eta = eta2;
-      charge = charge2;
+};
+
+std::unordered_map<std::pair<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};
+TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
+
+void initializeScaleFactors() {
+    if (!_file_allSF.IsOpen())
+        std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
+
+    for (auto& era : eraNames) {
+        for (auto& corr : {"trigger", "tracking", "isonotrig"}) {
+            std::vector<std::string> charges = {"both"};
+            if (strcmp(corr, "trigger") == 0) {
+                charges = {"plus", "minus"};
+            }
+            
+            for (auto& charge : charges) {
+                std::vector<std::string> vars = {"SF2D", corr, era.second, charge};
+                std::string corrname = boost::algorithm::join(vars, "_");
+                auto* histptr = _file_allSF.Get(corrname.c_str());
+                if (histptr == nullptr)
+                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+                DataEra eraVal = era.first;
+                auto corrKey = std::make_pair(corr+charge, eraVal);
+                corrTypeToHist[corrKey] = *static_cast<TH2D*>(histptr);
+            }
+        }
     }
-  }
-
-  
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
-  string hSFname = "EGamma_SF2D";
-
-  // trigger
-  if (!_histo_trigger_leptonSF_fast_mu_plus) {
-    _file_trigger_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuPlus.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_leptonSF_fast_mu_plus = (TH2F*)(_file_trigger_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
-  }
-  if (!_histo_trigger_leptonSF_fast_mu_minus) {
-    _file_trigger_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/triggerMuMinus.root",_cmssw_base_.c_str()),"read");
-    _histo_trigger_leptonSF_fast_mu_minus = (TH2F*)(_file_trigger_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
-  }
-  // selection
-  if (!_histo_selection_leptonSF_fast_mu_plus) {
-    _file_selection_leptonSF_fast_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuPlus.root",_cmssw_base_.c_str()),"read");
-    _histo_selection_leptonSF_fast_mu_plus = (TH2F*)(_file_selection_leptonSF_fast_mu_plus->Get(hSFname.c_str()));
-  }
-  if (!_histo_selection_leptonSF_fast_mu_minus) {
-    _file_selection_leptonSF_fast_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/selectionMuMinus.root",_cmssw_base_.c_str()),"read");
-    _histo_selection_leptonSF_fast_mu_minus = (TH2F*)(_file_selection_leptonSF_fast_mu_minus->Get(hSFname.c_str()));
-  }
-
-  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_fast_mu_plus : _histo_trigger_leptonSF_fast_mu_minus );
-  int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
-  int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
-
-  float out = histTrigger->GetBinContent(etabin,ptbin);
-
-  TH2F *histSelectionPlus  = _histo_selection_leptonSF_fast_mu_plus;
-  TH2F *histSelectionMinus = _histo_selection_leptonSF_fast_mu_minus;
-  float ptPlus = 0;
-  float ptMinus = 0;
-  float etaPlus = 0;
-  float etaMinus = 0;
-  if (charge1 > 0) {
-    ptPlus = pt1;
-    etaPlus = eta1;
-    ptMinus = pt2;
-    etaMinus = eta2;
-  } else {
-    ptPlus = pt2;
-    etaPlus = eta2;
-    ptMinus = pt1;
-    etaMinus = eta1;
-  }
-
-  etabin = std::max(1, std::min(histSelectionPlus->GetNbinsX(), histSelectionPlus->GetXaxis()->FindFixBin(etaPlus)));
-  ptbin  = std::max(1, std::min(histSelectionPlus->GetNbinsY(), histSelectionPlus->GetYaxis()->FindFixBin(ptPlus)));
-  out *= histSelectionPlus->GetBinContent(etabin,ptbin);
-  etabin = std::max(1, std::min(histSelectionMinus->GetNbinsX(), histSelectionMinus->GetXaxis()->FindFixBin(etaMinus)));
-  ptbin  = std::max(1, std::min(histSelectionMinus->GetNbinsY(), histSelectionMinus->GetYaxis()->FindFixBin(ptMinus)));
-  out *= histSelectionMinus->GetBinContent(etabin,ptbin);
-
-  return out;
-
 }
-
-
-TFile *_file_allSF = NULL;
-// 3 elements, depending on what dataset period one is using for the scale factors
-TH2F *_histo_trigger_minus[3] = {NULL, NULL, NULL}; 
-TH2F *_histo_trigger_plus[3] = {NULL, NULL, NULL};
-TH2F *_histo_iso[3] = {NULL, NULL, NULL};
-TH2F *_histo_isonotrig[3] = {NULL, NULL, NULL};
-TH2F *_histo_idip[3] = {NULL, NULL, NULL};
-TH2F *_histo_tracking[3] = {NULL, NULL, NULL};
-
-// float* getParticleVars(float pt1, float eta1, float pt2, float eta2) {
-  
-//   static float vars[] = {pt1, eta1, pt2, eta2};
-//   std::cout << "1) " << pt1 << "   " << eta1 << "   " << pt2 << "   " << eta2 << std::endl;
-//   return vars;
-
-// }
-
-
 // I think the function cannot have more than 8 arguments, let's see
-float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatch1, float pt2, float eta2, int charge2, int trigMatch2, ULong64_t event, int era = 0) {
-
-  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
-  string dataEraForSF = "BtoH";
-  if (era == 1) 
-    dataEraForSF = "BtoF";
-  else if (era == 2 )
-    dataEraForSF = "GtoH";
+float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatch1, float pt2, float eta2, int charge2, int trigMatch2, ULong64_t event, DataEra era = BToH) {
+  if (corrTypeToHist.empty())
+      return 1.;
 
   // to be improved, still experimental
   float pt = 0.0;
@@ -942,45 +856,9 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
       trigMatch = trigMatch2;
     }
   }
-
   
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
-  // open the single file we have
-  if (!_file_allSF) {
-    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
-  }
-
-  // trigger
-  if (!_histo_trigger_plus[era]) {
-    _histo_trigger_plus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
-  }
-  if (!_histo_trigger_minus[era]) {
-    _histo_trigger_minus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
-  }
-  // ID + ip (interaction point, i.e. dz and dxy)
-  if (!_histo_idip[era]) {
-    _histo_idip[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_tracking[era]) {
-    _histo_tracking[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_iso[era]) {
-    _histo_iso[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_isonotrig[era]) {
-    _histo_isonotrig[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
-  }
-
-
-  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
-  //float sf = trigMatch1 ? getValFromTH2(histTrigger,eta,pt) : 1.0;
   float sf = 1.0;
-  sf *= getValFromTH2(_histo_idip[era],eta1,pt1) * getValFromTH2(_histo_idip[era],eta2,pt2);
-  sf *= getValFromTH2(_histo_tracking[era],eta1,pt1) * getValFromTH2(_histo_tracking[era],eta2,pt2);
+  // Trigger off for now
   // sf *= getValFromTH2(_histo_iso[era],eta1,pt1) * getValFromTH2(_histo_iso[era],eta2,pt2);
   // for SF validation the SF for iso should be applied on the second lepton only if it had passed the trigger
   // so we should not apply this SF, but then also not applying thr isolation cut on that leg, but only on the
@@ -988,69 +866,69 @@ float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatc
   // sf *= getValFromTH2(_histo_iso[era],eta,pt);
   //TH2F *histIso1 = (trigMatch1 ? _histo_iso[era] : _histo_isonotrig[era]);
   //TH2F *histIso2 = (trigMatch2 ? _histo_iso[era] : _histo_isonotrig[era]);
-  TH2F *histIso = _histo_isonotrig[era];
-  sf *= getValFromTH2(histIso,eta1,pt1) * getValFromTH2(histIso,eta2,pt2);
-  //sf *= getValFromTH2(histIso1,eta1,pt1) * getValFromTH2(histIso2,eta2,pt2);
-  // cout << " sf = " << sf << endl;
 
+  for (const auto& corr : {"triggerplus", "triggerminus", "trackingboth", "isonotrigboth", }) {
+    auto key = std::make_pair(corr, era);
+    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+        sf *= getValFromTH2(corrTypeToHist[key],eta1,pt1) * getValFromTH2(corrTypeToHist[key],eta2,pt2);
+  }
   return sf;
-
 }
 
 
 // details like histograms and location might be updated
-float _get_AllMuonSF_fast_wmass(float pt, float eta, int charge, int trigMatch, int era=0) {
-
-  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
-  string dataEraForSF = "BtoH";
-  if (era == 1) 
-    dataEraForSF = "BtoF";
-  else if (era == 2 )
-    dataEraForSF = "GtoH";
-  
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
-  // open the single file we have
-  if (!_file_allSF) {
-    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
-  }
-
-  // trigger
-  if (!_histo_trigger_plus[era]) {
-    _histo_trigger_plus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
-  }
-  if (!_histo_trigger_minus[era]) {
-    _histo_trigger_minus[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
-  }
-  // ID + ip (interaction point, i.e. dz and dxy)
-  if (!_histo_idip[era]) {
-    _histo_idip[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_tracking[era]) {
-    _histo_tracking[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_iso[era]) {
-    _histo_iso[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
-  }
-  if (!_histo_isonotrig[era]) {
-    _histo_isonotrig[era] = (TH2F*)(_file_allSF->Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
-  }
-
-
-  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
-  float sf = getValFromTH2(histTrigger,eta,pt);
-  sf *= getValFromTH2(_histo_idip[era],eta,pt);
-  sf *= getValFromTH2(_histo_tracking[era],eta,pt);
-  TH2F *histIso = (trigMatch ? _histo_iso[era] : _histo_isonotrig[era]);
-  sf *= getValFromTH2(histIso,eta,pt);
-  // cout << " sf = " << sf << endl;
-
-  return sf;
-
-}
+//float _get_AllMuonSF_fast_wmass(float pt, float eta, int charge, int trigMatch, int era=0) {
+//
+//  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
+//  string dataEraForSF = "BtoH";
+//  if (era == 1) 
+//    dataEraForSF = "BtoF";
+//  else if (era == 2 )
+//    dataEraForSF = "GtoH";
+//  
+//  if (_cmssw_base_ == "") {
+//    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
+//    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+//  }
+//
+//  // open the single file we have
+//  if (!_file_allSF.isValid()) {
+//    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
+//  }
+//
+//  // trigger
+//  if (!_histo_trigger_plus[era]) {
+//    _histo_trigger_plus[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
+//  }
+//  if (!_histo_trigger_minus[era]) {
+//    _histo_trigger_minus[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
+//  }
+//  // ID + ip (interaction point, i.e. dz and dxy)
+//  if (!_histo_idip[era]) {
+//    _histo_idip[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
+//  }
+//  if (!_histo_tracking[era]) {
+//    _histo_tracking[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
+//  }
+//  if (!_histo_iso[era]) {
+//    _histo_iso[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
+//  }
+//  if (!_histo_isonotrig[era]) {
+//    _histo_isonotrig[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
+//  }
+//
+//
+//  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
+//  float sf = getValFromTH2(histTrigger,eta,pt);
+//  sf *= getValFromTH2(_histo_idip[era],eta,pt);
+//  sf *= getValFromTH2(_histo_tracking[era],eta,pt);
+//  TH2F *histIso = (trigMatch ? _histo_iso[era] : _histo_isonotrig[era]);
+//  sf *= getValFromTH2(histIso,eta,pt);
+//  // cout << " sf = " << sf << endl;
+//
+//  return sf;
+//
+//}
 
 //============================
 
@@ -1166,305 +1044,6 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   }
   return ret;
 }
-
-
-// float _muonTriggerSF_2l_trigMatch(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 				  float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
-// 				  int pdgId1, int pdgId2,  // used to decide which lepton has the required charge
-// 				  float pt1, float pt2,
-// 				  float eta1, float eta2
-// 				  ) {
-
-//   int pdgId = 0;
-//   float pt  = 0.0;
-//   float eta = 0.0;
-//   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
-//   // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
-//   if (requiredCharge * pdgId1 < 0) {
-//     // use lep 1
-//     pdgId = pdgId1;
-//     pt    = pt1;
-//     eta   = eta1;
-//     if (matchedTrgObjMuPt_l1 < 0.0) return 0;  // if no match to trigger, discard events
-//   } else {
-//     // use lep 2
-//     pdgId = pdgId2;
-//     pt    = pt2;
-//     eta   = eta2;
-//     if (matchedTrgObjMuPt_l2 < 0.0) return 0;  // if no match to trigger, discard events
-//   } 
-
-//   return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);
-
-// }
-
-
-// bool triggerMatch(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 		  float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
-// 		  int pdgId1, int pdgId2  // used to decide which lepton has the required charge
-// 		  ) {
-
-//   int pdgId = 0;
-//   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
-//   // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
-//   if (requiredCharge * pdgId1 < 0) {
-//     // use lep 1
-//     if (matchedTrgObjMuPt_l1 < 0.0) return 0;  // if no match to trigger, discard events
-//     else                            return 1;
-//   } else {
-//     // use lep 2
-//     pdgId = pdgId2;
-//     if (matchedTrgObjMuPt_l2 < 0.0) return 0;  // if no match to trigger, discard events
-//     else                            return 1;
-//   }
-
-// }
-
-
-
-// float triggerSFforChargedLepton(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 				int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
-// 				float pt1, float pt2,
-// 				float eta1, float eta2
-// 				) {
-
-//   int pdgId = 0;
-//   float pt  = 0.0;
-//   float eta = 0.0;
-  
-//   // pdgID > 0 for negative leptons
-//   if (requiredCharge * pdgid1 < 0) {
-//     pdgId = pdgid1;
-//     pt    = pt1;
-//     eta   = eta1;
-//   } else {
-//     pdgId = pdgid2;
-//     pt    = pt2;
-//     eta   = eta2;
-//   }
-
-//   return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
-
-// }
-
-// float triggerSFforChargedLeptonMatchingTrigger(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 					       float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
-// 					       int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
-// 					       float pt1, float pt2,
-// 					       float eta1, float eta2
-// 					       ) {
-
-//   float trigMatchPt = 0.0;
-//   int pdgId = 0;
-//   float pt  = 0.0;
-//   float eta = 0.0;
-
-//   float trigMatchPt_other = 0.0;
-//   int pdgId_other = 0;
-//   float pt_other  = 0.0;
-//   float eta_other = 0.0;
-  
-//   // pdgID > 0 for negative leptons
-//   if (requiredCharge * pdgid1 < 0) {
-//     pdgId = pdgid1;
-//     pt    = pt1;
-//     eta   = eta1;    
-//     trigMatchPt = matchedTrgObjMuPt_l1;
-//     pdgId_other = pdgid2;
-//     pt_other    = pt2;
-//     eta_other   = eta2;    
-//     trigMatchPt_other = matchedTrgObjMuPt_l2;
-//   } else {
-//     pdgId = pdgid2;
-//     trigMatchPt = matchedTrgObjMuPt_l2;
-//     pt    = pt2;
-//     eta   = eta2;
-//     pdgId_other = pdgid1;
-//     pt_other    = pt1;
-//     eta_other   = eta1;    
-//     trigMatchPt_other = matchedTrgObjMuPt_l1;
-//   }
-
-//   // try using 1 if both lepton match trigger (efficiency for trigger in 2 lepton phase space is ~ 100%)
-//   if (trigMatchPt > 0.0 and trigMatchPt_other > 0.0) {
-//     return 1;
-//   } else {
-//     if (trigMatchPt > 0.0)
-//       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, requiredCharge);					
-//     else
-//       return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1*requiredCharge);	 
-//   }
-
-// }
-
-// float triggerSFforChargedLeptonMatchingTriggerV2(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 						 bool matchTrigger_l1, bool matchTrigger_l2,
-// 						 int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
-// 						 float pt1, float pt2,
-// 						 float eta1, float eta2						 
-// 						 ) {
-
-//   bool thisLepMatchesTrigger = false;
-//   int pdgId = 0;
-//   float pt  = 0.0;
-//   float eta = 0.0;
-
-//   bool otherLepMatchesTrigger = false;
-//   int pdgId_other = 0;
-//   float pt_other  = 0.0;
-//   float eta_other = 0.0;
-  
-//   bool isSameSign = (pdgid1*pdgid2 > 0) ? true : false;
-  
-//   // pdgID > 0 for negative leptons
-//   if (isSameSign || requiredCharge * pdgid1 < 0) {
-//     pdgId = pdgid1;
-//     pt    = pt1;
-//     eta   = eta1;    
-//     thisLepMatchesTrigger = matchTrigger_l1;
-//     pdgId_other = pdgid2;
-//     pt_other    = pt2;
-//     eta_other   = eta2;    
-//     otherLepMatchesTrigger = matchTrigger_l2;
-//   } else {
-//     pdgId = pdgid2;
-//     pt    = pt2;
-//     eta   = eta2;
-//     thisLepMatchesTrigger = matchTrigger_l2;
-//     pdgId_other = pdgid1;
-//     pt_other    = pt1;
-//     eta_other   = eta1;    
-//     otherLepMatchesTrigger = matchTrigger_l1;
-//   }
-
-//   // try using 1 if both lepton match trigger (efficiency for trigger in 2 lepton phase space is ~ 100%)
-//   if (thisLepMatchesTrigger and otherLepMatchesTrigger) {
-//     return 1;
-//   } else {
-//     int sfCharge = thisLepMatchesTrigger ? requiredCharge : (-1*requiredCharge);
-//     if (isSameSign) sfCharge = (pdgid1 > 0) ? -1 : 1; // for same sign uses the charge of the leading for the SF
-
-//     if (thisLepMatchesTrigger)
-//       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, sfCharge);					
-//     else if (otherLepMatchesTrigger)
-//       return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, sfCharge);	 
-//     else
-//       return 0.0;  // this should not happen, but just in case
-//   }
-
-// }
-
-// float triggerSFforChargedLeptonMatchingTriggerWlike(bool isOddEvent, // pass positive or negative number, depending on what you want 
-// 						    bool matchTrigger_l1, bool matchTrigger_l2,
-// 						    int pdgid1, int pdgid2,  // used to decide which lepton has the required charge
-// 						    float pt1, float pt2,
-// 						    float eta1, float eta2						 
-// 						    ) {
-
-//   int requiredCharge = isOddEvent ? 1 : -1;
-
-//   bool thisLepMatchesTrigger = false;
-//   int pdgId = 0;
-//   float pt  = 0.0;
-//   float eta = 0.0;
-
-//   bool otherLepMatchesTrigger = false;
-//   int pdgId_other = 0;
-//   float pt_other  = 0.0;
-//   float eta_other = 0.0;
-  
-//   bool isSameSign = (pdgid1*pdgid2 > 0) ? true : false;
-  
-//   // pdgID > 0 for negative leptons
-//   if (isSameSign || requiredCharge * pdgid1 < 0) {
-//     pdgId = pdgid1;
-//     pt    = pt1;
-//     eta   = eta1;    
-//     thisLepMatchesTrigger = matchTrigger_l1;
-//     pdgId_other = pdgid2;
-//     pt_other    = pt2;
-//     eta_other   = eta2;    
-//     otherLepMatchesTrigger = matchTrigger_l2;
-//   } else {
-//     pdgId = pdgid2;
-//     pt    = pt2;
-//     eta   = eta2;
-//     thisLepMatchesTrigger = matchTrigger_l2;
-//     pdgId_other = pdgid1;
-//     pt_other    = pt1;
-//     eta_other   = eta1;    
-//     otherLepMatchesTrigger = matchTrigger_l1;
-//   }
-
-//   // consider only case where given lepton matches trigger
-//   if (isSameSign) {
-//     if (thisLepMatchesTrigger and otherLepMatchesTrigger) {      
-//       // charge is known, but what about which eta-pt ?
-//       // this is a minor component for Z with SS in MC, might just randomly choose one
-//       // use leading for now to be simple, it is really a small component
-//       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, -1 * pdgId);					    
-//     } else if (thisLepMatchesTrigger) {
-//       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, -1 * pdgId);					    
-//     } else if (otherLepMatchesTrigger) {
-//       return _get_muonSF_selectionToTrigger(pdgId_other, pt_other, eta_other, -1 * pdgId_other);
-//     } else {
-//       return 0; // should not happen, but just in case
-//     }
-//   } else {
-//     if (thisLepMatchesTrigger) {
-//       int sfCharge = requiredCharge;
-//       return _get_muonSF_selectionToTrigger(pdgId, pt, eta, sfCharge);					    
-//     } else {
-//       // if lepton does not match trigger, we decide to reject the event
-//       return 0.0; 
-//     }
-//   }
-
-// }
-
-
-// bool triggerMatchV2(int requiredCharge, // pass positive or negative number, depending on what you want 
-// 		    float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
-// 		    float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
-// 		    int pdgId1, int pdgId2  // used to decide which lepton has the required charge
-// 		    ) {
-
-//   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
-//   // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
-//   if (requiredCharge * pdgId1 < 0) {
-//     // use lep 1
-//     return (matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) ? 1 : 0; 
-//   } else {
-//     // use lep 2
-//     return (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2 > 0.0) ? 1 : 0; 
-//   }
-
-// }
-
-
-// bool triggerMatchWlike(bool isOddEvent, // pass positive or negative number, depending on what you want 
-// 		       float matchedTrgObjMuPt_l1, float matchedTrgObjMuPt_l2,
-// 		       float matchedTrgObjTkMuPt_l1, float matchedTrgObjTkMuPt_l2,
-// 		       int pdgId1, int pdgId2  // used to decide which lepton has the required charge
-// 		       ) {
-
-//   if (pdgId1 * pdgId2 > 0) {
-//     // same sign case
-//     return ((matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) || (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2));
-//   }
-
-//   int requiredCharge = isOddEvent ? 1 : -1;
-//   // muon (negative charge) has positive pdgId, antimuon (postive charge) has negative pdgId
-//   // so, product of charge and pdgId_n must be negative to use pdgId_n and not the pther pdgId_n'
-//   if (requiredCharge * pdgId1 < 0) {
-//     // use lep 1
-//     return (matchedTrgObjMuPt_l1 > 0.0 || matchedTrgObjTkMuPt_l1 > 0.0) ? 1 : 0; 
-//   } else {
-//     // use lep 2
-//     return (matchedTrgObjMuPt_l2 > 0.0 || matchedTrgObjTkMuPt_l2 > 0.0) ? 1 : 0; 
-//   }
-
-// }
 
 bool triggerMatchWlike_nano(int match1, int ch1, int match2, int ch2, ULong64_t evt) {
 
