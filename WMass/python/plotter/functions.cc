@@ -108,7 +108,7 @@ float transversemomentum(const Vec_f& pt, const Vec_f& phi) {
 
 Vec_b goodMuonTriggerCandidate(const Vec_i& TrigObj_id, const Vec_f& TrigObj_pt, const Vec_f& TrigObj_l1pt, const Vec_f& TrigObj_l2pt, const Vec_i& TrigObj_filterBits) {
 
-   Vec_b res(TrigObj_id.size(),false); // initialize to 0
+   Vec_b res(TrigObj_id.size(),false); // initialize to 0   
    for (unsigned int i = 0; i < res.size(); ++i) {
        if (TrigObj_id[i]  != 13 ) continue;
        if (TrigObj_pt[i]   < 24.) continue;

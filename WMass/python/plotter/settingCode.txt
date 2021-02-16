@@ -12,6 +12,13 @@
 export CMSSW_BASE=/data/home/mciprian/mycode/CMSSW_10_6_18/
 
 ##########################################
+#### copy from eos to machine
+/data/utils/pllxrdcp.py [options]
+
+#### to drop a directory from cache
+/data/shared/utils/managecache.py --mode drop /some/directory
+
+##########################################
 #### Install CMGTools
 
 # NOTE: it is advisable to run the code from a different shell with respect to the one used to install it
