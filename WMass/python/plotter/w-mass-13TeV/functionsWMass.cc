@@ -781,7 +781,7 @@ std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/t
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
-std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {GToH, "GtoH"}, {GToH, "GtoH"} };
+std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {GToH, "GtoH"}, {BToF, "BtoF"} };
 
 struct pair_hash
 {
@@ -800,7 +800,7 @@ void initializeScaleFactors() {
         std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
 
     for (auto& era : eraNames) {
-        for (auto& corr : {"trigger", "tracking", "isonotrig"}) {
+      for (auto& corr : {"trigger", "tracking", "idip", "isonotrig", "iso", "antiiso"}) {
             std::vector<std::string> charges = {"both"};
             if (strcmp(corr, "trigger") == 0) {
                 charges = {"plus", "minus"};
@@ -821,52 +821,12 @@ void initializeScaleFactors() {
     }
 }
 // I think the function cannot have more than 8 arguments, let's see
-float _get_AllMuonSF_fast_wlike(float pt1, float eta1, int charge1, int trigMatch1, float pt2, float eta2, int charge2, int trigMatch2, ULong64_t event, DataEra era = BToH) {
+float _get_AllMuonSF_fast_wlike(float pt, float eta, float charge, float ptOther, float etaOther, DataEra era = BToH) {
   if (corrTypeToHist.empty())
       return 1.;
-
-  // to be improved, still experimental
-  float pt = 0.0;
-  float eta = 0.0;
-  int charge = 0.0;
-  int trigMatch = 0.0;
-  // positive (negative) leptons on odd (even) events
-  if (isOddEvent(event)) {
-    if (charge1 > 0) {
-      pt = pt1;
-      eta = eta1;
-      charge = charge1;
-      trigMatch = trigMatch1;
-    } else {
-      pt = pt2;
-      eta = eta2;
-      charge = charge2;
-      trigMatch = trigMatch2;
-    }
-  } else {
-    if (charge1 < 0) {
-      pt = pt1;
-      eta = eta1;
-      charge = charge1;
-      trigMatch = trigMatch1;
-    } else {
-      pt = pt2;
-      eta = eta2;
-      charge = charge2;
-      trigMatch = trigMatch2;
-    }
-  }
   
   float sf = 1.0;
-  // Trigger off for now
-  // sf *= getValFromTH2(_histo_iso[era],eta1,pt1) * getValFromTH2(_histo_iso[era],eta2,pt2);
-  // for SF validation the SF for iso should be applied on the second lepton only if it had passed the trigger
-  // so we should not apply this SF, but then also not applying thr isolation cut on that leg, but only on the
-  // selected one
-  // sf *= getValFromTH2(_histo_iso[era],eta,pt);
-  //TH2F *histIso1 = (trigMatch1 ? _histo_iso[era] : _histo_isonotrig[era]);
-  //TH2F *histIso2 = (trigMatch2 ? _histo_iso[era] : _histo_isonotrig[era]);
-
+  std::vector<std::string> sfnames = {"trigger", "tracking", "idip", "isonotrig", "iso", "antiiso"};
   for (const auto& corr : {"triggerplus", "triggerminus", "trackingboth", "isonotrigboth", }) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
