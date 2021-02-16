@@ -41,7 +41,7 @@ float if3(bool cond, float iftrue, float iffalse) {
 }
 
 float deltaR2(float eta1, float phi1, float eta2, float phi2) {
-    float deta = std::abs(eta1-eta2);
+    float deta = eta1-eta2;
     float dphi = deltaPhi(phi1,phi2);
     return deta*deta + dphi*dphi;
 }
@@ -126,7 +126,8 @@ Vec_b hasTriggerMatch(const Vec_f& eta, const Vec_f& phi, const Vec_f& TrigObj_e
    Vec_b res(eta.size(),false); // initialize to 0
    for (unsigned int i = 0; i < res.size(); ++i) {
       for (unsigned int jtrig = 0; jtrig < res.size(); ++jtrig) {
-          if (deltaR(eta[i], phi[i], TrigObj_eta[jtrig], TrigObj_phi[jtrig]) < 0.3) {
+	  // use deltaR*deltaR < 0.3*0.3, to be faster 
+          if (deltaR2(eta[i], phi[i], TrigObj_eta[jtrig], TrigObj_phi[jtrig]) < 0.09) {
               res[i] = true;
               break; // exit loop on trigger objects, and go to next muon
           }

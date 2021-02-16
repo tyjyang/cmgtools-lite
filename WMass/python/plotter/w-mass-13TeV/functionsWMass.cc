@@ -109,29 +109,6 @@ float returnChargeValAllEvt(int desiredCharge, float val1, int ch1, float val2, 
 
 }
 
-
-// FIXME: better not to use this function, using the average is a bias
-float mt_wlike_samesign(float pt1, float phi1, float pt2, float phi2, float met, float phimet) {
-
-  // compute mt with both cases, and return average
-
-  TVector2 metv = TVector2();
-  metv.SetMagPhi(met,phimet);
-  // use same vector and sum met
-  TVector2 met_wlike = TVector2();
-
-  met_wlike.SetMagPhi(pt2,phi2);
-  met_wlike += metv;
-  Double_t mt_wlike_1 = std::sqrt(2*pt1*met_wlike.Mod()*(1-std::cos(phi1-met_wlike.Phi())));
-
-  met_wlike.SetMagPhi(pt1,phi1);
-  met_wlike += metv;
-  Double_t mt_wlike_2 = std::sqrt(2*pt2*met_wlike.Mod()*(1-std::cos(phi2-met_wlike.Phi())));
-
-  return 0.5 * (mt_wlike_1 + mt_wlike_2);
-
-}
-
 TRandom3 *rng_mt = NULL;
 float mt_wlike_samesign_random(float pt1, float phi1, float pt2, float phi2, float met, float phimet, ULong64_t evt) {
 
@@ -777,11 +754,11 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
+Std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
-std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {GToH, "GtoH"}, {BToF, "BtoF"} };
+std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
 
 struct pair_hash
 {
@@ -820,21 +797,91 @@ void initializeScaleFactors() {
         }
     }
 }
-// I think the function cannot have more than 8 arguments, let's see
-float _get_AllMuonSF_fast_wlike(float pt, float eta, float charge, float ptOther, float etaOther, DataEra era = BToH) {
+
+float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
+				const float& ptOther, const float& etaOther,
+				DataEra era = BToH) {
   if (corrTypeToHist.empty())
       return 1.;
   
   float sf = 1.0;
-  std::vector<std::string> sfnames = {"trigger", "tracking", "idip", "isonotrig", "iso", "antiiso"};
-  for (const auto& corr : {"triggerplus", "triggerminus", "trackingboth", "isonotrigboth", }) {
+  // not sure there is an efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
+  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
+  std::vector<std::string> sfnamesOther = {      "tracking", "idip", "isonotrig"};
+  for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
-        sf *= getValFromTH2(corrTypeToHist[key],eta1,pt1) * getValFromTH2(corrTypeToHist[key],eta2,pt2);
+      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+  }
+  for (const auto& corr : sfnamesOther) {
+    auto key = std::make_pair(corr, era);
+    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+      sf *= getValFromTH2(corrTypeToHist[key],etaOther,ptOther);
   }
   return sf;
 }
 
+float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH) {
+  if (corrTypeToHist.empty())
+      return 1.;
+  
+  float sf = 1.0;
+  // not sure there is an efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
+  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
+  for (const auto& corr : sfnames) {
+    auto key = std::make_pair(corr, era);
+    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+  }
+  return sf;
+}
+
+// generic function for a single leg, it is supposed to be called by other functions where the list of sf names was defined and passed to this one
+float _get_singleMuonSF(const float& pt, const float& eta, const std::vector<std::string> &sfnames, DataEra era = BToH) {
+  if (corrTypeToHist.empty())
+      return 1.;
+  
+  float sf = 1.0;
+  // not sure there is an efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  for (const auto& corr : sfnames) {
+    auto key = std::make_pair(corr, era);
+    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+  }
+  return sf;
+}
+
+float _get_muonSF(const float& pt, const float& eta, const int& charge,
+		  const bool trigMatch = true, const bool isolated = true,
+		  DataEra era = BToH) {
+
+  // trigMatch is used to decide whether the trigger sf has to be applied, and which isolation sf to use
+  // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
+  // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
+
+  std::vector<std::names> sfnames = {"tracking", "idip"}; // these should be always present
+  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
+ 
+  if (isolated) {
+    if (trigMatch) {
+      sfnames.push_back("iso");
+      sfnames.push_back(triggerSF);
+    } else {
+      sfnames.push_back("isonotrig");
+    }
+  } else {
+    sfnames.push_back("antiiso"); // this is actually for triggering muons I guess
+    if (trigMatch)
+      sfnames.push_back(triggerSF);      
+  }
+  return _get_singleMuonSF(pt, eta, sfnames, era);
+
+}
 
 // details like histograms and location might be updated
 //float _get_AllMuonSF_fast_wmass(float pt, float eta, int charge, int trigMatch, int era=0) {
