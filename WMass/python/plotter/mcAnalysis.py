@@ -182,6 +182,8 @@ class MCAnalysis:
                 continue
             # Customize with additional weight if requested
             if 'AddWeight' in extra:
+                if hasattr(ROOT, "initializeScaleFactors"):
+                    ROOT.initializeScaleFactors()
                 if len(field)<2: raise RuntimeError('You are trying to set an additional weight, but there is no weight initially defined for this component')
                 elif len(field)==2: field.append(extra['AddWeight'])
                 else: field[2] = '(%s)*(%s)'%(field[2],extra['AddWeight'])
