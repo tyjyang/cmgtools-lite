@@ -2,6 +2,6 @@
 vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2 : .*
 goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
+#triggerMatchedMuons : hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
 goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
-max_muon_pt : Numba::maxPt(Muon_pt)

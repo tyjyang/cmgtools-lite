@@ -1,7 +1,7 @@
 alwaystrue : 1
 #twomuon    : nVetoElectrons == 0 && nMuon >= 2
 twomuon    : Sum(vetoMuons)==2 && Sum(goodMuons)==2 
-trigger    : HLT_SingleMu24 > 0 && Muon_hasTriggerMatch[goodMuonsCharge][0]
+trigger    : HLT_SingleMu24 > 0
 #trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[0],Muon_charge[0],Muon_hasTriggerMatch[1],Muon_charge[1],event)
 #oppositecharge : Vtype_subcat%2 == 0
 oppositecharge : (Muon_charge[goodMuons][0] + Muon_charge[goodMuons][1]) == 0

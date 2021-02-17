@@ -4,23 +4,45 @@ export CMSSW_BASE=$(dirname $(dirname $dir))
 plotdir=$dir/WMass/python/plotter/plots
 
 if [ -L $plotdir ] && [ ! -e ${plotdir} ]; then
+    echo "Removing spurious link $plotdir"
+    echo "It will be recreated"
     rm ${plotdir}
 fi
 
 if [ ! -L ${plotdir} ]; then
     echo "Creating symlink to plots directory at" $plotsdir
-    # Could also be ~/www
     wwwdir=/eos/user/${USER:0:1}/${USER}/www/WMassAnalysis
-    ln -s $wwwdir $plotdir
+    ln -sv $wwwdir $plotdir
 fi
 
-p3=1
+loadSingularity=false
+usePython2=false
+defaultSingularity="/data/shared/singularity/pythonrootdevf32.sif" # for python 3
+python2Singularity=${defaultSingularity/pythonroot/python2root}
+
+
+for i in "$@" ; do
+    if [[ $i == "-s" ]] ; then
+        loadSingularity=true
+    fi
+    if [[ $i == "--p2" ]] ; then
+        usePython2=true
+    fi
+done
+
 if [[ $HOSTNAME == "cmswmass2.cern.ch" ]]; then
-    if [ $p3 -eq 1 ]; then
-        echo "Setting up singularity for python3"
-        /data/shared/singularity/pythonrootdevf32.sif
+    if [[ "$loadSingularity" = "true" ]]; then
+	if [[ "$usePython2" = "true" ]]; then
+	    echo "Setting up singularity for python 2!"
+	    ${python2Singularity}
+	else
+	    echo "Setting up singularity for python 3!"
+	    ${defaultSingularity}
+	fi
     else
-        echo "Setting up singularity for python2"
-        /data/shared/singularity/python2rootdevf32.sif
+	echo "Singularity not set! Can call it with any of the following"
+	echo "${defaultSingularity} (for python3, recommended)"
+	echo "${python2Singularity} (for python2)"
     fi
 fi
+

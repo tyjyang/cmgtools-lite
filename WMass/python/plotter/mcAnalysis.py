@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-#from tree2yield import *
-## marc from CMGTools.WMass.plotter.tree2yield import *
-## marc from CMGTools.WMass.plotter.projections import *
-## marc from CMGTools.WMass.plotter.figuresOfMerit import FOM_BY_NAME
+
 from tree2yield import *
 from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
-import logging
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
@@ -264,27 +260,6 @@ class MCAnalysis:
                             logging.info("Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt))
                         else:
                             logging.info("Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt))
-
-            ### CHECKPOINT
-            nAllFiles = len(cnamesWithPath)
-            #for cname in cnames:            
-            ##marc print 'this is the first for loop, maybe', (cnamesWithPath if len(cnamesWithPath) else cnames)
-            ##marc print 'this is the length of the loop', len((cnamesWithPath if len(cnamesWithPath) else cnames))
-
-            ## marc for cnameWithPath in (cnamesWithPath if len(cnamesWithPath) else cnames):
-            tmp_names = ROOT.std.vector('string')()
-            #print cnamesWithPath
-            for n in cnamesWithPath: 
-                tmp_names.push_back(n.replace('/eos/cms/','root://eoscms.cern.ch//'))
-                #if '/eos/cms/' in n and not n.startswith("root://"):
-                #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
-
-            tmp_rdf = ROOT.RDataFrame(options.obj, tmp_names)
-            #tmp_histo = ROOT.TH1D('foo', 'foo', 100, 0., 150.)
-            #tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
-            #tmp_histo = tmp_rdf.Histo1D('nMuon')#Muon_pt[0]')
-            #print 'this is integral', tmp_histo.Integral()
-            #exit(0)
             
             ## cname = os.path.basename(cnameWithPath)
             if options.useCnames: pname = pname0+"."+cname
@@ -310,61 +285,21 @@ class MCAnalysis:
                 subpath += "/"
             #print "subpath = %s" % subpath
 
-            basepath = None
-            if options.nanoaodTree:# marc and os.path.exists(os.path.dirname(cnameWithPath)):
-                basepath = 'foobar'#cnameWithPath
-                if not basepath:
-                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, pathsToSearch))
-            else:
-                for treepath in options.path:
-                    if os.path.exists(treepath+"/"+subpath+cname):
-                        basepath = treepath
-                        break
-                if not basepath:
-                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
-
-            ## marc rootfile = "%s/%s/%s/%s_tree.root" % (basepath, cname, treename, treename)
-            rootfile = 'asdfasfsd'
-            if options.noHeppyTree:
-                # under development, to run on any kind of root file
-                #print "cname = %s" % cname
-                if "TreeName" in extra:
-                    rootfile = "%s/%s.root" % (basepath, treename)                    
-                else:
-                    rootfile = "%s/%s" % (basepath, cname)                    
-                #print "rootfile: %s" % rootfile
-                #print "objname : %s" % objname
-            elif options.nanoaodTree:
-                # under development, to run on nanoaod (similar to case above, but that 
-                # is for another purpose, so keep it separate for now)
-                rootfile = 'not important'#cnameWithPath
-                #print "cname = %s" % cname
-                #print "rootfile: %s" % rootfile
-                #print "objname : %s" % objname
-            else:
-                if options.remotePath:
-                    rootfile = "root:%s/%s/%s_tree.root" % (options.remotePath, cname, treename)
-                elif os.path.exists(rootfile+".url"): #(not os.path.exists(rootfile)) and :
-                    rootfile = open(rootfile+".url","r").readline().strip()
-                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root" % (basepath, cname, treename)):
-                    # Heppy calls the tree just 'tree.root'
-                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                    prepath = ''
-                    if not 'root:/' in rootfile:
-                        if   '/eos/user/'      in rootfile: prepath = 'root://eosuser.cern.ch//'
-                        elif '/eos/cms/store/' in rootfile: prepath = 'root://eoscms.cern.ch//'
-                    rootfile = prepath+rootfile
-                elif (not os.path.exists(rootfile)) and os.path.exists("%s/%s/%s/tree.root.url" % (basepath, cname, treename)):
-                    # Heppy calls the tree just 'tree.root'
-                    rootfile = "%s/%s/%s/tree.root" % (basepath, cname, treename)
-                    rootfile = open(rootfile+".url","r").readline().strip()
+            
+            ### CHECKPOINT
+            nAllFiles = len(cnamesWithPath)
+            tmp_names = ROOT.std.vector('string')()
+            for n in cnamesWithPath: 
+                tmp_names.push_back(n.replace('/eos/cms/','root://eoscms.cern.ch//'))
+                #if '/eos/cms/' in n and not n.startswith("root://"):
+                #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
+            tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
 
             ## needed temporarily
             pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % ('foobar') #cname
 
-            #print 'now making a tty instance for options', rootfile, options, extra, pname, cname, objname, friendDir
-            ## marc tty = TreeToYield(rootfile, options, settings=extra, name=pname, cname=cname, objname=objname, frienddir=friendDir); ttys.append(tty)
-            tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, objname=objname, frienddir=friendDir); ttys.append(tty)
+            tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, objname=objname, frienddir=friendDir)
+            ttys.append(tty)
             if signal: 
                 self._signals.append(tty)
                 self._isSignal[pname] = True
