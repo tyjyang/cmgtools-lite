@@ -927,9 +927,6 @@ class PlotMaker:
                 if outputName == None: outputName = pspec.name
                 stack = ROOT.THStack(outputName+"_stack",outputName)
                 hists = [v for k,v in pmap.items() if k != 'data']
-                if not self._options.sumGenWeighFromHisto:
-                    pass
-                    #print "in printOnePlot()"
                 total = hists[0].Clone(outputName+"_total"); total.Reset("ICESM") # ICES is default, but does not reset maximum and minimum (need M as well)
                 totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset("ICESM")
 

@@ -147,7 +147,7 @@ class TreeToYield:
         self._cname = cname if cname != None else self._name
         #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
-        self._sumGenWeights = None # filled with RDF later, and used in options.sumGenWeighFromHisto is False
+        self._sumGenWeights = None # filled with RDF later, and used in options.sumGenWeightFromHisto is False
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
@@ -226,9 +226,9 @@ class TreeToYield:
             tokens = [x.strip().replace("--", "::") for x in l.split(":")]
             name = tokens[0]
             define = tokens[1]
-            filearg = tokens[2] if len(tokens) > 2 else ".*"
+            procRegexp = tokens[2] if len(tokens) > 2 else ".*"
 
-            ret[name] = {"define" : define, "filearg" : filearg}
+            ret[name] = {"define" : define, "procRegexp" : procRegexp}
         return ret
 
     def printRdfDefinitions(self):
@@ -236,7 +236,7 @@ class TreeToYield:
         logging.info("Have these RDF definitions")
         logging.info("-"*40)
         for key,value in self._rdfDefs.iteritems():
-            logging.info("{define}) : {args} (for {filearg}".format(name=key, **value))
+            logging.info("{define}) : {args} (for process {procRegexp})".format(name=key, **value))
         logging.info("-"*40)
 
     
@@ -498,17 +498,17 @@ class TreeToYield:
         tmp_weight = self._cname+'_weight'
         #print "In getManyPlotsRaw"
         #print tmp_weight
-        self._tree = self._tree.Define(tmp_weight, wgt)        
-
         for name, entry in self._rdfDefs.items():
-            if re.match(entry["filearg"], self._cname):
+            if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
                 self._tree = self._tree.Define(name, entry["define"])
             
         for name,entry in self._rdfAlias.items():
-            if re.match(entry["filearg"], self._cname):
+            if re.match(entry["procRegexp"], self._cname):
                 self._tree = self._tree.Alias(name, entry["define"])
-                    
+
+        self._tree = self._tree.Define(tmp_weight, wgt)        
+
         ## define the Sum of genWeights before the filter
         if not self._isdata:
             self._sumGenWeights = self._tree.Sum("myweight")
@@ -570,28 +570,9 @@ class TreeToYield:
 
         for histo in histos:
             # this is going to trigger the loop, but now all histograms exist so it is ok
-            if not self._isdata and not self._options.sumGenWeighFromHisto:
+            if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
                 histo.Scale(1./self._sumGenWeights.GetValue())
                 #print self._sumGenWeights.GetValue()
-            ## marc: don't really know what this does...
-            ## Marco: not needed, it used RooKeysPDF to smooth low stat histogram
-            ## In our case it won't be needed, and evaluating GetEntries() triggers the loop
-            # # if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
-            # #     #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
-            # #     if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
-            # #         ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
-            # #     (nb,xmin,xmax) = bins.split(",")
-            # #     histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
-            # #     print 'now gonna perform the draw command 3'
-            # #     self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
-            # #     self.negativeCheck(histo)
-            # #     histo.SetDirectory(0)
-            # #     if closeTreeAfter: self._tfile.Close()
-            # #     return histo.GetHisto().Clone(plotspec.name)
-            #elif not self._isdata and self.getOption("KeysPdf",False):
-            #else:
-            #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))            
-
             self.negativeCheck(histo)
             histo.SetDirectory(0)
         if closeTreeAfter: self._tfile.Close()

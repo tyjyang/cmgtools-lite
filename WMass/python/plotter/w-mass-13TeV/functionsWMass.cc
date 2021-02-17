@@ -754,7 +754,7 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-Std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
+std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
@@ -864,7 +864,7 @@ float _get_muonSF(const float& pt, const float& eta, const int& charge,
   // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
   // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
 
-  std::vector<std::names> sfnames = {"tracking", "idip"}; // these should be always present
+  std::vector<std::string> sfnames = {"tracking", "idip"}; // these should be always present
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
  
   if (isolated) {
