@@ -295,9 +295,6 @@ class MCAnalysis:
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
             tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
 
-            ## needed temporarily
-            pckfile = basepath+"/%s/skimAnalyzerCount/SkimReport.pck" % ('foobar') #cname
-
             tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, objname=objname, frienddir=friendDir)
             ttys.append(tty)
             if signal: 

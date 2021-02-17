@@ -8,10 +8,10 @@ import logging
 
 if "/smearer_cc.so" not in ROOT.gSystem.GetLibraries(): 
     #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/smearer.cc+" % os.environ['CMSSW_BASE']);  # keep for future references and debug
-    compileMacro("src/CMGTools/WMass/python/plotter/smearer.cc")
+    compileMacro("ccFiles/smearer.cc")
 if "/mcCorrections_cc.so" not in ROOT.gSystem.GetLibraries(): 
     #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/mcCorrections.cc+" % os.environ['CMSSW_BASE']);
-    compileMacro("src/CMGTools/WMass/python/plotter/mcCorrections.cc")
+    compileMacro("ccFiles/mcCorrections.cc")
 
 class SimpleCorrection:
     def __init__(self,find,replace,procMatch=None,componentMatch=None,onlyForCuts=False,alsoData=False):
