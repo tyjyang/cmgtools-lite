@@ -5,8 +5,6 @@ import CMS_lumi as CMS_lumi
 import itertools, math
 import shutil
 
-logging.basicConfig(level=logging.INFO)
-
 CMS_lumi.writeExtraText = 1
 
 _global_workspaces=[] # avoid crash in 80X, to be investigated
@@ -791,8 +789,7 @@ class PlotMaker:
     def __init__(self,tdir,options):
         self._options = options
         self._dir = tdir
-        ROOT.gROOT.ProcessLine(".x tdrstyle.cc")
-        # ROOT.gROOT.ProcessLine(".L smearer.cc+") # this should not be here, smearer has already been compiled (if smearer_cc.so not in ROOT.gSystem.GetLibraries())
+        ROOT.gROOT.ProcessLine(".x ccFiles/tdrstyle.cc") # keep here, otherwise plots are screwed up        
         if not options.drawStatBox:
             ROOT.gStyle.SetOptStat(0)
         ROOT.gStyle.SetOptTitle(0)
@@ -1437,7 +1434,7 @@ if __name__ == "__main__":
     outdir = os.path.dirname(outname) 
     if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
-        htmlpath = "/".join([os.environ["CMSSW_BASE"], "src/CMGTools/WMass/python/plotter/templates/index.php"])
+        htmlpath = "./templates/index.php"
         shutil.copy(htmlpath, outdir)
     logging.info("Will save plots to %s " % outname)
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")

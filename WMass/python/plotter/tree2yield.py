@@ -22,6 +22,8 @@ from cutsFile import *
 from fakeRate import *
 from mcCorrections import *
 
+logging.basicConfig(level=logging.INFO)
+
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
 

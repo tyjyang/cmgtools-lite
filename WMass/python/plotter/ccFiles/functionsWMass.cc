@@ -718,11 +718,13 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-std::string _filename_allSF = "./testMuonSF/allSFs.root";
+//std::string _filename_allSF = "./testMuonSF/allSFs.root";
+std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
-std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+// std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"} };
 
 struct pair_hash
 {
@@ -745,8 +747,7 @@ void initializeScaleFactors() {
             std::vector<std::string> charges = {"both"};
             if (strcmp(corr, "trigger") == 0) {
                 charges = {"plus", "minus"};
-            }
-            
+            }            
             for (auto& charge : charges) {
                 std::vector<std::string> vars = {"SF2D", corr, era.second, charge};
                 std::string corrname = boost::algorithm::join(vars, "_");

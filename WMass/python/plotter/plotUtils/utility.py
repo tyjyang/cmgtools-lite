@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT, copy, math
 import numpy as np
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from array import array
+from shutil import copyfile
 
 from CMS_lumi import *
 

@@ -8,6 +8,10 @@ muon_pt: Muon_pt[goodMuonsCharge][0]: 30,25,55; XTitle="Muon p_{T} (GeV)", Legen
 
 muon_eta: Muon_eta[goodMuonsCharge][0]: 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_eta_fine: Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
+
+
 muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
 muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
@@ -15,6 +19,8 @@ muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-
 muon_pt_other: Muon_pt[goodMuonsOther][0]: 30,25,55; XTitle="Other muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta_other: Muon_eta[goodMuonsOther][0]: 24,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
+
+muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
 
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
