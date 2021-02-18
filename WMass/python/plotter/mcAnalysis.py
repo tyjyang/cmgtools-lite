@@ -1,9 +1,11 @@
+
 #!/usr/bin/env python
 
 from tree2yield import *
 from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
+import argparse
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
@@ -342,12 +344,12 @@ class MCAnalysis:
                                         tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
                                     # set again tmp_rdf
                                     tty.setRDF(tmp_rdf)
-                        else:
+                        elif options.weight:
                             # we immediately trigger the loop here, but each Runs tree has one event
                             # so it should be quite fast to get the sum like this
                             tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            _sumGenWeights = tmp_rdf.Sum('genEventSumw')
-                            _nUnweightedEvents = tmp_rdf.Sum('genEventCount')
+                            _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
+                            _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
                             sumGenWeights = _sumGenWeights.GetValue()
                             nUnweightedEvents = _nUnweightedEvents.GetValue()
 
@@ -363,7 +365,6 @@ class MCAnalysis:
                             total_w = 1.0 
                         if maxGenWgt != None:
                             if options.clipGenWeightToMax:
-                                # marc scale = "(%s)*TMath::Sign(min(abs(genWeight),%s),genWeight)" % (field[2],str(maxGenWgt))
                                 scale = '(%s)* std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
                             else:
                                 scale = "genWeight*(%s)*(std::abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
@@ -377,7 +378,6 @@ class MCAnalysis:
                     else: # case for unweighted events for MC
                         if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0;
-                        # total_w += n_count ## ROOT histo version
                         total_w = nUnweightedEvents
                         scale = "(%s)" % field[2]
                 if len(field) == 4: scale += "*("+field[3]+")"
@@ -507,45 +507,20 @@ class MCAnalysis:
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
         return self.getPlots(PlotSpec(name,expr,bins,{}),cut,process,nodata,makeSummary,closeTreeAfter)
     def getPlots(self,plotspecs,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
-        #print 'i am in getPlots'
-        #print 'this is plotspec', plotspec
-        #exit(0)
         ret = { }
         allSig = []; allBg = []
-        tasks = []
         retlist = []
         for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
                 logging.info("Processing " + key + "...")
-                #print 'this is key', key
-                #print 'this is tty', tty
-                #print 'this is tty._fname', tty._fname
-                #tasks.append((key,tty,plotspec,cut,None,closeTreeAfter))
-                
                 retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) )   
-        if self._options.splitFactor > 1 or  self._options.splitFactor == -1:
-            tasks = self._splitTasks(tasks)
-        ##print 'this is retlist', retlist
-        #retlist = self._processTasks(_runPlot, tasks, name="plot "+plotspec.name)
-        ## then gather results with the same process
 
         mergemap = {}
         for (k,v) in retlist: 
             if k not in mergemap: mergemap[k] = []
             mergemap[k].append(v)
-        ## and finally merge them
-        #print 'this is mergemap', mergemap
-        #print 'this is mergemap'
-
-        ##mergemaps = []
-        ##for iplot in range(len(plotspecs)):
-        ##    tmp_mergemap = {}
-        ##    for (k,v) in retlist: 
-        ##        if not k in tmp_mergemap: tmp_mergemap[k] = []
-        ##        tmp_mergemap[k].append(v[iplot])
-        ##    mergemaps.append(tmp_mergemap)
 
         rets = []
         for ip,plotspec in enumerate(plotspecs):
@@ -553,8 +528,6 @@ class MCAnalysis:
             for (k,v) in retlist: 
                 if not k in mergemap: mergemap[k] = []
                 mergemap[k].append(v[ip])
-            #mergemaps.append(tmp_mergemap)
-
             ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() ])
 
             rescales = []
@@ -581,10 +554,8 @@ class MCAnalysis:
                     ret['background'].summary = True
 
             rets.append(ret)
-
-            #print "DONE getPlots at %.2f" % (0.001*(long(ROOT.gSystem.Now()) - _T0))
-            #print "DONE getPlots" 
         return rets
+    ## CANDIDATE FOR REMOVAL
     def prepareForSplit(self):
         ttymap = {}
         for key,ttys in self._allData.items():
@@ -596,35 +567,6 @@ class MCAnalysis:
             retlist = self._processTasks(_runGetEntries, ttymap.items(), name="GetEntries")
             for ttid, entries in retlist:
                 ttymap[ttid].setEntries(entries)
-    def applyCut(self,cut):
-        logging.info("Inside applyCut(self,cut) from mcAnalysis.py")
-        pass
-        ## marc rdf styletasks = []; revmap = {}
-        ## marc rdf stylefor key,ttys in self._allData.items():
-        ## marc rdf style    for tty in ttys:
-        ## marc rdf style        tty.cutToElist(cut)
-        ## marc rdf style        revmap[id(tty)] = tty
-        ## marc rdf style        tasks.append( (id(tty), tty, cut, None) )
-        ## marc rdf style## marc print 'this is tasks', tasks
-        ## marc rdf style## marc print 'this is splitfactor', self._options.splitFactor
-        ## marc rdf styleif self._options.splitFactor > 1 or self._options.splitFactor == -1:
-        ## marc rdf style    tasks = self._splitTasks(tasks)
-        ## marc rdf styleretlist = self._processTasks(_runApplyCut, tasks, name="apply cut "+cut)
-        ## marc rdf styleprint 'i am nooooooooooooooooooooow hereeeee'
-        ## marc rdf styleif self._options.splitFactor > 1 or self._options.splitFactor == -1:
-        ## marc rdf style    aggregated = {}
-        ## marc rdf style    for ttid, elist in retlist:
-        ## marc rdf style        if ttid not in aggregated: aggregated[ttid] = elist
-        ## marc rdf style        else:                      aggregated[ttid].Add(elist)
-        ## marc rdf style    retlist = aggregated.items()
-        ## marc rdf stylefor ttid, elist in retlist:
-        ## marc rdf style    tty = revmap[ttid]
-        ## marc rdf style    tty.applyCutAndElist(cut, elist)
-    def clearCut(self):
-        pass ## rdf
-        for key,ttys in self._allData.items():
-            for tty in ttys:
-                tty.clearCut() 
     def prettyPrint(self,reports,makeSummary=True):
         allSig = []; allBg = []
         for key in reports:
@@ -710,6 +652,7 @@ class MCAnalysis:
                     logging.info("%s%s%s" % (k,sep,sep.join(ytxt.split())))
                 logging.info("")
 
+    # apparently used nowhere
     def _getYields(self,ttylist,cuts):
         return mergeReports([tty.getYields(cuts) for tty in ttylist])
     def __str__(self):
@@ -848,15 +791,19 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
     parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
+    parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
+    parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 
+    
 if __name__ == "__main__":
-    from optparse import OptionParser
-    parser = OptionParser(usage="%prog [options] tree.root cuts.txt")
+    parser = argparse.ArgumentParser()
     addMCAnalysisOptions(parser)
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
+    options = args
     if not options.path and not options.nanoaodTree: options.path = ['./']
-    tty = TreeToYield(args[0],options) if ".root" in args[0] else MCAnalysis(args[0],options)
-    cf  = CutsFile(args[1],options)
+    tty = TreeToYield(args.sampleFile,options) if ".root" in args.sampleFile else MCAnalysis(args.sampleFile,options)
+    cf  = CutsFile(args.cutFile,options)
+    # following part assumes that one can pass more cut files, but we don't use it for now
     for cutFile in args[2:]:
         temp = CutsFile(cutFile,options)
         for cut in temp.cuts():

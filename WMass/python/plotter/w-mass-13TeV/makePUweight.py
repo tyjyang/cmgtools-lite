@@ -51,8 +51,8 @@ if doDataVSdata:
 elif doInclusiveData:
     #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"  # made with genWeights
     mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
-    mcname   = "Pileup_nTrueInt_Wplus_preVFP" # or Pileup_nTrueInt_Z_postVFP, the profile is the same
-    mcLabel  = "W MC (preVFP)"    
+    mcname   = "Pileup_nTrueInt_Wmunu_preVFP" # or Pileup_nTrueInt_Wmunu_postVFP, the profile is the same
+    mcLabel  = "W MC"    
     #
     datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_all2016.root"
     dataname = "pileup"
@@ -64,7 +64,7 @@ elif doInclusiveData:
 elif isPreVFP:
     #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Wplus_preVFP.root"  # with genWeight
     mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
-    mcname   = "Pileup_nTrueInt_Wplus_preVFP"
+    mcname   = "Pileup_nTrueInt_Wmunu_preVFP"
     #mcfile   = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/PU_weights/PUprofilesMC_allEventsWmunu/plots_test.root"    
     #mcname   = "Pileup_nTrueInt_Wmunu_preVFP"
     mcLabel  = "W MC (preVFP)"    
@@ -79,8 +79,8 @@ elif isPreVFP:
 else:
     #mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_Z_postVFP.root" # with genWeights
     mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
-    mcname   = "Pileup_nTrueInt_Z_postVFP"
-    mcLabel  = "Z MC (postVFP)"
+    mcname   = "Pileup_nTrueInt_Wmunu_preVFP"
+    mcLabel  = "W MC (postVFP)"
     #
     datafile = "pileupStuff/MyDataPileupHistogram_2016Legacy_FpostHIPMandGH.root"
     dataname = "pileup"

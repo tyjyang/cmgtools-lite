@@ -723,8 +723,8 @@ std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
-// std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
-std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"} };
+std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+//std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"} };
 
 struct pair_hash
 {
@@ -743,7 +743,7 @@ void initializeScaleFactors() {
         std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
 
     for (auto& era : eraNames) {
-      for (auto& corr : {"trigger", "tracking", "idip", "isonotrig", "iso", "antiiso"}) {
+      for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig", "antiiso", "antiisonotrig"}) {
             std::vector<std::string> charges = {"both"};
             if (strcmp(corr, "trigger") == 0) {
                 charges = {"plus", "minus"};
@@ -756,7 +756,12 @@ void initializeScaleFactors() {
                     std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
                             << _filename_allSF << "! scale factors for this correction will be set to 1.0";
                 DataEra eraVal = era.first;
-                auto corrKey = std::make_pair(corr+charge, eraVal);
+		// do not use "both" as charge key for the histograms, keep it simple
+		std::string key = corr;
+		if (charge != "both") {
+		  key += charge;
+		}
+                auto corrKey = std::make_pair(key, eraVal);
                 corrTypeToHist[corrKey] = *static_cast<TH2D*>(histptr);
             }
         }
@@ -822,10 +827,10 @@ float _get_singleMuonSF(const float& pt, const float& eta, const std::vector<std
 }
 
 float _get_muonSF(const float& pt, const float& eta, const int& charge,
-		  const bool trigMatch = true, const bool isolated = true,
+		  const bool trigger = true, const bool isolated = true,
 		  DataEra era = BToH) {
 
-  // trigMatch is used to decide whether the trigger sf has to be applied, and which isolation sf to use
+  // trigger is used to decide whether the trigger sf has to be applied, and which isolation sf to use
   // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
   // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
 
@@ -833,16 +838,19 @@ float _get_muonSF(const float& pt, const float& eta, const int& charge,
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
  
   if (isolated) {
-    if (trigMatch) {
+    if (trigger) {
       sfnames.push_back("iso");
       sfnames.push_back(triggerSF);
     } else {
       sfnames.push_back("isonotrig");
     }
   } else {
-    sfnames.push_back("antiiso"); // this is actually for triggering muons I guess
-    if (trigMatch)
+    if (trigger) {
+      sfnames.push_back("antiiso");
       sfnames.push_back(triggerSF);      
+    } else {
+      sfnames.push_back("antiisonotrig");
+    }
   }
   return _get_singleMuonSF(pt, eta, sfnames, era);
 
