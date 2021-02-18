@@ -23,13 +23,13 @@ from fakeRate import *
 from mcCorrections import *
 
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
-    compileMacro("src/CMGTools/WMass/python/plotter/functions.cc")
+    compileMacro("ccFiles/functions.cc")
 
 if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
-    compileMacro("src/CMGTools/WMass/python/plotter/jsonManager.cc")
+    compileMacro("ccFiles/jsonManager.cc")
 
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
-    compileMacro("src/CMGTools/WMass/python/plotter/w-mass-13TeV/functionsWMass.cc")
+    compileMacro("ccFiles/functionsWMass.cc")
 
 def scalarToVector(x):
     x0 = x

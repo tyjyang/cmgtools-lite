@@ -50,7 +50,7 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
-static string _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
+static string _cmssw_base_ = "./"; // dummy, shouldn't be used anymore
 
 float getValFromTH2(TH2& h, float x = 0.0, float y = 0.0) {
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
@@ -281,18 +281,13 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   // the histogram uses the binning for the 2D xsec measurement (as each of them should keep the same xsec as without fsr)
  
 
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
   TH2D* hratio_FSR_noFSR = NULL;
   Double_t outlierWgt = 0.0;  // hardcoded below, taken from ratio of yields outside acceptance
 
   if (abs(pdgId)==11) {
 
     if (!ratio_FSRoverNoFSR_etaPt_el) {
-      _file_ratio_FSRoverNoFSR_etaPt_el = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/FSR_atGenLevel_electron_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      _file_ratio_FSRoverNoFSR_etaPt_el = new TFile("w-mass-13TeV/theoryReweighting/FSR_atGenLevel_electron_genEtaPtAnalysis.root","read");
       ratio_FSRoverNoFSR_etaPt_el = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_el->Get("ratio__Wzpt_el__Wfsr_el");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_el;
@@ -301,7 +296,7 @@ float FSRscaleFactorEtaPt(int pdgId, float dresspt, float dresseta) {
   } else if (abs(pdgId)==13) {
 
      if (!ratio_FSRoverNoFSR_etaPt_mu) {
-      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root",_cmssw_base_.c_str()),"read");
+      _file_ratio_FSRoverNoFSR_etaPt_mu = new TFile("w-mass-13TeV/theoryReweighting/FSR_atGenLevel_muon_genEtaPtAnalysis.root","read");
       ratio_FSRoverNoFSR_etaPt_mu = (TH2D*) _file_ratio_FSRoverNoFSR_etaPt_mu->Get("ratio__Wzpt_mu__Wfsr_mu");
     }
     hratio_FSR_noFSR = ratio_FSRoverNoFSR_etaPt_mu;
@@ -331,13 +326,8 @@ TH1F * fsrWeights_mu = NULL;
 
 float fsrPhotosWeightSimple(int pdgId, float dresspt, float barept, bool normToSameGenArea = false, float dresseta = 0) {
 
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-  
   if (!fsrWeights_el || !fsrWeights_mu) {
-    _file_fsrWeights_simple = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/photos_rwgt_integrated.root",_cmssw_base_.c_str()),"read");
+    _file_fsrWeights_simple = new TFile("w-mass-13TeV/theoryReweighting/photos_rwgt_integrated.root","read");
     fsrWeights_el  = (TH1F*)(_file_fsrWeights_simple->Get("w_e_h_lptBareOverDressed_ratio"));
     fsrWeights_mu  = (TH1F*)(_file_fsrWeights_simple->Get("w_mu_h_lptBareOverDressed_ratio"));
   }
@@ -364,12 +354,8 @@ TH3F * fsrWeights_muplus  = NULL;
 TH3F * fsrWeights_muminus = NULL;
 
 float fsrPhotosWeight(int pdgId, float dresseta, float dresspt, float barept) {
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
   if (!fsrWeights_elplus || !fsrWeights_elminus || !fsrWeights_muplus || !fsrWeights_muminus) {
-    _file_fsrWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/photos_rwgt.root",_cmssw_base_.c_str()),"read");
+    _file_fsrWeights = new TFile("w-mass-13TeV/theoryReweighting/photos_rwgt.root","read");
     fsrWeights_elplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_e"));
     fsrWeights_elminus = (TH3F*)(_file_fsrWeights->Get("qed_weights_wm_e"));
     fsrWeights_muplus  = (TH3F*)(_file_fsrWeights->Get("qed_weights_wp_mu"));
@@ -391,12 +377,8 @@ TFile *_file_dyptWeights = NULL;
 TH1F *amcnlody = NULL; 
 
 float dyptWeight(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false) {
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
   if (!amcnlody) {
-    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
+    _file_dyptWeights = new TFile("w-mass-13TeV/theoryReweighting/zpt_weights.root");
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
@@ -418,12 +400,8 @@ TFile *_file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO = NULL;
 TH1F *zptRatio_MGaMCAtNLO_PowhegMiNNLO = NULL; 
 
 float dyptWeight_PowhegMiNNLO(float pt2l, int isZ, bool scaleNormWToGenXsecBeforeCuts = false, bool usePhotos = false) {
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
   if (!amcnlody) {
-    _file_dyptWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/zpt_weights.root",_cmssw_base_.c_str()));
+    _file_dyptWeights = new TFile("w-mass-13TeV/theoryReweighting/zpt_weights.root");
     amcnlody = (TH1F*)(_file_dyptWeights->Get("amcnlo"));
   }
   int ptbin = std::max(1, std::min(amcnlody->GetNbinsX(), amcnlody->GetXaxis()->FindFixBin(pt2l)));
@@ -437,7 +415,7 @@ float dyptWeight_PowhegMiNNLO(float pt2l, int isZ, bool scaleNormWToGenXsecBefor
 
   if (!zptRatio_MGaMCAtNLO_PowhegMiNNLO) {
     // 2 GeV granularity from 0 to 100 GeV (last bin is overflow)
-    _file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-mass-13TeV/theoryReweighting/ZptRatio_MGaMCAtNLO_PowhegMiNNLO_dressed_noCuts.root",_cmssw_base_.c_str()));
+    _file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO = new TFile("w-mass-13TeV/theoryReweighting/ZptRatio_MGaMCAtNLO_PowhegMiNNLO_dressed_noCuts.root");
     string hname_MGaMCAtNLO_PowhegMiNNLO = "pythia8";
     if (usePhotos) hname_MGaMCAtNLO_PowhegMiNNLO = "pythia8_photos";
     zptRatio_MGaMCAtNLO_PowhegMiNNLO = (TH1F*)(_file_dyptWeights_MGaMCAtNLO_PowhegMiNNLO->Get(hname_MGaMCAtNLO_PowhegMiNNLO.c_str()));
@@ -465,18 +443,14 @@ TH1F *hist_scales_Lminus = NULL;
 TH1F *hist_scales_Rminus = NULL;
 
 float postfitQCDWeight(float pt2l, int pol, int charge, int flav=0) {
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
   TH1F* hist_scales = NULL;
   if (!_file_postfitWeights) {
     if (flav==0)
-      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitlep.root",_cmssw_base_.c_str()));
+      _file_postfitWeights = new TFile("w-helicity-13TeV/theoryReweighting/postfit_wgts_fitlep.root", "read");
     else if (flav==13)
-      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitmu.root",_cmssw_base_.c_str()));
+      _file_postfitWeights = new TFile("w-helicity-13TeV/theoryReweighting/postfit_wgts_fitmu.root", "read");
     else if (flav==11)
-      _file_postfitWeights = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/w-helicity-13TeV/theoryReweighting/postfit_wgts_fitel.root",_cmssw_base_.c_str()));
+      _file_postfitWeights = new TFile("w-helicity-13TeV/theoryReweighting/postfit_wgts_fitel.root","read");
     else {
       std::cout << "ERROR! Unknown flavor: " << flav << " Returning 0 weight." << std::endl;
       return 0;
@@ -642,16 +616,11 @@ TH2F *_histo_recoToSelection_leptonSF_mu = NULL;
 
 float _get_muonSF_recoToSelection(int pdgid, float pt, float eta, bool useBinnedSF = false) {
 
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
   string hSFname = "scaleFactor_etaInterpolated";
   if (useBinnedSF) hSFname = "scaleFactorOriginal";
 
   if (!_histo_recoToSelection_leptonSF_mu) {
-    _file_recoToSelection_leptonSF_mu = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_recoToSel_finerETA.root",_cmssw_base_.c_str()),"read");
+    _file_recoToSelection_leptonSF_mu = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_recoToSel_finerETA.root","read");
     _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get(hSFname.c_str()));
   }
 
@@ -686,20 +655,15 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
 				     float sumErrorTimesThis = 0.0, bool useStatErrOnly = false,
 				     bool useBinnedSF = false) {
 
-  if (_cmssw_base_ == "") {
-    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-  }
-
   string hSFname = "scaleFactor";
   if (useBinnedSF) hSFname = "scaleFactorOriginal";
 
   if (!_histo_trigger_leptonSF_mu_plus) {
-    _file_trigger_leptonSF_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root",_cmssw_base_.c_str()),"read");
+    _file_trigger_leptonSF_mu_plus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root","read");
     _histo_trigger_leptonSF_mu_plus = (TH2F*)(_file_trigger_leptonSF_mu_plus->Get(hSFname.c_str()));
   }
   if (!_histo_trigger_leptonSF_mu_minus) {
-    _file_trigger_leptonSF_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root",_cmssw_base_.c_str()),"read");
+    _file_trigger_leptonSF_mu_minus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root","read");
     _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get(hSFname.c_str()));
   }
 
@@ -707,11 +671,11 @@ float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge,
   if (useStatErrOnly) {
     // since July 2019 we could take them from the same file as above, as we stored these numbers there, but whatever works is fine)
     if (!_histo_triggerBinUncEffStat_leptonSF_mu_plus) {
-      _file_triggerBinUncEffStat_leptonSF_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root",_cmssw_base_.c_str()),"read");
+      _file_triggerBinUncEffStat_leptonSF_mu_plus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root","read");
       _histo_triggerBinUncEffStat_leptonSF_mu_plus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_plus->Get("triggerSF_plus"));
     }
     if (!_histo_triggerBinUncEffStat_leptonSF_mu_minus) {
-      _file_triggerBinUncEffStat_leptonSF_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffMinus_fromRooFitResult_onlyStatUnc.root",_cmssw_base_.c_str()),"read");
+      _file_triggerBinUncEffStat_leptonSF_mu_minus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffMinus_fromRooFitResult_onlyStatUnc.root","read");
       _histo_triggerBinUncEffStat_leptonSF_mu_minus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_minus->Get("triggerSF_minus"));
     }
   }
@@ -754,7 +718,7 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-Std::string _filename_allSF = _cmssw_base_+"/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root";
+std::string _filename_allSF = "./testMuonSF/allSFs.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
@@ -864,7 +828,7 @@ float _get_muonSF(const float& pt, const float& eta, const int& charge,
   // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
   // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
 
-  std::vector<std::names> sfnames = {"tracking", "idip"}; // these should be always present
+  std::vector<std::string> sfnames = {"tracking", "idip"}; // these should be always present
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
  
   if (isolated) {
@@ -1001,15 +965,11 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   if (eta < etamin || eta > etamax) ret = 1.0;
   else {
     Double_t factor = 1.;
-    if (_cmssw_base_ == "") {
-      cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-      _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-    }
     TH2F *_hist_relSystErr;
     if(abs(pdgId)==11) {
       factor = 2.;
       if(!_file_effCov_trg_staterr_el) {
-        _file_effCov_trg_staterr_el = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root",_cmssw_base_.c_str()),"read");
+        _file_effCov_trg_staterr_el = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgel.root","read");
         _hist_relSystErr0_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p0");
         _hist_relSystErr1_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p1");
         _hist_relSystErr2_el = (TH2F*)_file_effCov_trg_staterr_el->Get("p2");
@@ -1020,13 +980,13 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
     } else {
       factor = sqrt(2.);
       if(!_file_effCov_trg_staterr_mu_plus) {
-        _file_effCov_trg_staterr_mu_plus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root",_cmssw_base_.c_str()),"read");
+        _file_effCov_trg_staterr_mu_plus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_plus_mu.root","read");
         _hist_relSystErr0_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p0");
         _hist_relSystErr1_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p1");
         _hist_relSystErr2_mu_plus = (TH2F*)_file_effCov_trg_staterr_mu_plus->Get("p2");
       }
       if(!_file_effCov_trg_staterr_mu_minus) {
-        _file_effCov_trg_staterr_mu_minus = new TFile(Form("%s/src/CMGTools/WMass/python/postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root",_cmssw_base_.c_str()),"read");
+        _file_effCov_trg_staterr_mu_minus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/systEff_trgmu_minus_mu.root","read");
         _hist_relSystErr0_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p0");
         _hist_relSystErr1_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p1");
         _hist_relSystErr2_mu_minus = (TH2F*)_file_effCov_trg_staterr_mu_minus->Get("p2");
