@@ -53,6 +53,8 @@ class MCAnalysis:
             to = to.strip()
             for k in fro.split(","):
                 self._premap.append((re.compile(k.strip()+"$"), to))
+        if hasattr(ROOT, "initializeScaleFactors"):
+            ROOT.initializeScaleFactors()
         self.readMca(samples,options)
 
 
@@ -107,7 +109,7 @@ class MCAnalysis:
             if addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                 logging.warning("Found setting ALLOW_OVERWRITE_SETTINGS=True in %s. " % str(field0_addExtras))
                 loggin.warning("Will use new settings overwriting those in mca included file %s." % str(samples))
-
+                
         for line in open(samples,'r'):
             if re.match("\s*#.*", line): continue
             line = re.sub(r"(?<!\\)#.*","",line)  ## regexp black magic: match a # only if not preceded by a \!
@@ -175,8 +177,6 @@ class MCAnalysis:
                 continue
             # Customize with additional weight if requested
             if 'AddWeight' in extra:
-                if hasattr(ROOT, "initializeScaleFactors"):
-                    ROOT.initializeScaleFactors()
                 if len(field)<2: raise RuntimeError('You are trying to set an additional weight, but there is no weight initially defined for this component')
                 elif len(field)==2: field.append(extra['AddWeight'])
                 else: field[2] = '(%s)*(%s)'%(field[2],extra['AddWeight'])

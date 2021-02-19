@@ -14,9 +14,9 @@ muon_eta_fine: Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4; XTitle="Muon #eta", Le
 
 
 
-muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
-muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,29,26,55 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
 muon_pt_other: Muon_pt[goodMuonsOther][0]: 30,25,55; XTitle="Other muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 

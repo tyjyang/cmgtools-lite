@@ -653,8 +653,10 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="s
         #print "xbins = " + ",".join(str(x) for x in xbins)
         #print "ybins = " + ",".join(str(x) for x in ybins)
         #print "Defining TH2 for ratio: %s / %s" % (numkey, ratioDen)
-        ratio = ROOT.TH2D("ratio__{d}__{n}".format(d=ratioDen,n=numkey),"ratio_{d}_{n}".format(d=ratioDen,n=numkey),
-                          len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
+        ratioName = "ratio__{d}__{n}".format(d=ratioDen,n=numkey)
+        if ROOT.gROOT.FindObject(ratioName) != None:
+            ROOT.gROOT.FindObject(ratioName).Delete()
+        ratio = ROOT.TH2D(ratioName,ratioName,len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
         for ix in range(1,ratio.GetNbinsX()+1):
@@ -1349,7 +1351,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--showSFitShape", action="store_true", help="Stack a shape of background + scaled signal normalized to total data")
     parser.add_argument("--showMCError", action="store_true", help="Show a shaded area for MC uncertainty")
     parser.add_argument("--showRatio", action="store_true", help="Add a data/sim ratio plot at the bottom")
-    parser.add_argument("--ratioDen", type=str, help="Denominator of the ratio, when comparing MCs")
+    parser.add_argument("--ratioDen", type=str, default="background", help="Denominator of the ratio, when comparing MCs. Default is %(default)s")
     parser.add_argument("--ratioNumsWithData", type=str, default="", help="When plotting data and MC, use also these processes as numerators to make ratio with total/background (useful to plot ratios of unstacked components). Need a comma separated list of processes");
     parser.add_argument("--ratioNums", type=str, default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
     parser.add_argument("--ratioYLabel", type=str, default="Data/pred.", help="Y axis label of the ratio histogram.")

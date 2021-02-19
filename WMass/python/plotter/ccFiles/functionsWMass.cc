@@ -52,9 +52,11 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 static string _cmssw_base_ = "./"; // dummy, shouldn't be used anymore
 
-float getValFromTH2(TH2& h, float x = 0.0, float y = 0.0) {
+float getValFromTH2(const TH2& h, const float& x, const float& y) {
+  //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
+  //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
   return h.GetBinContent(xbin,ybin);
 }
 
@@ -742,6 +744,8 @@ void initializeScaleFactors() {
     if (!_file_allSF.IsOpen())
         std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
 
+    std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
+    
     for (auto& era : eraNames) {
       for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig", "antiiso", "antiisonotrig"}) {
             std::vector<std::string> charges = {"both"};
@@ -761,6 +765,7 @@ void initializeScaleFactors() {
 		if (charge != "both") {
 		  key += charge;
 		}
+		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
                 auto corrKey = std::make_pair(key, eraVal);
                 corrTypeToHist[corrKey] = *static_cast<TH2D*>(histptr);
             }
@@ -770,26 +775,34 @@ void initializeScaleFactors() {
 
 float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
 				const float& ptOther, const float& etaOther,
-				DataEra era = BToH) {
+				DataEra era = BToH//, ULong64_t iEntry = 0
+				) {
   if (corrTypeToHist.empty())
       return 1.;
-  
+
+  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
   float sf = 1.0;
-  // not sure there is an efficient way to compute the sf
+  // not sure there is a more efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
   std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
   std::vector<std::string> sfnamesOther = {      "tracking", "idip", "isonotrig"};
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+    if (corrTypeToHist.find(key) != corrTypeToHist.end()) {
       sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      //std::cout << "scale factor main leg -> " << sf << std::endl;
+    }
   }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
   for (const auto& corr : sfnamesOther) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
       sf *= getValFromTH2(corrTypeToHist[key],etaOther,ptOther);
   }
+  //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
 }
 
