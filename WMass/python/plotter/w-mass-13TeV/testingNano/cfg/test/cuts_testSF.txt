@@ -2,10 +2,10 @@ alwaystrue : 1
 #twomuon    : nVetoElectrons == 0 && nMuon >= 2
 twomuon    : Sum(vetoMuons)==2 && Sum(goodMuons)==2 
 trigger    : HLT_SingleMu24 > 0
-#trigger    : HLT_SingleMu24 > 0 && triggerMatchWlike_nano(Muon_hasTriggerMatch[0],Muon_charge[0],Muon_hasTriggerMatch[1],Muon_charge[1],event)
-#oppositecharge : Vtype_subcat%2 == 0
 oppositecharge : (Muon_charge[goodMuons][0] + Muon_charge[goodMuons][1]) == 0
-accept     : std\:\:abs(Muon_eta[goodMuons][0]) < 2.4 && std\:\:abs(Muon_eta[goodMuons][1]) < 2.4 && valueInsideRange(Muon_pt[goodMuons][0],26,55) && valueInsideRange(Muon_pt[goodMuons][1],26,55)
+#accept     : std\:\:abs(Muon_eta[goodMuons][0]) < 2.4 && std\:\:abs(Muon_eta[goodMuons][1]) < 2.4 && valueInsideRange(Muon_pt[goodMuons][0],26,55) && valueInsideRange(Muon_pt[goodMuons][1],26,55)
+# pt > 26 already in definition of good muons
+accept     : std\:\:abs(Muon_eta[goodMuons][0]) < 2.4 && std\:\:abs(Muon_eta[goodMuons][1]) < 2.4
 muonID     : Muon_mediumId[goodMuons][0] == 1 && Muon_mediumId[goodMuons][1] == 1
 pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15 && Muon_pfRelIso04_all[goodMuons][1] < 0.15
 dxy        : std\:\:abs(Muon_dxy[goodMuons][0]) < 0.05 && std\:\:abs(Muon_dxy[goodMuons][1]) < 0.05

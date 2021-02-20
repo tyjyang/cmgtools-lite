@@ -42,6 +42,8 @@ def getZaxisReasonableExtremesTH2(h,nSigma=3,minZtoUse=None,maxZtoUse=None):
     retmax = min(h.GetMaximum(),mean + nSigma*stddev)
     return retmin,retmax
 
+#########################################################################
+
 
 #########################################################################
 

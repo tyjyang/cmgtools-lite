@@ -18,3 +18,6 @@ Zmumu_postVFP_SF: .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z", SubPath="
 
 Zmumu_preVFP_globSF : .* : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z (glob SF)", SubPath="/.*DYJetsToMuMu_preVFP.*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToH)"
 Zmumu_postVFP_globSF : .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z (glob SF)", SubPath="/.*DYJetsToMuMu_postVFP.*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToH)"
+
+Zmumu_preVFP_noSF_prefire : .* : 38140.081 ; FillColor=ROOT.kPink+1, Label="Z (prefire)", SubPath="/.*(DYJetsToMuMu_preVFP|RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2).*/", AddWeight="PrefireWeight"
+Zmumu_postVFP_noSF_prefire : .* : 32804.422 ; FillColor=ROOT.kPink+1, Label="Z (prefire)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="PrefireWeight"
