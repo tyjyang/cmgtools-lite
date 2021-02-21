@@ -1409,8 +1409,8 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--forceFillColorNostackMode", type=str, default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
     parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
     parser.add_argument("-o", "--out", help="Output file name. by default equal to plots -'.txt' +'.root'");
+    parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
     parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")
-    parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", default=False, help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
