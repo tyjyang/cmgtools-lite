@@ -56,7 +56,8 @@ class MCAnalysis:
         if hasattr(ROOT, "initializeScaleFactors"):
             ROOT.initializeScaleFactors()
         self.readMca(samples,options)
-
+        self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
+        self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
 
     def getSumGenWeightMCfromHisto(self, pname, rootfile, verbose=False):
 
@@ -286,9 +287,15 @@ class MCAnalysis:
                 tmp_names.push_back(n.replace('/eos/cms/','root://eoscms.cern.ch//'))
                 #if '/eos/cms/' in n and not n.startswith("root://"):
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
+            #if field[0] in list(self.allRDF.keys()):
+            #    # case with multiple lines in MCA with same common name and different processes attached to it
+            #    matchedCname = filter(re.match("^"+field[0]+"\."),self.allRDF.keys())
+            #    field[0] = f"{field[0]}.{}" # add number to component to distinguish it from other ones
+            #self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
+            #tmp_rdf = self.allRDF[field[0]]
             tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
-
-            tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, objname=objname, frienddir=friendDir)
+            
+            tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, cname=field[0], objname=objname, frienddir=friendDir)
             ttys.append(tty)
             if signal: 
                 self._signals.append(tty)
@@ -514,7 +521,7 @@ class MCAnalysis:
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
-                logging.info("Processing " + key + "...")
+                logging.info(f"Processing {key} ({tty.cname()})...")
                 retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) )   
 
         mergemap = {}
