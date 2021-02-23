@@ -148,7 +148,25 @@ bool hasTriggerMatch(const float& eta, const float& phi, const Vec_f& TrigObj_et
   
 }
 
+Vec_f absoluteValue(const Vec_f& val) {
 
+  Vec_f res(val.size(),0.0); // initialize to 0
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    res[i] = std::abs(val[i]);
+  }
+  return res;
+
+}
+
+Vec_i absoluteValue(const Vec_i& val) {
+
+  Vec_i res(val.size(),0.0); // initialize to 0
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    res[i] = std::abs(val[i]);
+  }
+  return res;
+
+}
 
 #include "TRandom3.h"
 TRandom3 *randy = NULL;
@@ -301,15 +319,6 @@ double puw_2016UL_postVFP(const Float_t& nTrueInt) {
     return 1.0;
 }
 
-double puw_2016UL_whichVFP(const Float_t& nTrueInt, const bool& isPreVFP) {
-  if (nTrueInt < 100.0) {
-    if (isPreVFP) return _pileupWeights_2016UL_preVFP[static_cast<int>(nTrueInt)];
-    else          return _pileupWeights_2016UL_postVFP[static_cast<int>(nTrueInt)];
-  } else {
-    return 1.0;
-  }
-}
-
 // PU weights obtained from w-mass-13TeV/makePUweight.py on 21/02/2021 with
 // python w-mass-13TeV/makePUweight.py --doInclusiveData --cropHighWeight 5.0
 static double _pileupWeights_2016UL_all[100] = {0.6589867265263256, 0.407153005452541, 0.8642665336352487, 0.7780170875306136, 0.7718988813841754, 0.44276200466885046, 0.21349273305130528, 0.18633307976609584, 0.26907642709007246, 0.3385971761172566, 0.4652852764274064, 0.6241125653491979, 0.737906409006983, 0.8024313714506003, 0.8457825555557247, 0.8978884643903559, 0.9424182163604483, 0.9732478201709418, 0.9877920527908223, 0.9971465869206139, 1.0104225673337546, 1.029836293392211, 1.0493773854755748, 1.0631242087901378, 1.0715206820747583, 1.0809411741877695, 1.087572442599078, 1.0921890499092428, 1.099587626637935, 1.109040290182502, 1.113942074345191, 1.1174350144952392, 1.1226677579743707, 1.1278275354344371, 1.1307611124930197, 1.137217931323903, 1.1493238007450803, 1.1646147220938796, 1.1838871040556067, 1.207825328150971, 1.2267250990262277, 1.2476738483134555, 1.268898244611795, 1.293277472733083, 1.3321182940320204, 1.318539045280375, 1.319351570903305, 1.2528311287666474, 1.1708614071082524, 1.0139143678128297, 0.8314474831080699, 0.6501868955062319, 0.4656109815851464, 0.3310680803476131, 0.2790404453468702, 0.23369595525977435, 0.2469173888590991, 0.26773301406225, 0.3554916500496387, 0.513004184209515, 0.6565139488475376, 0.7912436231532053, 0.8844253754740058, 1.3226235140320606, 1.0223702497271776, 1.3191405473774638, 5.0, 2.437779286510053, 3.8756227608092186, 1.0, 1.0, 1.906755763065583, 4.76272763315208, 1.0, 1.0, 2.6602114002279516, 1.0, 1.0, 1.0, 4.269141635962611, 0.419567065322298, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
@@ -318,6 +327,17 @@ double puw_2016UL_all(const Float_t& nTrueInt) {
     return _pileupWeights_2016UL_all[static_cast<int>(nTrueInt)];
   else
     return 1.0;
+}
+
+
+double puw_2016UL_era(const Float_t& nTrueInt, const int& era) {
+  if (nTrueInt < 100.0) {
+    if      (era == 1) return _pileupWeights_2016UL_preVFP[static_cast<int>(nTrueInt)];
+    else if (era == 2) return _pileupWeights_2016UL_postVFP[static_cast<int>(nTrueInt)];
+    else               return _pileupWeights_2016UL_all[static_cast<int>(nTrueInt)];
+  } else {
+    return 1.0;
+  }
 }
 
 

@@ -415,7 +415,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     
 
 def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,errorsOnRef=True,onlyStatErrorsOnRef=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
-    numkeys = [ "data" ]
+    numkeys =[] if ratioDen == "data" else  [ "data" ]
     if len(ratioNumsWithData): 
         for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
@@ -426,7 +426,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
                     numkeys.append(p)
                     break
 
-    if "data" not in pmap: 
+    if "data" not in pmap or ratioDen == "data": 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
@@ -576,8 +576,12 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
     line.Draw("L")
     for ratio in ratios:
         ratio.Draw("E SAME" if ratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
-        if len(ratioNumsWithData) and ratio.GetName() != "data_div":
+        if len(ratioNumsWithData) or ratioDen == "data":
             ratio.SetMarkerColor(ratio.GetLineColor())
+            if ratioDen == "data":
+                ratio.SetMarkerStyle(0)
+                ratio.SetLineColor(ratio.GetFillColor())
+                ratio.SetLineWidth(2)
     leg0 = ROOT.TLegend(0.12 if doWide else 0.2, 0.8, 0.25 if doWide else 0.45, 0.9)
     leg0.SetFillColor(0)
     leg0.SetShadowColor(0)
@@ -600,7 +604,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
     return (ratios, unity, unity0, line)
 
 def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",ratioNumsWithData=""):
-    numkeys = [ "data" ]
+    numkeys =[] if ratioDen == "data" else  [ "data" ]
     if len(ratioNumsWithData):
         for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
@@ -611,7 +615,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="s
                     numkeys.append(p)
                     break
 
-    if "data" not in pmap: 
+    if "data" not in pmap or ratioDen == "data": 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)

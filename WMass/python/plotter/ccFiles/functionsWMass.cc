@@ -775,7 +775,7 @@ void initializeScaleFactors() {
 
 float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
 				const float& ptOther, const float& etaOther,
-				DataEra era = BToH//, ULong64_t iEntry = 0
+				DataEra era = BToH, bool noTrackingSF = false//, ULong64_t iEntry = 0
 				) {
   if (corrTypeToHist.empty())
       return 1.;
@@ -787,8 +787,12 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   // not sure there is a more efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
-  std::vector<std::string> sfnamesOther = {      "tracking", "idip", "isonotrig"};
+  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
+  std::vector<std::string> sfnamesOther = {      "idip", "isonotrig"};
+  if (not noTrackingSF) {
+    sfnames.push_back("tracking");
+    sfnamesOther.push_back("tracking");
+  }
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end()) {

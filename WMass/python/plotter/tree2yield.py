@@ -154,7 +154,7 @@ class TreeToYield:
         self._options = options
         self._objname = objname if objname else options.obj
         self._frienddir = frienddir if frienddir else ""
-        self._weight  = (options.weight and 'data' not in self._name and '2012' not in self._name and '2011' not in self._name )
+        self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
         if self._isdata:
             self._weightString = "1"
@@ -469,6 +469,15 @@ class TreeToYield:
         else:
             cut = self.adaptExpr(cut,cut=True)
         return cut
+    def defineColumnFromExpression(self, colExpr, colName, expr):
+        if expr in colExpr:
+            # print(f"Expression {expr} already exists, I will reuse it without defining new column")
+            colName = colExpr[expr]
+        else:                    
+            colExpr[expr] = colName
+            # print(f"Defining column {colName} as {expr}")
+            self._tree = self._tree.Define(colName, expr)
+        return (colName, colExpr)
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
         if not self._isInit: self._init()
         retlist = []
@@ -481,7 +490,7 @@ class TreeToYield:
 
         tmp_weight = self._cname+'_weight'
         #print "In getManyPlotsRaw"
-        #print tmp_weight
+        #print(tmp_weight)
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
@@ -513,6 +522,10 @@ class TreeToYield:
         #print sumGenWeights.GetValue()
         histos = []
 
+        # keep list of defined columns used as variables to fill histograms, to avoid defining the same
+        # expression multiple times, which may affect performances
+        column_expr = {}
+        
         for plotspec in plotspecs:
             # I think we will never do it, and for now it is not even implemented
             # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
@@ -524,29 +537,30 @@ class TreeToYield:
             ## marc: this following line should be removed i think
             (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
             tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
-  
+                    
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
-                tmp_var    = self._cname+'_'+plotspec.name+'_var'
-                self._tree = self._tree.Define(tmp_var   , plotspec.expr)
-                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)
+                expr_x = plotspec.expr
+                tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_varx, tmp_weight)
             elif tmp_histo.ClassName() == 'TH2D':
-                #print 'this is now plotspec.name and self._cname', plotspec.name, self._cname
-                #print 'this is now plotspec.expr.split(:)[1] and [0]', plotspec.expr.split(':')[1], plotspec.expr.split(':')[0]
                 tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)
+                expr_y,expr_x = plotspec.expr.split(':')
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
                 tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
-                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[1])
-                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[0])
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
                 tmp_histo  = self._tree.Histo2D(tmp_histo_model, tmp_varx, tmp_vary, tmp_weight)
             elif tmp_histo.ClassName() == 'TH3D':
                 tmp_histo_model = ROOT.RDF.TH3DModel(tmp_histo)
+                expr_z,expr_y,expr_x = plotspec.expr.split(':')
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
                 tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
                 tmp_varz    = self._cname+'_'+plotspec.name+'_varz'
-                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[2])
-                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[1])
-                self._tree = self._tree.Define(tmp_varz   , plotspec.expr.split(':')[0])
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
+                (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
 
             histos.append(tmp_histo)
