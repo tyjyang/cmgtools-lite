@@ -29,17 +29,17 @@ public :
   TTree* outTree_;
   TDirectory *cddir;
 
-  float tag_lep_pt, tag_lep_eta;
-  int tag_lep_matchMC;
-  float probe_lep_pt, probe_lep_eta, probe_sc_eta, probe_lep_phi, probe_lep_charge, probe_lep_truept, probe_lep_trueeta;
+  float tag_pt, tag_eta;
+  int tag_matchMC;
+  float probe_pt, probe_eta, probe_sc_eta, probe_phi, probe_charge, probe_truept, probe_trueeta, probe_dxy, probe_dz, probe_iso;
   float probe_eleTrgPt, probe_muTrgPt, probe_tkMuTrgPt;
-  int probe_lep_matchMC;
-  int probe_lep_tightCharge, probe_lep_fullLepId, probe_lep_pdgId, probe_triggerMatch;
-  int probe_lep_alsoTag;
+  int probe_matchMC, probe_mediumId;
+  int probe_tightCharge, probe_fullLepId, probe_pdgId, probe_triggerMatch, probe_isGlobal, probe_isTracker;
+  int probe_alsoTag;
   float pair_mass;
-  int nvtx;
+  int nvtx, _run;
   int thisEntry;
-  float mypuw, totWeight;
+  float puw_inc, puw_bf, puw_gh, totWeight;
   int mcTrue;
 
 
@@ -485,7 +485,7 @@ public :
 
   void bookOutputTree();
 
-  float puw2016_nTrueInt_36fb(int nTrueInt);
+  float puw_2016(int, int);
 };
 
 #endif

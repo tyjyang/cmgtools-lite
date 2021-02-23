@@ -94,14 +94,16 @@ bool TnPNtuplesSelectionEfficiency::isLeptonInAcceptance(int jj) {
   return true;
 }
 
-bool TnPNtuplesSelectionEfficiency::hasTriggerMatch(int jj){
     //  triggerBits: 1 = TrkIsoVVL, 2 = Iso, 4 = OverlapFilter PFTau, 8 = IsoTkMu, 1024 = 1mu (Mu50) for Muon
     // marc muon_trigs = [ trig for trig in all_trigs if trig.id==13 and ((trig.filterBits>>0 & 1 ) or (trig.filterBits>>1 
+bool TnPNtuplesSelectionEfficiency::hasTriggerMatch(int jj){
 
     bool hasTrigMatch = false;
-    for (int i=0; i<nTrigObj; ++i){
-      if (TrigObj_id[i] != 13) continue;
-      if (!(getStatusFlag(TrigObj_filterBits[i], 0) || getStatusFlag(TrigObj_filterBits[i],1)) ) continue;
+    for (unsigned int i=0; i<nTrigObj; ++i){
+      if (TrigObj_id[i]  != 13 ) continue;
+      if (TrigObj_pt[i]   < 24.) continue;
+      if (TrigObj_l1pt[i] < 22.) continue;
+      if (! (( TrigObj_filterBits[i] & 8) || (TrigObj_l2pt[i] > 10. && (TrigObj_filterBits[i] & 2) )) ) continue;
       if (deltaR(Muon_eta[jj], Muon_phi[jj], TrigObj_eta[i], TrigObj_phi[i]) < 0.3) {
         hasTrigMatch = true;
         break;
@@ -128,6 +130,7 @@ bool TnPNtuplesSelectionEfficiency::isTagLepton(int jj){
     if (fabs(Muon_dxy[jj]) > 0.05)      return false;
     if (fabs(Muon_dz[jj]) > 0.20)       return false;
     if (Muon_mediumId[jj] < 1)          return false;
+    if (Muon_isGlobal[jj] < 1)          return false;
     //if (!hasTriggerMatch(jj))           return false;
   }
   return true;
@@ -153,12 +156,18 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
   // Vectors to store infos
   vector <float> cand_pt           = {};
   vector <float> cand_eta          = {};
+  vector <float> cand_dxy          = {};
+  vector <float> cand_iso          = {};
+  vector <float> cand_dz           = {};
+  vector <int>   cand_mediumId     = {};
   vector <float> cand_truept       = {};
   vector <float> cand_trueeta      = {};
   vector <float> cand_etaSc        = {};
   vector <float> cand_phi          = {};
   vector <float> cand_charge       = {};
   vector <int>   cand_triggerMatch = {};
+  vector <int>   cand_isGlobal     = {};
+  vector <int>   cand_isTracker    = {};
   vector <int>   cand_matchMC      = {};
   vector <int>   cand_customId     = {};
   vector <int>   cand_tightCharge  = {};
@@ -187,12 +196,19 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
     h_entries->Fill(5);  
 
     // PU weight
-    mypuw = 1.;
-    if (!isData) mypuw = puw2016_nTrueInt_36fb(Pileup_nTrueInt);
+    puw_inc = 1.;
+    puw_bf  = 1.;
+    puw_gh  = 1.;
+    
+    if (!isData) {
+        puw_inc = puw_2016(Pileup_nTrueInt, 0);
+        puw_bf  = puw_2016(Pileup_nTrueInt, 1);
+        puw_gh  = puw_2016(Pileup_nTrueInt, 2);
+    }
     
     // Lumi weight for MC only
     totWeight = 1.;
-    if (!isData) totWeight = mypuw*genWeight*((sigma*SetLumi)/count_getentries)*(pow(10,3));  
+    if (!isData) totWeight = puw_inc*genWeight*((sigma*SetLumi)/count_getentries)*(pow(10,3));  
 
 
     // selection for the data JSON
@@ -201,6 +217,8 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
         //std::cout << "does not pass the json " << run << "  " << luminosityBlock << std::endl;
         continue;
     }
+    _run = run;
+    
 
     // select some MET filters
     // ==================================
@@ -216,8 +234,8 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
     h_selection->Fill(1.);
     
     // 2) at least one good vertex found
-    // marc peu importe pour le moment nvtx = nVert;
-    // marc peu importe pour le moment if (nvtx<1) continue;
+    nvtx = PV_npvsGood;
+    if (nvtx<1) continue;
     h_selection->Fill(2.);
 
     // 3) Gen level match, to be saved as additional info
@@ -267,12 +285,18 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       int theOrigIndex = *ilep;
 
       // kine 
-      float lepPt    = Muon_pt    [theOrigIndex];     // need calibrated pT eventually!!! FIXME
-      float lepEta   = Muon_eta   [theOrigIndex];
-      float lepScEta = Muon_eta   [theOrigIndex];
-      float lepPhi   = Muon_phi   [theOrigIndex];
-      float lepCharge= Muon_charge[theOrigIndex];
+      float lepPt       = Muon_pt    [theOrigIndex];     // need calibrated pT eventually!!! FIXME
+      float lepEta      = Muon_eta   [theOrigIndex];
+      float lepIso      = Muon_pfRelIso04_all[theOrigIndex];
+      float lepDxy      = Muon_dxy    [theOrigIndex];
+      float lepDz       = Muon_dz    [theOrigIndex];
+      int   lepMediumId = Muon_mediumId    [theOrigIndex];
+      float lepScEta    = Muon_eta   [theOrigIndex];
+      float lepPhi      = Muon_phi   [theOrigIndex];
+      float lepCharge   = Muon_charge[theOrigIndex];
       bool  triggerMatch= hasTriggerMatch(theOrigIndex);
+      bool  isGlobal    = Muon_isGlobal[theOrigIndex];
+      bool  isTracker    = Muon_isTracker[theOrigIndex];
 
       // this lep
       TLorentzVector thisRecoLep(0,0,0,0);
@@ -317,12 +341,18 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       // Infos to be kept
       cand_pt          . push_back(lepPt);
       cand_eta         . push_back(lepEta);
+      cand_dxy         . push_back(lepDxy);
+      cand_iso         . push_back(lepIso);
+      cand_dz          . push_back(lepDz);
+      cand_mediumId    . push_back(lepMediumId);
       cand_truept      . push_back(truePt);
       cand_trueeta     . push_back(trueEta);
       cand_etaSc       . push_back(lepScEta);
       cand_phi         . push_back(lepPhi);
       cand_charge      . push_back(lepCharge);
       cand_triggerMatch. push_back(triggerMatch);
+      cand_isGlobal    . push_back(isGlobal);
+      cand_isTracker   . push_back(isTracker);
       cand_matchMC     . push_back(matchMC);
       cand_tightCharge . push_back(tightCharge);
       cand_fullLepId   . push_back(isThisTag);
@@ -339,12 +369,18 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
       // cleaning vectors
       cand_pt          . clear();
       cand_eta         . clear();
+      cand_dxy         . clear();
+      cand_iso         . clear();
+      cand_dz          . clear();
+      cand_mediumId    . clear();
       cand_truept      . clear();
       cand_trueeta     . clear();
       cand_etaSc       . clear();
       cand_phi         . clear();
       cand_charge      . clear();
       cand_triggerMatch. clear();
+      cand_isGlobal    . clear();
+      cand_isTracker   . clear();
       cand_matchMC     . clear();
       cand_tightCharge . clear();
       cand_fullLepId   . clear();
@@ -369,28 +405,34 @@ void TnPNtuplesSelectionEfficiency::Loop(int maxentries)
 
         // invariant mass
         pair_mass = (thisLep1+thisLep2).M();
-        if (pair_mass<60 || pair_mass>120) continue;
+        if (pair_mass<40 || pair_mass>140) continue;
 
         // both matching mc truth?
         mcTrue = cand_matchMC[iLep1] && cand_matchMC[iLep2];
         
         // first as tag, second as probe
-        tag_lep_pt             = cand_pt          [iLep1];
-        tag_lep_eta            = cand_eta         [iLep1];
-        tag_lep_matchMC        = cand_matchMC     [iLep1];
+        tag_pt             = cand_pt          [iLep1];
+        tag_eta            = cand_eta         [iLep1];
+        tag_matchMC        = cand_matchMC     [iLep1];
 
-        probe_lep_pt           = cand_pt          [iLep2];
-        probe_lep_eta          = cand_eta         [iLep2];
-        probe_lep_truept       = cand_truept      [iLep2];
-        probe_lep_trueeta      = cand_trueeta     [iLep2];
-        probe_sc_eta           = cand_etaSc       [iLep2];
-        probe_lep_phi          = cand_phi         [iLep2];
-        probe_lep_charge       = cand_charge      [iLep2];
-        probe_triggerMatch     = cand_triggerMatch[iLep2];
-        probe_lep_matchMC      = cand_matchMC     [iLep2];
-        probe_lep_tightCharge  = cand_tightCharge [iLep2];
-        probe_lep_fullLepId    = cand_fullLepId   [iLep2];
-        probe_lep_alsoTag      = cand_alsoTag     [iLep2];
+        probe_pt           = cand_pt          [iLep2];
+        probe_eta          = cand_eta         [iLep2];
+        probe_dxy          = cand_dxy         [iLep2];
+        probe_iso          = cand_iso         [iLep2];
+        probe_dz           = cand_dz          [iLep2];
+        probe_mediumId     = cand_mediumId    [iLep2];
+        probe_truept       = cand_truept      [iLep2];
+        probe_trueeta      = cand_trueeta     [iLep2];
+        probe_sc_eta       = cand_etaSc       [iLep2];
+        probe_phi          = cand_phi         [iLep2];
+        probe_charge       = cand_charge      [iLep2];
+        probe_triggerMatch = cand_triggerMatch[iLep2];
+        probe_isGlobal     = cand_isGlobal    [iLep2];
+        probe_isTracker    = cand_isTracker   [iLep2];
+        probe_matchMC      = cand_matchMC     [iLep2];
+        probe_tightCharge  = cand_tightCharge [iLep2];
+        probe_fullLepId    = cand_fullLepId   [iLep2];
+        probe_alsoTag      = cand_alsoTag     [iLep2];
         
         // Tree filling
         outFile_->cd();
