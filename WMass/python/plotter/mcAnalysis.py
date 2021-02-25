@@ -55,10 +55,10 @@ class MCAnalysis:
                 self._premap.append((re.compile(k.strip()+"$"), to))
         if hasattr(ROOT, "initializeScaleFactors"):
             ROOT.initializeScaleFactors()
-        self.readMca(samples,options)
         self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
-
+        self.readMca(samples,options)
+     
     def getSumGenWeightMCfromHisto(self, pname, rootfile, verbose=False):
 
         maxGenWgt = None
@@ -287,13 +287,14 @@ class MCAnalysis:
                 tmp_names.push_back(n.replace('/eos/cms/','root://eoscms.cern.ch//'))
                 #if '/eos/cms/' in n and not n.startswith("root://"):
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
-            #if field[0] in list(self.allRDF.keys()):
-            #    # case with multiple lines in MCA with same common name and different processes attached to it
-            #    matchedCname = filter(re.match("^"+field[0]+"\."),self.allRDF.keys())
-            #    field[0] = f"{field[0]}.{}" # add number to component to distinguish it from other ones
-            #self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
-            #tmp_rdf = self.allRDF[field[0]]
-            tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
+            if field[0] in list(self.allRDF.keys()):
+                # case with multiple lines in MCA with same common name and different processes attached to it
+                matchedCnames = filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys()) # start with cname followed by . and at least one digit
+                cnindex = len(matchedCnames) 
+                field[0] = f"{field[0]}.{cnindex}" # add number to component to distinguish it from other ones
+            self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
+            tmp_rdf = self.allRDF[field[0]]
+            #tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
             
             tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, cname=field[0], objname=objname, frienddir=friendDir)
             ttys.append(tty)
@@ -355,8 +356,8 @@ class MCAnalysis:
                             # we immediately trigger the loop here, but each Runs tree has one event
                             # so it should be quite fast to get the sum like this
                             tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
-                            _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
+                            _sumGenWeights = tmp_rdf_runs.Sum<double>('genEventSumw')
+                            _nUnweightedEvents = tmp_rdf_runs.Sum<double>('genEventCount')
                             sumGenWeights = _sumGenWeights.GetValue()
                             nUnweightedEvents = _nUnweightedEvents.GetValue()
 
@@ -517,13 +518,38 @@ class MCAnalysis:
         ret = { }
         allSig = []; allBg = []
         retlist = []
+
+        print("Collecting plots for all processes")
         for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
             for tty in ttys:
                 logging.info(f"Processing {key} ({tty.cname()})...")
-                retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) )   
+                if self._options.useRunGraphs:
+                    self.allHistos[tty.cname()] = tty.getManyPlotsRaw(cut, plotspecs, None, False)
+                    # retlist will be created afterwards, when also manipulating histograms
+                else:
+                    retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) )   
 
+        if self._options.useRunGraphs:        
+            # assign all histograms to the graph, to allow for simultaneous loop
+            print("Have these processes and components")
+            print(list(self.allRDF.keys()))       
+            allHistogramsList = []
+            for key in list(self.allRDF.keys()):
+                allHistogramsList.extend(hist for hist in self.allHistos[key])
+            print("Creating ROOT.RDF.RunGraphs and triggering loop")
+            ROOT.RDF.RunGraphs(allHistogramsList)
+            # now other operations that were temporarily skipped to avoid triggering the loop
+            print("Done with loop, now some refinements on histograms")
+            # ugly to repeat it, but for now it works
+            for key,ttys in self._allData.items():
+                if key == 'data' and nodata: continue
+                if process != None and key != process: continue
+                for tty in ttys:
+                    retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )                
+            print("Done :)")
+        
         mergemap = {}
         for (k,v) in retlist: 
             if k not in mergemap: mergemap[k] = []
@@ -798,6 +824,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
     parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
+    parser.add_argument("--rdf-runGraphs", dest="useRunGraphs", action="store_true", default=False, help="If True, use RDF::unGraphs to make all histograms for all processes at once");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 

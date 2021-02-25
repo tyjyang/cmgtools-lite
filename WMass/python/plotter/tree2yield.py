@@ -149,7 +149,7 @@ class TreeToYield:
         self._cname = cname if cname != None else self._name
         #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
-        self._sumGenWeights = None # filled with RDF later, and used in options.sumGenWeightFromHisto is False
+        self._sumGenWeights = None # filled with RDF later, and used if options.sumGenWeightFromHisto is False
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
@@ -427,7 +427,30 @@ class TreeToYield:
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
     def getManyPlots(self,plotspecs,cut,fsplit=None,closeTreeAfter=False):
+        # getManyPlotsRaw should not trigger the loop yet, but refineManyPlots does, as it acts on the histograms
+        # so, when using runGraphs, these should be called separately after collecting all histograms for all processes
         rets = self.getManyPlotsRaw(cut, plotspecs, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
+        # now other operations on histograms for this cname
+        # need to suspend it if want to use runGraph
+        rets = self.refineManyPlots(rets, plotspecs)
+        return rets
+    def refineManyPlots(self, rets, plotspecs):
+
+        # operations on histograms, which trigger the loop, should be included inside here if possible
+        
+        # normalize histograms by sum of gen weights if appropriate
+        # crop bins with negative content if desired
+        # and change directory for them        
+        if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
+            sumGenWeights = self._sumGenWeights.GetValue()
+            print(f"Process {self._name} ({self._cname}) -> sum gewWeights = {sumGenWeights}")
+            for histo in rets:
+                # this is going to trigger the loop, but now all histograms exist so it is ok
+                histo.Scale(1./sumGenWeights)
+                self.negativeCheck(histo)
+                histo.SetDirectory(0)
+
+                
         # fold overflow
         for iret,ret in enumerate(rets):
             if ret.ClassName() in [ "TH1F", "TH1D" ] :
@@ -504,8 +527,9 @@ class TreeToYield:
 
         ## define the Sum of genWeights before the filter
         if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
-            self._sumGenWeights = self._tree.Sum("myweight")
-        ## now filter the rdf with just the cut
+            self._sumGenWeights = self._tree.Sum("myweight") # uses floats
+            # self._sumGenWeights = ROOT.getRDFcolumnSum(self._tree,"myweight") # uses doubles, but to be fixed
+            ## now filter the rdf with just the cut
         if self._options.printYieldsRDF:
             for (cutname,cutexpr) in cut.cuts():
                 if self._options.doS2V:
@@ -536,7 +560,8 @@ class TreeToYield:
 
             ## marc: this following line should be removed i think
             (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+            # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+            tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
                     
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
@@ -565,13 +590,6 @@ class TreeToYield:
 
             histos.append(tmp_histo)
 
-        for histo in histos:
-            # this is going to trigger the loop, but now all histograms exist so it is ok
-            if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
-                histo.Scale(1./self._sumGenWeights.GetValue())
-                #print self._sumGenWeights.GetValue()
-            self.negativeCheck(histo)
-            histo.SetDirectory(0)
         if self._options.printYieldsRDF:
             print("="*30)
             print("Printing yields for %s" % self._cname)

@@ -16,7 +16,9 @@
 #include "Math/GenVector/PtEtaPhiM4D.h"
 
 #include <ROOT/RVec.hxx>
-
+#include <ROOT/RVec.hxx>
+#include <ROOT/RDataFrame.hxx>
+#include <ROOT/RDF/RInterface.hxx>
 using namespace std;
 
 using Vec_b = ROOT::VecOps::RVec<bool>;
@@ -28,6 +30,10 @@ using Vec_ui = ROOT::VecOps::RVec<unsigned int>;
 typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
 
 //// UTILITY FUNCTIONS NOT IN TFORMULA ALREADY
+
+// ROOT::RDF::RResultPtr<double> getRDFcolumnSum(const ROOT::RDataFrame& rdf, const std::string& column) {
+//   return rdf::Sum<double>(column);
+// }
 
 float deltaPhi(float phi1, float phi2) {
     float result = phi1 - phi2;

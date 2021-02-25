@@ -810,7 +810,7 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   return sf;
 }
 
-float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH) {
+float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH, bool noTrackingSF = false) {
   if (corrTypeToHist.empty())
       return 1.;
   
@@ -818,7 +818,8 @@ float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& ch
   // not sure there is an efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
+  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
+  if (not noTrackingSF) sfnames.push_back("tracking");
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
