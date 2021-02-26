@@ -720,6 +720,12 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
+// ongoing work
+// std::string _filename_allSF_preOverPost = "/eos/user/m/mciprian/www/WMassAnalysis/testNanoAOD/testSF/SFeta0p1/effRatio_preOverPost/allSFs_eta0p1_NEW.root";
+// std::unordered_map<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};;
+// TFile _file_allSF_preOverPost = TFile(_filename_allSF_preOverPost.c_str(), "read");
+/////////
+
 //std::string _filename_allSF = "./testMuonSF/allSFs.root";
 std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
