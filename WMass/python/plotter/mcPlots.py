@@ -2,17 +2,14 @@
 
 from mcAnalysis import *
 import CMS_lumi as CMS_lumi
-import itertools, math
+import itertools
 import shutil
-
-logging.basicConfig(level=logging.INFO)
 
 CMS_lumi.writeExtraText = 1
 
 _global_workspaces=[] # avoid crash in 80X, to be investigated
 
 if "/bin2Dto1Dlib_cc.so" not in ROOT.gSystem.GetLibraries():
-    #compileMacro("src/CMGTools/TTHAnalysis/python/plotter/bin2Dto1Dlib.cc")
     compileMacro("ccFiles/bin2Dto1Dlib.cc")
 
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
@@ -418,7 +415,7 @@ def doNormFit(pspec,pmap,mca,saveScales=False):
     
 
 def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,errorsOnRef=True,onlyStatErrorsOnRef=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",doWide=False,showStatTotLegend=False,errorBarsOnRatio=True,ratioYLabelSize=0.06,ratioNumsWithData=""):
-    numkeys = [ "data" ]
+    numkeys =[] if ratioDen == "data" else  [ "data" ]
     if len(ratioNumsWithData): 
         for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
@@ -429,7 +426,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
                     numkeys.append(p)
                     break
 
-    if "data" not in pmap: 
+    if "data" not in pmap or ratioDen == "data": 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
@@ -579,8 +576,12 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
     line.Draw("L")
     for ratio in ratios:
         ratio.Draw("E SAME" if ratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
-        if len(ratioNumsWithData) and ratio.GetName() != "data_div":
+        if len(ratioNumsWithData) or ratioDen == "data":
             ratio.SetMarkerColor(ratio.GetLineColor())
+            if ratioDen == "data":
+                ratio.SetMarkerStyle(0)
+                ratio.SetLineColor(ratio.GetFillColor())
+                ratio.SetLineWidth(2)
     leg0 = ROOT.TLegend(0.12 if doWide else 0.2, 0.8, 0.25 if doWide else 0.45, 0.9)
     leg0.SetFillColor(0)
     leg0.SetShadowColor(0)
@@ -603,7 +604,7 @@ def doRatioHists(pspec,pmap,total,totalSyst,marange,firange=False,fitRatio=None,
     return (ratios, unity, unity0, line)
 
 def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="signal",ratioDen="background",ylabel="Data/pred.",ratioNumsWithData=""):
-    numkeys = [ "data" ]
+    numkeys =[] if ratioDen == "data" else  [ "data" ]
     if len(ratioNumsWithData):
         for p in pmap.keys():                
             for s in ratioNumsWithData.split(","):
@@ -614,7 +615,7 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="s
                     numkeys.append(p)
                     break
 
-    if "data" not in pmap: 
+    if "data" not in pmap or ratioDen == "data": 
         #print str(pmap)
         # >= 3 instead of 4 because I might have no signal process, 
         # while I always have background as sum of everything but data (minimum two processes to make ratio of them)
@@ -656,8 +657,10 @@ def doRatio2DHists(pspec,pmap,total,totalSyst,marange,firange=False,ratioNums="s
         #print "xbins = " + ",".join(str(x) for x in xbins)
         #print "ybins = " + ",".join(str(x) for x in ybins)
         #print "Defining TH2 for ratio: %s / %s" % (numkey, ratioDen)
-        ratio = ROOT.TH2D("ratio__{d}__{n}".format(d=ratioDen,n=numkey),"ratio_{d}_{n}".format(d=ratioDen,n=numkey),
-                          len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
+        ratioName = "ratio__{d}__{n}".format(d=ratioDen,n=numkey)
+        if ROOT.gROOT.FindObject(ratioName) != None:
+            ROOT.gROOT.FindObject(ratioName).Delete()
+        ratio = ROOT.TH2D(ratioName,ratioName,len(xbins)-1,array('d',xbins),len(ybins)-1,array('d',ybins))
         ratio.GetXaxis().SetTitle(pmap[numkey].GetXaxis().GetTitle())
         ratio.GetYaxis().SetTitle(pmap[numkey].GetYaxis().GetTitle())
         for ix in range(1,ratio.GetNbinsX()+1):
@@ -792,8 +795,7 @@ class PlotMaker:
     def __init__(self,tdir,options):
         self._options = options
         self._dir = tdir
-        ROOT.gROOT.ProcessLine(".x tdrstyle.cc")
-        # ROOT.gROOT.ProcessLine(".L smearer.cc+") # this should not be here, smearer has already been compiled (if smearer_cc.so not in ROOT.gSystem.GetLibraries())
+        ROOT.gROOT.ProcessLine(".x ccFiles/tdrstyle.cc") # keep here, otherwise plots are screwed up        
         if not options.drawStatBox:
             ROOT.gStyle.SetOptStat(0)
         ROOT.gStyle.SetOptTitle(0)
@@ -814,8 +816,7 @@ class PlotMaker:
                 sets.append((cnsafe,cn,cv))
         elist = (self._options.elist == True) or (self._options.elist == 'auto' and len(plots.plots()) > 2)
         for subname, title, cut in sets:
-            logging.info("cut set: %s" % title)
-            #if elist: mca.applyCut(cut) # not used for RDF
+            logging.info(" cut set: %s" % title)
             dir = self._dir
             if subname:
                 if self._dir.Get(subname):
@@ -829,11 +830,9 @@ class PlotMaker:
                 if not matchspec: raise RuntimeError("Error: plot %s not found" % self._options.preFitData)
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             #print ' this is pspecs', pspecs
-            pmaps = mca.getPlots(pspecs,cut,makeSummary=True)
+            pmaps = mca.getPlots(pspecs,cuts if self._options.printYieldsRDF else cut, makeSummary=True)
             for ipspec,pspec in enumerate(pspecs):
-                logging.info("plot: %s" % pspec.name)
-                #pmap = mca.getPlots(pspec,cut,makeSummary=True)
-                #exit(0)
+                logging.info("    plot: %s" % pspec.name)
                 #
                 # blinding policy
                 blind = pspec.getOption('Blinded','None') if 'data' in pmaps[ipspec] else 'None'
@@ -917,8 +916,6 @@ class PlotMaker:
                                   drawBox=self._options.drawBox,
                                   contentAxisTitle=self._options.contentAxisTitle)
 
-            # if elist: mca.clearCut() # no longer used with RDF
-
     def printOnePlot(self,mca,pspec,pmap,makeCanvas=True,outputDir=None,printDir=None,xblind=[9e99,-9e99],extraProcesses=[],plotmode="auto",outputName=None, drawBox=None, contentAxisTitle=None):
                 options = self._options
                 if printDir == None: printDir=self._options.printDir
@@ -927,9 +924,6 @@ class PlotMaker:
                 if outputName == None: outputName = pspec.name
                 stack = ROOT.THStack(outputName+"_stack",outputName)
                 hists = [v for k,v in pmap.items() if k != 'data']
-                if not self._options.sumGenWeighFromHisto:
-                    pass
-                    #print "in printOnePlot()"
                 total = hists[0].Clone(outputName+"_total"); total.Reset("ICESM") # ICES is default, but does not reset maximum and minimum (need M as well)
                 totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset("ICESM")
 
@@ -1361,7 +1355,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--showSFitShape", action="store_true", help="Stack a shape of background + scaled signal normalized to total data")
     parser.add_argument("--showMCError", action="store_true", help="Show a shaded area for MC uncertainty")
     parser.add_argument("--showRatio", action="store_true", help="Add a data/sim ratio plot at the bottom")
-    parser.add_argument("--ratioDen", type=str, help="Denominator of the ratio, when comparing MCs")
+    parser.add_argument("--ratioDen", type=str, default="background", help="Denominator of the ratio, when comparing MCs. Default is %(default)s")
     parser.add_argument("--ratioNumsWithData", type=str, default="", help="When plotting data and MC, use also these processes as numerators to make ratio with total/background (useful to plot ratios of unstacked components). Need a comma separated list of processes");
     parser.add_argument("--ratioNums", type=str, default="signal", help="Numerator(s) of the ratio, when comparing MCs (comma separated list of regexps)")
     parser.add_argument("--ratioYLabel", type=str, default="Data/pred.", help="Y axis label of the ratio histogram.")
@@ -1419,13 +1413,10 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--forceFillColorNostackMode", type=str, default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
     parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
     parser.add_argument("-o", "--out", help="Output file name. by default equal to plots -'.txt' +'.root'");
-
-    parser.add_argument("sampleFile", type=str, help="Text file with sample definitions")
-    parser.add_argument("cutFile", type=str, help="Text file with cut definitions")
+    parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
     parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     addPlotMakerOptions(parser)
     args = parser.parse_args()
@@ -1441,7 +1432,7 @@ if __name__ == "__main__":
     outdir = os.path.dirname(outname) 
     if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
-        htmlpath = "/".join([os.environ["CMSSW_BASE"], "src/CMGTools/WMass/python/plotter/templates/index.php"])
+        htmlpath = "./templates/index.php"
         shutil.copy(htmlpath, outdir)
     logging.info("Will save plots to %s " % outname)
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")

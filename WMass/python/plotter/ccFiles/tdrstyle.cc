@@ -5,6 +5,7 @@
 //
 #include <TStyle.h>
 #include <TROOT.h>
+#include <TPad.h>
 
 // tdrGrid: Turns the grid lines on (true) or off (false)
 

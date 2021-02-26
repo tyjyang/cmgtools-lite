@@ -2,19 +2,40 @@
 # Muon_pt[goodMuonsCharge][0] will always be the first muon with the selected charge and passing predefined selection criteria, for W it might be the only muon in the event, for Z it will automatically be the one with desired charge
 # the same is valid for most of the functions
 
+dummy: 0.5: 1,0,1; XTitle="dummy variable", Legend='TR'
+
 max_muon_pt: max_muon_pt : 100,25,200; XTitle="Muon sum p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
-muon_pt: Muon_pt[goodMuonsCharge][0]: 30,25,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+max_muon_abseta: Max(absoluteValue(Muon_eta[goodMuons])) : 48,0,2.4; XTitle="Max of absolute #eta1\,#eta2", Legend='TR', IncludeOverflows=True
+min_muon_abseta: Min(absoluteValue(Muon_eta[goodMuons])) : 48,0,2.4; XTitle="Min of absolute #eta1\,#eta2", Legend='TR', IncludeOverflows=True
+
+muon_pt: Muon_pt[goodMuonsCharge][0]: 55,25,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_pt_all: Muon_pt[goodMuons]: 55,25,80; XTitle="Both muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta: Muon_eta[goodMuonsCharge][0]: 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
-muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+muon_eta_all: Muon_eta[goodMuons]: 48,-2.4,2.4; XTitle="Both muon #eta", Legend='TC', IncludeOverflows=True
 
-muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,34,26,60 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+muon_eta_fine: Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
-muon_pt_other: Muon_pt[goodMuonsOther][0]: 30,25,55; XTitle="Other muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+muon_iso04: Muon_pfRelIso04_all[goodMuonsCharge][0]: 100,0.0,0.5; XTitle="Muon PF isolation (#DeltaR 0.4)", Legend='TR', IncludeOverflows=True
+
+muon_dz: Muon_dz[goodMuonsCharge][0]: 200,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
+
+muon_dzZoom: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
+
+muon_dz_largeyZ: Muon_dz[goodMuonsCharge][0]*if3(std\:\:abs(rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]))>2.0,1.0,-99999): 100,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', Logy=True, RMin=0.2, RMax=2.5
+
+muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+
+muon_pt_eta_other: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,29,26,55 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+
+muon_pt_other: Muon_pt[goodMuonsOther][0]: 55,25,80; XTitle="Other muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta_other: Muon_eta[goodMuonsOther][0]: 24,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
+
+muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
 
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
@@ -22,12 +43,35 @@ mt_T1MET: mt_2(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],MET_T1_p
 
 mt_wlike_T1MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][1],Muon_phi[goodMuonsOther][1],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
 
-zpt : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR'
+zpt : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR',IncludeOverflows=True
 
-zy : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 50,-2.5,2.5 ; XTitle="reco Z rapidity", Legend='TR'
+zy : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4 ; XTitle="reco Z rapidity", Legend='TR',IncludeOverflows=True
 
+zpt_zy : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons])\:rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4,50,0,100;  XTitle="reco Z rapidity", YTitle="reco Z p_{T} (GeV)"
+
+zmass_zy : invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons])\:rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4,60,60,120;  XTitle="reco Z rapidity", YTitle="Z mass (GeV)"
+
+muondz_zy: Muon_dz[goodMuonsCharge][0]\:rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4,200,-10.0,10.0; XTitle="reco Z rapidity", YTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.5, RMax=2.0
+
+nJet_MuonClean: nJet_MuonClean: 6,-0.5,5.5 ; XTitle="number of jets (cleaned)", Legend='TR'
+
+jeteta_muoneta: Jet_eta[Jet_MuonClean_jetIdx[0]]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,70,-3.5,3.5 ; XTitle='muon #eta', YTitle='Jet #eta', Legend='TR'
+
+jetpt_muonpt: Jet_pt[Jet_MuonClean_jetIdx[0]]\:Muon_pt[goodMuonsCharge][0]: 29,26,55,50,20,70 ; XTitle='muon p_{T} (GeV)', YTitle='Leading jet p_{T} (GeV)', Legend='TR'
+
+deta_jetmu: Jet_eta[Jet_MuonClean_jetIdx[0]]-Muon_eta[goodMuonsCharge][0]:50,-5.0,5.0; XTitle='jet #eta - muon #eta', Legend='TR'
 
 # other vars not often used
+
+vertex_z: PV_z: 400,-10.0,10.0; XTitle='primary vertex z (cm)', Legend='TR', IncludeOverflows=True
+
+nJet_MuonClean: nJet_MuonClean: 6,-0.5,5.5 ; XTitle="number of jets (cleaned)", Legend='TR'
+
+jeteta_muoneta: Jet_eta[Jet_MuonClean_jetIdx[0]]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,70,-3.5,3.5 ; XTitle='muon #eta', YTitle='Jet #eta', Legend='TR'
+
+jetpt_muonpt: Jet_pt[Jet_MuonClean_jetIdx[0]]\:Muon_pt[goodMuonsCharge][0]: 29,26,55,50,20,70 ; XTitle='muon p_{T} (GeV)', YTitle='Leading jet p_{T} (GeV)', Legend='TR'
+
+deta_jetmu: Jet_eta[Jet_MuonClean_jetIdx[0]]-Muon_eta[goodMuonsCharge][0]:50,-5.0,5.0; XTitle='jet #eta - muon #eta', Legend='TR'
 
 nJet : nJet: 6,-0.5,5.5 ; XTitle="number of jets", Legend='TR'
 

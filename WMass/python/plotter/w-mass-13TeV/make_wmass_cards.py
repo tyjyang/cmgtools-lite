@@ -494,7 +494,7 @@ if __name__ == "__main__":
 
                     ## now we accumulate all the commands to be run for all processes
                     if options.queue:
-                        mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(dir = os.getcwd(), args = IARGS+" "+BIN_OPTS)
+                        mkShCardsCmd = "python makeHistogramsWMass.py {args} \n".format(args = IARGS+" "+BIN_OPTS)
                         fullJobList.add(mkShCardsCmd)
                     ## ---
     

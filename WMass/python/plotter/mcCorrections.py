@@ -7,10 +7,8 @@ from fakeRate import compileMacro
 import logging
 
 if "/smearer_cc.so" not in ROOT.gSystem.GetLibraries(): 
-    #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/smearer.cc+" % os.environ['CMSSW_BASE']);  # keep for future references and debug
     compileMacro("ccFiles/smearer.cc")
 if "/mcCorrections_cc.so" not in ROOT.gSystem.GetLibraries(): 
-    #ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/WMass/python/plotter/mcCorrections.cc+" % os.environ['CMSSW_BASE']);
     compileMacro("ccFiles/mcCorrections.cc")
 
 class SimpleCorrection:
@@ -21,7 +19,6 @@ class SimpleCorrection:
         self._componentMatch = re.compile(componentMatch) if componentMatch else None
         self._onlyForCuts = onlyForCuts
         self.alsoData = alsoData
-    #def __call__(self,expr,process,component,iscut,isdata):
     def __call__(self,expr,process,component,iscut,isdata=False):
         if isdata and not self.alsoData: return expr
         if self._procMatch and not re.match(self._procMatch, process): return expr

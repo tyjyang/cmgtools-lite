@@ -5,7 +5,6 @@ import logging
 
 def compileMacro(x,basedir=os.environ['PWD']):
     #ROOT.gROOT.ProcessLine(".L %s/%s+" % (os.environ['CMSSW_BASE'],x));
-    #success = ROOT.gSystem.CompileMacro("%s/%s" % (os.environ['PWD'],x),"k")
     success = ROOT.gSystem.CompileMacro("%s" % (x),"k")
     if not success:
         logging.error("Loading and compiling %s failed! Exit" % x)
@@ -13,14 +12,9 @@ def compileMacro(x,basedir=os.environ['PWD']):
 
 if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries(): 
    compileMacro("ccFiles/fakeRate.cc")
-   #compileMacro("fakeRate.cc")
 
-##marc from CMGTools.TTHAnalysis.plotter.mcCorrections import SimpleCorrection
 from mcCorrections import SimpleCorrection
-#from CMGTools.WMass.plotter.mcCorrections import SimpleCorrection
-##marc from CMGTools.WMass.plotter.cutsFile import *
 from cutsFile import *
-
 
 _loads = {}
 class FakeRate:

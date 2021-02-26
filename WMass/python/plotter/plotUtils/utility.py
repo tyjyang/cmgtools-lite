@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT, copy, math
 import numpy as np
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from array import array
+from shutil import copyfile
 
 from CMS_lumi import *
 
@@ -39,6 +42,8 @@ def getZaxisReasonableExtremesTH2(h,nSigma=3,minZtoUse=None,maxZtoUse=None):
     retmax = min(h.GetMaximum(),mean + nSigma*stddev)
     return retmin,retmax
 
+#########################################################################
+
 
 #########################################################################
 
@@ -70,7 +75,7 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True,
     elif dim == 2: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2)
     elif dim == 3: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2) * (h.GetNbinsZ() + 2)
     else:
-        print "Error in getMaxHisto(): dim = %d is not supported. Exit" % dim
+        logging.error("In getMaxHisto(): dim = %d is not supported. Exit" % dim)
         quit()
 
     maxval = -sys.float_info.max
@@ -85,7 +90,7 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True,
         if excludeMin != None and tmpmin <= excludeMin: continue
         if excludeMax != None and tmpmax >= excludeMax: continue
         if firstValidBin < 0: 
-            #print "ibin %d:   tmpmin,tmpmax = %.2f, %.2f" % (ibin,tmpmin,tmpmax)
+            logging.debug("ibin %d:   tmpmin,tmpmax = %.2f, %.2f" % (ibin,tmpmin,tmpmax))
             firstValidBin = ibin
         if sumError:
             tmpmin -= h.GetBinError(ibin)
@@ -94,11 +99,11 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True,
             #the first time we pick a non empty bin, we set min and max to the histogram content in that bin
             minval = tmpmin
             maxval = tmpmax
-            #print "#### ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval)
+            logging.debug("#### ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval))
         else:
             minval = min(minval,tmpmin)
             maxval = max(maxval,tmpmax)
-        #print "ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval)
+        logging.debug("ibin %d:   min,max = %.2f, %.2f" % (ibin,minval,maxval))
     
     return minval,maxval
 
@@ -140,7 +145,7 @@ def getMinimumTH(h, excludeMin=None):
                             
 
     else:
-        raise RuntimeError, "Error in getMinimumTH(): unsupported histogram's dimension (%d)" % dim
+        raise RuntimeError("Error in getMinimumTH(): unsupported histogram's dimension (%d)" % dim)
 
     return retmin
 
@@ -181,7 +186,7 @@ def getMaximumTH(h, excludeMax=None):
                             retmax = h.GetBinContent(ix,iy,iz)
 
     else:
-        raise RuntimeError, "Error in getMaximumTH(): unsupported histogram's dimension (%d)" % dim
+        raise RuntimeError("Error in getMaximumTH(): unsupported histogram's dimension (%d)" % dim)
 
     return retmax
 
@@ -346,11 +351,6 @@ def drawCorrelationPlot(h2D_tmp,
                         drawOption = "colz"):
 
 
-    # if h2D.GetName() == "scaleFactor_origBinPt":
-    #     print "="*20
-    #     print "Check: hist %s: Z axis title = %s" % (h2D.GetName(),labelZtmp)
-    #     print "="*20
-
     ROOT.TH1.SetDefaultSumw2()
     adjustSettings_CMS_lumi()
 
@@ -444,38 +444,6 @@ def drawCorrelationPlot(h2D_tmp,
     if (setZAxisRangeFromUser): h2DPlot.GetZaxis().SetRangeUser(zmin,zmax)
 
 
-    # if h2D.GetName() == "scaleFactor_origBinPt":
-    #     print "="*20
-    #     print "Check: hist %s: Z axis title = %s" % (h2DPlot.GetName(),h2DPlot.GetZaxis().GetTitle())
-    #     print "="*20
-
-    # # attempt to make Z axis title farther depending on how many digits are printed
-    # maxZaxisVal = h2DPlot.GetBinContent(h2DPlot.GetMaximumBin())
-    # if (setZAxisRangeFromUser): maxZaxisVal = zmax
-
-    # if maxZaxisVal >= 1.0:
-    #     rootYear = int(str(ROOT.gROOT.GetVersionDate())[:4])        
-    #     if (rootYear > 2016):
-    #         h2DPlot.GetZaxis().SetMaxDigits(3)
-    #     else:
-    #         print "Warning in drawCorrelationPlot: TAxis::SetMaxDigits() not implemented for ROOT versions before 2017 (rough estimate)"
-    #         print "Will not exit, but instruction will be neglected"
-    #     if maxZaxisVal > 9999.:
-    #         h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.15)
-    #         print "Changing title offset by 0.15"
-    # else:
-    #     i = 1
-    #     tryNext = True
-    #     while (tryNext and i < 6):
-    #         tmpVal = maxZaxisVal * pow(10,i)
-    #         if tmpVal >= 1.0: tryNext = False 
-    #         else: i += 1
-    #     if i > 1:            
-    #         print "Max Z axis < 1, will try to adjust distance of Z axis title to Z axis"
-    #         print "i = %d: will move Z axis offset by 0.45" % i
-    #         # for numbers like 0.025 or with more 0 after ., make increase distance between Z axis title and the Z axis
-    #         h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.45)
-
     h2DPlot.GetZaxis().SetTitleOffset(h2DPlot.GetZaxis().GetTitleOffset()+0.4)
 
 
@@ -492,8 +460,6 @@ def drawCorrelationPlot(h2D_tmp,
     if not plotLabel == "ForceTitle": 
         if lumi != None: CMS_lumi(canvas,lumi,True,False)
         else:            CMS_lumi(canvas,"",True,False)
-    #setTDRStyle()
-    #print ">>>>>>>>>>>>>> check <<<<<<<<<<<<<<<<<<<"
 
     if plotLabel == "ForceTitle":
         ROOT.gStyle.SetOptTitle(1)        
@@ -607,12 +573,6 @@ def drawSingleTH1(h1,
         ymin *= 0.9
         ymax *= (1.1 if leftMargin > 0.1 else 2.0)
         if ymin < 0: ymin = 0
-        #print "drawSingleTH1() >>> Histo: %s     minY,maxY = %.2f, %.2f" % (h1.GetName(),ymin,ymax)
-
-    # print "#### WARNING ####"
-    # print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
-    # print "#################"
-    # ymin = 0 # hardcoded
 
     if lowerPanelHeight:
         h1.GetXaxis().SetLabelSize(0)
@@ -670,7 +630,6 @@ def drawSingleTH1(h1,
     if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
-        #print "drawVertLines = " + drawVertLines
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
@@ -770,17 +729,6 @@ def drawSingleTH1(h1,
         ratio.SetMarkerStyle(0) # important to remove dots at y = 1
         ratio.Draw("E2same")
 
-        # print values
-        # if "unrolledXsec_eta_abs_" in canvasName or "xsec_eta_abs_" in canvasName:
-        #     print "eta-bin   Rel.Unc (%)"
-        #     for i in range (1,ratio.GetNbinsX()+1):
-        #         if "unrolledXsec_eta_abs_" in canvasName:
-        #             if i%etarange == 1:
-        #                 print textForLines[int((i-1)/etarange)]
-        #             print "%s  %s" % (str(int(i%etarange)),str(100*ratio.GetBinError(i)))
-        #         else:
-        #             print "%s  %s" % (str(i),str(100*ratio.GetBinError(i)))
-   
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
         line.SetLineColor(ROOT.kRed)
         line.SetLineWidth(1)
@@ -860,7 +808,7 @@ def drawNTH1(hists=[],
     # where x1 and y1 are the coordinates the first line, and ypass is how much below y1 the second line is (and so on for following lines)
 
     if len(hists) != len(legEntries):
-        print "Warning in drawNTH1: #(hists) != #(legEntries). Abort"
+        logging.warning("In drawNTH1: #(hists) != #(legEntries). Abort")
         quit()
 
     if (rebinFactorX): 
@@ -955,11 +903,6 @@ def drawNTH1(hists=[],
         if ymin < 0: ymin = 0
         ymax *= 1.2
         
-    # print "#### WARNING ####"
-    # print "Hardcoding ymin = 0 in function drawSingleTH1(): change it if it is not what you need"
-    # print "#################"
-    # ymin = 0 # hardcoded
-
     if lowerPanelHeight:
         h1.GetXaxis().SetLabelSize(0)
         h1.GetXaxis().SetTitle("")  
@@ -1014,7 +957,6 @@ def drawNTH1(hists=[],
     if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
-        #print "drawVertLines = " + drawVertLines
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
@@ -1657,9 +1599,9 @@ def drawTH1dataMCstack(h1, thestack,
     if hErrStack != None:
         stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
 
-    print "drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()) 
-    print "drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()) 
-    print "drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()) 
+    logging.info("drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()))
+    logging.info("drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()))
+    logging.info("drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()))
 
     h1.SetStats(0)
     titleBackup = h1.GetTitle()
@@ -1712,7 +1654,6 @@ def drawTH1dataMCstack(h1, thestack,
         bintext.SetTextAngle(10)
 
     if len(drawVertLines):
-        #print "drawVertLines = " + drawVertLines
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         for i in range(1,nptBins): # do not need line at canvas borders
@@ -2100,7 +2041,6 @@ def drawMuElComparison(hlep, hmu, hel,
         bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
-        #print "drawVertLines = " + drawVertLines
         nptBins = int(drawVertLines.split(',')[0])
         etarange = float(drawVertLines.split(',')[1])        
         offsetXaxisHist = hlep.GetXaxis().GetBinLowEdge(0)
@@ -3130,8 +3070,8 @@ def getArrayParsingString(inputString, verbose=False, makeFloat=False):
     tmp = inputString.replace('[','').replace(']','')
     tmp = tmp.split(',')
     if verbose:
-        print "Input:",inputString
-        print "Output:",tmp
+        logging.info("Input: %s" % inputString)
+        logging.info("Output: %s" % tmp)
     if makeFloat:
         ret = [float(x) for x in tmp]
     else:
@@ -3183,29 +3123,29 @@ class templateBinning:
         self.NTotBins = self.Neta * self.Npt
 
     def printBin(self):
-        print "###########################"
-        print "Binning: eta-pt on x-y axis"
-        print "eta bins: %s" % str(self.Neta)
-        print "pt  bins: %s" % str(self.Npt)
-        print ""
+        print("###########################")
+        print("Binning: eta-pt on x-y axis")
+        print("eta bins: %s" % str(self.Neta))
+        print("pt  bins: %s" % str(self.Npt))
+        print("")
 
     def printBinAll(self):
-        print "###########################"
-        print "Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins
-        print "eta bins: %s" % str(self.Neta)
-        print "%s" % str(self.etaBins)
-        print "-"*20
-        print "pt  bins: %s" % str(self.Npt)
-        print "%s" % str(self.ptBins)
-        print "-"*20
-        print ""
+        print("###########################")
+        print("Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins)
+        print("eta bins: %s" % str(self.Neta))
+        print("%s" % str(self.etaBins))
+        print("-"*20)
+        print("pt  bins: %s" % str(self.Npt))
+        print("%s" % str(self.ptBins))
+        print("-"*20)
+        print("")
 
 def getEtaPtBinning(inputBins, whichBins="reco"):
     
     # whichBins can be reco or gen
     # actually, gen was needed only for 2D xsec, might not be used anymore
     if whichBins not in ["reco", "gen"]:
-        print "Error in function getEtaPtBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        logging.error("In function getEtaPtBinning(): whichBins must be 'reco' or 'gen'. Exit")
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
@@ -3227,7 +3167,6 @@ def getEtaPtBinning(inputBins, whichBins="reco"):
     ptbinning  = getArrayParsingString(ptbinning,makeFloat=True)
     #binning = [len(etabinning)-1, etabinning, len(ptbinning)-1, ptbinning] 
     binning = [etabinning, ptbinning] 
-    #print binning
     return binning
 
 def roll1Dto2D(h1d, histo):

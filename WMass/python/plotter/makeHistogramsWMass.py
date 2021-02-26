@@ -2,7 +2,7 @@
 
 # developed from makeShapeCards.py
 
-from CMGTools.WMass.plotter.mcAnalysis import *
+from mcAnalysis import *
 import re, sys, os, os.path
 import math
 
@@ -43,7 +43,7 @@ def rebin2Dto1D(h,funcstring):
             newh.SetBinError(bin,math.hypot(newh.GetBinError(bin),h.GetBinError(i+1,j+1)))
     for bin in range(1,nbins+1):
         if newh.GetBinContent(bin)<0:
-            print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
+            print('Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin)))
             newh.SetBinContent(bin,0)
     newh.SetLineWidth(h.GetLineWidth())
     newh.SetLineStyle(h.GetLineStyle())
@@ -63,39 +63,38 @@ def unroll2Dto1D(h):
             newh.SetBinError(bin,h.GetBinError(i+1,j+1))
     for bin in range(1,nbins+1):
         if newh.GetBinContent(bin)<0:
-            print 'Warning: found bin with negative event weight! will set to it though!'
+            print('Warning: found bin with negative event weight! will set to it though!')
             #print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
             #newh.SetBinContent(bin,0)
     return newh
 
-from optparse import OptionParser
-parser = OptionParser(usage="%prog [options] mc.txt cuts.txt var bins systs.txt ")
+import argparse
+parser = argparse.ArgumentParser()
 addMCAnalysisOptions(parser)
-parser.add_option("-o",   "--out",    dest="outname", type="string", default=None, help="output name") 
-parser.add_option("--od", "--outdir", dest="outdir", type="string", default=None, help="output name") 
-parser.add_option("-v", "--verbose",  dest="verbose",  default=0,  type="int",    help="Verbosity level (0 = quiet, 1 = verbose, 2+ = more)")
-parser.add_option("--asimov", dest="asimov", action="store_true", default=False, help="Asimov")
-parser.add_option("--2d-binning-function",dest="binfunction", type="string", default=None, help="Function used to bin the 2D histogram: for now can be None or unroll2Dto1D")
-parser.add_option("--infile",dest="infile", type="string", default=None, help="File to read histos from (to reuse the one made with --savefile)")
-parser.add_option("--savefile",dest="savefile", type="string", default=None, help="File to save histos to (this has only those produced by getPlotsRaw() )")
-parser.add_option("--crop-negative-bin", dest="cropNegativeBin", action="store_true", default=False, help="Set negative bins to 0")
+parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
+parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
+parser.add_argument("fitVar", type=str, help="Expression for histogram definition ((as passed to getPlotsRaw())")
+parser.add_argument("binning", type=str, help="Binning for histogram (as passed to getPlotsRaw())")
+parser.add_argument("-o",   "--out", dest="outname", type=str, default=None, help="output name") 
+parser.add_argument("--od", "--outdir",  type=str, default=None, help="output name") 
+parser.add_argument("-v",   "--verbose",  default=0,  type=int,    help="Verbosity level (0 = quiet, 1 = verbose, 2+ = more)")
+parser.add_argument("--asimov", action="store_true", help="Asimov, to allow for running without data")
+parser.add_argument("--2d-binning-function",dest="binfunction", type=str, default=None, help="Function used to bin the 2D histogram: for now can be None or unroll2Dto1D")
+parser.add_argument("--infile",   type=str, default=None, help="File to read histos from (to reuse the one made with --savefile)")
+parser.add_argument("--savefile", type=str, default=None, help="File to save histos to (this has only those produced by getPlotsRaw() )")
+parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 
-(options, args) = parser.parse_args()
-
-# can be deleted I think
-#options.weight = True
-#options.final  = True
-#options.allProcesses  = True
+args = parser.parse_args()
+options = args
 
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries():
-    compileMacro("src/CMGTools/WMass/python/plotter/functions.cc")
+    compileMacro("ccFiles/functions.cc")
 
-mca  = MCAnalysis(args[0],options)
-cuts = CutsFile(args[1],options)
+mca  = MCAnalysis(args.sampleFile,options)
+cuts = CutsFile(args.cutFile,options)
 
-binname = os.path.basename(args[1]).replace(".txt","") if options.outname == None else options.outname
+binname = os.path.basename(args.cutFile).replace(".txt","") if options.outname == None else options.outname
 outdir  = options.outdir+"/" if options.outdir else "./"
-
 
 myout = outdir;
 if not os.path.exists(myout): os.mkdir(myout)
@@ -108,7 +107,7 @@ if options.infile!=None:
         h = infile.Get(p)
         if h: report[p] = h
 else:
-    report = mca.getPlotsRaw("x", args[2], args[3], cuts.allCuts(), nodata=options.asimov)
+    report = mca.getPlotsRaw("x", args.fitVar, args.binning, cuts.allCuts(), nodata=options.asimov)
 
 if options.savefile!=None:
     savefile = ROOT.TFile(myout+binname+".bare.root","recreate")
@@ -136,7 +135,7 @@ for i,b in enumerate(mca.listBackgrounds()):
     if allyields[b] == 0: continue
     procs.append(b)
 
-systs = {} # not needed if not creating dummy cards, but keep for now (it was ised for lnN nuisances, which do not need a new template)
+systs = {} # not needed if not creating dummy cards, but keep for now (it was used for lnN nuisances, which do not need a new template)
 systsEnv = {}
 for sysfile in args[4:]:
     for line in open(sysfile, 'r'):
@@ -164,8 +163,8 @@ for sysfile in args[4:]:
         else:
             raise RuntimeError, "Unknown systematic type %s" % field[4]
     if options.verbose:
-        print "Loaded %d systematics" % len(systs)
-        print "Loaded %d envelop systematics" % len(systsEnv)
+        print("Loaded %d systematics" % len(systs))
+        print("Loaded %d envelop systematics" % len(systsEnv))
 
 
 if options.binfunction:
@@ -222,7 +221,7 @@ for name in systsEnv.keys():
             p0Dn.SetName("%s_%sDown" % (nominal.GetName(),name))
             if p0Up.Integral()<=0 or p0Dn.Integral()<=0:
                 if p0Up.Integral()<=0 and p0Dn.Integral()<=0: raise RuntimeError, 'ERROR: both template variations have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
-                print 'Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
+                print('Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral()))
                 for b in xrange(1,nominal.GetNbinsX()+1):
                     y0 = nominal.GetBinContent(b)
                     yA = p0Up.GetBinContent(b) if p0Up.Integral()>0 else p0Dn.GetBinContent(b)
@@ -233,7 +232,7 @@ for name in systsEnv.keys():
                         yM = 2*y0
                     if p0Up.Integral()>0: p0Dn.SetBinContent(b, yM)
                     else: p0Up.SetBinContent(b, yM)
-                print 'The integral is now: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
+                print('The integral is now: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral()))
             if mode == 'templatesShapeOnly':
                 p0Up.Scale(nominal.Integral()/p0Up.Integral())
                 p0Dn.Scale(nominal.Integral()/p0Dn.Integral())
@@ -248,7 +247,7 @@ for name in systsEnv.keys():
             # for k in report:
             #     print "%s : %s" % (k, report[k])
             if options.verbose:
-                print "CHECKPOINT: %s   %s" % (p,mode)
+                print("CHECKPOINT: %s   %s" % (p,mode))
             nominal = report[p]
             alternate = report[effect]
             if mca._projection != None:
@@ -262,9 +261,9 @@ for name in systsEnv.keys():
                 # keep same normalization
                 mirror.Scale(nominal.Integral()/mirror.Integral())
             if options.verbose:
-                print "CHECKPOINT: int(nomi) ", str(nominal.Integral())
-                print "CHECKPOINT: int(alte) ", str(alternate.Integral())
-                print "CHECKPOINT: int(mirr) ", str(mirror.Integral())
+                print("CHECKPOINT: int(nomi) ", str(nominal.Integral()))
+                print("CHECKPOINT: int(alte) ", str(alternate.Integral()))
+                print("CHECKPOINT: int(mirr) ", str(mirror.Integral()))
             report[alternate.GetName()] = alternate
             report[mirror.GetName()] = mirror
             effect0  = "1"
@@ -278,20 +277,20 @@ systsEnv.update(systsEnv2)
 
 workspace = ROOT.TFile.Open(myout+binname+".input.root", "RECREATE")
 for n,h in report.iteritems():
-    if options.verbose: print "\t%s (%8.3f events)" % (h.GetName(),h.Integral())
+    if options.verbose: print("\t%s (%8.3f events)" % (h.GetName(),h.Integral()))
     workspace.WriteTObject(h,h.GetName())
 workspace.Close()
 
-print "Wrote to ",myout+binname+".input.root"
+print("Wrote to ",myout+binname+".input.root")
 # now check goodness of file, if bad returns an exit code different from 0
 f = ROOT.TFile.Open(myout+binname+".input.root", "READ")
 if f.IsZombie():    
-    print 'file is probably corrupted'
+    print('file is probably corrupted')
     sys.exit(100)
 if f.TestBit(ROOT.TFile.kRecovered):
-    print 'file is in fishy state, was recovered'
+    print('file is in fishy state, was recovered')
     sys.exit(101)
 if f.GetListOfKeys().GetSize()==0:
-    print 'file is bad, has no keys'
+    print('file is bad, has no keys')
     sys.exit(102)
-print "File is in good state :)"
+print ("File is in good state :)")

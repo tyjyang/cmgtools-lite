@@ -52,9 +52,11 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 static string _cmssw_base_ = "./"; // dummy, shouldn't be used anymore
 
-float getValFromTH2(TH2& h, float x = 0.0, float y = 0.0) {
+float getValFromTH2(const TH2& h, const float& x, const float& y) {
+  //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
+  //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
   return h.GetBinContent(xbin,ybin);
 }
 
@@ -718,11 +720,19 @@ float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bo
 
 }
 
-std::string _filename_allSF = "./testMuonSF/allSFs.root";
+// ongoing work
+// std::string _filename_allSF_preOverPost = "/eos/user/m/mciprian/www/WMassAnalysis/testNanoAOD/testSF/SFeta0p1/effRatio_preOverPost/allSFs_eta0p1_NEW.root";
+// std::unordered_map<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};;
+// TFile _file_allSF_preOverPost = TFile(_filename_allSF_preOverPost.c_str(), "read");
+/////////
+
+//std::string _filename_allSF = "./testMuonSF/allSFs.root";
+std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
 // Sorry you have to manually keep these consistent
 typedef enum {BToH=0, BToF, GToH} DataEra;
 std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+//std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"} };
 
 struct pair_hash
 {
@@ -740,13 +750,14 @@ void initializeScaleFactors() {
     if (!_file_allSF.IsOpen())
         std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
 
+    std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
+    
     for (auto& era : eraNames) {
-      for (auto& corr : {"trigger", "tracking", "idip", "isonotrig", "iso", "antiiso"}) {
+      for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig", "antiiso", "antiisonotrig"}) {
             std::vector<std::string> charges = {"both"};
             if (strcmp(corr, "trigger") == 0) {
                 charges = {"plus", "minus"};
-            }
-            
+            }            
             for (auto& charge : charges) {
                 std::vector<std::string> vars = {"SF2D", corr, era.second, charge};
                 std::string corrname = boost::algorithm::join(vars, "_");
@@ -755,7 +766,13 @@ void initializeScaleFactors() {
                     std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
                             << _filename_allSF << "! scale factors for this correction will be set to 1.0";
                 DataEra eraVal = era.first;
-                auto corrKey = std::make_pair(corr+charge, eraVal);
+		// do not use "both" as charge key for the histograms, keep it simple
+		std::string key = corr;
+		if (charge != "both") {
+		  key += charge;
+		}
+		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+                auto corrKey = std::make_pair(key, eraVal);
                 corrTypeToHist[corrKey] = *static_cast<TH2D*>(histptr);
             }
         }
@@ -764,30 +781,42 @@ void initializeScaleFactors() {
 
 float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
 				const float& ptOther, const float& etaOther,
-				DataEra era = BToH) {
+				DataEra era = BToH, bool noTrackingSF = false//, ULong64_t iEntry = 0
+				) {
   if (corrTypeToHist.empty())
       return 1.;
-  
+
+  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
   float sf = 1.0;
-  // not sure there is an efficient way to compute the sf
+  // not sure there is a more efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
-  std::vector<std::string> sfnamesOther = {      "tracking", "idip", "isonotrig"};
+  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
+  std::vector<std::string> sfnamesOther = {      "idip", "isonotrig"};
+  if (not noTrackingSF) {
+    sfnames.push_back("tracking");
+    sfnamesOther.push_back("tracking");
+  }
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end())
+    if (corrTypeToHist.find(key) != corrTypeToHist.end()) {
       sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      //std::cout << "scale factor main leg -> " << sf << std::endl;
+    }
   }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
   for (const auto& corr : sfnamesOther) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
       sf *= getValFromTH2(corrTypeToHist[key],etaOther,ptOther);
   }
+  //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
 }
 
-float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH) {
+float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH, bool noTrackingSF = false) {
   if (corrTypeToHist.empty())
       return 1.;
   
@@ -795,7 +824,8 @@ float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& ch
   // not sure there is an efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "tracking", "idip", "iso"};
+  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
+  if (not noTrackingSF) sfnames.push_back("tracking");
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
@@ -821,10 +851,10 @@ float _get_singleMuonSF(const float& pt, const float& eta, const std::vector<std
 }
 
 float _get_muonSF(const float& pt, const float& eta, const int& charge,
-		  const bool trigMatch = true, const bool isolated = true,
+		  const bool trigger = true, const bool isolated = true,
 		  DataEra era = BToH) {
 
-  // trigMatch is used to decide whether the trigger sf has to be applied, and which isolation sf to use
+  // trigger is used to decide whether the trigger sf has to be applied, and which isolation sf to use
   // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
   // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
 
@@ -832,76 +862,23 @@ float _get_muonSF(const float& pt, const float& eta, const int& charge,
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
  
   if (isolated) {
-    if (trigMatch) {
+    if (trigger) {
       sfnames.push_back("iso");
       sfnames.push_back(triggerSF);
     } else {
       sfnames.push_back("isonotrig");
     }
   } else {
-    sfnames.push_back("antiiso"); // this is actually for triggering muons I guess
-    if (trigMatch)
+    if (trigger) {
+      sfnames.push_back("antiiso");
       sfnames.push_back(triggerSF);      
+    } else {
+      sfnames.push_back("antiisonotrig");
+    }
   }
   return _get_singleMuonSF(pt, eta, sfnames, era);
 
 }
-
-// details like histograms and location might be updated
-//float _get_AllMuonSF_fast_wmass(float pt, float eta, int charge, int trigMatch, int era=0) {
-//
-//  // era = 0 to pick SF for all year, 1 for BtoF and 2 for GtoH
-//  string dataEraForSF = "BtoH";
-//  if (era == 1) 
-//    dataEraForSF = "BtoF";
-//  else if (era == 2 )
-//    dataEraForSF = "GtoH";
-//  
-//  if (_cmssw_base_ == "") {
-//    cout << "Setting _cmssw_base_ to environment variable CMSSW_BASE" << endl;
-//    _cmssw_base_ = getEnvironmentVariable("CMSSW_BASE");
-//  }
-//
-//  // open the single file we have
-//  if (!_file_allSF.isValid()) {
-//    _file_allSF = new TFile(Form("%s/src/CMGTools/WMass/python/plotter/testMuonSF/allSFs.root",_cmssw_base_.c_str()),"read");
-//  }
-//
-//  // trigger
-//  if (!_histo_trigger_plus[era]) {
-//    _histo_trigger_plus[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_trigger_%s_plus",dataEraForSF.c_str())));
-//  }
-//  if (!_histo_trigger_minus[era]) {
-//    _histo_trigger_minus[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_trigger_%s_minus",dataEraForSF.c_str())));
-//  }
-//  // ID + ip (interaction point, i.e. dz and dxy)
-//  if (!_histo_idip[era]) {
-//    _histo_idip[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_idip_%s_both",dataEraForSF.c_str())));
-//  }
-//  if (!_histo_tracking[era]) {
-//    _histo_tracking[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_tracking_%s_both",dataEraForSF.c_str())));
-//  }
-//  if (!_histo_iso[era]) {
-//    _histo_iso[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_iso_%s_both",dataEraForSF.c_str())));
-//  }
-//  if (!_histo_isonotrig[era]) {
-//    _histo_isonotrig[era] = (TH2F*)(_file_allSF.Get(Form("SF2D_isonotrig_%s_both",dataEraForSF.c_str())));
-//  }
-//
-//
-//  TH2F *histTrigger = ( charge > 0 ? _histo_trigger_plus[era] : _histo_trigger_minus[era] );
-//  float sf = getValFromTH2(histTrigger,eta,pt);
-//  sf *= getValFromTH2(_histo_idip[era],eta,pt);
-//  sf *= getValFromTH2(_histo_tracking[era],eta,pt);
-//  TH2F *histIso = (trigMatch ? _histo_iso[era] : _histo_isonotrig[era]);
-//  sf *= getValFromTH2(histIso,eta,pt);
-//  // cout << " sf = " << sf << endl;
-//
-//  return sf;
-//
-//}
-
-//============================
 
 int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
   float ptmin = 0;

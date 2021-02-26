@@ -22,6 +22,8 @@ from cutsFile import *
 from fakeRate import *
 from mcCorrections import *
 
+logging.basicConfig(level=logging.INFO)
+
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
 
@@ -147,12 +149,12 @@ class TreeToYield:
         self._cname = cname if cname != None else self._name
         #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
-        self._sumGenWeights = None # filled with RDF later, and used in options.sumGenWeighFromHisto is False
+        self._sumGenWeights = None # filled with RDF later, and used if options.sumGenWeightFromHisto is False
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
         self._frienddir = frienddir if frienddir else ""
-        self._weight  = (options.weight and 'data' not in self._name and '2012' not in self._name and '2011' not in self._name )
+        self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
         if self._isdata:
             self._weightString = "1"
@@ -226,9 +228,9 @@ class TreeToYield:
             tokens = [x.strip().replace("--", "::") for x in l.split(":")]
             name = tokens[0]
             define = tokens[1]
-            filearg = tokens[2] if len(tokens) > 2 else ".*"
+            procRegexp = tokens[2] if len(tokens) > 2 else ".*"
 
-            ret[name] = {"define" : define, "filearg" : filearg}
+            ret[name] = {"define" : define, "procRegexp" : procRegexp}
         return ret
 
     def printRdfDefinitions(self):
@@ -236,7 +238,7 @@ class TreeToYield:
         logging.info("Have these RDF definitions")
         logging.info("-"*40)
         for key,value in self._rdfDefs.iteritems():
-            logging.info("{define}) : {args} (for {filearg}".format(name=key, **value))
+            logging.info("{define}) : {args} (for process {procRegexp})".format(name=key, **value))
         logging.info("-"*40)
 
     
@@ -280,24 +282,9 @@ class TreeToYield:
             ret = mcc(ret,self._name,self._cname,cut)
         return ret
     def _init(self):
-        # print 'this is self._fname', self._fname
-        ## marc if type(self._fname) == type(ROOT.RDataFrame):
-        ## marc     print 'i am in the ifiifi'
-        ## marc elif "root://" in self._fname:
-        ## marc     ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-#       ## marc      ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
-        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=200000") # worse than 65k
-        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=32768") # worse than 65k
-        ## marc     self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=65535") # good
-        ## marc     #self._tfile = ROOT.TFile.Open(self._fname+"?readaheadsz=0") #worse than 65k
-
-        ## marc else:
-        ## marc     self._tfile = ROOT.TFile.Open(self._fname)
-        ## marc if not self._tfile: raise RuntimeError, "Cannot open %s\n" % self._fname
-        ##t = self._tfile.Get(self._objname)
         self._tree  = self._fname ## just set the tree to the rdataframe
-        #self._tree.SetCacheSize(10*1000*1000)
-        #if "root://" in self._fname: self._tree.SetCacheSize()
+
+        # all the part below for friends might be removed
         self._friends = []
         friendOpts = self._options.friendTrees[:]
         friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._options.friendTreesSimple]
@@ -429,7 +416,9 @@ class TreeToYield:
             nev = tree.Draw("0.5>>dummy", cut, "goff", maxEntries, firstEntry)
             self.negativeCheck(histo)
             return [ histo.GetBinContent(1), histo.GetBinError(1), nev ]
-        else: 
+        else:
+            print("HERE FOR _getYield()")
+            quit()
             if self._options.doS2V:
                 cut  = scalarToVector(cut)
             (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
@@ -438,9 +427,30 @@ class TreeToYield:
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
     def getManyPlots(self,plotspecs,cut,fsplit=None,closeTreeAfter=False):
-        #print 'in getplot of tty'
-        ##ret = self.getManyPlotsRaw(plotspec.name, plotspec.expr, plotspec.bins, cut, plotspec, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
+        # getManyPlotsRaw should not trigger the loop yet, but refineManyPlots does, as it acts on the histograms
+        # so, when using runGraphs, these should be called separately after collecting all histograms for all processes
         rets = self.getManyPlotsRaw(cut, plotspecs, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
+        # now other operations on histograms for this cname
+        # need to suspend it if want to use runGraph
+        rets = self.refineManyPlots(rets, plotspecs)
+        return rets
+    def refineManyPlots(self, rets, plotspecs):
+
+        # operations on histograms, which trigger the loop, should be included inside here if possible
+        
+        # normalize histograms by sum of gen weights if appropriate
+        # crop bins with negative content if desired
+        # and change directory for them        
+        if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
+            sumGenWeights = self._sumGenWeights.GetValue()
+            print(f"Process {self._name} ({self._cname}) -> sum gewWeights = {sumGenWeights}")
+            for histo in rets:
+                # this is going to trigger the loop, but now all histograms exist so it is ok
+                histo.Scale(1./sumGenWeights)
+                self.negativeCheck(histo)
+                histo.SetDirectory(0)
+
+                
         # fold overflow
         for iret,ret in enumerate(rets):
             if ret.ClassName() in [ "TH1F", "TH1D" ] :
@@ -482,12 +492,18 @@ class TreeToYield:
         else:
             cut = self.adaptExpr(cut,cut=True)
         return cut
+    def defineColumnFromExpression(self, colExpr, colName, expr):
+        if expr in colExpr:
+            # print(f"Expression {expr} already exists, I will reuse it without defining new column")
+            colName = colExpr[expr]
+        else:                    
+            colExpr[expr] = colName
+            # print(f"Defining column {colName} as {expr}")
+            self._tree = self._tree.Define(colName, expr)
+        return (colName, colExpr)
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
         if not self._isInit: self._init()
         retlist = []
-        justthecut = cut
-        if self._options.doS2V:
-            justthecut  = scalarToVector(justthecut)
         ## weigth is always the same for each plot
         if self._weight:
             if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
@@ -497,31 +513,46 @@ class TreeToYield:
 
         tmp_weight = self._cname+'_weight'
         #print "In getManyPlotsRaw"
-        #print tmp_weight
-        self._tree = self._tree.Define(tmp_weight, wgt)        
-
+        #print(tmp_weight)
         for name, entry in self._rdfDefs.items():
-            if re.match(entry["filearg"], self._cname):
+            if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
                 self._tree = self._tree.Define(name, entry["define"])
             
         for name,entry in self._rdfAlias.items():
-            if re.match(entry["filearg"], self._cname):
+            if re.match(entry["procRegexp"], self._cname):
                 self._tree = self._tree.Alias(name, entry["define"])
-                    
+
+        self._tree = self._tree.Define(tmp_weight, wgt)        
+
         ## define the Sum of genWeights before the filter
-        if not self._isdata:
-            self._sumGenWeights = self._tree.Sum("myweight")
-        ## now filter the rdf with just the cut
-        self._tree = self._tree.Filter(justthecut)
+        if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
+            self._sumGenWeights = self._tree.Sum("myweight") # uses floats
+            # self._sumGenWeights = ROOT.getRDFcolumnSum(self._tree,"myweight") # uses doubles, but to be fixed
+            ## now filter the rdf with just the cut
+        if self._options.printYieldsRDF:
+            for (cutname,cutexpr) in cut.cuts():
+                if self._options.doS2V:
+                    cutexpr = scalarToVector(cutexpr)
+                self._tree = self._tree.Filter(cutexpr,cutname)
+        else:
+            fullcut = cut
+            if self._options.doS2V:
+                fullcut  = scalarToVector(fullcut)
+            self._tree = self._tree.Filter(fullcut)
 
         # do not call it, or it will trigger the loop now
         #print "sumGenWeights"
         #print sumGenWeights.GetValue()
         histos = []
 
+        # keep list of defined columns used as variables to fill histograms, to avoid defining the same
+        # expression multiple times, which may affect performances
+        column_expr = {}
+        
         for plotspec in plotspecs:
-            unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
+            # I think we will never do it, and for now it is not even implemented
+            # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
 
             tmp_expr = self.adaptExpr(plotspec.expr)
             if self._options.doS2V:
@@ -529,161 +560,46 @@ class TreeToYield:
 
             ## marc: this following line should be removed i think
             (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            #if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
-            tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
-            canKeys = (tmp_histo.ClassName() == "TH1D" and plotspec.bins[0] != "[")
-            if tmp_histo.ClassName != "TH2D" or self._name == "data": unbinnedData2D = False
-            ## marc: something to fix here
-            if unbinnedData2D:
-                nent = self._tree.Draw("%s" % plotspec.expr, cut, "", maxEntries, firstEntry)
-                if nent == 0: return ROOT.TGraph(0)
-                graph = ROOT.gROOT.FindObject("Graph").Clone(plotspec.name)
-                return graph
-            drawOpt = "goff"
-            if "TProfile" in tmp_histo.ClassName(): drawOpt += " PROF";
-
+            # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+            tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+                    
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
-                tmp_var    = self._cname+'_'+plotspec.name+'_var'
-                self._tree = self._tree.Define(tmp_var   , plotspec.expr)
-                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)           
+                expr_x = plotspec.expr
+                tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_varx, tmp_weight)
             elif tmp_histo.ClassName() == 'TH2D':
-                #print 'this is now plotspec.name and self._cname', plotspec.name, self._cname
-                #print 'this is now plotspec.expr.split(:)[1] and 0', plotspec.expr.split(':')[1], plotspec.expr.split(':')[0]
                 tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)
+                expr_y,expr_x = plotspec.expr.split(':')
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
                 tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
-                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[1])
-                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[0])
-                tmp_histo  = self._tree.Histo2D(tmp_histo_model, tmp_varx, tmp_vary, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
+                tmp_histo  = self._tree.Histo2D(tmp_histo_model, tmp_varx, tmp_vary, tmp_weight)
             elif tmp_histo.ClassName() == 'TH3D':
                 tmp_histo_model = ROOT.RDF.TH3DModel(tmp_histo)
+                expr_z,expr_y,expr_x = plotspec.expr.split(':')
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
                 tmp_vary    = self._cname+'_'+plotspec.name+'_vary'
                 tmp_varz    = self._cname+'_'+plotspec.name+'_varz'
-                self._tree = self._tree.Define(tmp_varx   , plotspec.expr.split(':')[2])
-                self._tree = self._tree.Define(tmp_vary   , plotspec.expr.split(':')[1])
-                self._tree = self._tree.Define(tmp_varz   , plotspec.expr.split(':')[0])
-                tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)#, drawOpt, maxEntries, firstEntry)
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
+                (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
+                tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
 
             histos.append(tmp_histo)
 
-        for histo in histos:
-            # this is going to trigger the loop, but now all histograms exist so it is ok
-            if not self._isdata and not self._options.sumGenWeighFromHisto:
-                histo.Scale(1./self._sumGenWeights.GetValue())
-                #print self._sumGenWeights.GetValue()
-            ## marc: don't really know what this does...
-            ## Marco: not needed, it used RooKeysPDF to smooth low stat histogram
-            ## In our case it won't be needed, and evaluating GetEntries() triggers the loop
-            # # if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
-            # #     #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
-            # #     if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
-            # #         ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
-            # #     (nb,xmin,xmax) = bins.split(",")
-            # #     histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
-            # #     print 'now gonna perform the draw command 3'
-            # #     self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
-            # #     self.negativeCheck(histo)
-            # #     histo.SetDirectory(0)
-            # #     if closeTreeAfter: self._tfile.Close()
-            # #     return histo.GetHisto().Clone(plotspec.name)
-            #elif not self._isdata and self.getOption("KeysPdf",False):
-            #else:
-            #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))            
-
-            self.negativeCheck(histo)
-            histo.SetDirectory(0)
+        if self._options.printYieldsRDF:
+            print("="*30)
+            print("Printing yields for %s" % self._cname)
+            print("-"*30)
+            cutReport = self._tree.Report()
+            cutReport.Print()
+            print("="*30)
         if closeTreeAfter: self._tfile.Close()
-
         return histos
 
-    def getPlotRaw(self,name,expr,bins,cut,plotspec,fsplit=None,closeTreeAfter=False):
-        logging.info("CHECKPOINT!!!!!!!!")
-        justthecut = cut
-        unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
-        if not self._isInit: self._init()
-        if self._appliedCut != None:
-            if cut != self._appliedCut: 
-                logging.warning("For %s:%s, cut was set to '%s' but now plotting with cut '%s'." % (self._name, self._cname, self._appliedCut, cut))
-                #self.clearCut()
-            else:
-                #print "INFO, for %s:%s, cut was already set to '%s', will use elist for plotting (%d entries)" % (self._name, self._cname, cut, self._elist.GetN())
-                self._tree.SetEntryList(self._elist)
-                #self._tree.SetEventList(self._elist)
-        #print "for %s, %s, does my tree have an elist? %s " % ( self._name, self._cname, "yes" if self._tree.GetEntryList() else "no" )
-        cut = self.getWeightForCut(cut)
-        expr = self.adaptExpr(expr)
-        if self._options.doS2V:
-            cut  = scalarToVector(cut)
-            expr = scalarToVector(expr)
-#        print cut 
-#        print expr
-        (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        logging.info('these are the entries', firstEntry, maxEntries)
-        if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
-        histo = makeHistFromBinsAndSpec("dummy",expr,bins,plotspec)
-        canKeys = (histo.ClassName() == "TH1D" and bins[0] != "[")
-        if histo.ClassName != "TH2D" or self._name == "data": unbinnedData2D = False
-        if unbinnedData2D:
-            logging.info('now gonna perform the draw command 1')
-            nent = self._tree.Draw("%s" % expr, cut, "", maxEntries, firstEntry)
-            if nent == 0: return ROOT.TGraph(0)
-            graph = ROOT.gROOT.FindObject("Graph").Clone(name) #ROOT.gPad.GetPrimitive("Graph").Clone(name)
-            return graph
-        drawOpt = "goff"
-        if "TProfile" in histo.ClassName(): drawOpt += " PROF";
-        loggin.info('now gonna perform the draw command 2')
-    
-        ## self._tree.Draw("%s>>%s" % (expr,"dummy"), cut, drawOpt, maxEntries, firstEntry)
-        histo_model = ROOT.RDF.TH1DModel(histo)
-        #print 'at name', name
-        #print 'expr', expr
-        #print 'drawopt', drawOpt
-        #print 'self.weightString',  self._weightString
-        #print 'self._scaleFactor',  self._scaleFactor
-        #print 'this is cut', cut
-        if self._weight:
-            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
-        else:
-            wgt = '1.' ## wtf is that marc
-
-        #print 'weighting by', wgt
-        #print 'this is the self._tree', self._tree
-        #print 'this is the type of self._tree', type(self._tree)
-        #print 'this is the self._fname', self._fname
-        #print 'this is the type of self._fname', type(self._fname)
-        #print 'this is self._cname', self._cname
-        tmp_weight = self._cname+'_'+name+'_weight'
-        tmp_var    = self._cname+'_'+name+'_var'
-        self._tree = self._tree.Define(tmp_var   , expr)
-        self._tree = self._tree.Define(tmp_weight, wgt)
-        #print 'filtering now with cut', justthecut
-        self._tree = self._tree.Filter(justthecut)
-        histo = self._tree.Histo1D(histo_model, tmp_var, tmp_weight)#, drawOpt, maxEntries, firstEntry)
-
-        #print 'this is histo', histo1
-        #print 'this is integral of histo', histo1.Integral()
-        if canKeys and histo.GetEntries() > 0 and histo.GetEntries() < self.getOption('KeysPdfMinN',2000) and not self._isdata and self.getOption("KeysPdf",False):
-            #print "Histogram for %s/%s has %d entries, so will use KeysPdf " % (self._cname, self._name, histo.GetEntries())
-            if "/TH1Keys_cc.so" not in ROOT.gSystem.GetLibraries(): 
-                ROOT.gROOT.ProcessLine(".L %s/src/CMGTools/TTHAnalysis/python/plotter/TH1Keys.cc+" % os.environ['CMSSW_BASE']);
-            (nb,xmin,xmax) = bins.split(",")
-            histo = ROOT.TH1KeysNew("dummyk","dummyk",int(nb),float(xmin),float(xmax),"a",1.0)
-            logging.info('now gonna perform the draw command 3')
-            self._tree.Draw("%s>>%s" % (expr,"dummyk"), cut, "goff", maxEntries, firstEntry)
-            self.negativeCheck(histo)
-            histo.SetDirectory(0)
-            if closeTreeAfter: self._tfile.Close()
-            return histo.GetHisto().Clone(name)
-        #elif not self._isdata and self.getOption("KeysPdf",False):
-        #else:
-        #    print "Histogram for %s/%s has %d entries, so won't use KeysPdf (%s, %s) " % (self._cname, self._name, histo.GetEntries(), canKeys, self.getOption("KeysPdf",False))
-        self.negativeCheck(histo)
-        histo.SetDirectory(0)
-        if closeTreeAfter: self._tfile.Close()
-        return histo.Clone(name)
     def negativeCheck(self,histo):
         if not self._options.allowNegative and not self._name in self._options.negAllowed: 
             cropNegativeBins(histo)
@@ -728,11 +644,6 @@ class TreeToYield:
         ## marc elist = ROOT.gDirectory.Get('elist')
         ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
         ## marc return elist
-    def clearCut(self):
-        pass # rdf style
-        # rdf styleself._appliedCut = None
-        # rdf styleself._elist = None
-        # rdf styleif self._isInit: self._tree.SetEntryList(None)
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:
