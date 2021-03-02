@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 from tree2yield import *
@@ -292,10 +291,15 @@ class MCAnalysis:
                 matchedCnames = filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys()) # start with cname followed by . and at least one digit
                 cnindex = len(matchedCnames) 
                 field[0] = f"{field[0]}.{cnindex}" # add number to component to distinguish it from other ones
+            if self._options.rdfRange:
+                ROOT.ROOT.DisableImplicitMT() # to be called before creating the RDataFrame
             self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
-            tmp_rdf = self.allRDF[field[0]]
             #tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
-            
+            if self._options.rdfRange:
+                begin,end,stride = self._options.rdfRange
+                self.allRDF[field[0]] = self.allRDF[field[0]].Range(begin,end,stride)
+
+            tmp_rdf = self.allRDF[field[0]]            
             tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, cname=field[0], objname=objname, frienddir=friendDir)
             ttys.append(tty)
             if signal: 
@@ -345,19 +349,20 @@ class MCAnalysis:
                                     maxGenWgt = abs(float(tmp_maxGenWgt))                        
                                     if options.clipGenWeightToMax:
                                         # set weights > max to max
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
+                                        #tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
+                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeClipped(genWeight,{s})'.format(s=maxGenWgt))
                                     else:
                                         # reject event with weight > max
-                                        logging.info('in some other else command here')
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
+                                        #tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
+                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeRemoved(genWeight,{s})'.format(s=maxGenWgt))   
                                     # set again tmp_rdf
                                     tty.setRDF(tmp_rdf)
                         elif options.weight:
                             # we immediately trigger the loop here, but each Runs tree has one event
                             # so it should be quite fast to get the sum like this
                             tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            _sumGenWeights = tmp_rdf_runs.Sum<double>('genEventSumw')
-                            _nUnweightedEvents = tmp_rdf_runs.Sum<double>('genEventCount')
+                            _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
+                            _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
                             sumGenWeights = _sumGenWeights.GetValue()
                             nUnweightedEvents = _nUnweightedEvents.GetValue()
 
@@ -372,10 +377,7 @@ class MCAnalysis:
                             # but it would be a waste of time
                             total_w = 1.0 
                         if maxGenWgt != None:
-                            if options.clipGenWeightToMax:
-                                scale = '(%s)* std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
-                            else:
-                                scale = "genWeight*(%s)*(std::abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
+                            scale = '(%s)*myweight' % field[2]                            
                         else:
                             scale = "genWeight*(%s)" % field[2]
                     elif not options.weight:
@@ -824,7 +826,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
     parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
-    parser.add_argument("--rdf-runGraphs", dest="useRunGraphs", action="store_true", default=False, help="If True, use RDF::unGraphs to make all histograms for all processes at once");
+    parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", default=True, help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 

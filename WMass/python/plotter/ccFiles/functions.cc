@@ -35,6 +35,26 @@ typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVec
 //   return rdf::Sum<double>(column);
 // }
 
+double genWeightLargeClipped(const double& wgt, const double& max) {
+
+  // max is already a positive number, no need to check or take absolute value here
+  return static_cast<double>(std::copysign(1.0,wgt) * std::min<double>(std::abs(wgt),max));
+  
+}
+
+double genWeightLargeRemoved(const double& wgt, const double& max) {
+
+  // max is already a positive number, no need to check or take absolute value here
+  return (std::abs(wgt) < max) ? wgt : 0.0;
+  
+}
+
+Vec_i indices(const Vec_f& vec) {
+    Vec_i res(vec.size(), 0);
+    std::iota(std::begin(res), std::end(res), 1);
+    return res;
+}
+
 float deltaPhi(float phi1, float phi2) {
     float result = phi1 - phi2;
     while (result > float(M_PI)) result -= float(2*M_PI);
@@ -334,7 +354,6 @@ double puw_2016UL_all(const Float_t& nTrueInt) {
   else
     return 1.0;
 }
-
 
 double puw_2016UL_era(const Float_t& nTrueInt, const int& era) {
   if (nTrueInt < 100.0) {

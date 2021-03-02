@@ -708,6 +708,7 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("--neg", "--allow-negative-results", dest="allowNegative", action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
     parser.add_argument("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
     parser.add_argument("--max-entries", dest="maxEntries", default=1000000000000, type=int, help="Max entries to process in each tree") 
+    parser.add_argument("--rdf-range", dest="rdfRange", default=[], nargs=3, type=int, help="Arguments to use RDF::Range to sets entries to process with RDataFrame, passing begin, end, stride (it sets multithreading to use 1 thread)") 
     parser.add_argument("--max-entries-not-data", dest="maxEntriesNotData", action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
     parser.add_argument("-L", "--load-macro", dest="loadMacro", type=str, action="append", default=[], help="Load the following macro, with .L <file>+");
     parser.add_argument("--rdf-define-file", dest="rdfDefineFile", type=str, default="", help="Load file with some definitions to be used in RDataFrame");
