@@ -166,8 +166,8 @@ void TnPNtuplesBase::bookOutputTree()
   outFile_ = new TFile(fOutfile, "RECREATE");    
   outFile_->cd();
 
-  cddir = outFile_->mkdir("IDIsoToHLT");
-  cddir->cd();    
+  //cddir = outFile_->mkdir("IDIsoToHLT");
+  //cddir->cd();    
 
   std::cout << "Booking output tree" << endl;
   outTree_ = new TTree("fitter_tree", "fitter_tree");
@@ -182,6 +182,8 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("probe_dxy"          , &probe_dxy          , "probe_dxy/F");
   outTree_->Branch("probe_dz"           , &probe_dz           , "probe_dz/F");
   outTree_->Branch("probe_iso"          , &probe_iso          , "probe_iso/F");
+  outTree_->Branch("probe_iso03"        , &probe_iso03        , "probe_iso03/F");
+  outTree_->Branch("probe_chgiso03"     , &probe_chgiso03     , "probe_chgiso03/F");
   outTree_->Branch("probe_mediumId"     , &probe_mediumId     , "probe_mediumId/I");
   outTree_->Branch("probe_sc_eta"       , &probe_sc_eta       , "probe_sc_eta/F");
   outTree_->Branch("probe_phi"          , &probe_phi          , "probe_phi/F");
@@ -191,6 +193,7 @@ void TnPNtuplesBase::bookOutputTree()
   outTree_->Branch("probe_triggerMatch" , &probe_triggerMatch , "probe_triggerMatch/I");
   outTree_->Branch("probe_isGlobal"     , &probe_isGlobal     , "probe_isGlobal/I");
   outTree_->Branch("probe_isTracker"    , &probe_isTracker    , "probe_isTracker/I");
+  outTree_->Branch("probe_isMuon"       , &probe_isMuon       , "probe_isMuon/I");
 
   outTree_->Branch("probe_matchMC"      , &probe_matchMC      , "probe_matchMC/I");
   outTree_->Branch("probe_tightCharge"  , &probe_tightCharge  , "probe_tightCharge/I");

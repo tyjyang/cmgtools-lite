@@ -31,11 +31,11 @@ public :
 
   float tag_pt, tag_eta;
   int tag_matchMC;
-  float probe_pt, probe_eta, probe_sc_eta, probe_phi, probe_charge, probe_truept, probe_trueeta, probe_dxy, probe_dz, probe_iso;
+  float probe_pt, probe_eta, probe_sc_eta, probe_phi, probe_charge, probe_truept, probe_trueeta, probe_dxy, probe_dz, probe_iso, probe_iso03, probe_chgiso03;
   float probe_eleTrgPt, probe_muTrgPt, probe_tkMuTrgPt;
   int probe_matchMC, probe_mediumId;
   int probe_tightCharge, probe_fullLepId, probe_pdgId, probe_triggerMatch, probe_isGlobal, probe_isTracker;
-  int probe_alsoTag;
+  int probe_alsoTag, probe_isMuon;
   float pair_mass;
   int nvtx, _run;
   int thisEntry;
@@ -113,6 +113,21 @@ public :
    Float_t         FsrPhoton_pt[3];   //[nFsrPhoton]
    Float_t         FsrPhoton_relIso03[3];   //[nFsrPhoton]
    Int_t           FsrPhoton_muonIdx[3];   //[nFsrPhoton]
+   UInt_t          nIsoTrack;
+   Float_t         IsoTrack_dxy[25];   //[nIsoTrack]
+   Float_t         IsoTrack_dz[25];   //[nIsoTrack]
+   Float_t         IsoTrack_eta[25];   //[nIsoTrack]
+   Float_t         IsoTrack_pfRelIso03_all[25];   //[nIsoTrack]
+   Float_t         IsoTrack_pfRelIso03_chg[25];   //[nIsoTrack]
+   Float_t         IsoTrack_phi[25];   //[nIsoTrack]
+   Float_t         IsoTrack_pt[25];   //[nIsoTrack]
+   Float_t         IsoTrack_miniPFRelIso_all[25];   //[nIsoTrack]
+   Float_t         IsoTrack_miniPFRelIso_chg[25];   //[nIsoTrack]
+   Int_t           IsoTrack_fromPV[25];   //[nIsoTrack]
+   Int_t           IsoTrack_pdgId[25];   //[nIsoTrack]
+   Bool_t          IsoTrack_isHighPurityTrack[25];   //[nIsoTrack]
+   Bool_t          IsoTrack_isPFcand[25];   //[nIsoTrack]
+   Bool_t          IsoTrack_isFromLostTrack[25];   //[nIsoTrack]
    UInt_t          nGenPart;
    Float_t         GenPart_eta[111];   //[nGenPart]
    Float_t         GenPart_mass[111];   //[nGenPart]
@@ -322,6 +337,21 @@ public :
    TBranch    *b_FsrPhoton_pt;
    TBranch    *b_FsrPhoton_relIso03;
    TBranch    *b_FsrPhoton_muonIdx;
+   TBranch    *b_nIsoTrack;   //!
+   TBranch    *b_IsoTrack_dxy;   //!
+   TBranch    *b_IsoTrack_dz;   //!
+   TBranch    *b_IsoTrack_eta;   //!
+   TBranch    *b_IsoTrack_pfRelIso03_all;   //!
+   TBranch    *b_IsoTrack_pfRelIso03_chg;   //!
+   TBranch    *b_IsoTrack_phi;   //!
+   TBranch    *b_IsoTrack_pt;   //!
+   TBranch    *b_IsoTrack_miniPFRelIso_all;   //!
+   TBranch    *b_IsoTrack_miniPFRelIso_chg;   //!
+   TBranch    *b_IsoTrack_fromPV;   //!
+   TBranch    *b_IsoTrack_pdgId;   //!
+   TBranch    *b_IsoTrack_isHighPurityTrack;   //!
+   TBranch    *b_IsoTrack_isPFcand;   //!
+   TBranch    *b_IsoTrack_isFromLostTrack;   //!
    TBranch    *b_nGenPart;
    TBranch    *b_GenPart_eta;
    TBranch    *b_GenPart_mass;
@@ -617,6 +647,21 @@ void TnPNtuplesBase::Init(TTree *tree)
    fChain->SetBranchAddress("FsrPhoton_pt",                             &FsrPhoton_pt                           , &b_FsrPhoton_pt);
    fChain->SetBranchAddress("FsrPhoton_relIso03",                       &FsrPhoton_relIso03                     , &b_FsrPhoton_relIso03);
    fChain->SetBranchAddress("FsrPhoton_muonIdx",                        &FsrPhoton_muonIdx                      , &b_FsrPhoton_muonIdx);
+   fChain->SetBranchAddress("nIsoTrack"                  ,              &nIsoTrack                              , &b_nIsoTrack);
+   fChain->SetBranchAddress("IsoTrack_dxy"               ,              &IsoTrack_dxy                           , &b_IsoTrack_dxy);
+   fChain->SetBranchAddress("IsoTrack_dz"                ,              &IsoTrack_dz                            , &b_IsoTrack_dz);
+   fChain->SetBranchAddress("IsoTrack_eta"               ,              &IsoTrack_eta                           , &b_IsoTrack_eta);
+   fChain->SetBranchAddress("IsoTrack_pfRelIso03_all"    ,              &IsoTrack_pfRelIso03_all                , &b_IsoTrack_pfRelIso03_all);
+   fChain->SetBranchAddress("IsoTrack_pfRelIso03_chg"    ,              &IsoTrack_pfRelIso03_chg                , &b_IsoTrack_pfRelIso03_chg);
+   fChain->SetBranchAddress("IsoTrack_phi"               ,              &IsoTrack_phi                           , &b_IsoTrack_phi);
+   fChain->SetBranchAddress("IsoTrack_pt"                ,              &IsoTrack_pt                            , &b_IsoTrack_pt);
+   fChain->SetBranchAddress("IsoTrack_miniPFRelIso_all"  ,              &IsoTrack_miniPFRelIso_all              , &b_IsoTrack_miniPFRelIso_all);
+   fChain->SetBranchAddress("IsoTrack_miniPFRelIso_chg"  ,              &IsoTrack_miniPFRelIso_chg              , &b_IsoTrack_miniPFRelIso_chg);
+   fChain->SetBranchAddress("IsoTrack_fromPV"            ,              &IsoTrack_fromPV                        , &b_IsoTrack_fromPV);
+   fChain->SetBranchAddress("IsoTrack_pdgId"             ,              &IsoTrack_pdgId                         , &b_IsoTrack_pdgId);
+   fChain->SetBranchAddress("IsoTrack_isHighPurityTrack" ,              &IsoTrack_isHighPurityTrack             , &b_IsoTrack_isHighPurityTrack);
+   fChain->SetBranchAddress("IsoTrack_isPFcand"          ,              &IsoTrack_isPFcand                      , &b_IsoTrack_isPFcand);
+   fChain->SetBranchAddress("IsoTrack_isFromLostTrack"   ,              &IsoTrack_isFromLostTrack               , &b_IsoTrack_isFromLostTrack);
    fChain->SetBranchAddress("nGenPart",                                 &nGenPart                               , &b_nGenPart);
    fChain->SetBranchAddress("GenPart_eta",                              &GenPart_eta                            , &b_GenPart_eta);
    fChain->SetBranchAddress("GenPart_mass",                             &GenPart_mass                           , &b_GenPart_mass);
