@@ -107,7 +107,8 @@ void initializeJson() {
   // given a json, this format can be obtained with python/plotter/myFormatJson.py
   jsonMap_preVFP  = makeMapFromJson("./pileupStuff/json_preVFP_myFormatJson.txt");
   jsonMap_postVFP = makeMapFromJson("./pileupStuff/json_postVFP_myFormatJson.txt");
-  // checked that there are no duplicate keys, i.e. no common runs between the two eras  jsonMap_all = jsonMap_preVFP;
+  // checked that there are no duplicate keys, i.e. no common runs between the two eras
+  jsonMap_all = jsonMap_preVFP;
   jsonMap_all.insert(jsonMap_postVFP.begin(), jsonMap_postVFP.end());
   
 }
