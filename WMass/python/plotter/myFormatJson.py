@@ -8,7 +8,7 @@ import re
 from optparse import OptionParser
 parser = OptionParser(usage='python %prog <input_json> [options] ')
 parser.add_option('-o','--outfile', dest='outfile', default='myFormatJson.json', type='string', help='Output customized json file (if not given, print on stdout)')
-parser.add_option('-p','--print-file', dest="printfile", action="store_true", default=False, help="Print on stoud was is being written in outfile")
+parser.add_option('-p','--print-file', dest="printfile", action="store_true", default=False, help="Print on stdout what is being written in outfile")
 (options, args) = parser.parse_args()
 
 if len(args) == 0:
@@ -22,7 +22,7 @@ json = ""
 with open(jsonFile, 'r') as myfile:
   json = myfile.read()
 
-print "Will save output in file ", options.outfile
+print("Will save output in file ", options.outfile)
 fout = open(options.outfile,"w") 
 
 # for test
@@ -37,6 +37,6 @@ for item in mylist:
     line =  str(item.replace('"','').replace(', ',',').replace('],[','] [').replace('[[','[').replace(']]',']'))
     fout.write(str(line)+'\n')
     if options.printfile: 
-        print line
+        print(line)
 
 fout.close()

@@ -1,3 +1,6 @@
+#ifndef JSON_MANAGER_H
+#define JSON_MANAGER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <cstdlib> //as stdlib.h
@@ -9,79 +12,66 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <utility>      // std::pair
 #include <iomanip> //for input/output manipulators
+#include <boost/functional/hash.hpp>
 
-//ROOT header files   
-#include <TROOT.h>
+#include "TROOT.h"
 
 using namespace std;
 
-std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap;
-static string formattedJson = "myFormat_LSforPath_HLT_Ele27_WPTight_Gsf.json";
+//std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap;
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_preVFP;
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_postVFP;
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_all;
 
 //==========================================================
 
-std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFromJson(const string myJsonFile = "") {
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFromJson(const std::string& myJsonFile = "") {
 
   // format is 
   // run: [ls1,ls2] [ls3,ls4] [...]  note that spaces are important
-  // given a json, this format can be obtained with myFormatJson.py
-  string run;
-  string lumiBlocks;
-  std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > runsAndLumiBlocks;
+  // given a json, this format can be obtained with python/plotter/myFormatJson.py
+  std::string run;
+  std::string lumiBlocks;
+  std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > runsAndLumiBlocks;
 
-  // following works only if you are in the CMSSW_BASE area where you have CMGTools/WMass/...         
-  char* cmsswPath;
-  cmsswPath = getenv ("CMSSW_BASE");
-  if (cmsswPath == NULL) {
-    cout << "Error in makeMapFromJson(): environment variable CMSSW_BASE not found. Exit" << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  string jsonFile = Form("%s/src/CMGTools/WMass/python/plotter/%s",cmsswPath,myJsonFile.c_str());
-
-  ifstream inputFile(jsonFile.c_str());
+  ifstream inputFile(myJsonFile.c_str());
 
   //cout << "Printing content of " << myJsonFile << endl;
 
   if (inputFile.is_open()) {
 
-
     while (inputFile >> run) {
 
       // read line without first object that was put in run (the space separates objects in the line)
       getline(inputFile, lumiBlocks);  
-
       run.assign(run,0,6); // run has 6 digits
       //cout << run << " --> ";
 
-      vector< pair<UInt_t,UInt_t> > blocks;
+      std::vector< pair<UInt_t,UInt_t> > blocks;
       stringstream ss(lumiBlocks);     
-      string block;
+      std::string block;
 
       while (ss >> block) {
 
     	//cout << block << " ";
-
     	size_t pos = block.find(",");
     	UInt_t LSin, LSfin;
     	string num1, num2;
     	// we have block = "[a,b]" where a and b are integers. We want to get a and b
     	num1.assign(block,1,pos);
     	num2.assign(block,pos+1,block.size()-1);
-    	LSin  = (UInt_t) std::stoi(num1);
-    	LSfin = (UInt_t) std::stoi(num2);
+    	LSin  = static_cast<UInt_t>(std::stoi(num1));
+    	LSfin = static_cast<UInt_t>(std::stoi(num2));
     	// cout << "LSin,LSfin = " << LSin << "," << LSfin << endl;
     	blocks.push_back(std::make_pair(LSin,LSfin));
 
       }
 
-      //runsAndLumiBlocks[run] = blocks;
-      //cout << endl;
-      runsAndLumiBlocks.insert ( std::pair< UInt_t, std::vector< std::pair<UInt_t,UInt_t > > >((UInt_t) stoi(run), blocks) );
-      //      runsAndLumiBlocks.at(stoi(run)) = blocks;
-
+      runsAndLumiBlocks.insert ( std::pair< UInt_t, std::vector< std::pair<UInt_t,UInt_t > > >(static_cast<UInt_t>(stoi(run)), blocks) );
+      
     }
 
     /////////////////////////
@@ -99,7 +89,7 @@ std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFromJson(cons
 
   } else {
     
-    cout << "Error in makeMapFromJson(): could not open file " << jsonFile << endl;
+    std::cout << "Error in makeMapFromJson(): could not open file " << myJsonFile << std::endl;
     exit(EXIT_FAILURE);
 
   }
@@ -110,20 +100,30 @@ std::map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFromJson(cons
 
 //==========================================================
 
+void initializeJson() {
 
-Bool_t isGoodRunLS(Bool_t isData, UInt_t run, UInt_t lumis) {
+  // format is 
+  // run: [ls1,ls2] [ls3,ls4] [...]  note that spaces are important
+  // given a json, this format can be obtained with python/plotter/myFormatJson.py
+  jsonMap_preVFP  = makeMapFromJson("./pileupStuff/json_preVFP_myFormatJson.txt");
+  jsonMap_postVFP = makeMapFromJson("./pileupStuff/json_postVFP_myFormatJson.txt");
+  // checked that there are no duplicate keys, i.e. no common runs between the two eras  jsonMap_all = jsonMap_preVFP;
+  jsonMap_all.insert(jsonMap_postVFP.begin(), jsonMap_postVFP.end());
   
-  // for MC thsi fucntion always return true
+}
+
+//==========================================================
+
+Bool_t isGoodRunLS(const Bool_t& isData, const UInt_t& run, const UInt_t& lumis, const Int_t& era) {
+  
+  // for MC this function always returns true
   if (not isData) return true;
 
-  // I should make it load the json somewhere else, something like loading the FR file
-  if (theJsonMap.empty()) theJsonMap = makeMapFromJson(formattedJson);
-
-  // if (theJsonMap.empty()) {
-  //   cout << "Warning in isGoodRunLS(): mymap is empty. Returning false, but please check what's happening!" << endl;
-  //   return false;
-  // }
-
+  std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap; // would it be better as a pointer?
+  if       (era == 1) theJsonMap = jsonMap_preVFP;
+  else if  (era == 2) theJsonMap = jsonMap_postVFP;
+  else                theJsonMap = jsonMap_all;
+  
   if ( theJsonMap.find(run) == theJsonMap.end() ) return false; // run not found
 
   Bool_t LSfound = false;
@@ -131,7 +131,7 @@ Bool_t isGoodRunLS(Bool_t isData, UInt_t run, UInt_t lumis) {
   for (UInt_t i = 0; i < theJsonMap.at(run).size() && !LSfound; ++i) {
     
     // evaluate second value, skip if lumis is bigger (block does not contain it)
-    if (lumis >= theJsonMap.at(run).at(i).second) continue;  
+    if (lumis > theJsonMap.at(run).at(i).second) continue;  
     // if arrive here, check lower boundary
     if (lumis >= theJsonMap.at(run).at(i).first ) LSfound = true;
 
@@ -142,3 +142,5 @@ Bool_t isGoodRunLS(Bool_t isData, UInt_t run, UInt_t lumis) {
 }
 
 //==========================================================
+
+#endif

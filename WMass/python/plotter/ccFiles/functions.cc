@@ -49,11 +49,33 @@ double genWeightLargeRemoved(const double& wgt, const double& max) {
   
 }
 
-Vec_i indices(const Vec_f& vec) {
+Vec_i indices(const Vec_f& vec, const int& start = 0) {
     Vec_i res(vec.size(), 0);
-    std::iota(std::begin(res), std::end(res), 1);
+    std::iota(std::begin(res), std::end(res), start);
     return res;
 }
+
+Vec_f scalarToRVec(const float& var, const int& size) {
+
+  Vec_f res(size,var); // initialize to 0
+  return res;
+  
+}
+
+Vec_f scalarToRVec(const float& var, const Vec_f& size) {
+
+  Vec_f res(size.size(),var); // initialize to 0
+  return res;
+  
+}
+
+Vec_f scalarToRVec(const float& var, const Vec_i& size) {
+
+  Vec_f res(size.size(),var); // initialize to 0
+  return res;
+  
+}
+
 
 float deltaPhi(float phi1, float phi2) {
     float result = phi1 - phi2;

@@ -887,9 +887,6 @@ class PlotMaker:
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
                 hists = [v for k,v in pmaps[ipspec].items() if k != 'data']
-                #print "sumGenWeights"
-                #print sumGenWeights.GetValue()
-                #print "CHECK %d" % len(hists)
                 total = hists[0].Clone(pspec.name+"_total"); total.Reset()
                 totalSyst = hists[0].Clone(pspec.name+"_totalSyst"); totalSyst.Reset()
                 if self._options.plotmode == "norm": 
@@ -1423,6 +1420,7 @@ if __name__ == "__main__":
     # TODO: The fact that options is in the global scope is kind of abused. 
     # Would be better to pass this to the functions that need it. For now, just leaving it
     options = args
+    setLogging(args.verbose)
     mca  = MCAnalysis(args.sampleFile, args)
     cuts = CutsFile(args.cutFile, args)
     plots = PlotFile(args.plotFile, args)

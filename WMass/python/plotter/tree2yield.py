@@ -22,8 +22,6 @@ from cutsFile import *
 from fakeRate import *
 from mcCorrections import *
 
-logging.basicConfig(level=logging.INFO)
-
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
 
@@ -32,6 +30,10 @@ if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries():
 
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functionsWMass.cc")
+
+def setLogging(verbosity):
+    verboseLevel = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=verboseLevel[min(4,verbosity)])
 
 def scalarToVector(x):
     x0 = x
@@ -214,7 +216,9 @@ class TreeToYield:
 
         if self._options.rdfAlias:
             self._rdfAlias = self.getRdfDefinitions(self._options.rdfAlias)
-                    
+        self._rdfDefsWeightColumns = []
+
+            
     def getRdfDefinitions(self, data):
         lines = data
         if type(data) == str and os.path.isfile(data):
@@ -511,9 +515,6 @@ class TreeToYield:
         else:
             wgt = '1.' ## wtf is that marc
 
-        tmp_weight = self._cname+'_weight'
-        #print "In getManyPlotsRaw"
-        #print(tmp_weight)
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
@@ -522,8 +523,6 @@ class TreeToYield:
         for name,entry in self._rdfAlias.items():
             if re.match(entry["procRegexp"], self._cname):
                 self._tree = self._tree.Alias(name, entry["define"])
-
-        self._tree = self._tree.Define(tmp_weight, wgt)        
 
         ## define the Sum of genWeights before the filter
         if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
@@ -553,7 +552,6 @@ class TreeToYield:
         for plotspec in plotspecs:
             # I think we will never do it, and for now it is not even implemented
             # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
-
             tmp_expr = self.adaptExpr(plotspec.expr)
             if self._options.doS2V:
                 tmp_expr = scalarToVector(tmp_expr)
@@ -562,12 +560,32 @@ class TreeToYield:
             (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
             # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
             tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
-                    
+
+            tmp_weight = self._cname+'_weight'
+            #print "In getManyPlotsRaw"
+            #print(tmp_weight)
+            #definedColumnNames = list(filter(lambda x : str(x).startswith(tmp_weight), self._tree.GetDefinedColumnNames()))
+            #definedColumnNames = [str(x) for x in definedColumnNames]
+            if tmp_weight in self._rdfDefsWeightColumns:
+                matchedCnames = list(filter(lambda x : re.match("^"+tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
+                cnindex = len(matchedCnames)
+                oldname = tmp_weight
+                tmp_weight = oldname + "_%d" % (cnindex)
+                logging.debug("Column %s already defined, name changed to %s" % (oldname,tmp_weight))
+            else:
+                logging.debug("Defining new column %s" % tmp_weight)
+            self._rdfDefsWeightColumns.append(tmp_weight)
+                
+            if plotspec.getOption('AddWeight', None):
+                wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
+            logging.debug("Weight string = %s " % wgt)
+            self._tree = self._tree.Define(tmp_weight, wgt)        
+            
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
-                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)                
                 tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_varx, tmp_weight)
             elif tmp_histo.ClassName() == 'TH2D':
                 tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)
@@ -587,7 +605,7 @@ class TreeToYield:
                 (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
                 (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
-
+                
             histos.append(tmp_histo)
 
         if self._options.printYieldsRDF:

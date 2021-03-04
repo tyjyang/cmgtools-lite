@@ -14,7 +14,6 @@
 #include "TGraphAsymmErrors.h"
 #include "TLorentzVector.h"
 #include "TEfficiency.h"
-// #include "EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class.cc"
 
 #include <iostream>
 #include <stdlib.h>
@@ -27,6 +26,7 @@
 #include <utility>
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/functional/hash.hpp>
 
 TF1 * helicityFractionSimple_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
 TF1 * helicityFractionSimple_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
@@ -49,8 +49,6 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
   }
 
 }
-
-static string _cmssw_base_ = "./"; // dummy, shouldn't be used anymore
 
 float getValFromTH2(const TH2& h, const float& x, const float& y) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
@@ -508,7 +506,10 @@ struct pair_hash
     template <class T1, class T2>
     std::size_t operator() (const std::pair<T1, T2> &p) const
     {
-        return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
+      std::size_t seed = 0;
+      boost::hash_combine(seed, p.first);
+      boost::hash_combine(seed, p.second);
+      return seed;
     }
 };
 

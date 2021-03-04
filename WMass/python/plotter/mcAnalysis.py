@@ -53,7 +53,11 @@ class MCAnalysis:
             for k in fro.split(","):
                 self._premap.append((re.compile(k.strip()+"$"), to))
         if hasattr(ROOT, "initializeScaleFactors"):
+            logging.info("Initializing histograms with scale factors")
             ROOT.initializeScaleFactors()
+        if hasattr(ROOT, "initializeJson"):
+            ROOT.initializeJson()
+            logging.info("Initializing json files for data")
         self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
         self.readMca(samples,options)
@@ -288,7 +292,7 @@ class MCAnalysis:
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
             if field[0] in list(self.allRDF.keys()):
                 # case with multiple lines in MCA with same common name and different processes attached to it
-                matchedCnames = filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys()) # start with cname followed by . and at least one digit
+                matchedCnames = list(filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys())) # start with cname followed by . and at least one digit
                 cnindex = len(matchedCnames) 
                 field[0] = f"{field[0]}.{cnindex}" # add number to component to distinguish it from other ones
             if self._options.rdfRange:
@@ -827,6 +831,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
     parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
     parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", default=True, help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
+    parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 
@@ -836,6 +841,7 @@ if __name__ == "__main__":
     addMCAnalysisOptions(parser)
     args = parser.parse_args()
     options = args
+    setLogging(args.verbose)
     if not options.path and not options.nanoaodTree: options.path = ['./']
     tty = TreeToYield(args.sampleFile,options) if ".root" in args.sampleFile else MCAnalysis(args.sampleFile,options)
     cf  = CutsFile(args.cutFile,options)
