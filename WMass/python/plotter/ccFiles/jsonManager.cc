@@ -76,10 +76,10 @@ std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > makeMapFro
 
     /////////////////////////
     // check that it works
-    // cout << "printing map ..." << endl;
-    // for (std::map<UInt_t, vector< pair<UInt_t,UInt_t> > >::iterator it = runsAndLumiBlocks.begin(); it != runsAndLumiBlocks.end(); ++it) {
+    // cout << "printing map for " << myJsonFile << " ..." << endl;
+    // for (std::unordered_map<UInt_t, vector< pair<UInt_t,UInt_t> > >::iterator it = runsAndLumiBlocks.begin(); it != runsAndLumiBlocks.end(); ++it) {
     //   cout << it->first << " --> "; 
-    //   for (UUInt_t i = 0; i < it->second.size(); i++) {
+    //   for (UInt_t i = 0; i < it->second.size(); i++) {
     // 	cout << "[" << it->second.at(i).first << "," << it->second.at(i).second << "]  ";
     //   } 
     //   cout << endl;
@@ -124,9 +124,13 @@ Bool_t isGoodRunLS(const Bool_t& isData, const UInt_t& run, const UInt_t& lumis,
   if       (era == 1) theJsonMap = jsonMap_preVFP;
   else if  (era == 2) theJsonMap = jsonMap_postVFP;
   else                theJsonMap = jsonMap_all;
-  
-  if ( theJsonMap.find(run) == theJsonMap.end() ) return false; // run not found
 
+  //std::cout << "run,lumi = " << run << "," << lumis << " --> ";
+  if ( theJsonMap.find(run) == theJsonMap.end() ) {
+    //std::cout << "false" << std::endl;
+    return false; // run not found
+  }
+  
   Bool_t LSfound = false;
 
   for (UInt_t i = 0; i < theJsonMap.at(run).size() && !LSfound; ++i) {
@@ -137,7 +141,13 @@ Bool_t isGoodRunLS(const Bool_t& isData, const UInt_t& run, const UInt_t& lumis,
     if (lumis >= theJsonMap.at(run).at(i).first ) LSfound = true;
 
   }
-
+  //std::cout << ((LSfound) ? "true" : "false")  << std::endl;
+  
+  // if (not LSfound) {
+  //   std::cout << "NOT IN JSON: run,lumi = " << run << "," << lumis << std::endl;
+  // } else {
+  //   std::cout << "RUN/LUMI FOUND IN JSON: run,lumi = " << run << "," << lumis << std::endl;
+  // }
   return LSfound;
     
 }
