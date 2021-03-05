@@ -1,10 +1,10 @@
 data_preVFP: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kRed+2
 
-data_preVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(1\,run\,luminosityBlock\,1)", Label="with json"
+data_preVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="with json"
 
 data_postVFP: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlack
 
-data_postVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kGreen+2, AddWeight="isGoodRunLS(1\,run\,luminosityBlock\,2)", Label="with json"
+data_postVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kGreen+2,AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="with json"
 
 data_postVFP_effCorr: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,Data)"
 

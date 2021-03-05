@@ -27,6 +27,7 @@
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/functional/hash.hpp>
+#include "defines.h"
 
 TF1 * helicityFractionSimple_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
 TF1 * helicityFractionSimple_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
@@ -496,8 +497,6 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
 // Sorry you have to manually keep these consistent
-typedef enum {BToH=0, BToF, GToH} DataEra;
-typedef enum {MC=0, Data} DataType;
 std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 
@@ -611,7 +610,7 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end()) {
-      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
       //std::cout << "scale factor main leg -> " << sf << std::endl;
     }
   }
@@ -619,7 +618,7 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   for (const auto& corr : sfnamesOther) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist[key],etaOther,ptOther);
+      sf *= getValFromTH2(corrTypeToHist.at(key),etaOther,ptOther);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
@@ -638,7 +637,7 @@ float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& ch
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
   }
   return sf;
 }
