@@ -22,9 +22,10 @@
 using namespace std;
 
 //std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap;
-std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_preVFP;
-std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_postVFP;
-std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_all;
+// std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_preVFP;
+// std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_postVFP;
+// std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_all;
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap;
 
 //==========================================================
 
@@ -105,25 +106,28 @@ void initializeJson() {
   // format is 
   // run: [ls1,ls2] [ls3,ls4] [...]  note that spaces are important
   // given a json, this format can be obtained with python/plotter/myFormatJson.py
-  jsonMap_preVFP  = makeMapFromJson("./pileupStuff/json_preVFP_myFormatJson.txt");
-  jsonMap_postVFP = makeMapFromJson("./pileupStuff/json_postVFP_myFormatJson.txt");
+  // jsonMap_preVFP  = makeMapFromJson("./pileupStuff/json_preVFP_myFormatJson.txt");
+  // jsonMap_postVFP = makeMapFromJson("./pileupStuff/json_postVFP_myFormatJson.txt");
   // checked that there are no duplicate keys, i.e. no common runs between the two eras
-  jsonMap_all = jsonMap_preVFP;
-  jsonMap_all.insert(jsonMap_postVFP.begin(), jsonMap_postVFP.end());
+  // jsonMap_all = jsonMap_preVFP;
+  // jsonMap_all.insert(jsonMap_postVFP.begin(), jsonMap_postVFP.end());
+  // jsonMap_all = makeMapFromJson("./pileupStuff/json_all_myFormatJson.txt");
+
+  theJsonMap = makeMapFromJson("./pileupStuff/json_all_myFormatJson.txt");
   
 }
 
 //==========================================================
 
-Bool_t isGoodRunLS(const Bool_t& isData, const UInt_t& run, const UInt_t& lumis, const Int_t& era) {
+Bool_t isGoodRunLS(const Bool_t& isData, const UInt_t& run, const UInt_t& lumis) {
   
   // for MC this function always returns true
   if (not isData) return true;
 
-  std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap; // would it be better as a pointer?
-  if       (era == 1) theJsonMap = jsonMap_preVFP;
-  else if  (era == 2) theJsonMap = jsonMap_postVFP;
-  else                theJsonMap = jsonMap_all;
+  // std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > theJsonMap; // would it be better as a pointer?
+  // if       (era == 1) theJsonMap = jsonMap_preVFP;
+  // else if  (era == 2) theJsonMap = jsonMap_postVFP;
+  // else                theJsonMap = jsonMap_all;
 
   //std::cout << "run,lumi = " << run << "," << lumis << " --> ";
   if ( theJsonMap.find(run) == theJsonMap.end() ) {
