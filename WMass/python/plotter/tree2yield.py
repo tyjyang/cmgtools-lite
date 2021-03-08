@@ -643,25 +643,26 @@ class TreeToYield:
             logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
         self._appliedCut = cut
         self._elist = elist
-    def cutToElist(self,cut,fsplit=None):
-        logging.info('beginning of cuttoelist')
-        if not self._isInit: self._init()
-        logging.info('afetr init')
-        ##marcif self._weight:
-        ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marcelse: cut = self.adaptExpr(cut,cut=True)
-        cut = self.adaptExpr(cut,cut=True)
-        if self._options.doS2V: cut  = scalarToVector(cut)
-        (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        logging.debug('now gonna perform the draw command 4')
-        ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## apply a cut, rdf style
-        logging.debug(' i am filtering with', cut)
-        self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## marc elist = ROOT.gDirectory.Get('elist')
-        ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
-        ## marc return elist
+    # no longer needed with RDF
+    # def cutToElist(self,cut,fsplit=None):
+    #     logging.info('beginning of cuttoelist')
+    #     if not self._isInit: self._init()
+    #     logging.info('afetr init')
+    #     ##marcif self._weight:
+    #     ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marcelse: cut = self.adaptExpr(cut,cut=True)
+    #     cut = self.adaptExpr(cut,cut=True)
+    #     if self._options.doS2V: cut  = scalarToVector(cut)
+    #     (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
+    #     logging.debug('now gonna perform the draw command 4')
+    #     ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## apply a cut, rdf style
+    #     logging.debug(' i am filtering with', cut)
+    #     self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## marc elist = ROOT.gDirectory.Get('elist')
+    #     ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
+    #     ## marc return elist
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:

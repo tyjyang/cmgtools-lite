@@ -12,7 +12,8 @@ ROOT.ROOT.EnableImplicitMT()
 
 #_T0 = long(ROOT.gSystem.Now())
 
-## These must be defined as standalone functions, to allow runing them in parallel
+## These must be defined as standalone functions, to allow running them in parallel
+## these might actually be no longer needed with RDF
 def _runYields(args):
     key,tty,cuts,noEntryLine,fsplit = args
     return (key, tty.getYields(cuts,noEntryLine=noEntryLine,fsplit=fsplit))
@@ -25,9 +26,9 @@ def _runPlot(args):
     #print "Done plot %s for %s, %s, fsplit %s in %s s, at %.2f; entries = %d, time/entry = %.3f ms" % (plotspec.name,key,tty._cname,fsplit,timer.RealTime(), 0.001*(long(ROOT.gSystem.Now()) - _T0), ret[1].GetEntries(), (long(ROOT.gSystem.Now()) - _T0)/float(ret[1].GetEntries()))
     return ret
 
-def _runApplyCut(args):
-    key,tty,cut,fsplit = args
-    return (key, tty.cutToElist(cut,fsplit=fsplit))
+# def _runApplyCut(args):
+#     key,tty,cut,fsplit = args
+#     return (key, tty.cutToElist(cut,fsplit=fsplit))
 
 def _runGetEntries(args):
     key,tty = args

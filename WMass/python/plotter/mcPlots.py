@@ -814,7 +814,6 @@ class PlotMaker:
             for i,(cn,cv) in enumerate(allcuts[:-1]): # skip the last one which is equal to all cuts
                 cnsafe = "cut_%02d_%s" % (i, re.sub("[^a-zA-Z0-9_.]","",cn.replace(" ","_")))
                 sets.append((cnsafe,cn,cv))
-        elist = (self._options.elist == True) or (self._options.elist == 'auto' and len(plots.plots()) > 2)
         for subname, title, cut in sets:
             logging.info(" cut set: %s" % title)
             dir = self._dir
@@ -1385,9 +1384,6 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--canvasSize", dest="setCanvasSize", type=int, nargs=2, default=(600, 600), help="Set canvas height and width")
     parser.add_argument("--setTitleYoffset", type=float, default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
     parser.add_argument("--setTitleXoffset", type=float, default=0.90, help="Set X axis offset for title. The default is 0.9, which is fine unless there are superscripts, in that case 1.1 is suggested. It should be tuned based on the canvas size and presence of ratio plot.")
-    parser.add_argument("--elist", action="store_true", help="Use elist (on by default if making more than 2 plots)")
-    parser.add_argument("--no-elist", dest="elist", action="store_false", help="Don't elist (which are on by default if making more than 2 plots)")
-    #if not parser.has_option("--yrange"): parser.add_argument("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
     parser.add_argument("--yrange", nargs=2, type=float, help="Y axis range");
     parser.add_argument("--emptyStack", action="store_true", help="Allow empty stack in order to plot, for example, only signals but no backgrounds.")
     parser.add_argument("--noLegendRatioPlot", action="store_true", help="Remove legend in ratio plot (by default it is drawn)");
