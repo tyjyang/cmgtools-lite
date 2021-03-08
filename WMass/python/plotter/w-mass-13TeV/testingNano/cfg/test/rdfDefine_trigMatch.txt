@@ -6,3 +6,4 @@ zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
 goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
+ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]) : .*

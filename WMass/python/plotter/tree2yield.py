@@ -158,7 +158,7 @@ class TreeToYield:
         self._frienddir = frienddir if frienddir else ""
         self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
-        if self._isdata:
+        if self._isdata or not options.weightString:
             self._weightString = "1"
         else:
             self._weightString = "*".join("("+str(w)+")" for w in options.weightString)
