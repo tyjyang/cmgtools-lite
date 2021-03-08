@@ -5,6 +5,7 @@ from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
 import argparse
+import json
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
@@ -32,6 +33,17 @@ def _runGetEntries(args):
     key,tty = args
     return (key, tty.getEntries())
 
+def initializeJson(jsonMap, jsonFile):
+    if not os.path.isfile(jsonFile):
+         raise ValueError("Could not find json file %s" % jsonFile)
+    info = json.load(open(jsonFile))
+
+    for k,v in info.items():
+        vec = ROOT.std.vector["std::pair<unsigned int, unsigned int>"]()
+        for combo in v:
+            pair = ROOT.std.pair["unsigned int", "unsigned int"](*[int(c) for c in combo])
+            vec.push_back(pair)
+        jsonMap[int(k)] = vec
 
 class MCAnalysis:
     def __init__(self,samples,options):
@@ -55,9 +67,9 @@ class MCAnalysis:
         if hasattr(ROOT, "initializeScaleFactors"):
             logging.info("Initializing histograms with scale factors")
             ROOT.initializeScaleFactors()
-        if hasattr(ROOT, "initializeJson"):
-            ROOT.initializeJson()
-            logging.info("Initializing json files for data")
+        if hasattr(ROOT, "jsonMap_all"):
+            initializeJson(ROOT.jsonMap_all, "pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
+            logging.info("Initialized json files for data")
         self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
         self.readMca(samples,options)
