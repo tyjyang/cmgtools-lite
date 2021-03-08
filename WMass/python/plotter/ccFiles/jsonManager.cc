@@ -12,6 +12,10 @@
 
 using namespace std;
 
+
+std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_all;
+//==========================================================
+
 bool isGoodRunLS(const DataType isData, const UInt_t run, const UInt_t lumi) {
   
   // for MC this function always returns true
