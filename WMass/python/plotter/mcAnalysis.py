@@ -552,22 +552,22 @@ class MCAnalysis:
 
         if self._options.useRunGraphs:        
             # assign all histograms to the graph, to allow for simultaneous loop
-            print("Have these processes and components")
-            print(list(self.allRDF.keys()))       
+            logging.info("Have these processes and components")
+            logging.info(list(self.allRDF.keys()))       
             allHistogramsList = []
             for key in list(self.allRDF.keys()):
                 allHistogramsList.extend(hist for hist in self.allHistos[key])
-            print("Creating ROOT.RDF.RunGraphs and triggering loop")
+            logging.info("Creating ROOT.RDF.RunGraphs and triggering loop")
             ROOT.RDF.RunGraphs(allHistogramsList)
             # now other operations that were temporarily skipped to avoid triggering the loop
-            print("Done with loop, now some refinements on histograms")
+            logging.info("Done with loop, now some refinements on histograms")
             # ugly to repeat it, but for now it works
             for key,ttys in self._allData.items():
                 if key == 'data' and nodata: continue
                 if process != None and key != process: continue
                 for tty in ttys:
                     retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )                
-            print("Done :)")
+            logging.info("Done :)")
         
         mergemap = {}
         for (k,v) in retlist: 
@@ -705,8 +705,8 @@ class MCAnalysis:
                 logging.info("")
 
     # apparently used nowhere
-    def _getYields(self,ttylist,cuts):
-        return mergeReports([tty.getYields(cuts) for tty in ttylist])
+    #def _getYields(self,ttylist,cuts):
+    #    return mergeReports([tty.getYields(cuts) for tty in ttylist])
     def __str__(self):
         mystr = ""
         for a in self._allData:
@@ -838,12 +838,12 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("-t", "--tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_argument("--fom", "--figure-of-merit", dest="figureOfMerit", type=str, default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
     parser.add_argument("--max-genWeight-procs", dest="maxGenWeightProc", type=str, nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
-    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
-    parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
-    parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
+    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
+    parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
+    parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
-    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
-    parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", default=True, help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
+    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
+    parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
