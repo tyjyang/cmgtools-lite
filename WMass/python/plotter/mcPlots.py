@@ -816,13 +816,13 @@ class PlotMaker:
                 sets.append((cnsafe,cn,cv))
         for subname, title, cut in sets:
             logging.info(" cut set: %s" % title)
-            dir = self._dir
+            cdir = self._dir
             if subname:
                 if self._dir.Get(subname):
-                    dir = self._dir.Get(subname)
+                    cdir = self._dir.Get(subname)
                 else:
-                    dir = self._dir.mkdir(subname,title)
-            dir.cd()
+                    cdir = self._dir.mkdir(subname,title)
+            cdir.cd()
             pspecs = plots.plots()
             if self._options.preFitData:
                 matchspec = [ p for p in pspecs if p.name == self._options.preFitData ]
@@ -880,8 +880,8 @@ class PlotMaker:
                 #
                 if not makeStack: 
                     for k,v in pmaps[ipspec].items():
-                        if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
-                        dir.WriteTObject(v)
+                        if v.InheritsFrom("TH1"): v.SetDirectory(cdir) 
+                        cdir.WriteTObject(v)
                     continue
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
@@ -901,8 +901,8 @@ class PlotMaker:
                     doNormFit(pspec,pmaps[ipspec],mca,saveScales=True)
                 #
                 for k,v in pmaps[ipspec].items():
-                    if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
-                    dir.WriteTObject(v)
+                    if v.InheritsFrom("TH1"): v.SetDirectory(cdir) 
+                    cdir.WriteTObject(v)
                 #
                 self.printOnePlot(mca,pspec,pmaps[ipspec],
                                   xblind=xblind,

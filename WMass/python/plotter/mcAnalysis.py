@@ -305,9 +305,9 @@ class MCAnalysis:
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
             if field[0] in list(self.allRDF.keys()):
                 # case with multiple lines in MCA with same common name and different processes attached to it
-                matchedCnames = list(filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys())) # start with cname followed by . and at least one digit
+                matchedCnames = list(filter(lambda x : re.match(field[0]+"__ext\d+$",x),self.allRDF.keys())) # start with cname followed by __ ext and at least one digit (and ending like that
                 cnindex = len(matchedCnames) 
-                field[0] = f"{field[0]}.{cnindex}" # add number to component to distinguish it from other ones
+                field[0] = f"{field[0]}__ext{cnindex}" # add number to component to distinguish it from other ones
             if self._options.rdfRange:
                 ROOT.ROOT.DisableImplicitMT() # to be called before creating the RDataFrame
             self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
@@ -566,21 +566,28 @@ class MCAnalysis:
                 if key == 'data' and nodata: continue
                 if process != None and key != process: continue
                 for tty in ttys:
-                    retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )                
+                    retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
             logging.info("Done :)")
         
-        mergemap = {}
-        for (k,v) in retlist: 
-            if k not in mergemap: mergemap[k] = []
-            mergemap[k].append(v)
-
         rets = []
         for ip,plotspec in enumerate(plotspecs):
             mergemap = {}
-            for (k,v) in retlist: 
+            logging.debug(">>>>>> plotspec %s" % plotspec.name)
+            for (k,v) in retlist:
+                logging.debug("------- process %s" % k)
                 if not k in mergemap: mergemap[k] = []
-                mergemap[k].append(v[ip])
-            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() ])
+                if plotspec.getOption('ProcessRegexp', None):
+                    regexp = plotspec.getOption('ProcessRegexp', ".*")
+                    if re.match(regexp, k):
+                        mergemap[k].append(v[ip])
+                    else:
+                        mergemap[k].append(None)
+                        v.insert(ip,None)
+                else:
+                    mergemap[k].append(v[ip])
+                logging.debug(" ".join(x.GetName() if x != None else "None" for x in v))
+
+            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() if all(x != None for x in v)])
 
             rescales = []
             self.compilePlotScaleMap(self._options.plotscalemap,rescales)

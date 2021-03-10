@@ -550,15 +550,23 @@ class TreeToYield:
         column_expr = {}
         
         for plotspec in plotspecs:
-            # I think we will never do it, and for now it is not even implemented
-            # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
+
+            # check if histogram has to be done for this process
+            # if the flag is not set it is assumed it has to be done
+            if plotspec.getOption('ProcessRegexp', None):            
+                regexp = plotspec.getOption('ProcessRegexp', ".*")
+                if re.match(regexp, self._name):
+                    logging.debug("Going to plot %s for process %s" % (plotspec.name,self._name))
+                else:
+                    logging.debug("Skipping plot %s for process %s" % (plotspec.name,self._name))
+                    continue
+            else:
+                logging.debug("Going to plot %s for process %s (all accepted)" % (plotspec.name,self._name))
+                
             tmp_expr = self.adaptExpr(plotspec.expr)
             if self._options.doS2V:
                 tmp_expr = scalarToVector(tmp_expr)
 
-            ## marc: this following line should be removed i think
-            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
             tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
 
             tmp_weight = self._cname+'_weight'
@@ -585,7 +593,7 @@ class TreeToYield:
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
-                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)                
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
                 tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_varx, tmp_weight)
             elif tmp_histo.ClassName() == 'TH2D':
                 tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)

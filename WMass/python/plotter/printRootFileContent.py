@@ -11,7 +11,7 @@ parser.add_argument('-c', '--class',          dest='className',      default='',
 parser.add_argument('-x', '--exclude-regexp', dest='excludeRegexp', default='', type=str, help='Like option -r, but will reject object if name matches')
 parser.add_argument('-f', '--output-format',  dest='outputFormat',  default='all', type=str, help='Print type, name and (for histograms only) integral (all, default); just name (name)')
 parser.add_argument('-s', '--silent',  action='store_true', help='Silent mode: just print summary, not all entries')
-parser.add_argument('-i', '--inherith',   default='', type=str, help='Filter output based on whether the object class inheriths from this (e.g. -i TH1 will match all root histogram objects)')  
+parser.add_argument('-i', '--inherit',   default='', type=str, help='Filter output based on whether the object class inheriths from this (e.g. -i TH1 will match all root histogram objects)')  
 parser.add_argument('-r', '--regexp',  default='', type=str, help='Filter output passing a regular expression to be matched in the object name')
 parser.add_argument(      '--print-min-negative', dest='printMinNegative', action='store_true', help='If true, print also minimum bin content when negative (only for histograms)')
 parser.add_argument(      '--print-integral-cap-negative', dest='printIntegralCapNegative',  action='store_true', help='If true, print integral when capping negative bin to 0 (print also ratio with actual integral')
