@@ -52,6 +52,7 @@ if __name__ == "__main__":
         htmp = f.Get(name)
         if not name.startswith("eff"): continue
         if "_BtoH_" in name: continue
+        if "SF2D_Data_" in name or "SF2D_MC_" in name: continue # these will be created here, if already present let's skip them
         htmp.SetTitle(name)
         drawCorrelationPlot(htmp,"Muon #eta","Muon p_{T} (GeV)","efficiency",
                             name,plotLabel="ForceTitle",outdir=outdir,
@@ -110,6 +111,7 @@ if __name__ == "__main__":
     for k in originalFile.GetListOfKeys():
         name = k.GetName()
         obj  = k.ReadObj()
+        if "SF2D_Data_" in name or "SF2D_MC_" in name: continue # do not copy the older version of the data/data or MC/MC scale factors if present
         if not obj:
             raise RuntimeError('Unable to read object {n}'.format(n=name))
         obj.Write(name)

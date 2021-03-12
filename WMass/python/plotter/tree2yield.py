@@ -22,8 +22,6 @@ from cutsFile import *
 from fakeRate import *
 from mcCorrections import *
 
-logging.basicConfig(level=logging.INFO)
-
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
 
@@ -32,6 +30,10 @@ if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries():
 
 if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functionsWMass.cc")
+
+def setLogging(verbosity):
+    verboseLevel = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=verboseLevel[min(4,verbosity)])
 
 def scalarToVector(x):
     x0 = x
@@ -156,7 +158,7 @@ class TreeToYield:
         self._frienddir = frienddir if frienddir else ""
         self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
-        if self._isdata:
+        if self._isdata or not options.weightString:
             self._weightString = "1"
         else:
             self._weightString = "*".join("("+str(w)+")" for w in options.weightString)
@@ -214,7 +216,9 @@ class TreeToYield:
 
         if self._options.rdfAlias:
             self._rdfAlias = self.getRdfDefinitions(self._options.rdfAlias)
-                    
+        self._rdfDefsWeightColumns = []
+
+            
     def getRdfDefinitions(self, data):
         lines = data
         if type(data) == str and os.path.isfile(data):
@@ -504,16 +508,7 @@ class TreeToYield:
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
         if not self._isInit: self._init()
         retlist = []
-        ## weigth is always the same for each plot
-        if self._weight:
-            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
-        else:
-            wgt = '1.' ## wtf is that marc
 
-        tmp_weight = self._cname+'_weight'
-        #print "In getManyPlotsRaw"
-        #print(tmp_weight)
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
@@ -522,8 +517,6 @@ class TreeToYield:
         for name,entry in self._rdfAlias.items():
             if re.match(entry["procRegexp"], self._cname):
                 self._tree = self._tree.Alias(name, entry["define"])
-
-        self._tree = self._tree.Define(tmp_weight, wgt)        
 
         ## define the Sum of genWeights before the filter
         if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
@@ -551,18 +544,53 @@ class TreeToYield:
         column_expr = {}
         
         for plotspec in plotspecs:
-            # I think we will never do it, and for now it is not even implemented
-            # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
 
-            tmp_expr = self.adaptExpr(plotspec.expr)
-            if self._options.doS2V:
-                tmp_expr = scalarToVector(tmp_expr)
+            # check if histogram has to be done for this process
+            # if the flag is not set it is assumed it has to be done
+            if plotspec.getOption('ProcessRegexp', None):            
+                regexp = plotspec.getOption('ProcessRegexp', ".*")
+                if re.match(regexp, self._name):
+                    logging.debug("Going to plot %s for process %s" % (plotspec.name,self._name))
+                else:
+                    logging.debug("Skipping plot %s for process %s" % (plotspec.name,self._name))
+                    continue
+            else:
+                logging.debug("Going to plot %s for process %s (all accepted)" % (plotspec.name,self._name))
+                
+            # not really needed, and not even used for now
+            # tmp_expr = self.adaptExpr(plotspec.expr)
+            # if self._options.doS2V:
+            #     tmp_expr = scalarToVector(tmp_expr)
 
-            ## marc: this following line should be removed i think
-            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
             tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
-                    
+
+            tmp_weight = self._cname+'_weight'
+            #print "In getManyPlotsRaw"
+            #print(tmp_weight)
+            #definedColumnNames = list(filter(lambda x : str(x).startswith(tmp_weight), self._tree.GetDefinedColumnNames()))
+            #definedColumnNames = [str(x) for x in definedColumnNames]
+            if tmp_weight in self._rdfDefsWeightColumns:
+                matchedCnames = list(filter(lambda x : re.match(tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
+                cnindex = len(matchedCnames)
+                oldname = tmp_weight
+                tmp_weight = oldname + "_%d" % (cnindex)
+                logging.debug("Column %s already defined, name changed to %s" % (oldname,tmp_weight))
+            else:
+                logging.debug("Defining new column %s" % tmp_weight)
+            self._rdfDefsWeightColumns.append(tmp_weight)
+
+            ## weight has a common part for each plot
+            if self._weight:
+                if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+                else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+            else:
+                wgt = '1.' ## wtf is that marc
+            
+            if plotspec.getOption('AddWeight', None):
+                wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
+            logging.debug("%s weight string = %s " % (tmp_weight, wgt))
+            self._tree = self._tree.Define(tmp_weight, wgt)        
+            
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
@@ -587,7 +615,7 @@ class TreeToYield:
                 (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
                 (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
-
+                
             histos.append(tmp_histo)
 
         if self._options.printYieldsRDF:
@@ -625,25 +653,26 @@ class TreeToYield:
             logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
         self._appliedCut = cut
         self._elist = elist
-    def cutToElist(self,cut,fsplit=None):
-        logging.info('beginning of cuttoelist')
-        if not self._isInit: self._init()
-        logging.info('afetr init')
-        ##marcif self._weight:
-        ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marcelse: cut = self.adaptExpr(cut,cut=True)
-        cut = self.adaptExpr(cut,cut=True)
-        if self._options.doS2V: cut  = scalarToVector(cut)
-        (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        logging.debug('now gonna perform the draw command 4')
-        ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## apply a cut, rdf style
-        logging.debug(' i am filtering with', cut)
-        self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## marc elist = ROOT.gDirectory.Get('elist')
-        ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
-        ## marc return elist
+    # no longer needed with RDF
+    # def cutToElist(self,cut,fsplit=None):
+    #     logging.info('beginning of cuttoelist')
+    #     if not self._isInit: self._init()
+    #     logging.info('afetr init')
+    #     ##marcif self._weight:
+    #     ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marcelse: cut = self.adaptExpr(cut,cut=True)
+    #     cut = self.adaptExpr(cut,cut=True)
+    #     if self._options.doS2V: cut  = scalarToVector(cut)
+    #     (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
+    #     logging.debug('now gonna perform the draw command 4')
+    #     ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## apply a cut, rdf style
+    #     logging.debug(' i am filtering with', cut)
+    #     self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## marc elist = ROOT.gDirectory.Get('elist')
+    #     ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
+    #     ## marc return elist
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:
@@ -694,7 +723,7 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("-N", "--n-minus-one", dest="nMinusOne", action="store_true", help="Compute n-minus-one yields and plots")
     parser.add_argument("--select-n-minus-one", dest="nMinusOneSelection", type=str, help="Select which cuts to do N-1 for (comma separated list of regexps)")
     parser.add_argument("--NI", "--inv-n-minus-one", dest="nMinusOneInverted", action="store_true", help="Compute n-minus-one yields and plots")
-    parser.add_argument("--obj", "--objname", dest="obj", default='tree', help="Pattern for the name of the TTree inside the file");
+    parser.add_argument("--obj", "--objname", dest="obj", default='Events', help="Pattern for the name of the TTree inside the file");
     parser.add_argument("--RV", "--replace-var", dest="varsToReplace", action="append", default=[], nargs=2, help="Variable to replace(old var name, new var name); can specify multiple times.")
     parser.add_argument("-G", "--no-fractions", dest="fractions", action="store_false", default=True, help="Don't print the fractions");
     parser.add_argument("-F", "--add-friend", dest="friendTrees", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename). Can use {name}, {cname} patterns in the treename") 
@@ -708,6 +737,7 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("--neg", "--allow-negative-results", dest="allowNegative", action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
     parser.add_argument("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
     parser.add_argument("--max-entries", dest="maxEntries", default=1000000000000, type=int, help="Max entries to process in each tree") 
+    parser.add_argument("--rdf-range", dest="rdfRange", default=[], nargs=3, type=int, help="Arguments to use RDF::Range to sets entries to process with RDataFrame, passing begin, end, stride (it sets multithreading to use 1 thread)") 
     parser.add_argument("--max-entries-not-data", dest="maxEntriesNotData", action="store_true", help="When --max-entries is used, make if effective only for non data processes (needed for some tests because MC is rescaled to luminosity, data cannot)") 
     parser.add_argument("-L", "--load-macro", dest="loadMacro", type=str, action="append", default=[], help="Load the following macro, with .L <file>+");
     parser.add_argument("--rdf-define-file", dest="rdfDefineFile", type=str, default="", help="Load file with some definitions to be used in RDataFrame");

@@ -14,7 +14,6 @@
 #include "TGraphAsymmErrors.h"
 #include "TLorentzVector.h"
 #include "TEfficiency.h"
-// #include "EgammaAnalysis/ElectronTools/src/EnergyScaleCorrection_class.cc"
 
 #include <iostream>
 #include <stdlib.h>
@@ -27,6 +26,8 @@
 #include <utility>
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/functional/hash.hpp>
+#include "defines.h"
 
 TF1 * helicityFractionSimple_0 = new TF1("helicityFraction_0", "3./4*(TMath::Sqrt(1-x*x))^2", -1., 1.);
 TF1 * helicityFractionSimple_L = new TF1("helicityFraction_L", "3./8.*(1-x)^2"              , -1., 1.);
@@ -50,26 +51,12 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
-static string _cmssw_base_ = "./"; // dummy, shouldn't be used anymore
-
 float getValFromTH2(const TH2& h, const float& x, const float& y) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
   //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
   return h.GetBinContent(xbin,ybin);
-}
-
-bool isOddEvent(ULong64_t evt) {
-
-  return (evt%2) ? 1 : 0;       
-
-}
-
-bool isEvenEvent(ULong64_t evt) {
-
-  return (evt%2) ? 0 : 1;       
-
 }
 
 float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
@@ -480,99 +467,6 @@ float postfitQCDWeight(float pt2l, int pol, int charge, int flav=0) {
 }
 
 
-
-//// ALL THE FOLLOWING PART UNTIL "//// XXXX" IS OBSOLETE, CAN BE REMOVED AT SOME POINT
-
-// ==================
-// full muon pT with scale variations
-TFile *_file_residualcorr_scaleMu = NULL;
-TH2D *_histo_residualcorr_scaleMu = NULL;
-
-float residualScaleMu(float pt, float eta, int isData, const char *fileCorr="../../data/muonscale/scale_correction_nonclosure_mu.root") {
-  if(!isData) return 1.;
-
-  if(!_histo_residualcorr_scaleMu) {
-    _file_residualcorr_scaleMu = new TFile(fileCorr);
-    _histo_residualcorr_scaleMu = (TH2D*)(_file_residualcorr_scaleMu->Get("scales_corrections_2d_muons"));
-  }
-  
-  TH2D *hist = _histo_residualcorr_scaleMu;
-  int etabin  = std::max(1, std::min(hist->GetNbinsX(), hist->GetXaxis()->FindFixBin(fabs(eta))));
-  int ptbin = std::max(1, std::min(hist->GetNbinsY(), hist->GetYaxis()->FindFixBin(pt)));
-  
-  float scale = 1. - hist->GetBinContent(etabin,ptbin);
-  if (scale < 0) {
-    cout << "WARNING in residualScale() function: scale < 0 --> returning 0." << endl;
-    return 0;
-  } else {
-    return scale;
-  }
-
-}
-
-float ptScaleUncorr(float pt, float eta, int pdgid, int iPtVar, bool isUp = true) {
-
-  // iPtVar defines the number fo the nuisance. For example, for muons we have 2 of them: 
-  // one is flat over all eta and has a 0.3% pt variation, while the other has a non-zero pt variation only for |eta|>2.1 (we assign 0.95%)
-
-  float abseta = fabs(eta);
-  float ptsyst = 0.0;
-
-  if (fabs(pdgid) == 11) {
-
-    // electrons, numbers to be discussed further
-    if      (iPtVar == 0)  ptsyst = 0.003; //0.3%
-    else if (iPtVar == 1) {
-        if (abseta >= 1.0) ptsyst = 0.004; // 0.5%
-    } else if (iPtVar == 2) {
-        if (abseta >= 1.5) ptsyst = 0.0063; // 0.8%
-    } else if (iPtVar == 3) {
-        if (abseta >= 2.1) ptsyst = 0.008; // 1.0%
-    }    
-
-  } else if (fabs(pdgid) == 13) {
-
-    //muons
-    if      (iPtVar == 0)  ptsyst = 0.003; //0.3%
-    else if (iPtVar == 1) {
-      if (abseta >= 2.1) ptsyst = 0.01; // 1.0%
-    }
-
-  } else {
-    // this should not happen using pdgid
-    // cout << "Warning in ptScaleUncorr(): pdg ID not consistent with mu or ele. Returning 0" << endl;
-    return 0;    
-  }
-
-  if (not isUp) ptsyst *= -1.0; // switch sign, will decrease pt
-  return pt * (1 + ptsyst);
-  
-}
-
-//-------------------
-// muons
-
-float ptMuScaleUncorr0Up(float pt, float eta) {
-  return ptScaleUncorr(pt, eta, 13, 0, true);
-}
-
-float ptMuScaleUncorr0Dn(float pt, float eta) {
-  return ptScaleUncorr(pt, eta, 13, 0, false);
-}
-
-float ptMuScaleUncorr1Up(float pt, float eta) {
-  return ptScaleUncorr(pt, eta, 13, 1, true);
-}
-
-float ptMuScaleUncorr1Dn(float pt, float eta) {
-  return ptScaleUncorr(pt, eta, 13, 1, false);
-}
-
-//// XXXX (PART ABOVE IS OBSOLETE)
-
-//===============================================
-
-
 //==================================================
 TRandom3 *rng = NULL;
 
@@ -587,163 +481,27 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 
 }
 
-// old function, can probably be removed
-float triggerSF_2l(float l11pass, float l12pass, float l21pass, float l22pass, float l1sf, float l2sf, int randomize=0){
-  float weight = -999.;
-
-  bool l1pass = (l11pass > -1. || l12pass > -1.);
-  bool l2pass = (l21pass > -1. || l22pass > -1.);
-
-  if      ( l1pass && !l2pass) weight = l1sf;
-  else if (!l1pass &&  l2pass) weight = l2sf;
-  else if ( l1pass &&  l2pass) {
-    if   (!randomize) weight = (l1sf+l2sf)/2.;
-    else {
-      if(!rng) rng = new TRandom3();
-      float randy = rng->Uniform(-1.,1.);
-      if (randy < 0.) weight = l1sf;
-      else            weight = l2sf;
-    }
-  }
-
-  //else return -999.; // this should never happen
-
-  return weight;
-}
-
-//============================     
-
-TFile *_file_recoToSelection_leptonSF_mu = NULL;
-TH2F *_histo_recoToSelection_leptonSF_mu = NULL;
-
-float _get_muonSF_recoToSelection(int pdgid, float pt, float eta, bool useBinnedSF = false) {
-
-  string hSFname = "scaleFactor_etaInterpolated";
-  if (useBinnedSF) hSFname = "scaleFactorOriginal";
-
-  if (!_histo_recoToSelection_leptonSF_mu) {
-    _file_recoToSelection_leptonSF_mu = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_recoToSel_finerETA.root","read");
-    _histo_recoToSelection_leptonSF_mu = (TH2F*)(_file_recoToSelection_leptonSF_mu->Get(hSFname.c_str()));
-  }
-
-  if(abs(pdgid)==13) {
-    TH2F *histRecoToSelection = _histo_recoToSelection_leptonSF_mu;
-
-    int etabin = std::max(1, std::min(histRecoToSelection->GetNbinsX(), histRecoToSelection->GetXaxis()->FindFixBin(eta)));
-    int ptbin  = std::max(1, std::min(histRecoToSelection->GetNbinsY(), histRecoToSelection->GetYaxis()->FindFixBin(pt)));
-
-    return histRecoToSelection->GetBinContent(etabin,ptbin);
-  }
-
-  return 0;
-
-}
-
-
-//============================
-
-
-TFile *_file_trigger_leptonSF_mu_plus = NULL;
-TH2F *_histo_trigger_leptonSF_mu_plus = NULL;
-TFile *_file_trigger_leptonSF_mu_minus = NULL;
-TH2F *_histo_trigger_leptonSF_mu_minus = NULL;
-// following are used to test effstat uncertainties using the stat uncertainty from binned efficiencies only
-TFile *_file_triggerBinUncEffStat_leptonSF_mu_plus = NULL;
-TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_plus = NULL;
-TFile *_file_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
-TH2F *_histo_triggerBinUncEffStat_leptonSF_mu_minus = NULL;
-
-float _get_muonSF_selectionToTrigger(int pdgid, float pt, float eta, int charge, 
-				     float sumErrorTimesThis = 0.0, bool useStatErrOnly = false,
-				     bool useBinnedSF = false) {
-
-  string hSFname = "scaleFactor";
-  if (useBinnedSF) hSFname = "scaleFactorOriginal";
-
-  if (!_histo_trigger_leptonSF_mu_plus) {
-    _file_trigger_leptonSF_mu_plus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_plus_trigger.root","read");
-    _histo_trigger_leptonSF_mu_plus = (TH2F*)(_file_trigger_leptonSF_mu_plus->Get(hSFname.c_str()));
-  }
-  if (!_histo_trigger_leptonSF_mu_minus) {
-    _file_trigger_leptonSF_mu_minus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/smoothEfficiency_muons_minus_trigger.root","read");
-    _histo_trigger_leptonSF_mu_minus = (TH2F*)(_file_trigger_leptonSF_mu_minus->Get(hSFname.c_str()));
-  }
-
-
-  if (useStatErrOnly) {
-    // since July 2019 we could take them from the same file as above, as we stored these numbers there, but whatever works is fine)
-    if (!_histo_triggerBinUncEffStat_leptonSF_mu_plus) {
-      _file_triggerBinUncEffStat_leptonSF_mu_plus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffPlus_fromRooFitResult_onlyStatUnc.root","read");
-      _histo_triggerBinUncEffStat_leptonSF_mu_plus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_plus->Get("triggerSF_plus"));
-    }
-    if (!_histo_triggerBinUncEffStat_leptonSF_mu_minus) {
-      _file_triggerBinUncEffStat_leptonSF_mu_minus = new TFile("../postprocessing/data/leptonSF/new2016_madeSummer2018/TnPstuff/muon/triggerMuonEffMinus_fromRooFitResult_onlyStatUnc.root","read");
-      _histo_triggerBinUncEffStat_leptonSF_mu_minus = (TH2F*)(_file_triggerBinUncEffStat_leptonSF_mu_minus->Get("triggerSF_minus"));
-    }
-  }
-
-
-  if(abs(pdgid)==13) {
-    TH2F *histTrigger = ( charge > 0 ? _histo_trigger_leptonSF_mu_plus : _histo_trigger_leptonSF_mu_minus );
-
-    int etabin = std::max(1, std::min(histTrigger->GetNbinsX(), histTrigger->GetXaxis()->FindFixBin(eta)));
-    int ptbin  = std::max(1, std::min(histTrigger->GetNbinsY(), histTrigger->GetYaxis()->FindFixBin(pt)));
-
-    //float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * histTrigger->GetBinError(etabin,ptbin);
-    TH2F *histTriggerBinUnc = nullptr; 
-    double binunc = histTrigger->GetBinError(etabin,ptbin);
-    if (useStatErrOnly) {
-      // see above, this would no longer be needed
-      histTriggerBinUnc = ( charge > 0 ? _histo_triggerBinUncEffStat_leptonSF_mu_plus : _histo_triggerBinUncEffStat_leptonSF_mu_minus );
-      int etabinUnc = std::max(1, std::min(histTriggerBinUnc->GetNbinsX(), histTriggerBinUnc->GetXaxis()->FindFixBin(eta)));
-      int ptbinUnc  = std::max(1, std::min(histTriggerBinUnc->GetNbinsY(), histTriggerBinUnc->GetYaxis()->FindFixBin(pt)));      
-      binunc = histTriggerBinUnc->GetBinError(etabinUnc,ptbinUnc);
-    }
-    // inflate error by sqrt(2.) to account for other SF (here only trigger is considered)
-    float out = histTrigger->GetBinContent(etabin,ptbin) + sumErrorTimesThis * TMath::Sqrt(2.) * binunc;
-
-    return out;
-  }
-
-  return 0;
-
-}
-
-// return both SF, possibily only for events fulfilling a given condition
-float _get_muonSF_TriggerAndIDiso(int pdgid, float pt, float eta, int charge, bool passCut = true) {
-
-  if (passCut) {
-    return _get_muonSF_recoToSelection(pdgid,pt,eta)*_get_muonSF_selectionToTrigger(pdgid,pt,eta,charge);
-  } else {
-    return 1.0;
-  }
-
-}
-
-// ongoing work
-// std::string _filename_allSF_preOverPost = "/eos/user/m/mciprian/www/WMassAnalysis/testNanoAOD/testSF/SFeta0p1/effRatio_preOverPost/allSFs_eta0p1_NEW.root";
-// std::unordered_map<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};;
-// TFile _file_allSF_preOverPost = TFile(_filename_allSF_preOverPost.c_str(), "read");
-/////////
-
 //std::string _filename_allSF = "./testMuonSF/allSFs.root";
 std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
 
 // Sorry you have to manually keep these consistent
-typedef enum {BToH=0, BToF, GToH} DataEra;
 std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
-//std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"} };
+std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 
 struct pair_hash
 {
     template <class T1, class T2>
     std::size_t operator() (const std::pair<T1, T2> &p) const
     {
-        return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
+      std::size_t seed = 0;
+      boost::hash_combine(seed, p.first);
+      boost::hash_combine(seed, p.second);
+      return seed;
     }
 };
 
 std::unordered_map<std::pair<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};
+std::unordered_map<std::pair<std::string, DataType>, TH2D, pair_hash> prePostCorrToHist = {};
 TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
 
 void initializeScaleFactors() {
@@ -761,10 +519,11 @@ void initializeScaleFactors() {
             for (auto& charge : charges) {
                 std::vector<std::string> vars = {"SF2D", corr, era.second, charge};
                 std::string corrname = boost::algorithm::join(vars, "_");
-                auto* histptr = _file_allSF.Get(corrname.c_str());
+                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
                 if (histptr == nullptr)
                     std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
                             << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+		histptr->SetDirectory(0);
                 DataEra eraVal = era.first;
 		// do not use "both" as charge key for the histograms, keep it simple
 		std::string key = corr;
@@ -777,7 +536,44 @@ void initializeScaleFactors() {
             }
         }
     }
+
+    for (auto& era : datatypeNames) {
+      for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig"}) {
+            std::vector<std::string> charges = {"both"};
+            if (strcmp(corr, "trigger") == 0) {
+                charges = {"plus", "minus"};
+            }            
+            for (auto& charge : charges) {
+	      std::vector<std::string> vars = {"SF2D", era.second, "preOverPost", corr, charge};
+                std::string corrname = boost::algorithm::join(vars, "_");
+                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+                if (histptr == nullptr)
+                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+		histptr->SetDirectory(0);
+                DataType typeVal = era.first;
+		// do not use "both" as charge key for the histograms, keep it simple
+		std::string key = corr;
+		if (charge != "both") {
+		  key += charge;
+		}
+		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+                auto corrKey = std::make_pair(key, typeVal);
+                prePostCorrToHist[corrKey] = *static_cast<TH2D*>(histptr);
+            }
+        }
+    }
+
+    _file_allSF.Close(); // should work since we used TH1D::SetDirectory(0) to detach histogram from file
+    
 }
+
+
+// ongoing work
+// std::unordered_map<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};;
+// TFile _file_allSF_preOverPost = TFile(_filename_allSF_preOverPost.c_str(), "read");
+/////////
+
 
 float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
 				const float& ptOther, const float& etaOther,
@@ -802,7 +598,7 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end()) {
-      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
       //std::cout << "scale factor main leg -> " << sf << std::endl;
     }
   }
@@ -810,7 +606,7 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   for (const auto& corr : sfnamesOther) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist[key],etaOther,ptOther);
+      sf *= getValFromTH2(corrTypeToHist.at(key),etaOther,ptOther);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
@@ -829,7 +625,7 @@ float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& ch
   for (const auto& corr : sfnames) {
     auto key = std::make_pair(corr, era);
     if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
+      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
   }
   return sf;
 }
@@ -879,6 +675,133 @@ float _get_muonSF(const float& pt, const float& eta, const int& charge,
   return _get_singleMuonSF(pt, eta, sfnames, era);
 
 }
+
+float _get_AllMuonSF_fast_wlike_preOverPost(const float& pt,      const float& eta, const int& charge,
+					    const float& ptOther, const float& etaOther,
+					    DataType dtype = MC,
+					    bool noTrackingSF = false,  bool noTriggerSF = false//, ULong64_t iEntry = 0
+					    ) {
+  if (prePostCorrToHist.empty())
+      return 1.;
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+  float sf = 1.0;
+  // not sure there is a more efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
+  std::vector<std::string> sfnames =      {"idip", "iso"};
+  std::vector<std::string> sfnamesOther = {"idip", "isonotrig"};
+  if (not noTriggerSF) {
+    sfnames.push_back(triggerSF);
+  }
+  if (not noTrackingSF) {
+    sfnames.push_back("tracking");
+    sfnamesOther.push_back("tracking");
+  }
+  for (const auto& corr : sfnames) {
+    auto key = std::make_pair(corr, dtype);
+    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
+      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
+      //std::cout << "scale factor main leg -> " << sf << std::endl;
+    }
+  }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+  for (const auto& corr : sfnamesOther) {
+    auto key = std::make_pair(corr, dtype);
+    if (prePostCorrToHist.find(key) != prePostCorrToHist.end())
+      sf *= getValFromTH2(prePostCorrToHist[key],etaOther,ptOther);
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
+float _get_AllMuonSF_fast_wlike_preOverPost_anyTrig(const float& pt,      const float& eta, const int& charge, const bool& trigMatch,
+						    const float& ptOther, const float& etaOther, const bool& trigMatchOther,
+						    DataType dtype = MC,
+						    bool noTrackingSF = false,  bool noTriggerSF = false//, ULong64_t iEntry = 0
+						    ) {
+  if (prePostCorrToHist.empty())
+      return 1.;
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+  float sf = 1.0;
+  // not sure there is a more efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::vector<std::string> sfnames =      {"idip"};
+  std::vector<std::string> sfnamesOther = {"idip"};
+  if (not noTriggerSF) {
+    if (trigMatch) {
+      sfnames.push_back(charge > 0 ? "triggerplus" : "triggerminus");
+      sfnames.push_back("iso");
+      sfnamesOther.push_back("isonotrig");
+    } else if (trigMatchOther) {
+      sfnamesOther.push_back(charge > 0 ? "triggerminus" : "triggerplus");
+      sfnames.push_back("isonotrig");
+      sfnamesOther.push_back("iso");
+    } else {
+      // with the selection this case will never happen
+      sfnames.push_back("triggerplus");
+      sfnames.push_back("iso");
+      sfnamesOther.push_back("isonotrig");
+    }
+  }
+  if (not noTrackingSF) {
+    sfnames.push_back("tracking");
+    sfnamesOther.push_back("tracking");
+  }
+  for (const auto& corr : sfnames) {
+    auto key = std::make_pair(corr, dtype);
+    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
+      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
+      //std::cout << "scale factor main leg -> " << sf << std::endl;
+    }
+  }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+  for (const auto& corr : sfnamesOther) {
+    auto key = std::make_pair(corr, dtype);
+    if (prePostCorrToHist.find(key) != prePostCorrToHist.end())
+      sf *= getValFromTH2(prePostCorrToHist[key],etaOther,ptOther);
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
+
+float _get_AllMuonSF_fast_wmass_preOverPost(const float& pt,      const float& eta, const int& charge,
+					    DataType dtype = MC, bool noTrackingSF = false, bool noTriggerSF = false//, ULong64_t iEntry = 0
+					    ) {
+  if (prePostCorrToHist.empty())
+      return 1.;
+
+  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+  float sf = 1.0;
+  // not sure there is a more efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
+  std::vector<std::string> sfnames = {"idip", "iso"};
+  if (not noTriggerSF) {
+    sfnames.push_back(triggerSF);
+  }
+  if (not noTrackingSF) {
+    sfnames.push_back("tracking");
+  }
+  for (const auto& corr : sfnames) {
+    auto key = std::make_pair(corr, dtype);
+    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
+      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
+      //std::cout << "scale factor main leg -> " << sf << std::endl;
+    }
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
 
 int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
   float ptmin = 0;

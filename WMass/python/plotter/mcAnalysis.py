@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 from tree2yield import *
@@ -6,13 +5,15 @@ from projections import *
 from figuresOfMerit import FOM_BY_NAME
 import pickle, re, random, time, glob, math
 import argparse
+import json
 
 ROOT.ROOT.EnableImplicitMT()
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
 
 #_T0 = long(ROOT.gSystem.Now())
 
-## These must be defined as standalone functions, to allow runing them in parallel
+## These must be defined as standalone functions, to allow running them in parallel
+## these might actually be no longer needed with RDF
 def _runYields(args):
     key,tty,cuts,noEntryLine,fsplit = args
     return (key, tty.getYields(cuts,noEntryLine=noEntryLine,fsplit=fsplit))
@@ -25,14 +26,25 @@ def _runPlot(args):
     #print "Done plot %s for %s, %s, fsplit %s in %s s, at %.2f; entries = %d, time/entry = %.3f ms" % (plotspec.name,key,tty._cname,fsplit,timer.RealTime(), 0.001*(long(ROOT.gSystem.Now()) - _T0), ret[1].GetEntries(), (long(ROOT.gSystem.Now()) - _T0)/float(ret[1].GetEntries()))
     return ret
 
-def _runApplyCut(args):
-    key,tty,cut,fsplit = args
-    return (key, tty.cutToElist(cut,fsplit=fsplit))
+# def _runApplyCut(args):
+#     key,tty,cut,fsplit = args
+#     return (key, tty.cutToElist(cut,fsplit=fsplit))
 
 def _runGetEntries(args):
     key,tty = args
     return (key, tty.getEntries())
 
+def initializeJson(jsonMap, jsonFile):
+    if not os.path.isfile(jsonFile):
+         raise ValueError("Could not find json file %s" % jsonFile)
+    info = json.load(open(jsonFile))
+
+    for k,v in info.items():
+        vec = ROOT.std.vector["std::pair<unsigned int, unsigned int>"]()
+        for combo in v:
+            pair = ROOT.std.pair["unsigned int", "unsigned int"](*[int(c) for c in combo])
+            vec.push_back(pair)
+        jsonMap[int(k)] = vec
 
 class MCAnalysis:
     def __init__(self,samples,options):
@@ -54,7 +66,11 @@ class MCAnalysis:
             for k in fro.split(","):
                 self._premap.append((re.compile(k.strip()+"$"), to))
         if hasattr(ROOT, "initializeScaleFactors"):
+            logging.info("Initializing histograms with scale factors")
             ROOT.initializeScaleFactors()
+        if hasattr(ROOT, "jsonMap_all"):
+            initializeJson(ROOT.jsonMap_all, "pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
+            logging.info("Initialized json files for data")
         self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
         self.readMca(samples,options)
@@ -289,13 +305,18 @@ class MCAnalysis:
                 #    tmp_names.push_back('root://eoscms.cern.ch//' + n)
             if field[0] in list(self.allRDF.keys()):
                 # case with multiple lines in MCA with same common name and different processes attached to it
-                matchedCnames = filter(lambda x : re.match("^"+field[0]+"\.\d+",x),self.allRDF.keys()) # start with cname followed by . and at least one digit
+                matchedCnames = list(filter(lambda x : re.match(field[0]+"__ext\d+$",x),self.allRDF.keys())) # start with cname followed by __ ext and at least one digit (and ending like that
                 cnindex = len(matchedCnames) 
-                field[0] = f"{field[0]}.{cnindex}" # add number to component to distinguish it from other ones
+                field[0] = f"{field[0]}__ext{cnindex}" # add number to component to distinguish it from other ones
+            if self._options.rdfRange:
+                ROOT.ROOT.DisableImplicitMT() # to be called before creating the RDataFrame
             self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
-            tmp_rdf = self.allRDF[field[0]]
             #tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
-            
+            if self._options.rdfRange:
+                begin,end,stride = self._options.rdfRange
+                self.allRDF[field[0]] = self.allRDF[field[0]].Range(begin,end,stride)
+
+            tmp_rdf = self.allRDF[field[0]]            
             tty = TreeToYield(tmp_rdf, options, settings=extra, name=pname, cname=field[0], objname=objname, frienddir=friendDir)
             ttys.append(tty)
             if signal: 
@@ -345,19 +366,20 @@ class MCAnalysis:
                                     maxGenWgt = abs(float(tmp_maxGenWgt))                        
                                     if options.clipGenWeightToMax:
                                         # set weights > max to max
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
+                                        #tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
+                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeClipped(genWeight,{s})'.format(s=maxGenWgt))
                                     else:
                                         # reject event with weight > max
-                                        logging.info('in some other else command here')
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
+                                        #tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
+                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeRemoved(genWeight,{s})'.format(s=maxGenWgt))   
                                     # set again tmp_rdf
                                     tty.setRDF(tmp_rdf)
                         elif options.weight:
                             # we immediately trigger the loop here, but each Runs tree has one event
                             # so it should be quite fast to get the sum like this
                             tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            _sumGenWeights = tmp_rdf_runs.Sum<double>('genEventSumw')
-                            _nUnweightedEvents = tmp_rdf_runs.Sum<double>('genEventCount')
+                            _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
+                            _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
                             sumGenWeights = _sumGenWeights.GetValue()
                             nUnweightedEvents = _nUnweightedEvents.GetValue()
 
@@ -372,10 +394,7 @@ class MCAnalysis:
                             # but it would be a waste of time
                             total_w = 1.0 
                         if maxGenWgt != None:
-                            if options.clipGenWeightToMax:
-                                scale = '(%s)* std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),%s)' % (field[2],str(maxGenWgt))
-                            else:
-                                scale = "genWeight*(%s)*(std::abs(genWeight)<%s)" % (field[2],str(maxGenWgt))
+                            scale = '(%s)*myweight' % field[2]                            
                         else:
                             scale = "genWeight*(%s)" % field[2]
                     elif not options.weight:
@@ -533,35 +552,43 @@ class MCAnalysis:
 
         if self._options.useRunGraphs:        
             # assign all histograms to the graph, to allow for simultaneous loop
-            print("Have these processes and components")
-            print(list(self.allRDF.keys()))       
+            logging.info("Have these processes and components")
+            logging.info(list(self.allRDF.keys()))       
             allHistogramsList = []
             for key in list(self.allRDF.keys()):
                 allHistogramsList.extend(hist for hist in self.allHistos[key])
-            print("Creating ROOT.RDF.RunGraphs and triggering loop")
+            #logging.info("Have %d histograms in total" % len(allHistogramsList))
+            logging.info("Creating ROOT.RDF.RunGraphs and triggering loop")
             ROOT.RDF.RunGraphs(allHistogramsList)
             # now other operations that were temporarily skipped to avoid triggering the loop
-            print("Done with loop, now some refinements on histograms")
+            logging.info("Done with loop, now some refinements on histograms")
             # ugly to repeat it, but for now it works
             for key,ttys in self._allData.items():
                 if key == 'data' and nodata: continue
                 if process != None and key != process: continue
                 for tty in ttys:
-                    retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )                
-            print("Done :)")
+                    retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
+            logging.info("Done :)")
         
-        mergemap = {}
-        for (k,v) in retlist: 
-            if k not in mergemap: mergemap[k] = []
-            mergemap[k].append(v)
-
         rets = []
         for ip,plotspec in enumerate(plotspecs):
             mergemap = {}
-            for (k,v) in retlist: 
+            logging.debug(">>>>>> plotspec %s" % plotspec.name)
+            for (k,v) in retlist:
+                logging.debug("------- process %s" % k)
                 if not k in mergemap: mergemap[k] = []
-                mergemap[k].append(v[ip])
-            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() ])
+                if plotspec.getOption('ProcessRegexp', None):
+                    regexp = plotspec.getOption('ProcessRegexp', ".*")
+                    if re.match(regexp, k):
+                        mergemap[k].append(v[ip])
+                    else:
+                        mergemap[k].append(None)
+                        v.insert(ip,None)
+                else:
+                    mergemap[k].append(v[ip])
+                logging.debug(" ".join(x.GetName() if x != None else "None" for x in v))
+
+            ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() if all(x != None for x in v)])
 
             rescales = []
             self.compilePlotScaleMap(self._options.plotscalemap,rescales)
@@ -686,8 +713,8 @@ class MCAnalysis:
                 logging.info("")
 
     # apparently used nowhere
-    def _getYields(self,ttylist,cuts):
-        return mergeReports([tty.getYields(cuts) for tty in ttylist])
+    #def _getYields(self,ttylist,cuts):
+    #    return mergeReports([tty.getYields(cuts) for tty in ttylist])
     def __str__(self):
         mystr = ""
         for a in self._allData:
@@ -819,12 +846,13 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("-t", "--tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_argument("--fom", "--figure-of-merit", dest="figureOfMerit", type=str, default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
     parser.add_argument("--max-genWeight-procs", dest="maxGenWeightProc", type=str, nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
-    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", default=False, help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
-    parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", default=False, help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
-    parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", default=False, help="Set to true to read root files from nanoAOD");
+    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
+    parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
+    parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
-    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", default=False, help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
-    parser.add_argument("--rdf-runGraphs", dest="useRunGraphs", action="store_true", default=False, help="If True, use RDF::unGraphs to make all histograms for all processes at once");
+    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
+    parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
+    parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 
@@ -834,6 +862,7 @@ if __name__ == "__main__":
     addMCAnalysisOptions(parser)
     args = parser.parse_args()
     options = args
+    setLogging(args.verbose)
     if not options.path and not options.nanoaodTree: options.path = ['./']
     tty = TreeToYield(args.sampleFile,options) if ".root" in args.sampleFile else MCAnalysis(args.sampleFile,options)
     cf  = CutsFile(args.cutFile,options)

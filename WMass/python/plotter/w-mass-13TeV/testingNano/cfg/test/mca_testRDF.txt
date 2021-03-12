@@ -1,11 +1,22 @@
 data_preVFP: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kRed+2
 
+data_preVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
+
 data_postVFP: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlack
+
+data_postVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kGreen+2,AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
+
+data_postVFP_effCorr: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,Data)"
+
+data_postVFP_effCorr_anyTrig: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost_anyTrig(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,muPlusMatch\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,muMinusMatch\,Data)"
+
 
 fullData: .*; SubPath=".*Run2016.*"
 
 Wmunu_plus_preVFP_noSF   : .* : 19.3*11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath="/WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,1)"
 Wmunu_plus_postVFP_noSF   : .* : 16.6*11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="/WplusJetsToMuNu_postVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,2)"
+
+Wmunu_plus_postVFP_noSF_effCorr   : .* : 16.6*11572.19 ; FillColor=ROOT.kPink+1, Label="W^{+} (post\, eff corr)", SubPath="/WplusJetsToMuNu_postVFP/", AddWeight="_get_AllMuonSF_fast_wmass_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,MC\,false\,false)*puw_2016UL_era(Pileup_nTrueInt\,2)"
 
 Wmunu_plus_preVFP_SF   : .* : 19.3*11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath="/WplusJetsToMuNu_preVFP/", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,BToF)*puw_2016UL_era(Pileup_nTrueInt\,1)"
 Wmunu_plus_postVFP_SF   : .* : 16.6*11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="/WplusJetsToMuNu_postVFP/", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)"
@@ -14,11 +25,22 @@ Wmunu_plus_postVFP_SF   : .* : 16.6*11572.19 ; FillColor=ROOT.kBlack, Label="W^{
 Wmunu_minus   : .* : 19.3*8562.66 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WminusJetsToMuNu_preVFP_addVars"
 Wmunu_minus   : .* : 16.6*8562.66 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WminusJetsToMuNu_postVFP_addVars"
 
+#/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210117_230658/0000/
+
+Zmumu_preVFP_CHECK_noSF : .*_99.root : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z (CHECK)", SubPath="/.*RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2.*/"
+
 Zmumu_preVFP_noSF : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z (no SF)", SubPath="/.*(DYJetsToMuMu_preVFP|RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2).*/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,1)"
-Zmumu_postVFP_noSF : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z post (no SF)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,2)"
+Zmumu_postVFP_noSF : .* : 32804.422 ; FillColor=ROOT.kBlack, Label="Z post (no SF)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,2)"
+
+Zmumu_postVFP_noSF_effCorr : .* : 32804.422 ; FillColor=ROOT.kPink+1, Label="Z post (eff corr)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,MC\,false\,false)*puw_2016UL_era(Pileup_nTrueInt\,2)"
+
+Zmumu_postVFP_noSF_effCorr_notrig : .* : 32804.422 ; FillColor=ROOT.kPink+1, Label="Z post (eff corr)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,MC\,false\,true)*puw_2016UL_era(Pileup_nTrueInt\,2)"
+
+Zmumu_preVFP_SF_N3LL : .* : 38140.081 ; FillColor=ROOT.kBlue+2, Label="Z (N3LL corr)", SubPath="/.*(DYJetsToMuMu_preVFP|RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToF)*puw_2016UL_era(Pileup_nTrueInt\,1)*Numba::correctN3LL_Wp(ptZ)"
+Zmumu_postVFP_SF_N3LL: .* : 32804.422 ; FillColor=ROOT.kBlue+2, Label="Z (N3LL corr)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)*Numba::correctN3LL_Wp(ptZ)"
 
 Zmumu_preVFP_SF : .* : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z", SubPath="/.*(DYJetsToMuMu_preVFP|RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToF)*puw_2016UL_era(Pileup_nTrueInt\,1)"
-Zmumu_postVFP_SF: .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z post", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)"
+Zmumu_postVFP_SF: .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)"
 
 Zmumu_preVFP_SFnoTrk : .* : 38140.081 ; FillColor=ROOT.kGreen+2, Label="Z (no Trk SF)", SubPath="/.*(DYJetsToMuMu_preVFP|RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToF\,true)*puw_2016UL_era(Pileup_nTrueInt\,1)"
 Zmumu_postVFP_SFnoTrk: .* : 32804.422 ; FillColor=ROOT.kGreen+2, Label="Z post (no Trk SF)", SubPath="/.*(DYJetsToMuMu_postVFP|RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2).*/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH\,true)*puw_2016UL_era(Pileup_nTrueInt\,2)"

@@ -19,6 +19,9 @@
 #include <ROOT/RVec.hxx>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RDF/RInterface.hxx>
+
+#include "defines.h"
+
 using namespace std;
 
 using Vec_b = ROOT::VecOps::RVec<bool>;
@@ -34,6 +37,47 @@ typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVec
 // ROOT::RDF::RResultPtr<double> getRDFcolumnSum(const ROOT::RDataFrame& rdf, const std::string& column) {
 //   return rdf::Sum<double>(column);
 // }
+
+double genWeightLargeClipped(const double& wgt, const double& max) {
+
+  // max is already a positive number, no need to check or take absolute value here
+  return static_cast<double>(std::copysign(1.0,wgt) * std::min<double>(std::abs(wgt),max));
+  
+}
+
+double genWeightLargeRemoved(const double& wgt, const double& max) {
+
+  // max is already a positive number, no need to check or take absolute value here
+  return (std::abs(wgt) < max) ? wgt : 0.0;
+  
+}
+
+Vec_i indices(const Vec_f& vec, const int& start = 0) {
+    Vec_i res(vec.size(), 0);
+    std::iota(std::begin(res), std::end(res), start);
+    return res;
+}
+
+Vec_f scalarToRVec(const float& var, const int& size) {
+
+  Vec_f res(size,var); // initialize to 0
+  return res;
+  
+}
+
+Vec_f scalarToRVec(const float& var, const Vec_f& size) {
+
+  Vec_f res(size.size(),var); // initialize to 0
+  return res;
+  
+}
+
+Vec_f scalarToRVec(const float& var, const Vec_i& size) {
+
+  Vec_f res(size.size(),var); // initialize to 0
+  return res;
+  
+}
 
 float deltaPhi(float phi1, float phi2) {
     float result = phi1 - phi2;
@@ -110,6 +154,13 @@ float rapidity(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f&
 float transversemomentum(const Vec_f& pt, const Vec_f& phi) {
   float phidiff = phi[1] - phi[0];
   return hypot(pt[0] + pt[1] * std::cos(phidiff), pt[1]*std::sin(phidiff));
+}
+
+Vec_b chargedParticleByEventParity(const ULong64_t& event, const Vec_b& plus, const Vec_b& minus) {
+
+  if (isOddEvent(event)) return plus;
+  else                   return minus;
+  
 }
 
 Vec_b goodMuonTriggerCandidate(const Vec_i& TrigObj_id, const Vec_f& TrigObj_pt, const Vec_f& TrigObj_l1pt, const Vec_f& TrigObj_l2pt, const Vec_i& TrigObj_filterBits) {
@@ -334,7 +385,6 @@ double puw_2016UL_all(const Float_t& nTrueInt) {
   else
     return 1.0;
 }
-
 
 double puw_2016UL_era(const Float_t& nTrueInt, const int& era) {
   if (nTrueInt < 100.0) {

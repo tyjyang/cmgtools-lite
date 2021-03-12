@@ -814,16 +814,15 @@ class PlotMaker:
             for i,(cn,cv) in enumerate(allcuts[:-1]): # skip the last one which is equal to all cuts
                 cnsafe = "cut_%02d_%s" % (i, re.sub("[^a-zA-Z0-9_.]","",cn.replace(" ","_")))
                 sets.append((cnsafe,cn,cv))
-        elist = (self._options.elist == True) or (self._options.elist == 'auto' and len(plots.plots()) > 2)
         for subname, title, cut in sets:
             logging.info(" cut set: %s" % title)
-            dir = self._dir
+            cdir = self._dir
             if subname:
                 if self._dir.Get(subname):
-                    dir = self._dir.Get(subname)
+                    cdir = self._dir.Get(subname)
                 else:
-                    dir = self._dir.mkdir(subname,title)
-            dir.cd()
+                    cdir = self._dir.mkdir(subname,title)
+            cdir.cd()
             pspecs = plots.plots()
             if self._options.preFitData:
                 matchspec = [ p for p in pspecs if p.name == self._options.preFitData ]
@@ -831,6 +830,8 @@ class PlotMaker:
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cuts if self._options.printYieldsRDF else cut, makeSummary=True)
+            #print("PLOTS EXIST: QUIT!")
+            #quit()
             for ipspec,pspec in enumerate(pspecs):
                 logging.info("    plot: %s" % pspec.name)
                 #
@@ -881,15 +882,12 @@ class PlotMaker:
                 #
                 if not makeStack: 
                     for k,v in pmaps[ipspec].items():
-                        if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
-                        dir.WriteTObject(v)
+                        if v.InheritsFrom("TH1"): v.SetDirectory(cdir) 
+                        cdir.WriteTObject(v)
                     continue
                 #
                 stack = ROOT.THStack(pspec.name+"_stack",pspec.name)
                 hists = [v for k,v in pmaps[ipspec].items() if k != 'data']
-                #print "sumGenWeights"
-                #print sumGenWeights.GetValue()
-                #print "CHECK %d" % len(hists)
                 total = hists[0].Clone(pspec.name+"_total"); total.Reset()
                 totalSyst = hists[0].Clone(pspec.name+"_totalSyst"); totalSyst.Reset()
                 if self._options.plotmode == "norm": 
@@ -905,13 +903,13 @@ class PlotMaker:
                     doNormFit(pspec,pmaps[ipspec],mca,saveScales=True)
                 #
                 for k,v in pmaps[ipspec].items():
-                    if v.InheritsFrom("TH1"): v.SetDirectory(dir) 
-                    dir.WriteTObject(v)
+                    if v.InheritsFrom("TH1"): v.SetDirectory(cdir) 
+                    cdir.WriteTObject(v)
                 #
                 self.printOnePlot(mca,pspec,pmaps[ipspec],
                                   xblind=xblind,
                                   makeCanvas=makeCanvas,
-                                  outputDir=dir,
+                                  outputDir=cdir,
                                   printDir=self._options.printDir+(("/"+subname) if subname else ""),
                                   drawBox=self._options.drawBox,
                                   contentAxisTitle=self._options.contentAxisTitle)
@@ -1388,9 +1386,6 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--canvasSize", dest="setCanvasSize", type=int, nargs=2, default=(600, 600), help="Set canvas height and width")
     parser.add_argument("--setTitleYoffset", type=float, default=-1.0, help="Set Y axis offset for title (must be >0, if <0 the default is used)")
     parser.add_argument("--setTitleXoffset", type=float, default=0.90, help="Set X axis offset for title. The default is 0.9, which is fine unless there are superscripts, in that case 1.1 is suggested. It should be tuned based on the canvas size and presence of ratio plot.")
-    parser.add_argument("--elist", action="store_true", help="Use elist (on by default if making more than 2 plots)")
-    parser.add_argument("--no-elist", dest="elist", action="store_false", help="Don't elist (which are on by default if making more than 2 plots)")
-    #if not parser.has_option("--yrange"): parser.add_argument("--yrange", dest="yrange", default=None, nargs=2, type='float', help="Y axis range");
     parser.add_argument("--yrange", nargs=2, type=float, help="Y axis range");
     parser.add_argument("--emptyStack", action="store_true", help="Allow empty stack in order to plot, for example, only signals but no backgrounds.")
     parser.add_argument("--noLegendRatioPlot", action="store_true", help="Remove legend in ratio plot (by default it is drawn)");
@@ -1423,6 +1418,7 @@ if __name__ == "__main__":
     # TODO: The fact that options is in the global scope is kind of abused. 
     # Would be better to pass this to the functions that need it. For now, just leaving it
     options = args
+    setLogging(args.verbose)
     mca  = MCAnalysis(args.sampleFile, args)
     cuts = CutsFile(args.cutFile, args)
     plots = PlotFile(args.plotFile, args)
