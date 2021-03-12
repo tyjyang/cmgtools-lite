@@ -23,7 +23,7 @@ muon_iso04: Muon_pfRelIso04_all[goodMuonsCharge][0]: 100,0.0,0.5; XTitle="Muon P
 
 muon_dz: Muon_dz[goodMuonsCharge][0]: 200,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
 
-muon_dzZoom: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
+muon_dzZoom: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.5, RMax=1.5
 
 muon_dz_largeyZ: Muon_dz[goodMuonsCharge][0]*if3(std\:\:abs(rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]))>2.0,1.0,-99999): 100,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', Logy=True, RMin=0.2, RMax=2.5
 
@@ -43,7 +43,7 @@ mt_T1MET: mt_2(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],MET_T1_p
 
 mt_wlike_T1MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][1],Muon_phi[goodMuonsOther][1],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
 
-zpt : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR',IncludeOverflows=True
+zpt : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR',IncludeOverflows=True, RMin=0.9, RMax=1.1
 
 zy : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4 ; XTitle="reco Z rapidity", Legend='TR',IncludeOverflows=True
 
@@ -127,7 +127,7 @@ mt_wlike_ChsMET: mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_
 
 #zy : rapidity_2(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],0.1057128,Muon_pt[goodMuons][1],Muon_eta[goodMuons][1],Muon_phi[goodMuons][1],0.1057128): 50,-2.5,2.5 ; XTitle="reco Z rapidity", Legend='TR'
 
-zmass  : invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True
+zmass  : invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True, RMin=0.9, RMax=1.1
 
 # other test stuff
 

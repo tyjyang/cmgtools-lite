@@ -508,12 +508,6 @@ class TreeToYield:
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
         if not self._isInit: self._init()
         retlist = []
-        ## weigth is always the same for each plot
-        if self._weight:
-            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
-        else:
-            wgt = '1.' ## wtf is that marc
 
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
@@ -550,15 +544,24 @@ class TreeToYield:
         column_expr = {}
         
         for plotspec in plotspecs:
-            # I think we will never do it, and for now it is not even implemented
-            # unbinnedData2D = plotspec.getOption('UnbinnedData2D',False) if plotspec != None else False
-            tmp_expr = self.adaptExpr(plotspec.expr)
-            if self._options.doS2V:
-                tmp_expr = scalarToVector(tmp_expr)
 
-            ## marc: this following line should be removed i think
-            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            # tmp_histo = makeHistFromBinsAndSpec("dummy_"+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
+            # check if histogram has to be done for this process
+            # if the flag is not set it is assumed it has to be done
+            if plotspec.getOption('ProcessRegexp', None):            
+                regexp = plotspec.getOption('ProcessRegexp', ".*")
+                if re.match(regexp, self._name):
+                    logging.debug("Going to plot %s for process %s" % (plotspec.name,self._name))
+                else:
+                    logging.debug("Skipping plot %s for process %s" % (plotspec.name,self._name))
+                    continue
+            else:
+                logging.debug("Going to plot %s for process %s (all accepted)" % (plotspec.name,self._name))
+                
+            # not really needed, and not even used for now
+            # tmp_expr = self.adaptExpr(plotspec.expr)
+            # if self._options.doS2V:
+            #     tmp_expr = scalarToVector(tmp_expr)
+
             tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
 
             tmp_weight = self._cname+'_weight'
@@ -567,7 +570,7 @@ class TreeToYield:
             #definedColumnNames = list(filter(lambda x : str(x).startswith(tmp_weight), self._tree.GetDefinedColumnNames()))
             #definedColumnNames = [str(x) for x in definedColumnNames]
             if tmp_weight in self._rdfDefsWeightColumns:
-                matchedCnames = list(filter(lambda x : re.match("^"+tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
+                matchedCnames = list(filter(lambda x : re.match(tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
                 cnindex = len(matchedCnames)
                 oldname = tmp_weight
                 tmp_weight = oldname + "_%d" % (cnindex)
@@ -575,17 +578,24 @@ class TreeToYield:
             else:
                 logging.debug("Defining new column %s" % tmp_weight)
             self._rdfDefsWeightColumns.append(tmp_weight)
-                
+
+            ## weight has a common part for each plot
+            if self._weight:
+                if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+                else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+            else:
+                wgt = '1.' ## wtf is that marc
+            
             if plotspec.getOption('AddWeight', None):
                 wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
-            logging.debug("Weight string = %s " % wgt)
+            logging.debug("%s weight string = %s " % (tmp_weight, wgt))
             self._tree = self._tree.Define(tmp_weight, wgt)        
             
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
                 tmp_varx    = self._cname+'_'+plotspec.name+'_varx'
-                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)                
+                (tmp_varx, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varx, expr_x)
                 tmp_histo  = self._tree.Histo1D(tmp_histo_model, tmp_varx, tmp_weight)
             elif tmp_histo.ClassName() == 'TH2D':
                 tmp_histo_model = ROOT.RDF.TH2DModel(tmp_histo)
@@ -643,25 +653,26 @@ class TreeToYield:
             logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
         self._appliedCut = cut
         self._elist = elist
-    def cutToElist(self,cut,fsplit=None):
-        logging.info('beginning of cuttoelist')
-        if not self._isInit: self._init()
-        logging.info('afetr init')
-        ##marcif self._weight:
-        ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
-        ##marcelse: cut = self.adaptExpr(cut,cut=True)
-        cut = self.adaptExpr(cut,cut=True)
-        if self._options.doS2V: cut  = scalarToVector(cut)
-        (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-        logging.debug('now gonna perform the draw command 4')
-        ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## apply a cut, rdf style
-        logging.debug(' i am filtering with', cut)
-        self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-        ## marc elist = ROOT.gDirectory.Get('elist')
-        ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
-        ## marc return elist
+    # no longer needed with RDF
+    # def cutToElist(self,cut,fsplit=None):
+    #     logging.info('beginning of cuttoelist')
+    #     if not self._isInit: self._init()
+    #     logging.info('afetr init')
+    #     ##marcif self._weight:
+    #     ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+    #     ##marcelse: cut = self.adaptExpr(cut,cut=True)
+    #     cut = self.adaptExpr(cut,cut=True)
+    #     if self._options.doS2V: cut  = scalarToVector(cut)
+    #     (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
+    #     logging.debug('now gonna perform the draw command 4')
+    #     ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## apply a cut, rdf style
+    #     logging.debug(' i am filtering with', cut)
+    #     self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
+    #     ## marc elist = ROOT.gDirectory.Get('elist')
+    #     ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
+    #     ## marc return elist
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:

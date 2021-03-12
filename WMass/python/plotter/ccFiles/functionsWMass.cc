@@ -59,18 +59,6 @@ float getValFromTH2(const TH2& h, const float& x, const float& y) {
   return h.GetBinContent(xbin,ybin);
 }
 
-bool isOddEvent(ULong64_t evt) {
-
-  return (evt%2) ? 1 : 0;       
-
-}
-
-bool isEvenEvent(ULong64_t evt) {
-
-  return (evt%2) ? 0 : 1;       
-
-}
-
 float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
 
     float retVal = -999.;

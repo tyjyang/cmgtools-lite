@@ -12,6 +12,7 @@
 
 using namespace std;
 
+
 std::unordered_map< UInt_t, std::vector< std::pair<UInt_t,UInt_t> > > jsonMap_all;
 //==========================================================
 
@@ -26,7 +27,6 @@ bool isGoodRunLS(const DataType isData, const UInt_t run, const UInt_t lumi) {
   auto match = std::lower_bound(std::begin(validlumis), std::end(validlumis), lumi, 
           [](std::pair<unsigned int, unsigned int>& range, unsigned int val) { return range.second < val; });
   return match->first <= lumi && match->second >= lumi;
-    
 }
 
 //==========================================================

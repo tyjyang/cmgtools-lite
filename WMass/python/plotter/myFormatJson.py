@@ -30,13 +30,22 @@ fout = open(options.outfile,"w")
 
 
 json = json.replace('{','').replace('}','')
-mylist =  re.findall(r"\".*?\]\]",json)
+json = "".join(x for x in json.split()) # remove newlines and white spaces to avoid issues later
+mylist =  re.findall(r"\".*?\]\]",json) # each line we want goes from initial " to final ]]
+
+runs = []
 
 for item in mylist:
+    runs.append(re.findall(r"\"\d+\"",item)[0].replace('"',''))
     #    print str(item.replace('"','').replace('[[','').replace(']]','').replace('], [','-'))
-    line =  str(item.replace('"','').replace(', ',',').replace('],[','] [').replace('[[','[').replace(']]',']'))
+    line =  str(item.replace('"','').replace(':[',': [').replace(', ',',').replace('],[','] [').replace('[[','[').replace(']]',']'))
     fout.write(str(line)+'\n')
     if options.printfile: 
         print(line)
 
 fout.close()
+
+print("")
+print("Runs in original json (there are %d of them)" % len(runs))
+print(runs)
+print("")

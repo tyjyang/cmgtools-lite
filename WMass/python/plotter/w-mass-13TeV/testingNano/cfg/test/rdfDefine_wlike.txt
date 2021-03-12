@@ -6,5 +6,6 @@ goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
 goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
-genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) :
-ptZgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+goodMuonsCharge: chargedParticleByEventParity(event,goodMuonsPlus,goodMuonsMinus): .*
+goodMuonsOther:  chargedParticleByEventParity(event,goodMuonsMinus,goodMuonsPlus): .*
+ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]) : .*
