@@ -86,6 +86,8 @@ parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store
 args = parser.parse_args()
 options = args
 
+setLogging(args.verbose)
+
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries():
     compileMacro("ccFiles/functions.cc")
 
@@ -102,7 +104,7 @@ if not os.path.exists(myout): os.mkdir(myout)
 
 report={}
 report = mca.getPlots(pspecs, cuts.allCuts())
-print(report)
+#print(report)
 quit()
 
 report['data_obs'] = report['data'].Clone("x_data_obs") 

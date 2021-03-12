@@ -200,7 +200,31 @@ muon_eta_pt_charge_pdf99: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsChar
 
 muon_eta_pt_charge_pdf100: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='LHEPdfWeight[100]', ProcessRegexp='W.*|Z.*'
 
-muon_eta_pt_charge_pdf101: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='LHEPdfWeight[101]', ProcessRegexp='W.*|Z.*'
+muon_eta_pt_charge_alphaSUp: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='LHEPdfWeight[101]', ProcessRegexp='W.*|Z.*'
 
-muon_eta_pt_charge_pdf102: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='LHEPdfWeight[102]', ProcessRegexp='W.*|Z.*'
+muon_eta_pt_charge_alphaSDown: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='LHEPdfWeight[102]', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muR1Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[14]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muR2Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[14]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muR1Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[2]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muR2Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[2]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muF1Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[10]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muF2Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[10]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muF1Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[6]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muF2Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[6]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muRmuF1Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[16]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muRmuF2Up: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[16]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muRmuF1Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[0]\,Vpt_preFSR\,0.0\,2.949)', ProcessRegexp='W.*|Z.*'
+
+muon_eta_pt_charge_muRmuF2Down: Muon_charge[goodMuonsCharge][0]\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,2,-2,2; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Muon charge', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight[0]\,Vpt_preFSR\,2.949\,4.733)', ProcessRegexp='W.*|Z.*'
 

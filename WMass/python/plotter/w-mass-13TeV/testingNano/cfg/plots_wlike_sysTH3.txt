@@ -1,0 +1,26 @@
+muon_eta_pt: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)' 
+
+muon_eta_pt_pdf: indices(LHEPdfWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEPdfWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEPdfWeight): 48,-2.4,2.4,29,26,55,102,0.5,102.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='PDF index', AddWeight='LHEPdfWeight', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScale: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='LHEScaleWeight', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin1: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,0.0\,2.949)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin2: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,2.949\,4.733)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin3: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,4.733\,6.684)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin4: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,6.684\,8.979)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin5: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,8.979\,11.777)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin6: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,11.777\,15.332)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin7: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,15.332\,20.115)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin8: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,20.115\,27.173)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin9: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,27.173\,40.151)', ProcessRegexp='W.*|Z.*' 
+
+muon_eta_pt_qcdScaleVptBin10: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,40.151\,13000.0)', ProcessRegexp='W.*|Z.*' 
+

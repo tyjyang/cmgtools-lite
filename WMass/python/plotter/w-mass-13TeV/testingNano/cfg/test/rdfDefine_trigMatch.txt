@@ -3,8 +3,9 @@ vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy
 #vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05: .*
 goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 #zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): .*
+ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]) : .*
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
 goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
-genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) :
-ptZgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
+ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z

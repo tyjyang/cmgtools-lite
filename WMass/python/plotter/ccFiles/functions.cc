@@ -15,20 +15,9 @@
 #include "Math/GenVector/LorentzVector.h"
 #include "Math/GenVector/PtEtaPhiM4D.h"
 
-#include <ROOT/RVec.hxx>
-#include <ROOT/RVec.hxx>
-#include <ROOT/RDataFrame.hxx>
-#include <ROOT/RDF/RInterface.hxx>
-
 #include "defines.h"
 
 using namespace std;
-
-using Vec_b = ROOT::VecOps::RVec<bool>;
-using Vec_d = ROOT::VecOps::RVec<double>;
-using Vec_f = ROOT::VecOps::RVec<float>;
-using Vec_i = ROOT::VecOps::RVec<int>;
-using Vec_ui = ROOT::VecOps::RVec<unsigned int>;
 
 typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
 
