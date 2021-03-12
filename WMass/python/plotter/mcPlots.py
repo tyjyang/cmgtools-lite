@@ -830,6 +830,8 @@ class PlotMaker:
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cuts if self._options.printYieldsRDF else cut, makeSummary=True)
+            #print("PLOTS EXIST: QUIT!")
+            #quit()
             for ipspec,pspec in enumerate(pspecs):
                 logging.info("    plot: %s" % pspec.name)
                 #
@@ -907,7 +909,7 @@ class PlotMaker:
                 self.printOnePlot(mca,pspec,pmaps[ipspec],
                                   xblind=xblind,
                                   makeCanvas=makeCanvas,
-                                  outputDir=dir,
+                                  outputDir=cdir,
                                   printDir=self._options.printDir+(("/"+subname) if subname else ""),
                                   drawBox=self._options.drawBox,
                                   contentAxisTitle=self._options.contentAxisTitle)

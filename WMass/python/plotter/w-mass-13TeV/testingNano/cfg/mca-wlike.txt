@@ -1,10 +1,8 @@
 data_preVFP: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data"
-data_preVFP: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data"
 
 data_postVFP: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kRed+2,AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data"
 
 Zmumu_preVFP : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_preVFP/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BToF)*puw_2016UL_era(Pileup_nTrueInt\,1)*Numba::correctN3LL_Wp(ptZ)"
-Zmumu_preVFP : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_postVFP/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)*Numba::correctN3LL_Wp(ptZ)"
 
 Zmumu_postVFP: .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_postVFP/", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,GToH)*puw_2016UL_era(Pileup_nTrueInt\,2)*Numba::correctN3LL_Wp(ptZ)"
 

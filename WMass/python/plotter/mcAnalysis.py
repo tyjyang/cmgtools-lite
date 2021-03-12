@@ -557,6 +557,7 @@ class MCAnalysis:
             allHistogramsList = []
             for key in list(self.allRDF.keys()):
                 allHistogramsList.extend(hist for hist in self.allHistos[key])
+            #logging.info("Have %d histograms in total" % len(allHistogramsList))
             logging.info("Creating ROOT.RDF.RunGraphs and triggering loop")
             ROOT.RDF.RunGraphs(allHistogramsList)
             # now other operations that were temporarily skipped to avoid triggering the loop

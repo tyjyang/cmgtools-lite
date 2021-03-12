@@ -508,12 +508,6 @@ class TreeToYield:
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
         if not self._isInit: self._init()
         retlist = []
-        ## weigth is always the same for each plot
-        if self._weight:
-            if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-            else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
-        else:
-            wgt = '1.' ## wtf is that marc
 
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
@@ -563,9 +557,10 @@ class TreeToYield:
             else:
                 logging.debug("Going to plot %s for process %s (all accepted)" % (plotspec.name,self._name))
                 
-            tmp_expr = self.adaptExpr(plotspec.expr)
-            if self._options.doS2V:
-                tmp_expr = scalarToVector(tmp_expr)
+            # not really needed, and not even used for now
+            # tmp_expr = self.adaptExpr(plotspec.expr)
+            # if self._options.doS2V:
+            #     tmp_expr = scalarToVector(tmp_expr)
 
             tmp_histo = makeHistFromBinsAndSpec(self._cname+'_'+plotspec.name,plotspec.expr,plotspec.bins,plotspec)
 
@@ -575,7 +570,7 @@ class TreeToYield:
             #definedColumnNames = list(filter(lambda x : str(x).startswith(tmp_weight), self._tree.GetDefinedColumnNames()))
             #definedColumnNames = [str(x) for x in definedColumnNames]
             if tmp_weight in self._rdfDefsWeightColumns:
-                matchedCnames = list(filter(lambda x : re.match("^"+tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
+                matchedCnames = list(filter(lambda x : re.match(tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
                 cnindex = len(matchedCnames)
                 oldname = tmp_weight
                 tmp_weight = oldname + "_%d" % (cnindex)
@@ -583,10 +578,17 @@ class TreeToYield:
             else:
                 logging.debug("Defining new column %s" % tmp_weight)
             self._rdfDefsWeightColumns.append(tmp_weight)
-                
+
+            ## weight has a common part for each plot
+            if self._weight:
+                if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+                else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+            else:
+                wgt = '1.' ## wtf is that marc
+            
             if plotspec.getOption('AddWeight', None):
                 wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
-            logging.debug("Weight string = %s " % wgt)
+            logging.debug("%s weight string = %s " % (tmp_weight, wgt))
             self._tree = self._tree.Define(tmp_weight, wgt)        
             
             if tmp_histo.ClassName() == 'TH1D':

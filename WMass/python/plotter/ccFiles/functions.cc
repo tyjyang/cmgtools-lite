@@ -19,6 +19,9 @@
 #include <ROOT/RVec.hxx>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RDF/RInterface.hxx>
+
+#include "defines.h"
+
 using namespace std;
 
 using Vec_b = ROOT::VecOps::RVec<bool>;
@@ -75,7 +78,6 @@ Vec_f scalarToRVec(const float& var, const Vec_i& size) {
   return res;
   
 }
-
 
 float deltaPhi(float phi1, float phi2) {
     float result = phi1 - phi2;
@@ -152,6 +154,13 @@ float rapidity(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f&
 float transversemomentum(const Vec_f& pt, const Vec_f& phi) {
   float phidiff = phi[1] - phi[0];
   return hypot(pt[0] + pt[1] * std::cos(phidiff), pt[1]*std::sin(phidiff));
+}
+
+Vec_b chargedParticleByEventParity(const ULong64_t& event, const Vec_b& plus, const Vec_b& minus) {
+
+  if (isOddEvent(event)) return plus;
+  else                   return minus;
+  
 }
 
 Vec_b goodMuonTriggerCandidate(const Vec_i& TrigObj_id, const Vec_f& TrigObj_pt, const Vec_f& TrigObj_l1pt, const Vec_f& TrigObj_l2pt, const Vec_i& TrigObj_filterBits) {
