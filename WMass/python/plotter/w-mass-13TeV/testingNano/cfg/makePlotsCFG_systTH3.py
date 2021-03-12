@@ -63,7 +63,7 @@ NVTPBINS = 10
 for ipt in range(1,1+NVTPBINS):
     syst_key = "qcdScaleVptBin%d" % ipt
     ptcut = wptBinsScales(ipt)
-    syst_weight  = "qcdScaleWeight_VptBinned(LHEScaleWeight\,Vpt_preFSR\,{ptlo}\,{pthi})".format(ptlo=ptcut[0],pthi=ptcut[1])
+    syst_weight  = "qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptlo}\,{pthi})".format(ptlo=ptcut[0],pthi=ptcut[1])
     process_regexpr = "W.*|Z.*" # actually one or the other based on Wlike or Wmass
 
     print("{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr))
