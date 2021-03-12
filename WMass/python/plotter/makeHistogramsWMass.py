@@ -102,7 +102,7 @@ if not os.path.exists(myout): os.mkdir(myout)
 
 report={}
 report = mca.getPlots(pspecs, cuts.allCuts())
-print(report)
+#print(report)
 quit()
 
 report['data_obs'] = report['data'].Clone("x_data_obs") 

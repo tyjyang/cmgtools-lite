@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <cstdlib> //as stdlib.h      
 #include <cstdio>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -802,6 +803,26 @@ float _get_AllMuonSF_fast_wmass_preOverPost(const float& pt,      const float& e
   return sf;
 }
 
+
+double qcdScaleWeight_VptBinned(const double& qcdscale, const double& vpt, const double& ptlow, const double& pthigh) {
+
+  if (vpt >= ptlow and vpt < pthigh)
+    return qcdscale;
+  else
+    return 1.0;
+  
+}
+
+Vec_f qcdScaleWeight_VptBinned(const Vec_f& qcdscale, const double& vpt, const double& ptlow, const double& pthigh) {
+
+  if (vpt >= ptlow and vpt < pthigh) {
+    return qcdscale;
+  } else {
+    Vec_f res(qcdscale.size(),1.0); // initialize to 1   
+    return res;
+  }
+  
+}
 
 int unroll2DTo1D_ptSlices(int pdgid, float pt, float eta){
   float ptmin = 0;
