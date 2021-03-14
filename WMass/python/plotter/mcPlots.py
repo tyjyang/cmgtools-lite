@@ -830,8 +830,19 @@ class PlotMaker:
                 pspecs = matchspec + [ p for p in pspecs if p.name != self._options.preFitData ]
             #print ' this is pspecs', pspecs
             pmaps = mca.getPlots(pspecs,cuts if self._options.printYieldsRDF else cut, makeSummary=True)
-            #print("PLOTS EXIST: QUIT!")
-            #quit()
+            if self._options.skipPlot:
+                logging.info("Skip plotting: will save histograms in output file and exit")
+                cdir.cd()
+                for x in pmaps:
+                    for p in list(x.keys()):
+                        #print(">>>>> %s" % p)             
+                        #print(x[p].GetName())
+                        hname = x[p].GetName()
+                        if hname.endswith("_background"): continue
+                        logging.info("Writing histogram: %s" % hname)
+                        cdir.WriteTObject(x[p],hname)
+                return
+            
             for ipspec,pspec in enumerate(pspecs):
                 logging.info("    plot: %s" % pspec.name)
                 #
@@ -1409,6 +1420,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
     parser.add_argument("-o", "--out", help="Output file name. by default equal to plots -'.txt' +'.root'");
     parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
+    parser.add_argument("--skipPlot", action="store_true", default=False, help="After making the histograms save them in output file and exit, skipping plotting (usually when making histograms for datacards)")
     parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")
 
 if __name__ == "__main__":
@@ -1434,30 +1446,30 @@ if __name__ == "__main__":
     fcmd = open(re.sub("\.root$","",outname)+"_command.txt","w")
     fcmd.write("%s\n\n" % " ".join(sys.argv))
     fcmd.close()
-    fcut = open(re.sub("\.root$","",outname)+"_cuts.txt","w")
-    fcut.write("%s\n" % cuts); fcut.close()
     shutil.copy(args.plotFile, re.sub("\.root$","",outname)+"_plots.txt")
     shutil.copy(args.sampleFile, re.sub("\.root$","",outname)+"_mca.txt")
-    if args.rdfDefineFile or len(args.rdfDefine) or len(args.rdfAlias):
-        frdfdefine = open(re.sub("\.root$","",outname)+"_rdfdefine.txt","w")
-        frdfdefine.write("## Defines\n")
+    fcut = open(re.sub("\.root$","",outname)+"_cuts.txt","w")
+    fcut.write("%s\n" % cuts);
+    if args.rdfDefineFile or len(args.rdfDefine) or len(args.rdfAlias):        
+        #frdfdefine = open(re.sub("\.root$","",outname)+"_rdfdefine.txt","w")
+        fcut.write("\n\n")
+        fcut.write("## Defines\n")
         if args.rdfDefineFile:
             with open(args.rdfDefineFile) as f:
                 lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
             for l in lines:
-                frdfdefine.write("%s\n" % l)
+                fcut.write("%s\n" % l)
         for l in args.rdfDefine:
-            frdfdefine.write("%s\n" % l)
-        frdfdefine.write("## Aliases\n")
+            fcut.write("%s\n" % l)
+        fcut.write("## Aliases\n")
         for l in args.rdfAlias:
-            frdfdefine.write("%s\n" % l)
-        frdfdefine.close()
-        
-    #fcut = open(re.sub("\.root$","",outname)+"_cuts.txt")
-    #fcut.write(cuts); fcut.write("\n"); fcut.close()
+            fcut.write("%s\n" % l)
+        #frdfdefine.close()
+    fcut.close()
     rootFileOpenMode = "UPDATE" if args.updateRootFile else "RECREATE"
     outfile  = ROOT.TFile(outname,rootFileOpenMode)
     plotter = PlotMaker(outfile, args)
     plotter.run(mca,cuts,plots)
     outfile.Close()
+    print(f"Histograms saved in file {outname}\n")
 

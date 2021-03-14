@@ -26,17 +26,35 @@ def wptBinsScales(i):
     pthi = wptbins[2*i]
     return [ptlo, pthi]
 
+parser = argparse.ArgumentParser()
+#parser.add_argument('-n', '--name', dest='baseHistName', default='muon_eta_pt', type=str, help='Base name for histograms')
+parser.add_argument('-x', '--xAxisName', default='Muon #eta', type=str, help='x axis name')
+parser.add_argument('-y', '--yAxisName', default='Muon p_{T} (GeV)', type=str, help='y axis name')
+parser.add_argument('-b', '--bins', dest="etaptBins", default='48,-2.4,2.4,29,26,55', type=str, help='Bins for eta-pt, passed as to TH2 (only supports uniform binning for now)')
+parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
+parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
+args = parser.parse_args()
+
 ###################################
 # SOME BASIC CONFIGS #
 ######################
-baseHistName = "muon_eta_pt"
-
-axisNames = "XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)'"
-etaptBins = "48,-2.4,2.4,29,26,55" 
+#baseHistName = args.baseHistName
+axisNames = "XTitle='{x}', YTitle='{y}'".format(x=args.xAxisName,y=args.yAxisName)
+etaptBins = args.etaptBins
+isWlike = args.analysis == "wlike"
 ####################################
 
+printToFile = False
+if args.outputFile != "":
+    outf = open(args.outputFile,"w")
+    printToFile = True
+    
 #nominal
-print("{n}: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(n=baseHistName,b=etaptBins,axis=axisNames))
+#line = "{n}: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(n=baseHistName,b=etaptBins,axis=axisNames)
+line = "nominal_: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(b=etaptBins,axis=axisNames)
+
+print(line)
+if printToFile: outf.write(line+'\n')
 
 # pdf
 syst_key = "pdf"
@@ -46,7 +64,12 @@ syst_axisname = "ZTitle='PDF index'"
 syst_weight  = "LHEPdfWeight"
 process_regexpr = "W.*|Z.*"
 
-print("{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr))
+#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+
+print(line)
+if printToFile: outf.write(line+'\n')
+
 
 # qcd scales (not Vpt binned, that one comes just afterward)
 syst_key = "qcdScale"
@@ -54,17 +77,35 @@ syst_expr = "indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],L
 syst_binning = "18,-0.5,17.5"
 syst_axisname = "ZTitle='QCD scale index'"
 syst_weight  = "LHEScaleWeight"
-process_regexpr = "W.*|Z.*" # actually one or the other based on Wlike or Wmass
+process_regexpr = "W.*" if isWlike else "Z.*"
 
-print("{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr))
+#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+
+print(line)
+if printToFile: outf.write(line+'\n')
 
 # qcd scales (Vpt binned)
 NVTPBINS = 10
+process_regexpr =  "Z.*" if isWlike else "W.*" # opposite with respect to unbinned QCD scales
 for ipt in range(1,1+NVTPBINS):
     syst_key = "qcdScaleVptBin%d" % ipt
     ptcut = wptBinsScales(ipt)
     syst_weight  = "qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptlo}\,{pthi})".format(ptlo=ptcut[0],pthi=ptcut[1])
-    process_regexpr = "W.*|Z.*" # actually one or the other based on Wlike or Wmass
 
-    print("{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr))
+    #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+    line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+    print(line)
+    if printToFile: outf.write(line+'\n')
 
+print('-'*30)
+print("SUMMARY")
+print('-'*30)
+print("Analysis:       %s" % args.analysis)
+#print("Base hist name: %s" % baseHistName)
+print("Binning eta-pt: %s" % etaptBins)
+print('-'*30)
+if printToFile:
+    outf.close()
+    print("Output saved in file %s" % args.outputFile)
+    print()
