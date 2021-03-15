@@ -1,9 +1,14 @@
-# make txt file with plots
+# make txt file with plots (for now it does nominal, pdfs, qcd scales (binned in Vpt or not)
+# -a wlike makes Vpt binned qcd scales only for Zmumu and Ztautau, and unbinned ones for W and Z (default is the opposite, for -a wmass)
+# will add further weights
 #
 python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt --a wlike
 #
 # run mcPlots.py
-# this is for charge + for now
+# this is for charge + for now, at some point all charges will be done together, using TH4
+# add '--allow-negative-results' or '--neglist "<regular_expression>"' to avoid cropping negative bins to 0 (can be done in next step if needed)
+# all mcPlots options are available, in particular can add --updateRootFile to remake only some selected histograms (through other options) e.g. if a bug was affecting only some
+# by default this makes all plots in the plots txt file
 #
 python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)" --pdir theTestDir --filter-proc-files ".*" ".*_1.root" --skipPlot
 #
