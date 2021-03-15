@@ -27,14 +27,14 @@ def getQCDScaleIndices():
     # and use even indices in the LHEScaleWeight array for NNPDF3.1 (odd are for NNPDF3.0)
     # so e.g. muRmuFUp is (2,2), corresponding to index 8*2 (index for first pair is 0)
     # we don't use the case where one scale goes up and the other down, so exclude pairs like (0.5,2)
-    ret = { 0 : "muRmuFDown",
-            2 : "muRDown",
-            6 : "muFDown",
+    ret = {  0 : "muRmuFDown",
+             2 : "muRDown",
+             6 : "muFDown",
             10 : "muFUp",
             14 : "muRUp",
             16 : "muRmuFUp"
     }
-    
+    return ret
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
 
@@ -54,19 +54,21 @@ def mirrorShape(nominal,alternate,mirror):
     # while this choice is only relevant for some bins with low stat in MC, it can induce non trivial 
     # effects on constraints of some particular nuisance parameters
 
-    for b in xrange(1,nominal.GetNbinsX()+1):
-        y0 = nominal.GetBinContent(b)
-        yA = alternate.GetBinContent(b)
-        yM = max(0,2*y0-yA)
-        mirror.SetBinContent(b, yM)
+    for bx in range(1,nominal.GetNbinsX()+1):
+        for by in range(1,nominal.GetNbinsY()+1):
+            y0 = nominal.GetBinContent(bx, by)
+            yA = alternate.GetBinContent(bx, by)
+            yM = max(0,2*y0-yA)
+            mirror.SetBinContent(bx, by, yM)
+            mirror.SetBinError(bx, by, alternate.GetBinError(bx, by))
     return mirror
 
 
 import argparse
 parser = argparse.ArgumentParser()
-#parser.add_argument("--od", "--outdir", type=str, default=None, help="output folder") 
-parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
 parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read histos from")
+parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
+#parser.add_argument("--od", "--outdir", type=str, default=None, help="output folder") 
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
 
@@ -122,15 +124,43 @@ outf = ROOT.TFile.Open(outfilename,'RECREATE')
 if not outf or not outf.IsOpen():
     raise(RuntimeError('Unable to open file {fn}'.format(fn=outfilename)))
 outf.cd()
+for proc in list(hnomi.keys()):
+    hnomi[proc].Write()
 
 for syst in systs:
     procs = list(hsyst[syst].keys())
     for proc in procs:
+        h3D = hsyst[syst][proc]
         if "qcdScale" in syst:
-            h3D = hsyst[syst][proc]
-            qcdscales
-            h2D = 
-
+            indices = sorted(list(qcdscales.keys()))
+            if "qcdScaleVptBin" in syst:
+                ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence
+            else:
+                ptbin = 0 # told you ;)
+            for i in indices:
+                systname = qcdscales[i]
+                if ptbin:
+                    tmp = systname.replace("Up","").replace("Down","") + str(ptbin) + ("Up" if systname.endswith("Up") else "Down")
+                    systname = tmp 
+                name = "x_" + proc + "_" + systname
+                h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
+                h2D.Write()
+        if "pdf" in syst:
+            # this includes actual pdf hessians (bins 1 to 100) and alphaSUp and alphaSDown (bin 101 and 102)
+            # pdfxx needs mirroring, alphaS already has Up and Down
+            for i in range(1,103):
+                if i <= 100:
+                    name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
+                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                    h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                    h2D.Write()
+                    h2D_mirror.Write()
+                else:
+                    name = "x_" + proc + "_alphaS%s" % ("Up" if i == 101 else "Down")
+                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D.Write()
+                                           
 outf.Close()
 print(f"Histograms saved in file {outfilename}")
 
