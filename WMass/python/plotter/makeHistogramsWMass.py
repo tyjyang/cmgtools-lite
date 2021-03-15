@@ -1,13 +1,51 @@
 #!/usr/bin/env python
 
-# developed from makeShapeCards.py
-
-from mcPlots import *
-import re, sys, os, os.path
+#from mcPlots import *
+import re, os, os.path
 import math
+import copy
+import argparse
+import logging
 
-#from cropNegativeTemplateBins import cropNegativeContent
+## safe batch mode
+import sys
+args = sys.argv[:]
+sys.argv = ['-b']
+import ROOT
+sys.argv = args
+ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 
+
+from tree2yield import setLogging
+from cropNegativeTemplateBins import cropNegativeContent
+
+def getQCDScaleIndices():
+    # first number is for renormalization scale, the other is for factorization scale
+    # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
+    #  ("1","1"), ("1","2"), ("2", "05"), ("2", "1"), ("2", "2")]):
+    # and use even indices in the LHEScaleWeight array for NNPDF3.1 (odd are for NNPDF3.0)
+    # so e.g. muRmuFUp is (2,2), corresponding to index 8*2 (index for first pair is 0)
+    # we don't use the case where one scale goes up and the other down, so exclude pairs like (0.5,2)
+    ret = {  0 : "muRmuFDown",
+             2 : "muRDown",
+             6 : "muFDown",
+            10 : "muFUp",
+            14 : "muRUp",
+            16 : "muRmuFUp"
+    }
+    return ret
+
+def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
+
+    if binEnd == None:
+        binEnd = binStart
+    hist3D.GetZaxis().SetRange(binStart,binEnd)
+    # Order yx matters to have consistent axes!
+    hist2D = hist3D.Project3D("yxe") # make TH2 with y axis versus x axis
+    hist2D.SetName(name)
+    return hist2D
+    
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
     # same for normalization
@@ -16,268 +54,114 @@ def mirrorShape(nominal,alternate,mirror):
     # while this choice is only relevant for some bins with low stat in MC, it can induce non trivial 
     # effects on constraints of some particular nuisance parameters
 
-    for b in xrange(1,nominal.GetNbinsX()+1):
-        y0 = nominal.GetBinContent(b)
-        yA = alternate.GetBinContent(b)
-        yM = max(0,2*y0-yA)
-        mirror.SetBinContent(b, yM)
+    for bx in range(1,nominal.GetNbinsX()+1):
+        for by in range(1,nominal.GetNbinsY()+1):
+            y0 = nominal.GetBinContent(bx, by)
+            yA = alternate.GetBinContent(bx, by)
+            yM = max(0,2*y0-yA)
+            mirror.SetBinContent(bx, by, yM)
+            mirror.SetBinError(bx, by, alternate.GetBinError(bx, by))
     return mirror
 
 
-# def rebin2Dto1D(h,funcstring):
-#     nbins,fname = funcstring.split(':',1)
-#     func = getattr(ROOT,fname)
-#     nbins = int(nbins)
-#     goodname = h.GetName()
-#     h.SetName(goodname+"_oldbinning")
-#     newh = ROOT.TH1D(goodname,h.GetTitle(),nbins,0.5,nbins+0.5)
-#     x = h.GetXaxis()
-#     y = h.GetYaxis()
-#     allowed = range(1,nbins+1)
-#     if 'TH2' not in h.ClassName(): raise RuntimeError, "Calling rebin2Dto1D on something that is not TH2"
-#     for i in xrange(x.GetNbins()):
-#         for j in xrange(y.GetNbins()):
-#             bin = int(func(x.GetBinCenter(i+1),y.GetBinCenter(j+1)))
-#             if bin not in allowed: raise RuntimeError, "Binning function gives not admissible result"
-#             newh.SetBinContent(bin,newh.GetBinContent(bin)+h.GetBinContent(i+1,j+1))
-#             newh.SetBinError(bin,math.hypot(newh.GetBinError(bin),h.GetBinError(i+1,j+1)))
-#     for bin in range(1,nbins+1):
-#         if newh.GetBinContent(bin)<0:
-#             print('Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin)))
-#             newh.SetBinContent(bin,0)
-#     newh.SetLineWidth(h.GetLineWidth())
-#     newh.SetLineStyle(h.GetLineStyle())
-#     newh.SetLineColor(h.GetLineColor())
-#     return newh
-
-# def unroll2Dto1D(h):
-#     nbins = h.GetNbinsX() * h.GetNbinsY()
-#     goodname = h.GetName()
-#     h.SetName(goodname+"_oldbinning")
-#     newh = ROOT.TH1D(goodname,h.GetTitle(),nbins,0.5,nbins+0.5)
-#     if 'TH2' not in h.ClassName(): raise RuntimeError, "Calling unroll2Dto1D on something that is not TH2"
-#     for i in xrange(h.GetNbinsX()):
-#         for j in xrange(h.GetNbinsY()):
-#             bin = 1 + i + j*h.GetNbinsX()
-#             newh.SetBinContent(bin,h.GetBinContent(i+1,j+1))
-#             newh.SetBinError(bin,h.GetBinError(i+1,j+1))
-#     for bin in range(1,nbins+1):
-#         if newh.GetBinContent(bin)<0:
-#             print('Warning: found bin with negative event weight! will set to it though!')
-#             #print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
-#             #newh.SetBinContent(bin,0)
-#     return newh
-
 import argparse
 parser = argparse.ArgumentParser()
-#addMCAnalysisOptions(parser)
-addPlotMakerOptions(parser)
-# parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
-# parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
-# parser.add_argument("plotFile", type=str, help="Text file with plot definitions");
-#parser.add_argument("-o",   "--out", dest="outname", type=str, default=None, help="output name") 
-parser.add_argument("--od", "--outdir",  dest="outdir", type=str, default=None, help="output name") 
-#parser.add_argument("--asimov", action="store_true", help="Asimov, to allow for running without data")
-#parser.add_argument("--2d-binning-function",dest="binfunction", type=str, default=None, help="Function used to bin the 2D histogram: for now can be None or unroll2Dto1D")
-parser.add_argument("--infile",   type=str, default=None, help="File to read histos from (to reuse the one made with --savefile)")
-parser.add_argument("--savefile", type=str, default=None, help="File to save histos to (this has only those produced by getPlots() )")
+parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read histos from")
+parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
+#parser.add_argument("--od", "--outdir", type=str, default=None, help="output folder") 
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
+parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
 
 args = parser.parse_args()
-options = args
 
 setLogging(args.verbose)
 
-if "/functions_cc.so" not in ROOT.gSystem.GetLibraries():
-    compileMacro("ccFiles/functions.cc")
+infilename = args.infile 
+outfilename = args.outfile
+if os.path.abspath(infilename) == os.path.abspath(outfilename):
+    logging.warning(" input and output file names are the same. Abort")
+    quit()
 
-mca   = MCAnalysis(args.sampleFile,options)
-cuts  = CutsFile(args.cutFile,options)
-plots = PlotFile(args.plotFile, args)
-pspecs = plots.plots()
+hnomi = {} # {process name : histo}
+hsyst = {} # {syst name : {process name : histo}}
 
-#binname = os.path.basename(args.cutFile).replace(".txt","") if options.outname == None else options.outname
-outdir  = options.outdir+"/" if options.outdir else "./"
+# read input files to get all histograms, but do not append Up/Down in names yet
+fin = ROOT.TFile.Open(infilename)
+if not fin or not fin.IsOpen():
+    raise(RuntimeError('Unable to open file {fn}'.format(fn=infilename)))
+for ikey,e in enumerate(fin.GetListOfKeys()):
+    name = e.GetName()
+    obj  = e.ReadObj()
+    if not obj:
+        raise(RuntimeError('Unable to read object {n}'.format(n=name)))
+    syst,proc = name.split("__")
+    if proc == "data":
+        proc = "data_obs"
+    newname = "x_" + proc
+    if name.startswith("nominal"):
+        hnomi[proc] = obj.Clone(newname)
+        hnomi[proc].SetDirectory(0)
+    else:
+        if syst not in hsyst:
+            hsyst[syst] = {}
+        hsyst[syst][proc] = obj.Clone(newname+"_"+syst)
+        hsyst[syst][proc].SetDirectory(0)
+fin.Close()
 
-myout = outdir;
-if not os.path.exists(myout): os.mkdir(myout)
+print('-'*30)
+print("Processes: %s" % ", ".join(str(x) for x in list(hnomi.keys())))
+print('-'*30)
+print("Systematics and relevant processes")
+systs = sorted(list(hsyst.keys()))
+for syst in systs:
+    proclist = ", ".join(str(x) for x in sorted(hsyst[syst].keys()))
+    print("{: <20}: {p}".format(syst,p=proclist))
+print('-'*30)
 
-report={}
-report = mca.getPlots(pspecs, cuts.allCuts())
-#print(report)
-quit()
+qcdscales = getQCDScaleIndices()
 
-report['data_obs'] = report['data'].Clone("x_data_obs") 
+outf = ROOT.TFile.Open(outfilename,'RECREATE')
+if not outf or not outf.IsOpen():
+    raise(RuntimeError('Unable to open file {fn}'.format(fn=outfilename)))
+outf.cd()
+for proc in list(hnomi.keys()):
+    hnomi[proc].Write()
 
-# if options.cropNegativeBin:
-#     for p,h in report.iteritems():
-#         cropNegativeContent(h,silent=False)        
-
-# allyields = dict([(p,h.Integral()) for p,h in report.iteritems()])
-# procs = []
-# for i,s in enumerate(mca.listSignals()):
-#     if allyields[s] == 0: continue
-#     procs.append(s)
-# for i,b in enumerate(mca.listBackgrounds()):
-#     if allyields[b] == 0: continue
-#     procs.append(b)
-
-# systs = {} # not needed if not creating dummy cards, but keep for now (it was used for lnN nuisances, which do not need a new template)
-# systsEnv = {}
-# for sysfile in args[4:]:
-#     for line in open(sysfile, 'r'):
-#         if re.match("\s*#.*", line): continue
-#         line = re.sub("#.*","",line).strip()
-#         if len(line) == 0: continue
-#         field = [f.strip() for f in line.split(':')]
-#         if len(field) < 4:
-#             raise RuntimeError, "Malformed line %s in file %s"%(line.strip(),sysfile)
-#         elif len(field) == 4 or field[4] == "lnN":
-#             (name, procmap, binmap, amount) = field[:4]
-#             if re.match(binmap+"$",binname) == None: continue
-#             if name not in systs: systs[name] = []
-#             systs[name].append((re.compile(procmap+"$"),amount))
-#         elif field[4] in ["envelop","shapeOnly","templates","templatesShapeOnly","alternateShape","alternateShapeOnly"] or '2D' in field[4]:
-#             (name, procmap, binmap, amount) = field[:4]
-#             if re.match(binmap+"$",binname) == None: continue
-#             if name not in systs: systsEnv[name] = []
-#             systsEnv[name].append((re.compile(procmap+"$"),amount,field[4]))
-#         elif field[4] in ["stat_foreach_shape_bins"]:
-#             (name, procmap, binmap, amount) = field[:4]
-#             if re.match(binmap+"$",binname) == None: continue
-#             if name not in systsEnv: systsEnv[name] = []
-#             systsEnv[name].append((re.compile(procmap+"$"),amount,field[4],field[5].split(',')))
-#         else:
-#             raise RuntimeError, "Unknown systematic type %s" % field[4]
-#     if options.verbose:
-#         print("Loaded %d systematics" % len(systs))
-#         print("Loaded %d envelop systematics" % len(systsEnv))
+for syst in systs:
+    procs = list(hsyst[syst].keys())
+    for proc in procs:
+        h3D = hsyst[syst][proc]
+        if "qcdScale" in syst:
+            indices = sorted(list(qcdscales.keys()))
+            if "qcdScaleVptBin" in syst:
+                ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence
+            else:
+                ptbin = 0 # told you ;)
+            for i in indices:
+                systname = qcdscales[i]
+                if ptbin:
+                    tmp = systname.replace("Up","").replace("Down","") + str(ptbin) + ("Up" if systname.endswith("Up") else "Down")
+                    systname = tmp 
+                name = "x_" + proc + "_" + systname
+                h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
+                h2D.Write()
+        if "pdf" in syst:
+            # this includes actual pdf hessians (bins 1 to 100) and alphaSUp and alphaSDown (bin 101 and 102)
+            # pdfxx needs mirroring, alphaS already has Up and Down
+            for i in range(1,103):
+                if i <= 100:
+                    name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
+                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                    h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                    h2D.Write()
+                    h2D_mirror.Write()
+                else:
+                    name = "x_" + proc + "_alphaS%s" % ("Up" if i == 101 else "Down")
+                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D.Write()
+                                           
+outf.Close()
+print(f"Histograms saved in file {outfilename}")
 
 
-# # if options.binfunction:
-# #     newhistos={}
-# #     _to_be_rebinned={}
-# #     for n,h in report.iteritems(): _to_be_rebinned[h.GetName()]=h
-# #     for n,h in _to_be_rebinned.iteritems():
-# #         thisname = h.GetName()
-# #         if(options.binfunction=='unroll2Dto1D'): newhistos[thisname]=unroll2Dto1D(h)
-# #         else: newhistos[thisname]=rebin2Dto1D(h,options.binfunction)
-# #     for n,h in report.iteritems(): report[n] = newhistos[h.GetName().replace('_oldbinning','')]
-# #     allyields = dict([(p,h.Integral()) for p,h in report.iteritems()])
-# #     procs = []
-# #     for i,s in enumerate(mca.listSignals()):
-# #         if allyields[s] == 0: continue
-# #         procs.append(s)
-# #     for i,b in enumerate(mca.listBackgrounds()):
-# #         if allyields[b] == 0: continue
-# #         procs.append(b)
-
-# systsEnv2={}
-# for name in systsEnv.keys():
-#     modes = [entry[2] for entry in systsEnv[name]]
-#     for _m in modes:
-#         if _m!=modes[0]: raise RuntimeError, "Not supported"
-#     if (any([re.match(x+'.*',modes[0]) for x in ["envelop","shapeOnly"]])): continue # do only this before rebinning
-#     # we plan to have only templates* or alternateShape* nuisance parameters
-#     effmap0  = {}
-#     effmap12 = {}
-#     mode = ""
-#     for p in procs:
-#         effect = "-"
-#         effect0  = "-"
-#         effect12 = "-"
-#         mode = ""
-#         for entry in systsEnv[name]:
-#             procmap,amount,mode = entry[:3]
-#             if re.match(procmap, p):
-#                 effect = float(amount) if mode not in ["templates","templatesShapeOnly","alternateShape", "alternateShapeOnly"] else amount
-#         if mca._projection != None and effect not in ["-","0","1",1.0,0.0] and type(effect) == type(1.0):
-#             effect = mca._projection.scaleSyst(name, effect)
-#         if effect == "-" or effect == "0": 
-#             effmap0[p]  = "-" 
-#             effmap12[p] = "-" 
-#             continue
-        
-#         if mode in ["templates","templatesShapeOnly"]:
-#             nominal = report[p]
-#             p0Up = report["%s_%s_Up" % (p, effect)]
-#             p0Dn = report["%s_%s_Dn" % (p, effect)]
-#             if not p0Up or not p0Dn: 
-#                 raise RuntimeError, "Missing templates %s_%s_(Up,Dn) for %s" % (p,effect,name)
-#             p0Up.SetName("%s_%sUp"   % (nominal.GetName(),name))
-#             p0Dn.SetName("%s_%sDown" % (nominal.GetName(),name))
-#             if p0Up.Integral()<=0 or p0Dn.Integral()<=0:
-#                 if p0Up.Integral()<=0 and p0Dn.Integral()<=0: raise RuntimeError, 'ERROR: both template variations have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
-#                 print('Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral()))
-#                 for b in xrange(1,nominal.GetNbinsX()+1):
-#                     y0 = nominal.GetBinContent(b)
-#                     yA = p0Up.GetBinContent(b) if p0Up.Integral()>0 else p0Dn.GetBinContent(b)
-#                     yM = y0
-#                     if (y0 > 0 and yA > 0):
-#                         yM = y0*y0/yA
-#                     elif yA == 0:
-#                         yM = 2*y0
-#                     if p0Up.Integral()>0: p0Dn.SetBinContent(b, yM)
-#                     else: p0Up.SetBinContent(b, yM)
-#                 print('The integral is now: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral()))
-#             if mode == 'templatesShapeOnly':
-#                 p0Up.Scale(nominal.Integral()/p0Up.Integral())
-#                 p0Dn.Scale(nominal.Integral()/p0Dn.Integral())
-#             report[str(p0Up.GetName())[2:]] = p0Up
-#             report[str(p0Dn.GetName())[2:]] = p0Dn
-#             effect0  = "1"
-#             effect12 = "-"
-#             if mca._projection != None:
-#                 mca._projection.scaleSystTemplate(name,nominal,p0Up)
-#                 mca._projection.scaleSystTemplate(name,nominal,p0Dn)
-#         elif mode in ["alternateShape", "alternateShapeOnly"]:
-#             # for k in report:
-#             #     print "%s : %s" % (k, report[k])
-#             if options.verbose:
-#                 print("CHECKPOINT: %s   %s" % (p,mode))
-#             nominal = report[p]
-#             alternate = report[effect]
-#             if mca._projection != None:
-#                 mca._projection.scaleSystTemplate(name,nominal,alternate)
-#             alternate.SetName("%s_%sUp" % (nominal.GetName(),name))
-#             if mode == "alternateShapeOnly":
-#                 alternate.Scale(nominal.Integral()/alternate.Integral())
-#             mirror = nominal.Clone("%s_%sDown" % (nominal.GetName(),name))
-#             mirror = mirrorShape(nominal,alternate,mirror) # this does not alter normalization
-#             if mode == "alternateShapeOnly":
-#                 # keep same normalization
-#                 mirror.Scale(nominal.Integral()/mirror.Integral())
-#             if options.verbose:
-#                 print("CHECKPOINT: int(nomi) ", str(nominal.Integral()))
-#                 print("CHECKPOINT: int(alte) ", str(alternate.Integral()))
-#                 print("CHECKPOINT: int(mirr) ", str(mirror.Integral()))
-#             report[alternate.GetName()] = alternate
-#             report[mirror.GetName()] = mirror
-#             effect0  = "1"
-#             effect12 = "-"
-#         effmap0[p]  = effect0 
-#         effmap12[p] = effect12 
-#     if mode not in ["stat_foreach_shape_bins"]: systsEnv2[name] = (effmap0,effmap12,mode)
-
-# systsEnv = {}
-# systsEnv.update(systsEnv2)
-
-# workspace = ROOT.TFile.Open(myout+binname+".input.root", "RECREATE")
-# for n,h in report.iteritems():
-#     if options.verbose: print("\t%s (%8.3f events)" % (h.GetName(),h.Integral()))
-#     workspace.WriteTObject(h,h.GetName())
-# workspace.Close()
-
-# print("Wrote to ",myout+binname+".input.root")
-# # now check goodness of file, if bad returns an exit code different from 0
-# f = ROOT.TFile.Open(myout+binname+".input.root", "READ")
-# if f.IsZombie():    
-#     print('file is probably corrupted')
-#     sys.exit(100)
-# if f.TestBit(ROOT.TFile.kRecovered):
-#     print('file is in fishy state, was recovered')
-#     sys.exit(101)
-# if f.GetListOfKeys().GetSize()==0:
-#     print('file is bad, has no keys')
-#     sys.exit(102)
-# print ("File is in good state :)")
