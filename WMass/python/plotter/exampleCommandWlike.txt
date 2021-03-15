@@ -1,39 +1,16 @@
-# for testing, can use --filter-proc-files ".*" ".*_12_.*" to select only root files with _12_ in their name (the first ".*" is to apply it on all processes, you can use "^Z.*" to use it only on processes in mca_testSF.txt that starts with Z
-# you should change --pdir outdir_plots/ with an output folder you prefer
-
-#indir=/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/dec2020/
-indir=/data/shared/postNANO/dec2020/
-
-plots=muon_pt_eta_phi,muon_pt_wlike,muon_eta_wlike,muon_eta_wlike_rebin,mt_MET,PV_z,MET_pt,muon_eta,nmuon,zmass,zpt,zy
-#,zmass,zpt,zy,muon_eta_wlike_rebin,muon_pt_eta_wlike
-
-#/usr/bin/time -v python mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt w-mass-13TeV/testingNano/cfg/test/cuts_testSF.txt w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP "${plots}" -P ${indir}  -W "(1/35.9)*puWeight*PrefireWeight" --pdir /afs/cern.ch/user/m/mdunser/www/private/w-mass-13TeV/test/ -p "data,Zmumu,Ztautau,ZallPerEra"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50000.0" --clip-genWeight-toMax --showRatio --maxRatioRange 0.95 1.05 --fixRatioRange -A alwaystrue odd "isOddEvent(event)"  --pg 'data := data_B,data_C,data_D,data_E,data_F,data_F_postVFP,data_G,data_H' --pg 'Zmumu := Zmumu_all' --pg 'Ztautau := Ztautau_all' --sp ZallPerEra --ratioNumsWithData ZallPerEra  --noStackSig --showIndivSigs  --onlyStatErrorOnRatio -X mtl1pf40 -R pfRelIso04 pfRelIso04_mainLeg 'returnChargeVal(Muon_pfRelIso04_all[0],Muon_charge[0],Muon_pfRelIso04_all[1],Muon_charge[1],event) < 0.15'
-
-
-data=data_F_postVFP #,fullData
-mc=Ztautau #,Zmumu
-
-/usr/bin/time -v python mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt w-mass-13TeV/testingNano/cfg/test/trivialCut.txt w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP ${plots} -P ${indir}  -W "(1/35.9)*puWeight*PrefireWeight" --pdir /afs/cern.ch/user/m/mdunser/www/private/w-mass-13TeV/test/ -p "${data},${mc}"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  --nanoaod-tree --max-genWeight-procs "W|Z" "50000.0" --clip-genWeight-toMax --showRatio --maxRatioRange 0.95 1.05 --fixRatioRange  --pg 'data := ${data}'   --pg 'Ztautau := Ztautau_all' --pg 'Zmumu := Zmumu_all'
-
-#data,Zmumu_preVFP,Z_globSF_preVFP,Z_noSF_preVFP,Ztautau_preVFP"
-
-#/usr/bin/time -v python mcPlots.py -f -l 19.3 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" w-mass-13TeV/testingNano/cfg/test/mca_fulldata.txt  /afs/cern.ch/user/m/mciprian/public/4marc/tmpfiles/testSynch/cuts_testSF.txt  /afs/cern.ch/user/m/mciprian/public/4marc/tmpfiles/testSynch/plots_test.txt --noCms  --sP ${plots} -P ${indir}  -W "(1/19.3)*puWeight*PrefireWeight" --pdir /afs/cern.ch/user/m/mdunser/www/private/w-mass-13TeV/test/ -p "fullData,Z_noSF_preVFP"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50000.0" --clip-genWeight-toMax --showRatio --maxRatioRange 0.9 1.1 --fixRatioRange -A alwaystrue odd "isOddEvent(event)"  --pg 'data := fullData'  --onlyStatErrorOnRatio -X mtl1pf40 --filter-proc-files "^Z.*" ".*_1[1-4].*" --noLegendRatioPlot
- #data_B,data_C,data_D,data_E,data_F
-
-
-/usr/bin/time -v python /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/cuts_testSF.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP "muon_pt_wlike,zmass,zpt,zy,muon_eta_wlike_rebin,muon_pt_wlike_other,muon_eta_rebin_other,mt_wlike_T1MET" -P /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/skim_2lep_feb2021/  -W "(1/35.9)*puWeight*PrefireWeight" --pdir /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/plots/testNanoAOD/Wlike/testNewSF/dataBtoH_SFforBtoH_noMtCut_isoBothLeg_TESTSKIM/testRDF_sumwgtFromHisto_first2muons/oddEvents/ -p "data,Zmumu,Ztautau"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax --showRatio --maxRatioRange 0.95 1.05 --fixRatioRange -A alwaystrue odd "isOddEvent(event)"  --pg 'data := fullData' --pg 'Zmumu := Zmumu_preVFP,Zmumu_postVFP' --pg 'Ztautau := Ztautau_preVFP,Ztautau_postVFP' --onlyStatErrorOnRatio --noLegendRatioPlot -X mtl1pf40 
-#--filter-proc-files ".*" ".*_1(1|2)_.*"
-
-
-/usr/bin/time -v python /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/cuts_testSF.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP "muon_pt_wlike,zmass,zpt,zy,muon_eta_wlike_rebin,muon_pt_wlike_other,muon_eta_wlike_rebin_other,mt_wlike_T1MET" -P /data/shared/postNANO/dec2020/  -W "(1/35.9)*puWeight*PrefireWeight" --pdir /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/plots/testNanoAOD/Wlike/testNewSF/allDataMC_noMtCut_isoBothLeg_noEleVeto_noTrigMatchCut_isoSFnotrigBoth/oddEvents/ -p "data,Zmumu,Ztautau,Z_noSF"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --showRatio --maxRatioRange 0.95 1.05 --fixRatioRange -A alwaystrue odd "isOddEvent(event)" --onlyStatErrorOnRatio --noLegendRatioPlot --pg 'data := fullData' --pg 'Zmumu := Zmumu_preVFP,Zmumu_postVFP' --pg 'Ztautau := Ztautau_preVFP,Ztautau_postVFP' --pg 'Z_noSF := Z_noSF_preVFP,Z_noSF_postVFP' --noStackSig --showIndivSigs --sp 'Z_noSF'  
-#--pg 'Zmumu := Zmumu_preVFP,Zmumu_postVFP' --pg 'Ztautau := Ztautau_preVFP,Ztautau_postVFP' --pg 'Z_noSF := Z_noSF_preVFP,Z_noSF_postVFP' --noStackSig --showIndivSigs --sp 'Z_noSF' 
-#--filter-proc-files ".*" ".*_1_.*"
-#PrefireWeight
-
-# stree test with W full stat (only charge +)
-/usr/bin/time -v python /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/test/cuts_wmunu.txt /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP "muon_pt,muon_eta,MET_T1_pt,mt_T1MET" -P /data/shared/postNANO/dec2020/  -W "(1/35.9)*puWeight*PrefireWeight" --pdir /afs/cern.ch/work/m/mciprian/w_mass_analysis/heppy/CMSSW_10_6_18/src/CMGTools/WMass/python/plotter/plots/testNanoAOD/testRDF/dataAndMC_Wplus/ -p "data,Wmunu_plus,Zmumu"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax  --showRatio --maxRatioRange 0.95 1.05 --fixRatioRange -A onemuon plus "Muon_charge[0] > 0" --onlyStatErrorOnRatio --noLegendRatioPlot --pg 'data := fullData' --pg 'Zmumu := Zmumu_preVFP,Zmumu_postVFP'
-# --filter-proc-files ".*" ".*_1_.*"
-
-
-
-python mcPlots.py -f -l 35.9 --obj Events --s2v --lspam "#bf{CMS} #it{Preliminary}" w-mass-13TeV/testingNano/cfg/test/mca_testSF.txt w-mass-13TeV/testingNano/cfg/test/cuts_testSF.txt w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms  --sP "muon_pt,zmass,zpt,zy,muon_eta,muon_pt_other,muon_eta_other" -P /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2/  -W "(1/35.9)" --pdir plots/testNanoAOD/testRDFtool/trigMatch_originalNano/oddEvents/ -p "Zmumu_test"  --legendFontSize 0.045 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92  -j 8  --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  -A alwaystrue odd "isOddEvent(event)"  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_trigMatch.txt --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -A mZ trigMatch "hasTriggerMatch(Muon_eta[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])" --filter-proc-files ".*" ".*_1.root" -R trigger triggerOrigNano "HLT_IsoTkMu24 || HLT_IsoMu24"
+# make txt file with plots
+#
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt --a wlike
+#
+# run mcPlots.py
+# this is for charge + for now
+#
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)" --pdir theTestDir --filter-proc-files ".*" ".*_1.root" --skipPlot
+#
+# unpack histograms from TH3 into TH2 (eta-pt)
+#
+python makeHistogramsWMass.py -i theTestDir/plots_wlike_sysTH3.root -o theTestDir/shapes_wlike.root
+#
+# check content
+#
+python printRootFileContent.py theTestDir/shapes_wlike.root [options]
