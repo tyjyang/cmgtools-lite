@@ -1,16 +1,18 @@
 #!/bin/env python
 
 import ROOT, sys,os,re,json, copy, math, root_numpy, array
-from rollingFunctions import roll1Dto2D, dressed2D, unroll2Dto1D
 import makeSystematicMultipliers as ms
 import utilities
+import argparse
+
 utilities = utilities.util()
+
 def isExcludedNuisance(excludeNuisances=[], name="", keepNuisances=[]):
     if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances):
         if len(keepNuisances) and any(re.match(x,name) for x in keepNuisances):
             return False
         else:
-            print ">>>>> Excluding nuisance: ", name
+            print(">>>>> Excluding nuisance: ", name)
             return True
     else:
         return False
@@ -105,7 +107,7 @@ class CardMaker:
                         if ('plus' in proc and 'minus' in systName) or ('minus' in proc and 'plus' in systName):
                             continue
                         if re.match(proc_regexp,proc):
-                            #print "hname = %s     systname = %s" % (proc_hist.GetName(),systName)
+                            #print("hname = %s     systname = %s" % (proc_hist.GetName(),systName))
                             tmp_var  = copy.deepcopy(proc_hist.Clone(proc_hist.GetName()+'_'+systName))
                             tmp_var.Multiply(tmp_syst)
                             allVars.append(tmp_var)
@@ -145,91 +147,93 @@ class CardMaker:
             mirror.Scale(nominal.Integral()/mirror.Integral())
         return (alternate,mirror)
 
-    def mergeChunks(self, dryRun=False):
-        ## prepare the relevant files. only the datacards and the correct charge
-        allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(self._options.inputdir,followlinks=True) for f in fn if f.endswith('.input.root')]
+    # SHOULD NOT BE NEEDED ANYMORE
+    #
+    # def mergeChunks(self, dryRun=False):
+    #     ## prepare the relevant files. only the datacards and the correct charge
+    #     allfiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(self._options.inputdir,followlinks=True) for f in fn if f.endswith('.input.root')]
         
-        datafiles = [f for f in allfiles if any('dataHisto_{e}_{ch}.input.root'.format(e=era,ch=self.charge) in f for era in self.data_eras)]
-        datafolder = os.path.dirname(os.path.abspath(datafiles[0]))+"/"
-        # start merging data (contains data and fakes)
-        outf = "dataHisto_{ch}.input.root".format(ch=self.charge)
-        haddcmd = "hadd -f -k {df}{of} {i}".format(df=datafolder,of=outf,i=" ".join(datafiles))
-        print "Merging files with data and fakes"
-        print haddcmd
-        if not dryRun: os.system(haddcmd)
+    #     datafiles = [f for f in allfiles if any('dataHisto_{e}_{ch}.input.root'.format(e=era,ch=self.charge) in f for era in self.data_eras)]
+    #     datafolder = os.path.dirname(os.path.abspath(datafiles[0]))+"/"
+    #     # start merging data (contains data and fakes)
+    #     outf = "dataHisto_{ch}.input.root".format(ch=self.charge)
+    #     haddcmd = "hadd -f -k {df}{of} {i}".format(df=datafolder,of=outf,i=" ".join(datafiles))
+    #     print("Merging files with data and fakes")
+    #     print(haddcmd)
+    #     if not dryRun: os.system(haddcmd)
 
-        ## get only the central processes
-        files = [f for f in allfiles if any(os.path.basename(f)==centralfile+'.input.root' for centralfile in self.centralfiles)]
-        files = sorted(files) #, key = lambda x: int(x.rstrip('.input.root').split('_')[1]))
+    #     ## get only the central processes
+    #     files = [f for f in allfiles if any(os.path.basename(f)==centralfile+'.input.root' for centralfile in self.centralfiles)]
+    #     files = sorted(files) #, key = lambda x: int(x.rstrip('.input.root').split('_')[1]))
     
-        #acoeffs = [self.charge+'_ac']+['{charge}_a{ic}'.format(charge=self.charge,ic=i) for i in range(8)]
+    #     #acoeffs = [self.charge+'_ac']+['{charge}_a{ic}'.format(charge=self.charge,ic=i) for i in range(8)]
 
-        tmpfiles = []
-        for proc in self.centralfiles:
-            print 'processing process: ',proc
-            boson = proc.split("_")[0]
-            bosonSysts = self.systematics[boson] if boson in self.systematics else []
-            ## the input ROOT file is not built from the inputdir since it may come from different partX subdir
-            central_input = [f for f in files if os.path.basename(f)==proc+'.input.root'][0]
-            if len(bosonSysts):
-                syst_inputs   = sorted([f for f in allfiles if any(os.path.basename(f)=='{proc}_{syst}.input.root'.format(proc=proc,syst=syst) for syst in bosonSysts)])
-            else:
-                syst_inputs = []
+    #     tmpfiles = []
+    #     for proc in self.centralfiles:
+    #         print('processing process: ',proc)
+    #         boson = proc.split("_")[0]
+    #         bosonSysts = self.systematics[boson] if boson in self.systematics else []
+    #         ## the input ROOT file is not built from the inputdir since it may come from different partX subdir
+    #         central_input = [f for f in files if os.path.basename(f)==proc+'.input.root'][0]
+    #         if len(bosonSysts):
+    #             syst_inputs   = sorted([f for f in allfiles if any(os.path.basename(f)=='{proc}_{syst}.input.root'.format(proc=proc,syst=syst) for syst in bosonSysts)])
+    #         else:
+    #             syst_inputs = []
 
-            nominals = {}
-            for irf,rf in enumerate([central_input]+syst_inputs):
-                print '\twith nominal/systematic file: ',rf
-                tf = ROOT.TFile.Open(rf)
-                tmpfile = os.path.join(self._options.inputdir,'tmp_{proc}_{sys}.root'.format(proc=proc,sys=irf))
-                of=ROOT.TFile(tmpfile,'recreate')
-                tmpfiles.append(tmpfile)
-                # remove the duplicates also
-                plots = {}
-                for e in tf.GetListOfKeys() :
-                    name=e.GetName()
-                    obj=e.ReadObj()
-                    # x_data must be removed, it was already copied as x_data_obs, which is what we need
-                    if name == "x_data" and 'data' in proc: 
-                        continue
-                    # exclude the asimov data_obs which is in any single card, apart the file with the real data
-                    if name.endswith('data_obs') and 'data' not in proc: 
-                        continue
-                    if name.endswith("Dn"):
-                        name = name.replace('Dn','Down')                    
-                    ### bkg_and_data is in central_input, with no systs. All the systematics (Up/Down) are just copied into the target file
-                    if irf==0:
-                        if name not in plots:
-                            plots[name] = obj.Clone(name+"_clone")
-                            nominals[name] = obj.Clone(name+"0")
-                            nominals[name].SetDirectory(None)
-                            #print 'replacing old %s with %s' % (name,name)
-                            plots[name].Write(name)
-                    else:
-                        if any(sysname in name for sysname in ['pdf','fsr']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
-                            pfx = '_'.join(name.split("_")[:-1]) # was -2, but names changed
-                            if 'pdf' in name:
-                                (alternate,mirror) = self.mirrorShape(nominals[pfx],obj,name,alternateShapeOnly=self._options.pdfShapeOnly)
-                            else:
-                                (alternate,mirror) = self.mirrorShape(nominals[pfx],obj,name,alternateShapeOnly=True)
-                            for alt in [alternate,mirror]:
-                                if alt.GetName() not in plots:
-                                    plots[alt.GetName()] = alt.Clone(alt.GetName()+"_clone")
-                                    plots[alt.GetName()].Write(alt.GetName())
-                        elif re.match('.*massShift.*',name):
-                            plots[name] = obj.Clone(name+"_clone")
-                            plots[name].Write(name)
-                        else:
-                            if name not in plots:
-                                plots[name] = obj.Clone(name+"_clone")
-                                plots[name].Write(name)
-                of.Close()
+    #         nominals = {}
+    #         for irf,rf in enumerate([central_input]+syst_inputs):
+    #             print('\twith nominal/systematic file: ',rf)
+    #             tf = ROOT.TFile.Open(rf)
+    #             tmpfile = os.path.join(self._options.inputdir,'tmp_{proc}_{sys}.root'.format(proc=proc,sys=irf))
+    #             of=ROOT.TFile(tmpfile,'recreate')
+    #             tmpfiles.append(tmpfile)
+    #             # remove the duplicates also
+    #             plots = {}
+    #             for e in tf.GetListOfKeys() :
+    #                 name=e.GetName()
+    #                 obj=e.ReadObj()
+    #                 # x_data must be removed, it was already copied as x_data_obs, which is what we need
+    #                 if name == "x_data" and 'data' in proc: 
+    #                     continue
+    #                 # exclude the asimov data_obs which is in any single card, apart the file with the real data
+    #                 if name.endswith('data_obs') and 'data' not in proc: 
+    #                     continue
+    #                 if name.endswith("Dn"):
+    #                     name = name.replace('Dn','Down')                    
+    #                 ### bkg_and_data is in central_input, with no systs. All the systematics (Up/Down) are just copied into the target file
+    #                 if irf==0:
+    #                     if name not in plots:
+    #                         plots[name] = obj.Clone(name+"_clone")
+    #                         nominals[name] = obj.Clone(name+"0")
+    #                         nominals[name].SetDirectory(None)
+    #                         #print('replacing old %s with %s' % (name,name))
+    #                         plots[name].Write(name)
+    #                 else:
+    #                     if any(sysname in name for sysname in ['pdf','fsr']): # these changes by default shape and normalization. Each variation should be symmetrized wrt nominal
+    #                         pfx = '_'.join(name.split("_")[:-1]) # was -2, but names changed
+    #                         if 'pdf' in name:
+    #                             (alternate,mirror) = self.mirrorShape(nominals[pfx],obj,name,alternateShapeOnly=self._options.pdfShapeOnly)
+    #                         else:
+    #                             (alternate,mirror) = self.mirrorShape(nominals[pfx],obj,name,alternateShapeOnly=True)
+    #                         for alt in [alternate,mirror]:
+    #                             if alt.GetName() not in plots:
+    #                                 plots[alt.GetName()] = alt.Clone(alt.GetName()+"_clone")
+    #                                 plots[alt.GetName()].Write(alt.GetName())
+    #                     elif re.match('.*massShift.*',name):
+    #                         plots[name] = obj.Clone(name+"_clone")
+    #                         plots[name].Write(name)
+    #                     else:
+    #                         if name not in plots:
+    #                             plots[name] = obj.Clone(name+"_clone")
+    #                             plots[name].Write(name)
+    #             of.Close()
 
-        if self._options.mergeRoot:
-            haddcmd = 'hadd -f {of}.baseSystematics {indir}/tmp_*.root'.format(of=self.shapesfile, indir=self._options.inputdir )
-            os.system(haddcmd)
-            os.system('rm {indir}/tmp_*.root'.format(indir=self._options.inputdir))
+    #     if self._options.mergeRoot:
+    #         haddcmd = 'hadd -f {of}.baseSystematics {indir}/tmp_*.root'.format(of=self.shapesfile, indir=self._options.inputdir )
+    #         os.system(haddcmd)
+    #         os.system('rm {indir}/tmp_*.root'.format(indir=self._options.inputdir))
             
-        print "DONE adding input chunks."        
+    #     print("DONE adding input chunks.")
 
 
     def activateSystMatrix(self,systFile):
@@ -253,7 +257,7 @@ class CardMaker:
         ### for now just use the .baseSystematics file
         shapesFile = self.shapesfile+'.baseSystematics'
         systematicsFile = self.systFile if len(systFile)==0 else systFile
-        print "reading shapes from ",shapesFile," and activating systematics found in: ",systematicsFile
+        print("reading shapes from ",shapesFile," and activating systematics found in: ",systematicsFile)
         tf = ROOT.TFile.Open(shapesFile)
         ### to save memory, the value of this is filled with the histogram only for central ones
         ### the central histo is needed to create the systs "on-the-fly"
@@ -267,7 +271,7 @@ class CardMaker:
                     (proc,syst) = ('_'.join(name.split('_')[1:-2]),'_'.join(name.split('_')[-2:]))
                     histo = None
                 else:
-                    #print "hname = %s" % name
+                    #print("hname = %s" % name)
                     (proc,syst) = ('_'.join(name.split('_')[1:]),'central')
                     histo = obj.Clone() # this changes the name adding _clone! resetting name below
                     histo.SetDirectory(None)
@@ -366,7 +370,7 @@ class CardMaker:
             datacard.write( '%-15s   group = %s\n' % (group," ".join(sortedsysts)) )
         datacard.close()
 
-        print "Done. Datacard in ",self.cardfile
+        print("Done. Datacard in ",self.cardfile)
 
 
 def prepareChargeFit(options, charges=["plus"]):
@@ -392,19 +396,19 @@ def prepareChargeFit(options, charges=["plus"]):
                 datacards.append(os.path.abspath(options.inputdir)+"/{b}_{ch}_xsec_{maskchan}_card.txt".format(b=binname,ch=charge,maskchan=mc))
                 channels.append('{b}_{ch}_xsec_{maskchan}'.format(b=binname,ch=charge,maskchan=mc))
 
-    print "="*20
+    print('='*30)
     print "Looking for these cards"
-    print "-"*20
+    print('-'*30)
     for d in datacards:
         print d
-    print "="*20
+    print('='*30)
 
     ### prepare the combineCards and txt2hdf5 commands
     if True: #sum([os.path.exists(card) for card in datacards])==len(datacards):
         if options.fitSingleCharge:
-            print "I am going to run fit for single charge {ch}".format(ch=charges[0])
+            print("I am going to run fit for single charge {ch}".format(ch=charges[0]))
         else:
-            print "Cards for W+ and W- done. Combining them now..."
+            print("Cards for W+ and W- done. Combining them now...")
 
         combinedCard = os.path.abspath(options.inputdir)+"/"+binname+'_'+suffix+'.txt'
         ccCmd = 'combineCards.py --noDirPrefix '+' '.join(['{ch}={dcfile}'.format(ch=channels[i],dcfile=card) for i,card in enumerate(datacards)])+' > '+combinedCard
@@ -428,16 +432,16 @@ def prepareChargeFit(options, charges=["plus"]):
 
         ## run the commands: need cmsenv in the combinetf release
         print 
-        print ccCmd
+        print(ccCmd)
         print 
         if not options.justFit:
             os.system(ccCmd)
-        print "Combined card in ",combinedCard
+        print("Combined card in ",combinedCard)
         print
-        print txt2hdf5Cmd
+        print(txt2hdf5Cmd)
         print 
         if not options.skip_text2hdf5: 
-            print "Running text2hdf5.py, it might take time ..."
+            print("Running text2hdf5.py, it might take time ...")
             os.system(txt2hdf5Cmd)
 
         metafilename = combinedCard.replace('.txt','.hdf5')
@@ -458,24 +462,24 @@ def prepareChargeFit(options, charges=["plus"]):
         fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.inputdir))
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.inputdir))
         if not os.path.exists(fitdir_data):
-            print "Creating folder", fitdir_data
+            print("Creating folder", fitdir_data)
             os.system("mkdir -p " + fitdir_data)
         if not os.path.exists(fitdir_Asimov):
-            print "Creating folder", fitdir_Asimov
+            print("Creating folder", fitdir_Asimov)
             os.system("mkdir -p " + fitdir_Asimov)
-        print ""
+        print("")
         fitPostfix = "" if not len(options.postfix) else ("_"+options.postfix)
 
-        print "Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py"
+        print("Use the following command to run combine (add --seed <seed> to specify the seed, if needed). See other options in combinetf.py")
         print
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
         combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} ".format(pf=fitPostfix, od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od} ".format(pf=fitPostfix, od=fitdir_Asimov,  b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
-        print combineCmd_data
+        print(combineCmd_data)
         if not options.skip_combinetf and not options.skipFitData:
             os.system(combineCmd_data)
-        print ""
-        print combineCmd_Asimov            
+        print
+        print(combineCmd_Asimov)            
         if not options.skip_combinetf and not options.skipFitAsimov:
             os.system(combineCmd_Asimov)
 
@@ -522,51 +526,51 @@ def makeAllSystematicMultipliers(indir):
 
 if __name__ == "__main__":    
 
-    from optparse import OptionParser
-    parser = OptionParser(usage='%prog [self._options]')
-    parser.add_option('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
-    parser.add_option('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
-    parser.add_option('-f','--flavor', dest='flavor', default='mu', type='string', help='lepton flavor (mu,el)')
-    parser.add_option('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
-    parser.add_option(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
-    parser.add_option(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
-    parser.add_option(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
-    parser.add_option(     '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
-    parser.add_option('--wmass', dest='wmass', action="store_true", default=False, help="Make cards for the wmass analysis. Default is wlike");
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
+    parser.add_argument('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
+    parser.add_argument('-f','--flavor', dest='flavor', default='mu', type='string', help='lepton flavor (mu,el)')
+    parser.add_argument('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
+    parser.add_argument(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
+    parser.add_argument(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
+    parser.add_argument(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
+    parser.add_argument(     '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
+    parser.add_argument('--wmass', dest='wmass', action="store_true", default=False, help="Make cards for the wmass analysis. Default is wlike");
     # options for card maker and fit
-    parser.add_option("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
-    parser.add_option(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
-    parser.add_option(       "--keep-nuisances", dest="keepNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
-    parser.add_option("", "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
-    parser.add_option("", "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
-    parser.add_option('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
-    parser.add_option(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
-    parser.add_option(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
-    parser.add_option(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end, only prints command (useful if hdf5 file already exists, or for tests)')
-    parser.add_option(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='skip running combinetf.py at the end, just print command (useful for tests)')
-    parser.add_option(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit part (can also skip text2hdf5 with --no-text2hdf5)')
-    parser.add_option(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
-    parser.add_option(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
-    parser.add_option(      '--fit-single-charge', dest='fitSingleCharge', default=False, action='store_true', help='Prepare datacard for single-charge fit (groups with other charge are skipped')
+    parser.add_argument("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
+    parser.add_argument(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
+    parser.add_argument(       "--keep-nuisances", dest="keepNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
+    parser.add_argument("", "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
+    parser.add_argument("", "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
+    parser.add_argument('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
+    parser.add_argument(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
+    parser.add_argument(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
+    parser.add_argument(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end, only prints command (useful if hdf5 file already exists, or for tests)')
+    parser.add_argument(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='skip running combinetf.py at the end, just print command (useful for tests)')
+    parser.add_argument(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit part (can also skip text2hdf5 with --no-text2hdf5)')
+    parser.add_argument(       '--skip-fit-data', dest='skipFitData' , default=False, action='store_true', help='If True, fit only Asimov')
+    parser.add_argument(       '--skip-fit-asimov', dest='skipFitAsimov' , default=False, action='store_true', help='If True, fit only data')
+    parser.add_argument(      '--fit-single-charge', dest='fitSingleCharge', default=False, action='store_true', help='Prepare datacard for single-charge fit (groups with other charge are skipped')
 
     # --impacts-mW might not be needed or might not work, to be checked
-    parser.add_option(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
-    (options, args) = parser.parse_args()
-    
+    parser.add_argument(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
+    args = parser.parse_args()
+    options = args
+
     charges = options.charge.split(',')
 
     if options.combineCharges:
         if options.fitSingleCharge:
-            print "Error: options --fit-single-charge and --comb are incompatible. Abort"
+            print("Error: options --fit-single-charge and --comb are incompatible. Abort")
             quit()
         if len(charges) != 2:
-            print "Error: --comb requires two charges, use -C 'plus,minus' and try again"
+            print("Error: --comb requires two charges, use -C 'plus,minus' and try again")
             quit()
 
     if options.remakeMultipliers:
-        print 'making all the systematic multipliers'
+        print('making all the systematic multipliers')
         makeAllSystematicMultipliers(options.inputdir)
-        print 'done making all the systematic multipliers'
+        print('done making all the systematic multipliers')
     
 
     for charge in charges:
@@ -577,12 +581,12 @@ if __name__ == "__main__":
             cm.writeDatacard()
         if options.fitSingleCharge:
             prepareChargeFit(options, charges=[charge])
-            print "-"*30
+            print('-'*30)
             print "Done fitting charge {ch}".format(ch=charge)
-            print "="*30
+            print('-'*30)
 
     if options.combineCharges and len(charges)==2:
         combineCharges(options)                
-        print "-"*30
-        print "Done fitting charge combination"
-        print "="*30
+        print('-'*30)
+        print("Done fitting charge combination")
+        print('-'*30)

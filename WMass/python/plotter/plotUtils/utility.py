@@ -15,6 +15,11 @@ _canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
 
+def printLine(marker='-', repeat=30):
+    print(marker*repeat)
+
+#########################################################################
+
 def addStringToEnd(name, matchToAdd, notAddIfEndswithMatch=False):
     if notAddIfEndswithMatch and name.endswith(matchToAdd):
         return name
