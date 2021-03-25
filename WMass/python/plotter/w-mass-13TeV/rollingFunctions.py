@@ -39,7 +39,7 @@ def unroll2Dto1D(h,newname='',cropNegativeBins=True, silent=False):
     h.SetName(goodname+"_2d")
     newh = ROOT.TH1D(goodname if not newname else newname,h.GetTitle(),nbins,0.5,nbins+0.5)
     newh.Sumw2()
-    if 'TH2' not in h.ClassName(): raise RuntimeError, "Calling rebin2Dto1D on something that is not TH2"
+    if 'TH2' not in h.ClassName(): raise RuntimeError("Calling rebin2Dto1D on something that is not TH2")
     for i in xrange(h.GetNbinsX()):
         for j in xrange(h.GetNbinsY()):
             bin = 1 + i + j*h.GetNbinsX()
@@ -49,7 +49,7 @@ def unroll2Dto1D(h,newname='',cropNegativeBins=True, silent=False):
         for bin in range(1,nbins+1):
             if newh.GetBinContent(bin)<0:
                 if not silent:
-                    print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
+                    print('Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin)))
                 newh.SetBinContent(bin,0)
     newh.SetLineWidth(h.GetLineWidth())
     newh.SetLineStyle(h.GetLineStyle())

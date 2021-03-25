@@ -98,6 +98,43 @@ for ipt in range(1,1+NVTPBINS):
     print(line)
     if printToFile: outf.write(line+'\n')
 
+# eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
+# function to use is _get_fullSFvariation_wlike
+NTNPBINS = 624 # 40 eta * 13 pt, hardcoded for now
+START = 0.5
+syst_key = "effStatTnP"
+syst_expr = f"indices({NTNPBINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NTNPBINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NTNPBINS})"
+syst_binning = "%d,%.1f,%.1f" % (NTNPBINS, START, NTNPBINS+START)
+syst_axisname = "ZTitle='Eff. stat. nuisance index'"
+ptOther  = "Muon_pt[goodMuonsOther][0]"  if isWlike else "-1"
+etaOther = "Muon_eta[goodMuonsOther][0]" if isWlike else "-1"
+syst_weight  = f"_get_fullSFvariation_wlike({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
+process_regexpr = "W.*|Z.*" # might add to all processes except data and fakes
+
+#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+
+print(line)
+if printToFile: outf.write(line+'\n')
+
+
+# mass weights from LHEReweightingWeight (might change at some point)
+NWEIGHTS = 44 if isWlike else 33
+START = -0.5
+syst_key = "massWeight"
+syst_expr = "indices(LHEReweightingWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEReweightingWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEReweightingWeight)"
+syst_binning = "%d,%.1f,%.1f" % (NWEIGHTS, START, NWEIGHTS+START)
+syst_axisname = "ZTitle='Mass weight index'"
+syst_weight  = "LHEReweightingWeight"
+process_regexpr = "Z.*" if isWlike else "W.*"
+
+#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+
+print(line)
+if printToFile: outf.write(line+'\n')
+
+
 print('-'*30)
 print("SUMMARY")
 print('-'*30)

@@ -22,13 +22,13 @@ def makeGenericMultipliers(binningFile, systName, pts, etas, sizes):
         ranges_eta = etas
         syst_sizes = sizes
     else:
-        print 'you need to give options to the generic systematic producer in either string or list format'
-        print 'exititng...'
+        print('you need to give options to the generic systematic producer in either string or list format')
+        print('exititng...')
         exit(0)
     
     if not ( len(ranges_pt) == len(syst_sizes) == len(ranges_eta) ):
-        print 'the option sizes has to be the same length of at least one of ranges_pt and ranges_eta'
-        print 'exititng...'
+        print('the option sizes has to be the same length of at least one of ranges_pt and ranges_eta')
+        print('exititng...')
         exit(0)
 
     # get eta-pt binning for both reco 

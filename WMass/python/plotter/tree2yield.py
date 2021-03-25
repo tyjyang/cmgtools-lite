@@ -16,6 +16,8 @@ sys.argv = args
 ROOT.gROOT.SetBatch(True)
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
+ROOT.gInterpreter.ProcessLine(".O3")
+
 from copy import *
 
 from cutsFile import *
@@ -509,6 +511,7 @@ class TreeToYield:
         if not self._isInit: self._init()
         retlist = []
 
+        # couldn't we try to perform some filtering before calling some defines? It might make the code quite
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
@@ -534,6 +537,16 @@ class TreeToYield:
                 fullcut  = scalarToVector(fullcut)
             self._tree = self._tree.Filter(fullcut)
 
+        # this column must be defined according to the process name, which is expected to include pre or postVFP
+        # the eraVFP column will be used in calls to some functions to specify the era (e.g. for scale factors)
+        if "preVFP" in self._cname:
+            self._tree = self._tree.Define("eraVFP", "BToF")
+        elif "postVFP" in self._cname:
+            self._tree = self._tree.Define("eraVFP", "GToH")
+        else:
+            self._tree = self._tree.Define("eraVFP", "BToH")
+ 
+            
         # do not call it, or it will trigger the loop now
         #print "sumGenWeights"
         #print sumGenWeights.GetValue()
