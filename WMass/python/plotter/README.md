@@ -7,7 +7,7 @@
 This part uses the same plotting functionalities provided by **mcPlots.py**.
 First, one needs all the proper input txt files, in particular the one with the plot definitions.
 
-##### Prepare txt file with plots to produce
+#### Prepare txt file with plots to produce
 
 Use the following command (for Wlike analysis)
 ```
@@ -24,7 +24,7 @@ This is set up to make a TH2 (eta-pt) for nominal histogram, and some TH3 (eta-p
 - mass weights (actually the branch also include other EW stuff) 
 Other systematics can be added in a similar way
 
-##### Produce the histograms
+#### Produce the histograms
 
 Basically use **mcPlots.py** adding option _--skipPlot_ to avoid making plots (as we have many TH3), although we may at least let it plot the nominal ones for cross check. This means all options that are specific to plotting are not needed.
 
@@ -34,8 +34,8 @@ Some notes:
 - the command currently is set up to make all the plots in the plot txt file (i.e. _--sP ".*"_)
 - some input files (e.g. the mca.*txt) have the same content for wmass and wlike, despite their different names
 - can add _--allow-negative-results_ or _--neglist "<regular_expression>"_ to avoid cropping negative bins to 0 (can be done in next steps if needed, or by combinetf directly)
-- can add _--updateRootFile_ to remake only some histograms (for instance selected with _--sP <regexp>_) and update an existing file
-- can add _--filter-proc-files ".*" ".*_1.root"_ to run on only some files (1 per process in this case), e.g. for testing
+- can add _--updateRootFile_ to remake only some histograms (for instance selected with _--sP \<regexp\>_) and update an existing file
+- can add _--filter-proc-files ".\*" ".\*\_1.root"_ to run on only some files (1 per process in this case), e.g. for testing
 - for Wlike, need to select only odd (even) events for positive (negative) charge
 - we are currently removing the mT cut (with _-X mtl1pf40_), until we agree on the MET to use (and also because for fakes we may use a simultaneous fit including the low mT region
 
@@ -49,7 +49,7 @@ Wmass
 python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_all" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --out cards/wmass/plus/wmass.root   --skipPlot
 ```
 
-##### Unpack the histograms into TH2 (eta-pt) for combinetf
+#### Unpack the histograms into TH2 (eta-pt) for combinetf
 
 Currently using **makeHistogramsWMass.py** as an independent script, but it might be merged inside the card maker script. It takes as input the root file produced in previous step, and also produce the alternate histograms for some systematics by mirroring the alternative template with respect to nominal one (e.g. for PDFs, which do not have Up and Down by default). It also write the histograms with a proper name following the conventions used by combinetf.
 
