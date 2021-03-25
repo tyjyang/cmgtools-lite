@@ -71,6 +71,8 @@ parser.add_argument("-o", "--outfile", type=str, default=None, help="output file
 #parser.add_argument("--od", "--outdir", type=str, default=None, help="output folder") 
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
+parser.add_argument("-c", "--charge", type=str, default=None, choices=["plus", "minus"], help="Charge for this channel")
+parser.add_argument("--wlike", dest="isWlike", action="store_true", help="Flag for W-like analysis (have to change histogram name for signal to include the charge)")
 
 args = parser.parse_args()
 
@@ -97,6 +99,8 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
     syst,proc = name.split("__")
     if proc == "data":
         proc = "data_obs"
+    if proc == "Zmumu" and args.isWlike:
+        proc = proc + "_" + args.charge 
     newname = "x_" + proc
     if name.startswith("nominal"):
         hnomi[proc] = obj.Clone(newname)
@@ -118,8 +122,6 @@ for syst in systs:
     print("{: <20}: {p}".format(syst,p=proclist))
 print('-'*30)
 
-qcdscales = getQCDScaleIndices()
-
 outf = ROOT.TFile.Open(outfilename,'RECREATE')
 if not outf or not outf.IsOpen():
     raise(RuntimeError('Unable to open file {fn}'.format(fn=outfilename)))
@@ -131,7 +133,31 @@ for syst in systs:
     procs = list(hsyst[syst].keys())
     for proc in procs:
         h3D = hsyst[syst][proc]
+        if "massWeight" in syst:
+            # check https://github.com/WMass/nanoAOD-tools/blob/master/python/postprocessing/wmass/lheWeightsFlattener.py
+            cenMassWgt = 11 # element 11 of LHEReweightingWeight is the 12th of the array, so it is bin 12 of the histogram (TO BE CHECKED AGAIN)
+            maxMassShift = 100
+            massGrid = 10
+            for i in range(1, 1 + int(maxMassShift/massGrid)):
+                massShift = i * massGrid
+                ibinUp = cenMassWgt + 1 + i 
+                name = "x_" + proc + "_massShift%dMeVUp" % massShift
+                h2DUp = getTH2fromTH3(h3D, name, ibinUp, ibinUp)
+                ibinDown = cenMassWgt + 1 - i 
+                name = "x_" + proc + "_massShift%dMeVDown" % massShift
+                h2DDown = getTH2fromTH3(h3D, name, ibinDown, ibinDown)
+                h2DUp.Write()
+                h2DDown.Write()           
+        if "effStatTnP" in syst:
+            for ieff in range(1, 624+1):
+                name = "x_" + proc + "_effStatTnP%dUp" % ieff # define this as Up variation 
+                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                h2D.Write()
+                h2D_mirror.Write()
         if "qcdScale" in syst:
+            qcdscales = getQCDScaleIndices()
             indices = sorted(list(qcdscales.keys()))
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence

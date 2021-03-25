@@ -11,30 +11,30 @@ class templateBinning:
         self.NTotBins = self.Neta * self.Npt
 
     def printBin(self):
-        print "###########################"
-        print "Binning: eta-pt on x-y axis"
-        print "eta bins: %s" % str(self.Neta)
-        print "pt  bins: %s" % str(self.Npt)
-        print ""
+        print("###########################")
+        print("Binning: eta-pt on x-y axis")
+        print("eta bins: %s" % str(self.Neta))
+        print("pt  bins: %s" % str(self.Npt))
+        print("")
 
     def printBinAll(self):
-        print "###########################"
-        print "Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins
-        print "eta bins: %s" % str(self.Neta)
-        print "%s" % str(self.etaBins)
-        print "-"*20
-        print "pt  bins: %s" % str(self.Npt)
-        print "%s" % str(self.ptBins)
-        print "-"*20
-        print ""
+        print("###########################")
+        print("Binning: eta-pt on x-y axis (%d bins)" % self.NTotBins)
+        print("eta bins: %s" % str(self.Neta))
+        print("%s" % str(self.etaBins))
+        print("-"*20)
+        print("pt  bins: %s" % str(self.Npt))
+        print("%s" % str(self.ptBins))
+        print("-"*20)
+        print("")
 
 def getArrayParsingString(inputString, verbose=False, makeFloat=False):
     # convert string [a,b,c,...] to list of a b c ...
     tmp = inputString.replace('[','').replace(']','')
     tmp = tmp.split(',')
     if verbose:
-        print "Input:",inputString
-        print "Output:",tmp
+        print("Input:",inputString)
+        print("Output:",tmp)
     if makeFloat:
         ret = [float(x) for x in tmp]
     else:
@@ -45,7 +45,7 @@ def getBinning(inputBins, whichBins="reco"):
 
     # whichBins can be reco or gen
     if whichBins not in ["reco", "gen"]:
-        print "Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit" 
+        print("Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit")
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
@@ -71,12 +71,13 @@ def getBinning(inputBins, whichBins="reco"):
 class util:
 
     def __init__(self):
-        self.cmssw_version = os.environ['CMSSW_VERSION']
-        self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
+        #self.cmssw_version = os.environ['CMSSW_VERSION']
+        #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
+        self.isRecentRelease = True
 
     def checkHistInFile(self, h, hname, fname, message=""):
         if not h:
-            print "Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname)
+            print("Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname))
             quit()
 
 
@@ -213,7 +214,7 @@ class util:
 
         # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
 
-        print "Inside getPDFbandFromXsec() ..."
+        print("Inside getPDFbandFromXsec() ...")
         histo_file = ROOT.TFile(infile, 'READ')            
 
         # NOTE: hnomi is a TH1
@@ -223,7 +224,7 @@ class util:
                 nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ieta, ip=ipt)
                 hnomi = histo_file.Get(nomi)
                 if not hnomi:
-                    print "Error in getPDFbandFromXsec(): I couldn't find histogram " + nomi
+                    print("Error in getPDFbandFromXsec(): I couldn't find histogram " + nomi)
                     quit()
 
                 hpdftmp = None            
@@ -234,7 +235,7 @@ class util:
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
                     hpdftmp = histo_file.Get(pdfvar)
                     if not hpdftmp:
-                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + pdfvar
+                        print("Error in getPDFbandFromXsec(): I couldn't find histogram " + pdfvar)
                         quit()                    
                     tmpval = hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX()) - xsecnomi                     
                     pdfquadrsum += tmpval * tmpval
@@ -246,7 +247,7 @@ class util:
                             qcdvar = nomi + '_{qt}{iq}{ch}{d}'.format(qt=qcdType,iq=iqcd,ch=charge,d=idir)
                             hqcdtmp = histo_file.Get(qcdvar)
                             if not hqcdtmp:
-                                print "Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar
+                                print("Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar)
                                 quit()                    
                             tmpval = hqcdtmp.Integral(0, 1+hqcdtmp.GetNbinsX()) - xsecnomi                     
                             envelopeQCD = max(abs(envelopeQCD),abs(tmpval))
@@ -256,7 +257,7 @@ class util:
                     alphaSvar = nomi + '_alphaS{d}'.format(d=idir)
                     halphaStmp = histo_file.Get(alphaSvar)
                     if not halphaStmp:
-                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar
+                        print("Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar)
                         quit()                    
                     # 1.5 is because weight corresponds to 0.001, but should be 0.0015 
                     tmpval = halphaStmp.Integral(0, 1+halphaStmp.GetNbinsX()) - xsecnomi  
@@ -279,7 +280,7 @@ class util:
     def getPDFbandFromXsecEta(self, histoPDF, charge, infile, netabins, nptbins, firstPtBin=0):
 
         # obsolete, use the next one, generic for pt and eta
-        print "Inside getPDFbandFromXsecEta() ..."
+        print("Inside getPDFbandFromXsecEta() ...")
         histo_file = ROOT.TFile(infile, 'READ')            
 
         for ieta in range(netabins):
@@ -291,7 +292,7 @@ class util:
                 nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ieta, ip=ipt)
                 hnomi = histo_file.Get(nomi)
                 if not hnomi:
-                    print "Error in getPDFbandFromXsecEta(): I couldn't find histogram " + nomi
+                    print("Error in getPDFbandFromXsecEta(): I couldn't find histogram " + nomi)
                     quit()
 
                 hpdftmp = None            
@@ -301,7 +302,7 @@ class util:
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
                     hpdftmp = histo_file.Get(pdfvar)
                     if not hpdftmp:
-                        print "Error in getPDFbandFromXsecEta(): I couldn't find histogram " + pdfvar
+                        print("Error in getPDFbandFromXsecEta(): I couldn't find histogram " + pdfvar)
                         quit()
                     
                     xsecpdf[ipdf-1] += hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX())
@@ -319,7 +320,7 @@ class util:
     # generalizing previous function getPDFbandFromXsecEta()
     def getPDFbandFromXsec1D(self, histoPDF, charge, infile, netabins, nptbins, firstVarBin=0, firstOtherVarBin=0, isEta = True, histoTotTheory = 0):
 
-        print "Inside getPDFbandFromXsec1D() ..."
+        print("Inside getPDFbandFromXsec1D() ...")
         histo_file = ROOT.TFile(infile, 'READ')            
 
         nvarbins = netabins if isEta else nptbins
@@ -341,7 +342,7 @@ class util:
                 nomi = "x_W{ch}_lep_ieta_{ie}_ipt_{ip}".format(ch=charge, ie=ivar if isEta else iother, ip=iother if isEta else ivar)
                 hnomi = histo_file.Get(nomi)
                 if not hnomi:
-                    print "Error in getPDFbandFromXsec1D(): I couldn't find histogram " + nomi
+                    print("Error in getPDFbandFromXsec1D(): I couldn't find histogram " + nomi)
                     quit()
 
                 hpdftmp = None            
@@ -351,7 +352,7 @@ class util:
                     pdfvar = nomi + '_pdf{ip}Up'.format(ip=ipdf)
                     hpdftmp = histo_file.Get(pdfvar)
                     if not hpdftmp:
-                        print "Error in getPDFbandFromXsec1D(): I couldn't find histogram " + pdfvar
+                        print("Error in getPDFbandFromXsec1D(): I couldn't find histogram " + pdfvar)
                         quit()
                     
                     xsecpdf[ipdf-1] += hpdftmp.Integral(0, 1+hpdftmp.GetNbinsX())
@@ -363,7 +364,7 @@ class util:
                             qcdvar = nomi + '_{qt}{iq}{ch}{d}'.format(qt=qcdType,iq=iqcd,ch=charge,d=idir)
                             hqcdtmp = histo_file.Get(qcdvar)
                             if not hqcdtmp:
-                                print "Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar
+                                print("Error in getPDFbandFromXsec(): I couldn't find histogram " + qcdvar)
                                 quit()                    
                             tmpval = hqcdtmp.Integral(0, 1+hqcdtmp.GetNbinsX())
                             xsecqcd["{qt}{iq}{d}".format(qt=qcdType,iq=iqcd,d=idir)] += tmpval
@@ -372,7 +373,7 @@ class util:
                     alphaSvar = nomi + '_alphaS{d}'.format(d=idir)
                     halphaStmp = histo_file.Get(alphaSvar)
                     if not halphaStmp:
-                        print "Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar
+                        print("Error in getPDFbandFromXsec(): I couldn't find histogram " + alphaSdvar)
                         quit()                    
                     tmpval = halphaStmp.Integral(0, 1+halphaStmp.GetNbinsX())
                     xsecalphaS[idir] +=  tmpval
@@ -419,7 +420,7 @@ class util:
 
         # adding also other alphaS (envelope of Up/Down) and QCD scales (envelope) in quadrature
 
-        print "Inside getTheoryHistDiffXsecFast() ..."
+        print("Inside getTheoryHistDiffXsecFast() ...")
         # hardcoded for now
         infile = "/afs/cern.ch/work/m/mciprian/public/whelicity_stuff/xsection_genAbsEtaPt_dressed_binningAnalysis_noWpt_yields_nativeMCatNLOxsec.root"
         if xsecWithWptWeights:
@@ -438,7 +439,7 @@ class util:
         htheory_1Deta_asym = {}
         htheory_1Dpt_asym = {}
 
-        print "ABSOLUTE XSEC"
+        print("ABSOLUTE XSEC")
         for charge in ["plus", "minus"]:
  
             nomi = "gen_ptl1_absetal1_dressed_binAna_W{ch}_mu".format(ch=charge)
@@ -470,7 +471,7 @@ class util:
             htheory[(charge,"nominal")] = hnomi
 
         # key has both plus and minus charges
-        print "NORMALIZED XSEC"
+        print("NORMALIZED XSEC")
         for key in htheory:
             # this uses only the xsec in acceptance, |eta| in [0, 2.4], pT in [26, 56]
             # WARNING: for electrons I should restrict pt range to [30, 56], unless the fit uses also bkg processes to make the total xsec
@@ -494,7 +495,7 @@ class util:
             htheory_1Dpt_xsecnorm[key].Scale(1./htheory_1Dpt_xsecnorm[key].Integral(ptminbin,htheory_1Dpt_xsecnorm[key].GetNbinsX())) 
 
         # now charge asymmetry
-        print "CHARGE AYMMETRY"
+        print("CHARGE AYMMETRY")
         htmp_num = htheory[("plus","nominal")].Clone("_tmp_helper_asym_num")
         htmp_den = htheory[("plus","nominal")].Clone("_tmp_helper_asym_den")
         htmp_num_1Deta = htheory_1Deta[("plus","nominal")].Clone("_tmp_helper_asym_num_1Deta")
@@ -504,7 +505,7 @@ class util:
         for key in htheory:
             # filter keys for plus charge
             if str(key[0]) == "minus": continue
-            # 2D2C
+            # 2D
             keyAsym = ("all",key[1]) # to allow for homogeneous treatment as for the charged xsecs
             htheory_asym[keyAsym] = htheory[key].Clone(htheory[key].GetName() + "_asymm")
             htheory_asym[keyAsym].SetDirectory(0)
@@ -720,8 +721,8 @@ class util:
         f = ROOT.TFile(infile, 'read')
         tree = f.Get('fitresults')
         if tree.GetEntries() > 1:
-            print 'YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!'
-            print 'will take the first entry by default. unless specified otherwise'
+            print('YOUR INPUT FILE HAS MORE THAN ONE FIT INSIDE. THIS IS PROBABLY NOT A HESSIAN FILE!!!')
+            print('will take the first entry by default. unless specified otherwise')
             ##sys.exit()
         lok  = tree.GetListOfLeaves()
         for p in lok:
@@ -763,7 +764,7 @@ class util:
                 match = [re.match(param,p.GetName()) for param in params]
                 if not any(match): continue
 
-            print 'gettin parameter ', p.GetName(), 'from toys file'
+            print('gettin parameter ', p.GetName(), 'from toys file')
             
             tmp_hist = ROOT.TH1F(p.GetName(),p.GetName(), 100000, -5000., 5000.)
             tree.Draw(p.GetName()+'>>'+p.GetName())
@@ -807,14 +808,14 @@ class util:
             #if np == nMaxBranch: break
             #np += 1
             
-            #print "Loading parameter --> %s " % p.GetName()
+            #print("Loading parameter --> %s " % p.GetName())
             #self.cmssw_version = os.environ['CMSSW_VERSION']
             #self.isRecentRelease = (len(self.cmssw_version) and int(self.cmssw_version.split('_')[1]) > 8)
 
             if getPull and (p.GetName()+"_gen") in lok and (p.GetName()+"_err") in lok:                
                 tree.SetBranchStatus(p.GetName()+"_gen",1)
                 tree.SetBranchStatus(p.GetName()+"_err",1)
-                #print " Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName()
+                #print(" Making pull --> (x-x_gen)/x_err for parameter %s" % p.GetName())
                 tmp_hist_tmp = ROOT.TH1F(p.GetName()+"_tmp",p.GetName()+"_tmp", nbins, xlow, xup)
                 if self.isRecentRelease:
                     if setStatOverflow: tmp_hist_tmp.SetStatOverflows(1)
@@ -836,7 +837,7 @@ class util:
             tmp_hist.SetDirectory(None)
 
             if getMedian:
-                print "{n}) Computing median for {pn}".format(n=im,pn=p.GetName())
+                print("{n}) Computing median for {pn}".format(n=im,pn=p.GetName()))
                 im += 1
                 vals = []
                 #binCount = 1
@@ -1087,7 +1088,7 @@ class util:
         rms = histo.GetRMS()
         total=histo.Integral()
         if total < 100: 
-            print "effsigma: Too few entries to compute it: ", total
+            print("effsigma: Too few entries to compute it: ", total)
             return 0.
         ierr=0
         ismin=999
@@ -1124,7 +1125,7 @@ class util:
                 widmin=wid
                 ismin=iscan
         if ismin == nrms or ismin == -nrms: ierr=3
-        if ierr != 0: print "effsigma: Error of type ", ierr
+        if ierr != 0: print("effsigma: Error of type ", ierr)
         return widmin
 
     def doShadedUncertainty(self,h):
@@ -1162,7 +1163,7 @@ class util:
         # so we don't have to tune the range (even though the one about is already very sensible for a0 and a4)
         histos['a0'].SetStatOverflows(1)
         histos['a4'].SetStatOverflows(1)
-        #print "getCoeffs: ",toyEvents," toyMC running..."
+        #print("getCoeffs: ",toyEvents," toyMC running...")
         for i in xrange(toyEvents):
             ixL = np.random.normal(xL,err_xL)
             ixR = np.random.normal(xR,err_xR)
@@ -1171,7 +1172,7 @@ class util:
             histos['a0'].Fill(2*ix0/sumPol)
             #histos['a0'].Fill(2*(1-ixL-ixR)/sumPol)
             histos['a4'].Fill(2*(ixL-ixR)/sumPol)
-        #print "toyMC done"
+        #print("toyMC done")
         ret = {}
         for k,h in histos.iteritems():
             ret[k] = (h.GetMean(),h.GetRMS())
@@ -1183,14 +1184,14 @@ class util:
             ixplus  = np.random.normal(xplus,err_xplus)
             ixminus = np.random.normal(xminus,err_xminus)
             histo.Fill((ixplus-ixminus)/(ixplus+ixminus))
-        #print "toyMC done"
+        #print("toyMC done")
         ret = {'asy': (histo.GetMean(),histo.GetRMS())}
         del histo
         return ret
 
     def getChargeAsyFromTH1pair(self,h1, h2, toyEvents=10000, name='asy'):
         # assuming h1 and h2 have same binning
-        print "Inside getChargeAsyFromTH1pair()"
+        print("Inside getChargeAsyFromTH1pair()")
         binsx = [h1.GetXaxis().GetBinLowEdge(i) for i in range(1,2+h1.GetNbinsX())]
         histo = ROOT.TH1D(name,'',len(binsx)-1, array.array('d',binsx))
         histotmp = ROOT.TH1D(name+'tmp','',200,-1.0,1.0)
@@ -1202,7 +1203,7 @@ class util:
                 histotmp.Fill((ixplus-ixminus)/(ixplus+ixminus))
             histo.SetBinContent(i, histotmp.GetMean()  )
             histo.SetBinError(  i, histotmp.GetStdDev())
-        #print "toyMC done"
+        #print("toyMC done")
         return histo
 
 
@@ -1232,14 +1233,14 @@ class util:
         xsec = {'fewz3p1': (3*20508.9,math.hypot(165.7,770.9),math.hypot(88.2,770.9)),
                 'mcatnlo': (60400,    math.hypot(110,math.hypot(165.7,770.9)),math.hypot(110,math.hypot(88.2,770.9)))}
         if generator not in xsec:
-            print "ERROR! Generator ",generator," unknown. Returning 0 xsec"
+            print("ERROR! Generator ",generator," unknown. Returning 0 xsec")
             return (0,-1,-1)
         return xsec[generator]
 
     def getL1SF(self,pt,eta,histo):
         ret = (0,0)
         if not histo: 
-            print "The ", histo, " is not present in the file ",rfile
+            print("The ", histo, " is not present in the file ",rfile)
             return ret
         etabin = max(1, min(histo.GetNbinsX(), histo.GetXaxis().FindFixBin(eta)))
         ptbin  = max(1, min(histo.GetNbinsY(), histo.GetYaxis().FindFixBin(pt)))
@@ -1270,7 +1271,7 @@ class util:
             for inner_bin in range(1,ibin):
                 tmp_val_sq = tmp_val_sq - math.pow(th1_excl.GetBinContent(inner_bin),2)
                 if tmp_val_sq<0:
-                    print "WARNING! getExclusiveBinnedSyst cropping syst at 0. "
+                    print("WARNING! getExclusiveBinnedSyst cropping syst at 0. ")
                     tmp_val_sq = 0
                     break
             th1_excl.SetBinContent(ibin,math.sqrt(tmp_val_sq))

@@ -27,6 +27,7 @@
 #include <utility>
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/functional/hash.hpp>
 #include "defines.h"
 
@@ -52,13 +53,49 @@ string getEnvironmentVariable(const string& env_var_name = "CMSSW_BASE") {
 
 }
 
-float getValFromTH2(const TH2& h, const float& x, const float& y) {
+bool etaptIsInBin(const TH2& h,
+		  const int& ietabin, const int& iptbin,
+		  const float& eta, const float& pt) {
+  if (pt >= h.GetYaxis()->GetBinLowEdge(iptbin) and pt < h.GetYaxis()->GetBinUpEdge(iptbin) and \
+      eta >= h.GetXaxis()->GetBinLowEdge(ietabin) and eta < h.GetXaxis()->GetBinUpEdge(ietabin)
+      )
+    return true;
+  else
+    return false;
+
+}
+      
+	   
+float getValFromTH2(const TH2& h, const float& x, const float& y, const float& sumError=0.0) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
   //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
-  return h.GetBinContent(xbin,ybin);
+  if (sumError)
+    return h.GetBinContent(xbin, ybin) + sumError * h.GetBinError(xbin, ybin);
+  else
+    return h.GetBinContent(xbin, ybin);
 }
+
+float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
+  //std::cout << "x,y --> " << x << "," << y << std::endl;
+  int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
+  int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
+  //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
+  if (h.GetBinContent(xbin, ybin) != 0.0)
+    return h.GetBinError(xbin, ybin)/h.GetBinContent(xbin, ybin);
+  else
+    return 1.0;
+}
+
+float getAbsUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
+  //std::cout << "x,y --> " << x << "," << y << std::endl;
+  int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
+  int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
+  //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
+  return h.GetBinError(xbin, ybin);
+}
+
 
 float returnChargeVal(float val1, int ch1, float val2, int ch2, ULong64_t evt){
 
@@ -482,8 +519,11 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 
 }
 
+//================================================== 
+
 //std::string _filename_allSF = "./testMuonSF/allSFs.root";
-std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
+//std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
+std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1_addProducts.root"; // includes products for direct usage, if needed
 
 // Sorry you have to manually keep these consistent
 std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
@@ -501,7 +541,8 @@ struct pair_hash
     }
 };
 
-std::unordered_map<std::pair<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};
+std::unordered_map<std::pair<std::string, DataEra>,  TH2D, pair_hash> corrTypeToHist = {};
+std::unordered_map<std::pair<std::string, DataEra>,  TH2D, pair_hash> corrTypeToHistAfterproduct = {};
 std::unordered_map<std::pair<std::string, DataType>, TH2D, pair_hash> prePostCorrToHist = {};
 TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
 
@@ -538,6 +579,33 @@ void initializeScaleFactors() {
         }
     }
 
+    for (auto& era : eraNames) {
+      for (auto& corr : {"isoTrig", "isoNotrig", "antiisoTrig", "antiisoNotrig"}) {
+            std::vector<std::string> charges = {"both"};
+            if (boost::algorithm::contains(corr, "isoTrig")) {
+                charges = {"plus", "minus"};
+            }            
+            for (auto& charge : charges) {
+                std::vector<std::string> vars = {"fullSF2D", corr, era.second, charge};
+                std::string corrname = boost::algorithm::join(vars, "_");
+                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+                if (histptr == nullptr)
+                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+		histptr->SetDirectory(0);
+                DataEra eraVal = era.first;
+		// do not use "both" as charge key for the histograms, keep it simple
+		std::string key = corr;
+		if (charge != "both") {
+		  key += charge;
+		}
+		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+                auto corrKey = std::make_pair(key, eraVal);
+                corrTypeToHistAfterproduct[corrKey] = *static_cast<TH2D*>(histptr);
+            }
+        }
+    }
+
     for (auto& era : datatypeNames) {
       for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig"}) {
             std::vector<std::string> charges = {"both"};
@@ -570,12 +638,6 @@ void initializeScaleFactors() {
 }
 
 
-// ongoing work
-// std::unordered_map<std::string, DataEra>, TH2D, pair_hash> corrTypeToHist = {};;
-// TFile _file_allSF_preOverPost = TFile(_filename_allSF_preOverPost.c_str(), "read");
-/////////
-
-
 float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
 				const float& ptOther, const float& etaOther,
 				DataEra era = BToH, bool noTrackingSF = false//, ULong64_t iEntry = 0
@@ -587,8 +649,6 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
   float sf = 1.0;
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
   std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
   std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
   std::vector<std::string> sfnamesOther = {      "idip", "isonotrig"};
@@ -613,6 +673,92 @@ float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const in
   return sf;
 }
 
+// uses SF product directly
+Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
+				 const float& pt,      const float& eta, const int& charge,
+				 const float& ptOther=-1, const float& etaOther=-1,
+				 DataEra era = BToH,
+				 const bool& useAntiIso=false
+				 ) {
+
+  Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
+  
+  // this is an helper function to define the effSystvariations for the Wlike analysis
+  // idea is to fill again the alternative template for each effStat nuisance, where the
+  // nuisance is defined for each single TnP eta-pt bin, and they will be considered as uncorrelated
+  // so not as done in SMP-18-012 from the fit to efficiencies with Error function
+  //
+  // now, given that the SF weight is already defined for each process in the MCA file, in order to
+  // define a histogram-dependent weight variation we have to add a weight which is (1 + epsilon),
+  // where epsilon is the relative uncertainty on the SF (let's say on the product of SF for simplicity)
+  // this is thus equivalent to using (SF + SF_err) as event weight for the alternate template
+
+  // n_tnpBinNuisance is the number of TnP bins, used to set the size of the RVec that will be returned
+  
+  // tnpBinNuisance is supposed to start from 1 and be mapped into SF histogram bins as shown below
+  //
+  // pt | 7 | 8 | 9 |
+  //     --- --- ---
+  //    | 4 | 5 | 6 |
+  //     --- --- ---
+  //    | 1 | 2 | 3 |
+  //              eta
+
+  // if ptOther < 0 it is assumed only one lepton exists (so this function could also be used for wmass)
+  // in that case the values are not used (and etaOther could actually take any value)
+  
+  if (corrTypeToHistAfterproduct.empty())
+      return res;
+  
+  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+  float sf = 1.0;
+  // not sure there is a more efficient way to compute the sf
+  // some elements are common between the 2 leptons, some are not
+  std::string corrTrig   = charge > 0 ? "isoTrigplus" : "isoTrigminus";
+  std::string corrNotrig = "isoNotrig";
+  if (useAntiIso) {
+    corrTrig   = Form("anti%s",corrTrig.c_str());
+    corrNotrig = Form("anti%s",corrNotrig.c_str());
+  }
+  
+  int iptTnP = 0;
+  int ietaTnP = 0;
+  int nEtaBins = 0;
+  int nPtBins = 0;
+  auto key = std::make_pair(corrTrig, era);
+  if (corrTypeToHistAfterproduct.find(key) != corrTypeToHistAfterproduct.end()) {
+    nEtaBins = corrTypeToHistAfterproduct.at(key).GetNbinsX();
+    nPtBins  = corrTypeToHistAfterproduct.at(key).GetNbinsY();
+  }
+
+  for (int tnpBinNuisance = 1; tnpBinNuisance <= n_tnpBinNuisance; ++tnpBinNuisance) {
+  
+    // tnpBinNuisance starts from 1, as ietaTnP and iptTnP for the usage we foresee
+    ietaTnP  = (tnpBinNuisance-1) % nEtaBins + 1;
+    iptTnP   = (tnpBinNuisance-1) / nEtaBins + 1;
+    if (etaptIsInBin(corrTypeToHistAfterproduct.at(key), ietaTnP, iptTnP, eta, pt)) {
+      sf *= (1 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), eta, pt));
+    } 
+
+    if (ptOther > 0) {
+      auto keyOther = std::make_pair(corrNotrig, era);
+      if (corrTypeToHistAfterproduct.find(keyOther) != corrTypeToHistAfterproduct.end()) {
+	if (etaptIsInBin(corrTypeToHistAfterproduct.at(keyOther), ietaTnP, iptTnP, etaOther, ptOther)) {
+	  sf *= (1 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), etaOther, ptOther));
+	}    
+      }
+    }
+
+    res[tnpBinNuisance-1] = sf;
+    
+  }
+
+  return res;
+}
+
+
 float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH, bool noTrackingSF = false) {
   if (corrTypeToHist.empty())
       return 1.;
@@ -630,6 +776,7 @@ float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& ch
   }
   return sf;
 }
+
 
 // generic function for a single leg, it is supposed to be called by other functions where the list of sf names was defined and passed to this one
 float _get_singleMuonSF(const float& pt, const float& eta, const std::vector<std::string> &sfnames, DataEra era = BToH) {

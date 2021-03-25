@@ -24,3 +24,5 @@ qcdScaleVptBin9_: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge]
 
 qcdScaleVptBin10_: indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight): 48,-2.4,2.4,29,26,55,18,-0.5,17.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='QCD scale index', AddWeight='qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,40.151\,13000.0)', ProcessRegexp='Z.*' 
 
+effStatTnP_: indices(624, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],624)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],624): 48,-2.4,2.4,29,26,55,624,0.5,624.500000; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='Eff. stat. nuisance index', AddWeight='_get_fullSFvariation_wlike(624\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,BtoF)', ProcessRegexp='W.*|Z.*' 
+

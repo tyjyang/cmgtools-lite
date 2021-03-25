@@ -1,9 +1,10 @@
-pdfs       : pdf.*                  : Z.*|W.*                 : PDFS
-alphaS     : alphaS                 : Z.*|W.*                 : PDFS       : 0.67
-qcdScales  : muR.*|muF.*            : Z.*|W.*                 : QCD
-fsr        : fsr.*                  : Z.*                     : QED
-muScale    : kalPt.*                : Z.*|W.*|DiBoson.*|Top.* : MUSCALE
-efficiency : Eff.*                  : Z.*                     : EFFICIENCY
-luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.* : LUMINOSITY
-fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP
-otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP
+pdfs       : pdf.*                  : Z.*|W.*                 : PDFS       : shape
+alphaS     : alphaS                 : Z.*|W.*                 : PDFS       : shape   : 0.67
+qcdScales  : muR.*|muF.*            : Z.*|W.*                 : QCD        : shape
+fsr        : fsr.*                  : Z.*                     : QED        : shape
+muScale    : kalPt.*                : Z.*|W.*|DiBoson.*|Top.* : MUSCALE    : shape
+efficiency : eff.*                  : W.*|Z.*|DiBoson.*|Top.* : EFFICIENCY : shape
+luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.* : LUMINOSITY : lnN     : 1.025
+fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP   : shape
+otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP   : shape
+mass       : massShift.*            : Z.*                     : BOSONMASS  : shapeNoConstraint

@@ -7,6 +7,15 @@ import argparse
 
 utilities = utilities.util()
 
+def sortSystsForDatacard(params):
+
+    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 101 if 'alphaS' in x else 0)
+    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+    params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+    params = sorted(params, key= lambda x: utilities.getNFromString(x) if 'EffStat' in x else 0)
+    return params
+    
 def isExcludedNuisance(excludeNuisances=[], name="", keepNuisances=[]):
     if len(excludeNuisances) and any(re.match(x,name) for x in excludeNuisances):
         if len(keepNuisances) and any(re.match(x,name) for x in keepNuisances):
@@ -22,7 +31,7 @@ class CardMaker:
         self._options = options
         self.charge = charge
         self.flavor = flavor
-        self.data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"]
+        #self.data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"] # not needed I think, FIXME
         self.excludeNuisances = []
         self.keepNuisances = []
         if len(options.excludeNuisances):
@@ -32,57 +41,62 @@ class CardMaker:
                 
         ### import the right dictionary process - systematic list depending on wmass/wlike
         #pathToImport = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/python/plotter/w-mass-13TeV/'
-        pathToImport = os.path.dirname(sys.argv[0])+'/'
-        if self._options.wmass:
-            pathToImport += 'wmass_'+flavor
-            self.boson = 'W{fl}nu'.format(fl=self.flavor)
-        else:
+        #pathToImport = os.path.dirname(sys.argv[0])+'/'
+        pathToImport = os.path.abspath("./w-mass-13TeV/") + "/" # should work
+        if self._options.isWlike:
             pathToImport += 'wlike_'+flavor
             self.boson = 'Z{fl}{fl}'.format(fl=self.flavor)
-        self.systematics  = self.getSystList()
-        self.centralfiles = self.getCentralProcesses()
+            self.otherboson = 'W{fl}nu'.format(fl=self.flavor)
+        else:
+            pathToImport += 'wmass_'+flavor
+            self.boson = 'W{fl}nu'.format(fl=self.flavor)
+            self.otherboson = 'Z{fl}{fl}'.format(fl=self.flavor)
+        #self.systematics  = self.getSystList()
+        #self.centralfiles = self.getCentralProcesses()
         self.shapesfile = os.path.join(self._options.inputdir,self.boson+'_{ch}_shapes.root'.format(ch=charge))
         self.cardfile   = os.path.join(self._options.inputdir,self.boson+'_{ch}_card.txt'   .format(ch=charge))
         self.systFile = pathToImport+'/systsFit.txt'
         # self.centralHistograms = self.getCentralHistograms() # to implement
 
 
-    def getCentralProcesses(self):        
-        #acoeffs = ['ac']+['a{ic}'.format(ic=i) for i in range(8)]
-        acoeffs = ['']
-        # signal
-        sig_proc          = ['{boson}_{charge}{ic}'.format(charge=self.charge,ic=("_"+coeff) if len(coeff) else "",boson=self.boson) for coeff in acoeffs]
-        # antisignal
-        other_boson_procs = ['{otherboson}_{charge}'.format(charge=self.charge,otherboson='Zmumu' if self._options.wmass else 'Wmunu')]
-        # other stuff (for data use then global one (not split by era, it is created afterwards)
-        other_files = ["Wtaunu","Ztautau","otherBkgHisto", "dataHisto"]
-        otherprocs = ["{op}_{charge}".format(op=otherproc,charge=self.charge) for otherproc in other_files] 
-        return sig_proc + other_boson_procs + otherprocs
+    # def getCentralProcesses(self):        
+    #     #acoeffs = ['ac']+['a{ic}'.format(ic=i) for i in range(8)]
+    #     acoeffs = ['']
+    #     # signal
+    #     sig_proc          = ['{boson}_{charge}{ic}'.format(charge=self.charge,ic=("_"+coeff) if len(coeff) else "",boson=self.boson) for coeff in acoeffs]
+    #     # antisignal
+    #     other_boson_procs = ['{otherboson}_{charge}'.format(charge=self.charge,otherboson=self.otherboson)]
+    #     # other stuff (for data use then global one (not split by era, it is created afterwards)
+    #     other_files = ["Wtaunu","Ztautau","otherBkgHisto", "dataHisto"]
+    #     otherprocs = ["{op}_{charge}".format(op=otherproc,charge=self.charge) for otherproc in other_files] 
+    #     return sig_proc + other_boson_procs + otherprocs
 
-    def getSystList(self):
-        ### systematics that are applied to both W and Z, for mu and tau decays
-        NPDFSYSTS=2
-        baseSysts  = ['pdf{i}'.format(i=ipdf) for ipdf in range(1,1+NPDFSYSTS)]
-        baseSysts += ['alphaS{idir}'.format(idir=idir) for idir in ['Up','Dn']]
-        # FIXME: need a better way to decide if and how these are binned, depending on what was done in make_wmass_cards.py
-        qcdSystsUnbin  = ['{qcdpar}{idir}'.format(qcdpar=par,idir=idir) for par in ['muR','muF','muRmuF'] for idir in ['Up','Dn']]     
-        NVPTBINS = 2
-        qcdSystsPtChargebin  = ['{qcdpar}{ipt}{ch}{idir}'.format(qcdpar=par,ipt=ipt,ch=self.charge,idir=idir) for par in ['muR','muF','muRmuF'] for ipt in range(1,1+NVPTBINS) for idir in ['Up','Dn']]     
-        #baseSysts += ['kalPtErr{i}{idir}'.format(i=istat,idir=idir) for istat in range(133) for idir in ['Up','Dn']]
-        #baseSysts += ['kalPtClosureErr{idir}'.format(idir=idir) for idir in ['Up','Dn']]
-        ### W/Z mass points
-        MASSVARIATIONS = [10* i for i in range(1,3)]
-        massPoints = ['massShift{v}MeV{d}".format(v=mvar,d=idir)' for mvar in MASSVARIATIONS for idir in ['Up','Down']]
-        ### other systematics
-        # otherSysts = ['fsr']
-        otherSysts = []
-        ### build the systematic dictionary for the root files
-        systsCards = {self.boson: baseSysts + qcdSystsPtChargebin + massPoints + otherSysts,
-                      'Zmumu' if self._options.wmass else 'Wmunu': baseSysts + qcdSystsUnbin,
-                      'Wtaunu': baseSysts + qcdSystsPtChargebin + massPoints,
-                      'Ztautau': baseSysts + qcdSystsUnbin}
-        return systsCards
+    # def getSystList(self):
+    #     ### systematics that are applied to both W and Z, for mu and tau decays
+    #     NPDFSYSTS=2
+    #     baseSysts  = ['pdf{i}'.format(i=ipdf) for ipdf in range(1,1+NPDFSYSTS)]
+    #     baseSysts += ['alphaS{idir}'.format(idir=idir) for idir in ['Up','Dn']]
+    #     # FIXME: need a better way to decide if and how these are binned, depending on what was done in make_wmass_cards.py
+    #     qcdSystsUnbin  = ['{qcdpar}{idir}'.format(qcdpar=par,idir=idir) for par in ['muR','muF','muRmuF'] for idir in ['Up','Dn']]     
+    #     NVPTBINS = 2
+    #     qcdSystsPtChargebin  = ['{qcdpar}{ipt}{ch}{idir}'.format(qcdpar=par,ipt=ipt,ch=self.charge,idir=idir) for par in ['muR','muF','muRmuF'] for ipt in range(1,1+NVPTBINS) for idir in ['Up','Dn']]     
+    #     #baseSysts += ['kalPtErr{i}{idir}'.format(i=istat,idir=idir) for istat in range(133) for idir in ['Up','Dn']]
+    #     #baseSysts += ['kalPtClosureErr{idir}'.format(idir=idir) for idir in ['Up','Dn']]
+    #     ### W/Z mass points
+    #     MASSVARIATIONS = [10* i for i in range(1,3)]
+    #     massPoints = ['massShift{v}MeV{d}".format(v=mvar,d=idir)' for mvar in MASSVARIATIONS for idir in ['Up','Down']]
+    #     ### other systematics
+    #     # otherSysts = ['fsr']
+    #     otherSysts = []
+    #     ### build the systematic dictionary for the root files
+    #     systsCards = {self.boson: baseSysts + qcdSystsPtChargebin + massPoints + otherSysts,
+    #                   self.otherboson: baseSysts + qcdSystsUnbin,
+    #                   'Wtaunu': baseSysts + qcdSystsPtChargebin + massPoints,
+    #                   'Ztautau': baseSysts + qcdSystsUnbin}
+    #     return systsCards
 
+
+    # this needs to be revised
     def applySystematics(self, dictWithCentrals, systEnv): #process, syst_regexp, syst_file, outfile_name):
         
         f_systs = ROOT.TFile(options.inputdir+'/systematicMultipliers.root', 'READ')
@@ -122,30 +136,30 @@ class CardMaker:
         return dictProcSyst
 
 
-    def mirrorShape(self,nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=False):
-        alternate.SetName("%sUp" % newname)
-        if alternateShapeOnly:
-            alternate.Scale(nominal.Integral()/alternate.Integral())
-        mirror = nominal.Clone("%sDown" % newname)
-        for b in xrange(1,nominal.GetNbinsX()+1):
-            y0 = nominal.GetBinContent(b)
-            yA = alternate.GetBinContent(b)
-            # geometric mean
-            # yM = y0
-            # if yA != 0:
-            #     yM = y0*y0/yA
-            # elif yA == 0:
-            #     if use2xNomiIfAltIsZero: 
-            #         yM = 2. * y0
-            #     else: 
-            #         yM = 0
-            # arithmetic mean
-            yM = max(0,2*y0-yA)
-            mirror.SetBinContent(b, yM)
-        if alternateShapeOnly:
-            # keep same normalization
-            mirror.Scale(nominal.Integral()/mirror.Integral())
-        return (alternate,mirror)
+    # def mirrorShape(self,nominal,alternate,newname,alternateShapeOnly=False,use2xNomiIfAltIsZero=False):
+    #     alternate.SetName("%sUp" % newname)
+    #     if alternateShapeOnly:
+    #         alternate.Scale(nominal.Integral()/alternate.Integral())
+    #     mirror = nominal.Clone("%sDown" % newname)
+    #     for b in xrange(1,nominal.GetNbinsX()+1):
+    #         y0 = nominal.GetBinContent(b)
+    #         yA = alternate.GetBinContent(b)
+    #         # geometric mean
+    #         # yM = y0
+    #         # if yA != 0:
+    #         #     yM = y0*y0/yA
+    #         # elif yA == 0:
+    #         #     if use2xNomiIfAltIsZero: 
+    #         #         yM = 2. * y0
+    #         #     else: 
+    #         #         yM = 0
+    #         # arithmetic mean
+    #         yM = max(0,2*y0-yA)
+    #         mirror.SetBinContent(b, yM)
+    #     if alternateShapeOnly:
+    #         # keep same normalization
+    #         mirror.Scale(nominal.Integral()/mirror.Integral())
+    #     return (alternate,mirror)
 
     # SHOULD NOT BE NEEDED ANYMORE
     #
@@ -243,19 +257,20 @@ class CardMaker:
             line = re.sub("#.*","",line).strip()
             if len(line) == 0: continue
             field = [f.strip() for f in line.split(':')]
-            if len(field) < 4:
-                raise RuntimeError, "Malformed line %s in file %s"%(line.strip(),systFile)
-            elif len(field) == 4:
-                (name, sytPatt, procPatt, group, scaling) = field[:4] + [1]
+            if len(field) < 5:
+                raise RuntimeError("Malformed line %s in file %s"%(line.strip(),systFile))
+            elif len(field) == 5:
+                (name, sytPatt, procPatt, group, sysType, scaling) = field[:5] + [1]
             else:
-                (name, sytPatt, procPatt, group, scaling) = field[:5]
-            activeSysts[name] = (re.compile(sytPatt+"$"),re.compile(procPatt+"$"),group,scaling)
+                (name, sytPatt, procPatt, group, sysType, scaling) = field[:6]
+            activeSysts[name] = (re.compile(sytPatt+"$"), re.compile(procPatt+"$"), group, sysType, scaling)
         return activeSysts
 
     def writeDatacard(self,systFile=''):
         ### this should be the file with .baseSystematics + .AllOtherSysts from the generic syst adder.
         ### for now just use the .baseSystematics file
-        shapesFile = self.shapesfile+'.baseSystematics'
+        #shapesFile = self.shapesfile+'.baseSystematics'
+        shapesFile = self.shapesfile
         systematicsFile = self.systFile if len(systFile)==0 else systFile
         print("reading shapes from ",shapesFile," and activating systematics found in: ",systematicsFile)
         tf = ROOT.TFile.Open(shapesFile)
@@ -267,14 +282,14 @@ class CardMaker:
             obj=e.ReadObj()
             syst = name.split('_')[-1]
             if not any(idir in syst for idir in ['Up','Down']):
-                if re.match('((m|p)\d+|0)',syst): # this was probably for some obsolete systs
+                if re.match('((m|p)\d+|0)',syst): # this was probably for some obsolete systs like pt-scale systs decorrelated between 2 pt bins
                     (proc,syst) = ('_'.join(name.split('_')[1:-2]),'_'.join(name.split('_')[-2:]))
                     histo = None
                 else:
                     #print("hname = %s" % name)
                     (proc,syst) = ('_'.join(name.split('_')[1:]),'central')
                     histo = obj.Clone() # this changes the name adding _clone! resetting name below
-                    histo.SetDirectory(None)
+                    histo.SetDirectory(0)
                     histo.SetName(name)
             else:
                 (proc,syst) = ('_'.join(name.split('_')[1:-1]),name.split('_')[-1])
@@ -282,7 +297,7 @@ class CardMaker:
             procAndHistos[(proc,syst)] = histo
         tf.Close()
 
-        processes   = [proc for (proc,syst) in procAndHistos if (syst=='central' and proc!='data' and proc!='data_obs')]
+        processes   = [proc for (proc,syst) in procAndHistos if (syst == 'central' and proc != 'data' and proc != 'data_obs')]
         signalprocs = sorted([p for p in filter(lambda x: x.startswith('{boson}_{charge}'.format(boson=self.boson,charge=self.charge)),processes)])
         signalProcAndInd = [(p,-1*i) for i,p in enumerate(signalprocs)]
         otherprocs = [p for p in filter(lambda x: x not in signalprocs, processes)]
@@ -296,43 +311,62 @@ class CardMaker:
 
         ### build the systematics matrix matching the process name with the systematic name in the activeFitSysts.txt file
         appliedSystMatrix = {}
+        systTypes = {} # used to decide which kind of systematic we have (shapes, lnN, shapesNoConstraint, ...)
         systGroups = {}
         systEnv = self.activateSystMatrix(systematicsFile)
 
         ## here apply all the systematics from the systFit in combination 
         ## with the systematicMultipliers.root file
         procAndCentralHistos = dict(filter(lambda x: x[0][1] == 'central', procAndHistos.items()))
-        newProcAndSysts = self.applySystematics(procAndCentralHistos, systEnv)
 
-        procAndHistos.update(newProcAndSysts)
+        ## skip for now, might not need
+        #newProcAndSysts = self.applySystematics(procAndCentralHistos, systEnv)
+        #procAndHistos.update(newProcAndSysts)
         ## done applying systematics from the multipliers file
 
-        for (proc,syst),histo in procAndHistos.iteritems():
+        # do all non-lnN nuisances, for which histograms exist
+        # this will do nothing on lnN nuisances, which have no histogram
+        for (proc,syst),histo in iter(procAndHistos.items()):
             ### skip the central histograms
             if syst=='central': continue
-            ### the mW steps need to be implemented when we know how it is implemented ion combinetf
-            if 'massShift' in syst: 
-                pass
-            ### for each syst, there is Up/Down, just write the line once
-            if any([syst.endswith('Up'),syst.endswith('Down')]):
+            if any(syst.endswith(x) for x in ["Up", "Down"]):
                 systName = syst.replace('Up','').replace('Down','')
                 if systName not in appliedSystMatrix:
                     appliedSystMatrix[systName] = ['-' for p in allprocs]
-                for systKey,(sytPatt, procPatt, group, scaling) in systEnv.iteritems():
-                    if sytPatt.match(systName) and procPatt.match(proc):
+                for systKey,(systPatt, procPatt, group, sysType, scaling) in iter(systEnv.items()):
+                    if systPatt.match(systName) and procPatt.match(proc):
                         process_index = procindices[proc]
                         appliedSystMatrix[systName][process_index] = str(scaling)
+                        systTypes[systName] = sysType
                         if group not in systGroups: 
                             systGroups[group] = [systName]
                         else:                       
                             if systName not in systGroups[group]: 
                                 systGroups[group].append(systName)
 
-        if options.mergeRoot or options.remakeMultipliers:
+        # distinguish lnN nuisances from non-lnN (for which histograms exist)
+        for systKey,(systPatt, procPatt, group, sysType, scaling) in iter(systEnv.items()):
+            if sysType != "lnN":
+                continue
+            systName = systKey
+            if systName not in appliedSystMatrix:
+                appliedSystMatrix[systName] = ['-' for p in allprocs]
+            for proc,index in iter(procindices.items()):
+                if procPatt.match(proc):
+                    appliedSystMatrix[systName][index] = str(scaling)
+            systTypes[systName] = sysType
+            if group not in systGroups: 
+                systGroups[group] = [systName]
+            else:                       
+                if systName not in systGroups[group]: 
+                    systGroups[group].append(systName)
+                                
+        #if options.mergeRoot or options.remakeMultipliers:
+        if options.remakeMultipliers:
             os.system('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile))
 
         ### now write the datacard
-        channel = '{boson}_{charge}'.format(boson='Wmunu' if self._options.wmass else 'Zmumu',charge=self.charge)
+        channel = '{boson}_{charge}'.format(boson=self.boson,charge=self.charge)
         datacard = open(self.cardfile,'w')
         ### -- header --
         datacard.write("imax 1\n")
@@ -354,19 +388,20 @@ class CardMaker:
 
         ### -- single systematics --
         excludedSysts = []
-        for systName,values in sorted(appliedSystMatrix.iteritems()):
+        for systName in sortSystsForDatacard(list(appliedSystMatrix.keys())):
+            values = appliedSystMatrix[systName]
             if isExcludedNuisance(self.excludeNuisances, systName, self.keepNuisances): 
                 excludedSysts.append(systName)
                 continue
             ### do not write systematic lines if it is not applied to any process
-            if any([v!='-' for v in values]):
-                datacard.write( '%-15s   shape %s\n' % (systName," ".join([kpatt % v for v in values])))
+            if any([v != '-' for v in values]):
+                datacard.write( '%-15s %-10s  %s\n' % (systName, systTypes[systName], " ".join([kpatt % v for v in values])))
 
         ### -- groups --
         datacard.write('\n\n')
-        for group,systs in systGroups.iteritems():
+        for group,systs in iter(systGroups.items()):
             sortedsysts = [x for x in systs if x not in excludedSysts]
-            sortedsysts = sorted(sortedsysts)
+            sortedsysts = sortSystsForDatacard(sortedsysts)
             datacard.write( '%-15s   group = %s\n' % (group," ".join(sortedsysts)) )
         datacard.close()
 
@@ -384,7 +419,7 @@ def prepareChargeFit(options, charges=["plus"]):
 
     datacards=[]; 
     channels=[]
-    binname = "Wmunu" if options.wmass else "Zmumu"
+    binname = self.boson
     for charge in charges:
         datacards.append(os.path.abspath(options.inputdir)+"/{b}_{ch}_card.txt".format(b=binname,ch=charge))
         channels.append('{b}_{ch}'.format(b=binname,ch=charge))
@@ -397,10 +432,10 @@ def prepareChargeFit(options, charges=["plus"]):
                 channels.append('{b}_{ch}_xsec_{maskchan}'.format(b=binname,ch=charge,maskchan=mc))
 
     print('='*30)
-    print "Looking for these cards"
+    print("Looking for these cards")
     print('-'*30)
     for d in datacards:
-        print d
+        print(d)
     print('='*30)
 
     ### prepare the combineCards and txt2hdf5 commands
@@ -527,21 +562,21 @@ def makeAllSystematicMultipliers(indir):
 if __name__ == "__main__":    
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
-    parser.add_argument('-i','--input', dest='inputdir', default='', type='string', help='input directory with all the cards inside')
-    parser.add_argument('-f','--flavor', dest='flavor', default='mu', type='string', help='lepton flavor (mu,el)')
-    parser.add_argument('-C','--charge', dest='charge', default='plus,minus', type='string', help='process given charge. default is both')
+    #parser.add_argument('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
+    parser.add_argument('-i','--input', dest='inputdir', default='', type=str, help='input directory with all the cards inside')
+    parser.add_argument('-f','--flavor', dest='flavor', default='mu', type=str, help='lepton flavor (mu,el)')
+    parser.add_argument('-c','--charge', dest='charge', default='plus,minus', type=str, help='process given charge. default is both')
     parser.add_argument(     '--pdf-shape-only'   , dest='pdfShapeOnly' , default=False, action='store_true', help='Normalize the mirroring of the pdfs to central rate.')
     parser.add_argument(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
     parser.add_argument(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
-    parser.add_argument(     '--postfix',    dest='postfix', type="string", default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
-    parser.add_argument('--wmass', dest='wmass', action="store_true", default=False, help="Make cards for the wmass analysis. Default is wlike");
+    parser.add_argument(     '--postfix',    dest='postfix', type=str, default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
+    parser.add_argument('--wlike', dest='isWlike', action="store_true", default=False, help="Make cards for the W-like analysis. Default is Wmass");
     # options for card maker and fit
     parser.add_argument("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
-    parser.add_argument(       "--exclude-nuisances", dest="excludeNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to exclude some systematics")
-    parser.add_argument(       "--keep-nuisances", dest="keepNuisances", default="", type="string", help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
-    parser.add_argument("", "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
-    parser.add_argument("", "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
+    parser.add_argument("-x",  "--exclude-nuisances", dest="excludeNuisances", default="", type=str, help="Pass comma-separated list of regular expressions to exclude some systematics")
+    parser.add_argument("-k",  "--keep-nuisances", dest="keepNuisances", default="", type=str, help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
+    parser.add_argument(       "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
+    parser.add_argument(       "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
     parser.add_argument('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs (for the pdf only fit)')
     parser.add_argument(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
     parser.add_argument(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
@@ -567,6 +602,7 @@ if __name__ == "__main__":
             print("Error: --comb requires two charges, use -C 'plus,minus' and try again")
             quit()
 
+    # skip for now, to be tested
     if options.remakeMultipliers:
         print('making all the systematic multipliers')
         makeAllSystematicMultipliers(options.inputdir)
@@ -576,13 +612,13 @@ if __name__ == "__main__":
     for charge in charges:
         if not options.justFit:
             cm = CardMaker(options,charge,options.flavor)
-            if options.mergeRoot:
-                cm.mergeChunks()
+            #if options.mergeRoot:
+            #    cm.mergeChunks()
             cm.writeDatacard()
         if options.fitSingleCharge:
             prepareChargeFit(options, charges=[charge])
             print('-'*30)
-            print "Done fitting charge {ch}".format(ch=charge)
+            print("Done fitting charge {ch}".format(ch=charge))
             print('-'*30)
 
     if options.combineCharges and len(charges)==2:

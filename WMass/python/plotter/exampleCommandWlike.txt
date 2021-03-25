@@ -10,12 +10,21 @@ python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/test
 # all mcPlots options are available, in particular can add --updateRootFile to remake only some selected histograms (through other options) e.g. if a bug was affecting only some
 # by default this makes all plots in the plots txt file
 #
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)" --pdir theTestDir --filter-proc-files ".*" ".*_1.root" --skipPlot
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  -A trigger oddevents "isOddEvent(event)" --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --pdir theTestDir --filter-proc-files ".*" ".*_1.root" --skipPlot
+#
+# for  wmass can run the following command instead
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_all" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --pdir theTestDirWmass --filter-proc-files ".*" ".*_1.root" --skipPlot
+
 #
 # unpack histograms from TH3 into TH2 (eta-pt)
 #
-python makeHistogramsWMass.py -i theTestDir/plots_wlike_sysTH3.root -o theTestDir/shapes_wlike.root
+python makeHistogramsWMass.py -i theTestDir/plots_wlike_sysTH3.root -o theTestDir/shapes_wlike.root --wlike
+# or
+python makeHistogramsWMass.py -i theTestDir/plots_wmass_sysTH3.root -o theTestDir/shapes_wmass.root
 #
 # check content
 #
 python printRootFileContent.py theTestDir/shapes_wlike.root [options]
+#
+# run the fit (currently on a single charge, to use both you need -c "plus,minus", and possibly other options)
+python w-mass-13TeV/cardMaker.py -i theTestDirWmass/ -f mu -c plus

@@ -47,6 +47,13 @@ Vec_i indices(const Vec_f& vec, const int& start = 0) {
     return res;
 }
 
+Vec_i indices(const int& size, const int& start = 0) {
+    Vec_i res(size, 0);
+    std::iota(std::begin(res), std::end(res), start);
+    return res;
+}
+
+
 Vec_f scalarToRVec(const float& var, const int& size) {
 
   Vec_f res(size,var); // initialize to 0

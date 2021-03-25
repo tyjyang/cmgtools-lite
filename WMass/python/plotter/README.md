@@ -1,78 +1,94 @@
 # README
 
-
 ## _running the cards if you need to_
+
+### Make histograms for the fit
+
+This part uses the same plotting functionalities provided by **mcPlots.py**.
+First, one needs all the proper input txt files, in particular the one with the plot definitions.
+
+##### Prepare txt file with plots to produce
+
+Use the following command (for Wlike analysis)
+```
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt --a wlike
+```
+or the following for Wmass analysis (default, option _-a wmass_ can be skipped)
+```
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt --a wmass
+```
+This is set up to make a TH2 (eta-pt) for nominal histogram, and some TH3 (eta-pt and systematic index) for systematic uncertainties. It currently defines histograms for:
+- QCD scale systematics, unbinned and in bins of boson pT (binned ones on signal and unbinned ones on anti-signal, e.g. Z for Wmass)
+- PDFs and alphaS
+- Efficiency statistical uncertainty (a nuisance for each bin of the tag-and-probe), although the current scale factor histograms might actually store the stat+syst uncertainty (**TO BE FIXED**)
+- mass weights (actually the branch also include other EW stuff) 
+Other systematics can be added in a similar way
+
+##### Produce the histograms
+
+Basically use **mcPlots.py** adding option _--skipPlot_ to avoid making plots (as we have many TH3), although we may at least let it plot the nominal ones for cross check. This means all options that are specific to plotting are not needed.
+
+The command below is for positive charge (at some point both charges might be done together, using TH4 or something). For negative charge the command is the same, but you have to change some options accordingly.
+
+Some notes:
+- the command currently is set up to make all the plots in the plot txt file (i.e. _--sP ".*"_)
+- some input files (e.g. the mca.*txt) have the same content for wmass and wlike, despite their different names
+- can add _--allow-negative-results_ or _--neglist "<regular_expression>"_ to avoid cropping negative bins to 0 (can be done in next steps if needed, or by combinetf directly)
+- can add _--updateRootFile_ to remake only some histograms (for instance selected with _--sP <regexp>_) and update an existing file
+- can add _--filter-proc-files ".*" ".*_1.root"_ to run on only some files (1 per process in this case), e.g. for testing
+- for Wlike, need to select only odd (even) events for positive (negative) charge
+- we are currently removing the mT cut (with _-X mtl1pf40_), until we agree on the MET to use (and also because for fakes we may use a simultaneous fit including the low mT region
+
+Wlike
+```
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  -A trigger oddevents "isOddEvent(event)" --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --pdir --out cards/wmass/plus/wlike.root --skipPlot
+```
+
+Wmass
+```
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_all" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --out cards/wmass/plus/wmass.root   --skipPlot
+```
+
+##### Unpack the histograms into TH2 (eta-pt) for combinetf
+
+Currently using **makeHistogramsWMass.py** as an independent script, but it might be merged inside the card maker script. It takes as input the root file produced in previous step, and also produce the alternate histograms for some systematics by mirroring the alternative template with respect to nominal one (e.g. for PDFs, which do not have Up and Down by default). It also write the histograms with a proper name following the conventions used by combinetf.
+
+Wlike
+```
+python makeHistogramsWMass.py -i cards/wlike/plus/wlike.root -o cards/wlike/Zmmu_plus_shapes.root -c plus --wlike [--crop-negative-bin]
+```
+
+Wmass
+```
+python makeHistogramsWMass.py -i cards/wmass/plus/wmass.root -o cards/wmass/Wmunu_plus_shapes.root -c plus [--crop-negative-bin]
+```
+
+Once you have these final root files, you can inspect their content with **printRootFileContent.py**, it also has some options to exclude or select some histogram names using regular expressions.
+
+E.g. the following will print histograms whose name contains _pdfs_ or _muRmuF3_, but excluding those for process Wtaunu
+```
+python printRootFileContent.py cards/wmass/Wmunu_plus_shapes.root -r ".*pdf.*|.*muRmuF3" -x "x_Wtaunu.*"
+```
 
 ### run the cards with the following command
 
-```
-python w-mass-13TeV/wmass_mu/make_cards_mu.py --suffix SUFFIX --syst (--dry-run)
-```
-by default it:
-- decorrelates the QCD scale systematics by charge and in bins of W-pT
-- reweights the boson-pT for Ws and Zs
+The following command is just a simplified example to produce the datacard for a single charge (can use _-c plus,minus_ to make cards for both charges). The script allows one to make datacards for a single charge or both, possibly combining them, and to execute the commands to actually run the fit. It has some options to customize the datacard content (for instance, to exclude some nuisances on the fly) and to configure the text2hdf5 or combinetf commands. By default the fit is not run, to do it some options are needed (under testing at the moment)
 
-### once you think all have run, check with the DatacardChecker.py script:
+Wlike
 ```
-python w-mass-13TeV/DatacardsChecker.py -c cards/wmass_20XX_YY_ZZ_SUFFIX/ -g 5
+python w-mass-13TeV/cardMaker.py -i cards/wlike/  -f mu -c plus --wlike
 ```
 
-this will put a new condor\_submit file into a retry\_X sub-directory. it will not automatically
-submit the file though, so you have to do that. you can also change the grouping of the jobs for
-this step
-
-
-### directory with trees and stuff collected in a google sheet
-https://docs.google.com/spreadsheets/d/1IwG5qKOSV2PKMLKhl6_JQp1kgqXHvUkqSc5GUCGOtUs/edit#gid=719387465
-
-### FOR W-LIKE:
-
-trees with all relevant gen-level variables for W and Z:
+Wmass (default)
 ```
-/eos/cms/store/cmst3/group/wmass/w-helicity-13TeV/ntuplesRecoil/TREES_prefiring_muons_fullTrees/
-```
-skims with ==2 loose mu (no iso) having all relevant gen-level variables for W and Z (and old trees for other backgrounds and data)
-```
-/eos/cms/store/cmst3/group/wmass/w-mass-13TeV/ntuples/TREES_2LEP_wlike_mu_V1
-/afs/cern.ch/work/e/emanuele/TREES/TREES_2LEP_wlike_mu_V1 (.url version)
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c plus
 ```
 
-### making friends
-First to an interactive test with few events:
-```
-python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -d <dastasetName> -c 0 -N 20000
-```
-<friendsDir> will generally be <mainTreeDir>/friends/ but it is not mandatory
-Then flood condor (4hrs / 250k events)
-```
-python postproc_batch.py <mainTreeDir> <friendsDir> --friend --log <logDir> -N 250000  --submit  --runtime 240
-```
-Number passed to runtime is in minutes
-Note that the test will likely end with an error message as the follwoing
-```
-Traceback (most recent call last):
-  File "postproc_batch.py", line 277, in <module>
-    ret = dict(map(_runIt, jobs))
-TypeError: cannot convert dictionary update sequence element #0 to a sequence
-```
-This is harmless, because it happens only once the tree is safely produced.
+Among the main general options:
+- _--comb_: combine the datacards for the two charges
+- _--exclude-nuisances_: exclude some nuisances when writing the card, using regular expressions
+- _--keep-nuisances_: these nuisances (overriding those excluded by _--exclude-nuisances_
 
-### resubmit friends
-```
-./scripts/friendChunkResub.py <friendsDir> <mainTreeDir> --run-checker -N 250000 -l <logdir>
-```
-Then merge. First create a dir where to put the chunks. Make on the same filesystem where the chunks are to make the mv fast (no copy of the files)
-The scripts expects the directory "Chunks", so link it
-```
-mkdir <mainTreeDir>/friends_chunks
-ln -s <mainTreeDir>/friends_chunks Chunks
-./scripts/friendChunkAdd.sh -c <mainTreeDir>/friends
-```
-then if everything went ok you can safely remove the chunks in "<mainTreeDir>/friends_chunks".
-Then do a final check:
-```
-python scripts/checkMergedFriends.py <mainTreeDir>
-```
-checkMergedFriends.py also has some useful options
-1) --sp to select only some samples to check accroding to a regular expression
-2) --skipFriend to check only sanity of main trees (mainly useful before running friends)
+Some options to customize fit (check the script for more)
+- _--fit-single-charge_: fit single charge
+- _--postfix_: enable the same option of text2hdf5.py, adding a postfix to output file (to distinguish different files without having to change output folder) 

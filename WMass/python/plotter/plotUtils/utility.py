@@ -352,6 +352,7 @@ def drawCorrelationPlot(h2D_tmp,
                         passCanvas=None,
                         bottomMargin=0.1,
                         plotError=False,
+                        plotRelativeError=False,
                         lumi=None,
                         drawOption = "colz"):
 
@@ -367,12 +368,18 @@ def drawCorrelationPlot(h2D_tmp,
         if isinstance(rebinFactorY, int): h2D_tmp.RebinY(rebinFactorY)
         else:                             h2D_tmp.RebinY(len(rebinFactorY)-1,"",array('d',rebinFactorY)) # case in which rebinFactorX is a list of bin edges
 
-    if plotError:
+    if plotError or plotRelativeError:
         herr = h2D_tmp.Clone(h2D_tmp.GetName()+"_err")
         herr.Reset("ICESM")
         for i in range(1,herr.GetNbinsX()+1):
             for j in range(1,herr.GetNbinsY()+1):
-                herr.SetBinContent(i,j,h2D_tmp.GetBinError(i,j))
+                errval = h2D_tmp.GetBinError(i,j)
+                if plotRelativeError:
+                    if h2D_tmp.GetBinContent(i,j) != 0.0:
+                        errval = errval/h2D_tmp.GetBinContent(i,j)
+                    else:
+                        errval = 1.0 if errval == 0 else 0.0
+                herr.SetBinContent(i,j,errval)
         h2D = herr
     else:
         h2D = h2D_tmp
