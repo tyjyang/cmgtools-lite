@@ -5,7 +5,8 @@
 # Examples
 ################################
 
-# python w-mass-13TeV/makeJsonFromData.py -i /data/shared/originalNANO/NanoV8Data/Run2016B/ -o lumiStuff/ -n NanoAOD_json_Run2016B.txt --max-entries 100 -v
+# python lumiStuff/makeJsonFromData.py -i /data/shared/originalNANO/NanoV8Data/Run2016B/ -o lumiStuff/ -n NanoAOD_json_Run2016B.txt --max-entries 100 -v
+# can also additionally filter with another json using option "-j <json>"
 
 # Once the json is made, one can compute the integrated luminosity with this command:
 # brilcalc lumi --normtag /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_PHYSICS.json -u /fb -i lumiStuff/NanoAOD_json_Run2016B.txt --without-checkjson
@@ -30,20 +31,40 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
+sys.path.append(os.getcwd())
+from mcAnalysis import initializeJson
+
+def compileMacro(x,basedir=os.environ['PWD']):
+    success = ROOT.gSystem.CompileMacro("%s" % (x),"k")
+    if not success:
+        logging.error("Loading and compiling %s failed! Exit" % x)
+        quit()
 
 if __name__ == "__main__":
             
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i','--input', dest='inputdir', default='', type=str, help='input directory with ntuples.')
-    parser.add_argument('-o','--outdir', dest='outdir', default='', type=str, help='output directory to save things (should end with /)')
-    parser.add_argument('-n','--outfilename', dest='outfilename', default='', type=str, help='Name of output file to save json')
-    parser.add_argument('-m','--match',     dest='match',     default='', type=str, help='Filter data files matching this regular expression')
+    parser.add_argument('-i','--input',  dest='inputdir', default='', type=str, help='input directory with ntuples.')
+    parser.add_argument('-o','--outdir', default='', type=str, help='output directory to save things (should end with /)')
+    parser.add_argument('-n','--outfilename', default='', type=str, help='Name of output file to save json')
+    parser.add_argument('-m','--match', default='', type=str, help='Filter data files matching this regular expression')
+    parser.add_argument('-j','--json',  default='', type=str, help='Json file (optional) to be used to filter runs and lumis from this dataset')
     parser.add_argument(     '--max-entries',     dest='maxentries',     default=0, type=int, help='How many events to process (for tests). Default is 0, which is all')
     parser.add_argument('-v',"--verbose",   dest="verbose",    action="store_true", default=False, help="Print debugging stuff");
     args = parser.parse_args()
-    
 
+    filterWithJson = False
+    if args.json != "":        
+        #print("ROOT libraries")
+        #print(ROOT.gSystem.GetLibraries())
+        if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries():
+            compileMacro("../ccFiles/jsonManager.cc")
+        if hasattr(ROOT, "jsonMap_all"):
+            initializeJson(ROOT.jsonMap_all, args.json)
+            if args.verbose:
+                print("Initialized json files for data")
+            filterWithJson = True
+         
     ROOT.TH1.SetDefaultSumw2()
 
     if args.outdir:
@@ -95,11 +116,13 @@ if __name__ == "__main__":
     currentrun = 0
     for event in chain:
         if not args.verbose:  # if using option -v, the carriage return is spoiled by the other print statement in this loop
-            if i%1000 == 0:
+            if i%500 == 0:
                 sys.stdout.write('Reading chain: {frac:.2f}%   \r'.format(frac=100.*float(i)/entries))
                 sys.stdout.flush()
         run = event.run
         lumi = event.luminosityBlock
+        if filterWithJson and not ROOT.isGoodRunLS(1, run, lumi):
+            continue
         if run != currentrun:
             currentrun = run
             currentlumi = 0  # when new run starts, reset current lumi, to avoid not updating it correctly
@@ -127,6 +150,8 @@ if __name__ == "__main__":
     ##########################
 
     outjson = open(outfileFullName,'w')
+    if filterWithJson:
+        outjson.write(f"## runs and lumis filtered with json file in {args.json}\n")
     outjson.write('{\n')
 
     # first sort the run number (should not be needed, but let's be sure)
