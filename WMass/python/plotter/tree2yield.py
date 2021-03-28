@@ -218,7 +218,7 @@ class TreeToYield:
 
         if self._options.rdfAlias:
             self._rdfAlias = self.getRdfDefinitions(self._options.rdfAlias)
-        self._rdfDefsWeightColumns = []
+        self._rdfDefsWeightColumns = {}
 
             
     def getRdfDefinitions(self, data):
@@ -499,12 +499,20 @@ class TreeToYield:
             cut = self.adaptExpr(cut,cut=True)
         return cut
     def defineColumnFromExpression(self, colExpr, colName, expr):
-        if expr in colExpr:
-            # print(f"Expression {expr} already exists, I will reuse it without defining new column")
+        if expr in list(colExpr.keys()):
+            logging.debug(f"Expression {expr} already exists, I will reuse it without defining new column")
             colName = colExpr[expr]
         else:                    
+            # if we are here the expression changed, but it could be the column name is the same as an existing ones (e.g. for the event weight string, for which the column is defined for each plot but the column name does not depend on it, so need to rename the column
+            if colName in list(colExpr.values()):
+                matchedCnames = list(filter(lambda x : re.match(colName+"_\d+",x), list(colExpr.values())))
+                cnindex = len(matchedCnames)
+                oldname = colName
+                colName = oldname + "_%d" % (cnindex)
+                logging.debug("Column %s already defined, name changed to %s" % (oldname, colName))
+            else:
+                logging.debug("Defining new column %s" % colName)
             colExpr[expr] = colName
-            # print(f"Defining column {colName} as {expr}")
             self._tree = self._tree.Define(colName, expr)
         return (colName, colExpr)
     def getManyPlotsRaw(self,cut,plotspecs,fsplit=None,closeTreeAfter=False):
@@ -580,17 +588,6 @@ class TreeToYield:
             tmp_weight = self._cname+'_weight'
             #print "In getManyPlotsRaw"
             #print(tmp_weight)
-            #definedColumnNames = list(filter(lambda x : str(x).startswith(tmp_weight), self._tree.GetDefinedColumnNames()))
-            #definedColumnNames = [str(x) for x in definedColumnNames]
-            if tmp_weight in self._rdfDefsWeightColumns:
-                matchedCnames = list(filter(lambda x : re.match(tmp_weight+"_\d+",x),self._rdfDefsWeightColumns))
-                cnindex = len(matchedCnames)
-                oldname = tmp_weight
-                tmp_weight = oldname + "_%d" % (cnindex)
-                logging.debug("Column %s already defined, name changed to %s" % (oldname,tmp_weight))
-            else:
-                logging.debug("Defining new column %s" % tmp_weight)
-            self._rdfDefsWeightColumns.append(tmp_weight)
 
             ## weight has a common part for each plot
             if self._weight:
@@ -601,8 +598,10 @@ class TreeToYield:
             
             if plotspec.getOption('AddWeight', None):
                 wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
+
+            (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
+            
             logging.debug("%s weight string = %s " % (tmp_weight, wgt))
-            self._tree = self._tree.Define(tmp_weight, wgt)        
             
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)

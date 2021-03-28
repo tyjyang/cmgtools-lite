@@ -573,9 +573,9 @@ class MCAnalysis:
         rets = []
         for ip,plotspec in enumerate(plotspecs):
             mergemap = {}
-            logging.debug(">>>>>> plotspec %s" % plotspec.name)
+            #logging.debug(">>>>>> plotspec %s" % plotspec.name)
             for (k,v) in retlist:
-                logging.debug("------- process %s" % k)
+                #logging.debug("------- process %s" % k)
                 if not k in mergemap: mergemap[k] = []
                 if plotspec.getOption('ProcessRegexp', None):
                     regexp = plotspec.getOption('ProcessRegexp', ".*")
@@ -586,7 +586,7 @@ class MCAnalysis:
                         v.insert(ip,None)
                 else:
                     mergemap[k].append(v[ip])
-                logging.debug(" ".join(x.GetName() if x != None else "None" for x in v))
+                #logging.debug(" ".join(x.GetName() if x != None else "None" for x in v))
 
             ret = dict([ (k,mergePlots(plotspec.name+"_"+k,v)) for k,v in mergemap.items() if all(x != None for x in v)])
 

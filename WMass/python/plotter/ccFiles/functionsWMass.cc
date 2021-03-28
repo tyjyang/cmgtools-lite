@@ -713,7 +713,7 @@ Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
   //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  float sf = 1.0;
+
   // not sure there is a more efficient way to compute the sf
   // some elements are common between the 2 leptons, some are not
   std::string corrTrig   = charge > 0 ? "isoTrigplus" : "isoTrigminus";
@@ -723,36 +723,23 @@ Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
     corrNotrig = Form("anti%s",corrNotrig.c_str());
   }
   
-  int iptTnP = 0;
-  int ietaTnP = 0;
   int nEtaBins = 0;
   int nPtBins = 0;
   auto key = std::make_pair(corrTrig, era);
-  if (corrTypeToHistAfterproduct.find(key) != corrTypeToHistAfterproduct.end()) {
-    nEtaBins = corrTypeToHistAfterproduct.at(key).GetNbinsX();
-    nPtBins  = corrTypeToHistAfterproduct.at(key).GetNbinsY();
-  }
+  nEtaBins = corrTypeToHistAfterproduct.at(key).GetNbinsX();
+  nPtBins  = corrTypeToHistAfterproduct.at(key).GetNbinsY();
 
-  for (int tnpBinNuisance = 1; tnpBinNuisance <= n_tnpBinNuisance; ++tnpBinNuisance) {
+  int ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(eta)));
+  int iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(pt)));
+  int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
+  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), eta, pt));
   
-    // tnpBinNuisance starts from 1, as ietaTnP and iptTnP for the usage we foresee
-    ietaTnP  = (tnpBinNuisance-1) % nEtaBins + 1;
-    iptTnP   = (tnpBinNuisance-1) / nEtaBins + 1;
-    if (etaptIsInBin(corrTypeToHistAfterproduct.at(key), ietaTnP, iptTnP, eta, pt)) {
-      sf *= (1 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), eta, pt));
-    } 
-
-    if (ptOther > 0) {
-      auto keyOther = std::make_pair(corrNotrig, era);
-      if (corrTypeToHistAfterproduct.find(keyOther) != corrTypeToHistAfterproduct.end()) {
-	if (etaptIsInBin(corrTypeToHistAfterproduct.at(keyOther), ietaTnP, iptTnP, etaOther, ptOther)) {
-	  sf *= (1 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), etaOther, ptOther));
-	}    
-      }
-    }
-
-    res[tnpBinNuisance-1] = sf;
-    
+  if (ptOther > 0) {
+    auto keyOther = std::make_pair(corrNotrig, era);
+    ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(etaOther)));
+    iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(ptOther)));
+    tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
+    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), etaOther, ptOther));
   }
 
   return res;
