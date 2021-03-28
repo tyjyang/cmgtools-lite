@@ -10,11 +10,10 @@ from runPerEra import runsForEra as rfe
 parser = argparse.ArgumentParser()
 args = parser.parse_args()
 
-inputfile = "/afs/cern.ch/user/b/bendavid/cmspublic/runlumi.csv"
+inputfile = "lumiStuff/runlumi.csv" # copied from /afs/cern.ch/user/b/bendavid/cmspublic/runlumi.csv
 
 eras = list(rfe.keys())
 lumiPerEra = {era : 0.0 for era in eras}
-print(lumiPerEra) 
 
 with open(inputfile) as f:
     for line in f:
@@ -25,6 +24,7 @@ with open(inputfile) as f:
         for era in eras:
             if run in rfe[era]:
                 lumiPerEra[era] += lumi
+                break # if run was found, no need to check following eras
 
-print(lumiPerEra) 
-
+for era,intlumi in iter(lumiPerEra.items()):
+    print(f"{era} : {intlumi}")
