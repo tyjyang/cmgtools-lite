@@ -382,11 +382,11 @@ double puw_2016UL_all(const Float_t& nTrueInt) {
     return 1.0;
 }
 
-double puw_2016UL_era(const Float_t& nTrueInt, const int& era) {
+double puw_2016UL_era(const Float_t& nTrueInt, DataEra era = BToF) {
   if (nTrueInt < 100.0) {
-    if      (era == 1) return _pileupWeights_2016UL_preVFP[static_cast<int>(nTrueInt)];
-    else if (era == 2) return _pileupWeights_2016UL_postVFP[static_cast<int>(nTrueInt)];
-    else               return _pileupWeights_2016UL_all[static_cast<int>(nTrueInt)];
+    if      (era == BToF) return _pileupWeights_2016UL_preVFP[static_cast<int>(nTrueInt)];
+    else if (era == GToH) return _pileupWeights_2016UL_postVFP[static_cast<int>(nTrueInt)];
+    else                  return _pileupWeights_2016UL_all[static_cast<int>(nTrueInt)];
   } else {
     return 1.0;
   }

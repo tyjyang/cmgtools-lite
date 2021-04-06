@@ -1,55 +1,29 @@
-data_B: .*; SubPath=".*DATA_NanoV8/Run2016B/"
-data_C: .*; SubPath=".*DATA_NanoV8/Run2016C/"
-data_D: .*; SubPath=".*DATA_NanoV8/Run2016D/"
-data_E: .*; SubPath=".*DATA_NanoV8/Run2016E/"
-data_F: .*; SubPath=".*DATA_NanoV8/Run2016F/"
-data_F_postVFP: .*; SubPath=".*DATA_NanoV8/Run2016F_postVFP/"
-data_G: .*; SubPath=".*DATA_NanoV8/Run2016G/"
-data_H: .*; SubPath=".*DATA_NanoV8/Run2016H/"
+############ Data 
 
-data_preVFP: .*; SubPath=".*DATA_NanoV8/Run2016(B|C|D|E|F)/"
-data_postVFP: .*; SubPath=".*DATA_NanoV8/Run2016(F_postVFP|G|H)/"
+data_preVFP: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kAzure+2, Label="Data preVFP"
+#, AddWeight="1./_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
 
-fullData: .*; SubPath=".*DATA_NanoV8/"
+data_postVFP: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kRed+2, Label="Data postVFP"
+#, AddWeight="1./_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
 
-Wmunu_plus   : .* : 19.3*11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WplusJetsToMuNu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,BToF)"
-Wmunu_plus   : .* : 16.6*11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WplusJetsToMuNu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,GToH)"
+data_postVFP_effCorr: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlack, Label="Data postVFP (eff corr)", AddWeight="_get_fullMuonSF_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,isData)"
 
-Wmunu_minus   : .* : 19.3*8562.66 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WminusJetsToMuNu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,BToF)"
-Wmunu_minus   : .* : 16.6*8562.66 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath=".*WminusJetsToMuNu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wmass(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,GToH)"
+############ MC
 
+Zmumu_preVFP_noSF : .* : 38140.081 ; FillColor=ROOT.kRed, Label="Z preVFP (noSF)", SubPath=".*/DYJetsToMuMu_preVFP/"
 
+Zmumu_preVFP : .* : 38140.081 ; FillColor=ROOT.kGreen+2, Label="Z preVFP (SF)", SubPath=".*/DYJetsToMuMu_preVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)"
 
-Zmumu_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToF)"
-Zmumu_postVFP   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,GToH)"
+Zmumu_preVFP_prefire: .* : 38140.081 ; FillColor=ROOT.kBlue+1, Label="Z preVFP (SF+pref)", SubPath=".*/DYJetsToMuMu_preVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)*_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
 
-Zmumu_globSF_preVFP   : .* : 38140.081 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
+Zmumu_preVFP_Zpt: .* : 38140.081 ; FillColor=ROOT.kGreen+2, Label="Z preVFP (Z-p_{T})", SubPath=".*/DYJetsToMuMu_preVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)*_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)*Numba::correctN3LL_Wp(ptVgen)"
 
-Zmumu_globSF_postVFP   : .* : 32804.422 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
+Zmumu_postVFP_noSF : .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z postVFP (noSF)", SubPath=".*/DYJetsToMuMu_postVFP/"
 
-Ztautau_preVFP   : .* : 22128.875 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToF)"
+Zmumu_postVFP : .* : 32804.422 ; FillColor=ROOT.kGreen+2, Label="Z postVFP (SF)", SubPath=".*/DYJetsToMuMu_postVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)"
 
-Ztautau_postVFP   : .* : 19033.126 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,GToH)"
+Zmumu_postVFP_prefire : .* : 32804.422 ; FillColor=ROOT.kBlue+1, Label="Z postVFP (SF+pref)", SubPath=".*/DYJetsToMuMu_postVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)*_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
 
-Ztautau_globSF_preVFP   : .* : 22128.875 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
+Zmumu_postVFP_effCorr : .* : 32804.422 ; FillColor=ROOT.kBlack, Label="Z postVFP (eff corr)", SubPath=".*/DYJetsToMuMu_postVFP/", AddWeight="_get_fullMuonSF_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,isData)"
 
-Ztautau_globSF_postVFp   : .* : 19033.126 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
-
-Zmumu_noSF_preVFP : .* : 38140.081 ; FillColor=ROOT.kPink+1, Label="Z (no SF)", SubPath=".*DYJetsToMuMu_preVFP_addVars"
-Ztautau_noSF_preVFP : .* : 22128.875 ; FillColor=ROOT.kPink+1, Label="Z (no SF)", SubPath=".*DYJetsToTauTau_preVFP_addVars"
-Zmumu_noSF_postVFP : .* : 32804.422 ; FillColor=ROOT.kPink+1, Label="Z (no SF)", SubPath=".*DYJetsToMuMu_postVFP_addVars"
-Ztautau_noSF_postVFP : .* : 19033.126 ; FillColor=ROOT.kPink+1, Label="Z (no SF)", SubPath=".*DYJetsToTauTau_postVFP_addVars"
-
-Zmumu_noSF_noPrefire_preVFP : .* : 38140.081 ; FillColor=ROOT.kBlue+1, Label="no SF\, no prefire", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="1./puWeight"
-Ztautau_noSF_noPrefire_preVFP : .* : 22128.875 ; FillColor=ROOT.kBlue+1, Label="no SF\, no prefire", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="1./puWeight"
-Zmumu_noSF_noPrefire_postVFP : .* : 32804.422 ; FillColor=ROOT.kBlue+1, Label="no SF\, no prefire", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="1./puWeight"
-Ztautau_noSF_noPrefire_postVFP : .* : 19033.126 ; FillColor=ROOT.kBlue+1, Label="no SF\, no prefire", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="1./puWeight"
-
-Z_globSF_preVFP   : .* : 38140.081 ; FillColor=ROOT.kRed+2, Label="Z (average SF)", SubPath=".*DYJetsToMuMu_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
-Z_globSF_preVFP   : .* : 22128.875 ; FillColor=ROOT.kRed+2, Label="Z (average SF)", SubPath=".*DYJetsToTauTau_preVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
-Z_globSF_postVFP   : .* : 32804.422 ; FillColor=ROOT.kRed+2, Label="Z (average SF)", SubPath=".*DYJetsToMuMu_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
-Z_globSF_postVFp   : .* : 19033.126 ; FillColor=ROOT.kRed+2, Label="Z (average SF)", SubPath=".*DYJetsToTauTau_postVFP_addVars", AddWeight="_get_AllMuonSF_fast_wlike(Muon_pt[0]\,Muon_eta[0]\,Muon_charge[0]\,Muon_hasTriggerMatch[0]\,Muon_pt[1]\,Muon_eta[1]\,Muon_charge[1]\,Muon_hasTriggerMatch[1]\,event\,BToH)"
-
-
-Zmumu_test_preVFP : .* : 38140.081 ; FillColor=ROOT.kPink+1, Label="Z", SubPath=".*DYJetsToMuMu_preVFP_addVars"
-Zmumu_nomi_preVFP : .* : 38140.081 ; FillColor=ROOT.kBlue+1, Label="Z nomi", SubPath=".*DYJetsToMuMu_preVFP_addVars"
+Zmumu_postVFP_Zpt : .* : 32804.422 ; FillColor=ROOT.kGreen+2, Label="Z postVFP (Z-p_{T})", SubPath=".*/DYJetsToMuMu_postVFP/", AddWeight="_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,eraVFP)*_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)*Numba::correctN3LL_Wp(ptVgen)"

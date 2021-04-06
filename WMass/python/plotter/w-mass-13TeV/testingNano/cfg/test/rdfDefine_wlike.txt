@@ -1,7 +1,13 @@
 # name of new variable/collection : definition : regular expression for processes to apply it to
+#vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2 : .*
+step1 : Muon_pt > 26 && abs(Muon_eta) < 2.4
+step1p2p3 : step1 && (Muon_isTracker || Muon_isGlobal)
+step1p2 : step1p2p3 && Muon_looseId == 1
+step2 : step1p2 && Muon_mediumId == 1
+step3 : step2 && abs(Muon_dxy) < 0.05   
+goodMuons : step3 && abs(Muon_dz) < 0.2
+#goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2 : .*
-#vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05: .*
-goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
 #zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): .*
 ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]) : .*
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)

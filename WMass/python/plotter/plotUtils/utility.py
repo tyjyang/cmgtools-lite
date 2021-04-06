@@ -6,8 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 from array import array
-from shutil import copyfile
-
+import shutil
 from CMS_lumi import *
 
 _canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
@@ -210,11 +209,15 @@ def fillTH2fromTH3zrange(h2, h3, zbinLow=1, zbinHigh=1):
 
 
 def createPlotDirAndCopyPhp(outdir):
-    if outdir != "./":
-        if not os.path.exists(outdir):
-            os.system("mkdir -p "+outdir)
-            if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
-    
+    # if outdir != "./":
+    #     if not os.path.exists(outdir):
+    #         os.system("mkdir -p " + outdir)
+    #         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
+    if outdir and not os.path.exists(outdir):
+        os.makedirs(outdir)
+        htmlpath = "./templates/index.php"
+        shutil.copy(htmlpath, outdir)
+
 
 #########################################################################
 
@@ -791,7 +794,8 @@ def drawSingleTH1(h1,
 def drawNTH1(hists=[],
              legEntries=[],
              labelXtmp="xaxis", labelYtmp="yaxis",
-             canvasName="default", outdir="./",
+             canvasName="default",
+             outdir="./",
              rebinFactorX=0,
              draw_both0_noLog1_onlyLog2=0,                  
              leftMargin=0.15,
@@ -804,10 +808,14 @@ def drawNTH1(hists=[],
              drawLineLowerPanel="", # if not empty, draw band at 1+ number after ::, and add legend with title
              passCanvas=None,
              lumi=None,
-             drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
+             drawLumiLatex=False,
+             skipLumi=False,
+             drawVertLines="", # coordinates of x where to print line
              textForLines=[],                       
              moreText="",
-             moreTextLatex=""
+             moreTextLatex="",
+             onlyLineColor=False,
+             drawErrorAll=False # default draws error only on first histogram
 ):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
@@ -883,22 +891,22 @@ def drawNTH1(hists=[],
         # h.SetFillColor(colors[ic])
         # h.SetMarkerSize(0)
         h.SetLineColor(colors[ic])
-        h.SetFillColor(colors[ic])
         h.SetMarkerSize(0)
-        if ic==0: 
-            h.SetFillStyle(3004)   
-        if ic==1: 
-            h.SetFillColor(0) 
-            h.SetLineWidth(2) 
-        if ic==2: 
-            h.SetFillStyle(3002)           
-        if ic==3:
-            h.SetFillColor(0)
-            h1.SetMarkerColor(ROOT.kGray+3)
-            h1.SetMarkerStyle(25)
-            #h1.SetMarkerSize(2)
-            
-    
+        if not onlyLineColor:
+            h.SetFillColor(colors[ic])
+            if ic==0: 
+                h.SetFillStyle(3004)   
+            if ic==1: 
+                h.SetFillColor(0) 
+                h.SetLineWidth(2) 
+            if ic==2: 
+                h.SetFillStyle(3002)           
+            if ic==3:
+                h.SetFillColor(0)
+                h1.SetMarkerColor(ROOT.kGray+3)
+                h1.SetMarkerStyle(25)
+                #h1.SetMarkerSize(2)
+                
     #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
     if ymin == ymax == 0.0:
@@ -932,7 +940,7 @@ def drawNTH1(hists=[],
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
     h1.Draw("PE")
     for h in hnums:
-        h.Draw("HIST SAME")
+        h.Draw("HE SAME" if drawErrorAll else "HIST SAME")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -947,7 +955,7 @@ def drawNTH1(hists=[],
     leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
     for il,le in enumerate(legEntries):
-        leg.AddEntry(hists[il],le,"PE" if il == 0 else "FL")
+        leg.AddEntry(hists[il],le,"PE" if il == 0 else "L" if onlyLineColor else "FL")
     leg.Draw("same")
     canvas.RedrawAxis("sameaxis")
 
@@ -969,19 +977,21 @@ def drawNTH1(hists=[],
     if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 30)
 
     if len(drawVertLines):
-        nptBins = int(drawVertLines.split(',')[0])
-        etarange = float(drawVertLines.split(',')[1])        
-        offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
-        sliceLabelOffset = 6. if "#eta" in textForLines[0] else 6.
-        for i in range(1,nptBins): # do not need line at canvas borders
-            #vertline.DrawLine(offsetXaxisHist+etarange*i,0,offsetXaxisHist+etarange*i,canvas.GetUymax())
-            vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+        nLines = len(drawVertLines)
+        #offsetXaxisHist = h1.GetXaxis().GetBinLowEdge(0)
+        sliceLabelOffset = 10.
+        for i in range(nLines):
+            #vertline.DrawLine(etarange*i-offsetXaxisHist,0,etarange*i-offsetXaxisHist,ymax)
+            vertline.DrawLine(drawVertLines[i],0,drawVertLines[i],ymax)
         if len(textForLines):
-            for i in range(0,len(textForLines)): # we need nptBins texts
+            for i in range(len(textForLines)): # we need nLines
                 #texoffset = 0.1 * (4 - (i%4))
                 #ytext = (1. + texoffset)*ymax/2.  
-                ytext = (1.1)*ymax/2.  
-                bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
+                ytext = (1.1)*ymax/2.
+                if i == 0:
+                    bintext.DrawLatex(h1.GetXaxis().GetBinLowEdge(0) + sliceLabelOffset, ytext, textForLines[i])
+                else:                    
+                    bintext.DrawLatex(drawVertLines[i-1] + sliceLabelOffset, ytext, textForLines[i])
 
     # redraw legend, or vertical lines appear on top of it
     leg.Draw("same")
@@ -1024,17 +1034,18 @@ def drawNTH1(hists=[],
   # }
 
     setTDRStyle()
-    if leftMargin > 0.1:
-        if lumi != None: CMS_lumi(canvas,lumi,True,False)
-        else:            CMS_lumi(canvas,"",True,False)
-    else:
-        latCMS = ROOT.TLatex()
-        latCMS.SetNDC();
-        latCMS.SetTextFont(42)
-        latCMS.SetTextSize(0.045)
-        latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
-        if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
-        else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
+    if not skipLumi:
+        if not drawLumiLatex:
+            if lumi != None: CMS_lumi(canvas,lumi,True,False)
+            else:            CMS_lumi(canvas,"",True,False)
+        else:
+            latCMS = ROOT.TLatex()
+            latCMS.SetNDC();
+            latCMS.SetTextFont(42)
+            latCMS.SetTextSize(0.045)
+            latCMS.DrawLatex(0.1, 0.95, '#bf{CMS} #it{Preliminary}')
+            if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+            else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)')
 
     if lowerPanelHeight:
         pad2.Draw()

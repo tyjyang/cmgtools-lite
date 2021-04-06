@@ -207,6 +207,7 @@ class TreeToYield:
             if libname not in ROOT.gSystem.GetLibraries():
                 ROOT.gROOT.ProcessLine(".L %s+" % macro);
         self._appliedCut = None
+        self._cutReport = None
         self._elist = None
         self._entries = None
         self._rdfDefs = {}
@@ -247,6 +248,8 @@ class TreeToYield:
             logging.info("{define}) : {args} (for process {procRegexp})".format(name=key, **value))
         logging.info("-"*40)
 
+    def getCutReport(self):
+        return self._cutReport
     
         #print "Done creation  %s for task %s in pid %d " % (self._fname, self._name, os.getpid())
     def setScaleFactor(self,scaleFactor,mcCorrs=True):
@@ -437,7 +440,7 @@ class TreeToYield:
         # so, when using runGraphs, these should be called separately after collecting all histograms for all processes
         rets = self.getManyPlotsRaw(cut, plotspecs, fsplit=fsplit, closeTreeAfter=closeTreeAfter)
         # now other operations on histograms for this cname
-        # need to suspend it if want to use runGraph
+        # need to suspend it if I want to use runGraph
         rets = self.refineManyPlots(rets, plotspecs)
         return rets
     def refineManyPlots(self, rets, plotspecs):
@@ -491,6 +494,7 @@ class TreeToYield:
             self._stylePlot(ret,plotspecs[iret])
             ret._cname = self._cname
         return rets
+    # apparently not used anywhere
     def getWeightForCut(self,cut):
         if self._weight:
             if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
@@ -534,6 +538,14 @@ class TreeToYield:
             self._sumGenWeights = self._tree.Sum("myweight") # uses floats
             # self._sumGenWeights = ROOT.getRDFcolumnSum(self._tree,"myweight") # uses doubles, but to be fixed
             ## now filter the rdf with just the cut
+
+        # define isData to handle data and MC dynamically
+        # needed before filters, as we use this for the json selection
+        if self._cname.startswith("data"):
+            self._tree = self._tree.Define("isData", "Data")
+        else:
+            self._tree = self._tree.Define("isData", "MC")
+            
         if self._options.printYieldsRDF:
             for (cutname,cutexpr) in cut.cuts():
                 if self._options.doS2V:
@@ -553,7 +565,8 @@ class TreeToYield:
             self._tree = self._tree.Define("eraVFP", "GToH")
         else:
             self._tree = self._tree.Define("eraVFP", "BToH")
- 
+
+            
             
         # do not call it, or it will trigger the loop now
         #print "sumGenWeights"
@@ -563,6 +576,14 @@ class TreeToYield:
         # keep list of defined columns used as variables to fill histograms, to avoid defining the same
         # expression multiple times, which may affect performances
         column_expr = {}
+
+        ## weight has a common part for each plot
+        if self._weight:
+            if self._isdata: wgtCommon = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
+            else:            wgtCommon = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+        else:
+            wgtCommon = '1.' ## wtf is that marc
+
         
         for plotspec in plotspecs:
 
@@ -588,17 +609,12 @@ class TreeToYield:
             tmp_weight = self._cname+'_weight'
             #print "In getManyPlotsRaw"
             #print(tmp_weight)
-
-            ## weight has a common part for each plot
-            if self._weight:
-                if self._isdata: wgt = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-                else:            wgt = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
-            else:
-                wgt = '1.' ## wtf is that marc
             
             if plotspec.getOption('AddWeight', None):
-                wgt = wgt + "*(%s)" % plotspec.getOption('AddWeight','1')
-
+                wgt = wgtCommon + "*(%s)" % plotspec.getOption('AddWeight','1')
+            else:
+                wgt = wgtCommon
+                
             (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
             
             logging.debug("%s weight string = %s " % (tmp_weight, wgt))
@@ -632,10 +648,11 @@ class TreeToYield:
 
         if self._options.printYieldsRDF:
             print("="*30)
-            print("Printing yields for %s" % self._cname)
+            #print("Printing yields for %s" % self._cname)
+            print("Preparing yields for %s" % self._cname)
             print("-"*30)
-            cutReport = self._tree.Report()
-            cutReport.Print()
+            self._cutReport = self._tree.Report()
+            #cutReport.Print()
             print("="*30)
         if closeTreeAfter: self._tfile.Close()
         return histos

@@ -1,30 +1,36 @@
-data_B: .*: 8.65063/5.75049; SubPath="/.*NanoV8Data/Run2016B/", FillColor=ROOT.kMagenta, Label="Data B"
-data_C: .*: 8.65063/2.57649; SubPath="/.*NanoV8Data/Run2016C/", FillColor=ROOT.kCyan, Label="Data C"
-data_D: .*: 8.65063/4.24229; SubPath="/.*NanoV8Data/Run2016D/", FillColor=ROOT.kOrange+2, Label="Data D"
-data_E: .*: 8.65063/4.02523; SubPath="/.*NanoV8Data/Run2016E/", FillColor=ROOT.kViolet, Label="Data E"
-data_F: .*: 8.65063/2.69053; SubPath="/.*NanoV8Data/Run2016F/", FillColor=ROOT.kGreen+2, Label="Data F"
-data_F_postVFP: .*: 8.65063/0.41398; SubPath="/.*NanoV8Data/Run2016F_postVFP/", FillColor=ROOT.kBlue, Label="Data F post"
-data_G: .*: 8.65063/7.57582; SubPath="/.*NanoV8Data/Run2016G/", FillColor=ROOT.kRed+2, Label="Data G"
-data_H: .* ; SubPath="/.*NanoV8Data/Run2016H/", FillColor=ROOT.kBlack, Label="Data H"
+#data_B: .*: 8.65063/5.75049; SubPath=".*/NanoV8Data/Run2016B/", FillColor=ROOT.kMagenta, Label="Data B"
+#data_C: .*: 8.65063/2.57649; SubPath=".*/NanoV8Data/Run2016C/", FillColor=ROOT.kCyan, Label="Data C"
+#data_D: .*: 8.65063/4.24229; SubPath=".*/NanoV8Data/Run2016D/", FillColor=ROOT.kOrange+2, Label="Data D"
+#data_E: .*: 8.65063/4.02523; SubPath=".*/NanoV8Data/Run2016E/", FillColor=ROOT.kViolet, Label="Data E"
+#data_F: .*: 8.65063/2.69053; SubPath=".*/NanoV8Data/Run2016F/", FillColor=ROOT.kGreen+2, Label="Data F"
+#data_F_postVFP: .*: 8.65063/0.41398; SubPath=".*/NanoV8Data/Run2016F_postVFP/", FillColor=ROOT.kBlue, Label="Data F post"
+#data_G: .*: 8.65063/7.57582; SubPath=".*/NanoV8Data/Run2016G/", FillColor=ROOT.kRed+2, Label="Data G"
+#data_H: .* ; SubPath=".*/NanoV8Data/Run2016H/", FillColor=ROOT.kBlack, Label="Data H"
 
-data_BCD: .*: 8.65063/12.569270; SubPath="/.*NanoV8Data/Run2016(B|C|D)/", FillColor=ROOT.kOrange+2, Label="Data BCD"
-data_EF : .*: 8.65063/6.7157600; SubPath="/.*NanoV8Data/Run2016(E|F)/", FillColor=ROOT.kViolet, Label="Data EF"
-data_FG_postVFP: .*: 8.65063/7.9898000; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G)/", FillColor=ROOT.kBlue, Label="Data FG post"
+data_UL: .*; SubPath=".*/NanoV8Data/Run2016.*/", FillColor=ROOT.kBlack, Label="Data UltraLegacy"
+data_RR: .*; SubPath=".*/NANO02Apr2020_fromReReco/Run2016.*/", FillColor=ROOT.kRed+1, Label="Data ReReco"
 
-data_preVFP: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kRed+2
+data_B: .*: 8.65063/5.750490642; SubPath=".*/NanoV8Data/Run2016B/", FillColor=ROOT.kGreen+2, Label="Data B"
+data_CD: .*: 8.65063/6.8187790; SubPath=".*/NanoV8Data/Run2016(C|D)/", FillColor=ROOT.kOrange+2, Label="Data CD"
+#data_BCD: .*: 8.65063/12.569270; SubPath=".*/NanoV8Data/Run2016(B|C|D)/", FillColor=ROOT.kOrange+2, Label="Data BCD"
+data_EF : .*: 8.65063/6.7157600; SubPath=".*/NanoV8Data/Run2016(E|F)/", FillColor=ROOT.kViolet, Label="Data EF"
+data_FG_postVFP: .*: 8.65063/7.9898000; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G)/", FillColor=ROOT.kBlue, Label="Data FG post"
+data_H: .* ; SubPath=".*/NanoV8Data/Run2016H/", FillColor=ROOT.kBlack, Label="Data H"
 
-data_preVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
+data_preVFP: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kRed+2
 
-data_postVFP: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlack
+data_preVFP_json: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
 
-data_postVFP_json: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kGreen+2,AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
+data_postVFP: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kBlack
 
-data_postVFP_effCorr: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,Data)"
+data_postVFP_json: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kGreen+2,AddWeight="isGoodRunLS(Data\,run\,luminosityBlock)", Label="Data+json"
 
-data_postVFP_effCorr_anyTrig: .*; SubPath="/.*NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost_anyTrig(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,muPlusMatch\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,muMinusMatch\,Data)"
+data_postVFP_effCorr: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,Data)"
+
+data_postVFP_effCorr_anyTrig: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kPink+1, AddWeight="_get_AllMuonSF_fast_wlike_preOverPost_anyTrig(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,muPlusMatch\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,muMinusMatch\,Data)"
 
 
-fullData: .*; SubPath=".*Run2016.*"
+fullData: .*; SubPath=".*/NanoV8Data/Run2016.*/"
 
 Wmunu_plus_preVFP_noSF   : .* : 19.3*11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath="/WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,1)"
 Wmunu_plus_postVFP_noSF   : .* : 16.6*11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="/WplusJetsToMuNu_postVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,2)"

@@ -13,7 +13,7 @@ correctionsWp = correctionsWp_file['hist']
 
 @ROOT.Numba.Declare(["float"], "float")
 def correctN3LL_Wp(ptW):
-    corrbin = np.digitize(np.array([ptW]), binsWp)
+    corrbin = np.digitize(np.array([ptW]), binsWp, right=True)
     if corrbin[0] >= len(correctionsWp):
         return 1.
     return correctionsWp[corrbin][0]

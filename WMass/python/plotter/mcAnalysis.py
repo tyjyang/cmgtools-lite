@@ -67,12 +67,13 @@ class MCAnalysis:
                 self._premap.append((re.compile(k.strip()+"$"), to))
         if hasattr(ROOT, "initializeScaleFactors"):
             logging.info("Initializing histograms with scale factors")
-            ROOT.initializeScaleFactors()
+            ROOT.initializeScaleFactors(self._options.scaleFactorFile)
         if hasattr(ROOT, "jsonMap_all"):
-            initializeJson(ROOT.jsonMap_all, "pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
-            logging.info("Initialized json files for data")
+            initializeJson(ROOT.jsonMap_all, self._options.json)
+            logging.info(f"Initialized json files for data: {self._options.json}")
         self.allRDF = {}    # dictionary with rdf per process (the key is the process cname)
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
+        self.allCutReports = {}
         self.readMca(samples,options)
      
     def getSumGenWeightMCfromHisto(self, pname, rootfile, verbose=False):
@@ -549,7 +550,9 @@ class MCAnalysis:
                     # retlist will be created afterwards, when also manipulating histograms
                 else:
                     retlist.append( (key, tty.getManyPlots(plotspecs, cut, None, False)) )   
-
+                if self._options.printYieldsRDF:
+                    self.allCutReports[tty.cname()] = tty.getCutReport()
+                    
         if self._options.useRunGraphs:        
             # assign all histograms to the graph, to allow for simultaneous loop
             logging.info("Have these processes and components")
@@ -853,6 +856,8 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
     parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
+    parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
+    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31Mar2021.root", help="File to be used for scale factors")
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 
