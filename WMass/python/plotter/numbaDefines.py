@@ -24,12 +24,12 @@ correctionsZ = correctionsZ_file['scetlibCorr3D_Z']
 @ROOT.Numba.Declare(["double", "double", "double"], "float")
 def correctN3LL_Z(mV, yV, ptV):
     # Numba doesn't seem to have digitize with the first arg a scalar implemented
-    binm = np.digitize(np.array([mV]), binsZ_m)[0]-1
-    biny = np.digitize(np.array([yV]), binsZ_y)[0]-1
-    binpt = np.digitize(np.array([ptV]), binsZ_pt)[0]-1
-    if binm < 0 or binm >= len(binsZ_m) or biny < 0 or biny >= len(binsZ_y) or binpt < 0 or binpt >= len(binsZ_pt):
+    binm = np.digitize(np.array([mV]), binsZ_m)[0]
+    biny = np.digitize(np.array([yV]), binsZ_y)[0]
+    binpt = np.digitize(np.array([ptV]), binsZ_pt)[0]
+    if binm == 0 or binm == len(binsZ_m) or biny == 0 or biny == len(binsZ_y) or binpt == 0 or binpt == len(binsZ_pt):
         return 1.
-    return correctionsZ[binm,biny,binpt]
+    return correctionsZ[binm-1,biny-1,binpt-1]
 
 #@ROOT.Numba.Declare(["float", "float", "float"], "float")
 #def correctN3LL_Wp(mW, yW, ptW):
