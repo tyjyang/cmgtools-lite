@@ -10,3 +10,5 @@ goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
 goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
 genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
 ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z

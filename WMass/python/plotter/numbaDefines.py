@@ -1,5 +1,6 @@
 import ROOT
 import numpy as np
+import numba
 import os
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -11,12 +12,28 @@ correctionsWp_file = np.load(f"{script_dir}/../postprocessing/data/gen/fiducialW
 binsWp = correctionsWp_file['bins']
 correctionsWp = correctionsWp_file['hist']
 
-@ROOT.Numba.Declare(["float"], "float")
-def correctN3LL_Wp(ptW):
-    corrbin = np.digitize(np.array([ptW]), binsWp, right=True)
-    if corrbin[0] >= len(correctionsWp):
+correctionsZ_file = np.load(f"{script_dir}/../postprocessing/data/gen/fiducialDY_RatioN3LL.npz", allow_pickle=True)
+binsZ = correctionsZ_file['bins']
+binsZ_m = binsZ[0]
+binsZ_y = binsZ[1]
+binsZ_pt = binsZ[2]
+correctionsZ = correctionsZ_file['scetlibCorr3D_Z']
+
+#@numba.jit(nopython=True)
+#def correctN3LL(mV, yV, ptV, bins, corr):
+@ROOT.Numba.Declare(["double", "double", "double"], "float")
+def correctN3LL_Z(mV, yV, ptV):
+    # Numba doesn't seem to have digitize with the first arg a scalar implemented
+    binm = np.digitize(np.array([mV]), binsZ_m)[0]-1
+    biny = np.digitize(np.array([yV]), binsZ_y)[0]-1
+    binpt = np.digitize(np.array([ptV]), binsZ_pt)[0]-1
+    if binm < 0 or binm >= len(binsZ_m) or biny < 0 or biny >= len(binsZ_y) or binpt < 0 or binpt >= len(binsZ_pt):
         return 1.
-    return correctionsWp[corrbin][0]
+    return correctionsZ[binm,biny,binpt]
+
+#@ROOT.Numba.Declare(["float", "float", "float"], "float")
+#def correctN3LL_Wp(mW, yW, ptW):
+#    return correctN3LL(mW, yW, ptW, binsWp, correctionsWp)
 
 @ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", ], "RVec<bool>")
 def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
