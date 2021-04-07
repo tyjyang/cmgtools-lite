@@ -175,7 +175,7 @@ genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_pre
 
 Pileup_nTrueInt: Pileup_nTrueInt: 100,0,100; XTitle="Pileup_nTrueInt", Legend='TC', IncludeOverflows=False
 
-PV_npvsGood: PV_npvsGood: 80,0,80; XTitle="PV_npvsGood", Legend='TC', IncludeOverflows=False, RMin=0.5, RMax=1.5
+PV_npvsGood: PV_npvsGood: 50,0,50; XTitle="PV_npvsGood", Legend='TC', IncludeOverflows=True, RMin=0.5, RMax=1.5
 
 ####
 # for vertex study

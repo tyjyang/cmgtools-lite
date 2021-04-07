@@ -77,7 +77,7 @@ float getValFromTH2(const TH2& h, const float& x, const float& y, const float& s
     return h.GetBinContent(xbin, ybin);
 }
 
-float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
+float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y, const float valBadRatio = 1.0) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
@@ -85,7 +85,7 @@ float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
   if (h.GetBinContent(xbin, ybin) != 0.0)
     return h.GetBinError(xbin, ybin)/h.GetBinContent(xbin, ybin);
   else
-    return 1.0;
+    return valBadRatio;
 }
 
 float getAbsUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
@@ -239,10 +239,6 @@ float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
   return -99999.;
 
 }
-
-
-TFile* _file_prefireMapJets = NULL;
-TH2F* prefireMapJets = NULL;
 
 float mydeltaPhi(float phi1, float phi2) {
   float result = phi1 - phi2;
@@ -509,8 +505,6 @@ struct pair_hash
     }
 };
 
-std::unordered_map<std::pair<std::string, DataEra>,  TH2D, pair_hash> corrTypeToHistAfterproduct = {};
-
 std::unordered_map<DataEra, TH1D> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorHist = {};
 std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2D, pair_hash> prePostCorrToHist = {};
@@ -579,7 +573,7 @@ float _get_MuonPrefiringSF_singleMuon(float eta, DataEra era = BToF) {
   
 }
 
-// may just add this is a function, to avoid defining a column
+// may just add this in a function, to avoid defining a column
 Vec_b prefirableMuon(const Vec_f& pt, const Vec_b& looseId) {
 
   Vec_b res(pt.size(),false); // initialize to 0
@@ -594,7 +588,7 @@ Vec_b prefirableMuon(const Vec_f& pt, const Vec_b& looseId) {
 
 float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
 
-  // to be called as Muon_eta[prefirableMuon]
+  // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
   float sf = 1.0;
   // get SF = Prod_i( 1 - P_pref[i] )
   // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
@@ -683,11 +677,11 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
 // some older functions below, might still work but not recommended (we are not even initializing the histograms by default), will be deleted once we know the rest is fine
 
 // uses SF product directly
-Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
-				 const float& pt,      const float& eta, const int& charge,
-				 const float& ptOther=-1, const float& etaOther=-1,
-				 DataEra era = BToH,
-				 const bool& useAntiIso=false
+Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
+				 float pt,      float eta, int charge,
+				 float ptOther=-1, float etaOther=-1,
+				 DataEra era = BToF,
+				 bool useAntiIso=false
 				 ) {
 
   Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
@@ -716,39 +710,33 @@ Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
   // if ptOther < 0 it is assumed only one lepton exists (so this function could also be used for wmass)
   // in that case the values are not used (and etaOther could actually take any value)
   
-  if (corrTypeToHistAfterproduct.empty())
-      return res;
-  
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  ScaleFactorType sftypeOther = isoNotrig;
+  if (useAntiIso) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+    sftypeOther = antiisoNotrig;
+  }
+
   //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::string corrTrig   = charge > 0 ? "isoTrigplus" : "isoTrigminus";
-  std::string corrNotrig = "isoNotrig";
-  if (useAntiIso) {
-    corrTrig   = Form("anti%s",corrTrig.c_str());
-    corrNotrig = Form("anti%s",corrNotrig.c_str());
-  }
   
-  int nEtaBins = 0;
-  int nPtBins = 0;
-  auto key = std::make_pair(corrTrig, era);
-  nEtaBins = corrTypeToHistAfterproduct.at(key).GetNbinsX();
-  nPtBins  = corrTypeToHistAfterproduct.at(key).GetNbinsY();
+  auto key = std::make_pair(sftype, era);
+  const TH2D& hsf = scaleFactorHist.at(key);
+  int nEtaBins = hsf.GetNbinsX();
+  int nPtBins  = hsf.GetNbinsY();
 
-  int ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(eta)));
-  int iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(pt)));
+  int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
+  int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
   int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), eta, pt));
+  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2(hsf, eta, pt));
   
   if (ptOther > 0) {
-    auto keyOther = std::make_pair(corrNotrig, era);
-    ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(etaOther)));
-    iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(ptOther)));
+    auto keyOther = std::make_pair(sftypeOther, era);
+    ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(etaOther)));
+    iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), etaOther, ptOther));
+    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2(hsf, etaOther, ptOther));
   }
 
   return res;
@@ -884,6 +872,7 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   return ret;
 }
 
+// some additional older functions, not needed anymore with RDF, but to be checked
 bool triggerMatchWlike_nano(int match1, int ch1, int match2, int ch2, ULong64_t evt) {
 
   if (isOddEvent(evt)) {
