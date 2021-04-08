@@ -1,17 +1,15 @@
 # name of new variable/collection : definition : regular expression for processes to apply it to
-#vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2 : .*
-step1 : Muon_pt > 26 && abs(Muon_eta) < 2.4
-step1p2p3 : step1 && (Muon_isTracker || Muon_isGlobal)
-step1p2 : step1p2p3 && Muon_looseId == 1
-step2 : step1p2 && Muon_mediumId == 1
-step3 : step2 && abs(Muon_dxy) < 0.05   
-goodMuons : step3 && abs(Muon_dz) < 0.2
-#goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId == 1 : .*
-vetoMuons : Muon_pt > 10 && Muon_isPFcand && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2 : .*
-#zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): .*
-ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]) : .*
+#
+vetoMuons : Muon_pt > 10 && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2
+goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
-goodMuonsPlus: goodMuons && Muon_charge > 0 : .*
-goodMuonsMinus: goodMuons && Muon_charge < 0 : .*
+goodMuonsPlus: goodMuons && Muon_charge > 0
+goodMuonsMinus: goodMuons && Muon_charge < 0
+#
+ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons])
+#zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons])
+#
 genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
 ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
