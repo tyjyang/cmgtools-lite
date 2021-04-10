@@ -571,8 +571,64 @@ class MCAnalysis:
                 if process != None and key != process: continue
                 for tty in ttys:
                     retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
-            logging.info("Done :)")
-        
+            logging.info("Done :)")        
+
+        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging
+        if self._options.printYieldsRDF:
+
+            yieldsPerProcess = {}
+            for key,ttys in self._allData.items():
+                if key == 'data' and nodata: continue
+                if process != None and key != process: continue
+                if key not in yieldsPerProcess:
+                    # to reuse mergeReports() function in tree2yield.py, the format is an array of array of ntuples
+                    # ntuple is (cutname, yields), where yields is an array [weighted yield, error, unweighted yields]
+                    # for data weighted and unweighted are just the unweighted, and error is sqrt(yield)
+                    # the array of ntuples contain the cutflow for a given part of a process (e.g preVFP of Zmumu)
+                    # the array of array has an element (being the array of ntuples) for each part
+                    # the third element should not be necessary, but should be kept for now to use the old workflow 
+                    yieldsPerProcess[key] = []
+                for tty in ttys:
+                    tmpvec = []
+                    for cutInfo in self.allCutReports[tty.cname()]: # will it work?
+                        yields = cutInfo.GetPass()
+                        tmpvec.append( (cutInfo.GetName(), [yields, math.sqrt(yields), yields]) )
+                        yieldsPerProcess[key].append(tmpvec)
+
+            ## and finally merge them
+            retyields = dict([ (k,mergeReports(v)) for k,v in yieldsPerProcess.items() ])
+            rescales = []
+            self.compilePlotScaleMap(self._options.plotscalemap,rescales)
+            for p,v in retyields.items():
+                for regexp in rescales:
+                    if re.match(regexp[0],p): retyields[p]=[v[0], [x*regexp[1] for x in v[1]]]
+            regroups = [] # [(compiled regexp,target)]
+            self.compilePlotMergeMap(self._options.plotmergemap,regroups)
+            for regexp in regroups:
+                retyields = self.regroupReports(retyields,regexp)
+            # if necessary project to different lumi, energy,
+            if self._projection:
+                self._projection.scaleReport(retyields)
+            # and compute totals
+            # this is actually already done in prettyPrint, so can skip here (or one has to change pretty print to skip them if already present)
+            if makeSummary:
+                allSig = []; allBg = []
+                for (key,val) in retyields.items():
+                    if key != 'data':
+                        if self._isSignal[key]:
+                            logging.debug(f">>> {key} is signal")
+                            allSig.append(retyields[key])
+                        else:
+                            logging.debug(f">>> {key} is background")
+                            allBg.append(retyields[key])
+                if self._signals and 'signal' not in retyields and len(allSig) > 0:
+                    retyields['signal'] = mergeReports(allSig)
+                if self._backgrounds and 'background' not in retyields and len(allBg) > 0:
+                    retyields['background'] = mergeReports(allBg)
+            #return retyields
+            self.prettyPrint(retyields)
+        # done with yields
+            
         rets = []
         for ip,plotspec in enumerate(plotspecs):
             mergemap = {}
@@ -633,17 +689,26 @@ class MCAnalysis:
     def prettyPrint(self,reports,makeSummary=True):
         allSig = []; allBg = []
         for key in reports:
-            if key != 'data':
-                if self._isSignal[key]: allSig.append((key,reports[key]))
-                else: allBg.append((key,reports[key]))
+            #print(f"XXXXXX  {key}")
+            if all(key != x for x in ['data', 'background', 'signal']):
+                if self._isSignal[key]:
+                    allSig.append((key,reports[key]))
+                else:
+                    allBg.append((key,reports[key]))
         allSig.sort(key = lambda x: self._rank[x[0]])
         allBg.sort( key = lambda x: self._rank[x[0]])
         table = allSig + allBg
         if makeSummary:
             if len(allSig)>1:
-                table.append(('ALL SIG',mergeReports([v for n,v in allSig])))
+                if "signal" in reports:
+                    table.append(('ALL SIG',reports['signal']))
+                else:
+                    table.append(('ALL SIG',mergeReports([v for n,v in allSig])))
             if len(allBg)>1:
-                table.append(('ALL BKG',mergeReports([v for n,v in allBg])))
+                if "background" in reports:
+                    table.append(('ALL BKG',reports['background']))
+                else:
+                    table.append(('ALL BKG',mergeReports([v for n,v in allBg])))
         if "data" in reports: table += [ ('DATA', reports['data']) ]
         for fomname in self._options.figureOfMerit:
             fom = FOM_BY_NAME[fomname]
@@ -670,19 +735,22 @@ class MCAnalysis:
             nfmtL+=" %7.1f%%"
             fmtlen+=8
 
-        if self._options.txtfmt == "text":
-            loggin.info("CUT".center(clen),)
+        stdoutBackup = sys.stdout
+        sys.stdout = open(self._options.yieldsOutfile, "w")
+        
+        if self._options.txtfmt == "txt":
+            print("CUT".center(clen), end='')
             for h,r in table: 
                 if len("   "+h) <= fmtlen:
-                    logging.info(("   "+h).center(fmtlen),)
+                    print(("   "+h).center(fmtlen), end='')
                 elif len(h) <= fmtlen:
-                    logging.info(h.center(fmtlen),)
+                    print(h.center(fmtlen), end='')
                 else:
-                    logging.info(h[:fmtlen],)
-            logging.info("")
-            logging.info("-"*((fmtlen+1)*len(table)+clen))
+                    print(h[:fmtlen], end='')
+            print("")
+            print("-"*((fmtlen+1)*len(table)+clen))
             for i,(cut,dummy) in enumerate(table[0][1]):
-                logging.info(cfmt % cut,)
+                print(cfmt % cut, end='')
                 for name,report in table:
                     (nev,err,nev_run_upon) = report[i][1]
                     den = report[i-1][1][0] if i>0 else 0
@@ -694,9 +762,9 @@ class MCAnalysis:
                     toPrint = (nev,)
                     if self._options.errors:    toPrint+=(err,)
                     if self._options.fractions: toPrint+=(fraction*100,)
-                    if self._options.weight and nev < 1000: logging.info(( nfmtS if nev > 0.2 else nfmtX) % toPrint,)
-                    else                                  : logging.info(nfmtL % toPrint,)
-                logging.info("")
+                    if self._options.weight and nev < 1000: print(( nfmtS if nev > 0.2 else nfmtX) % toPrint, end='')
+                    else                                  : print(nfmtL % toPrint, end='')
+                print("")
         elif self._options.txtfmt in ("tsv","csv","dsv","ssv"):
             sep = { 'tsv':"\t", 'csv':",", 'dsv':';', 'ssv':' ' }[self._options.txtfmt]
             if len(table[0][1]) == 1:
@@ -712,9 +780,13 @@ class MCAnalysis:
                     if self._options.fractions: toPrint+=(fraction*100,)
                     if self._options.weight and nev < 1000: ytxt = ( nfmtS if nev > 0.2 else nfmtX) % toPrint
                     else                                  : ytxt = nfmtL % toPrint
-                    logging.info("%s%s%s" % (k,sep,sep.join(ytxt.split())))
-                logging.info("")
+                    print("%s%s%s" % (k,sep,sep.join(ytxt.split())))
+                print("")
 
+        sys.stdout.close()
+        sys.stdout = stdoutBackup
+        logging.info(f"Yields saved in file {self._options.yieldsOutfile}")
+                
     # apparently used nowhere
     #def _getYields(self,ttylist,cuts):
     #    return mergeReports([tty.getYields(cuts) for tty in ttylist])

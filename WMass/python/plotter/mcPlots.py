@@ -1418,8 +1418,9 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--allProcInLegend", action="store_true", help="Put all processes in legend, regardless their integral.")
     parser.add_argument("--forceFillColorNostackMode", type=str, default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
     parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
-    parser.add_argument("-o", "--out", help="Output file name. by default equal to plots -'.txt' +'.root'");
+    parser.add_argument("-o", "--out", type=str, help="Output file name. by default equal to plots -'.txt' +'.root'");
     parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
+    parser.add_argument("--yields-outfile", dest="yieldsOutfile", type=str, help="Output file name for yields. By default equal to PlotFile + '_yields' with extension set automatically by option --tf/--text-format");
     parser.add_argument("--skipPlot", action="store_true", default=False, help="After making the histograms save them in output file and exit, skipping plotting (usually when making histograms for datacards)")
     parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")
 
@@ -1448,6 +1449,10 @@ if __name__ == "__main__":
     fcmd.close()
     shutil.copy(args.plotFile, re.sub("\.root$","",outname)+"_plots.txt")
     shutil.copy(args.sampleFile, re.sub("\.root$","",outname)+"_mca.txt")
+    if args.yieldsOutfile:
+        args.yieldsOutfile = args.yieldsOutfile + args.txtfmt
+    else:
+        args.yieldsOutfile = re.sub("\.root$","",outname)+"_yields." + args.txtfmt
     fcut = open(re.sub("\.root$","",outname)+"_cuts.txt","w")
     fcut.write("%s\n" % cuts);
     if args.rdfDefineFile or len(args.rdfDefine) or len(args.rdfAlias):        

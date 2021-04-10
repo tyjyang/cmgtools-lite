@@ -20,7 +20,7 @@ class CutsFile:
             if not file: raise RuntimeError("Cannot open "+txtfileOrCuts+"\n")
             if options:
                 for cr,cn,cv in options.cutsToAdd:
-                    if re.match(cr,"entry point"): self._cuts.append((cn,cv))
+                    if re.match(cr,"entry point"): self._cuts.append((cn,cv,{}))
             for line in file:
               try:
                 line = line.strip()
@@ -33,12 +33,7 @@ class CutsFile:
                     line = line.replace(r"\#","#")        ## and now we just unescape the remaining #'s
                 extra = {}
                 if ";" in line:
-                    (line,more) = line.split(";")[:2]
-                    for setting in [f.replace(';',',').strip() for f in more.replace('\\,',';').split(',')]:
-                        if "=" in setting:
-                            (key,val) = [f.strip() for f in setting.split("=")]
-                            extra[key] = eval(val)
-                        else: extra[setting] = True
+                    (line, extra) = self.getExtraFromLine(line)
                 (name,cut) = [x.strip().replace(";",":") for x in line.replace("\:",";").split(":")]
                 if name == "entry point" and cut == "1": continue
                 if options:
@@ -48,10 +43,10 @@ class CutsFile:
                 if options:
                     if options.startCut and not re.search(options.startCut,name): continue
                     if options.startCut and re.search(options.startCut,name): options.startCut = None
-                self._cuts.append((name,cut))
+                self._cuts.append((name,cut,extra))
                 if options:
                     for cr,cn,cv in options.cutsToAdd:
-                        if re.match(cr,name): self._cuts.append((cn,cv))
+                        if re.match(cr,name): self._cuts.append((cn,cv,{}))
                     if options.upToCut and re.search(options.upToCut,name):
                         break
               except ValueError(e):
@@ -65,13 +60,26 @@ class CutsFile:
     def __str__(self):
         newstring = ""
         for cut in self._cuts:
-            newstring += "{0} : {1}\n".format(cut[0],cut[1])
+            newstring += "{0} : {1};{2}\n".format(cut[0],cut[1],", ".join(f"{k}={cut[2][k]}" for k in list(cut[2].keys())))
         return newstring[:-1]
+
+    def getExtraFromLine(self, line):
+        retExtra = {}
+        if ";" not in line:
+            return (line, retExtra)
+        (retline,more) = line.split(";")[:2]
+        for setting in [f.replace(';',',').strip() for f in more.replace('\\,',';').split(',')]:
+            if "=" in setting:
+                (key,val) = [f.strip() for f in setting.split("=")]
+                retExtra[key] = eval(val)
+            else: retExtra[setting] = True
+        return (retline, retExtra)
+    
     def remove(self,cut):
-        self._cuts = [(cn,cv) for (cn,cv) in self._cuts if not re.search(cut,cn)]
+        self._cuts = [(cn,cv,extra) for (cn,cv,extra) in self._cuts if not re.search(cut,cn)]
         return self
     def invert(self,cut):
-        for i,(cn,cv) in enumerate(self._cuts[:]):
+        for i,(cn,cv,extra) in enumerate(self._cuts[:]):
             if re.search(cut,cn):
                 if cn.startswith("not ") and re.match(r"!\(.*\)", cv):
                     self._cuts[i] = (cn[4:], cv[2:-1])
@@ -79,28 +87,34 @@ class CutsFile:
                     self._cuts[i] = ("not "+cn, "!("+cv+")")
         return self
     def replace(self,cut,newname,newcut):       
-        for i,(cn,cv) in enumerate(self._cuts[:]):
+        for i,(cn,cv,extra) in enumerate(self._cuts[:]):
             if re.search(cut,cn):
-                self._cuts[i] = (newname, newcut)
+                if ";" in newcut:
+                    (actualNewCut, newExtra) = self.getExtraFromLine(newcut)
+                else:
+                    (actualNewCut, newExtra) = (newcut, {})
+                self._cuts[i] = (newname, actualNewCut, newExtra)
         return self
     def cuts(self):
         return self._cuts[:]
     def sequentialCuts(self):
+        # for simplicity this just keep the extra of the line being added, which might not be what one wants
+        # but probably for sequential cuts those extra would not even be present
         if len(self._cuts) == 0: return []
-        ret = [ (self._cuts[0][0], "(%s)" % self._cuts[0][1]) ]
-        for (cn,cv) in self._cuts[1:]:
-            ret.append( ( cn, "%s && (%s)" % (ret[-1][1], cv) ) )
+        ret = [ (self._cuts[0][0], "(%s)" % self._cuts[0][1], self._cuts[0][2]) ]
+        for (cn,cv,extra) in self._cuts[1:]:
+            ret.append( ( cn, "%s && (%s)" % (ret[-1][1], cv), extra ) )
         return ret
     def nMinusOne(self,inverted=False):
         return CutsFile(self.nMinusOneCuts(inverted=inverted))
     def nMinusOneCuts(self,inverted=False):
         ret = []
-        for cn,cv in self._cuts[1:]:
-            nm1 = " && ".join("(%s)" % cv1 for cn1,cv1 in self._cuts if cn1 != cn)
+        for cn,cv,extra in self._cuts[1:]:
+            nm1 = " && ".join("(%s)" % cv1 for cn1,cv1,extra in self._cuts if cn1 != cn)
             if inverted:
-                ret.append(("fail only "+cn, "%s && !(%s)" % (nm1,cv)))
+                ret.append(("fail only "+cn, "%s && !(%s)" % (nm1,cv,extra)))
             else:
-                ret.append(("all but "+cn, nm1))
+                ret.append(("all but "+cn, nm1,extra))
         return ret
     def nMinusOneSelectedCuts(self,selection,inverted=False):
         ret = []
@@ -114,24 +128,32 @@ class CutsFile:
         jstring = " * " if doProduct else " && "
         return jstring.join("(%s)" % x[1] for x in (self._cuts[0:n+1] if n != -1 and n+1 < len(self._cuts) else self._cuts))
     def addAfter(self,cut,newname,newcut):
-        for i,(cn,cv) in enumerate(self._cuts[:]):
+        for i,(cn,cv,extra) in enumerate(self._cuts[:]):
             if re.search(cut,cn):
-                self._cuts.insert(i+1,(newname, newcut))
+                if ";" in newcut:
+                    (actualNewCut, newExtra) = self.getExtraFromLine(newcut)
+                else:
+                    (actualNewCut, newExtra) = (newcut, {})
+                self._cuts.insert(i+1,(newname, actualNewCut, newExtra))
                 break
         return self
-    def insert(self,index,newname,newcut):
-        self._cuts.insert(index,(newname, newcut))
+    def insert(self,index,newname,newcut, extra={}):
+        self._cuts.insert(index,(newname, newcut, extra))
         return self
-    def add(self,newname,newcut):
-        self._cuts.append((newname,newcut))
+    def add(self,newname,newcut, extra={}):
+        self._cuts.append((newname,newcut,extra))
         return self
     def setParams(self,paramMap):
-        self._cuts = [ (cn.format(**paramMap), cv.format(**paramMap)) for (cn,cv) in self._cuts ]
+        self._cuts = [ (cn.format(**paramMap), cv.format(**paramMap), extra.format(**paramMap)) for (cn,cv,extra) in self._cuts ]
     def cartesianProduct(self,other):
         return CutsFile( [ ("%s && %s" % (cn1,cn2), "(%s) && (%s)" % (cv1,cv2)) for (cn1,cv1) in self._cuts for (cn2,cv2) in other.cuts() ] )
     def replaceCutVariable(self,oldvar,newvar):
-        for i,(cn,cv) in enumerate(self._cuts[:]):
+        for i,(cn,cv,extra) in enumerate(self._cuts[:]):
             if re.search(oldvar,cv):
-                newcut = cv.replace(oldvar,newvar)
-                self._cuts[i] = (cn, newcut)
+                if ";" in newvar:
+                    (actualNewVar, newExtra) = self.getExtraFromLine(newvar)
+                else:
+                    (actualNewVar, newExtra) = (newcut, {})
+                newcut = cv.replace(oldvar,actualNewVar)
+                self._cuts[i] = (cn, newcut, newExtra)
 

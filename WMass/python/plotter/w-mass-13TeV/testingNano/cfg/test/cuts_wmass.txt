@@ -1,9 +1,10 @@
-alwaystrue : 1
+alwaystrue : 1 
 json       : isGoodRunLS(isData,run,luminosityBlock)
 trigger    : HLT_IsoTkMu24 || HLT_IsoMu24
-onemuon    : Sum(vetoMuons)==1 && Sum(goodMuons)==1 
-accept     : abs(Muon_eta[goodMuons][0]) < 2.4 && valueInsideRange(Muon_pt[goodMuons][0],26,55)
-muonID     : Muon_mediumId[goodMuons][0]
+vetomuon   : Sum(vetoMuons)==1
+onemuon    : Sum(goodMuons)==1 
+accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55)
+muonID     : Muon_mediumId[goodMuons][0] == 1
 pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
 trigMatch  : hasTriggerMatch(Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
 ## mT cut to be added once we understand what MET to use

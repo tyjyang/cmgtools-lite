@@ -23,6 +23,16 @@ runsForEra = {"B" : [273150, 273158, 273290, 273291, 273292, 273294, 273295, 273
 # following two dictionaries were made using checkLumi.py, then copied back here
 # note: it is the lumi actually in the nanoaod we use, after appropriate json file selection
 # might slightly differ (by ~ 0.1%) from the one obtained from the golden json file per era
+lumiForEra_UL_new = {"B" : 5.824235614,
+                     "C" : 2.621295973,
+                     "D" : 4.285851496,
+                     "E" : 4.065974639,
+                     "F" : 2.717344923,
+                     "F_postVFP" : 0.418120616,
+                     "G" : 7.652808366,
+                     "H" : 8.739883636
+}
+
 lumiForEra_UL = {"B" : 5.750490642,
                  "C" : 2.5764874890000002,
                  "D" : 4.242291558,
@@ -32,6 +42,7 @@ lumiForEra_UL = {"B" : 5.750490642,
                  "G" : 7.575824256000001,
                  "H" : 8.650628378999999
 }
+
 lumiForEra_ReReco = {"B" : 5.746010293,
                      "C" : 2.572903489,
                      "D" : 4.242291557,
@@ -41,3 +52,8 @@ lumiForEra_ReReco = {"B" : 5.746010293,
                      "H" : 8.650628335
 }
 
+if __name__ == "__main__":
+
+    for k in list(lumiForEra_UL.keys()):
+        relativeDiff = (lumiForEra_UL_new[k] - lumiForEra_UL[k])/lumiForEra_UL[k]
+        print(f"{k}: {round(relativeDiff,4)} %")

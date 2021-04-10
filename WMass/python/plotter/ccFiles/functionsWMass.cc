@@ -77,6 +77,13 @@ float getValFromTH2(const TH2& h, const float& x, const float& y, const float& s
     return h.GetBinContent(xbin, ybin);
 }
 
+float getValFromTH2bin(const TH2& h, const int& xbin, const int& ybin, const float& sumError=0.0) {
+  if (sumError)
+    return h.GetBinContent(xbin, ybin) + sumError * h.GetBinError(xbin, ybin);
+  else
+    return h.GetBinContent(xbin, ybin);
+}
+
 float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y, const float valBadRatio = 1.0) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
@@ -88,11 +95,22 @@ float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y, con
     return valBadRatio;
 }
 
+float getRelUncertaintyFromTH2bin(const TH2& h, const int& xbin, const int& ybin, const float valBadRatio = 1.0) {
+  if (h.GetBinContent(xbin, ybin) != 0.0)
+    return h.GetBinError(xbin, ybin)/h.GetBinContent(xbin, ybin);
+  else
+    return valBadRatio;
+}
+
 float getAbsUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
   //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
+  return h.GetBinError(xbin, ybin);
+}
+
+float getAbsUncertaintyFromTH2bin(const TH2& h, const int& xbin, const int& ybin) {
   return h.GetBinError(xbin, ybin);
 }
 
@@ -729,14 +747,14 @@ Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
   int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
   int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
   int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2(hsf, eta, pt));
+  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
   
   if (ptOther > 0) {
     auto keyOther = std::make_pair(sftypeOther, era);
     ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(etaOther)));
     iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2(hsf, etaOther, ptOther));
+    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
   }
 
   return res;
