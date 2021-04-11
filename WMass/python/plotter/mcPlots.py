@@ -1419,7 +1419,7 @@ def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     parser.add_argument("--forceFillColorNostackMode", type=str, default="", help="Use fill color and style defined in MCA file when using --plotmode nostack|norm (comma separated list of regexps, by default only lines are used).")
     parser.add_argument("--drawStatBox", action="store_true", help="Draw stat box");
     parser.add_argument("-o", "--out", type=str, help="Output file name. by default equal to plots -'.txt' +'.root'");
-    parser.add_argument("--rdf-report", dest="printYieldsRDF", action="store_true", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
+    parser.add_argument("--no-rdf-report", dest="printYieldsRDF", action="store_false", help="Use RDF Report functionality to print yields per process (requires multiple filters, one for each line in cut file)")
     parser.add_argument("--yields-outfile", dest="yieldsOutfile", type=str, help="Output file name for yields. By default equal to PlotFile + '_yields' with extension set automatically by option --tf/--text-format");
     parser.add_argument("--skipPlot", action="store_true", default=False, help="After making the histograms save them in output file and exit, skipping plotting (usually when making histograms for datacards)")
     parser.add_argument("plotFile", type=str, help="Text file with plot format specifications")

@@ -1,6 +1,15 @@
-import ROOT, array, copy
+import array, copy
 import rollingFunctions as rf
 from utilities import templateBinning, getBinning
+
+## safe batch mode
+import sys
+args = sys.argv[:]
+sys.argv = ['-b']
+import ROOT
+sys.argv = args
+ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 
 def checkIfBinInRange(eta, pt, reta, rpt):

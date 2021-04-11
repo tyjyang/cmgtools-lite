@@ -1,6 +1,6 @@
-alwaystrue : 1 
-json       : isGoodRunLS(isData,run,luminosityBlock)
-trigger    : HLT_IsoTkMu24 || HLT_IsoMu24
+alwaystrue : 1 ; BEFOREDEFINE=True
+trigger    : HLT_IsoTkMu24 || HLT_IsoMu24; BEFOREDEFINE=True
+json       : isGoodRunLS(isData,run,luminosityBlock); BEFOREDEFINE=True
 vetomuon   : Sum(vetoMuons)==1
 onemuon    : Sum(goodMuons)==1 
 accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55)

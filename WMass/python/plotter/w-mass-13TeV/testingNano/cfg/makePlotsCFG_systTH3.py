@@ -100,7 +100,7 @@ for ipt in range(1,1+NVTPBINS):
 
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullSFvariation_wlike
-NTNPBINS = 624 # 40 eta * 13 pt, hardcoded for now
+NTNPBINS = 576 # 48 eta * 12 pt, hardcoded for now. SF have 13 pt bins, but the last one is between 55 and 65, so outside the analysis acceptance
 START = 0.5
 syst_key = "effStatTnP"
 syst_expr = f"indices({NTNPBINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NTNPBINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NTNPBINS})"
