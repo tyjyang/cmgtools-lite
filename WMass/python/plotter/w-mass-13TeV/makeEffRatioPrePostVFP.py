@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# make SF for data/data and MC/MC from efficiency ratios
+
 import re
 import os, os.path
 import logging
@@ -21,6 +23,19 @@ sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
 logging.basicConfig(level=logging.INFO)
+
+def getAntiisoEfficiency(hiso, name):
+    hantiiso = copy.deepcopy(hiso.Clone(name))
+    hantiiso.Reset("ICESM")
+    for ix in range(1, 1 + hiso.GetNbinsX()):
+        for iy in range(1, 1 + hiso.GetNbinsX()):
+            val = hiso.GetBinContent(ix, iy)
+            err = hiso.GetBinError(  ix, iy)
+            relerr = 1.0 if err == 0.0 else val/err
+            hantiiso.SetBinContent(ix, iy, 1.0 - val)
+            # keep same relative uncertainty
+            hantiiso.SetBinError(  ix, iy, relerr * hantiiso.GetBinContent(ix, iy))
+    return hantiiso
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -73,10 +88,33 @@ if __name__ == "__main__":
             histsEffMC[era][newname].SetDirectory(0)
             #print(name + "   "+histsEffMC[era][newname].GetName())
     f.Close()
-
+    
     print("----------------")
+
     # make efficiency ratios between eras for data and MC
     effKeys = list(histsEffMC["pre"].keys())
+
+    # for antiiso the file only has SF, but not the efficiencies. Let's make them here
+    # note that they are not saved for now
+    
+    #newEfficienciesToCopy = []
+    for era in ["pre", "post"]:
+
+        if not any(x == "antiiso_both" for x in effKeys):
+            histsEffData[era]["antiiso_both"] = getAntiisoEfficiency(histsEffData[era]["iso_both"], "data_antiiso_both")
+            histsEffMC[era]["antiiso_both"] = getAntiisoEfficiency(histsEffMC[era]["iso_both"], "mc_antiiso_both")
+            #newEfficienciesToCopy.append(histsEffData[era]["antiiso_both"])
+            #newEfficienciesToCopy.append(histsEffMC[era]["antiiso_both"])
+
+        if not any(x == "antiisonotrig_both" for x in effKeys):
+            histsEffData[era]["antiisonotrig_both"] = getAntiisoEfficiency(histsEffData[era]["isonotrig_both"], "data_antiisonotrig_both")
+            histsEffMC[era]["antiisonotrig_both"] = getAntiisoEfficiency(histsEffMC[era]["isonotrig_both"], "mc_antiisonotrig_both")
+            #newEfficienciesToCopy.append(histsEffData[era]["antiisonotrig_both"])
+            #newEfficienciesToCopy.append(histsEffMC[era]["antiisonotrig_both"])
+            
+    # get keys again
+    effKeys = list(histsEffMC["pre"].keys())
+    
     hRatioData = {}
     hRatioMC = {}    
 
@@ -117,4 +155,5 @@ if __name__ == "__main__":
         obj.Write(name)
     f.Close()
     originalFile.Close()
+    print(effKeys)
     print(f"Everything was written in file\n{outname}\n")

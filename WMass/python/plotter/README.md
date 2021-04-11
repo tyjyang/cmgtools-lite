@@ -39,28 +39,30 @@ Some notes:
 - for Wlike, need to select only odd (even) events for positive (negative) charge
 - we are currently removing the mT cut (with _-X mtl1pf40_), until we agree on the MET to use (and also because for fakes we may use a simultaneous fit including the low mT region
 
-Wlike
+Wlike (using odd events for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_all" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  -A trigger oddevents "isOddEvent(event)" --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wlike(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --pdir --out cards/wmass/plus/wlike.root --skipPlot
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --pdir --out cards/wmass/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
 ```
 
-Wmass
+Wmass (example for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_all" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*(_get_AllMuonSF_fast_wmass(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP))" --out cards/wmass/plus/wmass.root   --skipPlot
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 35.9 -W "(1./35.9)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wmass/plus/wmass.root --skipPlot -A onemuon chargeplus "Muon_charge[goodMuons][0] > 0"
 ```
 
 #### Unpack the histograms into TH2 (eta-pt) for combinetf
 
 Currently using **makeHistogramsWMass.py** as an independent script, but it might be merged inside the card maker script. It takes as input the root file produced in previous step, and also produce the alternate histograms for some systematics by mirroring the alternative template with respect to nominal one (e.g. for PDFs, which do not have Up and Down by default). It also write the histograms with a proper name following the conventions used by combinetf.
 
+Some nuisances might be decorrelated by charge, in which case the histograms should be named accordingly. This can be done automatically with _--decorrelate-by-charge_ as shown below (Plus or Minus is appended to the original syst name)
+
 Wlike
 ```
-python makeHistogramsWMass.py -i cards/wlike/plus/wlike.root -o cards/wlike/Zmmu_plus_shapes.root -c plus --wlike [--crop-negative-bin]
+python makeHistogramsWMass.py -i cards/wlike/plus/wlike.root -o cards/wlike/Zmmu_plus_shapes.root -c plus --wlike --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+" [--crop-negative-bin]
 ```
 
 Wmass
 ```
-python makeHistogramsWMass.py -i cards/wmass/plus/wmass.root -o cards/wmass/Wmunu_plus_shapes.root -c plus [--crop-negative-bin]
+python makeHistogramsWMass.py -i cards/wmass/plus/wmass.root -o cards/wmass/Wmunu_plus_shapes.root -c plus --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+" [--crop-negative-bin]
 ```
 
 Once you have these final root files, you can inspect their content with **printRootFileContent.py**, it also has some options to exclude or select some histogram names using regular expressions.
@@ -70,7 +72,7 @@ E.g. the following will print histograms whose name contains _pdfs_ or _muRmuF3_
 python printRootFileContent.py cards/wmass/Wmunu_plus_shapes.root -r ".*pdf.*|.*muRmuF3" -x "x_Wtaunu.*"
 ```
 
-### run the cards with the following command
+### make the cards and run the fit with the following command
 
 The following command is just a simplified example to produce the datacard for a single charge (can use _-c plus,minus_ to make cards for both charges). The script allows one to make datacards for a single charge or both, possibly combining them, and to execute the commands to actually run the fit. It has some options to customize the datacard content (for instance, to exclude some nuisances on the fly) and to configure the text2hdf5 or combinetf commands. By default the fit is not run, to do it some options are needed (under testing at the moment)
 
@@ -87,8 +89,26 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c plus
 Among the main general options:
 - _--comb_: combine the datacards for the two charges
 - _--exclude-nuisances_: exclude some nuisances when writing the card, using regular expressions
-- _--keep-nuisances_: these nuisances (overriding those excluded by _--exclude-nuisances_
+- _--keep-nuisances_: keep these nuisances (overriding those excluded by _--exclude-nuisances_)
+- _--mass-nuis_: use only this nuisance parameters for mass shift, neglecting all the others
 
 Some options to customize fit (check the script for more)
 - _--fit-single-charge_: fit single charge
-- _--postfix_: enable the same option of text2hdf5.py, adding a postfix to output file (to distinguish different files without having to change output folder) 
+- _--postfix_: enable the same option of text2hdf5.py, adding a postfix to output file (to distinguish different files without having to change output folder). This is propagated automatically to combinetf.py
+
+
+Examples for some realistic fits (Wmass)
+- fit each single charge independently, freezing POIs (to measure mW), selecting mass shift of 100 MeV, and skipping fit to data (thus only doing Asimov)
+```
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-single-charge --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
+```
+- fit combination
+```
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
+```
+### Plot impacts on mW
+
+```
+python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456789_Asimov_bbb1_cxs1.root  -o plots/testNanoAOD/fits/test_impacts/ --nuisgroups ALL --prefitUncertainty 100 --scaleToMeV --showTotal
+```
+

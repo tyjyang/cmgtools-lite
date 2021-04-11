@@ -150,8 +150,9 @@ if __name__ == "__main__":
     ##########################
 
     outjson = open(outfileFullName,'w')
-    if filterWithJson:
-        outjson.write(f"## runs and lumis filtered with json file in {args.json}\n")
+    # don't print anything else, or cannot run brilcalc
+    #if filterWithJson:
+    #    outjson.write(f"## runs and lumis filtered with json file in {args.json}\n")
     outjson.write('{\n')
 
     # first sort the run number (should not be needed, but let's be sure)
@@ -225,8 +226,11 @@ if __name__ == "__main__":
     ###########################
     # Now save things
     ###########################
-    print("")
+    if args.json != "":
+        print(f"Run/LumiSections filtered with JSON: {args.json}")
+        print("")
     print("Created file %s" % outfileFullName)
+    print("")
     print("")
                                
          

@@ -77,7 +77,14 @@ float getValFromTH2(const TH2& h, const float& x, const float& y, const float& s
     return h.GetBinContent(xbin, ybin);
 }
 
-float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
+float getValFromTH2bin(const TH2& h, const int& xbin, const int& ybin, const float& sumError=0.0) {
+  if (sumError)
+    return h.GetBinContent(xbin, ybin) + sumError * h.GetBinError(xbin, ybin);
+  else
+    return h.GetBinContent(xbin, ybin);
+}
+
+float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y, const float valBadRatio = 1.0) {
   //std::cout << "x,y --> " << x << "," << y << std::endl;
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
@@ -85,7 +92,14 @@ float getRelUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
   if (h.GetBinContent(xbin, ybin) != 0.0)
     return h.GetBinError(xbin, ybin)/h.GetBinContent(xbin, ybin);
   else
-    return 1.0;
+    return valBadRatio;
+}
+
+float getRelUncertaintyFromTH2bin(const TH2& h, const int& xbin, const int& ybin, const float valBadRatio = 1.0) {
+  if (h.GetBinContent(xbin, ybin) != 0.0)
+    return h.GetBinError(xbin, ybin)/h.GetBinContent(xbin, ybin);
+  else
+    return valBadRatio;
 }
 
 float getAbsUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
@@ -93,6 +107,10 @@ float getAbsUncertaintyFromTH2(const TH2& h, const float& x, const float& y) {
   int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
   int ybin  = std::max(1, std::min(h.GetNbinsY(), h.GetYaxis()->FindFixBin(y)));
   //std::cout << "xbin,ybin --> " << xbin << "," << ybin << std::endl;
+  return h.GetBinError(xbin, ybin);
+}
+
+float getAbsUncertaintyFromTH2bin(const TH2& h, const int& xbin, const int& ybin) {
   return h.GetBinError(xbin, ybin);
 }
 
@@ -133,37 +151,6 @@ float returnChargeValAllEvt(int desiredCharge, float val1, int ch1, float val2, 
     if (desiredCharge > 0) return (ch1 > 0) ? val1 : val2;
     else                   return (ch1 < 0) ? val1 : val2;
   }
-
-}
-
-TRandom3 *rng_mt = NULL;
-float mt_wlike_samesign_random(float pt1, float phi1, float pt2, float phi2, float met, float phimet, ULong64_t evt) {
-
-  // for tests
-  // randomly select one lepton to compute mt
-
-  TVector2 metv = TVector2();
-  metv.SetMagPhi(met,phimet);
-  // use same vector and sum met
-  TVector2 met_wlike = TVector2();
-
-  Double_t ptL = 0.0;
-  Double_t phiL = 0.0;
-  if(!rng_mt) rng_mt = new TRandom3();
-  // use eventNumber as seed
-  rng_mt->SetSeed(evt); 
-  if (rng_mt->Rndm() > 0.5) {
-    ptL = pt1;
-    phiL = phi1;
-    met_wlike.SetMagPhi(pt2,phi2);
-  } else {
-    ptL = pt2;
-    phiL = phi2;    
-    met_wlike.SetMagPhi(pt1,phi1);
-  }
-
-  met_wlike += metv;
-  return std::sqrt(2*ptL*met_wlike.Mod()*(1-std::cos(phiL-met_wlike.Phi())));
 
 }
 
@@ -220,9 +207,9 @@ float mt_wlike_nano(float pt, float phi, float ptOther, float phiOther, float me
   TVector2 pl = TVector2();
   pl.SetMagPhi(ptOther,phiOther);
 
-  TVector2 metv = TVector2();
-  metv.SetMagPhi(met,phimet);
-  TVector2 met_wlike = pl+metv;
+  TVector2 met_wlike = TVector2();
+  met_wlike.SetMagPhi(met,phimet);
+  met_wlike = pl + met_wlike;
 
   return std::sqrt(2*pt*met_wlike.Mod()*(1-std::cos(phi-met_wlike.Phi())));
 
@@ -271,10 +258,6 @@ float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 
 }
 
-
-TFile* _file_prefireMapJets = NULL;
-TH2F* prefireMapJets = NULL;
-
 float mydeltaPhi(float phi1, float phi2) {
   float result = phi1 - phi2;
   while (result > float(M_PI)) result -= float(2*M_PI);
@@ -283,7 +266,7 @@ float mydeltaPhi(float phi1, float phi2) {
 }
 
 float mydeltaR(float eta1, float phi1, float eta2, float phi2) {
-  float deta = std::abs(eta1-eta2);
+  float deta = eta1-eta2;
   float dphi = mydeltaPhi(phi1,phi2);
   return std::sqrt(deta*deta + dphi*dphi);
 }
@@ -521,14 +504,13 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 
 //================================================== 
 
-//std::string _filename_allSF = "./testMuonSF/allSFs.root";
-//std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1.root";
-std::string _filename_allSF = "./testMuonSF/allSFs_eta0p1_addProducts.root"; // includes products for direct usage, if needed
-
 // Sorry you have to manually keep these consistent
-std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+// let's remove BToH, we will never use it
+// std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
+std::unordered_map<DataEra, std::string> eraNames = { {BToF, "BtoF"}, {GToH, "GtoH"} };
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
-
+std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"} };
+  
 struct pair_hash
 {
     template <class T1, class T2>
@@ -541,144 +523,183 @@ struct pair_hash
     }
 };
 
-std::unordered_map<std::pair<std::string, DataEra>,  TH2D, pair_hash> corrTypeToHist = {};
-std::unordered_map<std::pair<std::string, DataEra>,  TH2D, pair_hash> corrTypeToHistAfterproduct = {};
-std::unordered_map<std::pair<std::string, DataType>, TH2D, pair_hash> prePostCorrToHist = {};
-TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
+std::unordered_map<DataEra, TH1D> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorHist = {};
+std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2D, pair_hash> prePostCorrToHist = {};
 
-void initializeScaleFactors() {
-    if (!_file_allSF.IsOpen())
-        std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
+void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleFactorProduct_31Mar2021.root") {
 
-    std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
-    
+  TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
+  if (!_file_allSF.IsOpen())
+      std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
+
+  std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
+
+  for (auto& corr : scalefactorNames) {
     for (auto& era : eraNames) {
-      for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig", "antiiso", "antiisonotrig"}) {
-            std::vector<std::string> charges = {"both"};
-            if (strcmp(corr, "trigger") == 0) {
-                charges = {"plus", "minus"};
-            }            
-            for (auto& charge : charges) {
-                std::vector<std::string> vars = {"SF2D", corr, era.second, charge};
-                std::string corrname = boost::algorithm::join(vars, "_");
-                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
-                if (histptr == nullptr)
-                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
-		histptr->SetDirectory(0);
-                DataEra eraVal = era.first;
-		// do not use "both" as charge key for the histograms, keep it simple
-		std::string key = corr;
-		if (charge != "both") {
-		  key += charge;
-		}
-		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
-                auto corrKey = std::make_pair(key, eraVal);
-                corrTypeToHist[corrKey] = *static_cast<TH2D*>(histptr);
-            }
-        }
+      std::vector<std::string> vars = {"fullSF2D", corr.second, era.second};
+      std::string corrname = boost::algorithm::join(vars, "_");
+      auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+      if (histptr == nullptr)
+	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		  << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+      histptr->SetDirectory(0);
+      DataEra eraVal = era.first;
+      ScaleFactorType key = corr.first;
+      // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+      auto corrKey = std::make_pair(key, eraVal);
+      scaleFactorHist[corrKey] = *static_cast<TH2D*>(histptr);
     }
 
-    for (auto& era : eraNames) {
-      for (auto& corr : {"isoTrig", "isoNotrig", "antiisoTrig", "antiisoNotrig"}) {
-            std::vector<std::string> charges = {"both"};
-            if (boost::algorithm::contains(corr, "isoTrig")) {
-                charges = {"plus", "minus"};
-            }            
-            for (auto& charge : charges) {
-                std::vector<std::string> vars = {"fullSF2D", corr, era.second, charge};
-                std::string corrname = boost::algorithm::join(vars, "_");
-                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
-                if (histptr == nullptr)
-                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
-		histptr->SetDirectory(0);
-                DataEra eraVal = era.first;
-		// do not use "both" as charge key for the histograms, keep it simple
-		std::string key = corr;
-		if (charge != "both") {
-		  key += charge;
-		}
-		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
-                auto corrKey = std::make_pair(key, eraVal);
-                corrTypeToHistAfterproduct[corrKey] = *static_cast<TH2D*>(histptr);
-            }
-        }
+    for (auto& datatype : datatypeNames) {
+      std::vector<std::string> vars = {"fullSF2D", datatype.second, "preOverPost", corr.second};
+      std::string corrname = boost::algorithm::join(vars, "_");
+      auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+      if (histptr == nullptr)
+	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		  << _filename_allSF << "! scale factors for this correction will be set to 1.0";
+      histptr->SetDirectory(0);
+      DataType typeVal = datatype.first;
+      ScaleFactorType key = corr.first;
+      // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+      auto corrKey = std::make_pair(key, typeVal);
+      prePostCorrToHist[corrKey] = *static_cast<TH2D*>(histptr);
     }
+  
+  }
+  
+  _file_allSF.Close(); // should work since we used TH1D::SetDirectory(0) to detach histogram from file
 
-    for (auto& era : datatypeNames) {
-      for (auto& corr : {"trigger", "tracking", "idip", "iso", "isonotrig"}) {
-            std::vector<std::string> charges = {"both"};
-            if (strcmp(corr, "trigger") == 0) {
-                charges = {"plus", "minus"};
-            }            
-            for (auto& charge : charges) {
-	      std::vector<std::string> vars = {"SF2D", era.second, "preOverPost", corr, charge};
-                std::string corrname = boost::algorithm::join(vars, "_");
-                auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
-                if (histptr == nullptr)
-                    std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-                            << _filename_allSF << "! scale factors for this correction will be set to 1.0";
-		histptr->SetDirectory(0);
-                DataType typeVal = era.first;
-		// do not use "both" as charge key for the histograms, keep it simple
-		std::string key = corr;
-		if (charge != "both") {
-		  key += charge;
-		}
-		// std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
-                auto corrKey = std::make_pair(key, typeVal);
-                prePostCorrToHist[corrKey] = *static_cast<TH2D*>(histptr);
-            }
-        }
-    }
-
-    _file_allSF.Close(); // should work since we used TH1D::SetDirectory(0) to detach histogram from file
+  std::string _filename_prefiring = "./testMuonSF/muonPrefiring_prePostVFP.root";
+  TFile _file_prefiring = TFile(_filename_prefiring.c_str(), "read");
+  if (!_file_prefiring.IsOpen())
+    std::cerr << "WARNING: Failed to open prefiring file " << _filename_prefiring << "\n";
+  std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
+  hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_preVFP")));
+  hMuonPrefiring[BToF].SetDirectory(0);
+  hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_postVFP")));
+  hMuonPrefiring[GToH].SetDirectory(0);
+  _file_prefiring.Close();
     
 }
 
 
-float _get_AllMuonSF_fast_wlike(const float& pt,      const float& eta, const int& charge,
-				const float& ptOther, const float& etaOther,
-				DataEra era = BToH, bool noTrackingSF = false//, ULong64_t iEntry = 0
-				) {
-  if (corrTypeToHist.empty())
-      return 1.;
+float _get_MuonPrefiringSF_singleMuon(float eta, DataEra era = BToF) {
 
-  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  // no need to care about under/overflow, the prefiring would be 0 there, and the actual range is -2.4000001, 2.4000001
+  return 1.0 - hMuonPrefiring[era].GetBinContent(hMuonPrefiring[era].FindFixBin(eta));
+  
+}
+
+// may just add this in a function, to avoid defining a column
+Vec_b prefirableMuon(const Vec_f& pt, const Vec_b& looseId) {
+
+  Vec_b res(pt.size(),false); // initialize to 0
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    if (pt[i] < 22) continue;
+    if (not looseId[i]) continue;
+    res[i] = true;
+  }
+  return res;
+  
+}
+
+float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
+
+  // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
+  float sf = 1.0;
+  // get SF = Prod_i( 1 - P_pref[i] )
+  // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
+
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
+  
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+    if (pt[i] < 22) continue;
+    if (not looseId[i]) continue;
+    // no need to care about under/overflow, the prefiring would be 0 there, and the actual range is -2.4000001, 2.4000001
+    //sf *= (1.0 - hMuonPrefiring[era].GetBinContent(std::max(0, std::min(nBinsX, hMuonPrefiring[era].FindFixBin(eta[i])) )) );
+    sf *= (1.0 - hMuonPrefiring[era].GetBinContent(hMuonPrefiring[era].FindFixBin(eta[i])));
+  }
+  return sf;
+  
+  
+}
+
+float _get_fullMuonSF(float pt,      float eta,      int charge,
+		      float ptOther, float etaOther,
+		      DataEra era = BToF,
+		      bool isoSF1 = true,
+		      bool isoSF2 = true
+		      ) {
+
+  // function to get full muon scale factor for  analysis (except prefiring, handled elsewhere)
+  // first three arguments are for the triggering muon, second two for the non triggering one
+  // isoSF1 and isoSF2 are to use SF for isolation or antiisolation, for triggering and non triggering muons respectively
+  // if ptOther < 0, the second lepton is ignored, so we can use this function for Wmass as well (etaOther is not used)
+  // may actually use another function for Wmass
+  
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  float sf = 1.0;
-  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
-  std::vector<std::string> sfnamesOther = {      "idip", "isonotrig"};
-  if (not noTrackingSF) {
-    sfnames.push_back("tracking");
-    sfnamesOther.push_back("tracking");
+  // std::cout << "scale factors for " << eraNames[era] << std::endl;
+  
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
   }
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end()) {
-      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
-      //std::cout << "scale factor main leg -> " << sf << std::endl;
-    }
-  }
+
+  auto key = std::make_pair(sftype, era);
+  float sf = getValFromTH2(scaleFactorHist.at(key), eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
-  for (const auto& corr : sfnamesOther) {
-    auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist.at(key),etaOther,ptOther);
+
+  if (ptOther > 0.0) {
+    sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+    key = std::make_pair(sftype, era);
+    sf *= getValFromTH2(scaleFactorHist.at(key), etaOther, ptOther);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
 }
 
+float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
+				  float ptOther, float etaOther,
+				  DataType dtype = MC,
+				  bool isoSF1 = true,
+				  bool isoSF2 = true
+				  ) {
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+  }
+
+  auto key = std::make_pair(sftype, dtype);
+  float sf = getValFromTH2(prePostCorrToHist.at(key), eta, pt);
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (ptOther > 0.0) {
+    sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+    key = std::make_pair(sftype, dtype);
+    sf *= getValFromTH2(prePostCorrToHist.at(key), etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+
+/////////////////////////////////
+// some older functions below, might still work but not recommended (we are not even initializing the histograms by default), will be deleted once we know the rest is fine
+
 // uses SF product directly
-Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
-				 const float& pt,      const float& eta, const int& charge,
-				 const float& ptOther=-1, const float& etaOther=-1,
-				 DataEra era = BToH,
-				 const bool& useAntiIso=false
+Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
+				 float pt,      float eta, int charge,
+				 float ptOther=-1, float etaOther=-1,
+				 DataEra era = BToF,
+				 bool useAntiIso=false
 				 ) {
 
   Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
@@ -707,234 +728,36 @@ Vec_f _get_fullSFvariation_wlike(const int& n_tnpBinNuisance,
   // if ptOther < 0 it is assumed only one lepton exists (so this function could also be used for wmass)
   // in that case the values are not used (and etaOther could actually take any value)
   
-  if (corrTypeToHistAfterproduct.empty())
-      return res;
-  
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  ScaleFactorType sftypeOther = isoNotrig;
+  if (useAntiIso) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+    sftypeOther = antiisoNotrig;
+  }
+
   //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::string corrTrig   = charge > 0 ? "isoTrigplus" : "isoTrigminus";
-  std::string corrNotrig = "isoNotrig";
-  if (useAntiIso) {
-    corrTrig   = Form("anti%s",corrTrig.c_str());
-    corrNotrig = Form("anti%s",corrNotrig.c_str());
-  }
   
-  int nEtaBins = 0;
-  int nPtBins = 0;
-  auto key = std::make_pair(corrTrig, era);
-  nEtaBins = corrTypeToHistAfterproduct.at(key).GetNbinsX();
-  nPtBins  = corrTypeToHistAfterproduct.at(key).GetNbinsY();
+  auto key = std::make_pair(sftype, era);
+  const TH2D& hsf = scaleFactorHist.at(key);
+  int nEtaBins = hsf.GetNbinsX();
+  int nPtBins  = hsf.GetNbinsY();
 
-  int ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(eta)));
-  int iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(pt)));
+  int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
+  int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
   int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), eta, pt));
+  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
   
   if (ptOther > 0) {
-    auto keyOther = std::make_pair(corrNotrig, era);
-    ietaTnP = std::min(nEtaBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetXaxis()->FindFixBin(etaOther)));
-    iptTnP  = std::min(nPtBins, std::max(1, corrTypeToHistAfterproduct.at(key).GetYaxis()->FindFixBin(ptOther)));
+    auto keyOther = std::make_pair(sftypeOther, era);
+    ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(etaOther)));
+    iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2(corrTypeToHistAfterproduct.at(key), etaOther, ptOther));
+    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
   }
 
   return res;
-}
-
-
-float _get_AllMuonSF_fast_wmass(const float& pt, const float& eta, const int& charge, DataEra era = BToH, bool noTrackingSF = false) {
-  if (corrTypeToHist.empty())
-      return 1.;
-  
-  float sf = 1.0;
-  // not sure there is an efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {triggerSF, "idip", "iso"};
-  if (not noTrackingSF) sfnames.push_back("tracking");
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist.at(key),eta,pt);
-  }
-  return sf;
-}
-
-
-// generic function for a single leg, it is supposed to be called by other functions where the list of sf names was defined and passed to this one
-float _get_singleMuonSF(const float& pt, const float& eta, const std::vector<std::string> &sfnames, DataEra era = BToH) {
-  if (corrTypeToHist.empty())
-      return 1.;
-  
-  float sf = 1.0;
-  // not sure there is an efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, era);
-    if (corrTypeToHist.find(key) != corrTypeToHist.end())
-      sf *= getValFromTH2(corrTypeToHist[key],eta,pt);
-  }
-  return sf;
-}
-
-float _get_muonSF(const float& pt, const float& eta, const int& charge,
-		  const bool trigger = true, const bool isolated = true,
-		  DataEra era = BToH) {
-
-  // trigger is used to decide whether the trigger sf has to be applied, and which isolation sf to use
-  // it is supposed to be true for Wmass analysis, while for the Z Wlike analysis it should be true for the
-  // specific lepton that is chosen to mimic the muon from a W, the other one gets no trigger sf (and isonotrig)
-
-  std::vector<std::string> sfnames = {"tracking", "idip"}; // these should be always present
-  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
- 
-  if (isolated) {
-    if (trigger) {
-      sfnames.push_back("iso");
-      sfnames.push_back(triggerSF);
-    } else {
-      sfnames.push_back("isonotrig");
-    }
-  } else {
-    if (trigger) {
-      sfnames.push_back("antiiso");
-      sfnames.push_back(triggerSF);      
-    } else {
-      sfnames.push_back("antiisonotrig");
-    }
-  }
-  return _get_singleMuonSF(pt, eta, sfnames, era);
-
-}
-
-float _get_AllMuonSF_fast_wlike_preOverPost(const float& pt,      const float& eta, const int& charge,
-					    const float& ptOther, const float& etaOther,
-					    DataType dtype = MC,
-					    bool noTrackingSF = false,  bool noTriggerSF = false//, ULong64_t iEntry = 0
-					    ) {
-  if (prePostCorrToHist.empty())
-      return 1.;
-
-  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
-  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
-  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  float sf = 1.0;
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames =      {"idip", "iso"};
-  std::vector<std::string> sfnamesOther = {"idip", "isonotrig"};
-  if (not noTriggerSF) {
-    sfnames.push_back(triggerSF);
-  }
-  if (not noTrackingSF) {
-    sfnames.push_back("tracking");
-    sfnamesOther.push_back("tracking");
-  }
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, dtype);
-    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
-      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
-      //std::cout << "scale factor main leg -> " << sf << std::endl;
-    }
-  }
-  //std::cout << "scale factor main leg -> " << sf << std::endl;
-  for (const auto& corr : sfnamesOther) {
-    auto key = std::make_pair(corr, dtype);
-    if (prePostCorrToHist.find(key) != prePostCorrToHist.end())
-      sf *= getValFromTH2(prePostCorrToHist[key],etaOther,ptOther);
-  }
-  //std::cout << "final scale factor -> " << sf << std::endl;
-  return sf;
-}
-
-float _get_AllMuonSF_fast_wlike_preOverPost_anyTrig(const float& pt,      const float& eta, const int& charge, const bool& trigMatch,
-						    const float& ptOther, const float& etaOther, const bool& trigMatchOther,
-						    DataType dtype = MC,
-						    bool noTrackingSF = false,  bool noTriggerSF = false//, ULong64_t iEntry = 0
-						    ) {
-  if (prePostCorrToHist.empty())
-      return 1.;
-
-  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
-  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
-  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  float sf = 1.0;
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::vector<std::string> sfnames =      {"idip"};
-  std::vector<std::string> sfnamesOther = {"idip"};
-  if (not noTriggerSF) {
-    if (trigMatch) {
-      sfnames.push_back(charge > 0 ? "triggerplus" : "triggerminus");
-      sfnames.push_back("iso");
-      sfnamesOther.push_back("isonotrig");
-    } else if (trigMatchOther) {
-      sfnamesOther.push_back(charge > 0 ? "triggerminus" : "triggerplus");
-      sfnames.push_back("isonotrig");
-      sfnamesOther.push_back("iso");
-    } else {
-      // with the selection this case will never happen
-      sfnames.push_back("triggerplus");
-      sfnames.push_back("iso");
-      sfnamesOther.push_back("isonotrig");
-    }
-  }
-  if (not noTrackingSF) {
-    sfnames.push_back("tracking");
-    sfnamesOther.push_back("tracking");
-  }
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, dtype);
-    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
-      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
-      //std::cout << "scale factor main leg -> " << sf << std::endl;
-    }
-  }
-  //std::cout << "scale factor main leg -> " << sf << std::endl;
-  for (const auto& corr : sfnamesOther) {
-    auto key = std::make_pair(corr, dtype);
-    if (prePostCorrToHist.find(key) != prePostCorrToHist.end())
-      sf *= getValFromTH2(prePostCorrToHist[key],etaOther,ptOther);
-  }
-  //std::cout << "final scale factor -> " << sf << std::endl;
-  return sf;
-}
-
-
-float _get_AllMuonSF_fast_wmass_preOverPost(const float& pt,      const float& eta, const int& charge,
-					    DataType dtype = MC, bool noTrackingSF = false, bool noTriggerSF = false//, ULong64_t iEntry = 0
-					    ) {
-  if (prePostCorrToHist.empty())
-      return 1.;
-
-  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
-  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
-  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  float sf = 1.0;
-  // not sure there is a more efficient way to compute the sf
-  // some elements are common between the 2 leptons, some are not
-  std::string triggerSF = charge > 0 ? "triggerplus" : "triggerminus";
-  std::vector<std::string> sfnames = {"idip", "iso"};
-  if (not noTriggerSF) {
-    sfnames.push_back(triggerSF);
-  }
-  if (not noTrackingSF) {
-    sfnames.push_back("tracking");
-  }
-  for (const auto& corr : sfnames) {
-    auto key = std::make_pair(corr, dtype);
-    if (prePostCorrToHist.find(key) != prePostCorrToHist.end()) {
-      sf *= getValFromTH2(prePostCorrToHist[key],eta,pt);
-      //std::cout << "scale factor main leg -> " << sf << std::endl;
-    }
-  }
-  //std::cout << "final scale factor -> " << sf << std::endl;
-  return sf;
 }
 
 
@@ -1067,6 +890,7 @@ float effSystEtaBins(int inuisance, int pdgId, float eta, float pt, float etamin
   return ret;
 }
 
+// some additional older functions, not needed anymore with RDF, but to be checked
 bool triggerMatchWlike_nano(int match1, int ch1, int match2, int ch2, ULong64_t evt) {
 
   if (isOddEvent(evt)) {

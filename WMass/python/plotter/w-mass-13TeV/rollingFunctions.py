@@ -1,5 +1,13 @@
-import ROOT
 from array import array
+
+## safe batch mode
+import sys
+args = sys.argv[:]
+sys.argv = ['-b']
+import ROOT
+sys.argv = args
+ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 def roll1Dto2D(h1d, histo):  #,h2dname):#,plotfile,options):
     for i in xrange(1,h1d.GetNbinsX()+1):

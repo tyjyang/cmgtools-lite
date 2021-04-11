@@ -72,6 +72,7 @@ parser.add_argument("-o", "--outfile", type=str, default=None, help="output file
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
 parser.add_argument("-c", "--charge", type=str, default=None, choices=["plus", "minus"], help="Charge for this channel")
+parser.add_argument("--decorrelate-by-charge", dest="decorrByCharge", type=str, default=None, help="Matching regular expression for nuisances to be decorrelated by charge (or comma-separate list of expressions). The corresponding histograms have to be named according to the charge") 
 parser.add_argument("--wlike", dest="isWlike", action="store_true", help="Flag for W-like analysis (have to change histogram name for signal to include the charge)")
 
 args = parser.parse_args()
@@ -84,6 +85,11 @@ if os.path.abspath(infilename) == os.path.abspath(outfilename):
     logging.warning(" input and output file names are the same. Abort")
     quit()
 
+if args.decorrByCharge:
+    regexp = args.decorrByCharge.replace(',','|')
+    matchDecorr = re.compile(regexp)
+    chargeKey = "Plus" if args.charge == "plus" else "Minus"
+    
 hnomi = {} # {process name : histo}
 hsyst = {} # {syst name : {process name : histo}}
 
@@ -115,7 +121,7 @@ fin.Close()
 print('-'*30)
 print("Processes: %s" % ", ".join(str(x) for x in list(hnomi.keys())))
 print('-'*30)
-print("Systematics and relevant processes")
+print("Systematics (as named in original file) and relevant processes")
 systs = sorted(list(hsyst.keys()))
 for syst in systs:
     proclist = ", ".join(str(x) for x in sorted(hsyst[syst].keys()))
@@ -149,8 +155,11 @@ for syst in systs:
                 h2DUp.Write()
                 h2DDown.Write()           
         if "effStatTnP" in syst:
-            for ieff in range(1, 624+1):
-                name = "x_" + proc + "_effStatTnP%dUp" % ieff # define this as Up variation 
+            for ieff in range(1, 576+1): # need to be kept manually consistent until we save these numbers somewhere
+                systname = "effStatTnP%d" % ieff
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
                 h2D = getTH2fromTH3(h3D, name, ieff, ieff)
                 h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
@@ -168,6 +177,8 @@ for syst in systs:
                 if ptbin:
                     tmp = systname.replace("Up","").replace("Down","") + str(ptbin) + ("Up" if systname.endswith("Up") else "Down")
                     systname = tmp 
+                if matchDecorr.match(systname):
+                    systname = systname.replace("Up", chargeKey + "Up") if systname.endswith("Up") else systname.replace("Down", chargeKey + "Down")
                 name = "x_" + proc + "_" + systname
                 h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
                 h2D.Write()

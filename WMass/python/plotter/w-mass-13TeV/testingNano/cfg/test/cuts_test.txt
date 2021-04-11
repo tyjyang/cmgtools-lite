@@ -1,0 +1,12 @@
+alwaystrue : 1
+trigger    : HLT_IsoTkMu24 || HLT_IsoMu24
+json       : isGoodRunLS(isData,run,luminosityBlock)
+twomuon    : Sum(goodMuons)==2
+vetomuon    : Sum(vetoMuons)==2
+oppositecharge : (Muon_charge[goodMuonsCharge][0] + Muon_charge[goodMuonsOther][0]) == 0
+mZ         : valueInsideRange(invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]), 60., 120.)
+accept     : std\:\:abs(Muon_eta[goodMuonsOther][0]) < 2.4 && std\:\:abs(Muon_eta[goodMuonsOther][0]) < 2.4
+muonID     : Muon_mediumId[goodMuonsCharge][0] == 1 && Muon_mediumId[goodMuonsOther][0] == 1
+pfRelIso04 : Muon_pfRelIso04_all[goodMuonsCharge][0] < 0.15 && Muon_pfRelIso04_all[goodMuonsOther][0] < 0.15
+trigMatch : hasTriggerMatch(Muon_eta[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
+
