@@ -112,3 +112,12 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb -
 python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456789_Asimov_bbb1_cxs1.root  -o plots/testNanoAOD/fits/test_impacts/ --nuisgroups ALL --prefitUncertainty 100 --scaleToMeV --showTotal
 ```
 
+## Prepare scale factors for the analysis
+
+Once the scale factors are computed with the tag-and-probe and the output root file is available somewhere, you can plot them all and make their product using the following command
+
+```
+python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-31_allSFs.root plots/testNanoAOD/testSF/SFeta0p1_31Mar2021/ -e "BtoF,GtoH" -n trigger,reco,tracking,idip,iso,antiiso,isonotrig,antiisonotrig --makePreOverPost
+```
+This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
+The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them) 

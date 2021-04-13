@@ -612,17 +612,42 @@ float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& loose
   // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
 
   // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
-  
+
+  const TH1D& hprefire = hMuonPrefiring[era];
   for (unsigned int i = 0; i < eta.size(); ++i) {
     if (pt[i] < 22) continue;
     if (not looseId[i]) continue;
     // no need to care about under/overflow, the prefiring would be 0 there, and the actual range is -2.4000001, 2.4000001
     //sf *= (1.0 - hMuonPrefiring[era].GetBinContent(std::max(0, std::min(nBinsX, hMuonPrefiring[era].FindFixBin(eta[i])) )) );
-    sf *= (1.0 - hMuonPrefiring[era].GetBinContent(hMuonPrefiring[era].FindFixBin(eta[i])));
+    sf *= (1.0 - hprefire.GetBinContent(hprefire.FindFixBin(eta[i])));
   }
-  return sf;
+  return sf;  
   
-  
+}
+
+Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
+				    const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId,
+				    DataEra era = BToF
+				    ) {
+
+  // this function directly provides the alternative prefiring SF, not the variation on the original one
+  // it is supposed to be called instead of the nominal weight
+  // it returns a vector used as an event weight to get all variations in the same TH3 (eta-pt-prefireBin)
+  Vec_f res(n_prefireBinNuisance, 1.0); // initialize to 1
+
+  const TH1D& hprefire = hMuonPrefiring[era];
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+    if (pt[i] < 22) continue;
+    if (not looseId[i]) continue;
+    int prefireBin = hprefire.FindFixBin(eta[i]);
+    // fill the vector with the nominal weight in each bin
+    Vec_f tmp(n_prefireBinNuisance, 1.0 - hprefire.GetBinContent(prefireBin));
+    // update the specific bin so that it has 1 - (pref+err)
+    tmp[prefireBin-1] -= hprefire.GetBinError(prefireBin);
+    // multiply the vector to be returned by the prefiring weight for this lepton
+    res *= tmp ;
+  }
+  return res;
 }
 
 float _get_fullMuonSF(float pt,      float eta,      int charge,
@@ -648,13 +673,14 @@ float _get_fullMuonSF(float pt,      float eta,      int charge,
   }
 
   auto key = std::make_pair(sftype, era);
-  float sf = getValFromTH2(scaleFactorHist.at(key), eta, pt);
+  const TH2D& hsf = scaleFactorHist.at(key);
+  float sf = getValFromTH2(hsf, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
     sftype = isoSF2 ? isoNotrig : antiisoNotrig;
     key = std::make_pair(sftype, era);
-    sf *= getValFromTH2(scaleFactorHist.at(key), etaOther, ptOther);
+    sf *= getValFromTH2(hsf, etaOther, ptOther);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
@@ -677,13 +703,14 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
   }
 
   auto key = std::make_pair(sftype, dtype);
-  float sf = getValFromTH2(prePostCorrToHist.at(key), eta, pt);
+  const TH2D& hcorr = prePostCorrToHist.at(key);
+  float sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
     sftype = isoSF2 ? isoNotrig : antiisoNotrig;
     key = std::make_pair(sftype, dtype);
-    sf *= getValFromTH2(prePostCorrToHist.at(key), etaOther, ptOther);
+    sf *= getValFromTH2(hcorr, etaOther, ptOther);
   }
 
   return sf;
