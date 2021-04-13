@@ -21,11 +21,13 @@
 #include <cstdlib> //as stdlib.h      
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <utility>
 #include <iostream>
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/functional/hash.hpp>
@@ -633,21 +635,28 @@ Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
   // this function directly provides the alternative prefiring SF, not the variation on the original one
   // it is supposed to be called instead of the nominal weight
   // it returns a vector used as an event weight to get all variations in the same TH3 (eta-pt-prefireBin)
+
   Vec_f res(n_prefireBinNuisance, 1.0); // initialize to 1
 
+  int prefireBin = 0;
+  float tmpval = 0.0;
   const TH1D& hprefire = hMuonPrefiring[era];
+
   for (unsigned int i = 0; i < eta.size(); ++i) {
+
     if (pt[i] < 22) continue;
     if (not looseId[i]) continue;
-    int prefireBin = hprefire.FindFixBin(eta[i]);
-    // fill the vector with the nominal weight in each bin
-    Vec_f tmp(n_prefireBinNuisance, 1.0 - hprefire.GetBinContent(prefireBin));
-    // update the specific bin so that it has 1 - (pref+err)
-    tmp[prefireBin-1] -= hprefire.GetBinError(prefireBin);
-    // multiply the vector to be returned by the prefiring weight for this lepton
-    res *= tmp ;
+    prefireBin = hprefire.FindFixBin(eta[i]);
+    // fill the vector with the nominal weight in each bin,
+    // while the vector bin corresponding to prefireBin will be filled with prefiring probability moved by its uncertainty
+    tmpval = res[prefireBin-1];
+    res *= (1.0 - hprefire.GetBinContent(prefireBin));
+    res[prefireBin-1] = tmpval * (1.0 - hprefire.GetBinContent(prefireBin) - hprefire.GetBinError(prefireBin));
+
   }
+  
   return res;
+
 }
 
 float _get_fullMuonSF(float pt,      float eta,      int charge,
