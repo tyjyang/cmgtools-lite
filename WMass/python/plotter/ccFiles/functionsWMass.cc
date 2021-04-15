@@ -727,29 +727,24 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
 }
 
 
-/////////////////////////////////
-// some older functions below, might still work but not recommended (we are not even initializing the histograms by default), will be deleted once we know the rest is fine
+Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
+			       float pt,      float eta, int charge,
+			       float ptOther=-1, float etaOther=-1,
+			       DataEra era = BToF,
+			       bool isoSF1 = true,
+			       bool isoSF2 = true
+			       ) {
 
-// uses SF product directly
-Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
-				 float pt,      float eta, int charge,
-				 float ptOther=-1, float etaOther=-1,
-				 DataEra era = BToF,
-				 bool useAntiIso=false
-				 ) {
-
-  Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
-  
   // this is an helper function to define the effSystvariations for the Wlike analysis
   // idea is to fill again the alternative template for each effStat nuisance, where the
   // nuisance is defined for each single TnP eta-pt bin, and they will be considered as uncorrelated
   // so not as done in SMP-18-012 from the fit to efficiencies with Error function
   //
-  // now, given that the SF weight is already defined for each process in the MCA file, in order to
-  // define a histogram-dependent weight variation we have to add a weight which is (1 + epsilon),
-  // where epsilon is the relative uncertainty on the SF (let's say on the product of SF for simplicity)
-  // this is thus equivalent to using (SF + SF_err) as event weight for the alternate template
-
+  // this should replace the nominal SF weight, and return SF for any bin except the specific one corresponding
+  // to the nuisance parameter, and SF+err for that one
+  // in order to facilitate the usage with the ReplaceWeight functionality to customize event weight per histogram,
+  // the input arguments should be the same as in _get_fullMuonSF, and new ones should appear in the beginning
+  
   // n_tnpBinNuisance is the number of TnP bins, used to set the size of the RVec that will be returned
   
   // tnpBinNuisance is supposed to start from 1 and be mapped into SF histogram bins as shown below
@@ -765,18 +760,89 @@ Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
   // in that case the values are not used (and etaOther could actually take any value)
   
   ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
-  ScaleFactorType sftypeOther = isoNotrig;
-  if (useAntiIso) {
+  if (not isoSF1) {
     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
-    sftypeOther = antiisoNotrig;
   }
 
   //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
   
-  auto key = std::make_pair(sftype, era);
-  const TH2D& hsf = scaleFactorHist.at(key);
+  const TH2D& hsf = scaleFactorHist.at(std::make_pair(sftype, era));
+  int nEtaBins = hsf.GetNbinsX();
+  int nPtBins  = hsf.GetNbinsY();
+
+  int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
+  int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
+  int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
+   // initialize to nominal SF
+  Vec_f res(n_tnpBinNuisance, hsf.GetBinContent(ietaTnP, iptTnP));
+  // sum error in specific bin
+  res[tnpBinNuisance-1] += hsf.GetBinError(ietaTnP, iptTnP);
+  
+  if (ptOther > 0) {
+    ScaleFactorType sftypeOther = isoNotrig;
+    if (not isoSF2)
+      sftypeOther = antiisoNotrig;
+    const TH2D& hsfOther = scaleFactorHist.at(std::make_pair(sftypeOther, era));
+    ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
+    iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
+    tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
+    float tmp = res[tnpBinNuisance-1];
+    float sf = hsf.GetBinContent(ietaTnP, iptTnP);
+    res *= sf;
+    res[tnpBinNuisance-1] = tmp * (sf + hsf.GetBinError(ietaTnP, iptTnP));
+  }
+
+  return res;
+}
+
+
+// might become obsolete (better to use next function directly)
+Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
+				 float pt,      float eta, int charge,
+				 float ptOther=-1, float etaOther=-1,
+				 DataEra era = BToF,
+				 bool isoSF1 = true,
+				 bool isoSF2 = true
+				 ) {
+  
+  // this is an helper function to define the effSystvariations for the Wlike analysis
+  // idea is to fill again the alternative template for each effStat nuisance, where the
+  // nuisance is defined for each single TnP eta-pt bin, and they will be considered as uncorrelated
+  // so not as done in SMP-18-012 from the fit to efficiencies with Error function
+  //
+  // now, given that the SF weight is already defined for each process in the MCA file, in order to
+  // define a histogram-dependent weight variation we have to add a weight which is (1 + epsilon),
+  // where epsilon is the relative uncertainty on the SF (let's say on the product of SF for simplicity)
+  // this is thus equivalent to using (SF + SF_err) as event weight for the alternate template
+
+  Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
+  
+  // n_tnpBinNuisance is the number of TnP bins, used to set the size of the RVec that will be returned
+  
+  // tnpBinNuisance is supposed to start from 1 and be mapped into SF histogram bins as shown below
+  //
+  // pt | 7 | 8 | 9 |
+  //     --- --- ---
+  //    | 4 | 5 | 6 |
+  //     --- --- ---
+  //    | 1 | 2 | 3 |
+  //              eta
+
+  // if ptOther < 0 it is assumed only one lepton exists (so this function could also be used for wmass)
+  // in that case the values are not used (and etaOther could actually take any value)
+  
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+  }
+
+  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+  
+  const TH2D& hsf = scaleFactorHist.at(std::make_pair(sftype, era));
   int nEtaBins = hsf.GetNbinsX();
   int nPtBins  = hsf.GetNbinsY();
 
@@ -786,16 +852,18 @@ Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
   res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
   
   if (ptOther > 0) {
-    auto keyOther = std::make_pair(sftypeOther, era);
-    ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(etaOther)));
-    iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(ptOther)));
+    ScaleFactorType sftypeOther = isoNotrig;
+    if (not isoSF2)
+      sftypeOther = antiisoNotrig;
+    const TH2D& hsfOther = scaleFactorHist.at(std::make_pair(sftypeOther, era));
+    ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
+    iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
+    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2bin(hsfOther, ietaTnP, iptTnP));
   }
 
   return res;
 }
-
 
 double qcdScaleWeight_VptBinned(const double& qcdscale, const double& vpt, const double& ptlow, const double& pthigh) {
 

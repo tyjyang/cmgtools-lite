@@ -76,7 +76,7 @@ if __name__ == "__main__":
     adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas", "", 800, 800)
 
-    drawNTH1([hbefore, hafter], ["Before H", "Data H"],
+    drawNTH1([hbefore, hafter], ["Before fix", "After fix"],
              "Muon #eta", "L1 prefiring probability",
              "muonPrefiringProbability_prePostRunH",
              outdir,
