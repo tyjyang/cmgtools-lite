@@ -620,6 +620,9 @@ class TreeToYield:
                 wgt = wgtCommon + "*(%s)" % plotspec.getOption('AddWeight','1')
             else:
                 wgt = wgtCommon
+            if plotspec.getOption('ReplaceWeight', None):
+                oldw,neww = plotspec.getOption('ReplaceWeight', "1->1").split("->")
+                wgt = wgtCommon.replace(oldw,neww) 
                 
             (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
             

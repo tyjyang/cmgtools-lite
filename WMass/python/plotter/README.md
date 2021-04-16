@@ -38,6 +38,7 @@ Some notes:
 - can add _--filter-proc-files ".\*" ".\*\_1.root"_ to run on only some files (1 per process in this case), e.g. for testing
 - for Wlike, need to select only odd (even) events for positive (negative) charge
 - we are currently removing the mT cut (with _-X mtl1pf40_), until we agree on the MET to use (and also because for fakes we may use a simultaneous fit including the low mT region
+- luminosity value passed to option _-l_ is used both as event weight and as the number appearing in plots. Thus, if the normalization already appears elsewhere (e.g. in the MCA file multiplying the cross section for preVFP and postVFP) the value passed to _-l_  should be offset by adding _1.0/luminosity_ as event weight with option _-W_ (or change the current behaviour)
 
 Wlike (using odd events for charge plus)
 ```
@@ -112,3 +113,33 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb -
 python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456789_Asimov_bbb1_cxs1.root  -o plots/testNanoAOD/fits/test_impacts/ --nuisgroups ALL --prefitUncertainty 100 --scaleToMeV --showTotal
 ```
 
+## Prepare scale factors for the analysis
+
+Once the scale factors are computed with the tag-and-probe and the output root file is available somewhere, you can plot them all and make their product using the following command
+
+```
+python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-31_allSFs.root plots/testNanoAOD/testSF/SFeta0p1_31Mar2021/ -e "BtoF,GtoH" -n trigger,reco,tracking,idip,iso,antiiso,isonotrig,antiisonotrig --makePreOverPost
+```
+This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
+The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
+
+## Details about making plots
+
+### cut file
+Currently still using txt file for cuts, as in previous CMGTools versions. Expressions can use standard C++ syntax. Some special character needs to be escaped when they are also used as field separators. For instance, std::abs need to be used as std\\:\\:abs, because ':' is the separator between cut name and expression
+
+Can also add a third field separated from the rest by ';', where a comma-separated list of several options can be passed (format is key=value or just value for bools, the latter case sets the options to True).
+**NEW**: can use BEFOREDEFINE=True to make this filter be defined before other RDataframe Defines are declared. This should speed up things a little bit, but of course those cuts should not require any newly defined column, except for some special ones that are internally defined in tree2yield.py (see inside getManyPlotsRaw() function in the TreeToYield class). Typically it can be used on the trigger bits or json file selection.
+
+### plot file
+Added option to customize event weight per histogram.
+- Use **AddWeight="expression"** (just as it was already possible in MCA file per process) to assign an additional weight for those specific histograms (commas in expression needs to be escaped as '\,'). This can be a constant or a function or even a product of functions.
+- use **ReplaceWeight="oldexpr->newexpr"** to replace oldexpr in the nominal weight with newexpr (they are separated by '->'). The format is the same as for AddWeight (e.g. commas need to be escaped). This can be used to replace a part of an expression, e.g. to change name of a function or even its arguments, although it should be used with caution to avoid bugs (regular expressions are not supported, it is simply used within python in the replace() method for strings).
+
+### built-in features of mcPlots.py
+By default, the script relies on classes from mcAnalysis and tree2yields. For MC processes, the gen event weight column is defined internally (in mcAnalysis.py). When looping on events with RDF, the filters are created separately for each line in the CUT file, to speed things up a little bit. This splitting is also necessary to print yields for the cutflow, which is the default behaviour now (among other outputs, a *_yields.txt file is created).
+The yields printed with the cutflow currently do not take into account gen weights for MC, this will be added at some point.
+
+Inside tree2yield.py, the main function managing the histograms is getManyPlotsRaw() from the TreeToYields class. Here, some RDF columns are created to ease the usage of different processes dynamically. Currently they are:
+- **eraVFP**: set to BToF (GToH) for preVFP (postVFP), and BToH otherwise. Whether a process is pre or post VFP depends on its name as defined in the MCA file. The values are enum types defined in ccFiles/defines.h
+- **isData**: with similar logic to previous item, it is set to 'Data' when the process name starts with 'data', and MC otherwise. Again, Data and MC are enum types in ccFiles/defines.h

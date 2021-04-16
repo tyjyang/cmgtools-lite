@@ -165,6 +165,17 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
+        if "muonL1Prefire" in syst:
+            for ieff in range(1, 16+1):
+                systname = "muonL1Prefire%d" % ieff
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
+                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                h2D.Write()
+                h2D_mirror.Write()
         if "qcdScale" in syst:
             qcdscales = getQCDScaleIndices()
             indices = sorted(list(qcdscales.keys()))
@@ -197,8 +208,9 @@ for syst in systs:
                     name = "x_" + proc + "_alphaS%s" % ("Up" if i == 101 else "Down")
                     h2D = getTH2fromTH3(h3D, name, i, i)
                     h2D.Write()
-                                           
+
+nKeys = outf.GetNkeys()
 outf.Close()
-print(f"Histograms saved in file {outfilename}")
+print(f"{nKeys} histograms saved in file {outfilename}")
 
 

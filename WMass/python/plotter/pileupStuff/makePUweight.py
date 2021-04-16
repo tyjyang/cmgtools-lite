@@ -40,7 +40,6 @@ if __name__ == "__main__":
     parser.add_argument("--cropHighWeight", type=float, default=5.0, help="If larger than 0, crop values larger than maxWeightWarning, setting them to this value (i.e. use 1 for no reweighting, or same as maxWeightWarning)")
     args = parser.parse_args()
 
-
     newWeights = []
 
     normalizeIntegralUpToBin = args.normalizeIntegralUpToBin # this would usually correspond to the max bin where there is enough stat in data and MC, above which weird weights can be observed. Those large weights are set to cropHighWeight, and we don't care about renormalizing the distributions again to correct the weights

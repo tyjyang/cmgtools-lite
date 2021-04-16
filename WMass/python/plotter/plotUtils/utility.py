@@ -882,7 +882,7 @@ def drawNTH1(hists=[],
     h1.SetMarkerStyle(20)
     #h1.SetMarkerSize(0)
 
-    colors = [ROOT.kRed+2, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+7, ROOT.kAzure+2, ROOT.kPink+7]
+    colors = [ROOT.kRed+2, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+7, ROOT.kAzure+2, ROOT.kMagenta, ROOT.kBlack]
     for ic,h in enumerate(hnums):
         # h.SetLineColor(colors[ic])
         # h.SetFillColor(colors[ic])
@@ -906,7 +906,8 @@ def drawNTH1(hists=[],
                 h1.SetMarkerColor(ROOT.kGray+3)
                 h1.SetMarkerStyle(25)
                 #h1.SetMarkerSize(2)
-                
+        else:
+            h.SetLineWidth(2)
     #ymax = max(ymax, max(h1.GetBinContent(i)+h1.GetBinError(i) for i in range(1,h1.GetNbinsX()+1)))
     # if min and max were not set, set them based on histogram content
     if ymin == ymax == 0.0:

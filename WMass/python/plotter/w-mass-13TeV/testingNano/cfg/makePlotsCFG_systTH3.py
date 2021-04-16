@@ -99,8 +99,8 @@ for ipt in range(1,1+NVTPBINS):
     if printToFile: outf.write(line+'\n')
 
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
-# function to use is _get_fullSFvariation_wlike
-NTNPBINS = 576 # 48 eta * 12 pt, hardcoded for now. SF have 13 pt bins, but the last one is between 55 and 65, so outside the analysis acceptance
+# function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
+NTNPBINS = 576 # 48 eta * 12 pt, hardcoded for now. SF have 13 pt bins, but the last one is between 55 and 65, so outside the analysis acceptance. Lowest pt is 26, in case the acceptance starts at 30, it is better to let the bin start from 1, and then one can just drop some nuisances afterwards
 START = 0.5
 syst_key = "effStatTnP"
 syst_expr = f"indices({NTNPBINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NTNPBINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NTNPBINS})"
@@ -108,15 +108,30 @@ syst_binning = "%d,%.1f,%.1f" % (NTNPBINS, START, NTNPBINS+START)
 syst_axisname = "ZTitle='Eff. stat. nuisance index'"
 ptOther  = "Muon_pt[goodMuonsOther][0]"  if isWlike else "-1"
 etaOther = "Muon_eta[goodMuonsOther][0]" if isWlike else "-1"
-syst_weight  = f"_get_fullSFvariation_wlike({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
-process_regexpr = "W.*|Z.*" # might add to all processes except data and fakes
+syst_weight  = f"_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)->_get_fullMuonSFvariation({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
+process_regexpr = "W.*|Z.*|Top|DiBosons"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
 
 print(line)
 if printToFile: outf.write(line+'\n')
 
+# prefiring uncertainty, uncorrelated for each eta bin. Here the function is _get_MuonPrefiringSFvariation, which replace _get_MuonPrefiringSF in the nominal weight, using ReplaceWeight
+NETABINS = 16
+START = 0.5
+syst_key = "muonL1Prefire"
+syst_expr = f"indices({NETABINS})\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NETABINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NETABINS})"
+syst_binning = "%d,%.1f,%.1f" % (NETABINS, START, NETABINS+START)
+syst_axisname = "ZTitle='Muon L1 prefiring nuisance index'"
+syst_weight  = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation({NETABINS}\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
+process_regexpr = "W.*|Z.*|Top|DiBosons"
+
+#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
+
+print(line)
+if printToFile: outf.write(line+'\n')
 
 # mass weights from LHEReweightingWeight (might change at some point)
 NWEIGHTS = 44 if isWlike else 33
