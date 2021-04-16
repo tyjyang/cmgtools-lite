@@ -4,7 +4,8 @@ alphaS     : alphaS                 : Z.*|W.*                 : PDFS       : sha
 qcdScales  : muR.*|muF.*            : Z.*|W.*                 : QCD        : shape
 fsr        : fsr.*                  : Z.*                     : QED        : shape
 muScale    : kalPt.*                : Z.*|W.*|DiBoson.*|Top.* : MUSCALE    : shape
-efficiency : eff.*                  : W.*|Z.*|DiBoson.*|Top.* : EFFICIENCY : shape
+efficiency : effStat.*              : W.*|Z.*|DiBoson.*|Top.* : EFFICIENCY : shape
+muPrefiring: muonL1Prefire.*        : W.*|Z.*|DiBoson.*|Top.* : PREFIRING  : shape
 luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.* : LUMINOSITY : lnN     : 1.012
 fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP   : shape
 otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP   : shape
