@@ -121,7 +121,7 @@ if printToFile: outf.write(line+'\n')
 NETABINS = 16
 START = 0.5
 syst_key = "muonL1Prefire"
-syst_expr = f"indices({NETABINS})\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NETABINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NETABINS})"
+syst_expr = f"indices({NETABINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NETABINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NETABINS})"
 syst_binning = "%d,%.1f,%.1f" % (NETABINS, START, NETABINS+START)
 syst_axisname = "ZTitle='Muon L1 prefiring nuisance index'"
 syst_weight  = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation({NETABINS}\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"

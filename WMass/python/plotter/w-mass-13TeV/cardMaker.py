@@ -17,6 +17,19 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 utilities = utilities.util()
 
+def safeSystem(cmd, dryRun=False):
+    if not dryRun:
+        res = os.system(cmd)
+        if res:
+            print('-'*30)
+            print("safeSystem(): error occurred when executing the following command. Aborting")
+            print(cmd)
+            print('-'*30)
+        return res
+    else:
+        print(cmd)
+        return 0
+        
 def sortSystsForDatacard(params):
 
     params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 101 if 'alphaS' in x else 0)
@@ -267,7 +280,7 @@ class CardMaker:
                                 
         #if options.mergeRoot or options.remakeMultipliers:
         if self._options.remakeMultipliers:
-            os.system('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile))
+            safeSystem('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile), dryRun=args.dryRun)
 
         ### now write the datacard
         channel = '{boson}_{charge}'.format(boson=self.boson,charge=self.charge)
@@ -366,7 +379,7 @@ def prepareChargeFit(options, charges=["plus"]):
         print(ccCmd)
         print 
         if not options.justFit:
-            os.system(ccCmd)
+            safeSystem(ccCmd, dryRun=args.dryRun)
         print("Combined card in ",combinedCard)
         print
 
@@ -394,7 +407,7 @@ def prepareChargeFit(options, charges=["plus"]):
         print 
         if not options.skip_text2hdf5: 
             print("Running text2hdf5.py, it might take time ...")
-            os.system(txt2hdf5Cmd)
+            safeSystem(txt2hdf5Cmd, dryRun=args.dryRun)
 
         metafilename = combinedCard.replace('.txt','.hdf5')
         if len(postfix):
@@ -415,10 +428,10 @@ def prepareChargeFit(options, charges=["plus"]):
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.inputdir))
         if not os.path.exists(fitdir_data):
             print("Creating folder", fitdir_data)
-            os.system("mkdir -p " + fitdir_data)
+            safeSystem("mkdir -p " + fitdir_data, dryRun=args.dryRun)
         if not os.path.exists(fitdir_Asimov):
             print("Creating folder", fitdir_Asimov)
-            os.system("mkdir -p " + fitdir_Asimov)
+            safeSystem("mkdir -p " + fitdir_Asimov, dryRun=args.dryRun)
         print("")
         fitPostfix = "" if not len(postfix) else ("_"+postfix)
 
@@ -429,11 +442,11 @@ def prepareChargeFit(options, charges=["plus"]):
         combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od} ".format(pf=fitPostfix, od=fitdir_Asimov,  b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         print(combineCmd_data)
         if not options.skip_combinetf and not options.skipFitData:
-            os.system(combineCmd_data)
+            safeSystem(combineCmd_data, dryRun=args.dryRun)
         print
         print(combineCmd_Asimov)            
         if not options.skip_combinetf and not options.skipFitAsimov:
-            os.system(combineCmd_Asimov)
+            safeSystem(combineCmd_Asimov, dryRun=args.dryRun)
 
 
 def combineCharges(options):
@@ -496,6 +509,7 @@ if __name__ == "__main__":
     parser.add_argument('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs')
     parser.add_argument(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
     parser.add_argument(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
+    parser.add_argument('-d',  '--dry-run'  , dest='dryRun', default=False, action='store_true', help='Do not execute command to make cards or fit')
     parser.add_argument(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end, only prints command (useful if hdf5 file already exists, or for tests)')
     parser.add_argument(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='skip running combinetf.py at the end, just print command (useful for tests)')
     parser.add_argument(       '--just-fit', dest='justFit' , default=False, action='store_true', help='Go directly to fit part (can also skip text2hdf5 with --no-text2hdf5)')
@@ -508,6 +522,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
     options = args
 
+    if not args.dryRun:
+        try:
+            cmssw = os.environ['CMSSW_BASE']
+        except:
+            cmssw = ""
+        if cmssw == "":
+            print("\n")
+            print("Error: to use combinetf you need to activate cmsenv from a release.")
+            print("You should work from a cmssw-cc7 singularity environment to get the release.")
+            print("Aborting ...")
+            print("\n")
+            quit()
+    
     charges = options.charge.split(',')
 
     if options.combineCharges:
