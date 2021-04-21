@@ -20,7 +20,7 @@ runsForEra = {"B" : [273150, 273158, 273290, 273291, 273292, 273294, 273295, 273
               "H" : [281613, 281616, 281638, 281639, 281641, 281663, 281674, 281680, 281686, 281689, 281691, 281693, 281707, 281726, 281727, 281797, 281974, 281975, 281976, 282033, 282034, 282035, 282037, 282092, 282663, 282707, 282708, 282710, 282711, 282712, 282730, 282731, 282732, 282733, 282734, 282735, 282800, 282807, 282814, 282842, 282917, 282918, 282919, 282922, 282923, 282924, 283042, 283043, 283049, 283050, 283052, 283059, 283270, 283283, 283305, 283306, 283307, 283308, 283353, 283358, 283359, 283407, 283408, 283413, 283415, 283416, 283453, 283469, 283478, 283548, 283672, 283675, 283676, 283680, 283681, 283682, 283685, 283820, 283830, 283834, 283835, 283863, 283865, 283876, 283877, 283884, 283885, 283933, 283934, 283946, 283964, 284006, 284014, 284025, 284029, 284035, 284036, 284037, 284038, 284039, 284040, 284041, 284042, 284043, 284044]
 }
 
-# following two dictionaries were made using checkLumi.py, then copied back here
+# following two dictionaries contain the integrated luminosity per era, as obtained from brilcalc
 # note: it is the lumi actually in the nanoaod we use, after appropriate json file selection
 # might slightly differ (by ~ 0.1%) from the one obtained from the golden json file per era
 lumiForEra_UL_new = {"B" : 5.824235614,
@@ -32,6 +32,8 @@ lumiForEra_UL_new = {"B" : 5.824235614,
                      "G" : 7.652808366,
                      "H" : 8.739883636
 }
+# preVFP = 19.514703
+# postVFP = 16.810813
 
 lumiForEra_UL = {"B" : 5.750490642,
                  "C" : 2.5764874890000002,
@@ -42,6 +44,8 @@ lumiForEra_UL = {"B" : 5.750490642,
                  "G" : 7.575824256000001,
                  "H" : 8.650628378999999
 }
+# preVFP = 19.3
+# postVFP = 16.6
 
 lumiForEra_ReReco = {"B" : 5.746010293,
                      "C" : 2.572903489,
@@ -57,3 +61,5 @@ if __name__ == "__main__":
     for k in list(lumiForEra_UL.keys()):
         relativeDiff = (lumiForEra_UL_new[k] - lumiForEra_UL[k])/lumiForEra_UL[k]
         print(f"{k}: {round(relativeDiff,4)} %")
+
+    

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-# compare data histograms per era from these files
-# plots/testNanoAOD/testMuonPrefire/Zmumu_plus_EventsPerRun_ReReco//plots_test.root
-# plots/testNanoAOD/testMuonPrefire/Zmumu_plus_EventsPerRun_UltraLegacy//plots_test.root
+# plot histogram from this file
+# lumiStuff/tnppairs_probeMuon.root # copied from /afs/cern.ch/user/m/mdunser/public/wmass/tnppairs.root
 
 import re
 import os, os.path
@@ -28,27 +27,25 @@ from runPerEra import runsForEra as rfe
 
 logging.basicConfig(level=logging.INFO)
 
-def getFromFile(fname, mydict, plots=[], procs=[]):
+def getFromFile(fname, hname):
     f = ROOT.TFile.Open(fname)
     if not f or not f.IsOpen():
         raise RuntimeError(f"Error when opening file {fname}")
-    for pl in plots:
-        for p in procs:
-            name = f"{pl}_{p}"
-            mydict[pl] = f.Get(name)
-            if mydict[pl] == None:
-                logging.info(" Cannot find {name} in file {fname}")
-                quit()
-            mydict[pl].SetDirectory(0)
+    h = f.Get(hname)
+    if h == None:
+        logging.info(" Cannot find {hname} in file {fname}")
+        quit()
+    h.SetDirectory(0)
     f.Close()
-    return mydict
+    return h
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("rootfileUL", type=str, nargs=1)
-    parser.add_argument("rootfileRR", type=str, nargs=1)
+    parser.add_argument("rootfileTnp", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
+    parser.add_argument("--hn", "--hist-name", dest="histName", type=str, default="runNumber", help="Histogram name")
+    parser.add_argument("-l", "--legend", type=str, default="Data Tnp pairs", help="Entry for legend")
     parser.add_argument("-n", '--norm-lumi', dest='normLumi',  action='store_true', help='Normalize event yields by run luminosity')
     args = parser.parse_args()
 
@@ -58,20 +55,16 @@ if __name__ == "__main__":
         htmlpath = "./templates/index.php"
         shutil.copy(htmlpath, outdir)
 
-        
-    histoUL = {}
-    histoRR = {}
+    histoTnp = {}
 
-    histoUL = getFromFile(args.rootfileUL[0], histoUL, plots=["runNumber"], procs=["data_UL"])
-    histoRR = getFromFile(args.rootfileRR[0], histoRR, plots=["runNumber"], procs=["data_RR"])
-    k = "runNumber"   # only one key for now, ugly but fine
-
+    histoTnp = getFromFile(args.rootfileTnp[0], args.histName)
+    
     intLumi = None
     lumiPerRun = {}
 
     tmpIntLumi = 0.0
         
-    intLumi = histoUL[k].Clone("intLumi")
+    intLumi = histoTnp.Clone("intLumi")
     intLumi.Reset("ICESM")
     print(f"Integrated luminosity = {intLumi.Integral()}")
     with open("./lumiStuff/runlumi.csv") as f:
@@ -91,60 +84,51 @@ if __name__ == "__main__":
         if binCenter in runs:
             lumi = float(lumiPerRun[binCenter])
             if args.normLumi:
-                histoUL[k].SetBinContent(ibin, histoUL[k].GetBinContent(ibin) / lumi)
-                histoRR[k].SetBinContent(ibin, histoRR[k].GetBinContent(ibin) / lumi)
+                histoTnp.SetBinContent(ibin, histoTnp.GetBinContent(ibin) / lumi)
             #print(f"Divide by {lumi}")
         else:
             lumi = 0.0
         tmpIntLumi += lumi
         intLumi.SetBinContent(ibin, tmpIntLumi)
+        intLumi.SetBinError(ibin, 0)
         #print(f"Lumi = {lumi} --> integrated luminosity = {tmpIntLumi}")        
     intLumi.SetStats(0)
-
+    
     averageRunB = 0.0
     countB = 0
-    for ibin in range(1, 1 + histoUL[k].GetNbinsX()):
-        binCenter = int(histoUL[k].GetBinCenter(ibin))
+    for ibin in range(1, 1 + histoTnp.GetNbinsX()):
+        binCenter = int(histoTnp.GetBinCenter(ibin))
         if binCenter >= rfe["B"][0] and binCenter <= rfe["B"][-1]:
-            if histoUL[k].GetBinContent(ibin) > 0:
-                averageRunB += histoUL[k].GetBinContent(ibin)
+            if histoTnp.GetBinContent(ibin) > 0:
+                averageRunB += histoTnp.GetBinContent(ibin)
                 countB += 1
         elif binCenter > rfe["B"][-1]:
             break
     averageRunB = averageRunB / countB
+
+    histoAverageB = histoTnp.Clone("histoAverageB")
+    histoAverageB.Reset("ICESM")
+    
+    for ibin in range(1, 1 + histoTnp.GetNbinsX()):
+        histoAverageB.SetBinContent(ibin, averageRunB)
+        histoAverageB.SetBinError(ibin, math.sqrt(averageRunB))
         
     adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas","",3000,1000)
-    # for k in list(histoUL.keys()):        
-    #     hists = [histoUL[k], histoRR[k]]
-    #     legEntries = ["Data UltraLegacy", "Data ReReco"]
-    #     # note: for 2 histograms h[0] is the numerator, while for more it becomes denominator
-    #     drawNTH1(hists, legEntries,
-    #              hists[0].GetXaxis().GetTitle(), "Events (normalized to int. lumi)",
-    #              k,
-    #              outdir,
-    #              draw_both0_noLog1_onlyLog2=1,
-    #              leftMargin=0.06,
-    #              labelRatioTmp="UL/RR::0.95,1.05",
-    #              legendCoords="0.12,0.52,0.84,0.9;2",
-    #              passCanvas=canvas,
-    #              drawLumiLatex=True,
-    #              drawVertLines=runRanges
-    #     )
-    hists = [histoUL[k], histoRR[k]]                                                                             
-    legEntries = ["Data UltraLegacy", "Data ReReco"] 
+    hists = [histoTnp, histoAverageB]                                                                             
+    legEntries = [args.legend, f"{args.legend} (average B)"] 
 
     labelXtmp = hists[0].GetXaxis().GetTitle()
     labelYtmp = "Events / fb^{-1}" if args.normLumi else "Events"
     draw_both0_noLog1_onlyLog2=1
     leftMargin = 0.06
     rightMargin = 0.04
-    labelRatioTmp = "UL/RR::0.95,1.05"
+    labelRatioTmp = "pairs/AveB::0.0,1.2"
     legendCoords = "0.06,0.48,0.84,0.9;2"
     yAxisTitleOffset = 0.6
     lowerPanelHeight = 0.3
-    canvasName = f"{k}_normLumi" if args.normLumi else k
-    
+    canvasName = f"{args.histName}_normLumi" if args.normLumi else args.histName
+   
     # run ranges for eras from B to H, prior to actual json cut (array has beginning of each except for B)
     textForLines = sorted(list(rfe.keys())) # this is correct sorting
     textForLines = [x for x in textForLines if x != "F_postVFP"] # too short of a span, remove it
@@ -198,27 +182,12 @@ if __name__ == "__main__":
 
     colors = [ROOT.kRed+2, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+7, ROOT.kAzure+2, ROOT.kPink+7]
     for ic,h in enumerate(hnums):
-        # h.SetLineColor(colors[ic])
-        # h.SetFillColor(colors[ic])
-        # if ic==0: h.SetFillStyle(3004)   
-        # if ic==2: h.SetFillStyle(3002)   
-        # h.SetFillColor(colors[ic])
-        # h.SetMarkerSize(0)
         h.SetLineColor(colors[ic])
-        h.SetFillColor(colors[ic])
+        h.SetFillColor(0)
         h.SetMarkerSize(0)
-        if ic==0: 
-            h.SetFillStyle(3004)   
-        if ic==1: 
-            h.SetFillColor(0) 
-            h.SetLineWidth(2) 
-        if ic==2: 
-            h.SetFillStyle(3002)           
-        if ic==3:
-            h.SetFillColor(0)
-            h1.SetMarkerColor(ROOT.kGray+3)
-            h1.SetMarkerStyle(25)
-            #h1.SetMarkerSize(2)
+        #h.SetFillStyle(3004)   
+        h.SetLineWidth(2)
+        h.SetLineStyle(2)
             
     if ymin == ymax == 0.0:
         ymin = 9999.9
@@ -264,7 +233,6 @@ if __name__ == "__main__":
     for il,le in enumerate(legEntries):
         leg.AddEntry(hists[il],le,"PE" if il == 0 else "FL")
     leg.Draw("same")
-    canvas.RedrawAxis("sameaxis")
 
     for htmp in hists:
         htmp.SetStats(0)
@@ -278,17 +246,20 @@ if __name__ == "__main__":
     intLumi.SetFillColor(ROOT.kCyan)
     intLumi.SetFillColorAlpha(ROOT.kCyan, 0.5)
     intLumi.Scale(scale)
-    intLumi.Draw("LF same")
+    intLumi.GetYaxis().SetTitle("Integrated Luminosity (fb^{-1 })")
+    intLumi.GetYaxis().SetTitleOffset(0.1)
+    intLumi.GetYaxis().SetLabelSize(0.04)
+    intLumi.Draw("LF SAME")
     # draw an axis on the right side (doesn't seem to work, though)
-    axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymin(),
-                       ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),
-                       0, rightmax, 510, "+L")
-    axis.SetLineColor(ROOT.kBlue)
-    axis.SetTextColor(ROOT.kBlue)
-    axis.SetTitle("Integrated Luminosity (fb^{-1 })")
-    axis.SetTitleOffset(0.1)
-    axis.SetLabelSize(0.04)
-    axis.Draw("same");
+    #axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymin(),
+    #                   ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),
+    #                   0, rightmax, 510, "+L")
+    #axis.SetLineColor(ROOT.kBlue)
+    #axis.SetTextColor(ROOT.kBlue)
+    #axis.SetTitle("Integrated Luminosity (fb^{-1 })")
+    #axis.SetTitleOffset(0.1)
+    #axis.SetLabelSize(0.04)
+    #axis.Draw("same");
     legIntLumi = ROOT.TLegend(0.53,ly1,0.9,ly2)
     legIntLumi.SetFillColor(0)
     legIntLumi.SetFillStyle(0)
@@ -301,12 +272,12 @@ if __name__ == "__main__":
     for h in hnums:
         h.Draw("HIST SAME")
 
-    lineAverageB = ROOT.TF1("horiz_line",str(averageRunB),h1.GetXaxis().GetBinLowEdge(1),h1.GetXaxis().GetBinLowEdge(h1.GetNbinsX()+1))
-    lineAverageB.SetLineColor(ROOT.kGray+3)
-    lineAverageB.SetLineWidth(1)
-    lineAverageB.SetLineStyle(2)
-    lineAverageB.Draw("Lsame")
-    legIntLumi.AddEntry(lineAverageB, "Average Run B", "L")
+    #lineAverageB = ROOT.TF1("horiz_line",str(averageRunB),h1.GetXaxis().GetBinLowEdge(1),h1.GetXaxis().GetBinLowEdge(h1.GetNbinsX()+1))
+    #lineAverageB.SetLineColor(ROOT.kGray+3)
+    #lineAverageB.SetLineWidth(1)
+    #lineAverageB.SetLineStyle(2)
+    #lineAverageB.Draw("Lsame")
+    #legIntLumi.AddEntry(lineAverageB, "Average Run B", "L")
     legIntLumi.Draw("same")
         
     canvas.RedrawAxis("sameaxis")
@@ -437,7 +408,7 @@ if __name__ == "__main__":
                     ratios[-1].Draw("HIST SAME")
 
         line = ROOT.TF1("horiz_line","1",ratio.GetXaxis().GetBinLowEdge(1),ratio.GetXaxis().GetBinLowEdge(ratio.GetNbinsX()+1))
-        line.SetLineColor(ROOT.kBlack)
+        line.SetLineColor(ROOT.kRed)
         line.SetLineWidth(1)
         line.Draw("Lsame")
         
