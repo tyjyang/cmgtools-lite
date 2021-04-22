@@ -11,11 +11,10 @@ samples = {
     "SingleTop_tW_antitop_noFullyHadronic" : "ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8",
     # ttbar
     "TTbar_SemiLeptonic" : "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8",
-    "TTBar_2l2nu"        : "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
+    "TTbar_2l2nu"        : "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
     # diboson
     "WW_inclusive" : "WW_TuneCP5_13TeV-pythia8",
     "WZ_inclusive" : "WZ_TuneCP5_13TeV-pythia8",
     "ZZ_2l2nu"     : "ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8"
     
-
 }

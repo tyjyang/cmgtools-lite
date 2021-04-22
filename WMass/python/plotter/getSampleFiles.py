@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os, sys
 import argparse
 import subprocess
 
 from background_samples import campaign, samples
+import copyFileXrdcp
 
 parser = argparse.ArgumentParser("")
 parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read samples from")
@@ -15,8 +16,8 @@ parser.add_argument("-c", "--copy",    type=str, default=None,   help="Call copy
 args = parser.parse_args()
 
 if args.copy and not args.save:
-    print("Error: option -c is only used in combination with option -c")
-    quit()
+    parser.error("option -c is only used in combination with option -c")
+
     
 outdir = "./"
 if args.save:
@@ -67,8 +68,4 @@ for c in campaign.keys():
 if args.copy:
     for fname in filesToCopy:
         outfolder = args.copy + os.path.basename(fname).split(".txt")[0] + "/"
-        command = f"python3 copyFileXrdcp.py {fname} {outfolder}"
-        if args.dryRun:
-            print(command)
-        else:
-            os.system(command)
+        copyFileXrdcp.copyFile(fname, outfolder, dryRun=args.dryRun)
