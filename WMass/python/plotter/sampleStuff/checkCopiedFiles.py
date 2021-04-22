@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# after using sampleStuff/getSampleFiles.py
+# python3 sampleStuff/checkCopiedFiles.py -i sampleStuff/ -o /data/shared/originalNANO/
+
 import os
 import re
 import argparse

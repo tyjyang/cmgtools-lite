@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# python3 sampleStuff/getSampleFiles.py -s sampleStuff/ -c /data/shared/originalNANO/
+
 import os, sys
 import argparse
 import subprocess
@@ -7,7 +10,6 @@ from background_samples import campaign, samples
 import copyFileXrdcp
 
 parser = argparse.ArgumentParser("")
-parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read samples from")
 parser.add_argument("-e", "--era",     type=str, choices=["all", "preVFP", "postVPF"], default="all", help="Era to use")
 parser.add_argument("-t", "--tier",    type=str, choices=["NANOAODSIM"], default="NANOAODSIM", help="Dataset tier")
 parser.add_argument("-d", "--dry_run", dest="dryRun", action="store_true",    help="Print but do not run")
