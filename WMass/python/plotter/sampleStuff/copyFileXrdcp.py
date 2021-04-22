@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import argparse
 
 def xrdcp(files):
-    subprocess.run(["xrdcp", files[0], files[1]])
+    subprocess.run(["xrdcp", "-f", files[0], files[1]])
 
 def copyFile(inputfile, outdir, jobs=32, dryRun=False):
 

@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
-import os, sys
+import os
 import re
 import argparse
 import subprocess
-
 from background_samples import campaign, samples
 import copyFileXrdcp
+
+import sys
+args = sys.argv[:]
+sys.argv = ['-b']
+import ROOT
+sys.argv = args
+ROOT.gROOT.SetBatch(True)
+ROOT.PyConfig.IgnoreCommandLineOptions = True
+
 
 parser = argparse.ArgumentParser("")
 parser.add_argument("-i", "--inputdir",  type=str, default=None, help="Input folder with files containing files that where copied (which need to be checked)")
@@ -54,6 +62,14 @@ for c in campaign.keys():
                 if not os.path.exists(fullOutputDir + bname):
                     #print(fullOutputDir + bname)
                     missingFileList.append(line)
+                else:
+                    rf = ROOT.TFile.Open(fullOutputDir + bname, "READ")
+                    if not rf or rf.IsZombie():
+                        print("ERROR! Unable to open file %s" % fullOutputDir + bname)
+                        missingFileList.append(line)
+                    elif rf.TestBit(ROOT.TFile.kRecovered):
+                        print("WARNING! Attempt was made to recover file %s" % fullOutputDir + bname)
+                        missingFileList.append(line)
         else:
             print(f"Error in opening file {fullInputFile}")
             quit()
