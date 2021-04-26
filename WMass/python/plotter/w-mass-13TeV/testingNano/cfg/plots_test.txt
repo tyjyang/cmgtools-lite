@@ -61,12 +61,15 @@ muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muo
 
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
+MET_pt: MET_pt: 40,0,80; XTitle="MET (GeV)", Legend='TC', IncludeOverflows=True
+
 mt_T1MET: mt_2(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
 
-mt_wlike_MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][1],Muon_phi[goodMuonsOther][1],MET_pt,MET_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,MET) (GeV)", Legend='TC', IncludeOverflows=True
+mt_wlike_MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,MET) (GeV)", Legend='TC', IncludeOverflows=True
 
+met_wlike_MET: lepPlusMetPt(Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi): 40,0,80; XTitle="W-like MET (other #mu\, MET) (GeV)", Legend='TC', IncludeOverflows=True
 
-mt_wlike_T1MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][1],Muon_phi[goodMuonsOther][1],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
+mt_wlike_T1MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
 
 zpt : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR',IncludeOverflows=True, RMin=0.9, RMax=1.1
 

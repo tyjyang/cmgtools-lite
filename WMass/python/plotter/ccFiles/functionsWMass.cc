@@ -204,6 +204,18 @@ float mt_wlike(float pt1, float phi1, int ch1, float pt2, float phi2, int ch2, f
 
 }
 
+float lepPlusMetPt(float pt, float phi, float met, float phimet) {
+
+  TVector2 pl = TVector2();
+  pl.SetMagPhi(pt, phi);
+
+  TVector2 met_wlike = TVector2();
+  met_wlike.SetMagPhi(met, phimet);
+  met_wlike = pl + met_wlike;
+  return met_wlike.Mod();
+  
+}
+
 float mt_wlike_nano(float pt, float phi, float ptOther, float phiOther, float met, float phimet) {
   
   TVector2 pl = TVector2();
@@ -681,15 +693,16 @@ float _get_fullMuonSF(float pt,      float eta,      int charge,
     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
   }
 
-  auto key = std::make_pair(sftype, era);
+  auto const key = std::make_pair(sftype, era);
   const TH2D& hsf = scaleFactorHist.at(key);
   float sf = getValFromTH2(hsf, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
     sftype = isoSF2 ? isoNotrig : antiisoNotrig;
-    key = std::make_pair(sftype, era);
-    sf *= getValFromTH2(hsf, etaOther, ptOther);
+    auto const keyOther = std::make_pair(sftype, era);
+    const TH2D& hsfOther = scaleFactorHist.at(keyOther);
+    sf *= getValFromTH2(hsfOther, etaOther, ptOther);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
@@ -711,15 +724,16 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
   }
 
-  auto key = std::make_pair(sftype, dtype);
+  auto const key = std::make_pair(sftype, dtype);
   const TH2D& hcorr = prePostCorrToHist.at(key);
   float sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
     sftype = isoSF2 ? isoNotrig : antiisoNotrig;
-    key = std::make_pair(sftype, dtype);
-    sf *= getValFromTH2(hcorr, etaOther, ptOther);
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = prePostCorrToHist.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
 
   return sf;
@@ -767,8 +781,9 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
   //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  
-  const TH2D& hsf = scaleFactorHist.at(std::make_pair(sftype, era));
+
+  auto const key = std::make_pair(sftype, era);
+  const TH2D& hsf = scaleFactorHist.at(key);
   int nEtaBins = hsf.GetNbinsX();
   int nPtBins  = hsf.GetNbinsY();
 
@@ -784,7 +799,8 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
     ScaleFactorType sftypeOther = isoNotrig;
     if (not isoSF2)
       sftypeOther = antiisoNotrig;
-    const TH2D& hsfOther = scaleFactorHist.at(std::make_pair(sftypeOther, era));
+    auto const keyOther = std::make_pair(sftype, era);
+    const TH2D& hsfOther = scaleFactorHist.at(keyOther);
     ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
     iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);

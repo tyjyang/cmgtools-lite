@@ -361,6 +361,7 @@ class MCAnalysis:
                         if options.weight and len(options.maxGenWeightProc):
                             # get sum of weights from Events tree, filtering some events with large weights
                             # this assumes the trees are unskimmed to correctly compute the sum!!
+                            matchingProcess = False
                             for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
                                 if re.match(procRegExp,pname):
                                     #tmp_maxGenWgt is a string, convert to float
@@ -373,17 +374,28 @@ class MCAnalysis:
                                         # reject event with weight > max
                                         #tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
                                         tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeRemoved(genWeight,{s})'.format(s=maxGenWgt))   
-                                    # set again tmp_rdf
-                                    tty.setRDF(tmp_rdf)
-                        elif options.weight:
-                            # we immediately trigger the loop here, but each Runs tree has one event
-                            # so it should be quite fast to get the sum like this
-                            tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
-                            _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
-                            sumGenWeights = _sumGenWeights.GetValue()
-                            nUnweightedEvents = _nUnweightedEvents.GetValue()
+                                    matchingProcess = True
+                                    # do not break the loop, if multiple regexp matches, this is a flaw and it is better that the code crashes to warn the user by printing thar the branch would be defined again
+                                    # break # avoid case with multiple regular expression matching
+                            if not matchingProcess:
+                                # for all other processes which did not matched
+                                tmp_rdf = tmp_rdf.Define('myweight', 'genWeight')
 
+                        elif options.weight:
+                            # define the gen weight as the standard genWeight, as done with all the other samples
+                            tmp_rdf = tmp_rdf.Define('myweight', 'genWeight')
+                            # the following might be removed, no need to get the sum like that
+                            ## we immediately trigger the loop here, but each Runs tree has one event
+                            ## so it should be quite fast to get the sum like this
+                            # tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
+                            # _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
+                            # _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
+                            # sumGenWeights = _sumGenWeights.GetValue()
+                            # nUnweightedEvents = _nUnweightedEvents.GetValue()
+
+                        # set again tmp_rdf, as we set a new column but the rdf was already assigned to tty
+                        tty.setRDF(tmp_rdf)
+                            
                     if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
                         if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1; 
@@ -601,7 +613,8 @@ class MCAnalysis:
             self.compilePlotScaleMap(self._options.plotscalemap,rescales)
             for p,v in retyields.items():
                 for regexp in rescales:
-                    if re.match(regexp[0],p): retyields[p]=[v[0], [x*regexp[1] for x in v[1]]]
+                    if re.match(regexp[0],p):
+                        retyields[p]=[(x[0], [(float(xx) * float(regexp[1])) for xx in x[1]]) for x in v]
             regroups = [] # [(compiled regexp,target)]
             self.compilePlotMergeMap(self._options.plotmergemap,regroups)
             for regexp in regroups:
