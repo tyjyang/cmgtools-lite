@@ -457,7 +457,7 @@ class TreeToYield:
             message = f"Process {self._name} ({self._cname}) -> lumi weight = {self._lumiWeight}"
             if not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
                 sumGenWeights = self._sumGenWeights.GetValue()
-                message += f"    sum gewWeights = {sumGenWeights}")
+                message += f"    sum gewWeights = {sumGenWeights}"
             else:
                 sumGenWeights = 1.0
             print(message)

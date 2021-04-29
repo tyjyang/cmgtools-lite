@@ -2,7 +2,10 @@
 # Muon_pt[goodMuonsCharge][0] will always be the first muon with the selected charge and passing predefined selection criteria, for W it might be the only muon in the event, for Z it will automatically be the one with desired charge
 # the same is valid for most of the functions
 
-muon_pt: Muon_pt[goodMuonsCharge][0]: 55,25,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+# transverseMass = mt_2(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],MET_pt,MET_phi)
+muon_pt_eta_isoMtRegions: Muon_pt[goodMuonsCharge][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,116,26,142 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+
+muon_pt: Muon_pt[goodMuonsCharge][0]: 40,25,65; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_pt_all: Muon_pt[goodMuons]: 55,25,80; XTitle="Both muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 

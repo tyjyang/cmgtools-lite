@@ -11,11 +11,11 @@ First, one needs all the proper input txt files, in particular the one with the 
 
 Use the following command (for Wlike analysis)
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt --a wlike
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -a wlike
 ```
 or the following for Wmass analysis (default, option _-a wmass_ can be skipped)
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt --a wmass
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -a wmass
 ```
 This is set up to make a TH2 (eta-pt) for nominal histogram, and some TH3 (eta-pt and systematic index) for systematic uncertainties. It currently defines histograms for:
 - QCD scale systematics, unbinned and in bins of boson pT (binned ones on signal and unbinned ones on anti-signal, e.g. Z for Wmass)
@@ -129,6 +129,23 @@ python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-3
 ```
 This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
 The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
+
+## Making QCD template for Wmass
+
+### Prepare MCA file
+The idea is to make histograms in four regions defined by isolation and transverse mass, where the low mT region also has the requirement of at least one jet not overlapping with the muon.
+Instead of using the general formula to apply the fake rate method, which relies on both the fake and prompt rates, we can use directly the simplified formula given by f/(1-f) * N(QCD)_highIso, where f denotes the fake rate and N(QCD)_highIso is the number of QCD background events in the kinematic region with high muon isolation and high mT (so orthogonal to the signal region).
+Since f=N_passIso/N_tot (evaluated in the fake rate computation region, with low mT and 1 jet), the factor f/(1-f) reduces to N_passIso/N_failIso. At the same time, N(QCD)_highIso can be estimated as data-MC, and we can then directly multiply this template to obtain the QCD template in the signal region. 
+To make these histograms, first you need to use the following command to prepare the MCA file
+```
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)"
+```
+This also makes the histograms for the systematic variations on the prompt lepton templates.
+Then, one can make all the histograms with the following command
+```
+python runFakeRate.py -e postVFP --variables ".*" -s --options " --skipPlot"
+```
+Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above.
 
 ## Details about making plots
 

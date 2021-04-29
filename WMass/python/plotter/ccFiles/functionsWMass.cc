@@ -1070,4 +1070,14 @@ float safeRatio(float num, float den, float safe = 1.0) {
   return (den != 0.0) ? (num/den) : safe;
 }
 
+int regionIsoMt(bool lowIso, bool lowMt) {
+
+  if      (not lowIso and     lowMt) return 0; // fakes region (failing isolation)
+  else if (    lowIso and     lowMt) return 1; // fakes region (passing isolation)
+  else if (not lowIso and not lowMt) return 2; // fakes application region
+  else if (    lowIso and not lowMt) return 3; // signal region
+  return -1;
+  
+}
+
 #endif
