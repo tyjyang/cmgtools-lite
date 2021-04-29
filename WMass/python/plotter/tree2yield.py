@@ -6,6 +6,7 @@ from array import array
 import logging
 from collections import OrderedDict
 import numbaDefines
+import json
 
 ## safe batch mode
 import sys
@@ -161,6 +162,8 @@ class TreeToYield:
         self._frienddir = frienddir if frienddir else ""
         self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
+        self._eraVFP = "preVFP" if "preVFP" in self._cname else "postVFP" if "postVFP" in self._cname else "all"
+        self._lumiWeight = self._options.lumiDict[self._eraVFP] # defined also for data, but scaling done only for MC
         if self._isdata or not options.weightString:
             self._weightString = "1"
         else:
@@ -192,7 +195,7 @@ class TreeToYield:
             # apply MC corrections to the scale factor
             self._scaleFactor = self.adaptExpr(self._scaleFactor, cut=True)
         if 'FakeRate' in settings:
-            self._FR = FakeRate(settings['FakeRate'],self._options.lumi)
+            self._FR = FakeRate(settings['FakeRate'],self._lumiWeight)
             ## add additional weight correction.
             ## note that the weight receives the other mcCorrections, but not itself
             frweight = self.adaptExpr(self._FR.weight(), cut=True)
@@ -408,8 +411,7 @@ class TreeToYield:
             logging.info("")
     def _getCut(self,cut,noweight=False):
         if self._weight and not noweight:
-            if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-            else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+            cut = "(%s)*(%s)*(%s)" % (self._weightString, self._scaleFactor, self.adaptExpr(cut,cut=True))
         else: 
             cut = self.adaptExpr(cut,cut=True)
         if self._options.doS2V:
@@ -451,12 +453,17 @@ class TreeToYield:
         # normalize histograms by sum of gen weights if appropriate
         # crop bins with negative content if desired
         # and change directory for them        
-        if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
-            sumGenWeights = self._sumGenWeights.GetValue()
-            print(f"Process {self._name} ({self._cname}) -> sum gewWeights = {sumGenWeights}")
+        if not self._isdata and self._options.weight:
+            message = f"Process {self._name} ({self._cname}) -> lumi weight = {self._lumiWeight}"
+            if not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
+                sumGenWeights = self._sumGenWeights.GetValue()
+                message += f"    sum gewWeights = {sumGenWeights}")
+            else:
+                sumGenWeights = 1.0
+            print(message)
             for histo in rets:
                 # this is going to trigger the loop, but now all histograms exist so it is ok
-                histo.Scale(1./sumGenWeights)
+                histo.Scale(self._lumiWeight/sumGenWeights)
                 self.negativeCheck(histo)
                 histo.SetDirectory(0)
 
@@ -498,8 +505,7 @@ class TreeToYield:
     # apparently not used anywhere
     def getWeightForCut(self,cut):
         if self._weight:
-            if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-            else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
+            cut = "(%s)*(%s)*(%s)" % (self._weightString, self._scaleFactor, self.adaptExpr(cut,cut=True))
         else:
             cut = self.adaptExpr(cut,cut=True)
         return cut
@@ -589,13 +595,11 @@ class TreeToYield:
         # expression multiple times, which may affect performances
         column_expr = {}
 
-        ## weight has a common part for each plot
+        ## weight has a common part for each plot (lumiWeight applied at the end as a scaling factor
         if self._weight:
-            if self._isdata: wgtCommon = "(%s)     *(%s)" % (self._weightString,                    self._scaleFactor)           
-            else:            wgtCommon = "(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor)
+            wgtCommon = "(%s)*(%s)" % (self._weightString, self._scaleFactor)
         else:
             wgtCommon = '1.' ## wtf is that marc
-
         
         for plotspec in plotspecs:
 
@@ -690,26 +694,6 @@ class TreeToYield:
             logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
         self._appliedCut = cut
         self._elist = elist
-    # no longer needed with RDF
-    # def cutToElist(self,cut,fsplit=None):
-    #     logging.info('beginning of cuttoelist')
-    #     if not self._isInit: self._init()
-    #     logging.info('afetr init')
-    #     ##marcif self._weight:
-    #     ##marc    if self._isdata: cut = "(%s)     *(%s)*(%s)" % (self._weightString,                    self._scaleFactor, self.adaptExpr(cut,cut=True))
-    #     ##marc    else:            cut = "(%s)*(%s)*(%s)*(%s)" % (self._weightString,self._options.lumi, self._scaleFactor, self.adaptExpr(cut,cut=True))
-    #     ##marcelse: cut = self.adaptExpr(cut,cut=True)
-    #     cut = self.adaptExpr(cut,cut=True)
-    #     if self._options.doS2V: cut  = scalarToVector(cut)
-    #     (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-    #     logging.debug('now gonna perform the draw command 4')
-    #     ## marc self._tree.Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-    #     ## apply a cut, rdf style
-    #     logging.debug(' i am filtering with', cut)
-    #     self._tree = self._tree.Filter(cut) #Draw('>>elist', cut, 'entrylist', maxEntries, firstEntry)
-    #     ## marc elist = ROOT.gDirectory.Get('elist')
-    #     ## marc if self._tree.GetEntries()==0 and elist==None: elist = ROOT.TEntryList("elist",cut) # empty list if tree is empty, elist would be a ROOT.nullptr TObject otherwise
-    #     ## marc return elist
     def _rangeToProcess(self,fsplit):
         if fsplit != None and fsplit != (0,1):
             if self._options.maxEntriesNotData and self._isdata:
@@ -743,7 +727,7 @@ def _copyPlotStyle(self,plotfrom,plotto):
         plotto.GetZaxis().SetNdivisions(plotfrom.GetZaxis().GetNdivisions())
 
 def addTreeToYieldOptions(parser):
-    parser.add_argument("-l", "--lumi", type=float, default="1", help="Luminosity (in 1/fb)");
+    parser.add_argument('--lumi-dict', dest='lumiDict', type=json.loads, default='{"all":36.3,"preVFP":19.5,"postVFP":16.8}')
     parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
     parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");

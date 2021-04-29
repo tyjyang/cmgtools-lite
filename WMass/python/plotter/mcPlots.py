@@ -1349,6 +1349,7 @@ class PlotMaker:
 
 def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     if addAlsoMCAnalysis: addMCAnalysisOptions(parser)
+    parser.add_argument("-l", "--lumi", type=float, default="1", help="Luminosity (in 1/fb). Only for plots, not as weight")
     parser.add_argument("--ss",  "--scale-signal", dest="signalPlotScale", default=1.0, type=float, help="scale the signal in the plots by this amount");
     parser.add_argument("--lspam", type=str, default="#bf{CMS} #it{Preliminary}", help="Spam text on the left hand side");
     parser.add_argument("--rspam", type=str, default="%(lumi) (13 TeV)", help="Spam text on the right hand side");

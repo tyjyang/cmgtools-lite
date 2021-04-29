@@ -1,4 +1,4 @@
-#!/usr/bin/env python  
+#!/usr/bin/env python3
 
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT

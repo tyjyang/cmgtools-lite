@@ -205,7 +205,7 @@ Vec_b cleanJetsFromMuons(const Vec_f& Jet_eta, const Vec_f& Jet_phi, const Vec_f
 
    Vec_b res(Jet_eta.size(), true); // initialize to true and set to false whenever the jet overlaps with a muon
    for (unsigned int ij = 0; ij < res.size(); ++ij) {
-     for (unsigned int im = 0; im < res.size(); ++im) {
+     for (unsigned int im = 0; im < Muon_eta.size(); ++im) {
        if (deltaR2(Jet_eta[ij], Jet_phi[ij], Muon_eta[im], Muon_phi[im]) < 0.16) { // cone DR = 0.4
 	 res[ij] = false;
 	 break;
@@ -215,7 +215,34 @@ Vec_b cleanJetsFromMuons(const Vec_f& Jet_eta, const Vec_f& Jet_phi, const Vec_f
 
    return res;
 }
-   
+
+Vec_b cleanJetsFromLeptons(const Vec_f& Jet_eta, const Vec_f& Jet_phi, const Vec_f& Muon_eta, const Vec_f& Muon_phi, const Vec_f& Electron_eta, const Vec_f& Electron_phi) {
+
+   Vec_b res(Jet_eta.size(), true); // initialize to true and set to false whenever the jet overlaps with a muon
+
+   for (unsigned int ij = 0; ij < res.size(); ++ij) {
+
+     for (unsigned int im = 0; im < Muon_eta.size(); ++im) {
+       if (deltaR2(Jet_eta[ij], Jet_phi[ij], Muon_eta[im], Muon_phi[im]) < 0.16) { // cone DR = 0.4
+	 res[ij] = false;
+	 break;
+       }
+     }
+
+     if (res[ij]) {
+       for (unsigned int ie = 0; ie < Electron_eta.size(); ++ie) {
+	 if (deltaR2(Jet_eta[ij], Jet_phi[ij], Electron_eta[ie], Electron_phi[ie]) < 0.16) { // cone DR = 0.4
+	   res[ij] = false;
+	   break;
+	 }
+       }
+     }
+
+   }
+
+   return res;
+}
+
 
 Vec_f absoluteValue(const Vec_f& val) {
 

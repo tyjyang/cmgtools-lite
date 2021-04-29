@@ -46,7 +46,12 @@ class CutsFile:
                 self._cuts.append((name,cut,extra))
                 if options:
                     for cr,cn,cv in options.cutsToAdd:
-                        if re.match(cr,name): self._cuts.append((cn,cv,{}))
+                        if re.match(cr,name):
+                            if ";" in cv:
+                                (actualNewCut, newExtra) = self.getExtraFromLine(cv)
+                            else:
+                                (actualNewCut, newExtra) = (cv, {})
+                            self._cuts.append((cn,actualNewCut,newExtra))
                     if options.upToCut and re.search(options.upToCut,name):
                         break
               except ValueError(e):

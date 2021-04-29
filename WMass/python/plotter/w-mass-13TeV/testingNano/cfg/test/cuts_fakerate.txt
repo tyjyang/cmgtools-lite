@@ -3,11 +3,11 @@ trigger    : HLT_IsoTkMu24 || HLT_IsoMu24; BEFOREDEFINE=True
 json       : isGoodRunLS(isData,run,luminosityBlock); BEFOREDEFINE=True
 vetomuon   : Sum(vetoMuons)==1
 onemuon    : Sum(goodMuons)==1 
-accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55)
+accept     : Muon_pt[goodMuons][0] > 26
 muonID     : Muon_mediumId[goodMuons][0] == 1
-pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
+awayjet    : Sum(goodCleanJets)>=1
+#pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
 trigMatch  : hasTriggerMatch(Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
-## mT cut to be added once we understand what MET to use
-mtl1pf40   : mt_2(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],MET_pt,MET_phi) > 40.
+mtl1pf40   : mt_2(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],MET_pt,MET_phi) < 40.
 eventFilters: Flag_globalSuperTightHalo2016Filter && Flag_EcalDeadCellTriggerPrimitiveFilter && Flag_goodVertices && Flag_HBHENoiseIsoFilter && Flag_HBHENoiseFilter && Flag_BadPFMuonFilter
 vetoelectrons: Sum(vetoElectrons) == 0

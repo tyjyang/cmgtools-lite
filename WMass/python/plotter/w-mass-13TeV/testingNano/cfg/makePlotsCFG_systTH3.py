@@ -109,7 +109,7 @@ syst_axisname = "ZTitle='Eff. stat. nuisance index'"
 ptOther  = "Muon_pt[goodMuonsOther][0]"  if isWlike else "-1"
 etaOther = "Muon_eta[goodMuonsOther][0]" if isWlike else "-1"
 syst_weight  = f"_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)->_get_fullMuonSFvariation({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
-process_regexpr = "W.*|Z.*|Top|DiBosons"
+process_regexpr = "W.*|Z.*|Top|Dibosons"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
 line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
@@ -125,7 +125,7 @@ syst_expr = f"indices({NETABINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{
 syst_binning = "%d,%.1f,%.1f" % (NETABINS, START, NETABINS+START)
 syst_axisname = "ZTitle='Muon L1 prefiring nuisance index'"
 syst_weight  = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation({NETABINS}\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
-process_regexpr = "W.*|Z.*|Top|DiBosons"
+process_regexpr = "W.*|Z.*|Top|Dibosons"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
 line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
