@@ -4,7 +4,6 @@ data_postVFP: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROO
 
 data_all: .*; SubPath=".*/NanoV8Data/Run2016.*/", Label="Data"
 
-
 Zmumu_preVFP : .* : 1976.1700 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_preVFP/"
 
 Zmumu_postVFP: .* : 1976.1700 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_postVFP/"
