@@ -204,15 +204,9 @@ def fillTH2fromTH3zrange(h2, h3, zbinLow=1, zbinHigh=1):
             h2.SetBinContent(ix,iy,h3.IntegralAndError(ix,ix,iy,iy,zbinLow,zbinHigh,error))
             h2.SetBinError(ix,iy,error);
 
-
 #########################################################################
 
-
 def createPlotDirAndCopyPhp(outdir):
-    # if outdir != "./":
-    #     if not os.path.exists(outdir):
-    #         os.system("mkdir -p " + outdir)
-    #         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
     if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
         htmlpath = "./templates/index.php"
@@ -343,10 +337,10 @@ def drawCorrelationPlot(h2D_tmp,
                         canvasName="default", plotLabel="", outdir="./",
                         rebinFactorX=0,
                         rebinFactorY=0,
-                        smoothPlot=True,
-                        drawProfileX=True,
-                        scaleToUnitArea=True,
-                        draw_both0_noLog1_onlyLog2=0,
+                        smoothPlot=False,
+                        drawProfileX=False,
+                        scaleToUnitArea=False,
+                        draw_both0_noLog1_onlyLog2=1,
                         leftMargin=0.16,
                         rightMargin=0.20,
                         nContours=51,

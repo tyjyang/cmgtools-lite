@@ -34,10 +34,10 @@ def main(args):
     lumi = 16.8 if era == "postVFP" else 19.5 if era == "preVFP" else 36.3
 
     # cfg files
-    cfgFolder = "w-mass-13TeV/testingNano/cfg/"
+    cfgFolder = args.cfgFolder
     mca    = cfgFolder + "mca-wmass.txt"
     cut    = cfgFolder + "test/cuts_fakerate.txt"
-    plot   = cfgFolder + "plots_fakerate_systTH3.txt"
+    plot   = cfgFolder + args.plotFile
     define = cfgFolder + "test/rdfDefine_fakerate.txt"
 
     # additional cuts
@@ -98,6 +98,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean", help='Histograms to make')
+    parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
+    parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
     args = parser.parse_args()
 
     if args.systs:

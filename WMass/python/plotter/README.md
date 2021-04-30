@@ -141,11 +141,27 @@ To make these histograms, first you need to use the following command to prepare
 python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)"
 ```
 This also makes the histograms for the systematic variations on the prompt lepton templates.
-Then, one can make all the histograms with the following command
+
+### Produce all the histograms for data and MC processes.
+
+The MC histograms will make the prompt component to be subtracted from data.
+One can make all the histograms with the following command (separately for preVFP and postVFP era for now, they may be gathered at a later stage). For now this is also charge inclusive, but we may split by charge at least to check for any difference (the charge dependence may arise from the prompt subtraction, which is largely dominated by W).
 ```
-python runFakeRate.py -e postVFP --variables ".*" -s --options " --skipPlot"
+python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" -s --options " --skipPlot "
 ```
-Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above.
+
+Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
+```
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3//plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3/postprocessing/ -b "29,26,55"
+```
+
+#### Make plots in iso/mT regions for checks
+
+The same __runFakeRate.py__ script can be used without option __-s__ and removing __--skipPlot__ to plot histograms of given variables in all the four iso/mT regions. An example command is the following (default variables should be already adequate):
+```
+python runFakeRate.py -e postVFP --plot-file "plots_fakerate.txt"
+```
+
 
 ## Details about making plots
 
