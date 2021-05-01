@@ -8,9 +8,8 @@ logging.basicConfig(level=logging.INFO)
 from array import array
 import shutil
 from CMS_lumi import *
-
-_canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
     
+_canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
 
@@ -283,6 +282,7 @@ def drawTH1(htmp,
     canvas.SetTickx(1)
     canvas.SetTicky(1)
     canvas.cd()
+    canvas.SetBottomMargin(0.14)
     canvas.SetLeftMargin(0.12)
     canvas.SetRightMargin(0.04)
     canvas.cd()

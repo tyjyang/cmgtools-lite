@@ -214,7 +214,7 @@ class TreeToYield:
         self._cutReport = None
         self._elist = None
         self._entries = None
-        self._rdfDefs = {}
+        self._rdfDefs = OrderedDict()
         self._rdfAlias = {}
         if self._options.rdfDefineFile:
             self._rdfDefs = self.getRdfDefinitions(self._options.rdfDefineFile)

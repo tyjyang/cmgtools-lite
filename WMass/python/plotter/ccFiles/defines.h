@@ -12,7 +12,7 @@ using Vec_f = ROOT::VecOps::RVec<float>;
 using Vec_i = ROOT::VecOps::RVec<int>;
 using Vec_ui = ROOT::VecOps::RVec<unsigned int>;
 
-typedef enum {isoTrigPlus=0, isoTrigMinus, isoNotrig, antiisoTrigPlus, antiisoTrigMinus, antiisoNotrig} ScaleFactorType; // to use product
+typedef enum {isoTrigPlus=0, isoTrigMinus, isoNotrig, noisoTrigPlus, noisoTrigMinus, noisoNotrig, antiisoTrigPlus, antiisoTrigMinus, antiisoNotrig} ScaleFactorType; // to use product
 typedef enum {BToH=0, BToF, GToH} DataEra;
 typedef enum {MC=0, Data} DataType;
 
