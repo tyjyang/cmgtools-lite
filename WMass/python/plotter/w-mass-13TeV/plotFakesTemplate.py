@@ -39,7 +39,7 @@ if __name__ == "__main__":
     fname = args.rootfile[0]
     outdir = args.outdir[0]
     if not outdir.endswith('/'):
-        outdir = outdirOriginal + '/'
+        outdir += '/'
     createPlotDirAndCopyPhp(outdir)
 
     ROOT.TH1.SetDefaultSumw2()

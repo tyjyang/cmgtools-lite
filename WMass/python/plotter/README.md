@@ -149,6 +149,7 @@ One can make all the histograms with the following command (separately for preVF
 ```
 python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" -s --options " --skipPlot "
 ```
+One can make the histograms separately for each charge by running twice with option __-c (plus|minus)__.
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
 ```

@@ -42,6 +42,9 @@ def main(args):
 
     # additional cuts
     addcut = ""
+    if args.charge != "all":
+        chsign = ">" if args.charge == "plus" else "<"
+        addcut = f"-A onemuon charge{args.charge} 'Muon_charge[goodMuons][0] {chsign} 0'"
     #addcut = "-A awayjet pfRelIso04 'Muon_pfRelIso04_all[goodMuons][0] < 0.15' "
 
     # additional defines and aliases
@@ -51,7 +54,7 @@ def main(args):
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"plots/testNanoAOD/WmassPlots/fakeRateRegion_{era}{postfix}/"
+    plotdir = f"plots/testNanoAOD/WmassPlots/fakeRateRegion_{era}_{args.charge}{postfix}/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables
@@ -95,13 +98,14 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--dry-run', dest="dryRun", action='store_true', help='Print, but do not execute')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
+    parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Era')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean", help='Histograms to make')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
     args = parser.parse_args()
-
+    
     if args.systs:
         args.postfix += "_systTH3"
         regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
