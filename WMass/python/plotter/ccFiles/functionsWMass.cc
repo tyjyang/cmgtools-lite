@@ -604,12 +604,10 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
 }
 
 ////=====================================================================================
-// FOR TESTS
-typedef enum {B=0, C, D, E, F, G, H} DataRunEra;
-std::unordered_map<DataRunEra, std::string> runEraNames = { {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
-//std::unordered_map<DataRunEra, std::string> runEraNames = { {B, "B"}, {F, "F"} };
-std::unordered_map<std::pair<ScaleFactorType, DataRunEra>,  TH2D, pair_hash> scaleFactorDataPerEra = {};
-std::unordered_map<std::pair<ScaleFactorType, DataRunEra>,  TH2D, pair_hash> scaleFactorPerEra = {};
+// FOR TESTS WITH EFFICIENCIES (F is preVFP part)
+std::unordered_map<DataEra, std::string> runEraNames = { {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorDataPerEra = {};
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorPerEra = {};
 
 void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra.root") {
 
@@ -637,7 +635,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
 	continue;
       }
       histptr->SetDirectory(0);
-      DataRunEra typeVal = dataRunEra.first;
+      DataEra typeVal = dataRunEra.first;
       ScaleFactorType key = corr.first;
       // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
       auto corrKey = std::make_pair(key, typeVal);
@@ -655,7 +653,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
 	continue;
       }
       histptr->SetDirectory(0);
-      DataRunEra typeVal = dataRunEra.first;
+      DataEra typeVal = dataRunEra.first;
       ScaleFactorType key = corr.first;
       // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
       auto corrKey = std::make_pair(key, typeVal);
@@ -668,7 +666,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
 
 float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
 			       float ptOther, float etaOther,
-			       DataRunEra dtype = C,
+			       DataEra dtype = C,
 			       bool isoSF1 = true, // to use SF for iso or antiiso
 			       bool isoSF2 = true,
 			       bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
@@ -708,7 +706,7 @@ float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
  
 float _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
 				 float ptOther, float etaOther,
-				 DataRunEra dtype = B,
+				 DataEra dtype = B,
 				 bool isoSF1 = true, // to use SF for iso or antiiso
 				 bool isoSF2 = true,
 				 bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2

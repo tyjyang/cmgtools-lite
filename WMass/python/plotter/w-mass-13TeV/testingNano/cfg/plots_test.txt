@@ -59,6 +59,10 @@ muon_eta_other: Muon_eta[goodMuonsOther][0]: 24,-2.4,2.4; XTitle="Other muon #et
 
 muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_pt_eta_rebin: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,14,26,54 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
+
+muon_pt_eta_other_rebin: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,14,26,54 ; XTitle='Other muon #eta', YTitle='Other muon p_{T} (GeV)', Legend='TR'
+
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
 MET_pt: MET_pt: 50,0,100; XTitle="MET (GeV)", Legend='TC', IncludeOverflows=True

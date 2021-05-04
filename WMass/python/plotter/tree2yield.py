@@ -28,6 +28,9 @@ from mcCorrections import *
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
 
+if "/pileupWeights_cc.so" not in ROOT.gSystem.GetLibraries(): 
+    compileMacro("ccFiles/pileupWeights.cc")
+
 if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/jsonManager.cc")
 
