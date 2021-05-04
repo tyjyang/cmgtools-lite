@@ -1349,6 +1349,7 @@ class PlotMaker:
 
 def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
     if addAlsoMCAnalysis: addMCAnalysisOptions(parser)
+    parser.add_argument("-l", "--lumi", type=float, default="1", help="Luminosity (in 1/fb). Only for plots, not as weight")
     parser.add_argument("--ss",  "--scale-signal", dest="signalPlotScale", default=1.0, type=float, help="scale the signal in the plots by this amount");
     parser.add_argument("--lspam", type=str, default="#bf{CMS} #it{Preliminary}", help="Spam text on the left hand side");
     parser.add_argument("--rspam", type=str, default="%(lumi) (13 TeV)", help="Spam text on the right hand side");
@@ -1459,12 +1460,20 @@ if __name__ == "__main__":
         #frdfdefine = open(re.sub("\.root$","",outname)+"_rdfdefine.txt","w")
         fcut.write("\n\n")
         fcut.write("## Defines\n")
+        lines = []
         if args.rdfDefineFile:
             with open(args.rdfDefineFile) as f:
                 lines = [x.strip() for x in f if not x.startswith("#") and len(x) > 0]
-            for l in lines:
-                fcut.write("%s\n" % l)
+        defs = [x.split(":")[0].strip() for x in lines]
         for l in args.rdfDefine:
+            defname = l.split(":")[0].strip()
+            for i,d in enumerate(defs):
+                if defname == d:
+                    lines[i] = l
+                else:
+                    if defname not in defs:
+                        lines.append(l)
+        for l in lines:
             fcut.write("%s\n" % l)
         fcut.write("## Aliases\n")
         for l in args.rdfAlias:

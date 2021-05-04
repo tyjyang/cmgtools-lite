@@ -1,6 +1,8 @@
 # name of new variable/collection : definition : regular expression for processes to apply it to
 #
 vetoMuons : Muon_pt > 10 && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxy) < 0.05 && abs(Muon_dz)< 0.2
+# electron cut-based ID Fall17 V2 (0:fail, 1:veto, 2:loose, 3:medium, 4:tight)
+vetoElectrons : Electron_pt > 10 && Electron_cutBased > 0 && abs(Electron_eta) < 2.4 && abs(Electron_dxy) < 0.05 && abs(Electron_dz)< 0.2
 goodMuons : vetoMuons && Muon_pt > 26 && Muon_mediumId
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
 goodMuonsPlus: goodMuons && Muon_charge > 0

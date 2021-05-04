@@ -64,10 +64,10 @@ if __name__ == "__main__":
         raise RuntimeError(f"Error when opening file {fname}")
     for k in f.GetListOfKeys():
         name = k.GetName()
-        htmp = f.Get(name)
         if not name.startswith("eff"): continue
         if "_BtoH_" in name: continue
         if "SF2D_Data_" in name or "SF2D_MC_" in name: continue # these will be created here, if already present let's skip them
+        htmp = f.Get(name)
         htmp.SetTitle(name)
         drawCorrelationPlot(htmp,"Muon #eta","Muon p_{T} (GeV)","efficiency",
                             name,plotLabel="ForceTitle",outdir=outdir,

@@ -20,19 +20,21 @@ def cropNegativeContent(h, silent=True, cropError=False):
     elif dim == 2: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2)
     elif dim == 3: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2) * (h.GetNbinsZ() + 2)
 
+    hasCroppedBins = False
     integral = h.Integral()
     for i in range(nbins):
         nom  = h.GetBinContent(i)
-        if nom<0.0: 
+        if nom<0.0:
+            hasCroppedBins = True
             h.SetBinContent(i, 0)
             if cropError:
                 h.SetBinError(i, 0)
     integralNonNeg = h.Integral()
-    if not silent:
+    if not silent and hasCroppedBins:
         print("{n}: original integral = {i} changed by {r}".format(n=h.GetName(),
                                                                    i=str(integral),
                                                                    r=str(integralNonNeg/integral)))
-
+    return hasCroppedBins
 
 if __name__ == "__main__":
 

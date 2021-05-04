@@ -11,11 +11,11 @@ First, one needs all the proper input txt files, in particular the one with the 
 
 Use the following command (for Wlike analysis)
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt --a wlike
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -a wlike
 ```
 or the following for Wmass analysis (default, option _-a wmass_ can be skipped)
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt --a wmass
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -a wmass
 ```
 This is set up to make a TH2 (eta-pt) for nominal histogram, and some TH3 (eta-pt and systematic index) for systematic uncertainties. It currently defines histograms for:
 - QCD scale systematics, unbinned and in bins of boson pT (binned ones on signal and unbinned ones on anti-signal, e.g. Z for Wmass)
@@ -42,12 +42,12 @@ Some notes:
 
 Wlike (using odd events for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "(1./36.3)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --pdir --out cards/wmass/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --pdir --out cards/wlike/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
 ```
 
 Wmass (example for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "(1./36.3)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wmass/plus/wmass.root --skipPlot -A onemuon chargeplus "Muon_charge[goodMuons][0] > 0"
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wmass/plus/wmass.root --skipPlot -A onemuon chargeplus "Muon_charge[goodMuons][0] > 0"
 ```
 
 #### Unpack the histograms into TH2 (eta-pt) for combinetf
@@ -129,6 +129,40 @@ python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-3
 ```
 This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
 The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
+
+## Making QCD template for Wmass
+
+### Prepare MCA file
+The idea is to make histograms in four regions defined by isolation and transverse mass, where the low mT region also has the requirement of at least one jet not overlapping with the muon.
+Instead of using the general formula to apply the fake rate method, which relies on both the fake and prompt rates, we can use directly the simplified formula given by f/(1-f) * N(QCD)_highIso, where f denotes the fake rate and N(QCD)_highIso is the number of QCD background events in the kinematic region with high muon isolation and high mT (so orthogonal to the signal region).
+Since f=N_passIso/N_tot (evaluated in the fake rate computation region, with low mT and 1 jet), the factor f/(1-f) reduces to N_passIso/N_failIso. At the same time, N(QCD)_highIso can be estimated as data-MC, and we can then directly multiply this template to obtain the QCD template in the signal region. 
+To make these histograms, first you need to use the following command to prepare the MCA file
+```
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)"
+```
+This also makes the histograms for the systematic variations on the prompt lepton templates.
+
+### Produce all the histograms for data and MC processes.
+
+The MC histograms will make the prompt component to be subtracted from data.
+One can make all the histograms with the following command (separately for preVFP and postVFP era for now, they may be gathered at a later stage). For now this is also charge inclusive, but we may split by charge at least to check for any difference (the charge dependence may arise from the prompt subtraction, which is largely dominated by W).
+```
+python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" -s --options " --skipPlot "
+```
+One can make the histograms separately for each charge by running twice with option __-c (plus|minus)__.
+
+Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
+```
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3//plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3/postprocessing/ -b "29,26,55"
+```
+
+#### Make plots in iso/mT regions for checks
+
+The same __runFakeRate.py__ script can be used without option __-s__ and removing __--skipPlot__ to plot histograms of given variables in all the four iso/mT regions. An example command is the following (default variables should be already adequate):
+```
+python runFakeRate.py -e postVFP --plot-file "plots_fakerate.txt"
+```
+
 
 ## Details about making plots
 
