@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Comma separated list of eras for SF in histogram name; default: %(default)s")
     parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
+    parser.add_argument("--sub-era", dest="subEra", type=str, default="", help="If given, comma-separated list of eras to use, others in main era will be ignored (including the inclusive one)")
     args = parser.parse_args()
 
     eraVFP = args.era
@@ -59,7 +60,9 @@ if __name__ == "__main__":
 
     hists = {}
     histsMC = {}
-    eras = ["B", "C", "D", "E", "F", "BtoF"] if eraVFP == "BtoF" else ["G", "H", "GtoH"]
+    eras = ["B", "C", "D", "E", "F", "BtoF", "G", "H"] if eraVFP == "BtoF" else ["G", "H", "GtoH"]
+    if len(args.subEra):
+        eras = [str(x) for x in args.subEra.split(',')]
     for era in eras:
         hists[era] = {}
         histsMC[era] = {}
@@ -152,33 +155,34 @@ if __name__ == "__main__":
         outdir_n = outdir + n + "/"
         createPlotDirAndCopyPhp(outdir_n)
 
-        lumiAverage = copy.deepcopy(hists[eraVFP][n].Clone(f"lumiAveEffData_{n}_{eraVFP}"))
-        lumiAverage.SetTitle("lumi-weighted average efficiency")
-        lumiAverage.Reset("ICESM")
-        
-        for era in eras:
-            if era == eraVFP:
-                continue
-            lumiAverage.Add(hists[era][n], lpe[era])
-        lumiAverage.Scale(1./lumi)
-        drawCorrelationPlot(lumiAverage, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency",
-                            lumiAverage.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
-                            passCanvas=canvas)
-        
-        pull = ROOT.TH1D(f"pull_fullEffData_lumiAverageVsInclusive_{n}_{eraVFP}","(average - inclusive) / uncertainty",100,-5,5)
-        for ix in range(1, 1 + lumiAverage.GetNbinsX()):
-            for iy in range(1, 1 + lumiAverage.GetNbinsY()):
-                diff = lumiAverage.GetBinContent(ix, iy) - hists[eraVFP][n].GetBinContent(ix, iy)
-                err = math.pow(lumiAverage.GetBinError(ix, iy), 2) + math.pow(hists[eraVFP][n].GetBinError(ix, iy), 2)
-                pull.Fill(diff / math.sqrt(err))
-        drawTH1(pull, "pull", "Events", outdir_n, prefix=pull.GetName(),passCanvas=canvas1D)
+        if eraVFP in eras:
+            lumiAverage = copy.deepcopy(hists[eraVFP][n].Clone(f"lumiAveEffData_{n}_{eraVFP}"))
+            lumiAverage.SetTitle("lumi-weighted average efficiency")
+            lumiAverage.Reset("ICESM")
 
-        ratioToInclusive = copy.deepcopy(lumiAverage.Clone(f"ratio_{lumiAverage.GetName()}"))
-        ratioToInclusive.Divide(hists[eraVFP][n])
-        ratioToInclusive.SetTitle("lumi-weighted average / inclusive")
-        drawCorrelationPlot(ratioToInclusive, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency ratio",
-                            ratioToInclusive.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
-                            passCanvas=canvas)
+            for era in eras:
+                if era == eraVFP or (eraVFP == "BtoF" and any(era == x for x in ["G", "H"])):
+                    continue
+                lumiAverage.Add(hists[era][n], lpe[era])
+            lumiAverage.Scale(1./lumi)
+            drawCorrelationPlot(lumiAverage, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency",
+                                lumiAverage.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+
+            pull = ROOT.TH1D(f"pull_fullEffData_lumiAverageVsInclusive_{n}_{eraVFP}","(average - inclusive) / uncertainty",100,-5,5)
+            for ix in range(1, 1 + lumiAverage.GetNbinsX()):
+                for iy in range(1, 1 + lumiAverage.GetNbinsY()):
+                    diff = lumiAverage.GetBinContent(ix, iy) - hists[eraVFP][n].GetBinContent(ix, iy)
+                    err = math.pow(lumiAverage.GetBinError(ix, iy), 2) + math.pow(hists[eraVFP][n].GetBinError(ix, iy), 2)
+                    pull.Fill(diff / math.sqrt(err))
+            drawTH1(pull, "pull", "Events", outdir_n, prefix=pull.GetName(),passCanvas=canvas1D)
+
+            ratioToInclusive = copy.deepcopy(lumiAverage.Clone(f"ratio_{lumiAverage.GetName()}"))
+            ratioToInclusive.Divide(hists[eraVFP][n])
+            ratioToInclusive.SetTitle("lumi-weighted average / inclusive")
+            drawCorrelationPlot(ratioToInclusive, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency ratio",
+                                ratioToInclusive.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
 
         for era in eras:
             if era == eraVFP or era == "B":
@@ -194,47 +198,49 @@ if __name__ == "__main__":
         
     # now for product, repeating the same code
     # also open root file to save some histograms
-    fout = ROOT.TFile.Open(outdir + "productEffAndSF.root", "RECREATE")        
+    fout = ROOT.TFile.Open(outdir + "productEffAndSFperEra.root", "RECREATE")        
     if not fout or not fout.IsOpen():
         raise RuntimeError(f"Error when opening file {fout.name}")
     fout.cd()
 
-    for n in prodHists[eraVFP].keys():
+    for n in prodHists[eras[0]].keys():
 
         outdir_n = outdir + f"products/{n}/"
         createPlotDirAndCopyPhp(outdir_n)
 
-        lumiAverage = copy.deepcopy(prodHists[eraVFP][n].Clone(f"lumiAveEffData_{n}_{eraVFP}"))
-        lumiAverage.SetTitle("lumi-weighted average efficiency")
-        lumiAverage.Reset("ICESM")
-        
+        if eraVFP in eras:
+
+            lumiAverage = copy.deepcopy(prodHists[eraVFP][n].Clone(f"lumiAveEffData_{n}_{eraVFP}"))
+            lumiAverage.SetTitle("lumi-weighted average efficiency")
+            lumiAverage.Reset("ICESM")
+
+            for era in eras:
+                if era == eraVFP or (eraVFP == "BtoF" and any(era == x for x in ["G", "H"])):
+                    continue
+                lumiAverage.Add(prodHists[era][n], lpe[era])
+            lumiAverage.Scale(1./lumi)
+            drawCorrelationPlot(lumiAverage, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency (product)",
+                                lumiAverage.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+
+            pull = ROOT.TH1D(f"pull_fullEffData_lumiAverageVsInclusive_{n}_{eraVFP}","(average - inclusive) / uncertainty",100,-5,5)
+            for ix in range(1, 1 + lumiAverage.GetNbinsX()):
+                for iy in range(1, 1 + lumiAverage.GetNbinsY()):
+                    diff = lumiAverage.GetBinContent(ix, iy) - prodHists[eraVFP][n].GetBinContent(ix, iy)
+                    err = math.pow(lumiAverage.GetBinError(ix, iy), 2) + math.pow(prodHists[eraVFP][n].GetBinError(ix, iy), 2)
+                    pull.Fill(diff / math.sqrt(err))
+            drawTH1(pull, "pull", "Events", outdir_n, prefix=pull.GetName(),passCanvas=canvas1D)
+
+            ratioToInclusive = copy.deepcopy(lumiAverage.Clone(f"ratio_{lumiAverage.GetName()}"))
+            ratioToInclusive.Divide(prodHists[eraVFP][n])
+            ratioToInclusive.SetTitle("lumi-weighted average / inclusive")
+            drawCorrelationPlot(ratioToInclusive, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency ratio",
+                                ratioToInclusive.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+
         for era in eras:
-            if era == eraVFP:
-                continue
-            lumiAverage.Add(prodHists[era][n], lpe[era])
-        lumiAverage.Scale(1./lumi)
-        drawCorrelationPlot(lumiAverage, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency (product)",
-                            lumiAverage.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
-                            passCanvas=canvas)
-        
-        pull = ROOT.TH1D(f"pull_fullEffData_lumiAverageVsInclusive_{n}_{eraVFP}","(average - inclusive) / uncertainty",100,-5,5)
-        for ix in range(1, 1 + lumiAverage.GetNbinsX()):
-            for iy in range(1, 1 + lumiAverage.GetNbinsY()):
-                diff = lumiAverage.GetBinContent(ix, iy) - prodHists[eraVFP][n].GetBinContent(ix, iy)
-                err = math.pow(lumiAverage.GetBinError(ix, iy), 2) + math.pow(prodHists[eraVFP][n].GetBinError(ix, iy), 2)
-                pull.Fill(diff / math.sqrt(err))
-        drawTH1(pull, "pull", "Events", outdir_n, prefix=pull.GetName(),passCanvas=canvas1D)
 
-        ratioToInclusive = copy.deepcopy(lumiAverage.Clone(f"ratio_{lumiAverage.GetName()}"))
-        ratioToInclusive.Divide(prodHists[eraVFP][n])
-        ratioToInclusive.SetTitle("lumi-weighted average / inclusive")
-        drawCorrelationPlot(ratioToInclusive, "muon #eta", "muon p_{T} (GeV)", f"{n} data efficiency ratio",
-                            ratioToInclusive.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
-                            passCanvas=canvas)
-
-        for era in eras:
-
-            sfRatio = copy.deepcopy(prodHists["B"][n].Clone(f"fullSF2D_{n}_{era}"))
+            sfRatio = copy.deepcopy(prodHists[era][n].Clone(f"fullSF2D_{n}_{era}"))
             sfRatio.Divide(prodHistsMC[era][n.replace("fullEffData_","fullEffMC_")])
             sfRatio.Write(sfRatio.GetName())
             drawCorrelationPlot(sfRatio, "muon #eta", "muon p_{T} (GeV)", f"Global data/MC scale factor ({era})",
