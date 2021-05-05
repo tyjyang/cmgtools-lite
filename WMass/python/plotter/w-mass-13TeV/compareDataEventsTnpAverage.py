@@ -450,3 +450,9 @@ if __name__ == "__main__":
         canvas.SaveAs(outdir + canvasName + "_logY.png")
         canvas.SaveAs(outdir + canvasName + "_logY.pdf")
         canvas.SetLogy(0)
+
+    for i in range(1, 1 + ratio.GetNbinsX()):
+        valRatio = ratio.GetBinContent(i)
+        if valRatio < 0.9 and valRatio > 0:
+            valRun = ratio.GetBinCenter(i)
+            print(f"run {valRun} --> ratio = {ratio.GetBinContent(i)}")
