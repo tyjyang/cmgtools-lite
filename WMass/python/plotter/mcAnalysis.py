@@ -59,6 +59,9 @@ class MCAnalysis:
         self._premap = []
         self._optionsOnlyProcesses = {}
         self.init_defaults = {}
+        # Relative value to clip weights to (sign is always kept). 
+        # e.g., 10. allows weights up to 10x the nominal, 1. keeps only the sign
+        self.clipWeight = 1.
         for premap in options.premap:
             to,fro = premap.split("=")
             if to[-1] == ":": to = to[:-1]
@@ -78,50 +81,6 @@ class MCAnalysis:
         self.allHistos = {} # dictionary with a key for process name and a list of histograms (or dictionary to have a name for each histogram)
         self.allCutReports = {}
         self.readMca(samples,options)
-     
-    def getSumGenWeightMCfromHisto(self, pname, rootfile, verbose=False):
-
-        maxGenWgt = None
-        sumGenWeights = 1.0
-        nUnweightedEvents = 1.0
-
-        ROOT.gEnv.SetValue("TFile.AsyncReading", 1);
-        #tmp_rootfile = ROOT.TXNetFile(rootfile+"?readaheadsz=65535")
-        tmp_rootfile = ROOT.TFile.Open(rootfile)
- 
-        histo_sumgenweight = tmp_rootfile.Get('hGenWeights')
-        if not histo_sumgenweight:
-            raise RuntimeError("Can't get histogram hGenWeights from %s.\nMake sure it is available when using option --max-genWeight-procs" % rootfile)
-
-        if self._options.weight and len(self._options.maxGenWeightProc):
-            # get sum of weights from histograms, filtering some events with large weights
-            for procRegExp,tmp_maxGenWgt in self._options.maxGenWeightProc:
-                if re.match(procRegExp,pname):
-                    #tmp_maxGenWgt is a string, convert to float
-                    maxGenWgt = fabs(float(tmp_maxGenWgt))
-                    log10_maxGenWgt = math.log10(maxGenWgt)
-                    minBin = histo_sumgenweight.GetXaxis().FindFixBin(-log10_maxGenWgt)
-                    maxBin = histo_sumgenweight.GetXaxis().FindFixBin(log10_maxGenWgt)
-                    sumGenWeights = histo_sumgenweight.Integral(minBin,maxBin)                  
-                    if self._options.clipGenWeightToMax:
-                        # then the other histogram, whose integral is the number of events before any cut
-                        histo_numweight = tmp_rootfile.Get('hNumWeights')
-                        if not histo_numweight:
-                            raise RuntimeError("Can't get histogram hNumWeights from %s.\nMake sure it is available when using option --max-genWeight-procs and --clip-genWeight-toMax" % rootfile)
-                        # get actual upper threshold based on the bin edge
-                        maxGenWgt = math.pow(10.0,histo_sumgenweight.GetXaxis().GetBinUpEdge(maxBin))
-                        if verbose:
-                            logging.info("Process %s -> actual genWeight threshold set to %s" % (pname,str(maxGenWgt)))
-                        nLargeWeight = -1*histo_numweight.Integral(0,max(0,minBin-1)) + histo_numweight.Integral(min(histo_numweight.GetNbinsX()+1,maxBin+1), histo_numweight.GetNbinsX()+1)
-                        sumGenWeights += (nLargeWeight*maxGenWgt) 
-                        nUnweightedEvents = histo_numweight.Integral(0,histo_numweight.GetNbinsX()+1)
-        else:
-            sumGenWeights = histo_sumgenweight.Integral(0,1+histo_sumgenweight.GetNbinsX())
-            nUnweightedEvents = histo_sumgenweight.GetEntries()            
-            
-        tmp_rootfile.Close()                            
-        return (maxGenWgt, sumGenWeights, nUnweightedEvents)
- 
 
     def readMca(self,samples,options,addExtras={},field0_addExtras=""):
 
@@ -267,14 +226,6 @@ class MCAnalysis:
             is_w = -1
             pname0 = pname
 
-            if options.weight and len(options.maxGenWeightProc):
-                for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                    if re.match(procRegExp,pname):
-                        if options.clipGenWeightToMax:
-                            logging.info("Process %s -> clipping genWeight to |x| < %s" % (pname,tmp_maxGenWgt))
-                        else:
-                            logging.info("Process %s -> rejecting events with genWeight > %s" % (pname,tmp_maxGenWgt))
-            
             ## cname = os.path.basename(cnameWithPath)
             if options.useCnames: pname = pname0+"."+cname
             for (ffrom, fto) in options.filesToSwap:
@@ -334,94 +285,45 @@ class MCAnalysis:
             if pname in self._allData: self._allData[pname].append(tty)
             else                     : self._allData[pname] =     [tty]
             if "data" not in pname:
+                total_w = 1.0 
                 if options.noHeppyTree:
                     if options.weight:
                         if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1
-                        total_w = 1.0  # not really used for general trees at the moment
                         scale = "(%s)" % field[2]
                     else:
                         scale = "1"
-                        total_w = 1 # not really used for general trees at the moment
                         if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0
                 elif options.nanoaodTree:
 
-                    maxGenWgt = None
-                    sumGenWeights = 1.0
-                    nUnweightedEvents = 1.0
-                    if options.sumGenWeightFromHisto:
-                        # useful for skims when rejecting events with fancy weights
-                        # if not doing such removal, it is still better to use the actual
-                        # information in the Runs tree, as done below
-                        for iFile,f in enumerate(cnamesWithPath):
-                            (maxGenWgt, tmp_sumGenWeights, tmp_nUnweightedEvents) = self.getSumGenWeightMCfromHisto(pname, f, verbose=(iFile==0))
-                            sys.stdout.write('INFO >>> preparing files {0:.2%}  \r'.format(float(iFile+1)/nAllFiles))
-                            sys.stdout.flush()
-                            sumGenWeights += tmp_sumGenWeights
-                            nUnweightedEvents += tmp_nUnweightedEvents
-                    else:
-                        if options.weight and len(options.maxGenWeightProc):
-                            # get sum of weights from Events tree, filtering some events with large weights
-                            # this assumes the trees are unskimmed to correctly compute the sum!!
-                            matchingProcess = False
-                            for procRegExp,tmp_maxGenWgt in options.maxGenWeightProc:
-                                if re.match(procRegExp,pname):
-                                    #tmp_maxGenWgt is a string, convert to float
-                                    maxGenWgt = abs(float(tmp_maxGenWgt))                        
-                                    if options.clipGenWeightToMax:
-                                        # set weights > max to max
-                                        #tmp_rdf = tmp_rdf.Define('myweight', 'std::copysign(1.0,genWeight) * std::min<float>(std::abs(genWeight),{s})'.format(s=maxGenWgt))
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeClipped(genWeight,{s})'.format(s=maxGenWgt))
-                                    else:
-                                        # reject event with weight > max
-                                        #tmp_rdf = tmp_rdf.Define('myweight', 'genWeight*(abs(genWeight) < {s})'.format(s=str(maxGenWgt)))                                      
-                                        tmp_rdf = tmp_rdf.Define('myweight', 'genWeightLargeRemoved(genWeight,{s})'.format(s=maxGenWgt))   
-                                    matchingProcess = True
-                                    # do not break the loop, if multiple regexp matches, this is a flaw and it is better that the code crashes to warn the user by printing thar the branch would be defined again
-                                    # break # avoid case with multiple regular expression matching
-                            if not matchingProcess:
-                                # for all other processes which did not matched
-                                tmp_rdf = tmp_rdf.Define('myweight', 'genWeight')
-
-                        elif options.weight:
-                            # define the gen weight as the standard genWeight, as done with all the other samples
-                            tmp_rdf = tmp_rdf.Define('myweight', 'genWeight')
-                            # the following might be removed, no need to get the sum like that
-                            ## we immediately trigger the loop here, but each Runs tree has one event
-                            ## so it should be quite fast to get the sum like this
-                            # tmp_rdf_runs = ROOT.RDataFrame("Runs", tmp_names)
-                            # _sumGenWeights = tmp_rdf_runs.Sum('genEventSumw')
-                            # _nUnweightedEvents = tmp_rdf_runs.Sum('genEventCount')
-                            # sumGenWeights = _sumGenWeights.GetValue()
-                            # nUnweightedEvents = _nUnweightedEvents.GetValue()
-
+                    if options.weight:
+                        # get sum of weights from Events tree, filtering some events with large weights
+                        # this assumes the trees are unskimmed to correctly compute the sum!!
+                        wdef = 'std::copysign(1., genWeight)' 
+                        # TODO: Unimplemented
+                        if self.clipWeight != 1.:
+                            # Need to process everything to get the nominal weight (or could hardcode it...)
+                            tmp_rdf = tmp_rdf.Define('relativeWeight', f'std::min(genWeight, {self.clipWeight}')
+                            wdef = 'std::copysign(std::min(genWeight, relativeWeight))'
+                        tmp_rdf = tmp_rdf.Define('genWeightClip', wdef)
                         # set again tmp_rdf, as we set a new column but the rdf was already assigned to tty
                         tty.setRDF(tmp_rdf)
                             
                     if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
                         if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1; 
-                        if options.sumGenWeightFromHisto or (len(options.maxGenWeightProc) == 0):
-                            total_w = sumGenWeights
-                        else:
-                            # in this case division by sum of gen weights is done at the end by scaling histograms
-                            # if we tried to compute the sum now, this would trigger the loop on rdf
-                            # but it would be a waste of time
-                            total_w = 1.0 
-                        if maxGenWgt != None:
-                            scale = '(%s)*myweight' % field[2]                            
-                        else:
-                            scale = "genWeight*(%s)" % field[2]
+                        # in this case division by sum of gen weights is done at the end by scaling histograms
+                        # if we tried to compute the sum now, this would trigger the loop on rdf
+                        # but it would be a waste of time
+                        scale = '(%s)*genWeightClip' % field[2]                            
                     elif not options.weight:
                         scale = "1"
-                        total_w = 1
                         if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0
                     else: # case for unweighted events for MC
                         if (is_w==1): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 0;
-                        total_w = nUnweightedEvents
                         scale = "(%s)" % field[2]
                 if len(field) == 4: scale += "*("+field[3]+")"
                 for p0,s in options.processesToScale:
@@ -451,8 +353,6 @@ class MCAnalysis:
             if pname not in self._rank: self._rank[pname] = len(self._rank)
 
             if to_norm: 
-                if options.sumGenWeightFromHisto:
-                    ">>> Total sumgenweights from histograms = %s (process = %s)" % (str(total_w),pname)
                 for tty in ttys: 
                     if options.weight: 
                         tty.setScaleFactor("%s*%g" % (scale, 1000.0/total_w))
@@ -936,12 +836,9 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--scaleplot", dest="plotscalemap", type=str, default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
     parser.add_argument("-t", "--tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_argument("--fom", "--figure-of-merit", dest="figureOfMerit", type=str, default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
-    parser.add_argument("--max-genWeight-procs", dest="maxGenWeightProc", type=str, nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
-    parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
     parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
     parser.add_argument("--nanoaod-tree", dest="nanoaodTree", action="store_true", help="Set to true to read root files from nanoAOD");
     parser.add_argument("--filter-proc-files", dest="filterProcessFiles", type=str, nargs=2, action="append", default=[], help="Can use this option to override second field on each process line in MCA file, so to select few files without modifying the MCA file (e.g. for tests). E.g. --filter-proc-files 'W.*' '.*_12_.*' to only use files with _12_ in their name. Only works with option --nanoaod-tree");
-    parser.add_argument("--sum-genWeight-fromHisto", dest="sumGenWeightFromHisto", action="store_true", help="If True, compute sum of gen weights from histogram (when using --nanoaod-tree)");
     parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
