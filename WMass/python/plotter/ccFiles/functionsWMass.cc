@@ -591,12 +591,21 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   _file_allSF.Close(); // should work since we used TH1D::SetDirectory(0) to detach histogram from file
 
   std::string _filename_prefiring = "./testMuonSF/muonPrefiring_prePostVFP.root";
+  //std::string _filename_prefiring = "./testMuonSF/muonPrefiring_fineEta.root";
   TFile _file_prefiring = TFile(_filename_prefiring.c_str(), "read");
-  if (!_file_prefiring.IsOpen())
+  if (!_file_prefiring.IsOpen()) {
     std::cerr << "WARNING: Failed to open prefiring file " << _filename_prefiring << "\n";
+    exit(EXIT_FAILURE);
+  }
   std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
+  //hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_beforeRun2016H")));
+  // for inserting the effect back in the endcap to era H
+  // for (int ib = 1; ib <= hMuonPrefiring[BToF].GetNbinsX(); ++ib) {
+  //   if (ib > 4 and ib <= 12) hMuonPrefiring[BToF].SetBinContent(ib, 0.0);
+  // }
   hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_preVFP")));
   hMuonPrefiring[BToF].SetDirectory(0);
+  //hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_Run2016H")));
   hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_postVFP")));
   hMuonPrefiring[GToH].SetDirectory(0);
   _file_prefiring.Close();

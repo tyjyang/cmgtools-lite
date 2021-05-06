@@ -42,7 +42,7 @@ Some notes:
 
 Wlike (using odd events for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --pdir --out cards/wlike/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree --max-genWeight-procs "W|Z" "50118.72" --clip-genWeight-toMax -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wlike/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
 ```
 
 Wmass (example for charge plus)
@@ -130,6 +130,11 @@ python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-3
 This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
 The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
 
+The previous command assumes that the input root file contains histograms for the preVFP or postVFP era. For tests, we made scale factors also split by era. Currently, they can be manipulated using the following script (not worth merging it with the other one, as we don't expect to use scale factors for each single era).
+```
+python w-mass-13TeV/compareSFperEra.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-04-30_allSFs.root plots/testNanoAOD/testSF/SFeta0p1_30Apr2021_checkLumiAverage/ -e BtoF
+```
+
 ## Making QCD template for Wmass
 
 ### Prepare MCA file
@@ -145,22 +150,25 @@ This also makes the histograms for the systematic variations on the prompt lepto
 ### Produce all the histograms for data and MC processes.
 
 The MC histograms will make the prompt component to be subtracted from data.
-One can make all the histograms with the following command (separately for preVFP and postVFP era for now, they may be gathered at a later stage). For now this is also charge inclusive, but we may split by charge at least to check for any difference (the charge dependence may arise from the prompt subtraction, which is largely dominated by W).
+One can make all the histograms with the following command (separately for preVFP and postVFP era for now, they may be gathered at a later stage).
+One can make the histograms separately for each charge by running twice with option __-c (plus|minus)__. The charge dependence may arise from the prompt subtraction, which is largely dominated by W.
 ```
-python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" -s --options " --skipPlot "
+python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c plus -s
+python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c minus -s
 ```
-One can make the histograms separately for each charge by running twice with option __-c (plus|minus)__.
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
 ```
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3//plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_systTH3/postprocessing/ -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/postprocessing/ -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/postprocessing/ -b "29,26,55"
 ```
+Note that the pt binning passed with __-b__ must be consistent with the one used before (which had a range 4 times larger because including the 4 iso/mT regions).
 
 #### Make plots in iso/mT regions for checks
 
 The same __runFakeRate.py__ script can be used without option __-s__ and removing __--skipPlot__ to plot histograms of given variables in all the four iso/mT regions. An example command is the following (default variables should be already adequate):
 ```
-python runFakeRate.py -e postVFP --plot-file "plots_fakerate.txt"
+python runFakeRate.py -e postVFP --plot-file "plots_fakerate.txt" [-c plus|minus]
 ```
 
 
