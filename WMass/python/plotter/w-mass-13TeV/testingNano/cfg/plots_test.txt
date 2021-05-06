@@ -6,8 +6,6 @@ dummy: 0.5: 1,0,1; XTitle="dummy variable", Legend='TR'
 
 runNumber: run : 10887,273157.5,284044.5; XTitle="Run number", Legend='TR'
 
-max_muon_pt: max_muon_pt : 100,25,200; XTitle="Muon sum p_{T} (GeV)", Legend='TR', IncludeOverflows=True
-
 max_muon_abseta: Max(absoluteValue(Muon_eta[goodMuons])) : 48,0,2.4; XTitle="Max of absolute #eta1\,#eta2", Legend='TR', IncludeOverflows=True
 min_muon_abseta: Min(absoluteValue(Muon_eta[goodMuons])) : 48,0,2.4; XTitle="Min of absolute #eta1\,#eta2", Legend='TR', IncludeOverflows=True
 
