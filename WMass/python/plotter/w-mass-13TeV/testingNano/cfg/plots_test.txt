@@ -13,14 +13,6 @@ min_muon_abseta: Min(absoluteValue(Muon_eta[goodMuons])) : 48,0,2.4; XTitle="Min
 
 muon_pt: Muon_pt[goodMuonsCharge][0]: 55,25,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
-muon_pt_eta2p1: Muon_pt[goodMuonsCharge][0]: 27,26,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True, AddWeight="std::abs(Muon_eta[goodMuonsCharge][0])>2.1 && std::abs(Muon_eta[goodMuonsOther][0])>2.1", RMin=0.7, RMax=1.05
-
-muon_pt_other_eta2p1: Muon_pt[goodMuonsOther][0]: 27,26,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True, AddWeight="std::abs(Muon_eta[goodMuonsCharge][0])>2.1 && std::abs(Muon_eta[goodMuonsOther][0])>2.1", RMin=0.7, RMax=1.05
-
-muon_pt_etaCharge2p1: Muon_pt[goodMuonsCharge][0]: 27,26,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True, AddWeight="std::abs(Muon_eta[goodMuonsCharge][0])>2.1", RMin=0.7, RMax=1.05
-
-muon_pt_other_etaCharge2p1: Muon_pt[goodMuonsOther][0]: 27,26,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True, AddWeight="std::abs(Muon_eta[goodMuonsCharge][0])>2.1", RMin=0.7, RMax=1.05
-
 muon_pt_all: Muon_pt[goodMuons]: 55,25,80; XTitle="Both muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_eta: Muon_eta[goodMuonsCharge][0]: 24,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True

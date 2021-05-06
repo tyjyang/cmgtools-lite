@@ -20,6 +20,9 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from tree2yield import setLogging
 from cropNegativeTemplateBins import cropNegativeContent
 
+sys.path.append(os.getcwd() + "/plotUtils/")
+from utility import getTH2fromTH3
+
 def getQCDScaleIndices():
     # first number is for renormalization scale, the other is for factorization scale
     # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
@@ -35,16 +38,6 @@ def getQCDScaleIndices():
             16 : "muRmuFUp"
     }
     return ret
-
-def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
-
-    if binEnd == None:
-        binEnd = binStart
-    hist3D.GetZaxis().SetRange(binStart,binEnd)
-    # Order yx matters to have consistent axes!
-    hist2D = hist3D.Project3D("yxe") # make TH2 with y axis versus x axis
-    hist2D.SetName(name)
-    return hist2D
     
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
@@ -89,7 +82,7 @@ if args.decorrByCharge:
     regexp = args.decorrByCharge.replace(',','|')
     matchDecorr = re.compile(regexp)
     chargeKey = "Plus" if args.charge == "plus" else "Minus"
-    
+
 hnomi = {} # {process name : histo}
 hsyst = {} # {syst name : {process name : histo}}
 

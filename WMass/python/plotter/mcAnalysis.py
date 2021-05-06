@@ -402,7 +402,7 @@ class MCAnalysis:
                     if options.weight and True: # True for now, later on this could explicitly require using the actual genWeights as opposed to using sum of unweighted events for MC (see the case for cmgtools below)
                         if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1; 
-                        if options.sumGenWeightFromHisto or (len(options.maxGenWeightProc) == 0):
+                        if options.sumGenWeightFromHisto:
                             total_w = sumGenWeights
                         else:
                             # in this case division by sum of gen weights is done at the end by scaling histograms
@@ -936,6 +936,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--scaleplot", dest="plotscalemap", type=str, default=[], action="append", help="Scale plots by this factor (before grouping). Syntax is '<newname> := (comma-separated list of regexp)', can specify multiple times.")
     parser.add_argument("-t", "--tree", default='treeProducerWMass', help="Pattern for tree name");
     parser.add_argument("--fom", "--figure-of-merit", dest="figureOfMerit", type=str, default=[], action="append", help="Add this figure of merit to the output table (S/B, S/sqrB, S/sqrSB)")
+    parser.add_argument("--set-genWeight-toUnity", dest="setGenWeightToUnity", action="store_true", help="Set gen weight to 1, keeping the sign (this will include all weights, overriding other options to clip them). If weights are > 1, it is equivalent to --max-genWeight-procs with all processes and --clip-genWeight-toMax together");
     parser.add_argument("--max-genWeight-procs", dest="maxGenWeightProc", type=str, nargs=2, action="append", default=[], help="maximum genWeight to be used for a given MC process (first value is a regular expression for the process, second is the max weight). This option effectively applies a cut on genWeight, and also modifies the sum of genweights. Can be specified more than once for different processes. This will cut away events with larger weights");
     parser.add_argument("--clip-genWeight-toMax", dest="clipGenWeightToMax", action="store_true", help="It only works with --nanoaod-tree when using --max-genWeight-procs, setting large weights to the max instead of rejecting the event");
     parser.add_argument("--no-heppy-tree", dest="noHeppyTree", action="store_true", help="Set to true to read root files when they were not made with Heppy (different convention for path names, might need to be adapted)");
