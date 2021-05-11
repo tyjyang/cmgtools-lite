@@ -160,8 +160,8 @@ The MC histograms will make the prompt component to be subtracted from data.
 One can make all the histograms with the following command (separately for preVFP and postVFP era for now, they may be gathered at a later stage).
 One can make the histograms separately for each charge by running twice with option __-c (plus|minus)__. The charge dependence may arise from the prompt subtraction, which is largely dominated by W.
 ```
-python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c plus -s
-python runFakeRate.py -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c minus -s
+python runFakeRate.py -o plots/testNanoAOD/WmassPlots/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c plus -s
+python runFakeRate.py -o plots/testNanoAOD/WmassPlots/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c minus -s
 ```
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
