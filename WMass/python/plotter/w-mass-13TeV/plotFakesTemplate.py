@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# manage histograms made using runFakeRate.py
+# it creates the QCD templates including all systematic variations, and also stores the histograms for other process
+# in a root file which can be passed as input to makeHistogramsWMass.py
+# this script also creates the variations for luminosity, which is a constant scaling for processes other than QCD
+# while for QCD the systematics depends of the subtraction of other processes from data
+
 import re
 import os, os.path
 import logging
@@ -32,6 +38,7 @@ if __name__ == "__main__":
     parser.add_argument("rootfile", type=str, nargs=1, help="Input file with histograms")
     parser.add_argument("outdir",   type=str, nargs=1, help="Ouput folder for plots")
     parser.add_argument("-b", "--ptBins", required=True, type=str, help = "Binning for pt in a single region, formatted as in TH1 constructor, e.g. '29,26,55' (uniform binning expected for now)")
+    parser.add_argument("-l", "--lumi", type=float, default="1.012", help="Luminosity uncertainty (1 + uncertainty, so e.g. 1.012 for 1.2% uncertainty )")
     args = parser.parse_args()
 
     if len(args.ptBins.split(',')) != 3:
@@ -46,6 +53,9 @@ if __name__ == "__main__":
 
     ROOT.TH1.SetDefaultSumw2()
 
+    lumi = float(args.lumi)
+    #lumiUnc = 100.0*(lumi-1.0)
+    #print(f"lumi = {lumi}  --> uncertainty on luminosity {lumiUnc}%")
     systNamesProcsHists = {}
     
     f = ROOT.TFile.Open(fname)
@@ -68,6 +78,22 @@ if __name__ == "__main__":
             systNamesProcsHists[syst][proc].SetDirectory(0)
     f.Close()
 
+    nEtaBins = nomihists["data"].GetNbinsX()
+    etaLow   = nomihists["data"].GetXaxis().GetBinLowEdge(1)
+    etaHigh  = nomihists["data"].GetXaxis().GetBinLowEdge(1+nEtaBins)
+    tokens = args.ptBins.split(',')
+    nPtBins = int(tokens[0])
+    ptLow   = float(tokens[1])
+    ptHigh  = float(tokens[2])
+
+    xAxisName = "Muon #eta"
+    yAxisName = "Muon p_{T} (GeV)"
+
+    systNamesProcsHists["luminosity"] = {}
+    nPtBins4regions = nomihists["data"].GetNbinsY()
+    ptLow4regions   = nomihists["data"].GetYaxis().GetBinLowEdge(1)
+    ptHigh4regions  = nomihists["data"].GetYaxis().GetBinLowEdge(1+nPtBins4regions)
+    
     # get data-MC for all regions
     hDataSubMC = nomihists["data"].Clone("dataSubMC")
     allProcnames = []
@@ -75,8 +101,18 @@ if __name__ == "__main__":
         if k == "data": continue
         allProcnames.append(k)
         hDataSubMC.Add(nomihists[k],-1.0)
-
+        # add luminosity Up and Down
+        systNamesProcsHists["luminosity"][k] = ROOT.TH3D(f"luminosity__{k}", f"luminosity Up/Down by {args.lumi}%",
+                                                         nEtaBins, etaLow, etaHigh,
+                                                         nPtBins4regions, ptLow4regions, ptHigh4regions,
+                                                         2, 0.5, 2.5)
+        fillTH3binFromTH2(systNamesProcsHists["luminosity"][k], nomihists[k], 1, scaleFactor=lumi)
+        fillTH3binFromTH2(systNamesProcsHists["luminosity"][k], nomihists[k], 2, scaleFactor=(1./lumi))
+        systNamesProcsHists["luminosity"][k].GetXaxis().SetTitle(xAxisName)
+        systNamesProcsHists["luminosity"][k].GetYaxis().SetTitle(yAxisName)
+        
     hDataSubMC_syst = {} # syst : TH3
+
     for sys in systNamesProcsHists.keys():
         # get numbr of Z bins from TH3
         anyKey = list(systNamesProcsHists[sys].keys())[0]
@@ -95,8 +131,8 @@ if __name__ == "__main__":
                 else:
                     tmpTH2dataSubMC.Add(nomihists[proc], -1.0)
             fillTH3binFromTH2(hDataSubMC_syst[sys], tmpTH2dataSubMC, iz)
+
             
-        
     # now unpack the four regions within the histogram
     regionId = {0: "highIso_lowMt",
                 1: "lowIso_lowMt",
@@ -104,16 +140,6 @@ if __name__ == "__main__":
                 3: "lowIso_highMt"}
 
     hFakes = {}
-    nEtaBins = hDataSubMC.GetNbinsX()
-    etaLow   = hDataSubMC.GetXaxis().GetBinLowEdge(1)
-    etaHigh  = hDataSubMC.GetXaxis().GetBinLowEdge(1+nEtaBins)
-    tokens = args.ptBins.split(',')
-    nPtBins = int(tokens[0])
-    ptLow   = float(tokens[1])
-    ptHigh  = float(tokens[2])
-
-    xAxisName = "Muon #eta"
-    yAxisName = "Muon p_{T} (GeV)"
     
     canvas = ROOT.TCanvas("canvas", "", 800, 700)
     adjustSettings_CMS_lumi()
@@ -173,8 +199,28 @@ if __name__ == "__main__":
         raise RuntimeError(f"Error when opening file {foutname}")
     fout.cd()
     templateQCD.Write("nominal__data_fakes")
+    # hdata and hmc will be used later for plotting
+    hdata = None
+    hmc = []
+    # get part of the histogram corresponding to signal region, which is number 3 (4th key)
+    ptBinOffsetSigRegion = 3 * nPtBins
     for k in nomihists.keys():
-        nomihists[k].Write(nomihists[k].GetName())
+        # nomihists[k].Write(nomihists[k].GetName()) ## no, this has the pt range for all the 4 regions, we don't want it
+        hSigRegion = ROOT.TH2D(f"hSigRegion_{k}", "",
+                               nEtaBins, etaLow, etaHigh,
+                               nPtBins,  ptLow,  ptHigh)
+        fillTH2fromTH2part(hSigRegion, nomihists[k],
+                           xbinLow=1, ybinLow=1,
+                           xbinHigh=nEtaBins, ybinHigh=nPtBins,
+                           xoffset=0, yoffset=ptBinOffsetSigRegion)
+        if k == "data":
+            hdata = copy.deepcopy(hSigRegion.Clone("data"))
+        else:
+            hmc.append(copy.deepcopy(hSigRegion.Clone(f"{k}")))
+        hSigRegion.Write(f"nominal__{k}")
+    # add also data_fakes to array    
+    hmc.append(copy.deepcopy(templateQCD.Clone(f"data_fakes")))
+
     # do not close file here, more histograms saved later
     
     print("Now dealing with systematic variations for fakes")
@@ -220,8 +266,6 @@ if __name__ == "__main__":
         templateQCDsys.Write(f"{sys}__data_fakes")
         print(f"Writing histogram {sys}__data_fakes")
 
-    # get part of the histogram corresponding to signal region, which is number 3 (4th key)
-    ptBinOffset = 3 * nPtBins
     for sys in systNamesProcsHists.keys():
         for proc in systNamesProcsHists[sys].keys():
             nZbins = systNamesProcsHists[sys][proc].GetNbinsZ()
@@ -234,34 +278,17 @@ if __name__ == "__main__":
             fillTH3fromTH3part(histRegion3, systNamesProcsHists[sys][proc],
                                xbinLow=1, ybinLow=1, zbinLow=1,
                                xbinHigh=nEtaBins, ybinHigh=nPtBins, zbinHigh=nZbins,
-                               xoffset=0, yoffset=ptBinOffset, zoffset=0)
+                               xoffset=0, yoffset=ptBinOffsetSigRegion, zoffset=0)
             histRegion3.Write(f"{sys}__{proc}")
             print(f"Writing histogram {sys}__{proc}")
             
     # now can close the file
     fout.Close()
-    print(f"QCD background shapes written in file {foutname}")
+    print(f"Shapes for all processes written in file {foutname}")
     print()
 
 
-    # now we may do some more plotting
-    hdata = None
-    hmc = []
-    for k in nomihists.keys():
-        hSigRegion = ROOT.TH2D(f"hSigRegion_{k}", "",
-                               nEtaBins, etaLow, etaHigh,
-                               nPtBins,  ptLow,  ptHigh)
-        fillTH2fromTH2part(hSigRegion, nomihists[k],
-                           xbinLow=1, ybinLow=1,
-                           xbinHigh=nEtaBins, ybinHigh=nPtBins,
-                           xoffset=0, yoffset=ptBinOffset)
-        if k == "data":
-            hdata = copy.deepcopy(hSigRegion.Clone("data"))
-        else:
-            hmc.append(copy.deepcopy(hSigRegion.Clone(f"{k}")))
-    hmc.append(copy.deepcopy(templateQCD.Clone(f"data_fakes")))
-
-
+    # now we may do some more plotting of data and MC in signal region
     hmc = sorted(hmc, key= lambda x: x.Integral()) # , reverse=True) 
     stack_eta = ROOT.THStack("stack_eta", "signal and backgrounds")
     stack_pt = ROOT.THStack("stack_pt", "signal and backgrounds")

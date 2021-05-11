@@ -591,31 +591,27 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   _file_allSF.Close(); // should work since we used TH1D::SetDirectory(0) to detach histogram from file
 
   std::string _filename_prefiring = "./testMuonSF/muonPrefiring_prePostVFP.root";
-  //std::string _filename_prefiring = "./testMuonSF/muonPrefiring_fineEta.root";
   TFile _file_prefiring = TFile(_filename_prefiring.c_str(), "read");
   if (!_file_prefiring.IsOpen()) {
     std::cerr << "WARNING: Failed to open prefiring file " << _filename_prefiring << "\n";
     exit(EXIT_FAILURE);
   }
   std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
-  //hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_beforeRun2016H")));
-  // for inserting the effect back in the endcap to era H
-  // for (int ib = 1; ib <= hMuonPrefiring[BToF].GetNbinsX(); ++ib) {
-  //   if (ib > 4 and ib <= 12) hMuonPrefiring[BToF].SetBinContent(ib, 0.0);
-  // }
   hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_preVFP")));
   hMuonPrefiring[BToF].SetDirectory(0);
   //hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_Run2016H")));
   hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_postVFP")));
   hMuonPrefiring[GToH].SetDirectory(0);
   _file_prefiring.Close();
-    
+
+  
 }
 
 ////=====================================================================================
 // FOR TESTS WITH EFFICIENCIES (F is preVFP part)
 std::unordered_map<DataEra, std::string> runEraNames = { {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorDataPerEra = {};
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorMCPerEra = {};
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> scaleFactorPerEra = {};
 
 void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra.root") {
@@ -628,6 +624,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
   
   std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
 
+  // data/data
   for (auto& corr : scalefactorNames) {
     // first data/data (no B, as the ratio is wrt B)
     for (auto& dataRunEra : runEraNames) {
@@ -650,6 +647,29 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
       auto corrKey = std::make_pair(key, typeVal);
       scaleFactorDataPerEra[corrKey] = *static_cast<TH2D*>(histptr);
     }
+
+    // now for MC/MC
+    for (auto& dataRunEra : runEraNames) {
+      if (dataRunEra.second.compare("B") == 0) {
+	continue;
+      }
+      std::vector<std::string> vars = {Form("ratio_Bover%s",dataRunEra.second.c_str()), "fullEffMC", corr.second};
+      std::string corrname = boost::algorithm::join(vars, "_");
+      auto* histptr = static_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+      if (histptr == nullptr) {
+	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		  << _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+	// exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+	continue;
+      }
+      histptr->SetDirectory(0);
+      DataEra typeVal = dataRunEra.first;
+      ScaleFactorType key = corr.first;
+      // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+      auto corrKey = std::make_pair(key, typeVal);
+      scaleFactorMCPerEra[corrKey] = *static_cast<TH2D*>(histptr);
+    }
+
     // repeat for data/MC 
     for (auto& dataRunEra : runEraNames) {
       std::vector<std::string> vars = {"fullSF2D", corr.second, dataRunEra.second};
@@ -711,6 +731,46 @@ float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
   return sf;
 
 }
+
+float _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
+				 float ptOther, float etaOther,
+				 DataEra dtype = C,
+				 bool isoSF1 = true, // to use SF for iso or antiiso
+				 bool isoSF2 = true,
+				 bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				 ) {
+  
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (neglectIso) {
+    sftype = charge > 0 ? noisoTrigPlus : noisoTrigMinus;
+  } else if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+  }
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2D& hcorr = scaleFactorMCPerEra.at(key);
+  float sf = getValFromTH2(hcorr, eta, pt);
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (ptOther > 0.0) {
+    if (neglectIso) {
+      sftype = noisoNotrig;
+    } else {
+      sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+    }
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = scaleFactorMCPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
 
  
 float _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
@@ -794,6 +854,29 @@ float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& loose
   return sf;  
   
 }
+
+float _get_MuonPrefiringSF_EndcapOnly(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
+
+  // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
+  float sf = 1.0;
+  // get SF = Prod_i( 1 - P_pref[i] )
+  // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
+
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
+
+  const TH1D& hprefire = hMuonPrefiring[era];
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+    if (fabs(eta[i]) < 1.24) continue;
+    if (pt[i] < 22) continue;
+    if (not looseId[i]) continue;
+    // no need to care about under/overflow, the prefiring would be 0 there, and the actual range is -2.4000001, 2.4000001
+    //sf *= (1.0 - hMuonPrefiring[era].GetBinContent(std::max(0, std::min(nBinsX, hMuonPrefiring[era].FindFixBin(eta[i])) )) );
+    sf *= (1.0 - hprefire.GetBinContent(hprefire.FindFixBin(eta[i])));
+  }
+  return sf;  
+  
+}
+
 
 Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
 				    const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId,
