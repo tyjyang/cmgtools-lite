@@ -10,9 +10,15 @@ goodMuonsMinus: goodMuons && Muon_charge < 0
 #
 ptZ : transversemomentum(Muon_pt[goodMuons],Muon_phi[goodMuons])
 zrapidity : rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons])
-
+#
 genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
 ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
 yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
 mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
 scetlibWeightsZ : Numba::correctN3LL_Z_allVars(mVgen, yVgen, ptVgen, true) : Z
+scetlibWeightsWm : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, true) : W.*minus
+scetlibWeightsWp : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, true) : W.*plus
+# For uncorr, assume the correction has not been applied already
+scetlibWeightsZUncorr : Numba::correctN3LL_Z_allVars(mVgen, yVgen, ptVgen, false) : Z
+scetlibWeightsWmUncorr : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, false) : W.*minus
+scetlibWeightsWpUncorr : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, false) : W.*plus

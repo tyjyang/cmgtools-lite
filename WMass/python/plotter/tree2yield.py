@@ -240,6 +240,8 @@ class TreeToYield:
             # This is why you don't define your own config format
             l = l.replace("::", "--")
             tokens = [x.strip().replace("--", "::") for x in l.split(":")]
+            if len(tokens) < 2:
+                continue
             name = tokens[0]
             define = tokens[1]
             procRegexp = tokens[2] if len(tokens) > 2 else ".*"
