@@ -270,23 +270,26 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 
 #########################################################################
 
-def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
+def getTH2fromTH3(hist3D, name, binStart, binEnd=None, proj="yxe"):
     if binEnd == None:
         binEnd = binStart
     hist3D.GetZaxis().SetRange(binStart,binEnd)
     # Order yx matters to have consistent axes!
-    hist2D = hist3D.Project3D("yxe") # make TH2 with y axis versus x axis 
+    hist2D = hist3D.Project3D(proj) # yxe is to make TH2 with y axis versus x axis 
     hist2D.SetName(name)
     return hist2D
 
     
 #########################################################################
 
-def fillTH3binFromTH2(h3, h2, zbin):
+def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
     for ix in range(1, 1 + h2.GetNbinsX()):
         for iy in range(1, 1 + h2.GetNbinsY()):
             val   = h2.GetBinContent(ix, iy)
             error = h2.GetBinError(ix, iy)
+            if scaleFactor != None:
+                val   *= scaleFactor
+                error *= scaleFactor
             h3.SetBinContent(ix, iy, zbin, val)
             h3.SetBinError(ix, iy, zbin, error);
             

@@ -62,7 +62,7 @@ double puw_2016UL_era(const Float_t& nTrueInt, DataEra era = BToF) {
     else if (era == C)         return _pileupWeights_2016UL_C[static_cast<int>(nTrueInt)];
     else if (era == D)         return _pileupWeights_2016UL_D[static_cast<int>(nTrueInt)];
     else if (era == E)         return _pileupWeights_2016UL_E[static_cast<int>(nTrueInt)];
-    else if (era == F_preVFP)  return _pileupWeights_2016UL_F_preVFP[static_cast<int>(nTrueInt)];
+    else if (era == F or era == F_preVFP)  return _pileupWeights_2016UL_F_preVFP[static_cast<int>(nTrueInt)];
     else if (era == F_postVFP) return _pileupWeights_2016UL_F_postVFP[static_cast<int>(nTrueInt)];
     else if (era == G)         return _pileupWeights_2016UL_G[static_cast<int>(nTrueInt)];
     else if (era == H)         return _pileupWeights_2016UL_H[static_cast<int>(nTrueInt)];

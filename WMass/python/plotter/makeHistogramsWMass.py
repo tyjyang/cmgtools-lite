@@ -21,7 +21,7 @@ from tree2yield import setLogging
 from cropNegativeTemplateBins import cropNegativeContent
 
 sys.path.append(os.getcwd() + "/plotUtils/")
-from utility import getTH2fromTH3
+from utility import getTH2fromTH3, createPlotDirAndCopyPhp
 
 def getQCDScaleIndices():
     # first number is for renormalization scale, the other is for factorization scale
@@ -74,6 +74,10 @@ setLogging(args.verbose)
 
 infilename = args.infile 
 outfilename = args.outfile
+
+outdir = os.path.dirname(outfilename) + "/"
+createPlotDirAndCopyPhp(outdir)
+
 if os.path.abspath(infilename) == os.path.abspath(outfilename):
     logging.warning(" input and output file names are the same. Abort")
     quit()
@@ -129,6 +133,7 @@ for proc in list(hnomi.keys()):
     hnomi[proc].Write()
 
 for syst in systs:
+    print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
         h3D = hsyst[syst][proc]
@@ -147,6 +152,11 @@ for syst in systs:
                 h2DDown = getTH2fromTH3(h3D, name, ibinDown, ibinDown)
                 h2DUp.Write()
                 h2DDown.Write()           
+        if "luminosity" in syst:
+            for ilumi in range(1, 2+1): # only 2 bins, one for each Up/Down
+                name = "x_{p}_lumi{idir}".format(p=proc, idir="Up" if ilumi==1 else "Down") 
+                h2D = getTH2fromTH3(h3D, name, ilumi, ilumi)
+                h2D.Write()
         if "effStatTnP" in syst:
             for ieff in range(1, 576+1): # need to be kept manually consistent until we save these numbers somewhere
                 systname = "effStatTnP%d" % ieff

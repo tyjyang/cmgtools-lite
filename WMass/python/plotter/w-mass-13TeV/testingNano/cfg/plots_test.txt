@@ -33,6 +33,9 @@ muon_iso03_chg: Muon_pfRelIso03_chg[goodMuonsCharge][0]: 32,0.0,0.16; XTitle="Mu
 
 muon_iso03_chg_other: Muon_pfRelIso03_chg[goodMuonsOther][0]: 32,0.0,0.16; XTitle="Other muon charged PF isol (#DeltaR 0.3)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.85, RMax=1.1
 
+dR_mumu: deltaR(Muon_eta[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_eta[goodMuonsOther][0],Muon_phi[goodMuonsOther][0]):50,0.0,5.0; XTitle='#DeltaR(#mu\,#mu)', Legend='TR', IncludeOverflows=True
+
+
 muon_dzUnzoom: Muon_dz[goodMuonsCharge][0]: 200,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
 
 muon_dz: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.5, RMax=1.5
@@ -54,6 +57,8 @@ muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muo
 muon_pt_eta_rebin: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,14,26,54 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
 muon_pt_eta_other_rebin: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,14,26,54 ; XTitle='Other muon #eta', YTitle='Other muon p_{T} (GeV)', Legend='TR'
+
+genmuon_pt_eta: GenPart_pt[bareGenMuons][0]\:GenPart_pt[bareGenMuons][0]: 48,-2.4,2.4,15,26,56 ; XTitle='gen muon #eta', YTitle='gen muon p_{T} (GeV)', Legend='TR'
 
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
