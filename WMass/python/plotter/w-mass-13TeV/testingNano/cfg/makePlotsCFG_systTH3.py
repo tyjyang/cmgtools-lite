@@ -28,7 +28,7 @@ def wptBinsScales(i):
 
 # TODO: Use this for other systematics (it needs to be generalized a bit)
 def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, weight, regex, outfile=None):
-    syst_binning = "%i,0.5,%0.1f" % (nsyst, nsyst-0.5)
+    syst_binning = "%i,-0.5,%0.1f" % (nsyst, nsyst-0.5)
     line = f"{label}: indices({weight})\:scalarToRVec({pt_expr},{weight})\:scalarToRVec({eta_expr},{weight}) :" \
             f"{syst_binning}, {etapt_binning}; {xylabels}, {weight_axis}, AddWeight='{weight}', ProcessRegexp='{regex}'\n"
     print(line)
