@@ -98,7 +98,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--dry-run', dest="dryRun", action='store_true', help='Print, but do not execute')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
-    parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Era')
+    parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean", help='Histograms to make')

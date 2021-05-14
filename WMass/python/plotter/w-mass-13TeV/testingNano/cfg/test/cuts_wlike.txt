@@ -3,7 +3,8 @@ trigger    : HLT_IsoTkMu24 || HLT_IsoMu24 ; BEFOREDEFINE=True
 json       : isGoodRunLS(isData,run,luminosityBlock) ; BEFOREDEFINE=True
 vetomuon   : Sum(vetoMuons)==2
 twomuon    : Sum(goodMuons)==2
-accept     : valueInsideRange(Muon_pt[goodMuonsCharge][0],26,55) && valueInsideRange(Muon_pt[goodMuonsOther][0],26,55)
+#accept     : valueInsideRange(Muon_pt[goodMuonsCharge][0],26,55) && valueInsideRange(Muon_pt[goodMuonsOther][0],26,55)
+accept     : Muon_pt[goodMuonsCharge][0] > 26
 oppositecharge : (Muon_charge[goodMuonsCharge][0] + Muon_charge[goodMuonsOther][0]) == 0
 mZ         : valueInsideRange(invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]), 60., 120.)
 muonID     : Muon_mediumId[goodMuonsCharge][0] == 1 && Muon_mediumId[goodMuonsOther][0] == 1

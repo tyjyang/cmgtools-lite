@@ -26,6 +26,15 @@ def wptBinsScales(i):
     pthi = wptbins[2*i]
     return [ptlo, pthi]
 
+# TODO: Use this for other systematics (it needs to be generalized a bit)
+def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, weight, regex, outfile=None):
+    syst_binning = "%i,-0.5,%0.1f" % (nsyst, nsyst-0.5)
+    line = f"{label}: indices({weight})\:scalarToRVec({pt_expr},{weight})\:scalarToRVec({eta_expr},{weight}) :" \
+            f"{syst_binning}, {etapt_binning}; {xylabels}, {weight_axis}, AddWeight='{weight}', ProcessRegexp='{regex}'\n"
+    print(line)
+    if outfile:
+        outfile.write(line+'\n')
+
 parser = argparse.ArgumentParser()
 #parser.add_argument('-n', '--name', dest='baseHistName', default='muon_eta_pt', type=str, help='Base name for histograms')
 parser.add_argument('-x', '--xAxisName', default='Muon #eta', type=str, help='x axis name')
@@ -46,6 +55,7 @@ isWlike = args.analysis == "wlike"
 ####################################
 
 printToFile = False
+outf = None
 if args.outputFile != "":
     outf = open(args.outputFile,"w")
     printToFile = True
@@ -150,6 +160,17 @@ line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{p
 print(line)
 if printToFile: outf.write(line+'\n')
 
+for chan in ["Wm", "Wp", "Z"]:
+    label = "Z.*" 
+    if "W" in chan:
+        label = ".*".join(["W", "minus" if "m" in chan else "plus", ])
+    write3DHist(label="scetlibWeights_", pt_expr=args.ptVar, eta_expr="Muon_eta[goodMuonsCharge][0]",
+            nsyst=45, xylabels=axisNames, weight_axis="ZTitle='SCETlib variation index'",
+            etapt_binning=etaptBins,
+            weight=f"scetlibWeights{chan}", 
+            regex=label,
+            outfile=outf,
+    )
 
 print('-'*30)
 print("SUMMARY")
