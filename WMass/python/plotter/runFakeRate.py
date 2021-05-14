@@ -5,6 +5,9 @@ import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 import argparse
 
+sys.path.append(os.getcwd() + "/plotUtils/")
+from utility import createPlotDirAndCopyPhp
+
 # processes to group
 def getProcessGroup(proc, era):
     # check whether Wmunu is split by charge or includes both samples, same for Wtaunu
@@ -27,7 +30,8 @@ def main(args):
     postfix = args.postfix
     if len(args.postfix) and not postfix.startswith('_'):
         postfix = "_" + postfix
-    
+    outdir = args.outdir
+        
     ######################################################################
     ## Configurations below
     ######################################################################
@@ -54,7 +58,7 @@ def main(args):
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"plots/testNanoAOD/WmassPlots/fakeRateRegion_{era}_{args.charge}{postfix}/"
+    plotdir = f"{outdir}/fakeRateRegion_{era}_{args.charge}{postfix}/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables
@@ -72,8 +76,9 @@ def main(args):
     weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
 
     # gen weight customization
-    genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax"
-
+    # genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax" # options were removed
+    genweight = "" 
+    
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
@@ -84,7 +89,7 @@ def main(args):
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions}  {genweight}  --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} {genweight} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {args.options}"
 
     if args.dryRun:
         print(command)
@@ -100,12 +105,19 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
     parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
+    parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean", help='Histograms to make')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
     args = parser.parse_args()
-    
+
+    if len(args.outdir):
+        createPlotDirAndCopyPhp(args.outdir)
+    else:
+        print("Error: must provide an output folder with option -o")
+        quit()
+        
     if args.systs:
         args.postfix += "_systTH3"
         regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"

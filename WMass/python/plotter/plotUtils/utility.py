@@ -435,13 +435,15 @@ def drawCorrelationPlot(h2D_tmp,
                         rightMargin=0.20,
                         nContours=51,
                         palette=55,
+                        invertePalette=False,
                         canvasSize="700,625",
                         passCanvas=None,
                         bottomMargin=0.1,
                         plotError=False,
                         plotRelativeError=False,
                         lumi=None,
-                        drawOption = "colz"):
+                        drawOption = "colz",
+                        skipLumi=False):
 
 
     ROOT.TH1.SetDefaultSumw2()
@@ -481,8 +483,11 @@ def drawCorrelationPlot(h2D_tmp,
                                          array ("d", [0.82, 1.00, 0.00]),
                                          255,  0.95)
 
-    if palette > 0: ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
+    if palette > 0:
+        ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
     ROOT.gStyle.SetNumberContours(nContours) # default is 20 
+    if invertePalette:
+        ROOT.TColor.InvertPalette()
 
     labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
@@ -556,7 +561,7 @@ def drawCorrelationPlot(h2D_tmp,
         
     # not yet implemented
     setTDRStyle()
-    if not plotLabel == "ForceTitle": 
+    if not skipLumi and not plotLabel == "ForceTitle": 
         if lumi != None: CMS_lumi(canvas,lumi,True,False)
         else:            CMS_lumi(canvas,"",True,False)
 

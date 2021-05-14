@@ -138,16 +138,18 @@ for syst in systs:
     for proc in procs:
         h3D = hsyst[syst][proc]
         if "massWeight" in syst:
-            # check https://github.com/WMass/nanoAOD-tools/blob/master/python/postprocessing/wmass/lheWeightsFlattener.py
-            cenMassWgt = 11 # element 11 of LHEReweightingWeight is the 12th of the array, so it is bin 12 of the histogram (TO BE CHECKED AGAIN)
+            # note, we are now using weights from LHEReweightingWeightCorrectMass
+            # it has 21 elements for W and 23 for Z, where the last two values for Z should not be mass shift weights (maybe they are for width)
+            # the sorting is based on increasing weight value, where the nominal==1 and is the 11th elements of the array 
+            cenMassWgt = 11 # element xx=10 of LHEReweightingWeight[xx] is the 11th of array, so it is bin 11 of histogram
             maxMassShift = 100
             massGrid = 10
-            for i in range(1, 1 + int(maxMassShift/massGrid)):
+            for i in range(1, 1 + int(maxMassShift/massGrid)): # start from 1 to skip the nominal weight
                 massShift = i * massGrid
-                ibinUp = cenMassWgt + 1 + i 
+                ibinUp = cenMassWgt + i # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
                 name = "x_" + proc + "_massShift%dMeVUp" % massShift
                 h2DUp = getTH2fromTH3(h3D, name, ibinUp, ibinUp)
-                ibinDown = cenMassWgt + 1 - i 
+                ibinDown = cenMassWgt - i # minimum will be 1, i.e. first histogram bin 
                 name = "x_" + proc + "_massShift%dMeVDown" % massShift
                 h2DDown = getTH2fromTH3(h3D, name, ibinDown, ibinDown)
                 h2DUp.Write()

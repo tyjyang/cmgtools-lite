@@ -266,6 +266,8 @@ class CardMaker:
             if sysType != "lnN":
                 continue
             systName = systKey
+            if isExcludedNuisance(self.excludeNuisances, systName, self.keepNuisances):
+                continue
             if systName not in appliedSystMatrix:
                 appliedSystMatrix[systName] = ['-' for p in allprocs]
             for proc,index in iter(procindices.items()):
@@ -318,6 +320,8 @@ class CardMaker:
         datacard.write('\n\n')
         for group,systs in iter(systGroups.items()):
             sortedsysts = [x for x in systs if x not in excludedSysts]
+            if len(sortedsysts) == 0:
+                continue
             sortedsysts = sortSystsForDatacard(sortedsysts)
             datacard.write( '%-15s   group = %s\n' % (group," ".join(sortedsysts)) )
 

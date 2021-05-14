@@ -3,11 +3,15 @@ pdfs       : pdf.*                  : Z.*|W.*|.*fakes.*                  : PDFS 
 alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : PDFS       : shape   : 0.67
 qcdScales  : muR.*|muF.*            : Z.*|W.*|.*fakes.*                  : QCD        : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
-muScale    : kalPt.*                : Z.*|W.*|DiBoson.*|Top.*|.*fakes.*  : MUSCALE    : shape
-efficiency : effStat.*              : W.*|Z.*|DiBoson.*|Top.*|.*fakes.*  : EFFICIENCY : shape
-muPrefiring: muonL1Prefire.*        : W.*|Z.*|DiBoson.*|Top.*|.*fakes.*  : PREFIRING  : shape
-#luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.*|.*fakes.* : LUMINOSITY : lnN     : 1.012
-luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.*|.*fakes.*| : LUMINOSITY : shape
-#fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP : shape
-otherbkg   : lepVeto.*              : Z.*|W.*|.*fakes.*                  : OTHEREXP   : shape
+muScale    : kalPt.*                : Z.*|W.*|Diboson.*|Top.*|.*fakes.*  : MUSCALE    : shape
+efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : EFFICIENCY : shape
+muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : PREFIRING  : shape
+#luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.* : LUMINOSITY : shape
+luminosity : lumi.*                 : Diboson.*                          : LUMINOSITY : shape
 mass       : massShift.*            : W.*                                : SKIPGROUP  : shapeNoConstraint
+CMS_Top    : CMS_Top                : Top.*                              : OTHEREXP   : lnN     : 1.06
+CMS_VV     : CMS_VV                 : Diboson.*                          : OTHEREXP   : lnN     : 1.16
+CMS_Fakes  : CMS_Fakes              : .*fakes.*                          : OTHEREXP   : lnN     : 1.05
+#fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP : shape
+#luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.* : LUMINOSITY : lnN     : 1.012
+#otherbkg   : lepVeto.*              : Z.*|W.*|.*fakes.*                  : OTHEREXP   : shape
