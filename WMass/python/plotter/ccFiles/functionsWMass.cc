@@ -519,8 +519,6 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 //================================================== 
 
 // Sorry you have to manually keep these consistent
-// let's remove BToH, we will never use it
-// std::unordered_map<DataEra, std::string> eraNames = { {BToH, "BtoH"}, {BToF, "BtoF"}, {GToH, "GtoH"} };
 std::unordered_map<DataEra, std::string> eraNames = { {BToF, "BtoF"}, {GToH, "GtoH"} };
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"} };
@@ -599,7 +597,6 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
   hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_preVFP")));
   hMuonPrefiring[BToF].SetDirectory(0);
-  //hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_Run2016H")));
   hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_postVFP")));
   hMuonPrefiring[GToH].SetDirectory(0);
   _file_prefiring.Close();
@@ -938,8 +935,8 @@ float _get_fullMuonSF(float pt,      float eta,      int charge,
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
-    sftype = isoSF2 ? isoNotrig : antiisoNotrig;
-    auto const keyOther = std::make_pair(sftype, era);
+    ScaleFactorType sftypeOther = isoSF2 ? isoNotrig : antiisoNotrig;
+    auto const keyOther = std::make_pair(sftypeOther, era);
     const TH2D& hsfOther = scaleFactorHist.at(keyOther);
     sf *= getValFromTH2(hsfOther, etaOther, ptOther);
   }
@@ -969,8 +966,8 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
-    sftype = isoSF2 ? isoNotrig : antiisoNotrig;
-    auto const keyOther = std::make_pair(sftype, dtype);
+    ScaleFactorType sftypeOther = isoSF2 ? isoNotrig : antiisoNotrig;
+    auto const keyOther = std::make_pair(sftypeOther, dtype);
     const TH2D& hcorrOther = prePostCorrToHist.at(keyOther);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
@@ -1043,7 +1040,7 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
     ScaleFactorType sftypeOther = isoNotrig;
     if (not isoSF2)
       sftypeOther = antiisoNotrig;
-    auto const keyOther = std::make_pair(sftype, era);
+    auto const keyOther = std::make_pair(sftypeOther, era);
     const TH2D& hsfOther = scaleFactorHist.at(keyOther);
     ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
     iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
@@ -1061,73 +1058,6 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
   return res;
 }
 
-
-// obsolete (better to use previous function directly)
-Vec_f _get_fullSFvariation_wlike(int n_tnpBinNuisance,
-				 float pt,      float eta, int charge,
-				 float ptOther=-1, float etaOther=-1,
-				 DataEra era = BToF,
-				 bool isoSF1 = true,
-				 bool isoSF2 = true
-				 ) {
-  
-  // this is an helper function to define the effSystvariations for the Wlike analysis
-  // idea is to fill again the alternative template for each effStat nuisance, where the
-  // nuisance is defined for each single TnP eta-pt bin, and they will be considered as uncorrelated
-  // so not as done in SMP-18-012 from the fit to efficiencies with Error function
-  //
-  // now, given that the SF weight is already defined for each process in the MCA file, in order to
-  // define a histogram-dependent weight variation we have to add a weight which is (1 + epsilon),
-  // where epsilon is the relative uncertainty on the SF (let's say on the product of SF for simplicity)
-  // this is thus equivalent to using (SF + SF_err) as event weight for the alternate template
-
-  Vec_f res(n_tnpBinNuisance, 1.0); // initialize to 1
-  
-  // n_tnpBinNuisance is the number of TnP bins, used to set the size of the RVec that will be returned
-  
-  // tnpBinNuisance is supposed to start from 1 and be mapped into SF histogram bins as shown below
-  //
-  // pt | 7 | 8 | 9 |
-  //     --- --- ---
-  //    | 4 | 5 | 6 |
-  //     --- --- ---
-  //    | 1 | 2 | 3 |
-  //              eta
-
-  // if ptOther < 0 it is assumed only one lepton exists (so this function could also be used for wmass)
-  // in that case the values are not used (and etaOther could actually take any value)
-  
-  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
-  if (not isoSF1) {
-    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
-  }
-
-  //std::cout << "Entry " << iEntry << ": era " << eraNames[era] << std::endl;
-  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
-  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
-  
-  const TH2D& hsf = scaleFactorHist.at(std::make_pair(sftype, era));
-  int nEtaBins = hsf.GetNbinsX();
-  int nPtBins  = hsf.GetNbinsY();
-
-  int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
-  int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
-  int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-  res[tnpBinNuisance-1] = (1.0 + getRelUncertaintyFromTH2bin(hsf, ietaTnP, iptTnP));
-  
-  if (ptOther > 0) {
-    ScaleFactorType sftypeOther = isoNotrig;
-    if (not isoSF2)
-      sftypeOther = antiisoNotrig;
-    const TH2D& hsfOther = scaleFactorHist.at(std::make_pair(sftypeOther, era));
-    ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
-    iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
-    tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    res[tnpBinNuisance-1] *= (1.0 + getRelUncertaintyFromTH2bin(hsfOther, ietaTnP, iptTnP));
-  }
-
-  return res;
-}
 
 double qcdScaleWeight_VptBinned(const double& qcdscale, const double& vpt, const double& ptlow, const double& pthigh) {
 

@@ -59,10 +59,10 @@ if printToFile: outf.write(line+'\n')
 
 # pdf
 syst_key = "pdf"
-syst_expr = f"indices(LHEPdfWeight)\:scalarToRVec({args.ptVar},LHEPdfWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEPdfWeight)"
+syst_weight  = "LHEPdfWeight"
+syst_expr = f"indices({syst_weight})\:scalarToRVec({args.ptVar},{syst_weight})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{syst_weight})"
 syst_binning = "102,0.5,102.5"
 syst_axisname = "ZTitle='PDF index'"
-syst_weight  = "LHEPdfWeight"
 process_regexpr = "W.*|Z.*"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
@@ -74,10 +74,10 @@ if printToFile: outf.write(line+'\n')
 
 # qcd scales (not Vpt binned, that one comes just afterward)
 syst_key = "qcdScale"
-syst_expr = f"indices(LHEScaleWeight)\:scalarToRVec({args.ptVar},LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight)"
+syst_weight  = "LHEScaleWeight" # may just use directly 18 below to get the size of RVecs
+syst_expr = f"indices({syst_weight})\:scalarToRVec({args.ptVar},{syst_weight})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{syst_weight})"
 syst_binning = "18,-0.5,17.5"
 syst_axisname = "ZTitle='QCD scale index'"
-syst_weight  = "LHEScaleWeight"
 process_regexpr = "W.*" if isWlike else "Z.*"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
@@ -109,7 +109,7 @@ syst_binning = "%d,%.1f,%.1f" % (NTNPBINS, START, NTNPBINS+START)
 syst_axisname = "ZTitle='Eff. stat. nuisance index'"
 ptOther  = "Muon_pt[goodMuonsOther][0]"  if isWlike else "-1"
 etaOther = "Muon_eta[goodMuonsOther][0]" if isWlike else "-1"
-syst_weight  = f"_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)->_get_fullMuonSFvariation({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
+syst_weight  = f"_get_fullMuonSF(->_get_fullMuonSFvariation({NTNPBINS}\," # for security reasons, just edit the smallest possible part of the function
 process_regexpr = "W.*|Z.*|Top|Diboson"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
@@ -134,14 +134,14 @@ line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp
 print(line)
 if printToFile: outf.write(line+'\n')
 
-# mass weights from LHEReweightingWeight (might change at some point)
-NWEIGHTS = 44 if isWlike else 33
+# mass weights from LHEReweightingWeightCorrectMass
+NWEIGHTS = 23 if isWlike else 21
 START = -0.5
 syst_key = "massWeight"
-syst_expr = f"indices(LHEReweightingWeight)\:scalarToRVec({args.ptVar},LHEReweightingWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEReweightingWeight)"
+syst_weight  = "LHEReweightingWeightCorrectMass"
+syst_expr = f"indices({NWEIGHTS})\:scalarToRVec({args.ptVar},{NWEIGHTS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NWEIGHTS})"
 syst_binning = "%d,%.1f,%.1f" % (NWEIGHTS, START, NWEIGHTS+START)
 syst_axisname = "ZTitle='Mass weight index'"
-syst_weight  = "LHEReweightingWeight"
 process_regexpr = "Z.*" if isWlike else "W.*"
 
 #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)

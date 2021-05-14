@@ -3,10 +3,10 @@ pdfs       : pdf.*                  : Z.*|W.*                 : PDFS       : sha
 alphaS     : alphaS                 : Z.*|W.*                 : PDFS       : shape   : 0.67
 qcdScales  : muR.*|muF.*            : Z.*|W.*                 : QCD        : shape
 fsr        : fsr.*                  : Z.*                     : QED        : shape
-muScale    : kalPt.*                : Z.*|W.*|DiBoson.*|Top.* : MUSCALE    : shape
-efficiency : effStat.*              : W.*|Z.*|DiBoson.*|Top.* : EFFICIENCY : shape
-muPrefiring: muonL1Prefire.*        : W.*|Z.*|DiBoson.*|Top.* : PREFIRING  : shape
-luminosity : lumi.*                 : Z.*|W.*|DiBoson.*|Top.* : LUMINOSITY : lnN     : 1.012
+muScale    : kalPt.*                : Z.*|W.*|Diboson.*|Top.* : MUSCALE    : shape
+efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.* : EFFICIENCY : shape
+muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.* : PREFIRING  : shape
+luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.* : LUMINOSITY : lnN     : 1.012
 fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP   : shape
 otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP   : shape
 mass       : massShift.*            : Z.*                     : SKIPGROUP  : shapeNoConstraint

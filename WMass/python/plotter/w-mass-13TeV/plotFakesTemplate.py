@@ -149,7 +149,7 @@ if __name__ == "__main__":
     
     # nominal is a TH2, systematics are TH3
     for k in regionId.keys():
-        hFakes[k] = ROOT.TH2D(f"hFakes_{regionId[k]}", f"data-MC: regionId[k]",
+        hFakes[k] = ROOT.TH2D(f"hFakes_{regionId[k]}", f"data-MC: {regionId[k]}",
                               nEtaBins, etaLow, etaHigh,
                               nPtBins,  ptLow,  ptHigh)
 
@@ -266,12 +266,14 @@ if __name__ == "__main__":
         templateQCDsys.Write(f"{sys}__data_fakes")
         print(f"Writing histogram {sys}__data_fakes")
 
+    # get part of the histogram corresponding to signal region, which is number 3 (4th key)
+    ptBinOffsetSigRegion = 3 * nPtBins # defined above actually
     for sys in systNamesProcsHists.keys():
         for proc in systNamesProcsHists[sys].keys():
             nZbins = systNamesProcsHists[sys][proc].GetNbinsZ()
             zLow = systNamesProcsHists[sys][proc].GetZaxis().GetBinLowEdge(1)
             zHigh = systNamesProcsHists[sys][proc].GetZaxis().GetBinLowEdge(1 + nZbins)
-            histRegion3 = ROOT.TH3D(f"{sys}__{proc}", f"{sys}__{proc}",
+            histRegion3 = ROOT.TH3D(f"{sys}__{proc}_region3", f"{sys}__{proc}",
                                     nEtaBins, etaLow, etaHigh,
                                     nPtBins,  ptLow,  ptHigh,
                                     nZbins,   zLow,   zHigh)
@@ -279,6 +281,9 @@ if __name__ == "__main__":
                                xbinLow=1, ybinLow=1, zbinLow=1,
                                xbinHigh=nEtaBins, ybinHigh=nPtBins, zbinHigh=nZbins,
                                xoffset=0, yoffset=ptBinOffsetSigRegion, zoffset=0)
+            wasCropped = cropNegativeContent(histRegion3, silent=False, cropError=False)
+            if wasCropped:
+                print(f"Histogram cropped to 0 in {regionId[3]} region for process {proc} and syst {sys}")
             histRegion3.Write(f"{sys}__{proc}")
             print(f"Writing histogram {sys}__{proc}")
             
@@ -348,3 +353,10 @@ if __name__ == "__main__":
                        outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
                        drawLumiLatex=True, xcmsText=0.3, noLegenRatio=True
     )
+
+    allHists = hmc + [hdata]
+    for h in allHists:
+        h.SetTitle(h.GetName())
+        drawCorrelationPlot(h, xAxisName, yAxisName, "Events",
+                            f"muon_eta_pt_{h.GetName()}", plotLabel="ForceTitle", outdir=outdirSR,
+                            palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True)
