@@ -597,6 +597,7 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
   hMuonPrefiring[BToF] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_preVFP")));
   hMuonPrefiring[BToF].SetDirectory(0);
+  //hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_Run2016H")));
   hMuonPrefiring[GToH] = *(static_cast<TH1D*>(_file_prefiring.Get("muonPrefiring_postVFP")));
   hMuonPrefiring[GToH].SetDirectory(0);
   _file_prefiring.Close();

@@ -61,6 +61,11 @@ Vec_f scalarToRVec(const float& var, const int& size) {
   
 }
 
+Vec_f scalarToRVec(const float var, const Vec_d& size) {
+  Vec_f res(size.size(), var); // initialize to 0
+  return res;
+}
+
 Vec_f scalarToRVec(const float& var, const Vec_f& size) {
 
   Vec_f res(size.size(),var); // initialize to 0

@@ -158,7 +158,7 @@ class TreeToYield:
         self._cname = cname if cname != None else self._name
         #print('in treetoyield init this is root and type(root)', root, type(root))
         self._fname = root
-        self._sumGenWeights = None # filled with RDF later, and used if options.sumGenWeightFromHisto is False
+        self._sumGenWeights = None # filled with RDF later
         self._isInit = False
         self._options = options
         self._objname = objname if objname else options.obj
@@ -240,6 +240,8 @@ class TreeToYield:
             # This is why you don't define your own config format
             l = l.replace("::", "--")
             tokens = [x.strip().replace("--", "::") for x in l.split(":")]
+            if len(tokens) < 2:
+                continue
             name = tokens[0]
             define = tokens[1]
             procRegexp = tokens[2] if len(tokens) > 2 else ".*"
@@ -458,11 +460,8 @@ class TreeToYield:
         # and change directory for them        
         if not self._isdata and self._options.weight:
             message = f"Process {self._name} ({self._cname}) -> lumi weight = {self._lumiWeight}"
-            if not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
-                sumGenWeights = self._sumGenWeights.GetValue()
-                message += f"    sum gewWeights = {sumGenWeights}"
-            else:
-                sumGenWeights = 1.0
+            sumGenWeights = self._sumGenWeights.GetValue() if self._sumGenWeights else 1.0
+            message += f"    sum gewWeights = {sumGenWeights}"
             print(message)
             for histo in rets:
                 # this is going to trigger the loop, but now all histograms exist so it is ok
@@ -534,8 +533,8 @@ class TreeToYield:
         retlist = []
 
         ## define the Sum of genWeights before the filter
-        if not self._isdata and self._options.weight and not self._options.sumGenWeightFromHisto and len(self._options.maxGenWeightProc) > 0:
-            self._sumGenWeights = self._tree.Sum("myweight") # uses floats
+        if not self._isdata and self._options.weight:
+            self._sumGenWeights = self._tree.Sum("genWeightClip") # uses floats
             # self._sumGenWeights = ROOT.getRDFcolumnSum(self._tree,"myweight") # uses doubles, but to be fixed
             ## now filter the rdf with just the cut
 
