@@ -21,7 +21,11 @@ from optparse import OptionParser
 from make_diff_xsec_cards import get_ieta_ipt_from_process_name
 from make_diff_xsec_cards import get_ipt_from_process_name
 from make_diff_xsec_cards import get_ieta_from_process_name
+from make_diff_xsec_cards import getDiffXsecBinning
+from make_diff_xsec_cards import templateBinning
 from subMatrix import niceName
+from subMatrix import niceNameHEPDATA
+from subMatrix import getBinAreaFromParamName
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -40,6 +44,7 @@ if __name__ == "__main__":
     parser.add_option("-f", "--format",   dest="format", default="text", type="string",  help="Output format ('text', 'latex', 'html'")
     parser.add_option('-o','--outdir', dest='outdir', default=None, type='string', help='If given, plot the pulls of the nuisances in this output directory')
     parser.add_option(     '--suffix', dest='suffix', default='', type='string', help='suffix for the correlation matrix')
+    parser.add_option(     '--uniqueString', dest='uniqueString', default='', type='string', help='the output file names is nuisances_XXX_SUFF.EXT, with XXX obtained from the regular expression in input to select parameters, but can be replaced with this option (useful when using long regular expressions)')
     parser.add_option('-t', '--type'        , dest='type'     , default='toys'        , type='string', help='run the plot from which postfit? toys/scans/hessian')
     parser.add_option('-i', '--infile'        , dest='infile'     , default=''        , type='string', help='file with the fitresult')
     parser.add_option(      '--expected-infile'        , dest='expInfile'     , default=''        , type='string', help='file with the fitresult for expected, to plot together with observed')
@@ -50,6 +55,14 @@ if __name__ == "__main__":
     parser.add_option('-N','--show-N' , dest='showN',    default=0, type=int, help='To be used with -R: it shows only the N nuisances ranked. If not positive, no limit is used')    
     parser.add_option(     '--lower-limit-pull' , dest='lowerLimitPull', default=-1.0, type='float', help='To be used with -R. Take only nuisances with pull above this value (in absolute value). If negative, use no limit')    
     parser.add_option(     '--upper-limit-sigma' , dest='upperLimitSigma', default=-1.0, type='float', help='To be used with -R. Take only nuisances with postfit sigma below this value . If negative, use no limit')    
+    parser.add_option(     '--use-hepdata-labels', dest='useHepdataLabels',    default=False, action='store_true', help='Write axis labels using latex for hepdata, with some name polishing')
+    parser.add_option('-c','--channel',     dest='channel',     default='', type='string', help='Channel (el|mu|lep), to force lepton flavor when writing some systematics in HEPDATA with --use-hepdata-labels')
+    parser.add_option(     '--etaptbinfile',   dest='etaptbinfile',   default='',  type='string', help='eta-pt binning used for labels with 2D xsec. Only needed with --use-hepdata-labels')
+    parser.add_option(     '--ywbinfile',   dest='ywbinfile',   default='',  type='string', help='Yw binning used for labels with helicity. Only needed with --use-hepdata-labels')
+    # following options are needed to prepare list of nuisances and POIs consistently with covariance matrices for hepdata
+    parser.add_option(     '--prepare-as-covariance-matrix', dest='prepareAsCovarianceMatrix',    default=False, action='store_true', help='Sort as in subMatrix.py to get better correspondance between matrix and list of POIs and nuisance parameters, when preparing material for hepdata')
+    parser.add_option(     '--divide-covariance-by-bin-area', dest='divideCovarianceBybinArea',    default=False, action='store_true', help='Divide POI by bin area (2D xsec) or bin width (1D xsec), this is taken from subMatrix.py')
+    parser.add_option(     '--poi-postfix',   dest='poiPostfix',   default='',  type='string', help='ending string to identify POI (e.g. sumxsec, pmaskedexp, etc...), this is used for instance to divide the value of POI by bin area/width')
     (options, args) = parser.parse_args()
     infile = options.infile
     infile_exp = options.expInfile
@@ -64,6 +77,39 @@ if __name__ == "__main__":
         print "Error: option -R requires pull|sigma as argument. Abort"
         quit()
     
+    ## retrieve binning
+    ## needed to prepare hepdata entries
+    ## not needed if not using option --use-hepdata-labels
+    if options.divideCovarianceBybinArea:
+        if not options.etaptbinfile and not options.ywbinfile:
+            print "Error: option --divide-covariance-by-bin-area require a file with binning."
+            print "Please specify one using either --etaptbinfile or --ywbinfile"
+            quit()
+
+    if options.etaptbinfile and options.ywbinfile:
+        print "Error: options --etaptbinfile and --ywbinfile are incompatible. Choose only one based on the fit"
+        quit()
+
+    if options.etaptbinfile:
+        print "HERE for 2D xsec"
+        etaPtBinningVec = getDiffXsecBinning(options.etaptbinfile, "gen")
+        genBins = templateBinning(etaPtBinningVec[0],etaPtBinningVec[1])
+    elif options.ywbinfile:
+        print "HERE for helicity"
+        ybinfile = open(options.ywbinfile, 'r')
+        genBins = eval(ybinfile.read())
+        ybinfile.close()
+    else:
+        genBins = ""
+    
+    print "="*30
+    print "Gen binning:"
+    print "-"*30
+    if options.etaptbinfile:
+        genBins.printBinAll() 
+    else:
+        print genBins
+    print "="*30
 
     #valuesPrefit = dict((k,v) for k,v in valuesAndErrorsAll.iteritems() if k.endswith('_gen'))
     pois_regexps = list(options.pois.split(','))
@@ -100,35 +146,81 @@ if __name__ == "__main__":
         print "No parameters selected. Exiting."
         exit(1)
 
+
+    poiPostfix = options.poiPostfix
+    poiHasToBeScaled = True if poiPostfix in ["pmaskedexp", "sumxsec"] else False
+    if poiHasToBeScaled:
+        # need to filter sumxsecnorm when selecting sumxsec, difficult from regexp, using .*sumxsec$ makes soething crash in the function that returns params
+        params = filter(lambda x: "pmaskedexpnorm" not in x and "sumxsecnorm" not in x,params)
+    ## for the covariance, need to scale xsec content to port it from number of events to pb (and for combination need to divide by 2), but only for absolute things
+    # also normalize by bin area the  numbers for absolute and normalized cross section (as it is done on the plots)
+    # the yields/pb scale factor is 35900 for 2D xsec, and 36000 for helicity
+    # this is because the yields for helicity were made using 36/fb
+    scalefactor_poi = 1.0
+    if poiHasToBeScaled:
+        scalefactor_poi = 1./(36000.0 if options.ywbinfile else 35900.0)
+        if options.channel == "lep":
+            scalefactor_poi /= 2.            
+
+    #######
+    # NOTE 
+    #######
+    # should change signs for A4 in the W+, because the fit returns a positive number, but theory
+    # predicts A4<0 for W+, so we manually change sign in the plot
+    # this must also reflect in the covariance matrix
+    # i.e. if the covariance with a nuisance and a yW bin for A4 in W+ channel is negative, it means scaling the former up moves the latter down, but since A4 should have opposite sign the direction of the shift is swapped as well
+
+
     # if you are going to rank nuisances, just skip the sorting by names, to save some time
     if options.rankNuisancesBy:
         # this sorting will be managed later
         pass        
     else:
-        params = sorted(params)
-        if any(re.match('pdf.*',x) for x in params):
-            # generally there will be alphaS along with pdfs
-            params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 0, reverse=False)
-        elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
+
+        if options.prepareAsCovarianceMatrix:
+            helSorted = { "left" : 1, "right" : 2, "long" : 3, "Ybin" : 4} # Ybin appears for unpolarized quantities
+            chargeSorted = { "W" : 0, "Wplus" : 1, "Wminus" : 2}
+            lepSorted = { "mu" : 1, "el" : 2}
+
             params = sorted(params)
-            # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
-            # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
-            # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
-            params = sorted(params, key= lambda x: utilities.getNFromString(x))
-            params = sorted(params, key = lambda x: 0 if "muRmuF" in x else 1 if "muR" in x else 2 if "muF" in x else 3)
-            params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
-        elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
-            params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
-        elif any(re.match('FakesPtUncorrelated.*',x) for x in params):
-            params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
-        elif any(re.match('.*EffStat.*',x) for x in params):
-            params = sorted(params, key = lambda x: utilities.getNFromString(x) , reverse=False)
-        elif any('masked' in x or x.endswith('mu') for x in params):
-            if any('_ieta_' in x for x in params):
-                # differential xsection: get ieta, ipt index and use them as keys to sort
-                params = sorted(params, key = lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x), reverse=False )
+            #params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
+            if options.ywbinfile:
+                params = sorted(params, key= lambda x: utilities.getNFromString(x) if '_Ybin_' in x else -1)
+                params = sorted(params, key= lambda x: (1 if "left" in x else 2 if "right" in x else "3") if '_Ybin_' in x else -1)
+                params = sorted(params, key= lambda x: (int(chargeSorted[x.split('_')[0]]),int(helSorted[x.split('_')[1]]),int(x.split('_')[-2])) if ('_Ybin_' in x and "norm_" not in x) else -1)
             else:
-                params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('_mu')) else -1, reverse=False)
+                params = sorted(params, key= lambda x: get_ieta_from_process_name(x) if ('_ieta_' in x) else -1)
+                params = sorted(params, key= lambda x: get_ipt_from_process_name(x) if ('_ipt_' in x) else -1)
+                params = sorted(params, key= lambda x: get_ieta_ipt_from_process_name(x) if ('_ieta_' in x and '_ipt_' in x) else -1)
+            params = sorted(params, key= lambda x: 1 if x.endswith(poiPostfix) else 0)
+
+        else:
+
+            params = sorted(params)
+            if any(re.match('pdf.*',x) for x in params):
+                # generally there will be alphaS along with pdfs
+                # put alpha at last position
+                params = sorted(params, key = lambda x: int(x.split('pdf')[-1]) if 'pdf' in x else 100 if 'alphaS' in x else 0, reverse=False)
+            elif any(re.match('.*muR.*|.*muF.*',x) for x in params):
+                params = sorted(params)
+                # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
+                # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
+                # params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
+                params = sorted(params, key= lambda x: utilities.getNFromString(x))
+                params = sorted(params, key = lambda x: 0 if "muRmuF" in x else 1 if "muR" in x else 2 if "muF" in x else 3)
+                params = sorted(params, key = lambda x: 0 if "plus" in x else 1 if "minus" in x else 2)
+            elif any(re.match('FakesEtaUncorrelated.*',x) for x in params):
+                params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
+            elif any(re.match('FakesPtUncorrelated.*',x) for x in params):
+                params = sorted(params, key = lambda x: utilities.getNFromString(x), reverse=False)
+            elif any(re.match('.*EffStat.*',x) for x in params):
+                params = sorted(params, key = lambda x: utilities.getNFromString(x) , reverse=False)
+            elif any('masked' in x or x.endswith('mu') for x in params):
+                if any('_ieta_' in x for x in params):
+                    # differential xsection: get ieta, ipt index and use them as keys to sort
+                    params = sorted(params, key = lambda x: get_ieta_ipt_from_process_name(x) if ("_ieta_" in x and "_ipt_" in x) else -1, reverse=False )
+                else:
+                    params = sorted(params, key = lambda x: int(x.split('_')[-2]) if ('masked' in x or x.endswith('_mu')) else -1, reverse=False)
 
         print "sorted params =",params
 
@@ -166,11 +258,30 @@ if __name__ == "__main__":
             continue
         val_f,err_f = (valuesAndErrors[name][0],abs(valuesAndErrors[name][0]-valuesAndErrors[name][1]))
 
+        if name.endswith(poiPostfix):
+            scalefactor = 1.0
+            scalefactorSignA4wplus = 1.0
+            if options.divideCovarianceBybinArea: 
+                if any(x in name for x in ["_ieta_","_ipt_"]):
+                   scalefactor /= getBinAreaFromParamName(name,genBins)
+                if "_Ybin_" in name:
+                    scalefactor /= getBinAreaFromParamName(name,genBins,isHelicity=True)
+            scalefactor *= scalefactor_poi
+            if poiPostfix == "a4" and "Wplus_Ybin_" in name:
+                scalefactorSignA4wplus *= -1.0 # see previous comment on A4 for W+
+            val_f = val_f * scalefactor * scalefactorSignA4wplus
+            err_f = err_f * scalefactor
+            mean_p = mean_p * scalefactor * scalefactorSignA4wplus
+
         if options.absolute_values:
             valShift = val_f
             sigShift = err_f
         else:
-            valShift = val_f - mean_p
+            if options.prepareAsCovarianceMatrix and name.endswith(poiPostfix):
+                # for POIs, here we want actual cross sections, not difference with input
+                valShift = val_f
+            else:
+                valShift = val_f - mean_p
             sigShift = err_f
 
         if options.rankNuisancesBy:
@@ -184,7 +295,8 @@ if __name__ == "__main__":
             nuis_p_i+=1
             hist_fit_s.SetBinContent(nuis_p_i,val_f)
             hist_fit_s.SetBinError(nuis_p_i,err_f)
-            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i,niceName(name.replace('CMS_','')))
+            thisname = niceNameHEPDATA(name,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True,isHelicity=True if options.ywbinfile else False) if options.useHepdataLabels else niceName(name)
+            hist_fit_s.GetXaxis().SetBinLabel(nuis_p_i, thisname)
             hist_fit_1d  .Fill(max(pmin,min(pmax-0.01,val_f)))
             hist_fit_1d_e.Fill(max(pmin,min(pmax-0.01,err_f-1.)))
 
@@ -229,7 +341,7 @@ if __name__ == "__main__":
             options.suffix = addSuffix
             
     uniquestr = ''.join(e for e in options.pois if e.isalnum()) ## removes all special characters from pois option
-    outnameNoExt = "{od}/nuisances_{ps}_{suff}".format(od=options.outdir, ps=uniquestr, suff=options.suffix)
+    outnameNoExt = "{od}/nuisances_{ps}_{suff}".format(od=options.outdir, ps=options.uniqueString if options.uniqueString != "" else uniquestr, suff=options.suffix)
 
     for ext in options.format.split(','):
         txtfilename = "{noext}.{ext}".format(noext=outnameNoExt, ext=ext)
@@ -294,7 +406,7 @@ if __name__ == "__main__":
             #names = sorted(names, key = lambda x: int(x.replace('pdf','')) if 'pdf' in x else int(x.split('_')[-2]) if ('masked' in x or name.endswith('mu')) else -1)
             names = sorted(names, key= lambda x: utilities.getNFromString(x) if 'pdf' in x else 0)
             ## for mu* QCD scales, distinguish among muR and muRXX with XX in 1-10
-            names = sorted(names, key= lambda x: -1 if "_ieta_" not in x else get_ieta_ipt_from_process_name(x) )
+            names = sorted(names, key= lambda x: get_ieta_ipt_from_process_name(x) if ("_ieta_" in x and "_ipt_" in x) else -1)
             names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
             names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
             names = sorted(names, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
@@ -329,7 +441,7 @@ if __name__ == "__main__":
         lat  = ROOT.TLatex(); lat.SetNDC(); lat.SetTextFont(42); lat.SetTextSize(0.04)
         ROOT.gROOT.SetBatch()
         ROOT.gStyle.SetOptStat(0)
-        fout = ROOT.TFile("{od}/postfit_{suff}.root".format(od=options.outdir, suff=options.suffix),"RECREATE")
+        fout = ROOT.TFile("{fn}.root".format(fn=outnameNoExt),"RECREATE")
 
         # need to shrink histogram, as some bins might have been removed when ranking. 
         # Also, use same sorting as table
@@ -343,7 +455,8 @@ if __name__ == "__main__":
                 if options.showN > 0 and index_name > options.showN:
                     break 
                 else:
-                    binNumber = hist_fit_s.GetXaxis().FindFixBin(niceName(n.replace('CMS_','')))
+                    thisname = niceNameHEPDATA(n,genBins=genBins,forceLep=options.channel,drawRangeInLabel=True,isHelicity=True if options.ywbinfile else False) if options.useHepdataLabels else niceName(n)
+                    binNumber = hist_fit_s.GetXaxis().FindFixBin(thisname)
                     if binNumber == -1:
                         print "Error when filling hist_fit_s_ranked. Could not find label %s from hist_fit_s" % n
                         quit()
@@ -420,7 +533,9 @@ if __name__ == "__main__":
         # leg.SetTextFont(42)
         # leg.AddEntry(hist_fit_s,"S+B fit"   ,"EPL")
         # leg.Draw()
-        fout.WriteTObject(canvas_nuis)
+        #fout.WriteTObject(canvas_nuis)
+        hist_fit_s.Write()
+        fout.Close()
 
         for ext in ['png', 'pdf']:
             canvas_nuis.SaveAs("{noext}.{ext}".format(noext=outnameNoExt, ext=ext))

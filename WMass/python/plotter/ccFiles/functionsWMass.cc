@@ -691,13 +691,13 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
   
 }
 
-float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
-			       float ptOther, float etaOther,
-			       DataEra dtype = C,
-			       bool isoSF1 = true, // to use SF for iso or antiiso
-			       bool isoSF2 = true,
-			       bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
-			       ) {
+double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
+				float ptOther, float etaOther,
+				DataEra dtype = C,
+				bool isoSF1 = true, // to use SF for iso or antiiso
+				bool isoSF2 = true,
+				bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				) {
 
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -712,7 +712,7 @@ float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
 
   auto const key = std::make_pair(sftype, dtype);
   const TH2D& hcorr = scaleFactorDataPerEra.at(key);
-  float sf = getValFromTH2(hcorr, eta, pt);
+  double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
@@ -730,13 +730,13 @@ float _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
 
 }
 
-float _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
-				 float ptOther, float etaOther,
-				 DataEra dtype = C,
-				 bool isoSF1 = true, // to use SF for iso or antiiso
-				 bool isoSF2 = true,
-				 bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
-				 ) {
+double _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
+				  float ptOther, float etaOther,
+				  DataEra dtype = C,
+				  bool isoSF1 = true, // to use SF for iso or antiiso
+				  bool isoSF2 = true,
+				  bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				  ) {
   
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -751,7 +751,7 @@ float _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
 
   auto const key = std::make_pair(sftype, dtype);
   const TH2D& hcorr = scaleFactorMCPerEra.at(key);
-  float sf = getValFromTH2(hcorr, eta, pt);
+  double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
@@ -771,13 +771,13 @@ float _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
 
 
  
-float _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
-				 float ptOther, float etaOther,
-				 DataEra dtype = B,
-				 bool isoSF1 = true, // to use SF for iso or antiiso
-				 bool isoSF2 = true,
-				 bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
-				 ) {
+double _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
+				  float ptOther, float etaOther,
+				  DataEra dtype = B,
+				  bool isoSF1 = true, // to use SF for iso or antiiso
+				  bool isoSF2 = true,
+				  bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				  ) {
 
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -792,7 +792,7 @@ float _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
 
   auto const key = std::make_pair(sftype, dtype);
   const TH2D& hcorr = scaleFactorPerEra.at(key);
-  float sf = getValFromTH2(hcorr, eta, pt);
+  double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
@@ -812,7 +812,7 @@ float _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
 
 ////=====================================================================================
 
-float _get_MuonPrefiringSF_singleMuon(float eta, DataEra era = BToF) {
+double _get_MuonPrefiringSF_singleMuon(float eta, DataEra era = BToF) {
 
   // no need to care about under/overflow, the prefiring would be 0 there, and the actual range is -2.4000001, 2.4000001
   return 1.0 - hMuonPrefiring[era].GetBinContent(hMuonPrefiring[era].FindFixBin(eta));
@@ -832,10 +832,10 @@ Vec_b prefirableMuon(const Vec_f& pt, const Vec_b& looseId) {
   
 }
 
-float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
+double _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
 
   // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
-  float sf = 1.0;
+  double sf = 1.0;
   // get SF = Prod_i( 1 - P_pref[i] )
   // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
 
@@ -853,10 +853,10 @@ float _get_MuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_b& loose
   
 }
 
-float _get_MuonPrefiringSF_EndcapOnly(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
+double _get_MuonPrefiringSF_EndcapOnly(const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId, DataEra era = BToF) {
 
   // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
-  float sf = 1.0;
+  double sf = 1.0;
   // get SF = Prod_i( 1 - P_pref[i] )
   // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
 
@@ -876,7 +876,7 @@ float _get_MuonPrefiringSF_EndcapOnly(const Vec_f& eta, const Vec_f& pt, const V
 }
 
 
-Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
+Vec_d _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
 				    const Vec_f& eta, const Vec_f& pt, const Vec_b& looseId,
 				    DataEra era = BToF
 				    ) {
@@ -885,10 +885,10 @@ Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
   // it is supposed to be called instead of the nominal weight
   // it returns a vector used as an event weight to get all variations in the same TH3 (eta-pt-prefireBin)
 
-  Vec_f res(n_prefireBinNuisance, 1.0); // initialize to 1
+  Vec_d res(n_prefireBinNuisance, 1.0); // initialize to 1
 
   int prefireBin = 0;
-  float tmpval = 0.0;
+  double tmpval = 0.0;
   const TH1D& hprefire = hMuonPrefiring[era];
 
   for (unsigned int i = 0; i < eta.size(); ++i) {
@@ -908,12 +908,12 @@ Vec_f _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
 
 }
 
-float _get_fullMuonSF(float pt,      float eta,      int charge,
-		      float ptOther, float etaOther,
-		      DataEra era = BToF,
-		      bool isoSF1 = true,
-		      bool isoSF2 = true
-		      ) {
+double _get_fullMuonSF(float pt,      float eta,      int charge,
+		       float ptOther, float etaOther,
+		       DataEra era = BToF,
+		       bool isoSF1 = true,
+		       bool isoSF2 = true
+		       ) {
 
   // function to get full muon scale factor for  analysis (except prefiring, handled elsewhere)
   // first three arguments are for the triggering muon, second two for the non triggering one
@@ -932,7 +932,7 @@ float _get_fullMuonSF(float pt,      float eta,      int charge,
 
   auto const key = std::make_pair(sftype, era);
   const TH2D& hsf = scaleFactorHist.at(key);
-  float sf = getValFromTH2(hsf, eta, pt);
+  double sf = getValFromTH2(hsf, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
@@ -945,12 +945,12 @@ float _get_fullMuonSF(float pt,      float eta,      int charge,
   return sf;
 }
 
-float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
-				  float ptOther, float etaOther,
-				  DataType dtype = MC,
-				  bool isoSF1 = true,
-				  bool isoSF2 = true
-				  ) {
+double _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
+				   float ptOther, float etaOther,
+				   DataType dtype = MC,
+				   bool isoSF1 = true,
+				   bool isoSF2 = true
+				   ) {
 
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -963,7 +963,7 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
 
   auto const key = std::make_pair(sftype, dtype);
   const TH2D& hcorr = prePostCorrToHist.at(key);
-  float sf = getValFromTH2(hcorr, eta, pt);
+  double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
   if (ptOther > 0.0) {
@@ -978,7 +978,7 @@ float _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
 }
 
 
-Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
+Vec_d _get_fullMuonSFvariation(int n_tnpBinNuisance,
 			       float pt,      float eta, int charge,
 			       float ptOther=-1, float etaOther=-1,
 			       DataEra era = BToF,
@@ -1028,7 +1028,7 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
   int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
   int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
    // initialize to nominal SF
-  Vec_f res(n_tnpBinNuisance, hsf.GetBinContent(ietaTnP, iptTnP));
+  Vec_d res(n_tnpBinNuisance, hsf.GetBinContent(ietaTnP, iptTnP));
   // sum or subtract error in specific bin
   // for isolation, one has to account for anticorrelation between isolation and anti-isolation efficiency
   // here we act on the scale factors, but it should be a reasonable approximation anyway
@@ -1046,8 +1046,8 @@ Vec_f _get_fullMuonSFvariation(int n_tnpBinNuisance,
     ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
     iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    float tmp = res[tnpBinNuisance-1];
-    float sf = hsf.GetBinContent(ietaTnP, iptTnP);
+    double tmp = res[tnpBinNuisance-1];
+    double sf = hsf.GetBinContent(ietaTnP, iptTnP);
     res *= sf;
     // see comment above for isolation part
     if (isoSF2)
@@ -1255,7 +1255,7 @@ int regionIsoMt(bool lowIso, bool lowMt) {
   else if (    lowIso and     lowMt) return 1; // fakes region (passing isolation)
   else if (not lowIso and not lowMt) return 2; // fakes application region
   else if (    lowIso and not lowMt) return 3; // signal region
-  return -1;
+  return -1;  // should be impossible to get here, but just in case
   
 }
 

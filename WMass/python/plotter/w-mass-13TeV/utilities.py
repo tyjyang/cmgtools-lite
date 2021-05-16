@@ -45,7 +45,7 @@ def getBinning(inputBins, whichBins="reco"):
 
     # whichBins can be reco or gen
     if whichBins not in ["reco", "gen"]:
-        print("Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit")
+        print("Error in function getBinning(): whichBins must be 'reco' or 'gen'. Exit")
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
@@ -67,6 +67,7 @@ def getBinning(inputBins, whichBins="reco"):
     ptbinning  = list(float(i) for i in ptbinning .replace('[','').replace(']','').split(','))
     binning = [etabinning, ptbinning] 
     return binning
+
 
 class util:
 

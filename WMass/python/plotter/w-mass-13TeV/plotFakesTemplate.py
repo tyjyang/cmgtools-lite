@@ -315,16 +315,24 @@ if __name__ == "__main__":
     legend.SetNColumns(3)
 
     colors = {"Wmunu"      : ROOT.kRed+1,
+              "Wmunu_plus" : ROOT.kRed+2,
+              "Wmunu_minus": ROOT.kRed+1,
               "Zmumu"      : ROOT.kAzure+2,
               "Wtaunu"     : ROOT.kCyan+1,
+              "Wtaunu_plus" : ROOT.kCyan+2,
+              "Wtaunu_minus" : ROOT.kCyan+1,
               "Ztautau"    : ROOT.kSpring+9,
               "Top"        : ROOT.kGreen+2,
               "Diboson"    : ROOT.kViolet,
               "data_fakes" : ROOT.kGray}
 
     legEntries = {"Wmunu"      : "W#rightarrow#mu#nu",
+                  "Wmunu_plus" : "W^{+}#rightarrow#mu#nu",
+                  "Wmunu_minus": "W^{-}#rightarrow#mu#nu",
                   "Zmumu"      : "Z#rightarrow#mu#mu",
                   "Wtaunu"     : "W#rightarrow#tau#nu",
+                  "Wtaunu_plus" : "W^{+}#rightarrow#tau#nu",
+                  "Wtaunu_minus": "W^{-}#rightarrow#tau#nu",
                   "Ztautau"    : "Z#rightarrow#tau#tau",
                   "Top"        : "t quark",
                   "Diboson"    : "Diboson",

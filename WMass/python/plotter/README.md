@@ -79,7 +79,7 @@ python printRootFileContent.py cards/wmass/Wmunu_plus_shapes.root -r ".*pdf.*|.*
 
 Example command
 ```
-python w-mass-13TeV/makeSystRatios.py cards/wmass/Wmunu_plus_shapes.root plots/testNanoAOD/testHistoFits/plus/ -p "Wmunu_plus,Zmumu" -s ".*muonL1Prefire(1|2|3|16)Up|.*pdf12|.*muRmuF9PlusUp|.*muRUp|.*effStatTnP(1|112|500)Plus(Up|Down)"
+python w-mass-13TeV/makeSystRatios.py cards/wmass/Wmunu_plus_shapes.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/postprocessing/testHistoFits/ -p "Zmumu,Wmunu_plus,Top,data_fakes" -s ".*muonL1Prefire(1|3)Up|.*pdf12|.*muRmuF9PlusUp|.*muRUp|.*effStatTnP(1|112|500)PlusUp|.*lumi.*"
 ```
 
 ### Make the cards and run the fit with the following command
