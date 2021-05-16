@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python3
 
 # script to make ratio of two TH2 histograms
 # the two objects can have different bin ranges, but in order for the ratio to make sense, 

@@ -192,11 +192,21 @@ if __name__ == "__main__":
             #    continue
             ratioToB = copy.deepcopy(hists["B"][n].Clone(f"ratio_Bover{era}_effData_{n}"))
             ratioToB.Divide(hists[era][n])
-            ratioToB.SetTitle(f"{hists[era][n].GetTitle()}: B/{era}")
+            #ratioToB.SetTitle(f"{hists[era][n].GetTitle()}: B/{era}")
+            ratioToB.SetTitle(f"{n}: B/{era}")
             drawCorrelationPlot(ratioToB, "muon #eta", "muon p_{T} (GeV)", f"B/{era} data efficiency ratio",
                                 ratioToB.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
                                 passCanvas=canvas)
-        
+
+            ratioToBinMC = copy.deepcopy(histsMC["B"][n].Clone(f"ratio_Bover{era}_effMC_{n}"))
+            ratioToBinMC.Divide(histsMC[era][n])
+            #ratioToBinMC.SetTitle(f"{histsMC[era][n].GetTitle()}: B/{era}")
+            ratioToBinMC.SetTitle(f"{n}: B/{era}")
+            drawCorrelationPlot(ratioToBinMC, "muon #eta", "muon p_{T} (GeV)", f"B/{era} MC efficiency ratio",
+                                ratioToBinMC.GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+
+            
     # now for product, repeating the same code
     # also open root file to save some histograms
     fout = ROOT.TFile.Open(outdir + "productEffAndSFperEra.root", "RECREATE")        

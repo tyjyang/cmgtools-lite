@@ -66,11 +66,7 @@ if __name__ == "__main__":
         foldersToCreate.append(outdirOriginal + productSubfolder + era + "/")
 
     for folder in foldersToCreate:
-        if folder and not os.path.exists(folder):
-            os.makedirs(folder)
-            htmlpath = "./templates/index.php"
-            shutil.copy(htmlpath, folder)
-
+        createPlotDirAndCopyPhp(folder)
         
     if args.makePreOverPost:
         command = f"python w-mass-13TeV/makeEffRatioPrePostVFP.py {args.rootfile[0]} {outdirOriginal}{prePostSubfolder}"

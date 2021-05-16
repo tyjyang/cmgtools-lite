@@ -34,9 +34,11 @@ muon_iso03_chg_other: Muon_pfRelIso03_chg[goodMuonsOther][0]: 32,0.0,0.16; XTitl
 dR_mumu: deltaR(Muon_eta[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_eta[goodMuonsOther][0],Muon_phi[goodMuonsOther][0]):50,0.0,5.0; XTitle='#DeltaR(#mu\,#mu)', Legend='TR', IncludeOverflows=True
 
 
-muon_dzUnzoom: Muon_dz[goodMuonsCharge][0]: 200,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.2, RMax=2.5
+muon_dzUnzoom: Muon_dz[goodMuonsCharge][0]: 200,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True
+#, RMin=0.2, RMax=2.5
 
-muon_dz: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.5, RMax=1.5
+muon_dz: Muon_dz[goodMuonsCharge][0]: 100,-0.25,0.25; XTitle="Muon dz (cm)", Legend='TR', IncludeOverflows=False, Logy=True
+#, RMin=0.5, RMax=1.5
 
 muon_dxy: Muon_dxy[goodMuonsCharge][0]: 50,-0.05,0.05; XTitle="Muon dxy (cm)", Legend='TR', IncludeOverflows=True, Logy=True, RMin=0.5, RMax=1.5
 

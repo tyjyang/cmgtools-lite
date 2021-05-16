@@ -58,7 +58,7 @@ if __name__ == "__main__":
     for p in processes:
         nominals[p] = f.Get(f"x_{p}")
         if not nominals[p]:
-            print(f"Error getting nomnial histogram for process {p}")
+            print(f"Error getting nominal histogram for process {p}")
             quit()
         else:
             nominals[p].SetDirectory(0)
@@ -76,10 +76,10 @@ if __name__ == "__main__":
         #ratios[pname].append(htmp.Divide(nominals[pname]))
         ratio.Divide(nominals[pname])
         ratio.SetTitle(f"syst: {sname}")
-        drawCorrelationPlot(ratio, "Muon #eta", "Muon p_{T} (GeV)", "syst / nominal",
+        drawCorrelationPlot(ratio, "Muon #eta", "Muon p_{T} (GeV)", f"{pname}: syst / nominal",
                             name, plotLabel="ForceTitle", outdir=outdir,
                             smoothPlot=False, drawProfileX=False, scaleToUnitArea=False, draw_both0_noLog1_onlyLog2=1,
-                            palette=args.palette, nContours=args.nContours, invertePalette=args.invertePalette
+                            palette=args.palette, nContours=args.nContours, invertePalette=args.invertePalette,
                             passCanvas=canvas, drawOption="COLZ0")
 
         

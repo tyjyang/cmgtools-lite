@@ -65,7 +65,12 @@ def main(args):
     #hists = "muon_pt_eta_isoMtRegions"
     
     # processes and related options (also for ratio plots when customizing names)
-    processes = "data,Zmumu,Ztautau,Wmunu,Wtaunu,Top,Diboson"
+    processes = "data,Zmumu,Ztautau,Top,Diboson"
+    if args.charge != "all":
+        anticharge = "plus" if args.charge == "minus" else "minus"
+        processes += f",Wmunu_{args.charge},Wtaunu_{args.charge},Wmunu_{anticharge},Wtaunu_{anticharge}"
+    else:
+        processes += ",Wmunu,Wtaunu"
     procGroups = " ".join([getProcessGroup(p,era) for p in processes.split(',')])
     procOptions = f"-p '{processes}' {procGroups}"
 
