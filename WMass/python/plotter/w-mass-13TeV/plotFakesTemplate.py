@@ -126,10 +126,14 @@ if __name__ == "__main__":
                 if proc in procsWithSyst:
                     #tmpTH2mc = nomihists["data"].Clone("tmpTH2mc")
                     #fillTH2fromTH3zbin(tmpTH2mc, systNamesProcsHists[syst][proc], iz)
-                    tmpTH2mc = getTH2fromTH3(systNamesProcsHists[syst][proc], "tmpTH2mc", iz)
+                    tmpTH2mc = getTH2fromTH3(systNamesProcsHists[syst][proc], f"tmpTH2mc_{sys}_{proc}", iz)
                     tmpTH2dataSubMC.Add(tmpTH2mc, -1.0)
                 else:
                     tmpTH2dataSubMC.Add(nomihists[proc], -1.0)
+            # not worth checking here, since the signal region (quadrant n.3) will always have negative bins
+            #wasCropped = cropNegativeContent(tmpTH2dataSubMC, silent=False, cropError=False)
+            #if wasCropped:
+            #    print(f"Histogram bins cropped to 0 for syst {syst} and iz = {iz}")
             fillTH3binFromTH2(hDataSubMC_syst[sys], tmpTH2dataSubMC, iz)
 
             

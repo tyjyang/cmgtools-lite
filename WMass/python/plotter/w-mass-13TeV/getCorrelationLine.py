@@ -4,8 +4,9 @@
 # python w-helicity-13TeV/getCorrelationLine.py cards/diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/fit/hessian/fitresults_123456789_Asimov_combinedLep_bbb1_cxs1.root -o plots/diffXsecAnalysis/muon/diffXsec_mu_2019_04_09_newSystAndWtau_fixTriSF/getCorrelationLine/ -p CMS_Wmu_sig_lepeff -m sumpoisnorm -n 50
 
 
-import os, datetime, re, operator, math
+import os, re, operator, math
 import argparse
+import datetime
 
 from array import array
 
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetPaintTextFormat('.3f')
 
-    date = datetime.date.today().isoformat()
+    #date = datetime.date.today().isoformat()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('fitresult', type=str, nargs=1, help="fitresult.root file from combinetf")
