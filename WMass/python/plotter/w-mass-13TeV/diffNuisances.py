@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
 
 # example
+# python w-mass-13TeV/diffNuisances.py --infile cards/wmass_fixMassWeights_splitW/fit/hessian/fitresults_123456789_Asimov_clipSyst1p3_bbb1_cxs1.root --outdir plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/afterFitPlots/diffNuisances/ -a --format html --type hessian  --suffix Asimov --pois ".*" --uniqueString "allNuisances"
 #
-
-# to rank nuisances by sigma (excluding any poi), one can use the following command
+# python w-mass-13TeV/diffNuisances.py --infile cards/wmass_fixMassWeights_splitW/fit/hessian/fitresults_123456789_Asimov_clipSyst1p3_bbb1_cxs1.root --outdir plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/afterFitPlots/diffNuisances/ -a --format html --type hessian  --suffix Asimov --pois "pdf.*|alphaS" --uniqueString "pdfsAndAlphaS"
 #
-# python w-helicity-13TeV/diffNuisances.py --infile fitresults.root --outdir whatever/output/folder -a --format html --type hessian  --suffix  Data  --pois '^((?!_lep_).)*$' -R sigma
-#
-# this assumes signal pois have "_lep_" in its name. The regular expression would skip anything that contains _lep_
-# to rank by pull, use -R pull
-# one can simply use --pois ".*", but it will mix nuisances and pois, which is not necessarily useful
-# one can select only the first n entrances using option -N n
-# one can also select entrances with pull above x and/or sigma below y by using "--lower-limit-pull x" and/or "--upper-limit-sigma y" 
 
 import re, os
 import datetime
@@ -168,7 +161,7 @@ if __name__ == "__main__":
         try: 
             mean_p = valuesPrefit[name+'_gen'][0]
         except:
-            print(f"Exception caught: name = {name}")
+            # print(f"Exception caught: name = {name}")
             continue
         val_f,err_f = (valuesAndErrors[name][0],abs(valuesAndErrors[name][0]-valuesAndErrors[name][1]))
 
