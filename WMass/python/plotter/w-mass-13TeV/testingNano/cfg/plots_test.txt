@@ -181,9 +181,9 @@ PV_npvsGood: PV_npvsGood: 50,0,50; XTitle="PV_npvsGood", Legend='TC', IncludeOve
 ####
 # for vertex study
 
-dzVertex_gen_primary__Wpt: (GenVtx_z-PV_z)\:pt_2(GenPart_pt[GenPart_preFSRLepIdx1],GenPart_phi[GenPart_preFSRLepIdx1],GenPart_pt[GenPart_preFSRLepIdx2],GenPart_phi[GenPart_preFSRLepIdx2]) : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (dressed) [GeV]", Legend='TC', IncludeOverflows=False
+dzVertex_gen_primary__Wpt: (GenVtx_z-PV_z)\:ptVgen : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=False
 
-dzVertex_gen_primary__dressedLepPt: (GenVtx_z-PV_z)\:if3(fabs(GenPart_pdgId[GenPart_preFSRLepIdx1])==13,GenPart_pt[GenPart_preFSRLepIdx1],GenPart_pt[GenPart_preFSRLepIdx2]): 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" leading dressed lepton p_{T} [GeV]", Legend='TC', IncludeOverflows=False
+dzVertex_gen_primary__dressedLepPt: (GenVtx_z-PV_z)\:GenPart_pt[genPrefsrMuons][0]: 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle=" leading preFSR muon p_{T} [GeV]", Legend='TC', IncludeOverflows=False
 
 ####
 # some gen vars

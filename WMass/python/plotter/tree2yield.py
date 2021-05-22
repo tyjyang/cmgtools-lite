@@ -166,7 +166,7 @@ class TreeToYield:
         self._weight  = (options.weight and 'data' not in self._name)
         self._isdata = 'data' in self._name
         self._eraVFP = "preVFP" if "preVFP" in self._cname else "postVFP" if "postVFP" in self._cname else "all"
-        self._lumiWeight = self._options.lumiDict[self._eraVFP] # defined also for data, but scaling done only for MC
+        self._lumiWeight = self._options.lumiWeight if self._options.lumiWeight != None else self._options.lumiDict[self._eraVFP] # defined also for data, but scaling done only for MC
         if self._isdata or not options.weightString:
             self._weightString = "1"
         else:
@@ -730,6 +730,7 @@ def _copyPlotStyle(self,plotfrom,plotto):
 
 def addTreeToYieldOptions(parser):
     parser.add_argument('--lumi-dict', dest='lumiDict', type=json.loads, default='{"all":36.3,"preVFP":19.5,"postVFP":16.8}')
+    parser.add_argument('--lumi-weight', dest='lumiWeight', type=float, default=None)
     parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
     parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");

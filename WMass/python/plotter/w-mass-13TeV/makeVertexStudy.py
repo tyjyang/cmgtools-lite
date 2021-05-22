@@ -1,7 +1,8 @@
-#!/bin/env python
+#!/usr/bin/env python3
 
 import os, re, array, math
 import time
+import argparse
 
 ## safe batch mode                                 
 import sys
@@ -15,56 +16,52 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
-use2Lep = True
-# plots/vertexStudy/ask1orMoreLep
-outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/WmunuSamples/compareEfficiency_minus"
-#outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples/compareEfficiency"
-if use2Lep:
-    outdir = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples_2Lep/compareEfficiency"
-
-inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/WmunuSamples/"
-#inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples/"
-if use2Lep:
-    inputfolder = "/afs/cern.ch/user/m/mciprian/www/wmass/13TeV/testNanoAOD/vertexStudy/ZmumuSamples_2Lep/"
-
-# inputfiles = {"1::genEtaPt"                : "W_94X_noRecoCuts_genEtaPt26to56",
-#               "2::fullSel_NoMtNoIsoNoID"   : "W_94X_allRecoCuts_noMtNoIsoNoID",
-#               "3::fullSel_NoMtNoIso"       : "W_94X_allRecoCuts_noMtNoIso",
-#               "4::fullSel_NoMt"            : "W_94X_allRecoCuts_noMt",
-#               "5::fullSel"                 : "W_94X_allRecoCuts",
-#               "6::fullSel_NoTrigger"       : "W_94X_allRecoCuts_noTrigger",
-#               "7::1lepInAccept"            : "W_94X_1lepInAccept",
-#           }
-
-#workingPoints = ["alwaystrue", "genMuNoEtaPt", "vertexPresel", "muonInAccept", "muMediumId", "muTightIso", "mtl1pf40", "trigger"]
-workingPoints = ["alwaystrue", "onemuon", "trigger", "muonID", "pfRelIso04", "mtl1pf40", "vertex"]
-colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
-if use2Lep:
-    workingPoints[1] = "twomuon"
-
-markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
-
-#range for efficiency plot
-effLow = 0.5
-effHigh = 1.05
-
-#process = "Wmunu_minus" # to get the process name inside the root file
-process = "Zmumu" # to get the process name inside the root file
-absDzVal = 0.1 # 1 mm        
-# Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.01 width
-# dressed lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
-var = "Wpt"
-genWPtLow = 0.0
-genWPtHigh = 100.0
-rebinWPt = 1 # default binning is 2 GeV, so rebinWpt = 2 makes it 4 GeV
-#var = "dressedLepPt"
-genLepPtLow = 26.0
-genLepPtHigh = 100.0
-rebinLepPt = 2 # default binning is 1 GeV, so rebinLepPt = 2 makes it 2 GeV    
-hname = "dzVertex_gen_primary__{v}_{p}".format(v=var,p=process)
-
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputfolder", type=str, nargs=1)
+    #parser.add_argument("outputfolder",   type=str, nargs=1)
+    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="alwaystrue,onemuon,muonID,trigAndMatch,pfRelIso04", help="Comma separated list of working points")
+    parser.add_argument("-p", "--process", default=None, required=True, type=str, help="Process to pick histogram")
+    parser.add_argument("--dz", default=0.1, type=float, help="dz used for plots, in cm")
+    parser.add_argument("-r", "--eff-range", dest="effRange", default=(0.5,1.05), type=float, nargs=2, help="y axis range for efficiency plot")
+    parser.add_argument("-e", "--eta-ranges", dest="etaRange", default=[], type=float, nargs=2, action="append", metavar=('min','max'), help="Z axis ranges (etamin, etamax) to select, when available")
+    parser.add_argument("-v", "--variable", default="wpt", choices=["wpt", "mupt"], help="Variable to make efficiency as a function of it (needs to appear in histogram name inside root file)")
+    parser.add_argument("--hname", default="dzGenRecoVtx", help="Root of histogram name inside root file")
+    parser.add_argument("--postfix", type=str, default=None, help="Postfix for output folder")
+    parser.add_argument("--print-uncertainty", dest="printUncertainty", action="store_true", help="Print also efficiency uncertainty in summary plot with selection efficiency")
+    args = parser.parse_args()
+
+    ROOT.TH1.SetDefaultSumw2()
+
+    inputfolder = args.inputfolder[0] # "plots/testNanoAOD/vertexStudy/Wboson/"
+
+    workingPoints = [str(x) for x in args.workingPoints.split(',')]# ["alwaystrue", "onemuon", "muonID", "trigAndMatch", "pfRelIso04"]
+    colors = [ROOT.kBlack, ROOT.kCyan+1, ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2, ROOT.kOrange+2, ROOT.kMagenta, ROOT.kAzure+2]
+    markers = [ROOT.kFullCircle, ROOT.kFullCross, ROOT.kOpenSquare, ROOT.kOpenTriangleUp, ROOT.kOpenCircle, ROOT.kOpenSquareDiagonal, ROOT.kFullCircle, ROOT.kFullSquare]
+
+    #range for efficiency plot
+    effLow = args.effRange[0]
+    effHigh = args.effRange[1]
+
+    process = args.process
+    absDzVal = 0.1 # 1 mm        
+    # Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.01 width
+    # dressed lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
+    var = args.variable
+    genWPtLow = 0.0
+    genWPtHigh = 100.0
+    rebinWPt = 1 # default binning is 2 GeV, so rebinWpt = 2 makes it 4 GeV
+    genLepPtLow = 26.0
+    genLepPtHigh = 100.0
+    rebinLepPt = 2 # default binning is 1 GeV, so rebinLepPt = 2 makes it 2 GeV    
+    hname = f"{args.hname}_{var}_{process}"
+
+    outdir = inputfolder + f"/compareEfficiency_{process}"
+    if args.postfix:
+        outdir += f"_{args.postfix}"
+    outdir += "/"
+    
     #sortkeys = inputfiles.keys()
     #sortkeys = sorted(sortkeys, key = lambda x: int(x.split("::")[0]))
     sortkeys = workingPoints
@@ -88,16 +85,36 @@ if __name__ == "__main__":
 
     for ik,key in enumerate(sortkeys):
 
-        print "="*30
-        print "Cut: " + str(key)
-        print "-"*30
+        print("="*30)
+        print("Cut: " + str(key))
+        print("-"*30)
         print
-        inputfile = inputfolder + key + "/plots_test.root"
-        tf = ROOT.TFile.Open(inputfile)        
-        h2 =   tf.Get(hname)
-        h2.SetDirectory(0)
+        inputfile = inputfolder + key + "/plots_vertexStudy.root"
+        tf = ROOT.TFile.Open(inputfile,"READ")        
+        if not tf or tf.IsZombie():
+            print(f"Error opening file {inputfile}")
+            quit()
+        htmp = tf.Get(hname)
+        print(f"file name: {inputfile}")
+        checkNullObj(htmp, hname)
+        htmp.SetDirectory(0)
         tf.Close()
 
+        if htmp.GetDimension() == 3:
+            h2 = htmp.Project3D("yxe") # yxe is to make TH2 with y axis versus x axis, this keeps under/overflow
+            h2.SetName("histogram2D")
+            if len(args.etaRange):
+                h2.Reset("ICESM")
+                for pair in args.etaRange:
+                    binLow = htmp.GetZaxis().FindFixBin(pair[0]) 
+                    binHigh = htmp.GetZaxis().FindFixBin(pair[1])
+                    print(f"Projecting from range [{htmp.GetZaxis().GetBinLowEdge(binLow)}, {htmp.GetZaxis().GetBinUpEdge(binHigh)}]")
+                    htmp.GetZaxis().SetRange(binLow, binHigh)
+                    htmpRange = htmp.Project3D("yxe")
+                    h2.Add(htmpRange)
+        else:
+            h2 = htmp
+            
         # 0.0001 is an offset to get bin to the right of left of the edge
         dzBinLow = h2.GetYaxis().FindFixBin(-1.0 * absDzVal + 0.0001) # get bin with -absDzVal as left edge
         dzBinHigh = h2.GetYaxis().FindFixBin(absDzVal - 0.0001) # get bin with absDzVal as right edge
@@ -135,7 +152,7 @@ if __name__ == "__main__":
             heffSel_failDz.SetBinContent(ik,(intTot-intInDz)/backupIntOutDz_noCuts)
             heffSel_failDz.SetBinError(ik,err)
 
-        print "Inclusive efficiency: %.1f" % (100.*intInDz/intTot)
+        print("Inclusive efficiency: %.1f" % (100.*intInDz/intTot))
 
 
         # if ik == 5:
@@ -143,8 +160,8 @@ if __name__ == "__main__":
         #     rebinWPt = 3 * rebinWPt
         #wptBins = [4.0 * i for i in range(0,26)]    
         wptBins = [genWPtLow + (rebinWPt*2.0) * i for i in range(0,1+int((genWPtHigh-genWPtLow+0.001)/(2.0*rebinWPt)))]
-        if var == "dressedLepPt":
-            wptBins = [genLepPtLow + (rebinLepPt*1.0) * i for i in range(0,1+int(genLepPtHigh-genLepPtLow+0.001)/rebinLepPt)]
+        if var == "mupt":
+            wptBins = [genLepPtLow + (rebinLepPt*1.0) * i for i in range(0,1+int((genLepPtHigh-genLepPtLow+0.001)/rebinLepPt))]
         
         hists[key] = ROOT.TH1D("eff_"+key,"",len(wptBins)-1,array("d",wptBins))
         #gr[key] = 
@@ -162,17 +179,17 @@ if __name__ == "__main__":
             else:
                 eff = 1.05
             hists[key].SetBinContent(iwpt+1, eff)            
-            print "bin %d) Wpt in [%.0f, %.0f] GeV: eff = %.1f" % (iwpt+1, wptBins[iwpt], wptBins[iwpt+1],100.*eff)
+            print("bin %d) Wpt in [%.0f, %.0f] GeV: eff = %.1f" % (iwpt+1, wptBins[iwpt], wptBins[iwpt+1],100.*eff))
         #
         #overflow
         intTot_inWptRange = h2.Integral(wptBinsTot+1,wptBinsTot+1,0,1+dzBinsTot)
         intInDz_inWptRange = h2.Integral(wptBinsTot+1,wptBinsTot+1,dzBinLow,dzBinHigh)    
         if intTot_inWptRange > 0.0:
             eff = 100. * intInDz_inWptRange/intTot_inWptRange
-            print "Overflow %s > %.0f GeV: eff = %.1f" % (var,wptBins[-1],eff)
+            print("Overflow %s > %.0f GeV: eff = %.1f" % (var,wptBins[-1],eff))
         else:
-            print "Empty overflow bin"
-        print "\n"*2
+            print("Empty overflow bin")
+        print("\n\n")
     
     #sortkeys = sortkeys[:5]
 
@@ -186,7 +203,7 @@ if __name__ == "__main__":
     canvas.SetRightMargin(0.04)
     canvas.cd()
     if len(sortkeys) > len(colors):
-        print "Warning: need to extend color array"
+        print("Warning: need to extend color array")
         quit()
     legendEntries = []
     for i,k in enumerate(sortkeys):
@@ -196,13 +213,13 @@ if __name__ == "__main__":
         hists[k].SetMarkerColor(colors[i])
         hists[k].SetLineWidth(2)
         hists[k].SetMarkerStyle(markers[i])        
-        print "%d) %s " % (i,k)
+        print("%d) %s " % (i,k))
         if i:
             hists[k].Draw("LPSAME")
         else:
             hists[k].Draw("LP")
             hists[k].GetXaxis().SetTitle("W p_{T} [GeV]")
-            if var == "dressedLepPt":
+            if var == "mupt":
                 hists[k].GetXaxis().SetTitle("dressed lepton p_{T} [GeV]")
             hists[k].GetXaxis().SetTitleOffset(1.2)
             hists[k].GetXaxis().SetTitleSize(0.05)
@@ -292,10 +309,11 @@ if __name__ == "__main__":
             lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
                           0.75,
                           "{:.1f}%".format(100.*ratio))
-            err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
-            lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
-                          0.7,
-                          "{:.1f}%".format(100.*err))
+            if args.printUncertainty:
+                err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
+                lat.DrawLatex(-0.2+heffSel_passDz.GetXaxis().GetBinCenter(ib),
+                              0.7,
+                              "#pm{:.1f}%".format(100.*err))
     lat.SetTextColor(ROOT.kRed+2)
     for ib in range(1,1+heffSel_failDz.GetNbinsX()):
         if ib == 1:
@@ -311,10 +329,11 @@ if __name__ == "__main__":
             lat.DrawLatex(-0.2+heffSel_failDz.GetXaxis().GetBinCenter(ib),
                           0.6,
                           "{:.1f}%".format(100.*ratio))
-            err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
-            lat.DrawLatex(-0.2+heffSel_failDz.GetXaxis().GetBinCenter(ib),
-                          0.55,
-                          "{:.1f}%".format(100.*err))
+            if args.printUncertainty:
+                err = ratio * ROOT.TMath.Sqrt((da*da)/(a*a) + (db*db)/(b*b))
+                lat.DrawLatex(-0.2+heffSel_failDz.GetXaxis().GetBinCenter(ib),
+                             0.55,
+                             "#pm{:.1f}%".format(100.*err))
     #
     for ext in ["png","pdf"]:
         csel.SaveAs(outdir + "/selectionEfficiency.{ext}".format(v=var,ext=ext))

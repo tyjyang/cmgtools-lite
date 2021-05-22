@@ -10,7 +10,6 @@
 #include <string>
 #include <cmath>
 #include "TROOT.h"
-#include "TH2F.h"
 #include "TVector2.h"
 #include "Math/GenVector/LorentzVector.h"
 #include "Math/GenVector/PtEtaPhiM4D.h"

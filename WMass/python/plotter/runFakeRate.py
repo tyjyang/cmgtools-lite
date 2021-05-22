@@ -5,12 +5,16 @@ import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
 import argparse
 
+from lumiStuff.runPerEra import lumiForEra_UL_new as lpe
+
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import createPlotDirAndCopyPhp
 
 # processes to group
-def getProcessGroup(proc, era):
+def getProcessGroup(proc, era, subEra=None):
     # check whether Wmunu is split by charge or includes both samples, same for Wtaunu
+    if "data" in proc and subEra != None:
+        era = subEra
     if any(x in proc for x in ["Wmunu", "Wtaunu"]) and all(c not in proc for c in ["plus", "minus"]):
         if era == "all":
             ret = f"--pg '{proc} := {proc}_plus_preVFP,{proc}_plus_postVFP,{proc}_minus_preVFP,{proc}_minus_postVFP'"
@@ -27,6 +31,7 @@ def getProcessGroup(proc, era):
 def main(args):
 
     era = args.era
+    subEra = args.subEra
     postfix = args.postfix
     if len(args.postfix) and not postfix.startswith('_'):
         postfix = "_" + postfix
@@ -36,7 +41,10 @@ def main(args):
     ## Configurations below
     ######################################################################
     lumi = 16.8 if era == "postVFP" else 19.5 if era == "preVFP" else 36.3
-
+    if subEra != None:
+        lumi = lpe[subEra]
+        postfix += f"_2016{subEra}"
+        
     # cfg files
     cfgFolder = args.cfgFolder
     mca    = cfgFolder + "mca-wmass.txt"
@@ -49,7 +57,6 @@ def main(args):
     if args.charge != "all":
         chsign = ">" if args.charge == "plus" else "<"
         addcut = f"-A onemuon charge{args.charge} 'Muon_charge[goodMuons][0] {chsign} 0'"
-    #addcut = "-A awayjet pfRelIso04 'Muon_pfRelIso04_all[goodMuons][0] < 0.15' "
 
     # additional defines and aliases
     otherDefines = " --rdf-alias 'goodMuonsCharge: goodMuons:.*'"
@@ -71,14 +78,18 @@ def main(args):
         processes += f",Wmunu_{args.charge},Wtaunu_{args.charge},Wmunu_{anticharge},Wtaunu_{anticharge}"
     else:
         processes += ",Wmunu,Wtaunu"
-    procGroups = " ".join([getProcessGroup(p,era) for p in processes.split(',')])
+    procGroups = " ".join([getProcessGroup(p, era, subEra) for p in processes.split(',')])
     procOptions = f"-p '{processes}' {procGroups}"
 
     # ratio (settings, while customization of processes should go in procOptions)
     ratio = "--showRatio --maxRatioRange 0.5 1.5 --fixRatioRange  --onlyStatErrorOnRatio --noLegendRatioPlot --ratioYLabel 'Data/MC'"
 
     # event weight (global one for MC)
-    weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
+    weight = ""
+    if subEra != None:
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,{subEra})"
+    else:
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
 
     # gen weight customization
     # genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax" # options were removed
@@ -95,7 +106,9 @@ def main(args):
     ######################################################################
     
     command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} {genweight} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {args.options}"
-
+    if args.subEra:
+        command += f" --lumi-weight {lumi} "
+    
     if args.dryRun:
         print(command)
     else:
@@ -108,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--dry-run', dest="dryRun", action='store_true', help='Print, but do not execute')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
+    parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["all","B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF)')
     parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
