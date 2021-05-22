@@ -163,6 +163,7 @@ One can make the histograms separately for each charge by running twice with opt
 python runFakeRate.py -o plots/testNanoAOD/WmassPlots/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c plus -s
 python runFakeRate.py -o plots/testNanoAOD/WmassPlots/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3.txt" --options " --skipPlot " -c minus -s
 ```
+One can also make the histograms (and thus the analysis) for a specific sub era adding option __--sub-era D__ (for Run2016D). The proper scale factors, pileup, and muon prefiring weights will be customized accordingly inside the script (please always check that the correct commands are built before really running, you can use option __-d__ to print without running).
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
 ```
@@ -182,6 +183,15 @@ The same __runFakeRate.py__ script can be used without option __-s__ and removin
 python runFakeRate.py -e postVFP --plot-file "plots_fakerate.txt" [-c plus|minus]
 ```
 
+### Vertex study
+Prepare the commands to make histograms for this study with the utility script __runVertexStudy.py__
+```
+python runVertexStudy.py
+```
+Once the histograms are available, the actual plots can be made with a command like the following (see other options therein)
+```
+python w-mass-13TeV/makeVertexStudy.py plots/testNanoAOD/vertexStudy/Wboson_noPUorPrefire/ -p Wmunu_plus_preVFP -v wpt --hname "mueta_dzGenRecoVtx" -e -2.39 -2.21 -e 2.21 2.39 --postfix endcap2p2to2p4
+```
 
 ## Details about making plots
 

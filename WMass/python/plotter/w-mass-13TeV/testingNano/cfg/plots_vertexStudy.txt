@@ -1,0 +1,8 @@
+####
+# for vertex study
+
+dzGenRecoVtx_wpt: (GenVtx_z-PV_z)\:ptVgen : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]", XTitle="W-p_{T} (preFSR) (GeV)"
+
+dzGenRecoVtx_mupt: (GenVtx_z-PV_z)\:GenPart_pt[genPrefsrMuons][0]: 74,26,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]", XTitle=" leading preFSR muon p_{T} (GeV)"
+
+mueta_dzGenRecoVtx_wpt: GenPart_eta[genPrefsrMuons][0]\:(GenVtx_z-PV_z)\:ptVgen : 50,0,100,200,-1.0,1.0,60,-3.0,3.0; ZTitle=" leading preFSR muon #eta", YTitle="vertex #Deltaz (gen-reco) [cm]", XTitle="W-p_{T} (preFSR) [GeV]", 

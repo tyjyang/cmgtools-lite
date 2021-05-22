@@ -1,0 +1,7 @@
+alwaystrue : 1 ; BEFOREDEFINE=True
+onemuon    : Sum(vetoElectrons) == 0 && Sum(vetoMuons)==1 && Sum(goodMuonsNoID)==1 
+muonID     : Sum(goodMuons)==1 
+trigAndMatch : (HLT_IsoTkMu24 || HLT_IsoMu24) && hasTriggerMatch(Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
+pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
+#mtl1pf40   : mt_2(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],MET_pt,MET_phi) > 40.
+
