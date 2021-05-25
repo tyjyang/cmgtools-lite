@@ -26,11 +26,33 @@ def wptBinsScales(i):
     pthi = wptbins[2*i]
     return [ptlo, pthi]
 
+# TODO: Use this for other systematics (it needs to be generalized a bit)
+def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, regex, outfile=None, systBinStart=-0.5, indexStart=0, addWeight=None, replaceWeight=None, nBinsZaxis=None):
+
+    if nBinsZaxis == None:
+        nBinsZaxis = nsyst
+    syst_binning = "%d,%.1f,%.1f" % (nBinsZaxis, systBinStart, nBinsZaxis+systBinStart)
+    expr_string = f"indices({nsyst},{indexStart})\:scalarToRVec({pt_expr},{nsyst})\:scalarToRVec({eta_expr},{nsyst})"
+    weight_items = []
+    if addWeight:
+        weight_items.append(f"AddWeight='{addWeight}'")
+    if replaceWeight:
+        weight_items.append(f"ReplaceWeight='{replaceWeight}'")
+    weight_str = ", ".join(weight_items) if len(weight_items) else ""
+
+    line = f"{label}_: {expr_string} : {etapt_binning},{syst_binning};" \
+        f" {xylabels}, ZTitle='{weight_axis}', {weight_str}, ProcessRegexp='{regex}'\n"
+    print(line)
+    if outfile:
+        outfile.write(line+'\n')
+
 parser = argparse.ArgumentParser()
 #parser.add_argument('-n', '--name', dest='baseHistName', default='muon_eta_pt', type=str, help='Base name for histograms')
 parser.add_argument('-x', '--xAxisName', default='Muon #eta', type=str, help='x axis name')
 parser.add_argument('-y', '--yAxisName', default='Muon p_{T} (GeV)', type=str, help='y axis name')
 parser.add_argument('-b', '--bins', dest="etaptBins", default='48,-2.4,2.4,29,26,55', type=str, help='Bins for eta-pt, passed as to TH2 (only supports uniform binning for now)')
+parser.add_argument('--ptVar', default='Muon_pt[goodMuonsCharge][0]', type=str, help='Expression for variable on pt axis')
+parser.add_argument('--etaVar', default='Muon_eta[goodMuonsCharge][0]', type=str, help='Expression for variable on eta axis')
 parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
 args = parser.parse_args()
@@ -45,110 +67,137 @@ isWlike = args.analysis == "wlike"
 ####################################
 
 printToFile = False
+outf = None
 if args.outputFile != "":
     outf = open(args.outputFile,"w")
     printToFile = True
     
 #nominal
-#line = "{n}: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(n=baseHistName,b=etaptBins,axis=axisNames)
-line = "nominal_: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(b=etaptBins,axis=axisNames)
+#line = "{n}: {y}\:Muon_eta[goodMuonsCharge][0]: {b}; {axis} \n".format(n=baseHistName,y=args.ptVar,b=etaptBins,axis=axisNames)
+line = f"nominal_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames} \n"
 
 print(line)
 if printToFile: outf.write(line+'\n')
 
-# pdf
-syst_key = "pdf"
-syst_expr = "indices(LHEPdfWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEPdfWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEPdfWeight)"
-syst_binning = "102,0.5,102.5"
-syst_axisname = "ZTitle='PDF index'"
-syst_weight  = "LHEPdfWeight"
-process_regexpr = "W.*|Z.*"
-
-#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-
-print(line)
-if printToFile: outf.write(line+'\n')
+# pdf + alphaS
+write3DHist(label = "pdf",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
+            xylabels = axisNames,
+            weight_axis = "PDF/alpha_{S} index",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*",
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 0,
+            addWeight = "LHEPdfWeight",
+            nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
+)
 
 
 # qcd scales (not Vpt binned, that one comes just afterward)
-syst_key = "qcdScale"
-syst_expr = "indices(LHEScaleWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEScaleWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEScaleWeight)"
-syst_binning = "18,-0.5,17.5"
-syst_axisname = "ZTitle='QCD scale index'"
-syst_weight  = "LHEScaleWeight"
-process_regexpr = "W.*" if isWlike else "Z.*"
-
-#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-
-print(line)
-if printToFile: outf.write(line+'\n')
+write3DHist(label = "qcdScale",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 18,
+            xylabels = axisNames,
+            weight_axis = "QCD scale index",
+            etapt_binning = etaptBins,
+            regex = "W.*" if isWlike else "Z.*",
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+            addWeight = "LHEScaleWeight" 
+)
 
 # qcd scales (Vpt binned)
 NVTPBINS = 10
 process_regexpr =  "Z.*" if isWlike else "W.*" # opposite with respect to unbinned QCD scales
 for ipt in range(1,1+NVTPBINS):
-    syst_key = "qcdScaleVptBin%d" % ipt
     ptcut = wptBinsScales(ipt)
-    syst_weight  = "qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptlo}\,{pthi})".format(ptlo=ptcut[0],pthi=ptcut[1])
-
-    #line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-    line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-    print(line)
-    if printToFile: outf.write(line+'\n')
+    write3DHist(label = "qcdScaleVptBin%d" % ipt,
+                pt_expr = args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = 18,
+                xylabels = axisNames,
+                weight_axis = "QCD scale index",
+                etapt_binning = etaptBins,
+                regex = "Z.*" if isWlike else "W.*", # opposite with respect to unbinned QCD scales 
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+                addWeight = f"qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptcut[0]}\,{ptcut[1]})" 
+    )
 
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
-NTNPBINS = 576 # 48 eta * 12 pt, hardcoded for now. SF have 13 pt bins, but the last one is between 55 and 65, so outside the analysis acceptance. Lowest pt is 26, in case the acceptance starts at 30, it is better to let the bin start from 1, and then one can just drop some nuisances afterwards
-START = 0.5
-syst_key = "effStatTnP"
-syst_expr = f"indices({NTNPBINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NTNPBINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NTNPBINS})"
-syst_binning = "%d,%.1f,%.1f" % (NTNPBINS, START, NTNPBINS+START)
-syst_axisname = "ZTitle='Eff. stat. nuisance index'"
-ptOther  = "Muon_pt[goodMuonsOther][0]"  if isWlike else "-1"
-etaOther = "Muon_eta[goodMuonsOther][0]" if isWlike else "-1"
-syst_weight  = f"_get_fullMuonSF(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)->_get_fullMuonSFvariation({NTNPBINS}\,Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,{ptOther}\,{etaOther}\,eraVFP)"
-process_regexpr = "W.*|Z.*|Top|DiBosons"
+write3DHist(label = "effStatTnP",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 576, # remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "Eff. stat. nuisance index",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(576\," 
+)
 
-#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-
-print(line)
-if printToFile: outf.write(line+'\n')
 
 # prefiring uncertainty, uncorrelated for each eta bin. Here the function is _get_MuonPrefiringSFvariation, which replace _get_MuonPrefiringSF in the nominal weight, using ReplaceWeight
-NETABINS = 16
-START = 0.5
-syst_key = "muonL1Prefire"
-syst_expr = f"indices({NETABINS}, 1)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],{NETABINS})\:scalarToRVec(Muon_eta[goodMuonsCharge][0],{NETABINS})"
-syst_binning = "%d,%.1f,%.1f" % (NETABINS, START, NETABINS+START)
-syst_axisname = "ZTitle='Muon L1 prefiring nuisance index'"
-syst_weight  = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation({NETABINS}\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)"
-process_regexpr = "W.*|Z.*|Top|DiBosons"
+write3DHist(label = "muonL1Prefire",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 16, # remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "Muon L1 prefiring nuisance index",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            replaceWeight = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation(16\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+)
 
-#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, ReplaceWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
 
-print(line)
-if printToFile: outf.write(line+'\n')
+# mass weights from LHEReweightingWeightCorrectMass
+write3DHist(label = "massWeight",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst=23 if isWlike else 21,
+            xylabels = axisNames,
+            weight_axis = "Mass weight index",
+            etapt_binning = etaptBins,
+            regex = "Z.*" if isWlike else "W.*",
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+            addWeight = "LHEReweightingWeightCorrectMass"
+)
 
-# mass weights from LHEReweightingWeight (might change at some point)
-NWEIGHTS = 44 if isWlike else 33
-START = -0.5
-syst_key = "massWeight"
-syst_expr = "indices(LHEReweightingWeight)\:scalarToRVec(Muon_pt[goodMuonsCharge][0],LHEReweightingWeight)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],LHEReweightingWeight)"
-syst_binning = "%d,%.1f,%.1f" % (NWEIGHTS, START, NWEIGHTS+START)
-syst_axisname = "ZTitle='Mass weight index'"
-syst_weight  = "LHEReweightingWeight"
-process_regexpr = "Z.*" if isWlike else "W.*"
 
-#line = "{n}_{sk}: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(n=baseHistName, sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-line = "{sk}_: {se}: {b},{sb}; {axis}, {sa}, AddWeight='{sw}', ProcessRegexp='{prg}' \n".format(sk=syst_key, se=syst_expr, b=etaptBins, sb=syst_binning, axis=axisNames, sa=syst_axisname, sw=syst_weight, prg=process_regexpr)
-
-print(line)
-if printToFile: outf.write(line+'\n')
-
+for chan in ["Wm", "Wp", "Z"]:
+    process_regexpr = "Z.*" 
+    if "W" in chan:
+        process_regexpr = ".*".join(["W", "minus" if "m" in chan else "plus", ])
+    START = -0.5
+    NWEIGHTS = 45
+    write3DHist(label ="scetlibWeights", # no trailing '_', it is added inside directly (and mcPlots will add another one) 
+                pt_expr =args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = NWEIGHTS,
+                xylabels = axisNames,
+                weight_axis = "SCETlib variation index",
+                etapt_binning = etaptBins,
+                regex = process_regexpr,
+                outfile = outf,
+                systBinStart = START,
+                indexStart = 0,
+                addWeight = f"scetlibWeights{chan}"
+    )
 
 print('-'*30)
 print("SUMMARY")

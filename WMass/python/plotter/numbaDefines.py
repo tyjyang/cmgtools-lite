@@ -5,36 +5,113 @@ import numba
 import os
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-@ROOT.Numba.Declare(["RVec<float>"], "float")
-def maxPt(pts):
-    return np.max(pts) if len(pts) else 0
-
-correctionsWp_file = np.load(f"{script_dir}/../postprocessing/data/gen/fiducialWp_RatioN3LL.npz")
+correctionsWp_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Wp_pT.npz", allow_pickle=True)
 binsWp = correctionsWp_file['bins']
-correctionsWp = correctionsWp_file['hist']
+correctionsWp = correctionsWp_file['scetlibCorr3D_Wp']
 
-correctionsZ_file = np.load(f"{script_dir}/../postprocessing/data/gen/fiducialDY_RatioN3LL.npz", allow_pickle=True)
+correctionsWm_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Wm_pT.npz", allow_pickle=True)
+binsWm = correctionsWm_file['bins']
+correctionsWm = correctionsWm_file['scetlibCorr3D_Wm']
+
+correctionsZ_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Z_pT.npz", allow_pickle=True)
 binsZ = correctionsZ_file['bins']
-binsZ_m = binsZ[0]
-binsZ_y = binsZ[1]
-binsZ_pt = binsZ[2]
 correctionsZ = correctionsZ_file['scetlibCorr3D_Z']
 
-#@numba.jit(nopython=True)
-#def correctN3LL(mV, yV, ptV, bins, corr):
-@ROOT.Numba.Declare(["double", "double", "double"], "float")
-def correctN3LL_Z(mV, yV, ptV):
-    # Numba doesn't seem to have digitize with the first arg a scalar implemented
-    binm = np.digitize(np.array([mV]), binsZ_m)[0]
-    biny = np.digitize(np.array([yV]), binsZ_y)[0]
-    binpt = np.digitize(np.array([ptV]), binsZ_pt)[0]
-    if binm == 0 or binm == len(binsZ_m) or biny == 0 or biny == len(binsZ_y) or binpt == 0 or binpt == len(binsZ_pt):
-        return 1.
-    return correctionsZ[binm-1,biny-1,binpt-1]
+# Define all of this outside the function to help Numba with typing
+iv,im,iy,ipt = range(4)
+# Be careful about typing, numba is nasty about this
+binsZ_var = binsZ[iv].astype(np.int64) 
+binsZ_m = binsZ[im].astype(np.float64) 
+binsZ_y = binsZ[iy].astype(np.float64) 
+binsZ_pt = binsZ[ipt].astype(np.float64) 
 
-#@ROOT.Numba.Declare(["float", "float", "float"], "float")
-#def correctN3LL_Wp(mW, yW, ptW):
-#    return correctN3LL(mW, yW, ptW, binsWp, correctionsWp)
+binsWm_var = binsWm[iv].astype(np.int64)   
+binsWm_m = binsWm[im].astype(np.float64)  
+binsWm_y = binsWm[iy].astype(np.float64) 
+binsWm_pt = binsWm[ipt].astype(np.float64) 
+
+binsWp_var = binsWp[iv].astype(np.int64)   
+binsWp_m = binsWp[im].astype(np.float64)  
+binsWp_y = binsWp[iy].astype(np.float64) 
+binsWp_pt = binsWp[ipt].astype(np.float64) 
+
+@numba.jit('float64[:](float64[:], float64[:], float64[:], boolean, int64)', nopython=True, debug=True)
+def correctN3LL_allVars(mV, yV, ptV, norm, chan):
+    if chan == 0:
+        bins_m = binsZ_m
+        bins_y = binsZ_y
+        bins_pt = binsZ_pt
+        corr = correctionsZ
+    elif chan == 1:
+        bins_m = binsWm_m
+        bins_y = binsWm_y
+        bins_pt = binsWm_pt
+        corr = correctionsWm
+    elif chan == 2:
+        bins_m = binsWp_m
+        bins_y = binsWp_y
+        bins_pt = binsWp_pt
+        corr = correctionsWp
+
+    # Numba doesn't seem to have digitize with the first arg a scalar implemented
+    binm = np.digitize(mV, bins_m)[0]
+    biny = np.digitize(yV, bins_y)[0]
+    binpt = np.digitize(ptV, bins_pt)[0]
+    if binm == 0 or binm == len(bins_m) or biny == 0 or biny == len(bins_y) or binpt == 0 or binpt == len(bins_pt):
+        return np.ones(corr.shape[0])
+    varcorr = np.copy(corr[:,binm-1,biny-1,binpt-1])
+    # Normalize by central value if you're applying variations to a sample weighted by the central weight
+    return varcorr/varcorr[0] if norm else varcorr
+
+@numba.jit('float64(int64, float64[:], float64[:], float64[:], int64)', nopython=True, debug=True)
+def correctN3LL(var, mV, yV, ptV, chan):
+    if chan == 0:
+        bins_m = binsZ_m
+        bins_y = binsZ_y
+        bins_pt = binsZ_pt
+        corr = correctionsZ
+    elif chan == 1:
+        bins_m = binsWm_m
+        bins_y = binsWm_y
+        bins_pt = binsWm_pt
+        corr = correctionsWm
+    elif chan == 2:
+        bins_m = binsWp_m
+        bins_y = binsWp_y
+        bins_pt = binsWp_pt
+        corr = correctionsWp
+
+    # Numba doesn't seem to have digitize with the first arg a scalar implemented
+    binm = np.digitize(mV, bins_m)[0]
+    biny = np.digitize(yV, bins_y)[0]
+    binpt = np.digitize(ptV, bins_pt)[0]
+    if var >= corr.shape[0] or binm == 0 or binm == len(bins_m) or biny == 0 or biny == len(bins_y) or binpt == 0 or binpt == len(bins_pt):
+        return 1.
+    return corr[var,binm-1,biny-1,binpt-1]
+
+@ROOT.Numba.Declare(["double", "double", "double", "bool"], "RVec<double>")
+def correctN3LL_Z_allVars(mV, yV, ptV, norm=True):
+    return correctN3LL_allVars(np.array([mV]), np.array([yV]), np.array([ptV]), norm, 0)
+
+@ROOT.Numba.Declare(["double", "double", "double", "bool"], "RVec<double>")
+def correctN3LL_Wm_allVars(mV, yV, ptV, norm=True):
+    return correctN3LL_allVars(np.array([mV]), np.array([yV]), np.array([ptV]), norm, 1)
+
+@ROOT.Numba.Declare(["double", "double", "double", "bool"], "RVec<double>")
+def correctN3LL_Wp_allVars(mV, yV, ptV, norm=True):
+    return correctN3LL_allVars(np.array([mV]), np.array([yV]), np.array([ptV]), norm, 2)
+
+@ROOT.Numba.Declare(["int", "double", "double", "double"], "double")
+def correctN3LL_Z(var, mV, yV, ptV):
+    return correctN3LL(var, np.array([mV]), np.array([yV]), np.array([ptV]), 0)
+
+@ROOT.Numba.Declare(["int", "double", "double", "double"], "double")
+def correctN3LL_Wm(var, mV, yV, ptV):
+    return correctN3LL(var, np.array([mV]), np.array([yV]), np.array([ptV]), 1)
+#
+@ROOT.Numba.Declare(["int", "double", "double", "double"], "double")
+def correctN3LL_Wp(var, mV, yV, ptV):
+    return correctN3LL(var, np.array([mV]), np.array([yV]), np.array([ptV]), 2)
 
 @ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", ], "RVec<bool>")
 def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):

@@ -34,14 +34,18 @@ if __name__ == "__main__":
     parser.add_argument('--makePreOverPost', action="store_true", help="Make data/data and MC/MC scale factors (in subfolder 'effRatio_preOverPost/')")
     args = parser.parse_args()
 
+    ROOT.TH1.SetDefaultSumw2()
+    
     productsToMake = {"isoTrigPlus"       : ["iso",           "triggerplus",  "idip"], # "tracking"],
                       "isoTrigMinus"      : ["iso",           "triggerminus", "idip"], # "tracking"],
                       "isoNotrig"         : ["isonotrig",                     "idip"], # "tracking"],
+                      "noisoTrigPlus"     : [                 "triggerplus",  "idip"], # "tracking"],
+                      "noisoTrigMinus"    : [                 "triggerminus", "idip"], # "tracking"],
+                      "noisoNotrig"       : [                                 "idip"], # "tracking"],
                       "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
                       "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
                       "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
-
-        }
+    }
 
 
     eras = args.era.split(',')
@@ -62,11 +66,7 @@ if __name__ == "__main__":
         foldersToCreate.append(outdirOriginal + productSubfolder + era + "/")
 
     for folder in foldersToCreate:
-        if folder and not os.path.exists(folder):
-            os.makedirs(folder)
-            htmlpath = "./templates/index.php"
-            shutil.copy(htmlpath, folder)
-
+        createPlotDirAndCopyPhp(folder)
         
     if args.makePreOverPost:
         command = f"python w-mass-13TeV/makeEffRatioPrePostVFP.py {args.rootfile[0]} {outdirOriginal}{prePostSubfolder}"

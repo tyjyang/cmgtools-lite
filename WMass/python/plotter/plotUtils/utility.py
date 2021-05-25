@@ -8,15 +8,27 @@ logging.basicConfig(level=logging.INFO)
 from array import array
 import shutil
 from CMS_lumi import *
-
-_canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
     
+_canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
 
 def printLine(marker='-', repeat=30):
     print(marker*repeat)
 
+#########################################################################
+
+def checkNullObj(obj, objName="object", quitOnFail=True):
+
+    if obj == None:
+        print(f"Error with {objName}: it was None.")
+        if quitOnFail:
+            quit()
+        else:
+            return True
+    else:
+        return False
+            
 #########################################################################
 
 def addStringToEnd(name, matchToAdd, notAddIfEndswithMatch=False):
@@ -185,7 +197,7 @@ def getMaximumTH(h, excludeMax=None):
                 for iz in range(1,h.GetNbinsZ()+1):
                     if retmax < h.GetBinContent(ix,iy,iz):
                         if excludeMax != None:
-                            if h.GetBinContent(ix,iy,iz) < excludeMax: retmax = h.GetBinContent(ix,iy,iz)                            
+                            if h.GetBinContent(ix,iy,iz) < excludeMax: retmax = h.GetBinContent(ix,iy,iz)    
                         else:
                             retmax = h.GetBinContent(ix,iy,iz)
 
@@ -194,25 +206,96 @@ def getMaximumTH(h, excludeMax=None):
 
     return retmax
 
+#########################################################################
+
+def fillTH2fromTH2part(h2out, h2in,
+                       xbinLow=1, ybinLow=1,
+                       xbinHigh=None, ybinHigh=None,
+                       xoffset=0, yoffset=0):
+
+    if xbinHigh == None:
+        xbinHigh = h2out.GetNbinsX()
+    if ybinHigh == None:
+        ybinHigh = h2out.GetNbinsY()
+
+    for ix in range(xbinLow, 1 + xbinHigh):
+        for iy in range(ybinLow, 1 + ybinHigh):
+            content = h2in.GetBinContent(ix + xoffset, iy + yoffset)
+            error   = h2in.GetBinError(  ix + xoffset, iy + yoffset)
+            h2out.SetBinContent(ix, iy, content)
+            h2out.SetBinError(  ix, iy, error)
 
 #########################################################################
 
+def fillTH3fromTH3part(h3out, h3in,
+                       xbinLow=1, ybinLow=1, zbinLow=1,
+                       xbinHigh=None, ybinHigh=None, zbinHigh=None,
+                       xoffset=0, yoffset=0, zoffset=0):
+
+    if xbinHigh == None:
+        xbinHigh = h3out.GetNbinsX()
+    if ybinHigh == None:
+        ybinHigh = h3out.GetNbinsY()
+    if zbinHigh == None:
+        zbinHigh = h3out.GetNbinsZ()
+
+    for ix in range(xbinLow, 1 + xbinHigh):
+        for iy in range(ybinLow, 1 + ybinHigh):
+            for iz in range(zbinLow, 1 + zbinHigh):
+                content = h3in.GetBinContent(ix + xoffset, iy + yoffset, iz + zoffset)
+                error   = h3in.GetBinError(  ix + xoffset, iy + yoffset, iz + zoffset)
+                h3out.SetBinContent(ix, iy, iz, content)
+                h3out.SetBinError(  ix, iy, iz, error)
+
+
+#########################################################################
+
+# can't this use TH3.Projection?
 def fillTH2fromTH3zrange(h2, h3, zbinLow=1, zbinHigh=1):
-    for ix in range(1,1+h2.GetNbinsX()):
-        for iy in range(1,1+h2.GetNbinsY()):
+    for ix in range(1, 1 + h2.GetNbinsX()):
+        for iy in range(1, 1 + h2.GetNbinsY()):
             error = ROOT.Double(0)
-            h2.SetBinContent(ix,iy,h3.IntegralAndError(ix,ix,iy,iy,zbinLow,zbinHigh,error))
+            h2.SetBinContent(ix, iy, h3.IntegralAndError(ix, ix, iy, iy, zbinLow, zbinHigh, error))
             h2.SetBinError(ix,iy,error);
 
+#########################################################################
+
+def fillTH2fromTH3zbin(h2, h3, zbin=1):
+    #fillTH2fromTH3zrange(h2, h3, zbinLow=zbin, zbinHigh=zbin)
+
+    for ix in range(1, 1 + h2.GetNbinsX()):
+        for iy in range(1, 1 + h2.GetNbinsY()):
+            h2.SetBinContent(ix, iy, h3.GetBinContent(ix, iy, zbin))
+            h2.SetBinError(ix, iy, h3.GetBinError(ix, iy, zbin));
 
 #########################################################################
 
+def getTH2fromTH3(hist3D, name, binStart, binEnd=None, proj="yxe"):
+    if binEnd == None:
+        binEnd = binStart
+    hist3D.GetZaxis().SetRange(binStart,binEnd)
+    # Order yx matters to have consistent axes!
+    hist2D = hist3D.Project3D(proj) # yxe is to make TH2 with y axis versus x axis 
+    hist2D.SetName(name)
+    return hist2D
+
+    
+#########################################################################
+
+def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
+    for ix in range(1, 1 + h2.GetNbinsX()):
+        for iy in range(1, 1 + h2.GetNbinsY()):
+            val   = h2.GetBinContent(ix, iy)
+            error = h2.GetBinError(ix, iy)
+            if scaleFactor != None:
+                val   *= scaleFactor
+                error *= scaleFactor
+            h3.SetBinContent(ix, iy, zbin, val)
+            h3.SetBinError(ix, iy, zbin, error);
+            
+#########################################################################
 
 def createPlotDirAndCopyPhp(outdir):
-    # if outdir != "./":
-    #     if not os.path.exists(outdir):
-    #         os.system("mkdir -p " + outdir)
-    #         if os.path.exists("/afs/cern.ch"): os.system("cp /afs/cern.ch/user/m/mciprian/public/index.php "+outdir)
     if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
         htmlpath = "./templates/index.php"
@@ -289,6 +372,7 @@ def drawTH1(htmp,
     canvas.SetTickx(1)
     canvas.SetTicky(1)
     canvas.cd()
+    canvas.SetBottomMargin(0.14)
     canvas.SetLeftMargin(0.12)
     canvas.SetRightMargin(0.04)
     canvas.cd()
@@ -343,21 +427,23 @@ def drawCorrelationPlot(h2D_tmp,
                         canvasName="default", plotLabel="", outdir="./",
                         rebinFactorX=0,
                         rebinFactorY=0,
-                        smoothPlot=True,
-                        drawProfileX=True,
-                        scaleToUnitArea=True,
-                        draw_both0_noLog1_onlyLog2=0,
+                        smoothPlot=False,
+                        drawProfileX=False,
+                        scaleToUnitArea=False,
+                        draw_both0_noLog1_onlyLog2=1,
                         leftMargin=0.16,
                         rightMargin=0.20,
                         nContours=51,
                         palette=55,
+                        invertePalette=False,
                         canvasSize="700,625",
                         passCanvas=None,
                         bottomMargin=0.1,
                         plotError=False,
                         plotRelativeError=False,
                         lumi=None,
-                        drawOption = "colz"):
+                        drawOption = "colz",
+                        skipLumi=False):
 
 
     ROOT.TH1.SetDefaultSumw2()
@@ -397,8 +483,11 @@ def drawCorrelationPlot(h2D_tmp,
                                          array ("d", [0.82, 1.00, 0.00]),
                                          255,  0.95)
 
-    if palette > 0: ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
+    if palette > 0:
+        ROOT.gStyle.SetPalette(palette)  # 55:raibow palette ; 57: kBird (blue to yellow, default) ; 107 kVisibleSpectrum ; 77 kDarkRainBow 
     ROOT.gStyle.SetNumberContours(nContours) # default is 20 
+    if invertePalette:
+        ROOT.TColor.InvertPalette()
 
     labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
@@ -472,7 +561,7 @@ def drawCorrelationPlot(h2D_tmp,
         
     # not yet implemented
     setTDRStyle()
-    if not plotLabel == "ForceTitle": 
+    if not skipLumi and not plotLabel == "ForceTitle": 
         if lumi != None: CMS_lumi(canvas,lumi,True,False)
         else:            CMS_lumi(canvas,"",True,False)
 
@@ -1558,7 +1647,7 @@ def drawTH1dataMCstack(h1, thestack,
                        outdir="./",
                        legend=None,
                        ratioPadYaxisNameTmp="data/MC::0.5,1.5", 
-                       draw_both0_noLog1_onlyLog2=0,
+                       draw_both0_noLog1_onlyLog2=1,
                        #minFractionToBeInLegend=0.001,
                        fillStyle=3001,
                        leftMargin=0.16,
@@ -1574,8 +1663,12 @@ def drawTH1dataMCstack(h1, thestack,
                        wideCanvas=False,
                        drawVertLines="", # "12,36": format --> N of sections (e.g: 12 pt bins), and N of bins in each section (e.g. 36 eta bins), assuming uniform bin width
                        textForLines=[], 
-                       etaptbinning=[]
-                       ):
+                       etaptbinning=[],
+                       drawLumiLatex=False,
+                       skipLumi=False,
+                       xcmsText=0.1, # customize x when using drawLumiLatex
+                       noLegenRatio=False
+):
 
     # if normalizing stack to same area as data, we need to modify the stack
     # however, the stack might be used outside the function. In order to avoid any changes in the stack, it is copied here just for the plot
@@ -1623,9 +1716,9 @@ def drawTH1dataMCstack(h1, thestack,
     if hErrStack != None:
         stackErr = copy.deepcopy(hErrStack.Clone("stackErr"))
 
-    logging.info("drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()))
-    logging.info("drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()))
-    logging.info("drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()))
+    # logging.info("drawTH1dataMCstack():  integral(data):  " + str(h1.Integral()))
+    # logging.info("drawTH1dataMCstack():  integral(stack): " + str(stackCopy.Integral()))
+    # logging.info("drawTH1dataMCstack():  integral(herr):  " + str(stackErr.Integral()))
 
     h1.SetStats(0)
     titleBackup = h1.GetTitle()
@@ -1710,8 +1803,18 @@ def drawTH1dataMCstack(h1, thestack,
         if lumi != None: latCMS.DrawLatex(0.85, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
         else:            latCMS.DrawLatex(0.90, 0.95, '(13 TeV)' % lumi)
     else:    
-        if lumi != None: CMS_lumi(canvas,lumi,True,False, reduceSize, offset)
-        else:            CMS_lumi(canvas,"",True,False)    
+        if not skipLumi:
+            if not drawLumiLatex:
+                if lumi != None: CMS_lumi(canvas,lumi,True,False)
+                else:            CMS_lumi(canvas,"",True,False)
+            else:
+                latCMS = ROOT.TLatex()
+                latCMS.SetNDC();
+                latCMS.SetTextFont(42)
+                latCMS.SetTextSize(0.04)
+                latCMS.DrawLatex(xcmsText, 0.95, '#bf{CMS} #it{Preliminary}')
+                if lumi != None: latCMS.DrawLatex(0.75, 0.95, '%s fb^{-1} (13 TeV)' % lumi)
+                else:            latCMS.DrawLatex(0.8, 0.95, '(13 TeV)')
 
     setTDRStyle()
 
@@ -1766,7 +1869,8 @@ def drawTH1dataMCstack(h1, thestack,
     leg2.SetFillStyle(0)
     leg2.SetBorderSize(0)
     leg2.AddEntry(den,"tot. unc. exp.","LF")
-    leg2.Draw("same")
+    if not noLegenRatio:
+        leg2.Draw("same")
 
     pad2.RedrawAxis("sameaxis")
 

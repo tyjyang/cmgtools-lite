@@ -45,7 +45,7 @@ def getBinning(inputBins, whichBins="reco"):
 
     # whichBins can be reco or gen
     if whichBins not in ["reco", "gen"]:
-        print("Error in function getDiffXsecBinning(): whichBins must be 'reco' or 'gen'. Exit")
+        print("Error in function getBinning(): whichBins must be 'reco' or 'gen'. Exit")
         exit()
 
     # case in which we are passing a file containing the binning and not directly the binning itself
@@ -67,6 +67,7 @@ def getBinning(inputBins, whichBins="reco"):
     ptbinning  = list(float(i) for i in ptbinning .replace('[','').replace(']','').split(','))
     binning = [etabinning, ptbinning] 
     return binning
+
 
 class util:
 
@@ -1213,11 +1214,11 @@ class util:
         a = a.replace('mu','').replace('el','')
         return int(a)
 
-    def getNFromString(self, s):
+    def getNFromString(self, s, chooseIndex=0):
         los = [ int(i) for i in re.findall(r'\d+', s) ]
         if len(los) == 0: return 0
         if len(los) == 1: return los[0]
-        if len(los)  > 1: return los[1] if 'EffStat' in s else los[0]
+        if len(los)  > 1: return los[min(chooseIndex,len(los)-1)]
         return 0
         
     def getChannelFromFitresults(self, fitresults):

@@ -20,6 +20,9 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from tree2yield import setLogging
 from cropNegativeTemplateBins import cropNegativeContent
 
+sys.path.append(os.getcwd() + "/plotUtils/")
+from utility import getTH2fromTH3, createPlotDirAndCopyPhp
+
 def getQCDScaleIndices():
     # first number is for renormalization scale, the other is for factorization scale
     # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
@@ -35,16 +38,6 @@ def getQCDScaleIndices():
             16 : "muRmuFUp"
     }
     return ret
-
-def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
-
-    if binEnd == None:
-        binEnd = binStart
-    hist3D.GetZaxis().SetRange(binStart,binEnd)
-    # Order yx matters to have consistent axes!
-    hist2D = hist3D.Project3D("yxe") # make TH2 with y axis versus x axis
-    hist2D.SetName(name)
-    return hist2D
     
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
@@ -81,6 +74,10 @@ setLogging(args.verbose)
 
 infilename = args.infile 
 outfilename = args.outfile
+
+outdir = os.path.dirname(outfilename) + "/"
+createPlotDirAndCopyPhp(outdir)
+
 if os.path.abspath(infilename) == os.path.abspath(outfilename):
     logging.warning(" input and output file names are the same. Abort")
     quit()
@@ -89,7 +86,7 @@ if args.decorrByCharge:
     regexp = args.decorrByCharge.replace(',','|')
     matchDecorr = re.compile(regexp)
     chargeKey = "Plus" if args.charge == "plus" else "Minus"
-    
+
 hnomi = {} # {process name : histo}
 hsyst = {} # {syst name : {process name : histo}}
 
@@ -136,24 +133,32 @@ for proc in list(hnomi.keys()):
     hnomi[proc].Write()
 
 for syst in systs:
+    print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
         h3D = hsyst[syst][proc]
         if "massWeight" in syst:
-            # check https://github.com/WMass/nanoAOD-tools/blob/master/python/postprocessing/wmass/lheWeightsFlattener.py
-            cenMassWgt = 11 # element 11 of LHEReweightingWeight is the 12th of the array, so it is bin 12 of the histogram (TO BE CHECKED AGAIN)
+            # note, we are now using weights from LHEReweightingWeightCorrectMass
+            # it has 21 elements for W and 23 for Z, where the last two values for Z should not be mass shift weights (maybe they are for width)
+            # the sorting is based on increasing weight value, where the nominal==1 and is the 11th elements of the array 
+            cenMassWgt = 11 # element xx=10 of LHEReweightingWeight[xx] is the 11th of array, so it is bin 11 of histogram
             maxMassShift = 100
             massGrid = 10
-            for i in range(1, 1 + int(maxMassShift/massGrid)):
+            for i in range(1, 1 + int(maxMassShift/massGrid)): # start from 1 to skip the nominal weight
                 massShift = i * massGrid
-                ibinUp = cenMassWgt + 1 + i 
+                ibinUp = cenMassWgt + i # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
                 name = "x_" + proc + "_massShift%dMeVUp" % massShift
                 h2DUp = getTH2fromTH3(h3D, name, ibinUp, ibinUp)
-                ibinDown = cenMassWgt + 1 - i 
+                ibinDown = cenMassWgt - i # minimum will be 1, i.e. first histogram bin 
                 name = "x_" + proc + "_massShift%dMeVDown" % massShift
                 h2DDown = getTH2fromTH3(h3D, name, ibinDown, ibinDown)
                 h2DUp.Write()
                 h2DDown.Write()           
+        if "luminosity" in syst:
+            for ilumi in range(1, 2+1): # only 2 bins, one for each Up/Down
+                name = "x_{p}_lumi{idir}".format(p=proc, idir="Up" if ilumi==1 else "Down") 
+                h2D = getTH2fromTH3(h3D, name, ilumi, ilumi)
+                h2D.Write()
         if "effStatTnP" in syst:
             for ieff in range(1, 576+1): # need to be kept manually consistent until we save these numbers somewhere
                 systname = "effStatTnP%d" % ieff
