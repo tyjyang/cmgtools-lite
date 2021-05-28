@@ -145,6 +145,21 @@ float invariantmass(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const V
   return (p1 + p2).mass();
 }
 
+// Vec_f invariantmasses(float pt1, float eta1, float phi1, float m1, const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f& m) {
+float invMLepPhotons(const Vec_f& pt1, const Vec_f& eta1, const Vec_f& phi1, float m1, const Vec_f& pt, const Vec_f& eta, const Vec_f& phi) {
+  // PtEtaPhiMVector p1(pt1[0], eta1[0], phi1[0], m1);
+  PtEtaPhiMVector psum(0,0,0,0);
+  for (unsigned int i = 0; i < pt1.size(); ++i) {
+    PtEtaPhiMVector p1(pt1[i], eta1[i], phi1[i], m1);
+    psum += p1;
+  }
+  for (unsigned int i = 0; i < pt.size(); ++i) {
+    PtEtaPhiMVector p2(pt[i], eta[i], phi[i], 0.);
+    psum += p2;
+  }
+  return psum.mass();
+}
+
 float rapidity(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f& m) {
   //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
   PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);;
