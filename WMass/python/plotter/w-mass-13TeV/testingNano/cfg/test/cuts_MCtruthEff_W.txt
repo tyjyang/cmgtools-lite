@@ -1,0 +1,3 @@
+alwaystrue : 1 ; BEFOREDEFINE=True
+nGenMuons  : Sum(bareMuonsCharge) > 0
+#genaccept  : valueInsideRange(GenPart_pt[bareMuonsCharge][0],10,65)
