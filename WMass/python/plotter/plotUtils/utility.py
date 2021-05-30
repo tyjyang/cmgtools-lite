@@ -18,6 +18,42 @@ def printLine(marker='-', repeat=30):
 
 #########################################################################
 
+def checkHistInFile(h, hname, fname, message=""):
+    if not h:
+        print("Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname))
+        quit()
+
+def safeGetObject(fileObject, objectName, quitOnFail=True, silent=False, detach=True):
+    obj = fileObject.Get(objectName)
+    if obj == None:
+        if not silent:
+            print(f"Error getting {objectName} from file {fileObject.GetName()}")
+        if quitOnFail:
+            quit()
+    else:
+        if detach:
+            obj.SetDirectory(0)
+        return obj
+        
+def safeOpenFile(fileName, quitOnFail=True, silent=False, mode="READ"):
+    fileObject = ROOT.TFile.Open(fileName, mode)
+    if not fileObject or fileObject.IsZombie():
+        if not silent:
+            print(f"Error when opening file {fileName}")
+        if quitOnFail:
+            quit()
+        else:
+            return None
+    elif not fileObject.IsOpen():
+        if not silent:
+            print(f"File {fileName} was not opened")
+        if quitOnFail:
+            quit()
+        else:
+            return None
+    else:
+        return fileObject
+            
 def checkNullObj(obj, objName="object", quitOnFail=True):
 
     if obj == None:
@@ -270,12 +306,13 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 
 #########################################################################
 
-def getTH2fromTH3(hist3D, name, binStart, binEnd=None, proj="yxe"):
+def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:
         binEnd = binStart
     hist3D.GetZaxis().SetRange(binStart,binEnd)
+    #print(f"getTH2fromTH3(): {name}   projecting bins from {binStart} to {binEnd}")
     # Order yx matters to have consistent axes!
-    hist2D = hist3D.Project3D(proj) # yxe is to make TH2 with y axis versus x axis 
+    hist2D = hist3D.Project3D("yxe") # yxe is to make TH2 with y axis versus x axis 
     hist2D.SetName(name)
     return hist2D
 
@@ -443,7 +480,8 @@ def drawCorrelationPlot(h2D_tmp,
                         plotRelativeError=False,
                         lumi=None,
                         drawOption = "colz",
-                        skipLumi=False):
+                        skipLumi=False
+                        ):
 
 
     ROOT.TH1.SetDefaultSumw2()
@@ -492,7 +530,7 @@ def drawCorrelationPlot(h2D_tmp,
     labelX,setXAxisRangeFromUser,xmin,xmax = getAxisRangeFromUser(labelXtmp)
     labelY,setYAxisRangeFromUser,ymin,ymax = getAxisRangeFromUser(labelYtmp)
     labelZ,setZAxisRangeFromUser,zmin,zmax = getAxisRangeFromUser(labelZtmp)
-    
+        
     cw,ch = canvasSize.split(',')
     #canvas = ROOT.TCanvas("canvas",h2D.GetTitle() if plotLabel == "ForceTitle" else "",700,625)    
     canvas = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",int(cw),int(ch))
@@ -542,7 +580,7 @@ def drawCorrelationPlot(h2D_tmp,
 
     h2DPlot.GetZaxis().SetTitle(labelZ) 
     h2DPlot.Draw(drawOption)
-
+    
     if (setXAxisRangeFromUser): h2DPlot.GetXaxis().SetRangeUser(xmin,xmax)
     if (setYAxisRangeFromUser): h2DPlot.GetYaxis().SetRangeUser(ymin,ymax)
     if (setZAxisRangeFromUser): h2DPlot.GetZaxis().SetRangeUser(zmin,zmax)

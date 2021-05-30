@@ -20,6 +20,9 @@ from copy import *
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
+sys.path.append(os.getcwd())
+from lumiStuff.runPerEra import lumiForEra_UL_new as lpe
+
 def getHistoFromFile(fname, hname=[]):
 
     ret = []
@@ -59,19 +62,22 @@ if __name__ == "__main__":
     hPreVFP = copy.deepcopy(hbefore.Clone("muonPrefiring_preVFP"))
     hPostVFP = copy.deepcopy(hbefore.Clone("muonPrefiring_postVFP"))
     hPostVFP.Reset("ICESM")
+    hRunH = copy.deepcopy(hafter.Clone("muonPrefiring_runH"))
     
     # for postVFP need to keep the 8 barrel bins (4 for each side) from hbefore, while for the 8 endcap bins need
     # weighted average of hbefore and hafter (weight given by luminosity in (F_postVFP + G) and (H)
-    weight_H = 8.650628378999999
-    weight_FG = (0.413983459 + 7.575824256000001)
+    weight_H = lpe["H"]
+    weight_FG = lpe["F_postVFP"] + lpe["G"] 
     hPostVFP.Add(hbefore, hafter, weight_FG, weight_H)
     hPostVFP.Scale(1.0 / (weight_FG + weight_H))
-    # set again central bins to hbefore, because the effect in EB was not actually ifxed in Run H
+    # set again central bins to hbefore, because the effect in EB was not actually fixed in Run H
+    # also set histogram for RunH to fixed in endcap
     for i in range(1, 17): # we know there are 16 bins, 8 for each eta side, let's keep it like this
         if i > 4 and i < 13:
             hPostVFP.SetBinContent(i, hbefore.GetBinContent(i))
             hPostVFP.SetBinError(  i, hbefore.GetBinError(i))
-    
+            hRunH.SetBinContent(i, hbefore.GetBinContent(i))
+            hRunH.SetBinError(  i, hbefore.GetBinError(i))
 
     adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas", "", 800, 800)
@@ -90,15 +96,15 @@ if __name__ == "__main__":
     )
 
     
-    drawNTH1([hPreVFP, hPostVFP], ["preVFP", "postVFP"],
+    drawNTH1([hPreVFP, hPostVFP, hRunH], ["preVFP", "postVFP", "H"],
              "Muon #eta", "L1 prefiring probability",
              "muonPrefiringProbability_prePostVFP",
              outdir,
              draw_both0_noLog1_onlyLog2=1,
-             legendCoords="0.18,0.9,0.82,0.9;2",
+             legendCoords="0.18,0.9,0.82,0.9;3",
              lowerPanelHeight=0,
              passCanvas=canvas,
-             lumi=35.9,
+             lumi=36.3,
              onlyLineColor=True,
              drawErrorAll=True
     )
@@ -109,6 +115,7 @@ if __name__ == "__main__":
         raise RuntimeError(f"Error when opening file {fname}")
     hPreVFP.Write()
     hPostVFP.Write()
+    hRunH.Write()
     f.Close()
     print(f"Histograms saved in file {fname}")
     print()

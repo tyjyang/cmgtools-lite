@@ -74,6 +74,9 @@ class MCAnalysis:
         if hasattr(ROOT, "initializeScaleFactorsTest"):
             logging.info("Initializing histograms with test scale factors")
             ROOT.initializeScaleFactorsTest(self._options.testScaleFactorFile)
+        if hasattr(ROOT, "initializeEfficiencyMCtruth"):
+            logging.info("Initializing histograms with test MC truth efficiencies")
+            ROOT.initializeEfficiencyMCtruth("./testMuonSF/mcTruthEff.root")
         if hasattr(ROOT, "jsonMap_all"):
             initializeJson(ROOT.jsonMap_all, self._options.json)
             logging.info(f"Initialized json files for data: {self._options.json}")
@@ -644,12 +647,12 @@ class MCAnalysis:
             nfmtS+=u" %7.2f"
             nfmtX+=u" %7.4f"
             nfmtL+=u" %7.2f"
-            fmtlen+=9
+            fmtlen+=10
         if self._options.fractions:
             nfmtS+=" %7.1f%%"
             nfmtX+=" %7.1f%%"
             nfmtL+=" %7.1f%%"
-            fmtlen+=8
+            fmtlen+=9
 
         stdoutBackup = sys.stdout
         sys.stdout = open(self._options.yieldsOutfile, "w")
@@ -843,7 +846,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
     parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31Mar2021.root", help="File to be used for scale factors")
-    parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default="./testMuonSF/productEffAndSFperEra.root", help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized)")
+    parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default="./testMuonSF/productEffAndSFperEra_nodz_dxybs.root", help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized)")
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
     parser.add_argument("cutFile", type=str, help="Text file with cut definitions");
 
