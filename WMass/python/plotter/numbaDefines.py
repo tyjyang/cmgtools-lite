@@ -1,4 +1,5 @@
 import ROOT
+from uproot3_methods import TLorentzVectorArray
 import numpy as np
 import numba
 import os
@@ -138,3 +139,23 @@ def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
 
     return others
 
+
+@ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", "RVec<float>", "RVec<float>", "bool"], "RVec<int>")
+def ewPhotonKinematicsSel(status, statusFlags, pdgId, motherIdx, pts, etas, phis, withISR = False):
+    isLepton = (np.abs(pdgId) >= 11) & (np.abs(pdgId) <= 14) & (motherIdx >= 0)
+    isMuon = isLepton & (np.abs(pdgId) == 13)
+    isPhoton = pdgId == 22
+    status1 = status == 1
+    isPrompt = ((statusFlags >> 0 ) & 1).astype(np.bool_)
+    isHardProcess = ((statusFlags >> 8 ) & 1).astype(np.bool_)
+
+    leptons = isMuon & status1 & isPrompt & isHardProcess
+    photons = isPhoton & status1 & isPrompt
+    if not withISR:
+        motherV = (pdgId[motherIdx] == 23) | (np.abs(pdgId[motherIdx]) == 24)
+        leptons = leptons & motherV
+        photons = photons & motherV
+    lep = leptons & (pdgId > 0)
+    antilep = leptons & (pdgId < 0)
+
+    return (lep + antilep*2 + photons*3).astype(np.int32)
