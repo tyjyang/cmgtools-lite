@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--process", default=None, required=True, type=str, help="Process to pick histogram")
     parser.add_argument("--dz", default=0.1, type=float, help="dz used for plots, in cm")
     parser.add_argument("-r", "--eff-range", dest="effRange", default=(0.5,1.05), type=float, nargs=2, help="y axis range for efficiency plot")
-    parser.add_argument("-e", "--eta-ranges", dest="etaRange", default=[], type=float, nargs=2, action="append", metavar=('min','max'), help="Z axis ranges (etamin, etamax) to select, when available")
+    parser.add_argument("-e", "--eta-ranges", dest="etaRange", default=[], type=float, nargs=2, action="append", metavar=('min','max'), help="Z axis ranges (etamin, etamax) to select, when available (remember that upper bin edge belongs to next bin in ROOT)")
     parser.add_argument("-v", "--variable", default="wpt", choices=["wpt", "mupt"], help="Variable to make efficiency as a function of it (needs to appear in histogram name inside root file)")
     parser.add_argument("--hname", default="dzGenRecoVtx", help="Root of histogram name inside root file")
     parser.add_argument("--postfix", type=str, default=None, help="Postfix for output folder")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     process = args.process
     absDzVal = 0.1 # 1 mm        
     # Wpt from 0 to 100 with 2 GeV width, dz from -1.0 to 1.0 with 0.01 width
-    # dressed lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
+    # preFSR lepton pT from 26 to 100 with 1 GeV width, dz from -1.0 to 1.0 with 0.01 width
     var = args.variable
     genWPtLow = 0.0
     genWPtHigh = 100.0
@@ -220,7 +220,7 @@ if __name__ == "__main__":
             hists[k].Draw("LP")
             hists[k].GetXaxis().SetTitle("W p_{T} [GeV]")
             if var == "mupt":
-                hists[k].GetXaxis().SetTitle("dressed lepton p_{T} [GeV]")
+                hists[k].GetXaxis().SetTitle("preFSR muon p_{T} [GeV]")
             hists[k].GetXaxis().SetTitleOffset(1.2)
             hists[k].GetXaxis().SetTitleSize(0.05)
             hists[k].GetXaxis().SetLabelSize(0.04)
@@ -336,7 +336,7 @@ if __name__ == "__main__":
                              "#pm{:.1f}%".format(100.*err))
     #
     for ext in ["png","pdf"]:
-        csel.SaveAs(outdir + "/selectionEfficiency.{ext}".format(v=var,ext=ext))
+        csel.SaveAs(outdir + "/selectionEfficiency_{v}.{ext}".format(v=var,ext=ext))
 
         
         

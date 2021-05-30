@@ -2,6 +2,8 @@
 # Muon_pt[goodMuonsCharge][0] will always be the first muon with the selected charge and passing predefined selection criteria, for W it might be the only muon in the event, for Z it will automatically be the one with desired charge
 # the same is valid for most of the functions
 
+#zptWeight: scetlibWeightsZscalar: 100,0.9,1.1; XTitle="ZpT weights", Legend='TR'
+
 dummy: 0.5: 1,0,1; XTitle="dummy variable", Legend='TR'
 
 runNumber: run : 10887,273157.5,284044.5; XTitle="Run number", Legend='TR'
@@ -57,8 +59,6 @@ muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muo
 muon_pt_eta_rebin: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,14,26,54 ; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', Legend='TR'
 
 muon_pt_eta_other_rebin: Muon_pt[goodMuonsOther][0]\:Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4,14,26,54 ; XTitle='Other muon #eta', YTitle='Other muon p_{T} (GeV)', Legend='TR'
-
-genmuon_pt_eta: GenPart_pt[bareGenMuons][0]\:GenPart_pt[bareGenMuons][0]: 48,-2.4,2.4,15,26,56 ; XTitle='gen muon #eta', YTitle='gen muon p_{T} (GeV)', Legend='TR'
 
 MET_T1_pt: MET_pt: 40,0,80; XTitle="T1MET (GeV)", Legend='TC', IncludeOverflows=True
 
@@ -187,6 +187,36 @@ dzVertex_gen_primary__dressedLepPt: (GenVtx_z-PV_z)\:GenPart_pt[genPrefsrMuons][
 
 ####
 # some gen vars
+bosonPt : ptVgen: 50,0,100 ; XTitle="PreFSR boson p_{T} (GeV)", Legend='TR'
+
 vpt : Vpt_preFSR: [0., 4., 8., 12., 16., 20., 24., 28., 32., 40., 60., 100., 200.] ; XTitle="PreFSR boson p_{T} (GeV)", Legend='TR'
 vrap : fabs(Vrap_preFSR): [0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 6.0] ; XTitle="PreFSR boson rapidity", Legend='TR'
 vpt_vrap: Vpt_preFSR\:Vrap_preFSR: 50,-5,5,50,0,100 ; XTitle='PreFSR boson rapidity', YTitle='PreFSR boson p_{T} (GeV)', Legend='TR'
+
+
+bareMuon_pt_eta: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR'
+
+bareMuon_pt_eta_other: GenPart_pt[bareMuonsOther][0]\:GenPart_eta[bareMuonsOther][0]: 48,-2.4,2.4,55,10,65 ; XTitle='other bare muon #eta', YTitle='other bare muon p_{T} (GeV)', Legend='TR'
+
+bareMuonPlus_pt_eta: GenPart_pt[bareMuonsPlus][0]\:GenPart_eta[bareMuonsPlus][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare #mu^{+} #eta', YTitle='bare #mu^{+} p_{T} (GeV)', Legend='TR'
+
+bareMuonMinus_pt_eta: GenPart_pt[bareMuonsMinus][0]\:GenPart_eta[bareMuonsMinus][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare #mu^{-} #eta', YTitle='bare #mu^{-} p_{T} (GeV)', Legend='TR'
+
+
+bareMuon_pt_eta__accept: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_accept)>0 && minDeltaR2many(Muon_eta[goodMuons_accept]\,Muon_phi[goodMuons_accept]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__idip: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_idip)>0 && minDeltaR2many(Muon_eta[goodMuons_idip]\,Muon_phi[goodMuons_idip]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__trig: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_trig)>0 && minDeltaR2many(Muon_eta[goodMuons_trig]\,Muon_phi[goodMuons_trig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__trigNoBit: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_trig)>0 && minDeltaR2many(Muon_eta[goodMuons_trig]\,Muon_phi[goodMuons_trig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__iso: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_iso)>0 && minDeltaR2many(Muon_eta[goodMuons_iso]\,Muon_phi[goodMuons_iso]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__idipANDtrig: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_idipANDtrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrig]\,Muon_phi[goodMuons_idipANDtrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__idipANDtrigANDiso: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_idipANDtrigANDiso)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrigANDiso]\,Muon_phi[goodMuons_idipANDtrigANDiso]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__idipANDisonotrig: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_idipANDisonotrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDisonotrig]\,Muon_phi[goodMuons_idipANDisonotrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_pt_eta__idipANDtrigNoBit: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,55,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_idipANDtrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrig]\,Muon_phi[goodMuons_idipANDtrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"

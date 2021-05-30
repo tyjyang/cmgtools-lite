@@ -418,14 +418,14 @@ if __name__ == "__main__":
     legend.AddEntry(hdata, "Data", "EP")
     for h in hmc:
         h.SetTitle("")
-        h.SetFillColor(colors[h.GetName()])
+        h.SetFillColor(colors[h.GetName().replace('_vpt','')])
         h.SetLineColor(ROOT.kBlack)
         stack_eta.Add(h.ProjectionX(f"{h.GetName()}_eta",lowPtbin,highPtbin,"e"))
         stack_pt.Add( h.ProjectionY(f"{h.GetName()}_pt",0,-1,"e"))
         den2D.Add(h)
         h.Write()
     for i in range(len(hmc)-1, 0, -1):
-        legend.AddEntry(hmc[i], legEntries[hmc[i].GetName()], "F")
+        legend.AddEntry(hmc[i], legEntries[hmc[i].GetName().replace('_vpt','')], "F")
 
     stack_eta.Write()
     stack_pt.Write()

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstdlib> //as stdlib.h                 
 #include <cstdio>
+#include <limits>
 #include <map>
 #include <string>
 #include <cmath>
@@ -95,9 +96,23 @@ float deltaR2(float eta1, float phi1, float eta2, float phi2) {
     float dphi = deltaPhi(phi1,phi2);
     return deta*deta + dphi*dphi;
 }
+
 float deltaR(float eta1, float phi1, float eta2, float phi2) {
     return std::sqrt(deltaR2(eta1,phi1,eta2,phi2));
 }
+
+float minDeltaR2many(const Vec_f& eta, const Vec_f& phi, float etaProbe, float phiProbe) {
+
+  float retmin = std::numeric_limits<float>::max();
+  if (eta.size() == 0) return retmin;
+  float dr2 = 0.0;
+  for (unsigned int ij = 0; ij < eta.size(); ++ij) {
+    dr2 = deltaR2(eta[ij], phi[ij], etaProbe, phiProbe);
+    if (dr2 < retmin) retmin = dr2;
+  }
+  return retmin;
+}
+
 
 float Hypot(float x, float y) {
   return hypot(x,y);
@@ -182,7 +197,7 @@ Vec_b hasTriggerMatch(const Vec_f& eta, const Vec_f& phi, const Vec_f& TrigObj_e
 
    Vec_b res(eta.size(),false); // initialize to 0
    for (unsigned int i = 0; i < res.size(); ++i) {
-      for (unsigned int jtrig = 0; jtrig < res.size(); ++jtrig) {
+      for (unsigned int jtrig = 0; jtrig < TrigObj_eta.size(); ++jtrig) {
 	  // use deltaR*deltaR < 0.3*0.3, to be faster 
           if (deltaR2(eta[i], phi[i], TrigObj_eta[jtrig], TrigObj_phi[jtrig]) < 0.09) {
               res[i] = true;

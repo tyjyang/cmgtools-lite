@@ -78,6 +78,21 @@ def main(args):
         processes += f",Wmunu_{args.charge},Wtaunu_{args.charge},Wmunu_{anticharge},Wtaunu_{anticharge}"
     else:
         processes += ",Wmunu,Wtaunu"
+    if args.useVptWeight:
+        originalprocs = [str(x) for x in processes.split(',')]
+        tmpprocs = []
+        for x in originalprocs:
+            if any(x.startswith(k) for k in ["W", "Z"]):
+                tmpprocs.append(x + "_vpt")
+            else:
+                tmpprocs.append(x)
+        processes = ",".join(tmpprocs)
+
+    print('-'*30)
+    print("Using these processes")
+    print(processes)
+    print('-'*30)
+        
     procGroups = " ".join([getProcessGroup(p, era, subEra) for p in processes.split(',')])
     procOptions = f"-p '{processes}' {procGroups}"
 
@@ -119,6 +134,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', dest="dryRun", action='store_true', help='Print, but do not execute')
+    parser.add_argument(      '--vpt-weight', dest="useVptWeight", action='store_true', help='Apply Wpt reweighting to central value using SCETlib correction')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
     parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["all","B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF)')
@@ -136,6 +152,9 @@ if __name__ == "__main__":
     else:
         print("Error: must provide an output folder with option -o")
         quit()
+
+    if args.useVptWeight:
+        args.postfix += "_vptWeight"
         
     if args.systs:
         args.postfix += "_systTH3"

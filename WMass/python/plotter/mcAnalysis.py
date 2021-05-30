@@ -74,6 +74,9 @@ class MCAnalysis:
         if hasattr(ROOT, "initializeScaleFactorsTest"):
             logging.info("Initializing histograms with test scale factors")
             ROOT.initializeScaleFactorsTest(self._options.testScaleFactorFile)
+        if hasattr(ROOT, "initializeEfficiencyMCtruth"):
+            logging.info("Initializing histograms with test MC truth efficiencies")
+            ROOT.initializeEfficiencyMCtruth("./testMuonSF/mcTruthEff.root")
         if hasattr(ROOT, "jsonMap_all"):
             initializeJson(ROOT.jsonMap_all, self._options.json)
             logging.info(f"Initialized json files for data: {self._options.json}")
@@ -644,12 +647,12 @@ class MCAnalysis:
             nfmtS+=u" %7.2f"
             nfmtX+=u" %7.4f"
             nfmtL+=u" %7.2f"
-            fmtlen+=9
+            fmtlen+=10
         if self._options.fractions:
             nfmtS+=" %7.1f%%"
             nfmtX+=" %7.1f%%"
             nfmtL+=" %7.1f%%"
-            fmtlen+=8
+            fmtlen+=9
 
         stdoutBackup = sys.stdout
         sys.stdout = open(self._options.yieldsOutfile, "w")

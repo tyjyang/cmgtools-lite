@@ -18,6 +18,42 @@ def printLine(marker='-', repeat=30):
 
 #########################################################################
 
+def checkHistInFile(h, hname, fname, message=""):
+    if not h:
+        print("Error {msg}: I couldn't find histogram {h} in file {f}".format(msg=message,h=hname,f=fname))
+        quit()
+
+def safeGetObject(fileObject, objectName, quitOnFail=True, silent=False, detach=True):
+    obj = fileObject.Get(objectName)
+    if obj == None:
+        if not silent:
+            print(f"Error getting {objectName} from file {fileObject.GetName()}")
+        if quitOnFail:
+            quit()
+    else:
+        if detach:
+            obj.SetDirectory(0)
+        return obj
+        
+def safeOpenFile(fileName, quitOnFail=True, silent=False, mode="READ"):
+    fileObject = ROOT.TFile.Open(fileName, mode)
+    if not fileObject or fileObject.IsZombie():
+        if not silent:
+            print(f"Error when opening file {fileName}")
+        if quitOnFail:
+            quit()
+        else:
+            return None
+    elif not fileObject.IsOpen():
+        if not silent:
+            print(f"File {fileName} was not opened")
+        if quitOnFail:
+            quit()
+        else:
+            return None
+    else:
+        return fileObject
+            
 def checkNullObj(obj, objName="object", quitOnFail=True):
 
     if obj == None:

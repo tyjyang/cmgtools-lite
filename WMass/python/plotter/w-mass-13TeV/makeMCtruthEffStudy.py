@@ -24,13 +24,13 @@ from copy import *
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import *
 
-def getMinMaxForSameWorkingPoint(histDict, args, excludeMax=None):
+def getMinMaxForSameWorkingPoint(histDict, args, excludeMax=None, excludeMin=None):
     ret = {}
     for (era,wp) in histDict.keys():            
         if args.effRange[0] < args.effRange[1]:
             ret[wp] = (args.effRange[0], args.effRange[1])
         else:
-            hmin,hmax = getMinMaxHisto(histDict[(era,wp)], sumError=False, excludeMax=excludeMax)
+            hmin,hmax = getMinMaxHisto(histDict[(era,wp)], sumError=False, excludeMax=excludeMax, excludeMin=excludeMin)
             if wp in ret.keys():
                 ret[wp] = (min(hmin,ret[wp][0]), max(hmax,ret[wp][1]))
             else:
@@ -96,7 +96,8 @@ if __name__ == "__main__":
 
     rfoutname = f"{outfolder}/mcTruthEff.root"
     rfout = safeOpenFile(rfoutname, mode="RECREATE")
-    
+
+    mcTrigBitOverNoBit = {}
     for era in eras:
         for wp in workingPoints:
             zAxisName = f"{wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
@@ -108,8 +109,23 @@ if __name__ == "__main__":
                                 draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                 invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
             mcEff[(era,wp)].Write()
-
+        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")] = copy.deepcopy(mcEff[(era,"trig")].Clone(f"mcTruthEffRatio_trigBitOverNoBit_{era}"))
+        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].Divide(mcEff[(era,"trigNoBit")])
         
+    minmax = getMinMaxForSameWorkingPoint(mcTrigBitOverNoBit, args, excludeMin=0.99, excludeMax=1.01)    
+    thisminz = minmax["trigBitOverNoBit"][0]
+    thismaxz = minmax["trigBitOverNoBit"][1]
+    for era in eras:
+        zAxisName = f"MC eff(trig)/eff(trigNoBit)::{thisminz},{thismaxz}"    
+        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].SetTitle(f"{args.process}: {era}")
+        drawCorrelationPlot(mcTrigBitOverNoBit[(era,"trigBitOverNoBit")],
+                            xAxisName,
+                            yAxisName,
+                            zAxisName,
+                            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                            draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
+                            invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
+            
     if args.plotRatioToEra:
 
         refEra = args.plotRatioToEra
@@ -122,10 +138,14 @@ if __name__ == "__main__":
             mcEffRatio[(era,wp)].Divide(mcEff[(refEra,wp)])
             
         minmax = getMinMaxForSameWorkingPoint(mcEffRatio, args, excludeMax=1.1)       
+        # small hack because numerator histograms for trigger efficiency are almost empty for pt < 24
+        minmax["idipANDtrigANDiso"] = (0.85, minmax["idipANDtrigANDiso"][1]) 
+        minmax["idipANDtrig"]       = (0.85, minmax["idipANDtrig"][1]) 
+        minmax["idipANDtrigNoBit"]  = (0.85, minmax["idipANDtrigNoBit"][1])
         for era in eras:
             if era == refEra:
                 continue
-            for wp in workingPoints:
+            for wp in workingPoints:                
                 mcEffRatio[(era,wp)].SetTitle(f"{args.process}: {era}/{refEra}")
                 zAxisName = f"{wp} MC eff({era})/eff({refEra})::{minmax[wp][0]},{minmax[wp][1]}"    
                 drawCorrelationPlot(mcEffRatio[(era,wp)],
@@ -149,15 +169,13 @@ if __name__ == "__main__":
         
         rf = safeOpenFile(args.tnpFile)
         tnpEff = {}
+        ratioTnpOverMCtruth = {}
         for tnpera in tnpEras:
             for wp in wpToTNP.keys():
                 charge = "both" if wpToTNP[wp] != "trigger" else "plus" if "/plus/" in inputfolder else "minus"
                 eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else tnpera
                 tnpEff[(eraName,wp)] = safeGetObject(rf, f"effMC_{wpToTNP[wp]}_{tnpera}_{charge}")
-                #tnpEff[(eraName,wp)] = ROOT.TH2D(f"effMC_{wpToTNP[wp]}_{tnpera}_{charge}_rebin", "",
-                #                                 48, -2.4, 2.4, 40, 25, 65)
-                #mcTruth = ROOT.TH2D(f"mcTruth_{wpToTNP[wp]}_{tnpera}_{charge}_rebin", "",
-                #                    48, -2.4, 2.4, 40, 25, 65)
+                # clone from tnp histogram to preserve binning but then refill later
                 mcTruth = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"mcTruth_{wpToTNP[wp]}_{tnpera}_{charge}_rebin"))
                 for ix in range(1, 1 + mcTruth.GetNbinsX()):
                     for iy in range(1, 1 +  mcTruth.GetNbinsY()):
@@ -165,19 +183,24 @@ if __name__ == "__main__":
                         ybin = mcEff[(eraName,wp)].GetYaxis().FindFixBin(ptval+0.001)
                         mcTruth.SetBinContent(ix, iy, mcEff[(eraName,wp)].GetBinContent(ix, ybin))
                         # need to transform TnP histograms into new ones with same binning as the MC truth ones
-                ratioTnpOverMCtruth = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"ratioTnpOverMCtruth_{wp}_{eraName}"))
-                ratioTnpOverMCtruth.Divide(mcTruth)
-                ratioTnpOverMCtruth.SetTitle(f"TnP / MC truth: {eraName}")
-                zAxisName = f"{wp} eff(TnP) / eff(MCtruth)"    
-                drawCorrelationPlot(ratioTnpOverMCtruth,
+                ratioTnpOverMCtruth[(eraName,wp)] = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"ratioTnpOverMCtruth_{wp}_{eraName}"))
+                ratioTnpOverMCtruth[(eraName,wp)].Divide(mcTruth)
+                ratioTnpOverMCtruth[(eraName,wp)].SetTitle(f"TnP / MC truth: {eraName}")
+
+        minmax = getMinMaxForSameWorkingPoint(ratioTnpOverMCtruth, args, excludeMax=2)       
+        for tnpera in tnpEras:
+            for wp in wpToTNP.keys():
+                eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else tnpera
+                zAxisName = f"{wp} eff(TnP) / eff(MCtruth)::{minmax[wp][0]},{minmax[wp][1]}"    
+                drawCorrelationPlot(ratioTnpOverMCtruth[(eraName,wp)],
                                     xAxisName,
                                     yAxisName,
                                     zAxisName,
-                                    ratioTnpOverMCtruth.GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                                    ratioTnpOverMCtruth[(eraName,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder,
                                     draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                     invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
                 rfout.cd()
-                ratioTnpOverMCtruth.Write()
+                ratioTnpOverMCtruth[(eraName,wp)].Write()
         
     if rfout.IsOpen():
         rfout.Close()

@@ -615,11 +615,95 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
 }
 
 ////=====================================================================================
+
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> efficiencyMCtruthPerEra = {};
+std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}};
+
+// for test, the trigger efficiency is for plus only at the moment, and all are made with no dz cut and using dxybs
+void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/mcTruthEff.root") {
+
+  TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
+  if (!_file_allSF.IsOpen()) {
+    std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_allSF << "! No scale factors will be applied\n";
+    exit(EXIT_FAILURE);
+  }
+  
+  std::cout << "INFO >>> Initializing histograms for MC truth efficiency from file " << _filename_allSF << std::endl;
+
+  for (auto& corr : efficiencyNames) {  
+  
+    for (auto& dataRunEra : runEraNames) {
+      std::vector<std::string> vars = {"mcTruthEff", corr.second, dataRunEra.second};
+      std::string corrname = boost::algorithm::join(vars, "_");
+      auto* histptr = dynamic_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
+      if (histptr == nullptr) {
+	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		  << _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+	// exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+	continue;
+      }
+      histptr->SetDirectory(0);
+      DataEra typeVal = dataRunEra.first;
+      ScaleFactorType key = corr.first;
+      // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+      auto corrKey = std::make_pair(key, typeVal);
+      efficiencyMCtruthPerEra[corrKey] = *dynamic_cast<TH2D*>(histptr);
+    }
+
+  }
+  
+}
+
+double _get_MCtruthEffPerEra(float pt,      float eta,      int charge,
+			     float ptOther, float etaOther,
+			     DataEra dtype = C,
+			     bool isoSF1 = true, // to use SF for iso or antiiso
+			     bool isoSF2 = true,
+			     bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+			     ) {
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (neglectIso) {
+    sftype = charge > 0 ? noisoTrigPlus : noisoTrigMinus;
+  } else if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+  }
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2D& hcorr = efficiencyMCtruthPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+  if (sf <= 0.0) {
+    std::cout << "MC truth eff = " << sf << " for era " << runEraNames[dtype] << "   pt = " << pt << "    eta = " << eta << "   charge = " << charge << std::endl;
+  }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (ptOther > 0.0) {
+    if (neglectIso) {
+      sftype = noisoNotrig;
+    } else {
+      sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+    }
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = efficiencyMCtruthPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+
+//================
+
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorDataPerEra = {};
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorMCPerEra = {};
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorPerEra = {};
 
-void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra.root") {
+void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra_nodz_dxybs.root") {
 
   TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
   if (!_file_allSF.IsOpen()) {

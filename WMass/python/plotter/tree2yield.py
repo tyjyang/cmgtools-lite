@@ -468,7 +468,10 @@ class TreeToYield:
                 histo.Scale(self._lumiWeight/sumGenWeights)
                 self.negativeCheck(histo)
                 histo.SetDirectory(0)
-
+        else:
+            for histo in rets:
+                histo.SetDirectory(0)
+                
                 
         # fold overflow
         for iret,ret in enumerate(rets):
@@ -734,7 +737,7 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
     parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");
-    parser.add_argument("-f", "--final", action="store_true", help="Just compute final yield after all cuts");
+    parser.add_argument("-f", "--final", action="store_true", help="Just compute final yield after all cuts (no longer active with RDF)");
     parser.add_argument("-e", "--errors", action="store_true", help="Include uncertainties in the reports");
     parser.add_argument("--tf", "--text-format", dest="txtfmt", type=str, default="txt", choices=["txt","tsv","csv","dsv","ssv"], help="Output format: txt,tsv,csv,dsv,ssv");
     parser.add_argument("-S", "--start-at-cut", dest="startCut", type=str, help="Run selection starting at the cut matched by this regexp, included.") 

@@ -15,3 +15,7 @@ genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPar
 ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
 yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
 mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+#
+scetlibWeightsZscalar : Numba::correctN3LL_Z(0,mVgen,yVgen,ptVgen) : W.*|Z.*
+scetlibWeightsWPLUSscalar : Numba::correctN3LL_Wp(0,mVgen,yVgen,ptVgen) : W.*plus
+scetlibWeightsWMINUSscalar : Numba::correctN3LL_Wm(0,mVgen,yVgen,ptVgen) : W.*minus
