@@ -131,16 +131,17 @@ python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456
 Once the scale factors are computed with the tag-and-probe and the output root file is available somewhere, you can plot them all and make their product using the following command
 
 ```
-python w-mass-13TeV/plotSF.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-03-31_allSFs.root plots/testNanoAOD/testSF/SFeta0p1_31Mar2021/ -e "BtoF,GtoH" -n trigger,reco,tracking,idip,iso,antiiso,isonotrig,antiisonotrig --makePreOverPost
+python w-mass-13TeV/plotSF.py testMuonSF/2021-05-31_allSFs_nodz_dxybs.root plots/testNanoAOD/testSF/SFeta0p1_31May2021_nodz_dxybs/globalAndPerEra/  -e "BtoF,GtoH,B,C,D,E,F,G,H" -n 'trigger,idip,iso,antiiso,isonotrig,antiisonotrig' --makePreOverPost
 ```
-This will plot the SF passed to _-n_ for pre and postVPF eras. It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
-The script also makes and plots the products of the SF (currently it only considers trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
+This will plot the SF passed to _-n_ for pre and postVPF eras (and possibly single eras if available). It also plots the absolute and relative uncertainties to provide a full picture of how they look like. Option _--makePreOverPost_ will make the script call  _w-mass-13TeV/makeEffRatioPrePostVFP.py_ to compute the scale factors for preVFP/postVFP in data and MC.
+The script also makes and plots the products of the SF (e.g. for trigger with either charge, isolation, and idip), whose usage is more convenient at analysis level. Tracking and reco SF are compatible with 1 (efficiencies are close to 100%, so better to neglect them)
 
 The previous command assumes that the input root file contains histograms for the preVFP or postVFP era. For tests, we made scale factors also split by era. Currently, they can be manipulated using the following script (not worth merging it with the other one, as we don't expect to use scale factors for each single era).
 The following command will make a lot of plots, including data/data and MC/MC scale factors, comparison of inclusive efficiencies with luminosity-weighted average of the different eras, and many more things. 
 ```
-python w-mass-13TeV/compareSFperEra.py /afs/cern.ch/user/m/mdunser/public/wmass/2021-04-30_allSFs.root plots/testNanoAOD/testSF/SFeta0p1_30Apr2021_checkLumiAverage/ -e BtoF
+python w-mass-13TeV/compareSFperEra.py testMuonSF/2021-05-31_allSFs_nodz_dxybs.root plots/testNanoAOD/testSF/SFeta0p1_31May2021_nodz_dxybs/ -e BtoF
 ```
+A subfolder named "compareSFperEra" will be automatically created inside the provided output folder, and all plots will be created there.
 
 ## Making QCD template for Wmass
 
@@ -192,6 +193,17 @@ Once the histograms are available, the actual plots can be made with a command l
 ```
 python w-mass-13TeV/makeVertexStudy.py plots/testNanoAOD/vertexStudy/Wboson_noPUorPrefire/ -p Wmunu_plus_preVFP -v wpt --hname "mueta_dzGenRecoVtx" -e -2.39 -2.21 -e 2.21 2.39 --postfix endcap2p2to2p4
 ```
+
+### MC truth efficiency
+Prepare the commands to make histograms for this study with the utility script __runMCtruthEfficiency.py__ (you may need to customize the command inside, or the eras you want to process)
+```
+python runMCtruthEfficiency.py
+```
+Then, you can make all sort of plots with a command like the following (check available options to customize binning, ranges, or plots to make)
+```
+python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_finePt/plus/ --palette 87 --plot-ratio-era H --tnp-file testMuonSF/2021-05-31_allSFs_nodz_dxybs.root --rebin-pt 4 -w 'trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit'
+```
+
 
 ## Details about making plots
 

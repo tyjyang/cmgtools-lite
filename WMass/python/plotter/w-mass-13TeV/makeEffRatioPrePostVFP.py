@@ -66,6 +66,7 @@ if __name__ == "__main__":
         name = k.GetName()
         if not name.startswith("eff"): continue
         if "_BtoH_" in name: continue
+        if not any(x in name for x in ["_BtoF_", "_GtoH"]): continue
         if "SF2D_Data_" in name or "SF2D_MC_" in name: continue # these will be created here, if already present let's skip them
         htmp = f.Get(name)
         htmp.SetTitle(name)

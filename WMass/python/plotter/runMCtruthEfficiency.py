@@ -40,8 +40,10 @@ if __name__ == "__main__":
             else:
                 totalLumi = 19.514703
                 process = "Wmunu_plus_preVFP"
-            
-        command = f"python mcPlots.py -f -l {lumi} w-mass-13TeV/testingNano/cfg/test/mca_MCtruthEff.txt w-mass-13TeV/testingNano/cfg/test/cuts_MCtruthEff_W.txt w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms -P /data/shared/originalNANO/ --sP 'bareMuon_pt_eta,bareMuon_pt_eta__accept,bareMuon_pt_eta__idip,bareMuon_pt_eta__trig,bareMuon_pt_eta__trigNoBit,bareMuon_pt_eta__idipANDisonotrig,bareMuon_pt_eta__iso,bareMuon_pt_eta__idipANDtrig,bareMuon_pt_eta__idipANDtrigANDiso,bareMuon_pt_eta__idipANDtrigNoBit'   -W '({lumi}/{totalLumi})*puw_2016UL_era(Pileup_nTrueInt,{era})' --pdir plots/testNanoAOD/MCtruthEfficiency/W_perEra/plus/{era}/ -p '{process}'  -j 8  --nanoaod-tree   --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_MCtruthEff.txt --rdf-alias 'bareMuonsCharge: bareMuonsPlus:.*' -v 3"
+
+        lumiOverTotalLumi = lumi/totalLumi
+                
+        command = f"python mcPlots.py -f -l {lumi} w-mass-13TeV/testingNano/cfg/test/mca_MCtruthEff.txt w-mass-13TeV/testingNano/cfg/test/cuts_MCtruthEff_W.txt w-mass-13TeV/testingNano/cfg/plots_test.txt --noCms -P /data/shared/originalNANO/ --sP 'bareMuon_pt_eta,bareMuon_pt_eta__accept,bareMuon_pt_eta__trackerOrGlobal,bareMuon_pt_eta__tracker,bareMuon_pt_eta__global,bareMuon_pt_eta__standalone,bareMuon_pt_eta__idip,bareMuon_pt_eta__trig,bareMuon_pt_eta__trigNoBit,bareMuon_pt_eta__idipANDisonotrig,bareMuon_pt_eta__iso,bareMuon_pt_eta__idipANDtrig,bareMuon_pt_eta__idipANDtrigANDiso,bareMuon_pt_eta__idipANDtrigNoBit'   -W '({lumiOverTotalLumi})*puw_2016UL_era(Pileup_nTrueInt,{era})' --pdir plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_finePt/plus/{era}/ -p '{process}'  -j 8  --nanoaod-tree   --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_MCtruthEff.txt --rdf-alias 'bareMuonsCharge: bareMuonsPlus:.*' -v 3"
 
         # --filter-proc-files '.*' '.*_[1-5].root'
 

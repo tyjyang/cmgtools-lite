@@ -617,7 +617,7 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
 ////=====================================================================================
 
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> efficiencyMCtruthPerEra = {};
-std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}};
+std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}, {trackingAndReco, "trackerOrGlobal"}};
 
 // for test, the trigger efficiency is for plus only at the moment, and all are made with no dz cut and using dxybs
 void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/mcTruthEff.root") {
@@ -687,6 +687,27 @@ double _get_MCtruthEffPerEra(float pt,      float eta,      int charge,
     } else {
       sftype = isoSF2 ? isoNotrig : antiisoNotrig;
     }
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = efficiencyMCtruthPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+double _get_MCtruthRecoAndTrackingEffPerEra(float pt,      float eta,      int charge,
+					    float ptOther, float etaOther,
+					    DataEra dtype = C
+					    ) {
+
+  ScaleFactorType sftype = trackingAndReco;
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2D& hcorr = efficiencyMCtruthPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+
+  if (ptOther > 0.0) {
     auto const keyOther = std::make_pair(sftype, dtype);
     const TH2D& hcorrOther = efficiencyMCtruthPerEra.at(keyOther);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);

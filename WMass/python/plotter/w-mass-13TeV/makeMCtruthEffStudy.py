@@ -42,9 +42,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("inputfolder", type=str, nargs=1)
-    parser.add_argument("outputfolder",   type=str, nargs=1)
+    # output folder is better chosen as input plus a subfolder
+    #parser.add_argument("outputfolder",   type=str, nargs=1)
     parser.add_argument("--hname", default="bareMuon_pt_eta", help="Root of histogram name inside root file")
-    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit", help="Comma separated list of working points to fetch input histograms")
+    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit", help="Comma separated list of working points to fetch input histograms")
     parser.add_argument("-e", "--era",    type=str, default="B,C,D,E,F,BToF,G,H,GToH", help="Comma separated list of eras, which identify the input subfolder")
     parser.add_argument("-p", "--process", default="Wmunu_plus", type=str, help="Process to pick histogram")
     parser.add_argument("-r", "--eff-range", dest="effRange", default=(0,-1), type=float, nargs=2, help="Z axis range for efficiency plot")
@@ -54,12 +55,18 @@ if __name__ == "__main__":
     parser.add_argument(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     parser.add_argument(     '--plot-ratio-era', dest='plotRatioToEra', type=str, default=None,   help='Plot ratios with respect to this era')
     parser.add_argument(     '--tnp-file', dest='tnpFile', type=str, default=None,   help='Root file with MC efficiencies from tag-and-probe')
+    #parser.add_argument(     '--tnp-ratio-eff-range', dest="tnpRatioEffRange", default=(0,-1), type=float, nargs=2, help="Z axis range for efficiency plot")
+    #parser.add_argument(     "--rebin-pt", dest="rebinPt", default="10,12,14,16,18,20,22,24,25,27.5,30,32,34,36,38,40,42,44,47,50,55,65", type=str, help="To rebin pt axis")
+    parser.add_argument(     "--rebin-pt", dest="rebinPt", default=1, type=int, help="To rebin pt axis")
     args = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
 
+    #newBinEdges = [float(x) for x in args.rebinPt.split(",")] if len(args.rebinPt) else None
+        
     inputfolder = args.inputfolder[0] 
-    outfolder = args.outputfolder[0]
+    #outfolder = args.outputfolder[0]
+    outfolder = args.inputfolder[0] + "/results/"
     createPlotDirAndCopyPhp(outfolder)
 
     workingPoints = [str(x) for x in args.workingPoints.split(',')]
@@ -68,6 +75,15 @@ if __name__ == "__main__":
     adjustSettings_CMS_lumi()    
     canvas = ROOT.TCanvas("canvas","",800,800)
 
+    # to compare to TNP I need to reproduce P(A|B), while for MC truth I had P(A & B|bareMuon) or P(A|bareMuon)
+    # so e.g. for idipANDtrigANDiso I can normalize to idipANDtrig to emulate P(iso|trigger & idip)
+    # right hand side is the tnp keyword, left hand side is the way it can be obtained from available MC truth histograms
+    wpToTNP = {"idip/trackerOrGlobal" : "idip",
+               "idipANDtrig/idip" : "trigger",
+               "idipANDtrigANDiso/idipANDtrig"  : "iso",
+               "idipANDisonotrig/idip"  : "isonotrig"
+    }
+    
     mcEff = {}
     for era in eras:
         
@@ -75,16 +91,39 @@ if __name__ == "__main__":
         rfname = f"{inputfolder}/{era}/plots_test.root"
         rf = safeOpenFile(rfname)
         hnomi = safeGetObject(rf, f"{args.hname}_{args.process}_{eraVFP}")
+        #if newBinEdges != None:
+        #    hnomi.RebinY(len(newBinEdges)-1,"",array('d',newBinEdges))
+        hnomi.RebinY(args.rebinPt)
         hwp = {}
         for wp in workingPoints:
             hwp[wp] = safeGetObject(rf, f"{args.hname}__{wp}_{args.process}_{eraVFP}")
             mcEff[(era,wp)] = copy.deepcopy(hwp[wp].Clone(f"mcTruthEff_{wp}_{era}"))
+            #if newBinEdges != None:
+            #    mcEff[(era,wp)].RebinY(len(newBinEdges)-1,"",array('d',newBinEdges))
+            mcEff[(era,wp)].RebinY(args.rebinPt)
             mcEff[(era,wp)].Divide(hnomi)
             mcEff[(era,wp)].SetTitle(f"{args.process}: {era}")
-            #print(f"{mcEff.GetName()} {mcEff.Integral()}")
+            #print(f"{mcEff.GetName()} {mcEff.Integral()}")    
+        #
+        # add other working points according to TnP steps, so e.g.
+        # P(iso) means P(iso|trigger&idip)
+        # P(idip) means P(idip|global OR tracker)
+        for wp in wpToTNP.keys():
+            num = str(wp.split('/')[0])
+            den = str(wp.split('/')[1])
+            tnpStep = wpToTNP[wp]
+            hnum = safeGetObject(rf, f"{args.hname}__{num}_{args.process}_{eraVFP}")
+            hden = safeGetObject(rf, f"{args.hname}__{den}_{args.process}_{eraVFP}")
+            hnum.RebinY(args.rebinPt)
+            hden.RebinY(args.rebinPt)
+            mcEff[(era,f"{tnpStep}StepOfTnP")] = copy.deepcopy(hnum.Clone(f"mcTruthEff_{tnpStep}StepOfTnP_{era}"))
+            mcEff[(era,f"{tnpStep}StepOfTnP")].Divide(hden)
+            mcEff[(era,f"{tnpStep}StepOfTnP")].SetTitle(f"{args.process}: {era}")
         if rf.IsOpen():    
             rf.Close()
-            
+
+    workingPoints = [str(wp) for era,wp in mcEff.keys() if era == "B"] # add the new ones for the TnP steps
+    
     xAxisName = "bare muon #eta"
     yAxisName = "bare muon p_{T} (GeV)"
     if args.ptRange[0] < args.ptRange[1]: 
@@ -92,25 +131,35 @@ if __name__ == "__main__":
         ymax = args.ptRange[1]
         yAxisName += f"::{ymin},{ymax}"
         
-    minmax = getMinMaxForSameWorkingPoint(mcEff, args)       
+    minmax = getMinMaxForSameWorkingPoint(mcEff, args, excludeMax=1.0)       
+    minmax["isoStepOfTnP"] = (0.85, minmax["isoStepOfTnP"][1]) # customize some working points
 
     rfoutname = f"{outfolder}/mcTruthEff.root"
     rfout = safeOpenFile(rfoutname, mode="RECREATE")
 
+    outfolder_eff = f"{outfolder}/efficiency/" 
+    createPlotDirAndCopyPhp(outfolder_eff)
+
     mcTrigBitOverNoBit = {}
     for era in eras:
-        for wp in workingPoints:
-            zAxisName = f"{wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
+        for wp in workingPoints: 
+            if "StepOfTnP" in wp:
+                zAxisName = f"TnP step: {wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
+            else:
+                zAxisName = f"{wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
             drawCorrelationPlot(mcEff[(era,wp)],
                                 xAxisName,
                                 yAxisName,
                                 zAxisName,
-                                mcEff[(era,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                                mcEff[(era,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder_eff,
                                 draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                 invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
             mcEff[(era,wp)].Write()
         mcTrigBitOverNoBit[(era,"trigBitOverNoBit")] = copy.deepcopy(mcEff[(era,"trig")].Clone(f"mcTruthEffRatio_trigBitOverNoBit_{era}"))
         mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].Divide(mcEff[(era,"trigNoBit")])
+
+    outfolder_effCheckTrigBit = f"{outfolder}/efficiency_checkTriggerBit/" 
+    createPlotDirAndCopyPhp(outfolder_effCheckTrigBit)
         
     minmax = getMinMaxForSameWorkingPoint(mcTrigBitOverNoBit, args, excludeMin=0.99, excludeMax=1.01)    
     thisminz = minmax["trigBitOverNoBit"][0]
@@ -122,13 +171,16 @@ if __name__ == "__main__":
                             xAxisName,
                             yAxisName,
                             zAxisName,
-                            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].GetName(), plotLabel="ForceTitle",
+                            outdir=outfolder_effCheckTrigBit,
                             draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                             invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
-            
+
+
     if args.plotRatioToEra:
 
         refEra = args.plotRatioToEra
+
         mcEffRatio = {}
         for (era,wp) in mcEff.keys():            
             if era == refEra:
@@ -136,7 +188,10 @@ if __name__ == "__main__":
             ratioName = f"mcTruthEffRatio_{wp}_{era}over{refEra}"
             mcEffRatio[(era,wp)] = copy.deepcopy(mcEff[(era,wp)].Clone(ratioName))
             mcEffRatio[(era,wp)].Divide(mcEff[(refEra,wp)])
-            
+
+        outfolder_effRatioToEra = f"{outfolder}/efficiency_MCtruthRatioTo{refEra}/" 
+        createPlotDirAndCopyPhp(outfolder_effRatioToEra)
+        
         minmax = getMinMaxForSameWorkingPoint(mcEffRatio, args, excludeMax=1.1)       
         # small hack because numerator histograms for trigger efficiency are almost empty for pt < 24
         minmax["idipANDtrigANDiso"] = (0.85, minmax["idipANDtrigANDiso"][1]) 
@@ -152,31 +207,26 @@ if __name__ == "__main__":
                                     xAxisName,
                                     yAxisName,
                                     zAxisName,
-                                    mcEffRatio[(era,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                                    mcEffRatio[(era,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder_effRatioToEra,
                                     draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                     invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
                 mcEffRatio[(era,wp)].Write()
 
 
-    tnpEras = ["B", "C", "D", "E", "F_preVFP", "BtoF"] # to fetch histograms in TnP file
+    tnpEras = ["B", "C", "D", "E", "F_preVFP", "G", "H", "BtoF", "GtoH"] # to fetch histograms in TnP file
     if args.tnpFile:
-
-        wpToTNP = {"idip" : "idip",
-                   "idipANDtrig" : "trigger",
-                   "idipANDtrigANDiso"  : "iso",
-                   "idipANDisonotrig"  : "isonotrig"
-        }
         
         rf = safeOpenFile(args.tnpFile)
         tnpEff = {}
         ratioTnpOverMCtruth = {}
         for tnpera in tnpEras:
-            for wp in wpToTNP.keys():
-                charge = "both" if wpToTNP[wp] != "trigger" else "plus" if "/plus/" in inputfolder else "minus"
-                eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else tnpera
-                tnpEff[(eraName,wp)] = safeGetObject(rf, f"effMC_{wpToTNP[wp]}_{tnpera}_{charge}")
+            for wptmp in wpToTNP.keys():
+                wp = f"{wpToTNP[wptmp]}StepOfTnP"
+                charge = "both" if wpToTNP[wptmp] != "trigger" else "plus" if "/plus/" in inputfolder else "minus"
+                eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else "GToH" if tnpera == "GtoH" else tnpera
+                tnpEff[(eraName,wp)] = safeGetObject(rf, f"effMC_{wpToTNP[wptmp]}_{tnpera}_{charge}")
                 # clone from tnp histogram to preserve binning but then refill later
-                mcTruth = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"mcTruth_{wpToTNP[wp]}_{tnpera}_{charge}_rebin"))
+                mcTruth = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"mcTruth_{wpToTNP[wptmp]}StepOfTnP_{tnpera}_{charge}_rebin"))
                 for ix in range(1, 1 + mcTruth.GetNbinsX()):
                     for iy in range(1, 1 +  mcTruth.GetNbinsY()):
                         ptval = tnpEff[(eraName,wp)].GetYaxis().GetBinCenter(iy)
@@ -187,21 +237,58 @@ if __name__ == "__main__":
                 ratioTnpOverMCtruth[(eraName,wp)].Divide(mcTruth)
                 ratioTnpOverMCtruth[(eraName,wp)].SetTitle(f"TnP / MC truth: {eraName}")
 
+                # if wpnorm != None:
+                #     mcTruthNorm = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"mcTruth_{wpToTNP[wptmp]}_{tnpera}_{charge}_rebin_norm"))
+                #     for ix in range(1, 1 + mcTruthNorm.GetNbinsX()):
+                #         for iy in range(1, 1 +  mcTruthNorm.GetNbinsY()):
+                #             ptval = tnpEff[(eraName,wp)].GetYaxis().GetBinCenter(iy)
+                #             ybin = mcEff[(eraName,wpnorm)].GetYaxis().FindFixBin(ptval+0.001)
+                #             mcTruthNorm.SetBinContent(ix, iy, mcEff[(eraName,wpnorm)].GetBinContent(ix, ybin))
+                #             # need to transform TnP histograms into new ones with same binning as the MC truth ones
+                #     ratioTnpOverMCtruth[(eraName,wp)].Multiply(mcTruthNorm)
+                
         minmax = getMinMaxForSameWorkingPoint(ratioTnpOverMCtruth, args, excludeMax=2)       
-        for tnpera in tnpEras:
-            for wp in wpToTNP.keys():
-                eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else tnpera
-                zAxisName = f"{wp} eff(TnP) / eff(MCtruth)::{minmax[wp][0]},{minmax[wp][1]}"    
+        for wptmp in wpToTNP.keys():
+
+            wp = f"{wpToTNP[wptmp]}StepOfTnP"
+            outfolder_effRatioTnpOverMC = f"{outfolder}/efficiency_ratioTNPoverMCtruth/stepTnP_{wpToTNP[wptmp]}" 
+            createPlotDirAndCopyPhp(outfolder_effRatioTnpOverMC)
+            
+            for tnpera in tnpEras:    
+                eraName = "F" if tnpera == "F_preVFP" else "BToF" if tnpera == "BtoF" else "GToH" if tnpera == "GtoH" else tnpera
+                zAxisName = f"TnP step = {wpToTNP[wptmp]}: eff(TnP) / eff(MCtruth)::{minmax[wp][0]},{minmax[wp][1]}"    
                 drawCorrelationPlot(ratioTnpOverMCtruth[(eraName,wp)],
                                     xAxisName,
                                     yAxisName,
                                     zAxisName,
-                                    ratioTnpOverMCtruth[(eraName,wp)].GetName(), plotLabel="ForceTitle", outdir=outfolder,
+                                    ratioTnpOverMCtruth[(eraName,wp)].GetName(), plotLabel="ForceTitle",
+                                    outdir=outfolder_effRatioTnpOverMC,
                                     draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                     invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
                 rfout.cd()
                 ratioTnpOverMCtruth[(eraName,wp)].Write()
-        
+
+                if args.plotRatioToEra:    
+                    refEra = args.plotRatioToEra
+                    if eraName != refEra:
+                        ratioTnpOverMCtruth_ratioOverRefEra = copy.deepcopy(ratioTnpOverMCtruth[(eraName,wp)])
+                        ratioTnpOverMCtruth_ratioOverRefEra.SetTitle(f"TnP / MC truth: {eraName}/{refEra}")
+                        ratioTnpOverMCtruth_ratioOverRefEra.Divide(ratioTnpOverMCtruth[(refEra,wp)])
+                        zAxisName = f"TnP step {wpToTNP[wptmp]}: ratio TnP/MC {eraName}/{refEra}"    
+
+                        outfolder_effRatioTnpOverMC_doubleRatio = f"{outfolder}/efficiency_ratioTNPoverMCtruth_eraOver{refEra}/stepTnP_{wpToTNP[wptmp]}" 
+                        createPlotDirAndCopyPhp(outfolder_effRatioTnpOverMC_doubleRatio)
+
+                        drawCorrelationPlot(ratioTnpOverMCtruth_ratioOverRefEra,
+                                            xAxisName,
+                                            yAxisName,
+                                            zAxisName,
+                                            ratioTnpOverMCtruth_ratioOverRefEra.GetName(), plotLabel="ForceTitle",
+                                            outdir=outfolder_effRatioTnpOverMC_doubleRatio,
+                                            draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
+                                            invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
+                        
+                
     if rfout.IsOpen():
         rfout.Close()
         print()

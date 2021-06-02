@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-# compare SF per era (mainly in preVFP) with the inclusive one. Also check the luminosity weighted average of the SF vs the inclusive
+# compare SF per era (mainly in preVFP) with the inclusive one. Also check the luminosity weighted average of the SF vs the inclusive. May also work for postVFP, but would need to adapt the script to make ratio with respect to H or possibly still B as for preVFP (in which case one needs to fetch the corresponding histograms but make sure they are not used for averages in preVFP)
+
+# python w-mass-13TeV/compareSFperEra.py testMuonSF/2021-05-31_allSFs_nodz_dxybs.root plots/testNanoAOD/testSF/SFeta0p1_31May2021_nodz_dxybs/singleEra/ -e BtoF
 
 import re
 import os, os.path
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
-    parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Comma separated list of eras for SF in histogram name; default: %(default)s")
+    parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Era for SF in histogram name; default: %(default)s")
     parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
     parser.add_argument("--sub-era", dest="subEra", type=str, default="", help="If given, comma-separated list of eras to use, others in main era will be ignored (including the inclusive one)")
     args = parser.parse_args()
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     outdir = args.outdir[0]
     if not outdir.endswith('/'):
         outdir = outdir + '/'
+    outdir += f"compareSFperEra/{eraVFP}/"    
     createPlotDirAndCopyPhp(outdir)
 
     ROOT.TH1.SetDefaultSumw2()
