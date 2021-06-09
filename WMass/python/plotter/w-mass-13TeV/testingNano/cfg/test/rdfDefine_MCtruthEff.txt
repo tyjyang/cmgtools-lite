@@ -5,6 +5,7 @@ goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigO
 #goodMuons : abs(Muon_eta) < 2.4 && Muon_pt > 26 && Muon_pt < 55 && Muon_mediumId > 0 && abs(Muon_dxybs) < 0.05
 goodMuons_accept : abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
 goodMuons_trackerOrGlobal : Muon_isTracker || Muon_isGlobal
+goodMuons_trackerOrGlobalAndStandalone : (Muon_isTracker || Muon_isGlobal) && Muon_isStandalone
 goodMuons_tracker : Muon_isTracker
 goodMuons_global : Muon_isGlobal
 goodMuons_standalone : Muon_isStandalone

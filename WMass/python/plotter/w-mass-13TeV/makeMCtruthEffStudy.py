@@ -6,6 +6,15 @@
 # histogram is named <prefix>__<workingPoint>_<process>_<eraVFP> for the numerator
 #                and <prefix>_<process>_<eraVFP> for the denominator        
 
+# verus pt-eta (with PU weights and all eras)
+# python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_finePt/plus/ --palette 87 --plot-ratio-era H --tnp-file testMuonSF/2021-05-31_allSFs_nodz_dxybs.root --rebin-pt 4 -w 'trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit'
+
+# versus pt-eta (no PU weights here, comparing only pre and postVFP)
+# python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_finePt_noPUweights/plus/ --palette 87 --plot-ratio-era GToH --tnp-file testMuonSF/2021-05-31_allSFs_nodz_dxybs.root --rebin-pt 4 -w 'trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit' -e "BToF,GToH"
+
+# versus phi-eta (no PU weights here, comparing only pre and postVFP)
+# python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_EtaPhi_noPUweights/plus/ --palette 87 --plot-ratio-era GToH -w 'trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit' -e "BToF,GToH" -y "bare muon #phi" --hname "bareMuon_phi_eta"
+
 import os, re, array, math
 import time
 import argparse
@@ -45,7 +54,9 @@ if __name__ == "__main__":
     # output folder is better chosen as input plus a subfolder
     #parser.add_argument("outputfolder",   type=str, nargs=1)
     parser.add_argument("--hname", default="bareMuon_pt_eta", help="Root of histogram name inside root file")
-    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit", help="Comma separated list of working points to fetch input histograms")
+    parser.add_argument("-y", "--y-axis-name", dest="yAxisName", default="bare muon p_{T} (GeV)", help="y axis name")
+    parser.add_argument("--postfix", default="", help="Postfix for output folder")
+    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit", help="Comma separated list of working points to fetch input histograms")
     parser.add_argument("-e", "--era",    type=str, default="B,C,D,E,F,BToF,G,H,GToH", help="Comma separated list of eras, which identify the input subfolder")
     parser.add_argument("-p", "--process", default="Wmunu_plus", type=str, help="Process to pick histogram")
     parser.add_argument("-r", "--eff-range", dest="effRange", default=(0,-1), type=float, nargs=2, help="Z axis range for efficiency plot")
@@ -66,7 +77,7 @@ if __name__ == "__main__":
         
     inputfolder = args.inputfolder[0] 
     #outfolder = args.outputfolder[0]
-    outfolder = args.inputfolder[0] + "/results/"
+    outfolder = args.inputfolder[0] + (f"/results_{args.postfix}/" if args.postfix else "/results/")
     createPlotDirAndCopyPhp(outfolder)
 
     workingPoints = [str(x) for x in args.workingPoints.split(',')]
@@ -87,7 +98,7 @@ if __name__ == "__main__":
     mcEff = {}
     for era in eras:
         
-        eraVFP = "postVFP" if era in ["G", "H", "GToH"] else "preVFP"
+        eraVFP = "postVFP" if era in ["F_postVFP", "G", "H", "GToH"] else "preVFP"
         rfname = f"{inputfolder}/{era}/plots_test.root"
         rf = safeOpenFile(rfname)
         hnomi = safeGetObject(rf, f"{args.hname}_{args.process}_{eraVFP}")
@@ -98,6 +109,7 @@ if __name__ == "__main__":
         for wp in workingPoints:
             hwp[wp] = safeGetObject(rf, f"{args.hname}__{wp}_{args.process}_{eraVFP}")
             mcEff[(era,wp)] = copy.deepcopy(hwp[wp].Clone(f"mcTruthEff_{wp}_{era}"))
+            print(f"{args.hname}__{wp}_{args.process}_{eraVFP}")
             #if newBinEdges != None:
             #    mcEff[(era,wp)].RebinY(len(newBinEdges)-1,"",array('d',newBinEdges))
             mcEff[(era,wp)].RebinY(args.rebinPt)
@@ -108,6 +120,12 @@ if __name__ == "__main__":
         # add other working points according to TnP steps, so e.g.
         # P(iso) means P(iso|trigger&idip)
         # P(idip) means P(idip|global OR tracker)
+        print()
+        if all(x in workingPoints for x in ["trackerOrGlobalAndStandalone", "standalone"]):
+            print("Adding new working point (isTracker OR isGlobal | isStandalone)")
+            mcEff[(era,"trackOrGlobGivenStandAlone")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenStandAlone_{era}"))
+            mcEff[(era,"trackOrGlobGivenStandAlone")].Divide(mcEff[(era,"standalone")])
+            print()
         for wp in wpToTNP.keys():
             num = str(wp.split('/')[0])
             den = str(wp.split('/')[1])
@@ -122,10 +140,10 @@ if __name__ == "__main__":
         if rf.IsOpen():    
             rf.Close()
 
-    workingPoints = [str(wp) for era,wp in mcEff.keys() if era == "B"] # add the new ones for the TnP steps
+    workingPoints = [str(wp) for era,wp in mcEff.keys() if era == eras[0]] # add the new ones for the TnP steps
     
     xAxisName = "bare muon #eta"
-    yAxisName = "bare muon p_{T} (GeV)"
+    yAxisName = args.yAxisName
     if args.ptRange[0] < args.ptRange[1]: 
         ymin = args.ptRange[0]
         ymax = args.ptRange[1]
@@ -213,7 +231,8 @@ if __name__ == "__main__":
                 mcEffRatio[(era,wp)].Write()
 
 
-    tnpEras = ["B", "C", "D", "E", "F_preVFP", "G", "H", "BtoF", "GtoH"] # to fetch histograms in TnP file
+    tnpErasTmp = ["B", "C", "D", "E", "F_preVFP", "G", "H", "BtoF", "GtoH"] # to fetch histograms in TnP file
+    tnpEras = [x for x in tnpErasTmp if x.replace("_preVFP","F").replace("to","To") in eras]
     if args.tnpFile:
         
         rf = safeOpenFile(args.tnpFile)
@@ -274,7 +293,7 @@ if __name__ == "__main__":
                         ratioTnpOverMCtruth_ratioOverRefEra = copy.deepcopy(ratioTnpOverMCtruth[(eraName,wp)])
                         ratioTnpOverMCtruth_ratioOverRefEra.SetTitle(f"TnP / MC truth: {eraName}/{refEra}")
                         ratioTnpOverMCtruth_ratioOverRefEra.Divide(ratioTnpOverMCtruth[(refEra,wp)])
-                        zAxisName = f"TnP step {wpToTNP[wptmp]}: ratio TnP/MC {eraName}/{refEra}"    
+                        zAxisName = f"TnP step {wpToTNP[wptmp]}: ratio TnP/MC {eraName}/{refEra}::0.985,1.015"    
 
                         outfolder_effRatioTnpOverMC_doubleRatio = f"{outfolder}/efficiency_ratioTNPoverMCtruth_eraOver{refEra}/stepTnP_{wpToTNP[wptmp]}" 
                         createPlotDirAndCopyPhp(outfolder_effRatioTnpOverMC_doubleRatio)
