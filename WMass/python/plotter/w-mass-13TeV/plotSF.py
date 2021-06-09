@@ -3,6 +3,8 @@
 # plot all SF from the input root file, and make some products for faster usage
 # can also plot those for data/data and MC/MC if they are in the file (can be added with w-mass-13TeV/makeEffRatioPrePostVFP.py, or using option --make-preOverPost which calls that other script)
 
+# python w-mass-13TeV/plotSF.py testMuonSF/2021-05-31_allSFs_nodz_dxybs.root plots/testNanoAOD/testSF/SFeta0p1_31May2021_nodz_dxybs/globalAndPerEra/ -e 'BtoF,GtoH,B,C,D,E,F,G,H' -n 'trigger,idip,iso,antiiso,isonotrig,antiisonotrig' --makePreOverPost
+
 import re
 import os, os.path
 import logging
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
-    parser.add_argument("-e", "--era",    type=str, default="BtoF,GtoH", help="Comma separated list of eras for SF in histogram name; default: %(default)s")
+    parser.add_argument("-e", "--era",    type=str, default="BtoF,GtoH,B,C,D,E,F,G,H", help="Comma separated list of eras for SF in histogram name; default: %(default)s")
     parser.add_argument("-n", "--sfnames", type=str, default="trigger,reco,tracking,idip,iso,antiiso,isonotrig,antiisonotrig", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
     parser.add_argument('--makePreOverPost', action="store_true", help="Make data/data and MC/MC scale factors (in subfolder 'effRatio_preOverPost/')")
     args = parser.parse_args()
@@ -98,7 +100,8 @@ if __name__ == "__main__":
         charges = ["plus", "minus"] if n == "trigger" else ["both"]
         for ch in charges:
             for era in eras:
-                hname = f"SF2D_{n}_{era}_{ch}"
+                tmpEra = "F_preVFP" if era == "F" else era
+                hname = f"SF2D_{n}_{tmpEra}_{ch}"
                 hkey = n + (ch if n == "trigger" else "")
                 hists[era][hkey] = f.Get(hname)
                 if hists[era][hkey] is None:

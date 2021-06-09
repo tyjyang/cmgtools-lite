@@ -3,7 +3,12 @@
 # && abs(Muon_dz)< 0.2
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
 #goodMuons : abs(Muon_eta) < 2.4 && Muon_pt > 26 && Muon_pt < 55 && Muon_mediumId > 0 && abs(Muon_dxybs) < 0.05
-goodMuons_accept : abs(Muon_eta) < 2.4 && Muon_pt > 26 && Muon_pt < 55
+goodMuons_accept : abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
+goodMuons_trackerOrGlobal : Muon_isTracker || Muon_isGlobal
+goodMuons_trackerOrGlobalAndStandalone : (Muon_isTracker || Muon_isGlobal) && Muon_isStandalone
+goodMuons_tracker : Muon_isTracker
+goodMuons_global : Muon_isGlobal
+goodMuons_standalone : Muon_isStandalone
 goodMuons_idip : abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0
 # for trigger can also add trigger bits
 goodMuons_idipANDtrig : goodMuons_idip && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
@@ -15,7 +20,8 @@ goodMuons_iso  : Muon_pfRelIso04_all < 0.15
 #goodMuonsPlus: goodMuons && Muon_charge > 0
 #goodMuonsMinus: goodMuons && Muon_charge < 0
 #
-bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 && GenPart_genPartIdxMother >= 0 : W|Z
+#  && GenPart_genPartIdxMother >= 0 # not needed
+bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z
 bareMuonsPlus : bareMuons && GenPart_pdgId < 0 : W|Z
 bareMuonsMinus : bareMuons && GenPart_pdgId > 0 : W|Z
 # Jet_puId = passlooseID * 4 + passmediumID * 2 + passtightID * 1

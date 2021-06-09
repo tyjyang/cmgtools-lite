@@ -539,7 +539,7 @@ struct pair_hash
 
 std::unordered_map<DataEra, TH1F> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHist = {};
-std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2F, pair_hash> prePostCorrToHist = {};
+//std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2F, pair_hash> prePostCorrToHist = {};
 
 void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleFactorProduct_31Mar2021.root") {
 
@@ -569,22 +569,22 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
       scaleFactorHist[corrKey] = *dynamic_cast<TH2F*>(histptr);
     }
 
-    for (auto& datatype : datatypeNames) {
-      std::vector<std::string> vars = {"fullSF2D", datatype.second, "preOverPost", corr.second};
-      std::string corrname = boost::algorithm::join(vars, "_");
-      auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
-      if (histptr == nullptr) {
-	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-		  << _filename_allSF << "! Aborting" << std::endl;
-	exit(EXIT_FAILURE);
-      }
-      histptr->SetDirectory(0);
-      DataType typeVal = datatype.first;
-      ScaleFactorType key = corr.first;
-      // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
-      auto corrKey = std::make_pair(key, typeVal);
-      prePostCorrToHist[corrKey] = *dynamic_cast<TH2F*>(histptr);
-    }
+    // for (auto& datatype : datatypeNames) {
+    //   std::vector<std::string> vars = {"fullSF2D", datatype.second, "preOverPost", corr.second};
+    //   std::string corrname = boost::algorithm::join(vars, "_");
+    //   auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    //   if (histptr == nullptr) {
+    // 	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+    // 		  << _filename_allSF << "! Aborting" << std::endl;
+    // 	exit(EXIT_FAILURE);
+    //   }
+    //   histptr->SetDirectory(0);
+    //   DataType typeVal = datatype.first;
+    //   ScaleFactorType key = corr.first;
+    //   // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+    //   auto corrKey = std::make_pair(key, typeVal);
+    //   prePostCorrToHist[corrKey] = *dynamic_cast<TH2F*>(histptr);
+    // }
   
   }
   
@@ -617,7 +617,7 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
 ////=====================================================================================
 
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> efficiencyMCtruthPerEra = {};
-std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}};
+std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}, {trackingAndReco, "trackerOrGlobal"}};
 
 // for test, the trigger efficiency is for plus only at the moment, and all are made with no dz cut and using dxybs
 void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/mcTruthEff.root") {
@@ -633,7 +633,8 @@ void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/m
   for (auto& corr : efficiencyNames) {  
   
     for (auto& dataRunEra : runEraNames) {
-      std::vector<std::string> vars = {"mcTruthEff", corr.second, dataRunEra.second};
+      std::string dataRunEraStr = dataRunEra.second;
+      std::vector<std::string> vars = {"mcTruthEff", corr.second, dataRunEraStr};
       std::string corrname = boost::algorithm::join(vars, "_");
       auto* histptr = dynamic_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
       if (histptr == nullptr) {
@@ -696,12 +697,36 @@ double _get_MCtruthEffPerEra(float pt,      float eta,      int charge,
 
 }
 
+double _get_MCtruthRecoAndTrackingEffPerEra(float pt,      float eta,      int charge,
+					    float ptOther, float etaOther,
+					    DataEra dtype = C
+					    ) {
+
+  ScaleFactorType sftype = trackingAndReco;
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2D& hcorr = efficiencyMCtruthPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+
+  if (ptOther > 0.0) {
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = efficiencyMCtruthPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
 
 //================
 
-std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorDataPerEra = {};
-std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorMCPerEra = {};
+//std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorDataPerEra = {};
+//std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorMCPerEra = {};
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> efficiencyDataPerEra = {};
+std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> efficiencyMCPerEra = {};
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorPerEra = {};
+std::unordered_map<ScaleFactorType, TH2F> lumiAverageScaleFactorPreVFP = {};
 
 void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra_nodz_dxybs.root") {
 
@@ -715,12 +740,53 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
 
   // data/data
   for (auto& corr : scalefactorNames) {
-    // first data/data (no B, as the ratio is wrt B)
+    // // first data/data (no B, as the ratio is wrt B)
+    // for (auto& dataRunEra : runEraNames) {
+    //   if (dataRunEra.second.compare("B") == 0 or dataRunEra.second.compare("BtoF") == 0 or dataRunEra.second.compare("GtoH") == 0) {
+    // 	continue;
+    //   }
+    //   std::vector<std::string> vars = {Form("ratio_Bover%s",dataRunEra.second.c_str()), "fullEffData", corr.second};
+    //   std::string corrname = boost::algorithm::join(vars, "_");
+    //   auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    //   if (histptr == nullptr) {
+    // 	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+    // 		  << _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+    // 	// exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+    // 	continue;
+    //   }
+    //   histptr->SetDirectory(0);
+    //   DataEra typeVal = dataRunEra.first;
+    //   ScaleFactorType key = corr.first;
+    //   // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+    //   auto corrKey = std::make_pair(key, typeVal);
+    //   scaleFactorDataPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+    // }
+
+    // // now for MC/MC
+    // for (auto& dataRunEra : runEraNames) {
+    //   if (dataRunEra.second.compare("B") == 0 or dataRunEra.second.compare("BtoF") == 0 or dataRunEra.second.compare("GtoH") == 0) {
+    // 	continue;
+    //   }
+    //   std::vector<std::string> vars = {Form("ratio_Bover%s",dataRunEra.second.c_str()), "fullEffMC", corr.second};
+    //   std::string corrname = boost::algorithm::join(vars, "_");
+    //   auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    //   if (histptr == nullptr) {
+    // 	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+    // 		  << _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+    // 	// exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+    // 	continue;
+    //   }
+    //   histptr->SetDirectory(0);
+    //   DataEra typeVal = dataRunEra.first;
+    //   ScaleFactorType key = corr.first;
+    //   // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
+    //   auto corrKey = std::make_pair(key, typeVal);
+    //   scaleFactorMCPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+    // }
+    
     for (auto& dataRunEra : runEraNames) {
-      if (dataRunEra.second.compare("B") == 0 or dataRunEra.second.compare("BtoF") == 0 or dataRunEra.second.compare("GtoH") == 0) {
-	continue;
-      }
-      std::vector<std::string> vars = {Form("ratio_Bover%s",dataRunEra.second.c_str()), "fullEffData", corr.second};
+     
+      std::vector<std::string> vars = {"fullEffData2D", corr.second, dataRunEra.second};
       std::string corrname = boost::algorithm::join(vars, "_");
       auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
       if (histptr == nullptr) {
@@ -734,15 +800,13 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
       ScaleFactorType key = corr.first;
       // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
       auto corrKey = std::make_pair(key, typeVal);
-      scaleFactorDataPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+      efficiencyDataPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
     }
 
     // now for MC/MC
-    for (auto& dataRunEra : runEraNames) {
-      if (dataRunEra.second.compare("B") == 0 or dataRunEra.second.compare("BtoF") == 0 or dataRunEra.second.compare("GtoH") == 0) {
-	continue;
-      }
-      std::vector<std::string> vars = {Form("ratio_Bover%s",dataRunEra.second.c_str()), "fullEffMC", corr.second};
+    for (auto& mcRunEra : runEraNames) {
+
+      std::vector<std::string> vars = {"fullEffMC2D", corr.second, mcRunEra.second};
       std::string corrname = boost::algorithm::join(vars, "_");
       auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
       if (histptr == nullptr) {
@@ -752,13 +816,14 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
 	continue;
       }
       histptr->SetDirectory(0);
-      DataEra typeVal = dataRunEra.first;
+      DataEra typeVal = mcRunEra.first;
       ScaleFactorType key = corr.first;
       // std::cout << "Histogram key " << key << " and era " << era.second << std::endl;
       auto corrKey = std::make_pair(key, typeVal);
-      scaleFactorMCPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+      efficiencyMCPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
     }
 
+    
     // repeat for data/MC 
     for (auto& dataRunEra : runEraNames) {
       std::vector<std::string> vars = {"fullSF2D", corr.second, dataRunEra.second};
@@ -778,17 +843,108 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
       scaleFactorPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
     }
 
+    std::string corrname = Form("lumiAveScaleFactor_%s_BtoF", corr.second.c_str());
+    auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    if (histptr == nullptr) {
+      std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		<< _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+      // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+      continue;
+    }
+    histptr->SetDirectory(0);
+    ScaleFactorType corrKey = corr.first;
+    lumiAverageScaleFactorPreVFP[corrKey] = *dynamic_cast<TH2F*>(histptr);
+    
   }
   
 }
 
-double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
-				float ptOther, float etaOther,
-				DataEra dtype = C,
-				bool isoSF1 = true, // to use SF for iso or antiiso
-				bool isoSF2 = true,
-				bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
-				) {
+// double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
+// 				float ptOther, float etaOther,
+// 				DataEra dtype = C,
+// 				bool isoSF1 = true, // to use SF for iso or antiiso
+// 				bool isoSF2 = true,
+// 				bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+// 				) {
+
+//   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+//   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+//   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+//   ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+//   if (neglectIso) {
+//     sftype = charge > 0 ? noisoTrigPlus : noisoTrigMinus;
+//   } else if (not isoSF1) {
+//     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+//   }
+
+//   auto const key = std::make_pair(sftype, dtype);
+//   const TH2F& hcorr = scaleFactorDataPerEra.at(key);
+//   double sf = getValFromTH2(hcorr, eta, pt);
+//   //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+//   if (ptOther > 0.0) {
+//     if (neglectIso) {
+//       sftype = noisoNotrig;
+//     } else {
+//       sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+//     }
+//     auto const keyOther = std::make_pair(sftype, dtype);
+//     const TH2F& hcorrOther = scaleFactorDataPerEra.at(keyOther);
+//     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+//   }
+
+//   return sf;
+
+// }
+
+// double _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
+// 				  float ptOther, float etaOther,
+// 				  DataEra dtype = C,
+// 				  bool isoSF1 = true, // to use SF for iso or antiiso
+// 				  bool isoSF2 = true,
+// 				  bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+// 				  ) {
+  
+//   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+//   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+//   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+//   ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+//   if (neglectIso) {
+//     sftype = charge > 0 ? noisoTrigPlus : noisoTrigMinus;
+//   } else if (not isoSF1) {
+//     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+//   }
+
+//   auto const key = std::make_pair(sftype, dtype);
+//   const TH2F& hcorr = scaleFactorMCPerEra.at(key);
+//   double sf = getValFromTH2(hcorr, eta, pt);
+//   //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+//   if (ptOther > 0.0) {
+//     if (neglectIso) {
+//       sftype = noisoNotrig;
+//     } else {
+//       sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+//     }
+//     auto const keyOther = std::make_pair(sftype, dtype);
+//     const TH2F& hcorrOther = scaleFactorMCPerEra.at(keyOther);
+//     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+//   }
+
+//   return sf;
+
+// }
+
+
+double _get_fullMuonDataEfficiencyEra(float pt,      float eta,      int charge,
+				      float ptOther, float etaOther,
+				      DataEra dtype = C,
+				      bool isoSF1 = true, // to use SF for iso or antiiso
+				      bool isoSF2 = true,
+				      bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				      ) {
 
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -802,7 +958,7 @@ double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
   }
 
   auto const key = std::make_pair(sftype, dtype);
-  const TH2F& hcorr = scaleFactorDataPerEra.at(key);
+  const TH2F& hcorr = efficiencyDataPerEra.at(key);
   double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
@@ -813,7 +969,7 @@ double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
       sftype = isoSF2 ? isoNotrig : antiisoNotrig;
     }
     auto const keyOther = std::make_pair(sftype, dtype);
-    const TH2F& hcorrOther = scaleFactorDataPerEra.at(keyOther);
+    const TH2F& hcorrOther = efficiencyDataPerEra.at(keyOther);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
 
@@ -821,13 +977,13 @@ double _get_fullMuonSF_BoverEra(float pt,      float eta,      int charge,
 
 }
 
-double _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
-				  float ptOther, float etaOther,
-				  DataEra dtype = C,
-				  bool isoSF1 = true, // to use SF for iso or antiiso
-				  bool isoSF2 = true,
-				  bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
-				  ) {
+double _get_fullMuonMCEfficiencyEra(float pt,      float eta,      int charge,
+				    float ptOther, float etaOther,
+				    DataEra dtype = C,
+				    bool isoSF1 = true, // to use SF for iso or antiiso
+				    bool isoSF2 = true,
+				    bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				    ) {
   
   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
@@ -841,7 +997,7 @@ double _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
   }
 
   auto const key = std::make_pair(sftype, dtype);
-  const TH2F& hcorr = scaleFactorMCPerEra.at(key);
+  const TH2F& hcorr = efficiencyMCPerEra.at(key);
   double sf = getValFromTH2(hcorr, eta, pt);
   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
@@ -852,14 +1008,13 @@ double _get_fullMuonSF_BoverEraMC(float pt,      float eta,      int charge,
       sftype = isoSF2 ? isoNotrig : antiisoNotrig;
     }
     auto const keyOther = std::make_pair(sftype, dtype);
-    const TH2F& hcorrOther = scaleFactorMCPerEra.at(keyOther);
+    const TH2F& hcorrOther = efficiencyMCPerEra.at(keyOther);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
 
   return sf;
 
 }
-
 
  
 double _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
@@ -894,6 +1049,42 @@ double _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
     }
     auto const keyOther = std::make_pair(sftype, dtype);
     const TH2F& hcorrOther = scaleFactorPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+double _get_lumiAverageScaleFactorPreVFP(float pt,      float eta,      int charge,
+					 float ptOther, float etaOther,
+					 bool isoSF1 = true, // to use SF for iso or antiiso
+					 bool isoSF2 = true,
+					 bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+					 ) {
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+  if (neglectIso) {
+    sftype = charge > 0 ? noisoTrigPlus : noisoTrigMinus;
+  } else if (not isoSF1) {
+    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+  }
+
+  const TH2F& hcorr = lumiAverageScaleFactorPreVFP.at(sftype);
+  double sf = getValFromTH2(hcorr, eta, pt);
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (ptOther > 0.0) {
+    if (neglectIso) {
+      sftype = noisoNotrig;
+    } else {
+      sftype = isoSF2 ? isoNotrig : antiisoNotrig;
+    }
+    const TH2F& hcorrOther = lumiAverageScaleFactorPreVFP.at(sftype);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
 
@@ -1053,37 +1244,39 @@ double _get_fullMuonSF(float pt,      float eta,      int charge,
   return sf;
 }
 
-double _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
-				   float ptOther, float etaOther,
-				   DataType dtype = MC,
-				   bool isoSF1 = true,
-				   bool isoSF2 = true
-				   ) {
+// To be removed at some point, we can save efficiencies or scale factors per era and use them directly
+//
+// double _get_fullMuonSF_preOverPost(float pt,      float eta,      int charge,
+// 				   float ptOther, float etaOther,
+// 				   DataType dtype = MC,
+// 				   bool isoSF1 = true,
+// 				   bool isoSF2 = true
+// 				   ) {
 
-  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
-  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
-  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+//   //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+//   //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+//   //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
 
-  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
-  if (not isoSF1) {
-    sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
-  }
+//   ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+//   if (not isoSF1) {
+//     sftype = charge > 0 ? antiisoTrigPlus : antiisoTrigMinus;
+//   }
 
-  auto const key = std::make_pair(sftype, dtype);
-  const TH2F& hcorr = prePostCorrToHist.at(key);
-  double sf = getValFromTH2(hcorr, eta, pt);
-  //std::cout << "scale factor main leg -> " << sf << std::endl;
+//   auto const key = std::make_pair(sftype, dtype);
+//   const TH2F& hcorr = prePostCorrToHist.at(key);
+//   double sf = getValFromTH2(hcorr, eta, pt);
+//   //std::cout << "scale factor main leg -> " << sf << std::endl;
 
-  if (ptOther > 0.0) {
-    ScaleFactorType sftypeOther = isoSF2 ? isoNotrig : antiisoNotrig;
-    auto const keyOther = std::make_pair(sftypeOther, dtype);
-    const TH2F& hcorrOther = prePostCorrToHist.at(keyOther);
-    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
-  }
+//   if (ptOther > 0.0) {
+//     ScaleFactorType sftypeOther = isoSF2 ? isoNotrig : antiisoNotrig;
+//     auto const keyOther = std::make_pair(sftypeOther, dtype);
+//     const TH2F& hcorrOther = prePostCorrToHist.at(keyOther);
+//     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+//   }
 
-  return sf;
+//   return sf;
 
-}
+// }
 
 
 Vec_d _get_fullMuonSFvariation(int n_tnpBinNuisance,
