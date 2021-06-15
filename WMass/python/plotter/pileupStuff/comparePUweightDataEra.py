@@ -36,7 +36,7 @@ if __name__ == "__main__":
     datahistsRef = {}
 
     eras = args.eras.split(',')
-    refEra = "B" if "B" in eras else "2016"
+    refEra = "B" if "B" in eras else eras[0]
     for era in eras:
         # file 1
         if era == "2016":
