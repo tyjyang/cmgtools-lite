@@ -20,7 +20,7 @@ from utility import *
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outdir", type=str, default="plots/testNanoAOD/PU_weights_perRunEra/", help="Folder to store plots and weights")
+    parser.add_argument("-o", "--outdir", type=str, default="plots/testNanoAOD/check_newPUweights_perRunEra/", help="Folder to store plots and weights")
     parser.add_argument("-e", "--eras", type=str, default="B,C,D,E,F,F_postVFP,G,H", help="Eras to be used in plots")
     parser.add_argument("--normalizeIntegralUpToBin", type=int, default=100, help="Use integral up to this bin to normalize PU profiles")
     parser.add_argument("--maxWeightWarning", type=float, default=5.0, help="At the end issue a warning if weight > this value")
@@ -30,50 +30,49 @@ if __name__ == "__main__":
     outdir = args.outdir + "/"
     createPlotDirAndCopyPhp(outdir)
 
-    mcfile   = "pileupStuff/MyMCPileupHistogram_2016Legacy_noGenWeights_preAndPostVFP.root"    
-    mcname   = "Pileup_nTrueInt_Wmunu_preVFP,Pileup_nTrueInt_Wmunu_postVFP"
     dataname = "pileup"
     
     datahists = {}
+    datahistsRef = {}
 
     eras = args.eras.split(',')
     refEra = "B" if "B" in eras else eras[0]
     for era in eras:
-        datafile = f"pileupStuff/pileupProfileData_2016Legacy_Run{era}_04June2021.root"
+        # file 1
+        if era == "2016":
+            #datafile = "pileupStuff/pileupProfileData_2016Legacy_TESTFULL2016_99bins.root"
+            datafile = "pileupStuff/pileupProfileData_2016Legacy_TESTFULL2016_99bins_customJsonNanoFilter.root"
+        else:
+            datafile = f"pileupStuff/pileupProfileData_2016Legacy_Run{era}_04June2021.root"
         tf = ROOT.TFile.Open(datafile)
         datahists[era] = tf.Get(dataname)        
         datahists[era].SetDirectory(0)
         tf.Close()
-
-    mchist = None
-    tf = ROOT.TFile.Open(mcfile)
-    for i,mcn in enumerate(mcname.split(',')):
-        tmp = tf.Get(mcn)
-        if i == 0:
-            mchist = copy.deepcopy(tmp.Clone("mchist"))
-            mchist.SetDirectory(0)
+        # reference
+        if era == "2016":
+           datafile = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/PileUp/UltraLegacy/PileupHistogram-goldenJSON-13tev-2016-69200ub-99bins.root"
         else:
-            mchist.Add(tmp)
-    tf.Close()
-
-    if not mchist:
-        print("Error getting MC histograms")
-        quit()
+           datafile = f"pileupStuff/pileupProfileData_2016Legacy_Run{era}.root"
+        tf = ROOT.TFile.Open(datafile)
+        datahistsRef[era] = tf.Get(dataname)        
+        datahistsRef[era].SetDirectory(0)
+        tf.Close()
 
     adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas", "", 900, 900)
 
     hists = [copy.deepcopy(datahists[era].Clone(f"tmp{era}")) for era in eras]
     legEntries = [era for era in eras]
-    drawNTH1(hists,legEntries, "number of true interactions::0,70", "Events", f"PU_compareErasData_noScaling",
+    drawNTH1(hists,legEntries, "number of true interactions::0,70", "Normalized events", f"PU_compareErasData_noScaling",
              outdir,
              lowerPanelHeight=0.0, legendCoords="0.6,0.94,0.7,0.9;2", passCanvas=canvas,
              skipLumi=True, onlyLineColor=True, drawErrorAll=True)
     for h in hists:
         h.Scale(datahists[refEra].Integral()/h.Integral())
+    refLabelRatio = "ref" if refEra == "2016" else refEra
     drawNTH1(hists,legEntries, "number of true interactions::0,70", "Events", f"PU_compareErasData",
              outdir,
-             labelRatioTmp=f"X/{refEra}::0.0,3.0", legendCoords="0.6,0.94,0.7,0.9;2", passCanvas=canvas,
+             labelRatioTmp=f"X/{refLabelRatio}::0.0,3.0", legendCoords="0.6,0.94,0.7,0.9;2", passCanvas=canvas,
              skipLumi=True, onlyLineColor=True, drawErrorAll=True)
     
     for era in eras:
@@ -82,31 +81,32 @@ if __name__ == "__main__":
         createPlotDirAndCopyPhp(outsubdir)
 
         datahist = datahists[era]
+        datahistRef = datahistsRef[era]
         if not datahist:
             print(f"Error getting data histogram for era {era}")
             quit()
-        if datahist.GetNbinsX() != mchist.GetNbinsX():
+        if datahist.GetNbinsX() != datahistRef.GetNbinsX():
             print("Warning: histograms have different number of bins")
             quit()
         nbins = datahist.GetNbinsX()
-        if datahist.GetXaxis().GetBinLowEdge(1) != mchist.GetXaxis().GetBinLowEdge(1):
+        if datahist.GetXaxis().GetBinLowEdge(1) != datahistRef.GetXaxis().GetBinLowEdge(1):
             print("Warning: histograms have different low edge")
             quit()
-        if datahist.GetXaxis().GetBinLowEdge(1+nbins) != mchist.GetXaxis().GetBinLowEdge(1+nbins):
+        if datahist.GetXaxis().GetBinLowEdge(1+nbins) != datahistRef.GetXaxis().GetBinLowEdge(1+nbins):
             print("Warning: histograms have different up edge")
             quit()
 
         puWeights = []
             
-        mchist.Scale(datahist.Integral(0, args.normalizeIntegralUpToBin) / mchist.Integral(0, args.normalizeIntegralUpToBin))
+        datahistRef.Scale(datahist.Integral(0, args.normalizeIntegralUpToBin) / datahistRef.Integral(0, args.normalizeIntegralUpToBin))
         ratio = datahist.Clone(f"puWeight_2016_UL_Run{era}")
         ratio.Reset("ICESM")
         for i in range(1, 1 + nbins):
             puratio = 1.0
-            if mchist.GetBinContent(i) == 0:
+            if datahistRef.GetBinContent(i) == 0:
                 ratio.SetBinContent(i, puratio)
             else:
-                puratio = datahist.GetBinContent(i)/mchist.GetBinContent(i)
+                puratio = datahist.GetBinContent(i)/datahistRef.GetBinContent(i)
                 ratio.SetBinContent(i,puratio)
             puWeights.append(puratio)
 
@@ -125,9 +125,9 @@ if __name__ == "__main__":
         outf.close()
         print(f"PU weights for {era} saved in {fileWgt}")
 
-        hists = [datahist, mchist]
-        legEntries = [f"Data {era}", "MC"]
-        drawNTH1(hists, legEntries, "number of true interactions", "Events", f"PU_dataMC_Run{era}",
+        hists = [datahist, datahistRef]
+        legEntries = [f"Data {era}", "Reference" if era == "2016" else "Old reference"]
+        drawNTH1(hists, legEntries, "number of true interactions", "Normalized events", f"PU_dataVsRef_Run{era}",
                  outsubdir,
-                 labelRatioTmp="Data/MC::0.0,2.0", legendCoords="0.6,0.9,0.76,0.9", passCanvas=canvas,
+                 labelRatioTmp="Data/Ref::0.0,2.0", legendCoords="0.6,0.9,0.76,0.9", passCanvas=canvas,
                  skipLumi=True, drawErrorAll=True)
