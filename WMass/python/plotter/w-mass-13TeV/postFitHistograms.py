@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# example (only charge plus)
+# python w-mass-13TeV/postFitPlotsHistograms.py cards/wmass_fixMassWeights_splitW/fit/hessian/fitresults_123456789_Asimov_clipSyst1p3_bbb1_cxs1.root -o plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/afterFitPlots/postFitPlots/ --suffix postVFP -l 16.8 -c plus
+
 import os, re
 import argparse
 from array import array

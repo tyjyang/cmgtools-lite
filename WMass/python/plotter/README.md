@@ -120,6 +120,16 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-si
 ```
 python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
 ```
+
+### Draw postfit histograms
+
+Once the root file for the fit result is available, one can plot the prefit and postfit shapes, including ratios and projections along eta or pt. This is done with the following command (for only the positive charge amd postVFP era in this example)
+
+```
+python w-mass-13TeV/postFitPlotsHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus
+```
+By default the script expects that no masked channel was used in the fit, which might be the case when fitting all processes including W as background. Otherwise, option __--n-mask-chan 1__ must be used, specifying how many masked channels were used (usually it would be 1 per lepton channel, so here we used just 1 since we don't fit electrons). This is important because the postfit 1D histograms returned by combinetf.py have a bunch of additional bins with respect to the template bins, but only if masked channels were used.
+
 ### Plot impacts on mW
 
 ```
