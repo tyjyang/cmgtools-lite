@@ -137,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument(      '--vpt-weight', dest="useVptWeight", action='store_true', help='Apply Wpt reweighting to central value using SCETlib correction')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
-    parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["all","B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF)')
+    parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF)')
     parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')

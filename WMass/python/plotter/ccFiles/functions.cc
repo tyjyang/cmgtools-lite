@@ -56,26 +56,26 @@ Vec_i indices(const int& size, const int& start = 0) {
 
 Vec_f scalarToRVec(const float& var, const int& size) {
 
-  Vec_f res(size,var); // initialize to 0
+  Vec_f res(size,var); // initialize to var
   return res;
   
 }
 
 Vec_f scalarToRVec(const float var, const Vec_d& size) {
-  Vec_f res(size.size(), var); // initialize to 0
+  Vec_f res(size.size(), var); // initialize to var
   return res;
 }
 
 Vec_f scalarToRVec(const float& var, const Vec_f& size) {
 
-  Vec_f res(size.size(),var); // initialize to 0
+  Vec_f res(size.size(),var); // initialize to var
   return res;
   
 }
 
 Vec_f scalarToRVec(const float& var, const Vec_i& size) {
 
-  Vec_f res(size.size(),var); // initialize to 0
+  Vec_f res(size.size(),var); // initialize to var
   return res;
   
 }

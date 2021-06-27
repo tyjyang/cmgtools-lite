@@ -1705,7 +1705,9 @@ def drawTH1dataMCstack(h1, thestack,
                        drawLumiLatex=False,
                        skipLumi=False,
                        xcmsText=0.1, # customize x when using drawLumiLatex
-                       noLegenRatio=False
+                       noLegenRatio=False,
+                       textSize=0.035,
+                       textAngle=0.10
 ):
 
     # if normalizing stack to same area as data, we need to modify the stack
@@ -1803,10 +1805,9 @@ def drawTH1dataMCstack(h1, thestack,
     vertline.SetLineStyle(3) # 2 larger hatches
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
-    bintext.SetTextSize(0.03)
+    bintext.SetTextSize(textSize)
     bintext.SetTextFont(42)
-    if len(textForLines) > 15:
-        bintext.SetTextAngle(10)
+    bintext.SetTextAngle(textAngle)
 
     if len(drawVertLines):
         nptBins = int(drawVertLines.split(',')[0])
@@ -1971,8 +1972,8 @@ def drawTH1dataMCstack(h1, thestack,
             hpullEEp = hpull.Clone("hpullEEp")
             hpullEEm = hpull.Clone("hpullEEm")
             for i in range (1,ratio.GetNbinsX()+1):
-                etabin = (i-1)%etaptbinning[0] + 1
-                ptbin = (i-1)/etaptbinning[0] + 1
+                etabin = int((i-1)%etaptbinning[0] + 1)
+                ptbin = int((i-1)/etaptbinning[0] + 1)
                 errTotDen = ratio.GetBinError(i)*ratio.GetBinError(i) + den.GetBinError(i)*den.GetBinError(i)            
                 if errTotDen > 0.0:
                     pullVal = (ratio.GetBinContent(i)-1)/math.sqrt(errTotDen)
@@ -3246,7 +3247,7 @@ def getArrayParsingString(inputString, verbose=False, makeFloat=False):
 
 # new function
 def getGlobalBin(ix, iy, nbinsX, binFrom0=True):
-    # ix goes from 0 to nbinsX-1, like the value returned by "for ix in xrange(nbinsX)"
+    # ix goes from 0 to nbinsX-1, like the value returned by "for ix in range(nbinsX)"
     # same is expected for iy
     # If this is the case, global bin starts from 0
     #However, if binFrom0=False, it is expected that the bins start from 1 (like those of a TH1) and the globalbin that is returned will start from 1 as well
@@ -3335,25 +3336,56 @@ def getEtaPtBinning(inputBins, whichBins="reco"):
     binning = [etabinning, ptbinning] 
     return binning
 
-def roll1Dto2D(h1d, histo):
-    for i in xrange(1,h1d.GetNbinsX()+1):
+def roll1Dto2D(h1d, histo, invertXY=False):
+    # need to know whether the unrolled histograms have consecutive pt shapes (usually y axis of 2D plots), in which case invertXY must be True, or eta shapes (usually x axis of 2D plots)
+    # we used to have eta shapes in unrolled TH1D passed to combinetf, but now we feed combinetf directly with 2D histograms, and it internally unrolls them in the other axis
+    nBinsXaxis2D = histo.GetNbinsY() if invertXY else histo.GetNbinsX()
+    for i in range(1,h1d.GetNbinsX()+1):
         # histogram bin is numbered starting from 1, so add 1
-        xbin = (i - 1) % histo.GetNbinsX() + 1  
-        ybin = (i - 1) / histo.GetNbinsX() + 1
-        histo.SetBinContent(xbin,ybin,h1d.GetBinContent(i))
-        histo.SetBinError(xbin,ybin,h1d.GetBinError(i)) 
+        xbin = (i - 1) % nBinsXaxis2D + 1  
+        ybin = (i - 1) / nBinsXaxis2D + 1
+        xbin = int(xbin)
+        ybin = int(ybin)
+        if invertXY:
+            # our 2D plots will always have eta on x axis, so we must also swap xbin and ybin defined above
+            xbin,ybin = ybin,xbin
+        histo.SetBinContent(xbin, ybin, h1d.GetBinContent(i))
+        histo.SetBinError(xbin, ybin, h1d.GetBinError(i)) 
+
     return histo
 
-def dressed2D(h1d,binning,name,title=''):
+def unroll2Dto1D(h, newname='', cropNegativeBins=True, silent=False):
+    nbins = h.GetNbinsX() * h.GetNbinsY()
+    goodname = h.GetName()
+    h.SetName(goodname+"_2d")
+    newh = ROOT.TH1D(goodname if not newname else newname, h.GetTitle(), nbins, 0.5, nbins+0.5)
+    newh.Sumw2()
+    if 'TH2' not in h.ClassName():
+        raise RuntimeError("Calling rebin2Dto1D on something that is not TH2")
+    for i in range(h.GetNbinsX()):
+        for j in range(h.GetNbinsY()):
+            ibin = 1 + i + j * h.GetNbinsX()
+            newh.SetBinContent(ibin, h.GetBinContent(i+1, j+1))
+            newh.SetBinError(ibin, h.GetBinError(i+1, j+1))
+    if cropNegativeBins:
+        for ibin in range(1, nbins+1):
+            if newh.GetBinContent(ibin)<0:
+                if not silent:
+                    print('Warning: cropping to zero bin %d in %s (was %f)'%(ibin, newh.GetName(), newh.GetBinContent(ibin)))
+                newh.SetBinContent(ibin, 0)
+    return newh
+
+
+def dressed2D(h1d, binning, name, title='', invertXY=False):
     if len(binning) == 4:
         n1 = binning[0]; bins1 = array('d', binning[1])
         n2 = binning[2]; bins2 = array('d', binning[3])
-        h2_1 = ROOT.TH2F(name, title, n1, bins1, n2, bins2 )
+        h2_1 = ROOT.TH2D(name, title, n1, bins1, n2, bins2 )
     else:
         n1 = binning[0]; min1 = binning[1]; max1 = binning[2]
         n2 = binning[3]; min2 = binning[4]; max2 = binning[5]
-        h2_1 = ROOT.TH2F(name, title, n1, min1, max1, n2, min2, max2)
-    h2_backrolled_1 = roll1Dto2D(h1d, h2_1 )
+        h2_1 = ROOT.TH2D(name, title, n1, min1, max1, n2, min2, max2)
+    h2_backrolled_1 = roll1Dto2D(h1d, h2_1, invertXY)
     return h2_backrolled_1
 
 #==============================

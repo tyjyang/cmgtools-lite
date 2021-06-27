@@ -229,6 +229,48 @@ float mt_wlike_nano(float pt, float phi, float ptOther, float phiOther, float me
 
 }
 
+Vec_f lepPlusMetPt_allLep(Vec_f pt, Vec_f phi, float met, float phimet) {
+
+  unsigned int size = 2;
+  Vec_f res(size, 0.0); // 2 elements initialized to 0
+  
+  for (unsigned int i = 0; i < size; ++i) {
+    
+    unsigned int indexOther = size - i - 1;
+    TVector2 pl = TVector2();
+    pl.SetMagPhi(pt[indexOther], phi[indexOther]);
+    TVector2 met_wlike = TVector2();
+    met_wlike.SetMagPhi(met, phimet);
+    met_wlike = pl + met_wlike;
+    res[i] = met_wlike.Mod();
+
+  }
+
+  return res;
+  
+}
+
+Vec_f mt_wlikeSS_nano(Vec_f pt, Vec_f phi, float met, float phimet) {
+
+  unsigned int size = 2;
+  Vec_f res(size, 0.0); // 2 elements initialized to 0
+  
+  for (unsigned int i = 0; i < size; ++i) {
+    
+    unsigned int indexOther = size - i - 1;
+    TVector2 pl = TVector2();
+    pl.SetMagPhi(pt[indexOther], phi[indexOther]);
+    TVector2 met_wlike = TVector2();
+    met_wlike.SetMagPhi(met, phimet);
+    met_wlike = pl + met_wlike;
+    res[i] = std::sqrt(2 * pt[i] * met_wlike.Mod() * (1-std::cos(phi[i] - met_wlike.Phi())));
+
+  }
+
+  return res;
+
+}
+
 float helicityWeightSimple(float yw, float ptw, float costheta, int pol)
 {
 
