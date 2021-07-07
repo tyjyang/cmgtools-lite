@@ -102,9 +102,9 @@ def main(args):
     # event weight (global one for MC)
     weight = ""
     if subEra != None:
-        weight = f"puw_2016UL_era(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,{subEra})"
+        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,{subEra})"
     else:
-        weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
+        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
 
     # gen weight customization
     # genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax" # options were removed
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
-    parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean", help='Histograms to make')
+    parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean,deltaPhi_MuMet", help='Histograms to make')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
     args = parser.parse_args()
@@ -153,6 +153,17 @@ if __name__ == "__main__":
         print("Error: must provide an output folder with option -o")
         quit()
 
+    print("="*40)
+    print("="*40)
+    print("="*40)
+    print()
+    print("WARNING: using old PU weights (before June 2021, older PU json was used)")
+    print("Please update this script when you have the new ones")
+    print()
+    print("="*40)
+    print("="*40)
+    print("="*40)
+        
     if args.useVptWeight:
         args.postfix += "_vptWeight"
         

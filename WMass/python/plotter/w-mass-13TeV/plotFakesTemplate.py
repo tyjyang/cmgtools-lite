@@ -213,11 +213,16 @@ if __name__ == "__main__":
                             f"yields_dataSubMC_{regionId[k]}", plotLabel="ForceTitle", outdir=outdirQCD,
                             passCanvas=canvas, drawOption="COLZ0")
 
-
     templateQCD = copy.deepcopy(hFakes[1].Clone("templateQCD"))
     templateQCD.Divide(hFakes[0])
+    fakerateFactor = copy.deepcopy(templateQCD.Clone("fakerateFactor"))
+    fakerateFactor.SetTitle("lowIso_lowMt / highIso_lowMt ")
     templateQCD.Multiply(hFakes[2])
     templateQCD.SetTitle("QCD template")
+    drawCorrelationPlot(fakerateFactor,
+                        nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Fakerate factor",
+                        "fakerateFactor", plotLabel="ForceTitle", outdir=outdirQCD,
+                        passCanvas=canvas, drawOption="COLZ0")
     drawCorrelationPlot(templateQCD, nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Events",
                         f"yields_templateQCD", plotLabel="ForceTitle", outdir=outdirQCD,
                         passCanvas=canvas, drawOption="COLZ0")
@@ -229,7 +234,17 @@ if __name__ == "__main__":
                         nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Relative uncertainty",
                         f"relUncertainty_templateQCD", plotLabel="ForceTitle", outdir=outdirQCD,
                         passCanvas=canvas, plotRelativeError=True, drawOption="COLZ0")
-    
+
+    # open utility file to save QCD templates in all regions
+    fqcdName = outdirQCD + "histogramsQCD.root"
+    fqcd = safeOpenFile(fqcdName, mode="RECREATE")
+    for k in regionId.keys():
+        hFakesTmp = copy.deepcopy(hFakes[k].Clone(f"tmp{k}"))
+        hFakesTmp.Write(f"yields_dataSubMC_{regionId[k]}")
+    fakerateFactor.Write()
+    templateQCDtoWrite = copy.deepcopy(templateQCD.Clone(f"yields_templateQCD"))
+    templateQCDtoWrite.Write(f"yields_templateQCD")
+    fqcd.Close()
 
     # open file to start saving shapes
     foutname = outdir + "wmass_shapes.root"
@@ -257,7 +272,7 @@ if __name__ == "__main__":
         else:
             hmc.append(copy.deepcopy(hSigRegion.Clone(f"{k}")))
         hSigRegion.Write(f"nominal__{k}")
-    # add also data_fakes to array    
+    # add also data_fakes to array
     hmc.append(copy.deepcopy(templateQCD.Clone(f"data_fakes")))
 
     # do not close file here, more histograms saved later
@@ -359,6 +374,7 @@ if __name__ == "__main__":
     ratio2D = copy.deepcopy(hdata.Clone("dataOverMC2D"))
     den2D = copy.deepcopy(hdata.Clone("sigAndBkg2D"))
     den2D.Reset("ICESM")
+    den2Dnofakes = copy.deepcopy(den2D.Clone("sigAndBkgNoFakes2D"))
     
     hdata.SetMarkerColor(ROOT.kBlack)
     hdata.SetLineColor(ROOT.kBlack)
@@ -423,6 +439,8 @@ if __name__ == "__main__":
         stack_eta.Add(h.ProjectionX(f"{h.GetName()}_eta",lowPtbin,highPtbin,"e"))
         stack_pt.Add( h.ProjectionY(f"{h.GetName()}_pt",0,-1,"e"))
         den2D.Add(h)
+        if h.GetName() != "data_fakes":
+            den2Dnofakes.Add(h)
         h.Write()
     for i in range(len(hmc)-1, 0, -1):
         legend.AddEntry(hmc[i], legEntries[hmc[i].GetName().replace('_vpt','')], "F")
@@ -430,6 +448,7 @@ if __name__ == "__main__":
     stack_eta.Write()
     stack_pt.Write()
     den2D.Write()
+    den2Dnofakes.Write()
 
     ratio2D.Divide(den2D)
     ratio2D.Write()
@@ -438,11 +457,11 @@ if __name__ == "__main__":
     
     drawTH1dataMCstack(hdata_eta, stack_eta, "Muon #eta", "Events", "muon_eta_signalRegion" + ptRange,
                        outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
-                       drawLumiLatex=True, xcmsText=0.3, noLegenRatio=True
+                       drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
     )
     drawTH1dataMCstack(hdata_pt, stack_pt, "Muon p_{T} (GeV)", "Events", "muon_pt_signalRegion",
                        outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
-                       drawLumiLatex=True, xcmsText=0.3, noLegenRatio=True
+                       drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
     )
 
     ratio2D.SetTitle("data / (signal + background)")

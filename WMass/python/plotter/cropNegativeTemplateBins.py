@@ -12,7 +12,7 @@ import argparse
 # nominal templates (no need to touch the alternate as well)
 # note that, by default, this function modify the original input file
 
-def cropNegativeContent(h, silent=True, cropError=False):
+def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.0):
 
     dim = h.GetDimension()
     nbins = 0
@@ -26,9 +26,9 @@ def cropNegativeContent(h, silent=True, cropError=False):
         nom  = h.GetBinContent(i)
         if nom<0.0:
             hasCroppedBins = True
-            h.SetBinContent(i, 0)
+            h.SetBinContent(i, cropValue)
             if cropError:
-                h.SetBinError(i, 0)
+                h.SetBinError(i, cropValue)
     integralNonNeg = h.Integral()
     if not silent and hasCroppedBins:
         print("{n}: original integral = {i} changed by {r}".format(n=h.GetName(),

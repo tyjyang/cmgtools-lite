@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # example (only charge plus)
-# python w-mass-13TeV/postFitPlotsHistograms.py cards/wmass_fixMassWeights_splitW/fit/hessian/fitresults_123456789_Asimov_clipSyst1p3_bbb1_cxs1.root -o plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/afterFitPlots/postFitPlots/ --suffix postVFP -l 16.8 -c plus
+# python w-mass-13TeV/postFitHistograms.py cards/wmass_fixMassWeights_splitW/fit/hessian/fitresults_123456789_Asimov_clipSyst1p3_bbb1_cxs1.root -o plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/afterFitPlots/postFitPlots/ --suffix postVFP -l 16.8 -c plus
 
 import os, re
 import argparse
@@ -122,23 +122,38 @@ def prepareLegend(legWidth=0.50, textSize=0.035, nColumns=3):
     return leg
 
 
-def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,canvasSize="2400,600", 
-                     drawVertLines="", textForLines=[]):
-
-    ROOT.gStyle.SetPadLeftMargin(0.13)
-    ROOT.gStyle.SetPadRightMargin(0.02)
-    ROOT.gStyle.SetPadBottomMargin(0.3);
+def plotPostFitRatio(charge, channel, hratio, outdir, prefix, suffix, passCanvas=None, canvasSize="2400,600", 
+                     drawVertLines="", textForLines=[], lumi=36.3, yTitle='postfit/prefit yields'):
     
     plotformat = (int(canvasSize.split(",")[0]), int(canvasSize.split(",")[1]))
-    c1 = passCanvas if passCanvas != None else ROOT.TCanvas("canvas","",plotformat[0],plotformat[1])
-    c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1]); c1.Draw()
-    c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())));
+    c1 = None
+    if passCanvas != None:
+        c1 = passCanvas
+        c1.SetLeftMargin(0.13)
+        c1.SetRightMargin(0.02)
+        c1.SetBottomMargin(0.3)
+        c1.SetTopMargin(0.1)
+    else:
+        ROOT.gStyle.SetPadLeftMargin(0.13)
+        ROOT.gStyle.SetPadRightMargin(0.02)
+        ROOT.gStyle.SetPadBottomMargin(0.3)
+        ROOT.gStyle.SetPadTopMargin(0.1)
+        c1 = ROOT.TCanvas("c1", "c1", plotformat[0], plotformat[1])
+        c1.Draw()
+        c1.SetWindowSize(plotformat[0] + (plotformat[0] - c1.GetWw()), (plotformat[1] + (plotformat[1] - c1.GetWh())))
 
-    rmin = max(0.1, 0.9*getMinimumTH(hratio,0.01))
-    ydiff = hratio.GetBinContent(hratio.GetMaximumBin()) - rmin
-    rmax = min(3., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
+    
+    #rmin = max(0.1, 0.9*getMinimumTH(hratio,0.01))
+    #ydiff = hratio.GetBinContent(hratio.GetMaximumBin()) - rmin
+    #rmax = min(3., ydiff*0.2 + hratio.GetBinContent(hratio.GetMaximumBin()))
+    rmin,rmax = getMinMaxHisto(hratio)
+    ydiff = rmax - rmin
+    if ydiff > 0:
+        rmax = min(3., ydiff*0.2 + rmax)
+    else:
+        rmax = rmax * 1.01
     ROOT.gStyle.SetErrorX(0.5);
-    hratio.GetYaxis().SetRangeUser(rmin,rmax);
+    hratio.GetYaxis().SetRangeUser(rmin,rmax)
     hratio.GetXaxis().SetTitleFont(42)
     hratio.GetXaxis().SetTitleSize(0.14)
     hratio.GetXaxis().SetTitleOffset(0.9)
@@ -147,25 +162,34 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     hratio.GetXaxis().SetLabelOffset(0.007)
     hratio.GetYaxis().SetNdivisions(505)
     hratio.GetYaxis().SetTitleFont(42)
-    hratio.GetYaxis().SetTitleSize(0.14)
+    hratio.GetYaxis().SetTitleSize(0.12)
     hratio.GetYaxis().SetLabelFont(42)
     hratio.GetYaxis().SetLabelSize(0.11)
     hratio.GetYaxis().SetLabelOffset(0.01)
     hratio.GetYaxis().SetDecimals(True) 
-    hratio.GetYaxis().SetTitle('post-fit/pre-fit')
-    hratio.GetXaxis().SetTitle('unrolled lepton (#eta,p_{T}) bin')
-    hratio.GetYaxis().SetTitleOffset(0.40)
+    hratio.GetYaxis().SetTitle(yTitle)
+    hratio.GetXaxis().SetTitle('unrolled lepton (#eta, p_{T}) bin')
+    hratio.GetYaxis().SetTitleOffset(0.45)
     hratio.SetLineColor(ROOT.kBlack)
     hratio.SetStats(0)
-    hratio.Draw("HIST" if hratio.ClassName() != "TGraphAsymmErrors" else "PZ SAME");
+    if hratio.ClassName() != "TGraphAsymmErrors":
+        hratio.Draw("E2")
+        hLine = hratio.Clone(f"{hratio.GetName()}_lineOnly")
+        hLine.SetLineColor(ROOT.kBlack)
+        hLine.SetFillColor(0)
+        hLine.Draw("HIST SAME")
+    else:
+        hratio.Draw("PZ SAME")
     line = ROOT.TLine(hratio.GetXaxis().GetXmin(),1,hratio.GetXaxis().GetXmax(),1)
     line.SetLineWidth(2);
     line.SetLineColor(58);
     line.Draw("L")
     lat = ROOT.TLatex()
-    lat.SetNDC(); lat.SetTextFont(42)
+    lat.SetNDC()
+    lat.SetTextFont(42)
+    lat.SetTextSize(0.05)
     lat.DrawLatex(0.15, 0.94, '#bf{CMS} #it{Preliminary}')
-    lat.DrawLatex(0.85, 0.94, '35.9 fb^{-1} (13 TeV)')
+    lat.DrawLatex(0.85, 0.94, '%s fb^{-1} (13 TeV)' % lumi)
 
     # draw vertical lines to facilitate reading of plot
     vertline = ROOT.TLine(36,0,36,c1.GetUymax())
@@ -173,9 +197,9 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
     vertline.SetLineStyle(2)
     bintext = ROOT.TLatex()
     #bintext.SetNDC()
-    bintext.SetTextSize(0.025)  # 0.03
+    bintext.SetTextSize(0.03)  # 0.03
     bintext.SetTextFont(42)
-    if len(textForLines): bintext.SetTextAngle(45 if "#eta" in textForLines[0] else 10)
+    if len(textForLines): bintext.SetTextAngle(0 if "GeV" in textForLines[0] else 45)
 
     if len(drawVertLines):
         #print "drawVertLines = " + drawVertLines
@@ -191,7 +215,6 @@ def plotPostFitRatio(charge,channel,hratio,outdir,prefix,suffix,passCanvas=None,
                 #ytext = (1. + texoffset)*ymax/2.  
                 ytext = rmax - 0.1*(rmax - rmin)
                 bintext.DrawLatex(etarange*i + etarange/sliceLabelOffset, ytext, textForLines[i])
-
 
     for ext in ['pdf', 'png']:
         c1.SaveAs('{odir}/{pfx}_{sfx}.{ext}'.format(odir=outdir,pfx=prefix,ch=charge,flav=channel,sfx=suffix,ext=ext))
@@ -289,7 +312,9 @@ if __name__ == "__main__":
         all_procs = {}
         all_procs_unrolled = {}
         ratios_unrolled = {}
-
+        ratios_unc_unrolled = {}
+        unc_unrolled = {}
+        
         for prepost in ['postfit','prefit']:
 
             suffix = prepost + args.suffix
@@ -338,9 +363,40 @@ if __name__ == "__main__":
                     postfitkey = keyplot.replace("prefit", "postfit")
                     if all_procs_unrolled[postfitkey] != None and all_procs_unrolled[keyplot] != None:
                         keyratio = f"{chfl}_{p}_ratio"
-                        ratios_unrolled[keyratio] = all_procs_unrolled[postfitkey].Clone(keyratio)
+                        # yields
+                        ratios_unrolled[keyratio] = copy.deepcopy(all_procs_unrolled[postfitkey].Clone(keyratio))
                         ratios_unrolled[keyratio].SetDirectory(0)
                         ratios_unrolled[keyratio].Divide(all_procs_unrolled[keyplot])
+                        ratios_unrolled[keyratio].SetFillColor(process_features[p]["color"])
+                        for ibin in range(1,ratios_unrolled[keyratio].GetNbinsX()+1):
+                            unc = 0.0 if all_procs_unrolled[keyplot].GetBinContent(ibin) == 0.0 else (all_procs_unrolled[postfitkey].GetBinError(ibin) / all_procs_unrolled[keyplot].GetBinContent(ibin))
+                            ratios_unrolled[keyratio].SetBinError(ibin, unc)
+                        # uncertainties
+                        ratios_unc_unrolled[keyratio] = copy.deepcopy(all_procs_unrolled[postfitkey].Clone(keyratio+"_unc"))
+                        ratios_unc_unrolled[keyratio].SetDirectory(0)
+                        ratios_unc_unrolled[keyratio].SetFillColor(process_features[p]["color"])
+                        unc_unrolled[postfitkey] = copy.deepcopy(all_procs_unrolled[postfitkey].Clone(postfitkey+"_unc"))
+                        unc_unrolled[keyplot] = copy.deepcopy(all_procs_unrolled[keyplot].Clone(keyplot+"_unc"))
+                        unc_unrolled[postfitkey].Reset("ICESM")
+                        unc_unrolled[keyplot].Reset("ICESM")
+                        for ibin in range(1,ratios_unc_unrolled[keyratio].GetNbinsX()+1):
+                            val = 0.0 if all_procs_unrolled[keyplot].GetBinError(ibin) == 0.0 else (all_procs_unrolled[postfitkey].GetBinError(ibin) / all_procs_unrolled[keyplot].GetBinError(ibin))
+                            ratios_unc_unrolled[keyratio].SetBinContent(ibin, val)
+                            ratios_unc_unrolled[keyratio].SetBinError(ibin, 0.0)
+                            unc_unrolled[postfitkey].SetBinContent(ibin, all_procs_unrolled[postfitkey].GetBinError(ibin))
+                            unc_unrolled[keyplot].SetBinContent(ibin, all_procs_unrolled[keyplot].GetBinError(ibin))
+                        # try plotting both
+                        hists = [copy.deepcopy(all_procs_unrolled[postfitkey].Clone(f"postfit_{chfl}_{p}")),
+                                 copy.deepcopy(all_procs_unrolled[keyplot].Clone(f"prefit_{chfl}_{p}"))]
+                        vertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta)
+                        legs = ["postfit","prefit"]
+                        # yields
+                        drawNTH1(hists, legs, "unrolled lepton (#eta, p_{T}) bin", "Events", f"postfitAndprefit_yields_chan{chfl}_{p}", outnamesub, leftMargin=0.06, rightMargin=0.02, labelRatioTmp="postfit/prefit::0.8,1.2", legendCoords="0.45,0.8,0.92,1.0;2", passCanvas=cwide, drawLumiLatex=True, lumi=args.lumi, drawVertLines=vertLines, textForLines=ptBinRanges, yAxisExtendConstant=1.25, markerStyleFirstHistogram=1, fillStyleSecondHistogram=1001, colorVec=[ROOT.kGray], moreTextLatex=f"{process_features[p]['title']}::0.3,0.95,0.08,0.055")
+                        # uncertainties
+                        hists = [unc_unrolled[postfitkey], unc_unrolled[keyplot]]
+                        drawNTH1(hists, legs, "unrolled lepton (#eta, p_{T}) bin", "Uncertainty", f"postfitAndprefit_uncertainty_chan{chfl}_{p}", outnamesub, leftMargin=0.06, rightMargin=0.02, labelRatioTmp="postfit/prefit", legendCoords="0.45,0.8,0.92,1.0;2", passCanvas=cwide, drawLumiLatex=True, lumi=args.lumi, drawVertLines=vertLines, textForLines=ptBinRanges, yAxisExtendConstant=1.25, markerStyleFirstHistogram=1, fillStyleSecondHistogram=1001, colorVec=[ROOT.kGray], moreTextLatex=f"{process_features[p]['title']}::0.3,0.95,0.08,0.055", setRatioRangeFromHisto=True, setOnlyLineRatio=True)
+
+                        
                     else:
                         print("Error: something went wrong! Missing either {postfitkey} or {keyplot}")
                         quit()
@@ -485,10 +541,15 @@ if __name__ == "__main__":
         # plot the postfit/prefit ratio
         print("NOW PLOTTING THE RATIOS...")
         for key,histo in ratios_unrolled.items():
-            print(f"Making unrolled ratio for {key}")
-            outdir = outnamesub
-            plotPostFitRatio(charge, channel, histo, outdir, f"postfit2prefit_chan{key}", args.suffix, passCanvas=canvasRatio, 
-                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges)
+            print(f"Making unrolled ratio of yields for {key}")
+            plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_yields_chan{key}", args.suffix, 
+                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
+                             lumi=args.lumi)
+        for key,histo in ratios_unc_unrolled.items():
+            print(f"Making unrolled ratio of uncertainties for {key}")
+            plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_uncertainty_chan{key}", args.suffix, 
+                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
+                             lumi=args.lumi, yTitle="postfit/prefit #sigma")
                 
     outfile.Close()
 

@@ -22,6 +22,11 @@ muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,
 
 MET_pt: MET_pt: 50,0,100; XTitle="MET (GeV)", Legend='TC', IncludeOverflows=True
 
+mt_MET: transverseMass: 50,0,100; XTitle="m_{T} (GeV)", Legend='TC', IncludeOverflows=True
+
+mt_pt_eta: transverseMass\:Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55,50,0,100; XTitle='muon #eta', YTitle='muon p_{T} (GeV)', ZTitle="m_{T} (GeV)", Legend='TC', IncludeOverflows=True
+
+
 deltaPhi_MuMet: deltaPhi(Muon_phi[goodMuonsCharge][0],MET_phi): 64,-3.2,3.2; XTitle="#Delta#phi(#mu\,MET)", Legend='TC', Logy=True
 
 nJetClean: Sum(goodCleanJets): 6,-0.5,5.5 ; XTitle="number of jets (cleaned)", Legend='TR'
