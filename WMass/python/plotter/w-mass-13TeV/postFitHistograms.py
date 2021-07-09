@@ -539,17 +539,18 @@ if __name__ == "__main__":
             #htot_unrolled.Write()
 
         # plot the postfit/prefit ratio
-        print("NOW PLOTTING THE RATIOS...")
-        for key,histo in ratios_unrolled.items():
-            print(f"Making unrolled ratio of yields for {key}")
-            plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_yields_chan{key}", args.suffix, 
-                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
-                             lumi=args.lumi)
-        for key,histo in ratios_unc_unrolled.items():
-            print(f"Making unrolled ratio of uncertainties for {key}")
-            plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_uncertainty_chan{key}", args.suffix, 
-                             drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
-                             lumi=args.lumi, yTitle="postfit/prefit #sigma")
+        # these are probably no longer needed, we make similar distributions above, with the actual distributions and ratios
+        # print("NOW PLOTTING THE RATIOS...")
+        # for key,histo in ratios_unrolled.items():
+        #     print(f"Making unrolled ratio of yields for {key}")
+        #     plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_yields_chan{key}", args.suffix, 
+        #                      drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
+        #                      lumi=args.lumi)
+        # for key,histo in ratios_unc_unrolled.items():
+        #     print(f"Making unrolled ratio of uncertainties for {key}")
+        #     plotPostFitRatio(charge, channel, histo, outnamesub, f"postfit2prefit_uncertainty_chan{key}", args.suffix, 
+        #                      drawVertLines="{a},{b}".format(a=recoBins.Npt,b=recoBins.Neta), textForLines=ptBinRanges,
+        #                      lumi=args.lumi, yTitle="postfit/prefit #sigma")
                 
     outfile.Close()
 
