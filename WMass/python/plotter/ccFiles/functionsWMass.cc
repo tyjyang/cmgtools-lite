@@ -640,7 +640,7 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   }
   std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
   for (auto& era : runEraNames) {
-    std::cout << era.second << std::endl;
+    // std::cout << era.second << std::endl;
     if (era.first == H) {
       hMuonPrefiring[era.first] = *(dynamic_cast<TH1F*>(_file_prefiring.Get("muonPrefiring_runH")));
       hMuonPrefiring[era.first].SetDirectory(0);

@@ -91,3 +91,7 @@ Ztautau_vpt_preVFP   : .* : 1146.5738 ; FillColor=ROOT.kSpring+9, Label="Z\#righ
 
 Ztautau_vpt_postVFP   : .* : 1146.5738 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath="DYJetsToTauTau_postVFP/", AddWeight="scetlibWeightsZscalar"
 
+
+## additional for temporary checks
+Zmumu_1genInAcc_postVFP: .* : 1976.1700 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu (1 in acc)", SubPath="DYJetsToMuMu_postVFP/", AddWeight="nBareMuons==1"
+Zmumu_2genInAcc_postVFP: .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu (2 in acc)", SubPath="DYJetsToMuMu_postVFP/", AddWeight="nBareMuons==2"

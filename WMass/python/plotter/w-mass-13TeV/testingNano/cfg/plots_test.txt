@@ -203,6 +203,24 @@ vpt : Vpt_preFSR: [0., 4., 8., 12., 16., 20., 24., 28., 32., 40., 60., 100., 200
 vrap : fabs(Vrap_preFSR): [0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 6.0] ; XTitle="PreFSR boson rapidity", Legend='TR'
 vpt_vrap: Vpt_preFSR\:Vrap_preFSR: 50,-5,5,50,0,100 ; XTitle='PreFSR boson rapidity', YTitle='PreFSR boson p_{T} (GeV)', Legend='TR'
 
+####################
+# for lep veto study
+bareMuon_pt_passReco: GenPart_pt[bareMuonsCharge][0]: 65,0,65 ; XTitle='bare muon p_{T} (passed reco) (GeV)', Legend='TR'
+bareMuon_eta_passReco: GenPart_eta[bareMuonsCharge][0]: 80,-4.0,4.0; XTitle='bare muon #eta (passed reco)', Legend='TR'
+bareMuon_pt_eta_passReco: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 80,-4.0,4.0,65,0,65 ; XTitle='bare muon #eta (passed reco)', YTitle='bare muon p_{T} (passed reco) (GeV)', Legend='TR'
+
+
+bareMuon_pt_failReco: GenPart_pt[bareMuonsOther][0]: 65,0,65 ; XTitle='bare muon p_{T} (failed reco) (GeV)', Legend='TR'
+bareMuon_eta_failReco: GenPart_eta[bareMuonsOther][0]: 80,-4.0,4.0; XTitle='bare muon #eta (failed reco)', Legend='TR'
+bareMuon_pt_eta_failReco: GenPart_pt[bareMuonsOther][0]\:GenPart_eta[bareMuonsOther][0]: 80,-4.0,4.0,65,0,65 ; XTitle='bare muon #eta (failed reco)', YTitle='bare muon p_{T} (failed reco) (GeV)', Legend='TR'
+
+failVetoMuon_pt: Muon_pt[failVetoMuons][0]: 65,0,65 ; XTitle='leading failing veto muon p_{T} (GeV)', Legend='TR'
+failVetoMuon_eta: Muon_eta[failVetoMuons][0]: 60,-3.0,3.0; XTitle='leading failing muon #eta ', Legend='TR'
+
+nGenMuInAcc: Sum(bareMuons): 5,-0.5,4.5; XTitle="number of gen muons in acceptance", Legend='TC', IncludeOverflows=True, RMin=0.5, RMax=1.5, Logy=True
+nFailVetoMuons: Sum(failVetoMuons): 5,-0.5,4.5; XTitle="number of muons failing veto", Legend='TC', IncludeOverflows=True, RMin=0.5, RMax=1.5, Logy=True
+
+####################
 
 bareMuon_pt_eta: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR'
 
