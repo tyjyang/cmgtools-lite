@@ -161,6 +161,20 @@ def getMinMaxHisto(h, excludeEmpty=True, sumError=True,
 
 #########################################################################
 
+def getMinMaxMultiHisto(hlist, excludeEmpty=True, sumError=True, 
+                        excludeUnderflow=True, excludeOverflow=True,
+                        excludeMin=None, excludeMax=None):
+
+    minlist = sys.float_info.max
+    maxlist = sys.float_info.min
+    for h in hlist:
+        minv, maxv = getMinMaxHisto(h, excludeEmpty, sumError, excludeUnderflow, excludeOverflow, excludeMin, excludeMax)
+        minlist = min(minv, minlist)
+        maxlist = max(maxv, maxlist)
+    return minlist, maxlist
+        
+#########################################################################
+
 def getMinimumTH(h, excludeMin=None):
     # get minimum excluding some values. For example, if an histogram has an empty bin, one might want to get the minimum such that it is > 0
     # underflow are not considered
@@ -1208,12 +1222,12 @@ def drawNTH1(hists=[],
              markerStyleFirstHistogram=20,
              fillStyleSecondHistogram=3004,
              colorVec=None,
-             setRatioRangeFromHisto=False,
+             setRatioRangeFromHisto=False, # currently only for 2 histograms in hists
              setOnlyLineRatio=False):
 
     # moreText is used to pass some text to write somewhere (TPaveText is used)
     # e.g.  "stuff::x1,y1,x2,y2"  where xi and yi are the coordinates for the text
-    # one can add more lines using the ";" key. FOr example, "stuff1;stuff2::x1,y1,x2,y2"
+    # one can add more lines using the ";" key. For example, "stuff1;stuff2::x1,y1,x2,y2"
     # the coordinates should be defined taking into account how many lines will be drawn
     # if the coordinates are not passed (no "::"), then default ones are used, but this might not be satisfactory
 
