@@ -127,6 +127,8 @@ if __name__ == "__main__":
             mcEff[(era,"trackOrGlobGivenStandAlone")].Divide(mcEff[(era,"standalone")])
             print()
         for wp in wpToTNP.keys():
+            if wpToTNP[wp] not in workingPoints:
+                continue
             num = str(wp.split('/')[0])
             den = str(wp.split('/')[1])
             tnpStep = wpToTNP[wp]
@@ -150,7 +152,8 @@ if __name__ == "__main__":
         yAxisName += f"::{ymin},{ymax}"
         
     minmax = getMinMaxForSameWorkingPoint(mcEff, args, excludeMax=1.0)       
-    minmax["isoStepOfTnP"] = (0.85, minmax["isoStepOfTnP"][1]) # customize some working points
+    if "isoStepOfTnP" in minmax:
+        minmax["isoStepOfTnP"] = (0.85, minmax["isoStepOfTnP"][1]) # customize some working points
 
     rfoutname = f"{outfolder}/mcTruthEff.root"
     rfout = safeOpenFile(rfoutname, mode="RECREATE")
@@ -173,26 +176,28 @@ if __name__ == "__main__":
                                 draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                                 invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
             mcEff[(era,wp)].Write()
-        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")] = copy.deepcopy(mcEff[(era,"trig")].Clone(f"mcTruthEffRatio_trigBitOverNoBit_{era}"))
-        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].Divide(mcEff[(era,"trigNoBit")])
+        if all((era, x) in mcEff.keys() for x in ["trig", "trigNoBit"]):
+            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")] = copy.deepcopy(mcEff[(era,"trig")].Clone(f"mcTruthEffRatio_trigBitOverNoBit_{era}"))
+            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].Divide(mcEff[(era,"trigNoBit")])
 
-    outfolder_effCheckTrigBit = f"{outfolder}/efficiency_checkTriggerBit/" 
-    createPlotDirAndCopyPhp(outfolder_effCheckTrigBit)
         
-    minmax = getMinMaxForSameWorkingPoint(mcTrigBitOverNoBit, args, excludeMin=0.99, excludeMax=1.01)    
-    thisminz = minmax["trigBitOverNoBit"][0]
-    thismaxz = minmax["trigBitOverNoBit"][1]
-    for era in eras:
-        zAxisName = f"MC eff(trig)/eff(trigNoBit)::{thisminz},{thismaxz}"    
-        mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].SetTitle(f"{args.process}: {era}")
-        drawCorrelationPlot(mcTrigBitOverNoBit[(era,"trigBitOverNoBit")],
-                            xAxisName,
-                            yAxisName,
-                            zAxisName,
-                            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].GetName(), plotLabel="ForceTitle",
-                            outdir=outfolder_effCheckTrigBit,
-                            draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
-                            invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
+    if all((era, x) in mcEff.keys() for x in ["trig", "trigNoBit"]):
+        outfolder_effCheckTrigBit = f"{outfolder}/efficiency_checkTriggerBit/" 
+        createPlotDirAndCopyPhp(outfolder_effCheckTrigBit)
+        minmax = getMinMaxForSameWorkingPoint(mcTrigBitOverNoBit, args, excludeMin=0.99, excludeMax=1.01)    
+        thisminz = minmax["trigBitOverNoBit"][0]
+        thismaxz = minmax["trigBitOverNoBit"][1]
+        for era in eras:
+            zAxisName = f"MC eff(trig)/eff(trigNoBit)::{thisminz},{thismaxz}"    
+            mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].SetTitle(f"{args.process}: {era}")
+            drawCorrelationPlot(mcTrigBitOverNoBit[(era,"trigBitOverNoBit")],
+                                xAxisName,
+                                yAxisName,
+                                zAxisName,
+                                mcTrigBitOverNoBit[(era,"trigBitOverNoBit")].GetName(), plotLabel="ForceTitle",
+                                outdir=outfolder_effCheckTrigBit,
+                                draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
+                                invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True)
 
 
     if args.plotRatioToEra:
@@ -212,9 +217,9 @@ if __name__ == "__main__":
         
         minmax = getMinMaxForSameWorkingPoint(mcEffRatio, args, excludeMax=1.1)       
         # small hack because numerator histograms for trigger efficiency are almost empty for pt < 24
-        minmax["idipANDtrigANDiso"] = (0.85, minmax["idipANDtrigANDiso"][1]) 
-        minmax["idipANDtrig"]       = (0.85, minmax["idipANDtrig"][1]) 
-        minmax["idipANDtrigNoBit"]  = (0.85, minmax["idipANDtrigNoBit"][1])
+        if "idipANDtrigANDiso" in minmax: minmax["idipANDtrigANDiso"] = (0.85, minmax["idipANDtrigANDiso"][1]) 
+        if "idipANDtrig" in minmax:       minmax["idipANDtrig"]       = (0.85, minmax["idipANDtrig"][1]) 
+        if "idipANDtrigNoBit" in minmax:  minmax["idipANDtrigNoBit"]  = (0.85, minmax["idipANDtrigNoBit"][1])
         for era in eras:
             if era == refEra:
                 continue

@@ -2,7 +2,7 @@
 #
 # && abs(Muon_dz)< 0.2
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
-vetoMuons : Muon_pt > 10 && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
+vetoMuons : Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
 #goodMuons : abs(Muon_eta) < 2.4 && Muon_pt > 26 && Muon_pt < 55 && Muon_mediumId > 0 && abs(Muon_dxybs) < 0.05
 goodMuons_accept : abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
 goodMuons_trackerOrGlobal : Muon_isTracker || Muon_isGlobal
