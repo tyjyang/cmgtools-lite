@@ -77,7 +77,7 @@ class CardMaker:
         #self.systematics  = self.getSystList()
         #self.centralfiles = self.getCentralProcesses()
         self.shapesfile = os.path.join(self._options.inputdir,self.boson+'_{ch}_shapes.root'.format(ch=charge))
-        self.cardfile   = os.path.join(self._options.inputdir,self.boson+'_{ch}_card.txt'   .format(ch=charge))
+        self.cardfile   = os.path.join(self._options.inputdir+self._options.cardFolder,self.boson+'_{ch}_card.txt'   .format(ch=charge))
         self.systFile = pathToImport+'/systsFit.txt'
         # self.centralHistograms = self.getCentralHistograms() # to implement
 
@@ -334,6 +334,7 @@ class CardMaker:
 
 def prepareChargeFit(options, charges=["plus"]):
 
+    cardSubfolderFullName = options.inputdir + options.cardFolder
     postfix = options.postfix
     cardkeyname = 'card' if options.freezePOIs else 'card_withXsecMask'
     if options.fitSingleCharge: 
@@ -351,14 +352,14 @@ def prepareChargeFit(options, charges=["plus"]):
     binname = "Z{fl}{fl}".format(fl=options.flavor) if options.isWlike else "W{fl}nu".format(fl=options.flavor)
 
     for charge in charges:
-        datacards.append(os.path.abspath(options.inputdir)+"/{b}_{ch}_card.txt".format(b=binname,ch=charge))
+        datacards.append(os.path.abspath(cardSubfolderFullName)+"/{b}_{ch}_card.txt".format(b=binname,ch=charge))
         channels.append('{b}_{ch}'.format(b=binname,ch=charge))
         maskedChannels = ['InAcc']
         #if something_happens:
         #    maskedChannels.append('OutAcc')
         if not options.freezePOIs:
             for mc in maskedChannels:
-                datacards.append(os.path.abspath(options.inputdir)+"/{b}_{ch}_xsec_{maskchan}_card.txt".format(b=binname,ch=charge,maskchan=mc))
+                datacards.append(os.path.abspath(cardSubfolderFullName)+"/{b}_{ch}_xsec_{maskchan}_card.txt".format(b=binname,ch=charge,maskchan=mc))
                 channels.append('{b}_{ch}_xsec_{maskchan}'.format(b=binname,ch=charge,maskchan=mc))
 
     print('='*30)
@@ -375,9 +376,8 @@ def prepareChargeFit(options, charges=["plus"]):
         else:
             print("Cards for W+ and W- done. Combining them now...")
 
-        combinedCard = "{d}/{b}_{s}.txt".format(d=os.path.abspath(options.inputdir), b=binname, s=cardkeyname)
-        ccCmd = "combineCards.py --noDirPrefix {cards} > {combinedCard} ".format(cards=' '.join(['{ch}={dcfile}'.format(ch=channels[i],dcfile=card) for i,card in enumerate(datacards)]),
-                                                                                 combinedCard=combinedCard)        
+        combinedCard = "{d}/{b}_{s}.txt".format(d=os.path.abspath(cardSubfolderFullName), b=binname, s=cardkeyname)
+        ccCmd = "combineCards.py --noDirPrefix {cards} > {combinedCard} ".format(cards=' '.join(['{ch}={dcfile}'.format(ch=channels[i],dcfile=card) for i,card in enumerate(datacards)]), combinedCard=combinedCard)
         ## run the commands: need cmsenv in the combinetf release
         print 
         print(ccCmd)
@@ -428,8 +428,8 @@ def prepareChargeFit(options, charges=["plus"]):
             if options.doSystematics:
                 combineCmd += " --doImpacts  "
 
-        fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(options.inputdir))
-        fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(options.inputdir))
+        fitdir_data = "{od}/fit/data/".format(od=os.path.abspath(cardSubfolderFullName))
+        fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(cardSubfolderFullName))
         if not os.path.exists(fitdir_data):
             print("Creating folder", fitdir_data)
             safeSystem("mkdir -p " + fitdir_data, dryRun=args.dryRun)
@@ -498,6 +498,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     #parser.add_argument('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
     parser.add_argument('-i','--input', dest='inputdir', default='', type=str, help='input directory with all the cards inside')
+    parser.add_argument('--cf','--card-folder', dest='cardFolder', default='nominal', type=str, help='Subfolder created inside inputdir to store all cards and fit results in a given configuration, for better bookkeeping when doing tests')
     parser.add_argument('-f','--flavor', dest='flavor', default='mu', type=str, choices=["mu","el"], help='lepton flavor (mu,el)')
     parser.add_argument('-c','--charge', dest='charge', default='plus,minus', type=str, help='process given charge. default is both')
     parser.add_argument(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
@@ -524,7 +525,6 @@ if __name__ == "__main__":
     parser.add_argument(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
     parser.add_argument(     '--mass-nuis',    dest='massNuisance', type=str, default="massShift50MeV", help="Use only this mass nuisance in the datacard and to define noiGroup. It overrides exclusion from option --exclude-nuisances");     parser.add_argument(      '--all-proc-background', dest='allProcessesBackground', default=False, action='store_true', help='Set all processes as backgrounds (e.g. when running the fit with fixed poi)')
     args = parser.parse_args()
-    options = args
 
     if not args.dryRun:
         try:
@@ -538,7 +538,25 @@ if __name__ == "__main__":
             print("Aborting ...")
             print("\n")
             quit()
-    
+
+    if not args.inputdir.endswith("/"):
+        args.inputdir += "/"
+            
+    if args.cardFolder:
+        testName = args.cardFolder.rstrip("/")
+        if testName in ["plus", "minus"]:
+            # these names are already used, they contain the configurations used to make histograms
+            print("Warning: folder specified with --card-folder cannot be named as plus|minus/ (you used %s)" % args.cardFolder)
+            quit()
+        if not args.cardFolder.endswith("/"):
+            args.cardFolder += "/"
+        cardFolderFullName = args.inputdir + args.cardFolder
+        if not os.path.exists(args.cardFolder):
+            print("Creating folder", cardFolderFullName)
+            safeSystem("mkdir -p " + cardFolderFullName, dryRun=args.dryRun)
+
+    options = args
+
     charges = options.charge.split(',')
 
     if options.combineCharges:
@@ -565,7 +583,6 @@ if __name__ == "__main__":
         makeAllSystematicMultipliers(options.inputdir)
         print('done making all the systematic multipliers')
     
-
     for charge in charges:
         if not options.justFit:
             cm = CardMaker(options, charge)
