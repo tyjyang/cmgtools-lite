@@ -143,6 +143,7 @@ if __name__ == "__main__":
         if args.addPostfitShape:
             pfs_file = safeOpenFile(args.addPostfitShape, mode="READ")
             postfitHist = safeGetObject(pfs_file, f"expproc_{p}_postfit")
+            #postfitHist = safeGetObject(pfs_file, f"expfull_postfit")
             charges = args.fitCharges.split(",")
             nCharges = len(charges)
             nMaskedChanPerCharge = args.nMaskedChannel # check if we actually have masked channels, we may not, default should be 0

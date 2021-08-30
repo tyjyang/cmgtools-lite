@@ -6,7 +6,7 @@
 # histogram is named <prefix>__<workingPoint>_<process>_<eraVFP> for the numerator
 #                and <prefix>_<process>_<eraVFP> for the denominator        
 
-# verus pt-eta (with PU weights and all eras)
+# versus pt-eta (with PU weights and all eras)
 # python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_finePt/plus/ --palette 87 --plot-ratio-era H --tnp-file testMuonSF/2021-05-31_allSFs_nodz_dxybs.root --rebin-pt 4 -w 'trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit'
 
 # versus pt-eta (no PU weights here, comparing only pre and postVFP)
