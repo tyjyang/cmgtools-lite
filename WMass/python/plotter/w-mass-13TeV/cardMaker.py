@@ -79,6 +79,11 @@ class CardMaker:
         self.shapesfile = os.path.join(self._options.inputdir,self.boson+'_{ch}_shapes.root'.format(ch=charge))
         self.cardfile   = os.path.join(self._options.inputdir+self._options.cardFolder,self.boson+'_{ch}_card.txt'   .format(ch=charge))
         self.systFile = pathToImport+'/systsFit.txt'
+        print("Copying syst configuration file")
+        copyCmd = "cp %s %s" % (self.systFile, self._options.inputdir+self._options.cardFolder)
+        print(copyCmd)
+        safeSystem(copyCmd, dryRun=args.dryRun)
+
         # self.centralHistograms = self.getCentralHistograms() # to implement
 
 
@@ -554,6 +559,10 @@ if __name__ == "__main__":
         if not os.path.exists(args.cardFolder):
             print("Creating folder", cardFolderFullName)
             safeSystem("mkdir -p " + cardFolderFullName, dryRun=args.dryRun)
+            
+        fcmd = open(cardFolderFullName+"cardMaker_command.txt", "w")
+        fcmd.write("%s\n\n" % " ".join(sys.argv))
+        fcmd.close()
 
     options = args
 
