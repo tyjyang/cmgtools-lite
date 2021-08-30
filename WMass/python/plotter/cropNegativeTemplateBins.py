@@ -12,7 +12,7 @@ import argparse
 # nominal templates (no need to touch the alternate as well)
 # note that, by default, this function modify the original input file
 
-def cropNegativeContent(h, silent=True, cropError=False):
+def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.001):
 
     dim = h.GetDimension()
     nbins = 0
@@ -26,9 +26,9 @@ def cropNegativeContent(h, silent=True, cropError=False):
         nom  = h.GetBinContent(i)
         if nom<0.0:
             hasCroppedBins = True
-            h.SetBinContent(i, 0)
+            h.SetBinContent(i, cropValue)
             if cropError:
-                h.SetBinError(i, 0)
+                h.SetBinError(i, cropValue)
     integralNonNeg = h.Integral()
     if not silent and hasCroppedBins:
         print("{n}: original integral = {i} changed by {r}".format(n=h.GetName(),
@@ -43,6 +43,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outdir", type=str, default="./", help="Output folder (current one as default)");
     parser.add_argument("-p", "--processes", type=str, default="x_Z|x_W.*|x_Top.*|.*DiBosons.*|x_data_fakes.*", help="Regular expression for histograms to be affected");
     parser.add_argument("-a", "--all", dest="allHists",   action="store_true", help="Crop all templates, not just those for systematics");
+    parser.add_argument("--crop-error", dest="cropError",   action="store_true", help="Crop error as well setting it to the cropped value");
+    parser.add_argument("--crop-value", dest="cropValue",  type=float, default=0.001, help="Crop negative bin content to this value");
     parser.add_argument("-s", "--silent",  action="store_true", help="Print info when acting on histograms");
     args = parser.parse_args()
     options = args
@@ -106,7 +108,7 @@ if __name__ == "__main__":
         obj  = e.ReadObj()
         if not obj:
             raise(RuntimeError('Unable to read object {n}'.format(n=name)))
-        cropNegativeContent(obj, silent=args.silent)
+        cropNegativeContent(obj, silent=args.silent, cropErrro= args.cropError, cropValue=args.cropValue)
         obj.Write(name,ROOT.TObject.kOverwrite)
         nCopiedKeys += 1
         if (ikey+1) % 100 == 0:

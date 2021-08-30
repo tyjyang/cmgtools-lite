@@ -7,6 +7,8 @@ muScale    : kalPt.*                : Z.*|W.*|Diboson.*|Top.* : MUSCALE    : sha
 efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.* : EFFICIENCY : shape
 muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.* : PREFIRING  : shape
 luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.* : LUMINOSITY : lnN     : 1.012
-fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP   : shape
-otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP   : shape
+CMS_Top    : CMS_Top                : Top.*                   : OTHEREXP   : lnN     : 1.06
+CMS_VV     : CMS_VV                 : Diboson.*               : OTHEREXP   : lnN     : 1.16
+#fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP   : shape
+#otherbkg   : lepVeto.*              : Z.*|W.*                 : OTHEREXP   : shape
 mass       : massShift.*            : Z.*                     : SKIPGROUP  : shapeNoConstraint

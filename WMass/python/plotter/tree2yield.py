@@ -732,8 +732,8 @@ def _copyPlotStyle(self,plotfrom,plotto):
         plotto.GetZaxis().SetNdivisions(plotfrom.GetZaxis().GetNdivisions())
 
 def addTreeToYieldOptions(parser):
-    parser.add_argument('--lumi-dict', dest='lumiDict', type=json.loads, default='{"all":36.3,"preVFP":19.5,"postVFP":16.8}')
-    parser.add_argument('--lumi-weight', dest='lumiWeight', type=float, default=None)
+    parser.add_argument('--lumi-dict', dest='lumiDict', type=json.loads, default='{"all":36.3,"preVFP":19.5,"postVFP":16.8}', help="default luminosity values for inclusive samples or pre|postVFP, chosen according to component name in MCA text file")
+    parser.add_argument('--lumi-weight', dest='lumiWeight', type=float, default=None, help="Use this value as lumi weight (for the label in plot one needs option -l defined in mcPlots.py)")
     parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
     parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");

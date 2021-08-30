@@ -19,6 +19,8 @@ muon_eta: Muon_eta[goodMuonsCharge][0]: 24,-2.4,2.4; XTitle="Muon #eta", Legend=
 
 muon_eta_all: Muon_eta[goodMuons]: 48,-2.4,2.4; XTitle="Both muon #eta", Legend='TC', IncludeOverflows=True
 
+muon_eta_rebin_all: Muon_eta[goodMuons]: 24,-2.4,2.4; XTitle="Both muon #eta", Legend='TC', IncludeOverflows=True
+
 muon_eta_fine: Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
 
 muon_iso04: Muon_pfRelIso04_all[goodMuonsCharge][0]: 32,0.0,0.16; XTitle="Muon PF isolation (#DeltaR 0.4)", Legend='TR', IncludeOverflows=True, Logy=True
@@ -70,7 +72,15 @@ mt_T1MET: mt_2(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],MET_T1_p
 
 mt_wlike_MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi): 70,0,140; XTitle="W-like m_{T}(#mu\,MET) (GeV)", Legend='TC', IncludeOverflows=True
 
-met_wlike_MET: lepPlusMetPt(Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi): 50,0,100; XTitle="W-like MET (other #mu\, MET) (GeV)", Legend='TC', IncludeOverflows=True
+mt_wlikeSS_MET: mt_wlike_nano(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],Muon_pt[goodMuons][1],Muon_phi[goodMuons][1],MET_pt,MET_phi): 70,0,140; XTitle="W-like m_{T}(#mu\,MET) (GeV)", Legend='TC', IncludeOverflows=True
+
+mt_wlikeSS_MET_all: mt_wlikeSS_nano(Muon_pt[goodMuons],Muon_phi[goodMuons],MET_pt,MET_phi): 70,0,140; XTitle="W-like m_{T}(#mu\,MET) (GeV) (both)", Legend='TC', IncludeOverflows=True
+
+met_wlike_MET: lepPlusMetPt(Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi): 50,0,100; XTitle="W-like MET (#mu\, MET) (GeV)", Legend='TC', IncludeOverflows=True
+
+met_wlikeSS_MET: lepPlusMetPt(Muon_pt[goodMuons][1],Muon_phi[goodMuons][1],MET_pt,MET_phi): 50,0,100; XTitle="W-like MET (#mu\, MET) (GeV)", Legend='TC', IncludeOverflows=True
+
+met_wlikeSS_MET_all: lepPlusMetPt_allLep(Muon_pt[goodMuons],Muon_phi[goodMuons],MET_pt,MET_phi): 50,0,100; XTitle="W-like MET (#mu\, MET) (GeV) (both)", Legend='TC', IncludeOverflows=True
 
 mt_wlike_T1MET: mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_T1_pt,MET_T1_phi): 60,0,120; XTitle="W-like m_{T}(#mu\,T1MET) (GeV)", Legend='TC', IncludeOverflows=True
 
@@ -193,6 +203,24 @@ vpt : Vpt_preFSR: [0., 4., 8., 12., 16., 20., 24., 28., 32., 40., 60., 100., 200
 vrap : fabs(Vrap_preFSR): [0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 6.0] ; XTitle="PreFSR boson rapidity", Legend='TR'
 vpt_vrap: Vpt_preFSR\:Vrap_preFSR: 50,-5,5,50,0,100 ; XTitle='PreFSR boson rapidity', YTitle='PreFSR boson p_{T} (GeV)', Legend='TR'
 
+####################
+# for lep veto study
+bareMuon_pt_passReco: GenPart_pt[bareMuonsCharge][0]: 65,0,65 ; XTitle='bare muon p_{T} (passed reco) (GeV)', Legend='TR'
+bareMuon_eta_passReco: GenPart_eta[bareMuonsCharge][0]: 80,-4.0,4.0; XTitle='bare muon #eta (passed reco)', Legend='TR'
+bareMuon_pt_eta_passReco: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 80,-4.0,4.0,65,0,65 ; XTitle='bare muon #eta (passed reco)', YTitle='bare muon p_{T} (passed reco) (GeV)', Legend='TR'
+
+
+bareMuon_pt_failReco: GenPart_pt[bareMuonsOther][0]: 65,0,65 ; XTitle='bare muon p_{T} (failed reco) (GeV)', Legend='TR'
+bareMuon_eta_failReco: GenPart_eta[bareMuonsOther][0]: 80,-4.0,4.0; XTitle='bare muon #eta (failed reco)', Legend='TR'
+bareMuon_pt_eta_failReco: GenPart_pt[bareMuonsOther][0]\:GenPart_eta[bareMuonsOther][0]: 80,-4.0,4.0,65,0,65 ; XTitle='bare muon #eta (failed reco)', YTitle='bare muon p_{T} (failed reco) (GeV)', Legend='TR'
+
+failVetoMuon_pt: Muon_pt[failVetoMuons][0]: 65,0,65 ; XTitle='leading failing veto muon p_{T} (GeV)', Legend='TR'
+failVetoMuon_eta: Muon_eta[failVetoMuons][0]: 60,-3.0,3.0; XTitle='leading failing muon #eta ', Legend='TR'
+
+nGenMuInAcc: Sum(bareMuons): 5,-0.5,4.5; XTitle="number of gen muons in acceptance", Legend='TC', IncludeOverflows=True, RMin=0.5, RMax=1.5, Logy=True
+nFailVetoMuons: Sum(failVetoMuons): 5,-0.5,4.5; XTitle="number of muons failing veto", Legend='TC', IncludeOverflows=True, RMin=0.5, RMax=1.5, Logy=True
+
+####################
 
 bareMuon_pt_eta: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR'
 

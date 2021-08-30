@@ -1023,6 +1023,8 @@ class PlotMaker:
 
                 stack.Draw("GOFF")
                 ytitle = "Events" if not self._options.printBinning else "Events / %s" %(self._options.printBinning)
+                if plotmode == "norm":
+                    ytitle = "Arbitrary units"
                 total.GetXaxis().SetTitleFont(42)
                 total.GetXaxis().SetTitleSize(0.05)
                 total.GetXaxis().SetTitleOffset(options.setTitleXoffset)

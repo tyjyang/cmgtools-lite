@@ -40,8 +40,8 @@ if __name__ == "__main__":
     for era in eras:
         # file 1
         if era == "2016":
-            #datafile = "pileupStuff/pileupProfileData_2016Legacy_TESTFULL2016_99bins.root"
-            datafile = "pileupStuff/pileupProfileData_2016Legacy_TESTFULL2016_99bins_customJsonNanoFilter.root"
+            #datafile = "pileupStuff/pileupProfileData_2016Legacy_TESTFULL2016_99bins_customJsonNanoFilter.root"
+            datafile = "pileupStuff/pileupProfileData_2016Legacy_RunFull2016_testCentralGoldenJsonUL2016.root"
         else:
             datafile = f"pileupStuff/pileupProfileData_2016Legacy_Run{era}_04June2021.root"
         tf = ROOT.TFile.Open(datafile)
@@ -50,7 +50,8 @@ if __name__ == "__main__":
         tf.Close()
         # reference
         if era == "2016":
-           datafile = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/PileUp/UltraLegacy/PileupHistogram-goldenJSON-13tev-2016-69200ub-99bins.root"
+           #datafile = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/PileUp/UltraLegacy/PileupHistogram-goldenJSON-13tev-2016-69200ub-99bins.root"
+            datafile = "pileupStuff/pileupProfileData_2016Legacy_RunFull2016_04June2021.root"
         else:
            datafile = f"pileupStuff/pileupProfileData_2016Legacy_Run{era}.root"
         tf = ROOT.TFile.Open(datafile)

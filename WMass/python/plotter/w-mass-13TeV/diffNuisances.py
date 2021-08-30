@@ -48,6 +48,8 @@ if __name__ == "__main__":
     parser.add_argument('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type=float, help='Bottom margin for the canvas')
     parser.add_argument(     '--canvasSize',  default='', type=str, help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
     parser.add_argument(      "--y-title",      dest="ytitle",  default="S+B fit #theta",   type=str,  help="Title for Y axis")
+    parser.add_argument(      "--y-setting",    dest="ysetting",  nargs=5, default="-5.0,-3,0,3,5.0", type=float,  help="Settings to customize y axis: pass list of ymin,yhalfd,ycen,yhalfu,ymax, where horizontal lines are drawn")
+    #parser.add_argument(      "--y-setting",    dest="ysetting",  type=lambda s: [float(item) for item in s.split(',')], default="-5.0,-3,0,3,5.0",  help="Settings to customize y axis: comma-separated list of ymin,yhalfd,ycen,yhalfu,ymax, where horizontal lines are drawn")
     parser.add_argument('-R', "--rank-nuisances-by", dest="rankNuisancesBy",  default=None, choices=["", "pull", "sigma"],  type=str,  help="Rank nuisances based on either sigma or pull. It is devised to work with --pois '.*', but of course you can further filter nuisances and/or pois")
     parser.add_argument('-N','--show-N' , dest='showN',    default=0, type=int, help='To be used with -R: it shows only the N nuisances ranked. If not positive, no limit is used')    
     parser.add_argument(     '--lower-limit-pull' , dest='lowerLimitPull', default=-1.0, type=float, help='To be used with -R. Take only nuisances with pull above this value (in absolute value). If negative, use no limit')    
@@ -362,8 +364,9 @@ if __name__ == "__main__":
             ch = int(args.canvasSize.split(',')[1])
         canvas_nuis = ROOT.TCanvas("nuisances", "nuisances", cw, ch)
         ## some style stuff
-        ymin,yhalfd,ycen,yhalfu,ymax = (-5.,-3,0,3,5.)
-
+        #ymin,yhalfd,ycen,yhalfu,ymax = args.ysetting
+        #ymin,yhalfd,ycen,yhalfu,ymax = map(float, list(args.ysetting.split(",")))
+        ymin,yhalfd,ycen,yhalfu,ymax = args.ysetting
         if hist_fit_s_ranked != None:
             hist_fit_s = hist_fit_s_ranked
 
@@ -381,7 +384,7 @@ if __name__ == "__main__":
 
         hist_fit_s.GetYaxis().SetTitle(args.ytitle)
         hist_fit_s.GetYaxis().SetTitleSize(0.05)
-        hist_fit_s.GetYaxis().SetTitleOffset(0.80)
+        hist_fit_s.GetYaxis().SetTitleOffset(0.50)
 
         clm = 0.1 if nbins < 100 else 0.05
         crm = 0.05 if nbins < 100 else 0.02
@@ -443,7 +446,7 @@ if __name__ == "__main__":
             hist_fit_1d_e.Scale(scale)
             hist_fit_1d_e.Draw("hist same")
             lat.DrawLatex(0.10, 0.92, '#bf{CMS}') #it{Preliminary}')
-            lat.DrawLatex(0.61 , 0.92, '35.9 fb^{-1} (13 TeV)')
+            lat.DrawLatex(0.61 , 0.92, '36.3 fb^{-1} (13 TeV)')
             ## draw an axis on the right side
             axis = ROOT.TGaxis(ROOT.gPad.GetUxmax(),ROOT.gPad.GetUymin(), ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),0,rightmax,510,"+L")
             axis.SetLineColor (constraintColor)

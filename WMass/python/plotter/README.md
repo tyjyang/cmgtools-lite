@@ -38,19 +38,20 @@ Some notes:
 - can add _--filter-proc-files ".\*" ".\*\_1.root"_ to run on only some files (1 per process in this case), e.g. for testing
 - for Wlike, need to select only odd (even) events for positive (negative) charge
 - we are currently removing the mT cut (with _-X mtl1pf40_), until we agree on the MET to use (and also because for fakes we may use a simultaneous fit including the low mT region
-- luminosity value passed to option _-l_ is used both as event weight and as the number appearing in plots. Thus, if the normalization already appears elsewhere (e.g. in the MCA file multiplying the cross section for preVFP and postVFP) the value passed to _-l_  should be offset by adding _1.0/luminosity_ as event weight with option _-W_ (or change the current behaviour)
+- luminosity value passed to option _-l_ is used only as label in plots, not as event weight. The normalization is automatically selected within the code for processes having postVFP or preVFP in their name (otherwise the nominal 36.3/fb is assumed), through the defaults of option --lumi-dict. One can customize it adding an event weight with option _-W_, or using directly option --lumi-weight
+- check whether the PU weights are updated, it is important to be consistent with the proper efficiencies. PU weights are usually passed with a function within option _-W_
 
 Wlike (using odd events for charge plus)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wlike/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wlike.txt w-mass-13TeV/testingNano/cfg/test/cuts_wlike.txt w-mass-13TeV/testingNano/cfg/plots_wlike_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Zmumu,Wmunu,Ztautau,Wtaunu,Top,Diboson" --pg "data := data_preVFP,data_postVFP" --pg "Top := Top_preVFP,Top_postVFP"  --pg "Diboson := Diboson_preVFP,Diboson_postVFP" --pg "Wmunu := Wmunu_plus_preVFP,Wmunu_plus_postVFP,Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP,Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_eta[goodMuonsOther][0],eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)" --out cards/wlike/plus/wlike.root --skipPlot -A trigger oddevents "isOddEvent(event)"
 ```
 
-Wmass (example for charge plus)
+Wmass (example for charge plus), but OBSOLETE (see note below)
 ```
-python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era(Pileup_nTrueInt,eraVFP)" --out cards/wmass/plus/wmass.root --skipPlot -A onemuon chargeplus "Muon_charge[goodMuons][0] > 0"
+python mcPlots.py w-mass-13TeV/testingNano/cfg/mca-wmass.txt w-mass-13TeV/testingNano/cfg/test/cuts_wmass.txt w-mass-13TeV/testingNano/cfg/plots_wmass_sysTH3.txt -P /data/shared/originalNANO/ -p "data,Wmunu_plus,Wmunu_minus,Zmumu,Ztautau,Wtaunu_plus,Wtaunu_minus" --pg "data := data_preVFP,data_postVFP" --pg "Wmunu_plus := Wmunu_plus_preVFP,Wmunu_plus_postVFP" --pg "Wmunu_minus := Wmunu_minus_preVFP,Wmunu_minus_postVFP" --pg "Wtaunu_plus := Wtaunu_plus_preVFP,Wtaunu_plus_postVFP" --pg "Zmumu := Zmumu_preVFP,Zmumu_postVFP" --pg "Wtaunu_minus := Wtaunu_minus_preVFP,Wtaunu_minus_postVFP" --pg "Ztautau := Ztautau_preVFP,Ztautau_postVFP" --sP ".*" --nanoaod-tree -X mtl1pf40  --rdf-define-file w-mass-13TeV/testingNano/cfg/test/rdfDefine_wlike.txt  --rdf-alias "goodMuonsCharge: goodMuonsPlus:.*" --rdf-alias "goodMuonsOther: goodMuonsMinus:.*" -v 3 -f -l 36.3 -W "_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)*puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)" --out cards/wmass/plus/wmass.root --skipPlot -A onemuon chargeplus "Muon_charge[goodMuons][0] > 0"
 ```
 
-**IMPORTANT**: We can actually now make all histograms including fakes alltogether, which is currently accomplished by actually computing yields simultaneously in the four regions defined by mT/isolation. Check the section __Making QCD template for Wmass__ for details.
+**IMPORTANT**: For the Wmass case, we can actually now make all histograms including fakes altogether, which is currently accomplished by actually computing yields simultaneously in the four regions defined by mT/isolation. Check the section __Making QCD template for Wmass__ for details.
 
 #### Unpack the histograms into TH2 (eta-pt) for combinetf
 
@@ -60,7 +61,7 @@ Some nuisances might be decorrelated by charge, in which case the histograms sho
 
 Wlike
 ```
-python makeHistogramsWMass.py -i cards/wlike/plus/wlike.root -o cards/wlike/Zmmu_plus_shapes.root -c plus --wlike --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+" [--crop-negative-bin]
+python makeHistogramsWMass.py -i cards/wlike/plus/wlike.root -o cards/wlike/Zmumu_plus_shapes.root -c plus --wlike --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+" [--crop-negative-bin]
 ```
 
 Wmass
@@ -120,6 +121,22 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-si
 ```
 python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
 ```
+
+**NOTE**: there is currently an issue with combinetf for which the stat uncertainty from the fit is always 0. To estimate it, one can run the fit removing all systematics (as well as MC stat uncertainty) and checking the total uncertainty. Actually, in order to assess the impacts on mW later, one should keep at least one nuisance parameter other than the mW parameter (one can select a lnN uncertainty applied on a minor background, so that the total uncertainty will still correspond to stat only). This can be achieved running w-mass-13TeV/cardMaker.py adding these options
+```
+--postfix noSyst -x ".*" -k "CMS_VV" --no-bbb
+```
+where the postfix is just not to overwrite the nominal fit outputs, -x removes all systematics, -k adds back one nuisance overriding -x, and --no-bbb removes the MC stat uncertainty. Note that the datacards are overwritten, so in case you decide to run the fit again with systematics you have to regenerate them (until we change the code to make datacards for a gven ft in a different folder directly)
+
+### Draw postfit histograms
+
+Once the root file for the fit result is available, one can plot the prefit and postfit shapes, including ratios and projections along eta or pt. This is done with the following command (for only the positive charge and postVFP era in this example)
+
+```
+python w-mass-13TeV/postFitHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus
+```
+By default the script expects that no masked channel was used in the fit, which might be the case when fitting all processes including W as background. Otherwise, option __--n-mask-chan 1__ must be used, specifying how many masked channels were used (usually it would be 1 per lepton channel, so here we used just 1 since we don't fit electrons). This is important because the postfit 1D histograms returned by combinetf.py have a bunch of additional bins with respect to the template bins, but only if masked channels were used.
+
 ### Plot impacts on mW
 
 ```
