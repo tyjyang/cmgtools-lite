@@ -78,8 +78,10 @@ def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
     # guess from a signal with charge defined name
     h1d = infile.Get('expproc_Zmumu_postfit')
     if not h1d:
-        print("Error in chargeUnrolledBinShifts(): histogram expproc_Zmumu_postfit not found, please check")
-        quit()
+        h1d = infile.Get('expproc_Zmumu_plus_postfit')
+        if not h1d:
+            print("Error in chargeUnrolledBinShifts(): histogram expproc_Zmumu_postfit or expproc_Zmumu_plus_postfit  not found, please check")
+            quit()
     # shift the 1D to remove the empty bins of the other charge
     nbins = int((h1d.GetNbinsX()-nCharges*nMaskedCha)/2)
     ret = {}
