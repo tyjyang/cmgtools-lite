@@ -229,9 +229,10 @@ if __name__ == "__main__":
     parser.add_argument('-o','--outdir', dest='outdir', default='.', type=str, help='output directory to save the matrix')
     parser.add_argument('-m','--n-mask-chan', dest='nMaskedChannel', default=0, type=int, help='Number of masked channels in the fit for each charge (0 if not using masked channels because no signal POIs is used in the fit)')
     parser.add_argument('-c','--charges', dest='charges', choices=['plus', 'minus', 'plus,minus'], default='plus,minus', type=str, help='Charges to process')
-    parser.add_argument(     '--no2Dplot', dest="no2Dplot", action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_argument('-n','--norm-width', dest="normWidth", action='store_true', help="Normalize histograms by bin area (mainly if non uniform binning is used)");
-    parser.add_argument(     '--suffix', dest="suffix", default='', type=str, help="define suffix for each plot");
+    parser.add_argument(     '--no2Dplot', dest="no2Dplot", action='store_true', help="Do not plot 2D templates")
+    parser.add_argument(     '--wlike', dest="isWlike", action='store_true', help="Analysis is wlike")
+    parser.add_argument('-n','--norm-width', dest="normWidth", action='store_true', help="Normalize histograms by bin area (mainly if non uniform binning is used)")
+    parser.add_argument(     '--suffix', dest="suffix", default='', type=str, help="define suffix for each plot")
     parser.add_argument('-l','--lumi', default=36.3, type=float, help='Integrated luminosity to print in the plot')
     args = parser.parse_args()
 
@@ -285,7 +286,16 @@ if __name__ == "__main__":
                         'Ztautau'     : {"color" : ROOT.kCyan,     "title" : "Z#rightarrow#tau#tau"},
                         'data_fakes'  : {"color" : ROOT.kGray,     "title" : "QCD multijet"}
     }
-         
+    if args.isWlike:
+        process_features = {'Wmunu'       : {"color" : ROOT.kRed+2,    "title" : "W#rightarrow#mu#nu"},
+                            'Top'         : {"color" : ROOT.kGreen+2,  "title" : "top"},
+                            'Diboson'     : {"color" : ROOT.kViolet+2, "title" : "dibosons"},
+                            'Wtaunu'      : {"color" : ROOT.kSpring+9, "title" : "W#rightarrow#tau#nu"},
+                            'Zmumu_plus'       : {"color" : ROOT.kAzure+2,  "title" : "Z#rightarrow#mu#mu"},
+                            'Zmumu_minus'       : {"color" : ROOT.kAzure+1,  "title" : "Z#rightarrow#mu#mu"},
+                            'Ztautau'     : {"color" : ROOT.kCyan,     "title" : "Z#rightarrow#tau#tau"}
+        }
+
 
     canvas2D = ROOT.TCanvas("canvas2D","",800,700)
 

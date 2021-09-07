@@ -199,10 +199,6 @@ dzVertex_gen_primary__dressedLepPt: (GenVtx_z-PV_z)\:GenPart_pt[genPrefsrMuons][
 # some gen vars
 bosonPt : ptVgen: 50,0,100 ; XTitle="PreFSR boson p_{T} (GeV)", Legend='TR'
 
-vpt : Vpt_preFSR: [0., 4., 8., 12., 16., 20., 24., 28., 32., 40., 60., 100., 200.] ; XTitle="PreFSR boson p_{T} (GeV)", Legend='TR'
-vrap : fabs(Vrap_preFSR): [0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 6.0] ; XTitle="PreFSR boson rapidity", Legend='TR'
-vpt_vrap: Vpt_preFSR\:Vrap_preFSR: 50,-5,5,50,0,100 ; XTitle='PreFSR boson rapidity', YTitle='PreFSR boson p_{T} (GeV)', Legend='TR'
-
 ####################
 # for lep veto study
 bareMuon_pt_passReco: GenPart_pt[bareMuonsCharge][0]: 65,0,65 ; XTitle='bare muon p_{T} (passed reco) (GeV)', Legend='TR'

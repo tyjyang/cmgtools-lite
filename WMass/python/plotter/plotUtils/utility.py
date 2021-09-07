@@ -30,6 +30,7 @@ def safeGetObject(fileObject, objectName, quitOnFail=True, silent=False, detach=
             print(f"Error getting {objectName} from file {fileObject.GetName()}")
         if quitOnFail:
             quit()
+        return None
     else:
         if detach:
             obj.SetDirectory(0)
@@ -168,9 +169,17 @@ def getMinMaxMultiHisto(hlist, excludeEmpty=True, sumError=True,
     minlist = sys.float_info.max
     maxlist = sys.float_info.min
     for h in hlist:
-        minv, maxv = getMinMaxHisto(h, excludeEmpty, sumError, excludeUnderflow, excludeOverflow, excludeMin, excludeMax)
-        minlist = min(minv, minlist)
-        maxlist = max(maxv, maxlist)
+        if h.InheritsFrom("TH1"):
+            minv, maxv = getMinMaxHisto(h, excludeEmpty, sumError, excludeUnderflow, excludeOverflow, excludeMin, excludeMax)
+            minlist = min(minv, minlist)
+            maxlist = max(maxv, maxlist)
+        elif h.InheritsFrom("TGraph"):
+            yvals = h.GetY()
+            yerrhigh = h.GetEYhigh()
+            yerrlow = h.GetEYlow()
+            for i in range(len(yvals)):
+                maxlist = max(yvals[i] + yerrhigh[i], maxlist)
+                minlist = min(yvals[i] - yerrlow[i],  minlist)
     return minlist, maxlist
         
 #########################################################################
@@ -343,6 +352,8 @@ def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
                 error *= scaleFactor
             h3.SetBinContent(ix, iy, zbin, val)
             h3.SetBinError(ix, iy, zbin, error);
+
+
             
 #########################################################################
 

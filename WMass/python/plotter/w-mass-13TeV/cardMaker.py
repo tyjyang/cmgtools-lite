@@ -17,7 +17,8 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 utilities = utilities.util()
 
-def safeSystem(cmd, dryRun=False):
+def safeSystem(cmd, dryRun=False, quitOnFail=True):
+    print(cmd)
     if not dryRun:
         res = os.system(cmd)
         if res:
@@ -25,9 +26,10 @@ def safeSystem(cmd, dryRun=False):
             print("safeSystem(): error occurred when executing the following command. Aborting")
             print(cmd)
             print('-'*30)
+            if quitOnFail:
+                quit()
         return res
     else:
-        print(cmd)
         return 0
         
 def sortSystsForDatacard(params):
@@ -62,9 +64,6 @@ class CardMaker:
         if len(options.keepNuisances):
             self.keepNuisances = options.keepNuisances.split(",")
                 
-        ### import the right dictionary process - systematic list depending on wmass/wlike
-        #pathToImport = os.environ['CMSSW_BASE']+'/src/CMGTools/WMass/python/plotter/w-mass-13TeV/'
-        #pathToImport = os.path.dirname(sys.argv[0])+'/'
         pathToImport = os.path.abspath("./w-mass-13TeV/") + "/" # should work
         if self._options.isWlike:
             pathToImport += 'wlike_{fl}'.format(fl=self.flavor)
@@ -76,13 +75,16 @@ class CardMaker:
             self.otherboson = 'Z{fl}{fl}'.format(fl=self.flavor)
         #self.systematics  = self.getSystList()
         #self.centralfiles = self.getCentralProcesses()
-        self.shapesfile = os.path.join(self._options.inputdir,self.boson+'_{ch}_shapes.root'.format(ch=charge))
+        shapeFilePostfix = ""
+        if self._options.shapeFilePostfix:
+            shapeFilePostfix = "_" + self._options.shapeFilePostfix
+        self.shapesfile = os.path.join(self._options.inputdir,self.boson+'_{ch}_shapes{sfp}.root'.format(ch=charge, sfp=shapeFilePostfix))
         self.cardfile   = os.path.join(self._options.inputdir+self._options.cardFolder,self.boson+'_{ch}_card.txt'   .format(ch=charge))
         self.systFile = pathToImport+'/systsFit.txt'
         print("Copying syst configuration file")
         copyCmd = "cp %s %s" % (self.systFile, self._options.inputdir+self._options.cardFolder)
-        print(copyCmd)
-        safeSystem(copyCmd, dryRun=args.dryRun)
+        #print(copyCmd)
+        safeSystem(copyCmd, dryRun=self._options.dryRun)
 
         # self.centralHistograms = self.getCentralHistograms() # to implement
 
@@ -164,7 +166,7 @@ class CardMaker:
         return dictProcSyst
 
     
-    def activateSystMatrix(self,systFile):
+    def activateSystMatrix(self, systFile):
         activeSysts = {}
         for line in open(systFile, 'r'):
             if re.match("\s*#.*", line): continue
@@ -180,7 +182,7 @@ class CardMaker:
             activeSysts[name] = (re.compile(sytPatt+"$"), re.compile(procPatt+"$"), group, sysType, scaling)
         return activeSysts
 
-    def writeDatacard(self,systFile=''):
+    def writeDatacard(self, systFile=''):
         ### this should be the file with .baseSystematics + .AllOtherSysts from the generic syst adder.
         ### for now just use the .baseSystematics file
         #shapesFile = self.shapesfile+'.baseSystematics'
@@ -211,7 +213,7 @@ class CardMaker:
             procAndHistos[(proc,syst)] = histo
         tf.Close()
 
-        processes   = [proc for (proc,syst) in procAndHistos if (syst == 'central' and proc != 'data' and proc != 'data_obs')]
+        processes   = [proc for (proc,syst) in procAndHistos if (syst == 'central' and proc != 'data' and proc != "data_obs" and not proc.startswith("pseudodata") and proc != self._options.dataname)]
         if self._options.allProcessesBackground:
             allprocs = [(p,i+1) for i,p in enumerate(processes)]
         else:
@@ -287,7 +289,7 @@ class CardMaker:
                                 
         #if options.mergeRoot or options.remakeMultipliers:
         if self._options.remakeMultipliers:
-            safeSystem('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile), dryRun=args.dryRun)
+            safeSystem('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile), dryRun=self._options.dryRun)
 
         ### now write the datacard
         channel = '{boson}_{charge}'.format(boson=self.boson,charge=self.charge)
@@ -300,7 +302,7 @@ class CardMaker:
         datacard.write('shapes *  *  {shapes} x_$PROCESS x_$PROCESS_$SYSTEMATIC\n'.format(shapes=os.path.abspath(self.shapesfile)))
         datacard.write('##----------------------------------\n')
         datacard.write('bin    {channel}'.format(channel=channel)+'\n')
-        datacard.write('observation    {obsyield}\n'.format(obsyield=procAndHistos[('data_obs','central')].Integral()))
+        datacard.write('observation    {obsyield}\n'.format(obsyield=procAndHistos[(self._options.dataname,'central')].Integral()))
         datacard.write('##----------------------------------\n')
         klen = 10
         kpatt = " %%%ds "  % klen
@@ -385,14 +387,15 @@ def prepareChargeFit(options, charges=["plus"]):
         ccCmd = "combineCards.py --noDirPrefix {cards} > {combinedCard} ".format(cards=' '.join(['{ch}={dcfile}'.format(ch=channels[i],dcfile=card) for i,card in enumerate(datacards)]), combinedCard=combinedCard)
         ## run the commands: need cmsenv in the combinetf release
         print 
-        print(ccCmd)
         print 
-        if not options.justFit:
-            safeSystem(ccCmd, dryRun=args.dryRun)
+        if options.justFit:
+            print(ccCmd)
+        else:
+            safeSystem(ccCmd, dryRun=options.dryRun)
         print("Combined card in ",combinedCard)
         print
 
-        txt2hdf5Cmd = 'text2hdf5.py {cf} '.format(cf=combinedCard)
+        txt2hdf5Cmd = 'text2hdf5.py {cf} --dataset {dn}'.format(cf=combinedCard, dn=options.dataname)
 
         ## here making the TF meta file
         if not options.freezePOIs:
@@ -412,12 +415,13 @@ def prepareChargeFit(options, charges=["plus"]):
         if options.clipSystVariationsSignal > 0.0:
             txt2hdf5Cmd = txt2hdf5Cmd + " --clipSystVariationsSignal " + str(options.clipSystVariationsSignal)
 
-        print(txt2hdf5Cmd)
         print 
-        if not options.skip_text2hdf5: 
+        if options.skip_text2hdf5: 
+            print(txt2hdf5Cmd)
+        else:
             print("Running text2hdf5.py, it might take time ...")
-            safeSystem(txt2hdf5Cmd, dryRun=args.dryRun)
-
+            safeSystem(txt2hdf5Cmd, dryRun=options.dryRun)
+            
         metafilename = combinedCard.replace('.txt','.hdf5')
         if len(postfix):
             metafilename = metafilename.replace('.hdf5','_%s.hdf5' % postfix)
@@ -425,6 +429,8 @@ def prepareChargeFit(options, charges=["plus"]):
         bbboptions = " --binByBinStat "
         if not options.noCorrelateXsecStat: bbboptions += "--correlateXsecStat "
         combineCmd = 'combinetf.py -t -1 {bbb} {metafile} --saveHists --computeHistErrors --doh5Output '.format(metafile=metafilename, bbb="" if options.noBBB else bbboptions)
+        if options.combinetfOption:
+            combineCmd += " %s" % options.combinetfOption
         if options.freezePOIs:
             combineCmd += " --POIMode none"
             if options.doImpactsOnMW:
@@ -437,10 +443,10 @@ def prepareChargeFit(options, charges=["plus"]):
         fitdir_Asimov = "{od}/fit/hessian/".format(od=os.path.abspath(cardSubfolderFullName))
         if not os.path.exists(fitdir_data):
             print("Creating folder", fitdir_data)
-            safeSystem("mkdir -p " + fitdir_data, dryRun=args.dryRun)
+            safeSystem("mkdir -p " + fitdir_data, dryRun=options.dryRun)
         if not os.path.exists(fitdir_Asimov):
             print("Creating folder", fitdir_Asimov)
-            safeSystem("mkdir -p " + fitdir_Asimov, dryRun=args.dryRun)
+            safeSystem("mkdir -p " + fitdir_Asimov, dryRun=options.dryRun)
         print("")
         fitPostfix = "" if not len(postfix) else ("_"+postfix)
 
@@ -449,15 +455,17 @@ def prepareChargeFit(options, charges=["plus"]):
         combineCmd_data = combineCmd.replace("-t -1 ","-t 0 ")
         combineCmd_data = combineCmd_data + " --postfix Data{pf}_bbb{b} --outputDir {od} ".format(pf=fitPostfix, od=fitdir_data, b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
         combineCmd_Asimov = combineCmd + " --postfix Asimov{pf}_bbb{b} --outputDir {od} ".format(pf=fitPostfix, od=fitdir_Asimov,  b="0" if options.noBBB else "1_cxs0" if options.noCorrelateXsecStat else "1_cxs1")
-        print(combineCmd_data)
         if not options.skip_combinetf and not options.skipFitData:
-            safeSystem(combineCmd_data, dryRun=args.dryRun)
+            safeSystem(combineCmd_data, dryRun=options.dryRun)
+        else:
+            print(combineCmd_data)
         print
-        print(combineCmd_Asimov)            
         if not options.skip_combinetf and not options.skipFitAsimov:
-            safeSystem(combineCmd_Asimov, dryRun=args.dryRun)
+            safeSystem(combineCmd_Asimov, dryRun=options.dryRun)
+        else:
+            print(combineCmd_Asimov)
 
-
+            
 def combineCharges(options):
     prepareChargeFit(options, charges=['plus','minus'])
 
@@ -509,6 +517,7 @@ if __name__ == "__main__":
     parser.add_argument(     '--remake-syst-multipliers'   , dest='remakeMultipliers' , default=False, action='store_true', help='Remake all the systematic multipliers.')
     parser.add_argument(     '--comb'   , dest='combineCharges' , default=False, action='store_true', help='Combine W+ and W-, if single cards are done')
     parser.add_argument(     '--postfix',    dest='postfix', type=str, default="", help="Postfix for .hdf5 file created with text2hdf5.py when combining charges");
+    parser.add_argument(     '--shape-file-postfix',    dest='shapeFilePostfix', type=str, default="", help="Postfix to identify root file with histograms (e.g. Wmunu_plus_shapes_{postfix}.root). Useful to select different root files or for tests");
     parser.add_argument('--wlike', dest='isWlike', action="store_true", default=False, help="Make cards for the W-like analysis. Default is Wmass");
     # options for card maker and fit
     parser.add_argument("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
@@ -529,6 +538,8 @@ if __name__ == "__main__":
     # --impacts-mW might not be needed or might not work, to be checked
     parser.add_argument(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
     parser.add_argument(     '--mass-nuis',    dest='massNuisance', type=str, default="massShift50MeV", help="Use only this mass nuisance in the datacard and to define noiGroup. It overrides exclusion from option --exclude-nuisances");     parser.add_argument(      '--all-proc-background', dest='allProcessesBackground', default=False, action='store_true', help='Set all processes as backgrounds (e.g. when running the fit with fixed poi)')
+    parser.add_argument("-D", "--dataset",  dest="dataname", default="data_obs",  type=str,  help="Name of the observed dataset (pass name without x_ in the beginning). Useful to fit another pseudodata histogram")
+    parser.add_argument("--combinetf-option",  dest="combinetfOption", default="",  type=str,  help="Pass other options to combinetf")
     args = parser.parse_args()
 
     if not args.dryRun:
@@ -556,13 +567,12 @@ if __name__ == "__main__":
         if not args.cardFolder.endswith("/"):
             args.cardFolder += "/"
         cardFolderFullName = args.inputdir + args.cardFolder
-        if not os.path.exists(args.cardFolder):
+        if not os.path.exists(cardFolderFullName):
             print("Creating folder", cardFolderFullName)
-            safeSystem("mkdir -p " + cardFolderFullName, dryRun=args.dryRun)
-            
-        fcmd = open(cardFolderFullName+"cardMaker_command.txt", "w")
-        fcmd.write("%s\n\n" % " ".join(sys.argv))
-        fcmd.close()
+            safeSystem("mkdir -p " + cardFolderFullName, dryRun=False) # always create this folder, even for tests
+            fcmd = open(cardFolderFullName+"cardMaker_command.txt", "w")
+            fcmd.write("%s\n\n" % " ".join(sys.argv))
+            fcmd.close()
 
     options = args
 

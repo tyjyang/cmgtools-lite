@@ -55,6 +55,7 @@ parser.add_argument('--ptVar', default='Muon_pt[goodMuonsCharge][0]', type=str, 
 parser.add_argument('--etaVar', default='Muon_eta[goodMuonsCharge][0]', type=str, help='Expression for variable on eta axis')
 parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
+parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31", help='PDF set to use')
 args = parser.parse_args()
 
 ###################################
@@ -79,28 +80,53 @@ line = f"nominal_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames} \n"
 print(line)
 if printToFile: outf.write(line+'\n')
 
-# pdf + alphaS
-write3DHist(label = "pdf",
-            pt_expr = args.ptVar,
-            eta_expr = args.etaVar,
-            nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
-            xylabels = axisNames,
-            weight_axis = "PDF/alpha_{S} index",
-            etapt_binning = etaptBins,
-            regex = "W.*|Z.*",
-            outfile = outf,
-            systBinStart = 0.5,
-            indexStart = 0,
-            addWeight = "LHEPdfWeight",
-            nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
-)
+# pdf + alphaS in NNPDF3.1, alphaS has 0.002 variations around 0.118, the 1 sigma variation should be 0.0015
+if args.pdfWeights == "nnpdf31":
+    write3DHist(label = "pdf",
+                pt_expr = args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
+                xylabels = axisNames,
+                weight_axis = "PDF/alpha_{S} index",
+                etapt_binning = etaptBins,
+                regex = "W.*|Z.*",
+                outfile = outf,
+                systBinStart = 0.5,
+                indexStart = 0,
+                addWeight = "LHEPdfWeight",
+                nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
+    )
+elif args.pdfWeights == "nnpdf30":
+    # pdf in NNPDF3.0, alphaS is available in another branch
+    write3DHist(label = "pdfNNPDF30",
+                pt_expr = args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = 101, # 1 nominal + 100 symmetric hessians
+                xylabels = axisNames,
+                weight_axis = "NNPDF3.0 PDF index",
+                etapt_binning = etaptBins,
+                regex = "W.*", # FIXME: only W for now
+                outfile = outf,
+                systBinStart = 0.5,
+                indexStart = 0,
+                addWeight = "LHEPdfWeightAltSet13/LHEPdfWeightAltSet13[0]",  # when running analysis with different PDFs as nominal, the nominal weight LHEPdfWeightAltSet13[0] is alredy applied to the process, so we need to factorize it out here
+                nBinsZaxis = 100 # we want 100,0.5,100.5 (could have been 101,-0.5,100.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
+    )
 
+    line = f"alphaS0117NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet15[0]', ProcessRegexp='W.*'\n"
+    line += f"alphaS0119NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet16[0]', ProcessRegexp='W.*'\n"
+    print(line)
+    if printToFile: outf.write(line+'\n')
+
+###  END of PDF if statement
+
+### QCD scales should be used according to central PDF set. For now will keep using NNPDF3.1 in all cases
 
 # qcd scales (not Vpt binned, that one comes just afterward)
 write3DHist(label = "qcdScale",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 18,
+            nsyst = 18, #  was 18 on older samples, because had both NNPDF3.0 and NNPDF3.1 together
             xylabels = axisNames,
             weight_axis = "QCD scale index",
             etapt_binning = etaptBins,
@@ -119,7 +145,7 @@ for ipt in range(1,1+NVTPBINS):
     write3DHist(label = "qcdScaleVptBin%d" % ipt,
                 pt_expr = args.ptVar,
                 eta_expr = args.etaVar,
-                nsyst = 18,
+                nsyst = 9, #  was 18 on older samples, because had both NNPDF3.0 and NNPDF3.1 together   
                 xylabels = axisNames,
                 weight_axis = "QCD scale index",
                 etapt_binning = etaptBins,
@@ -130,6 +156,9 @@ for ipt in range(1,1+NVTPBINS):
                 addWeight = f"qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptcut[0]}\,{ptcut[1]})" 
     )
 
+
+## end of QCD scales
+    
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
 write3DHist(label = "effStatTnP",
@@ -175,29 +204,29 @@ write3DHist(label = "massWeight",
             outfile = outf,
             systBinStart = -0.5,
             indexStart = 0,
-            addWeight = "LHEReweightingWeightCorrectMass"
+            addWeight = "MEParamWeight"# is LHEReweightingWeightCorrectMass on older samples
 )
 
 
-for chan in ["Wm", "Wp", "Z"]:
-    process_regexpr = "Z.*" 
-    if "W" in chan:
-        process_regexpr = ".*".join(["W", "minus" if "m" in chan else "plus", ])
-    START = -0.5
-    NWEIGHTS = 45
-    write3DHist(label ="scetlibWeights", # no trailing '_', it is added inside directly (and mcPlots will add another one) 
-                pt_expr =args.ptVar,
-                eta_expr = args.etaVar,
-                nsyst = NWEIGHTS,
-                xylabels = axisNames,
-                weight_axis = "SCETlib variation index",
-                etapt_binning = etaptBins,
-                regex = process_regexpr,
-                outfile = outf,
-                systBinStart = START,
-                indexStart = 0,
-                addWeight = f"scetlibWeights{chan}"
-    )
+# for chan in ["Wm", "Wp", "Z"]:
+#     process_regexpr = "Z.*" 
+#     if "W" in chan:
+#         process_regexpr = ".*".join(["W", "minus" if "m" in chan else "plus", ])
+#     START = -0.5
+#     NWEIGHTS = 45
+#     write3DHist(label ="scetlibWeights", # no trailing '_', it is added inside directly (and mcPlots will add another one) 
+#                 pt_expr =args.ptVar,
+#                 eta_expr = args.etaVar,
+#                 nsyst = NWEIGHTS,
+#                 xylabels = axisNames,
+#                 weight_axis = "SCETlib variation index",
+#                 etapt_binning = etaptBins,
+#                 regex = process_regexpr,
+#                 outfile = outf,
+#                 systBinStart = START,
+#                 indexStart = 0,
+#                 addWeight = f"scetlibWeights{chan}"
+#     )
 
 print('-'*30)
 print("SUMMARY")

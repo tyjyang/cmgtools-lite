@@ -23,7 +23,7 @@ from cropNegativeTemplateBins import cropNegativeContent
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import getTH2fromTH3, createPlotDirAndCopyPhp
 
-def getQCDScaleIndices():
+def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
     # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
     #  ("1","1"), ("1","2"), ("2", "05"), ("2", "1"), ("2", "2")]):
@@ -38,7 +38,21 @@ def getQCDScaleIndices():
             16 : "muRmuFUp"
     }
     return ret
-    
+
+def getQCDScaleIndices():
+    # branch LHEScaleWeight with 9 elements:                                                   *
+    # [0] is mur=0.5 muf=0.5; [1] is mur=0.5 muf=1; [2] is mur=0.5 muf=2; [3] is mur=1 muf=0.5 ; [4] is mur=1 muf=1; [5] is mur=1 muf=2; [6] is mur=2 muf=0.5; [7] is mur=2 muf=1 ; [8] is mur=2 muf=2)*
+    # we don't use the case where one scale goes up and the other down, so exclude pairs like (0.5,2)    
+    ret = {  0 : "muRmuFDown",
+             1 : "muRDown",
+             3 : "muFDown",
+             5 : "muFUp",
+             7 : "muRUp",
+             8 : "muRmuFUp"
+    }
+    return ret
+
+
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
     # same for normalization
@@ -182,12 +196,13 @@ for syst in systs:
                 h2D.Write()
                 h2D_mirror.Write()
         if "qcdScale" in syst:
-            qcdscales = getQCDScaleIndices()
-            indices = sorted(list(qcdscales.keys()))
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence
             else:
                 ptbin = 0 # told you ;)
+                # new ntuples have 9 elements, older had 18
+                qcdscales = getQCDScaleIndices() if h3D.GetNbinsZ() == 9 else getQCDScaleIndicesOldNtuples()
+            indices = sorted(list(qcdscales.keys()))
             for i in indices:
                 systname = qcdscales[i]
                 if ptbin:
@@ -198,8 +213,9 @@ for syst in systs:
                 name = "x_" + proc + "_" + systname
                 h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
                 h2D.Write()
-        if "pdf" in syst:
-            # this includes actual pdf hessians (bins 1 to 100) and alphaSUp and alphaSDown (bin 101 and 102)
+        #if "pdf" in syst: # now we have more PDF sets, so names are more complicated
+        if "pdfNNPDF31" in syst:
+            # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
             # pdfxx needs mirroring, alphaS already has Up and Down
             for i in range(1,103):
                 if i <= 100:
@@ -210,10 +226,29 @@ for syst in systs:
                     h2D.Write()
                     h2D_mirror.Write()
                 else:
-                    name = "x_" + proc + "_alphaS%s" % ("Up" if i == 101 else "Down")
+                    name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
                     h2D = getTH2fromTH3(h3D, name, i, i)
                     h2D.Write()
-
+        if "NNPDF30" in syst:
+            if "pdfNNPDF30" in syst:
+                # this includes only pdf hessians (bins 1 to 100)
+                # pdfxx needs mirroring
+                for i in range(1,101):
+                    name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
+                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                    h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                    h2D.Write()
+                    h2D_mirror.Write()
+            # the following should already be TH2            
+            elif "alphaS0117NNPDF30" in syst:
+                name = "x_" + proc + "_alphaSDown"
+                h3D.Write(name)
+            elif "alphaS0119NNPDF30" in syst:
+                name = "x_" + proc + "_alphaSUp"
+                h3D.Write(name)
+        #WIP
+                    
 nKeys = outf.GetNkeys()
 outf.Close()
 print(f"{nKeys} histograms saved in file {outfilename}")

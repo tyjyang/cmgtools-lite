@@ -106,11 +106,15 @@ Among the main general options:
 - _--exclude-nuisances_: exclude some nuisances when writing the card, using regular expressions
 - _--keep-nuisances_: keep these nuisances (overriding those excluded by _--exclude-nuisances_)
 - _--mass-nuis_: use only this nuisance parameters for mass shift, neglecting all the others
+- _--dataset_: specify histogram to be used as data (default is data_obs), useful for tests with pseudodata (running combinetf.py with _-t 0_)
+- _--card-folder_: specify a name for a subfolder where all cards and fit results are created (default is nominal), it is useful to avoid overwriting cards from previous tests
+- _--shape-file-postfix_: use this postfix to select a different root file with the histograms (usually the name looks like Wmunu_plus_shapes.root, so it gets Wmunu_plus_shapes_{postfix}.root)
 
 Some options to customize fit (check the script for more)
 - _--fit-single-charge_: fit single charge
 - _--postfix_: enable the same option of text2hdf5.py, adding a postfix to output file (to distinguish different files without having to change output folder). This is propagated automatically to combinetf.py
 
+Root files containing pseudodata histograms to be used with option _--dataset_ can be produced from a nominal one using _w-mass-13TeV/makePseudoData.py_
 
 Examples for some realistic fits (Wmass)
 - fit each single charge independently, freezing POIs (to measure mW), selecting mass shift of 100 MeV, and skipping fit to data (thus only doing Asimov)
@@ -119,7 +123,7 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-si
 ```
 - fit combination
 ```
-python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background [--shape-file-postfix someName] --card-folder
 ```
 
 **NOTE**: there is currently an issue with combinetf for which the stat uncertainty from the fit is always 0. To estimate it, one can run the fit removing all systematics (as well as MC stat uncertainty) and checking the total uncertainty. Actually, in order to assess the impacts on mW later, one should keep at least one nuisance parameter other than the mW parameter (one can select a lnN uncertainty applied on a minor background, so that the total uncertainty will still correspond to stat only). This can be achieved running w-mass-13TeV/cardMaker.py adding these options
@@ -133,7 +137,7 @@ where the postfix is just not to overwrite the nominal fit outputs, -x removes a
 Once the root file for the fit result is available, one can plot the prefit and postfit shapes, including ratios and projections along eta or pt. This is done with the following command (for only the positive charge and postVFP era in this example)
 
 ```
-python w-mass-13TeV/postFitHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus
+python w-mass-13TeV/postFitHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus [--wlike]
 ```
 By default the script expects that no masked channel was used in the fit, which might be the case when fitting all processes including W as background. Otherwise, option __--n-mask-chan 1__ must be used, specifying how many masked channels were used (usually it would be 1 per lepton channel, so here we used just 1 since we don't fit electrons). This is important because the postfit 1D histograms returned by combinetf.py have a bunch of additional bins with respect to the template bins, but only if masked channels were used.
 
@@ -142,6 +146,15 @@ By default the script expects that no masked channel was used in the fit, which 
 ```
 python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456789_Asimov_bbb1_cxs1.root  -o plots/testNanoAOD/fits/test_impacts/ --nuisgroups ALL --prefitUncertainty 100 --scaleToMeV --showTotal
 ```
+
+### Plot pulls and constraints in parameters
+
+This script makes plots and also saves numbers in an html file, for easier inspection of values.
+
+```
+python w-mass-13TeV/diffNuisances.py --infile cards/path/to/fitresults.root --outdir plots/your/favourite/output/folder/ -a --format html --type hessian --suffix Data --pois "pdf.*|alphaS" --uniqueString "pdfsAndAlphaS" --y-setting -3.0 -1.0 0 1.0 3.0
+```
+Can use other options to customize the way pulls are displayed or printed in the html file.
 
 ## Prepare scale factors for the analysis
 

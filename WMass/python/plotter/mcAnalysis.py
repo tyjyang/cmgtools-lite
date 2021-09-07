@@ -91,7 +91,7 @@ class MCAnalysis:
         if "ALLOW_OVERWRITE_SETTINGS" in addExtras:
             if addExtras["ALLOW_OVERWRITE_SETTINGS"] == True:
                 logging.warning("Found setting ALLOW_OVERWRITE_SETTINGS=True in %s. " % str(field0_addExtras))
-                loggin.warning("Will use new settings overwriting those in mca included file %s." % str(samples))
+                logging.warning("Will use new settings overwriting those in mca included file %s." % str(samples))
                 
         for line in open(samples,'r'):
             if re.match("\s*#.*", line): continue
@@ -474,7 +474,10 @@ class MCAnalysis:
         if self._options.useRunGraphs:        
             # assign all histograms to the graph, to allow for simultaneous loop
             logging.info("Have these processes and components")
-            logging.info(list(self.allRDF.keys()))       
+            logging.info(list(self.allRDF.keys()))
+            if len(list(self.allRDF.keys())) == 0:
+                logging.warning("No component found: please check!")
+                quit()
             allHistogramsList = []
             for key in list(self.allRDF.keys()):
                 allHistogramsList.extend(hist for hist in self.allHistos[key])
