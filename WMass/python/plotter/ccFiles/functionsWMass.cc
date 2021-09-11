@@ -579,6 +579,7 @@ struct pair_hash
     }
 };
 
+std::unordered_map<DataEra, TH2D> hMuonPrefiringNew = {}; // this has the modelling of prefiring versus pt
 std::unordered_map<DataEra, TH1F> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHist = {};
 //std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2F, pair_hash> prePostCorrToHist = {};
@@ -615,13 +616,38 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   
   _file_allSF.Close(); // should work since we used TH1F::SetDirectory(0) to detach histogram from file
 
+  // new prefiring from Jan
+  std::string _filename_prefiringNew = "./testMuonSF/L1MuonPrefiringParametriations_histograms.root";
+  TFile _file_prefiringNew = TFile(_filename_prefiringNew.c_str(), "read");
+  if (!_file_prefiringNew.IsOpen()) {
+    std::cerr << "WARNING: Failed to open prefiring file " << _filename_prefiringNew << "\n";
+    exit(EXIT_FAILURE);
+  }
+  std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiringNew << std::endl;
+  for (auto& era : runEraNames) {
+    // std::cout << era.second << std::endl;
+    if (era.first == H) {
+      hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016H")));
+      hMuonPrefiringNew[era.first].SetDirectory(0);
+    } else if (era.first != GToH) {
+      hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016preVFP")));
+      hMuonPrefiringNew[era.first].SetDirectory(0);
+    } else {
+      hMuonPrefiringNew[GToH] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016postVFP")));
+      hMuonPrefiringNew[GToH].SetDirectory(0);
+      _file_prefiringNew.Close();
+    }
+  }
+  
+  
+  // old prefiring from Dmytro
   std::string _filename_prefiring = "./testMuonSF/muonPrefiring_prePostVFP.root";
   TFile _file_prefiring = TFile(_filename_prefiring.c_str(), "read");
   if (!_file_prefiring.IsOpen()) {
     std::cerr << "WARNING: Failed to open prefiring file " << _filename_prefiring << "\n";
     exit(EXIT_FAILURE);
   }
-  std::cout << "INFO >>> Initializing histograms for prefiring from file " << _filename_prefiring << std::endl;
+  std::cout << "INFO >>> Initializing also older histograms for prefiring from file " << _filename_prefiring << std::endl;
   for (auto& era : runEraNames) {
     // std::cout << era.second << std::endl;
     if (era.first == H) {
@@ -1110,6 +1136,35 @@ Vec_d _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
   return res;
 
 }
+
+double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, DataEra era = BToF) {
+
+  // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
+  double sf = 1.0;
+  // get SF = Prod_i( 1 - P_pref[i] )
+  // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
+
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
+
+  const TH2D& hprefire = hMuonPrefiringNew[era];
+  int nBins = hprefire.GetNbinsX();
+  int prefireBin = 0;
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+    prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
+    double prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
+    //if (prefiringProbability < 0 || prefiringProbability > 1) {
+      //std::cout << "params 0,1,2 = " << hprefire.GetBinContent(prefireBin, 1) << "," << hprefire.GetBinContent(prefireBin, 2) << ", " << hprefire.GetBinContent(prefireBin, 3) << std::endl;
+      //std::cout << "eta,pt = " << eta[i] << "," << pt[i] << "   prefiringProbability = " << prefiringProbability << std::endl;
+      //prefiringProbability = 0.0;
+    //}
+    sf *= (1.0 - prefiringProbability);
+  }
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << "   nMuons = " << eta.size() << "   sf = " << sf << std::endl;
+  return sf;  
+  
+}
+
+
 
 double _get_fullMuonSF(float pt,      float eta,      int charge,
 		       float ptOther, float etaOther,

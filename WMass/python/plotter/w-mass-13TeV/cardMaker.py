@@ -52,18 +52,30 @@ def isExcludedNuisance(excludeNuisances=[], name="", keepNuisances=[]):
         return False
 
 class CardMaker:
-    def __init__(self,options,charge):
+    def __init__(self,options, charge):
         self._options = options
         self.charge = charge
         self.flavor = self._options.flavor
         #self.data_eras = ["B", "C", "D", "E", "F", "F_postVFP", "G", "H"] # not needed I think, FIXME
         self.excludeNuisances = []
         self.keepNuisances = []
+        self.excludeProcesses = ""
+        self.keepProcesses = ""
+
         if len(options.excludeNuisances):
             self.excludeNuisances = options.excludeNuisances.split(",")
         if len(options.keepNuisances):
             self.keepNuisances = options.keepNuisances.split(",")
-                
+
+        for k in self._options.excludeProcesses:
+            ch,regexp = k.split("=")
+            if str(ch) == self.charge:
+                self.excludeProcesses = regexp
+        for k in self._options.keepProcesses:
+            ch,regexp = k.split("=")
+            if str(ch) == self.charge:
+                self.keepProcesses = regexp
+            
         pathToImport = os.path.abspath("./w-mass-13TeV/") + "/" # should work
         if self._options.isWlike:
             pathToImport += 'wlike_{fl}'.format(fl=self.flavor)
@@ -214,6 +226,11 @@ class CardMaker:
         tf.Close()
 
         processes   = [proc for (proc,syst) in procAndHistos if (syst == 'central' and proc != 'data' and proc != "data_obs" and not proc.startswith("pseudodata") and proc != self._options.dataname)]
+        if self.keepProcesses:
+            processes = [p for p in processes if re.match(self.keepProcesses, p)]
+        elif self.excludeProcesses:
+            processes = [p for p in processes if not re.match(self.excludeProcesses, p)]
+            
         if self._options.allProcessesBackground:
             allprocs = [(p,i+1) for i,p in enumerate(processes)]
         else:
@@ -250,6 +267,8 @@ class CardMaker:
         # if some systs have to be decorrelated by charge, the histograms shoudl already exist with appropriate name
         # and the syst should already inherit the name with charge inside
         for (proc,syst),histo in iter(procAndHistos.items()):
+            if proc not in processes:
+                continue
             ### skip the central histograms
             if syst=='central': continue
             if any(syst.endswith(x) for x in ["Up", "Down"]):
@@ -326,7 +345,7 @@ class CardMaker:
         ### -- groups --
         datacard.write('\n\n')
         for group,systs in iter(systGroups.items()):
-            sortedsysts = [x for x in systs if x not in excludedSysts]
+            sortedsysts = [x for x in systs if x not in excludedSysts and any([v != '-' for v in appliedSystMatrix[x]])]
             if len(sortedsysts) == 0:
                 continue
             sortedsysts = sortSystsForDatacard(sortedsysts)
@@ -523,11 +542,14 @@ if __name__ == "__main__":
     parser.add_argument("-S",  "--doSystematics", type=int, default=1, help="enable systematics when running text2hdf5.py (-S 0 to disable them)")
     parser.add_argument("-x",  "--exclude-nuisances", dest="excludeNuisances", default="", type=str, help="Pass comma-separated list of regular expressions to exclude some systematics")
     parser.add_argument("-k",  "--keep-nuisances", dest="keepNuisances", default="", type=str, help="Pass comma-separated list of regular expressions to keep some systematics, overriding --exclude-nuisances. Can be used to keep only 1 syst while excluding all the others")
+    parser.add_argument("--xp",  "--exclude-processes", dest="excludeProcesses", default=[], action="append", type=str, help="Pass a regular expression for one or both charges to exclude matching processes for each. Syntax is charge=regexp. Can specify once for each charge")
+    parser.add_argument("--kp",  "--keep-processes", dest="keepProcesses", default=[], action="append", type=str, help="Pass a regular expression for one or both charges to exclude matching processes for each. Syntax is charge=regexp. Can specify once for each charge. This option overrides --exclude-processes")
     parser.add_argument(       "--clipSystVariations", type=float, default=-1.,  help="Clipping of syst variations, passed to text2hdf5.py")
     parser.add_argument(       "--clipSystVariationsSignal", type=float, default=-1.,  help="Clipping of signal syst variations, passed to text2hdf5.py")
     parser.add_argument('--fp','--freezePOIs'  , dest='freezePOIs'   , default=False, action='store_true', help='run tensorflow with --freezePOIs')
     parser.add_argument(       '--no-bbb'  , dest='noBBB', default=False, action='store_true', help='Do not use bin-by-bin uncertainties')
-    parser.add_argument(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
+    #parser.add_argument(       '--no-correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=False, action='store_true', help='Do not use option --correlateXsecStat when using bin-by-bin uncertainties ')
+    parser.add_argument(       '--correlate-xsec-stat'  , dest='noCorrelateXsecStat', default=True, action='store_false', help='If given, use option --correlateXsecStat when using bin-by-bin uncertainties (for mass measurements it should not be needed because we do not use prefit cross sections)')
     parser.add_argument('-d',  '--dry-run'  , dest='dryRun', default=False, action='store_true', help='Do not execute command to make cards or fit')
     parser.add_argument(       '--no-text2hdf5'  , dest='skip_text2hdf5', default=False, action='store_true', help='skip running text2hdf5.py at the end, only prints command (useful if hdf5 file already exists, or for tests)')
     parser.add_argument(       '--no-combinetf'  , dest='skip_combinetf', default=False, action='store_true', help='skip running combinetf.py at the end, just print command (useful for tests)')

@@ -118,7 +118,7 @@ if __name__ == "__main__":
     regexp_syst = re.compile(args.systematics.replace(',','|'))
 
     nominals = {p : None for p in processes}
-    print(nominals)
+    #print(nominals)
     ratios = {p : [] for p in processes}
 
     canvas = ROOT.TCanvas("canvas","",900,800) 

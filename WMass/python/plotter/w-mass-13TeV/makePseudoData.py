@@ -35,14 +35,20 @@ if __name__ == "__main__":
     parser.add_argument("originalshapefile", type=str, nargs=1, help="Root file where to add the new pseudodata histogram")
     parser.add_argument('-p','--postfix', dest='postfix', default='addPseudodata', type=str, help='Postfix for output file')
     parser.add_argument('-n','--name', default='x_pseudodata', type=str, help='name for pseudodata histogram to be created')
-    parser.add_argument(     '--add-original-shapes', dest='originalShapes', default='x_Wmunu_minus,x_Wtaunu_plus,x_Wtaunu_minus,x_Zmumu,x_Ztautau,x_Top,x_Diboson,x_data_fakes', type=str, help='Histograms from original root file that will be added to form the pseudodata (comma-separated list of histogram names)')
+    parser.add_argument(     '--add-original-shapes', dest='originalShapes', default='x_Wmunu_minus,x_Wtaunu_plus,x_Wtaunu_minus,x_Zmumu,x_Ztautau,x_Top,x_Diboson,x_data_fakes', type=str, help='Histograms from original root file that will be added to form the pseudodata (comma-separated list of histogram names). If empty pseudodata is only made of what is passed to --add-modified-shapes')
     parser.add_argument(     '--add-modified-shapes', dest='modifiedShapes', default='x_Wmunu_plus', type=str, help='Histograms from new root file that will be added to form the pseudodata (comma-separated list of histogram names, if empty nothing is used)')
     parser.add_argument(     '--overwrite', action='store_true', help="If the new created histogram already exists in the input it will be overwritten if using this option")
     args = parser.parse_args()
 
+    if not args.modifiedShapes and not args.originalShapes:
+        print("Warning: no histogram was chosen from any file. Abort")
+        quit()
+    
     if not args.name.startswith("x_"):
         args.name = "x_" + args.name
-    
+
+    print(f"I will create {args.name} summing '{args.originalShapes}' and '{args.modifiedShapes}'")
+        
     pseudodata = None    
     infile = safeOpenFile(args.originalshapefile[0], mode="READ")
     # check that the pseudodata histogram does not exist, unless one wants to update it
@@ -51,17 +57,22 @@ if __name__ == "__main__":
         print("Warning: histogram {args.name} already exists in {args.originalshapefile[0]}. Abort without overwriting")
         quit()
 
-    for ih,hname in enumerate(list(args.originalShapes.split(","))):
-        if ih == 0:
-            pseudodata = safeGetObject(infile, hname)
-        else:
-            pseudodata.Add(safeGetObject(infile, hname))
+    if args.originalShapes:
+        for ih,hname in enumerate(list(args.originalShapes.split(","))):
+            if ih == 0:
+                pseudodata = safeGetObject(infile, hname)
+            else:
+                pseudodata.Add(safeGetObject(infile, hname))    
     infile.Close()
 
-    infile = safeOpenFile(args.rootfile[0], mode="READ")
-    for ih,hname in enumerate(list(args.modifiedShapes.split(","))):
-        pseudodata.Add(safeGetObject(infile, hname))
-    infile.Close()
+    if args.modifiedShapes:
+        infile = safeOpenFile(args.rootfile[0], mode="READ")
+        for ih,hname in enumerate(list(args.modifiedShapes.split(","))):
+            if ih == 0 and pseudodata == None:
+                pseudodata = safeGetObject(infile, hname)
+            else:
+                pseudodata.Add(safeGetObject(infile, hname))
+        infile.Close()
 
     pseudodata.SetName(args.name)
     pseudodata.SetTitle("Pseudodata")

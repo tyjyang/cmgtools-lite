@@ -201,7 +201,7 @@ for syst in systs:
             else:
                 ptbin = 0 # told you ;)
                 # new ntuples have 9 elements, older had 18
-                qcdscales = getQCDScaleIndices() if h3D.GetNbinsZ() == 9 else getQCDScaleIndicesOldNtuples()
+            qcdscales = getQCDScaleIndices() if h3D.GetNbinsZ() == 9 else getQCDScaleIndicesOldNtuples()
             indices = sorted(list(qcdscales.keys()))
             for i in indices:
                 systname = qcdscales[i]

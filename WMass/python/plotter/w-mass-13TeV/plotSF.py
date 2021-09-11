@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("rootfile", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF,GtoH,B,C,D,E,F,G,H", help="Comma separated list of eras for SF in histogram name; default: %(default)s")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,reco,tracking,idip,iso,antiiso,isonotrig,antiisonotrig", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,antiiso,isonotrig,antiisonotrig", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
     parser.add_argument('--makePreOverPost', action="store_true", help="Make data/data and MC/MC scale factors (in subfolder 'effRatio_preOverPost/')")
     args = parser.parse_args()
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
                                 draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
             # rel. uncertainty
-            drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"rel. uncertainty on {n} SF (%)",
+            drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"rel. uncertainty on {n} SF",
                                 f"relUnc_muonSF_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
                                 draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
@@ -207,7 +207,7 @@ if __name__ == "__main__":
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
                                 draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
             # plot relative error
-            drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product (%)",
+            drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product",
                                 f"relUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
                                 draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                                     draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
                 # plot relative error
                 drawCorrelationPlot(prodHistsPrePost[dataType][n],
-                                    "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product (%)",
+                                    "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product",
                                     f"relUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
                                     smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
                                     draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
