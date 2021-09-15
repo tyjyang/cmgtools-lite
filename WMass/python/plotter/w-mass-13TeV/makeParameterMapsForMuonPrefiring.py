@@ -46,6 +46,31 @@ if __name__ == "__main__":
 
     hplot = ROOT.TH2D("hplot", "", len(etabinsfloat)-1, array('d', etabinsfloat), 100, 10, 60)
     canvas = ROOT.TCanvas("canvas", "", 800, 800) 
+
+    fhotspot = safeGetObject(infile, "L1prefiring_muonparam_HotSpot_2016", quitOnFail=True, silent=True, detach=False)
+    hhotspot = ROOT.TH2D("L1prefiring_muonparam_2016_hotspot", "1.24 < #eta < 1.6, 2.44346 < #phi < 2.79253", 1, 1.24, 1.6, 3, 0.5, 3.5)
+    hplot.Reset("ICESM")
+    hplot.SetTitle(f"2016 hotspot, 1.24 < #eta < 1.6, 2.44346 < #phi < 2.79253")
+    hhotspot.SetBinContent(1, 1, fhotspot.GetParameter(0))
+    hhotspot.SetBinContent(1, 2, fhotspot.GetParameter(1))
+    hhotspot.SetBinContent(1, 3, fhotspot.GetParameter(2))
+    hhotspot.SetBinError(1, 1, fhotspot.GetParError(0))
+    hhotspot.SetBinError(1, 2, fhotspot.GetParError(1))
+    hhotspot.SetBinError(1, 3, fhotspot.GetParError(2))
+    ibin = hplot.GetXaxis().FindFixBin(1.3)
+    for ipt in range(1, hplot.GetNbinsY()+1):
+        val = fhotspot.Eval(hplot.GetYaxis().GetBinCenter(ipt))
+        hplot.SetBinContent(ibin,   ipt, val)
+        hplot.SetBinContent(ibin+1, ipt, val)
+    hhotspot.Write()
+    drawCorrelationPlot(hplot,
+                        "Muon #eta",
+                        "Muon p_{T} (GeV)",
+                        f"Prefiring probability::0.0,{hplot.GetBinContent(hplot.GetMaximumBin())}",
+                        f"muonPrefiringProbability_2016_hotspot", plotLabel="ForceTitle", outdir=plotFolder,
+                        draw_both0_noLog1_onlyLog2=1, nContours=51, palette=87,
+                        passCanvas=canvas, skipLumi=True)
+    
     
     for era in eras:
         hplot.SetTitle(f"2016{era}")

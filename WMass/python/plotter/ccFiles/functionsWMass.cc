@@ -580,6 +580,7 @@ struct pair_hash
 };
 
 std::unordered_map<DataEra, TH2D> hMuonPrefiringNew = {}; // this has the modelling of prefiring versus pt
+TH2D* hMuonPrefiringNew_hotspot = nullptr;
 std::unordered_map<DataEra, TH1F> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHist = {};
 //std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2F, pair_hash> prePostCorrToHist = {};
@@ -630,15 +631,17 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
       hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016H")));
       hMuonPrefiringNew[era.first].SetDirectory(0);
     } else if (era.first != GToH) {
-      hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016preVFP")));
+      // BG should be like preVFP, but more data was used to derive corrections
+      //hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016preVFP")));
+      hMuonPrefiringNew[era.first] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016BG")));
       hMuonPrefiringNew[era.first].SetDirectory(0);
     } else {
       hMuonPrefiringNew[GToH] = *(dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016postVFP")));
       hMuonPrefiringNew[GToH].SetDirectory(0);
-      _file_prefiringNew.Close();
     }
   }
-  
+  hMuonPrefiringNew_hotspot = (dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016_hotspot")));
+  _file_prefiringNew.Close();
   
   // old prefiring from Dmytro
   std::string _filename_prefiring = "./testMuonSF/muonPrefiring_prePostVFP.root";
@@ -659,9 +662,9 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
     } else {
       hMuonPrefiring[GToH] = *(dynamic_cast<TH1F*>(_file_prefiring.Get("muonPrefiring_postVFP")));
       hMuonPrefiring[GToH].SetDirectory(0);
-      _file_prefiring.Close();
     }
   }
+  _file_prefiring.Close();
   
 }
 
@@ -787,7 +790,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
     exit(EXIT_FAILURE);
   }
   
-  std::cout << "INFO >>> Initializing histograms for SF from file " << _filename_allSF << std::endl;
+  std::cout << "INFO >>> Initializing histograms for test SF from file " << _filename_allSF << std::endl;
 
   // data/data
   for (auto& corr : scalefactorNames) {
@@ -1137,21 +1140,25 @@ Vec_d _get_MuonPrefiringSFvariation(int n_prefireBinNuisance,
 
 }
 
-double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, DataEra era = BToF) {
+double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
 
-  // can be called as Muon_eta, Muon_pt, Muon_looseId, no need to use Muon_eta[prefirableMuon]
   double sf = 1.0;
-  // get SF = Prod_i( 1 - P_pref[i] )
-  // int nBinsX = hMuonPrefiring[era].GetNbinsX(); // not needed if not neglecting under/overflow
-
   // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
 
   const TH2D& hprefire = hMuonPrefiringNew[era];
   int nBins = hprefire.GetNbinsX();
   int prefireBin = 0;
+  double prefiringProbability = 0.0;
   for (unsigned int i = 0; i < eta.size(); ++i) {
-    prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
-    double prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
+    if (not looseId[i]) continue;
+    if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
+      prefiringProbability = hMuonPrefiringNew_hotspot.GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
+    } else {
+      prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
+      prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
+    }
+    if (prefiringProbability < 0) prefiringProbability = 0.0;
+    else if (prefiringProbability > 1) prefiringProbability = 1.0;    
     //if (prefiringProbability < 0 || prefiringProbability > 1) {
       //std::cout << "params 0,1,2 = " << hprefire.GetBinContent(prefireBin, 1) << "," << hprefire.GetBinContent(prefireBin, 2) << ", " << hprefire.GetBinContent(prefireBin, 3) << std::endl;
       //std::cout << "eta,pt = " << eta[i] << "," << pt[i] << "   prefiringProbability = " << prefiringProbability << std::endl;
@@ -1164,7 +1171,82 @@ double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, DataEra era = 
   
 }
 
+Vec_d _get_newMuonPrefiringSFvariationSyst(int nSystVar, const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
 
+  // should be called with nSystVar = 3 (at least, can codify more variations) representing nominal, Up, Down
+  Vec_d res(nSystVar, 1.0); // initialize to 1
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
+  const TH2D& hprefire = hMuonPrefiringNew[era];
+  int nBins = hprefire.GetNbinsX();
+  int prefireBin = 0;
+  double prefiringProbability = 0.0;
+  
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+    if (not looseId[i]) continue;
+    if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
+      prefiringProbability = hMuonPrefiringNew_hotspot.GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
+    } else {
+      prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
+      prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
+    }
+    if (prefiringProbability < 0) prefiringProbability = 0.0;
+    res[0] *= (1.0 - std::min(1.0, prefiringProbability));
+    res[1] *= (1.0 - std::min(1.0, 1.11*prefiringProbability));
+    res[2] *= (1.0 - std::min(1.0, 0.89*prefiringProbability));
+    //if (prefiringProbability < 0 || prefiringProbability > 1) {
+      //std::cout << "params 0,1,2 = " << hprefire.GetBinContent(prefireBin, 1) << "," << hprefire.GetBinContent(prefireBin, 2) << ", " << hprefire.GetBinContent(prefireBin, 3) << std::endl;
+      //std::cout << "eta,pt = " << eta[i] << "," << pt[i] << "   prefiringProbability = " << prefiringProbability << std::endl;
+      //prefiringProbability = 0.0;
+    //}
+  }
+  // std::cout << "PREFIRING FOR: " << eraNames[era] << "   nMuons = " << eta.size() << "   sf = " << sf << std::endl;
+  return res;  
+  
+}
+
+Vec_d _get_newMuonPrefiringSFvariationStat(int n_prefireBinNuisance, const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
+
+  // this function directly provides the alternative prefiring SF, not the variation on the original one
+  // it is supposed to be called instead of the nominal weight
+  // it returns a vector used as an event weight to get all variations in the same TH3 (eta-pt-prefireBin)
+
+  Vec_d res(n_prefireBinNuisance, 1.0); // initialize to 1
+
+  double tmpval = 0.0;
+  double prefiringProbability = 0.0;
+  double prefiringProbabilityErr = 0.0;
+  double prefiringProbabilityUp = 0.0;
+  const TH2D& hprefire = hMuonPrefiringNew[era];
+  int nBins = hprefire.GetNbinsX();
+  int prefireBin = 0;
+  
+  for (unsigned int i = 0; i < eta.size(); ++i) {
+
+    if (not looseId[i]) continue;
+    if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
+      tmpval = 1.0 / (TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
+      prefiringProbability    = hMuonPrefiringNew_hotspot.GetBinContent(1, 3);
+      prefiringProbabilityErr = hMuonPrefiringNew_hotspot.GetBinError(1, 3);
+      
+    } else {
+      prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
+      tmpval = 1.0 / (TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
+      prefiringProbability    = hprefire.GetBinContent(prefireBin, 3);
+      prefiringProbabilityErr = hprefire.GetBinError(prefireBin, 3);
+    }
+    // fill the vector with the nominal weight in each bin,
+    // while the vector bin corresponding to prefireBin will be filled with prefiring probability moved by its uncertainty
+    prefiringProbabilityUp = tmpval * (prefiringProbability + prefiringProbabilityErr);
+    prefiringProbability *= tmpval;
+    tmpval = res[prefireBin-1];
+    res *= std::min(1.0, std::max(0.0, 1.0 - prefiringProbability));
+    res[prefireBin-1] = std::min(1.0, std::max(0.0, tmpval * (1.0 - prefiringProbabilityUp)));
+
+  }
+  
+  return res;
+
+}
 
 double _get_fullMuonSF(float pt,      float eta,      int charge,
 		       float ptOther, float etaOther,

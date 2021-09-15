@@ -234,6 +234,8 @@ bareMuonMinus_pt_eta: GenPart_pt[bareMuonsMinus][0]\:GenPart_eta[bareMuonsMinus]
 
 bareMuon_pt_eta__accept: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_accept)>0 && minDeltaR2many(Muon_eta[goodMuons_accept]\,Muon_phi[goodMuons_accept]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
 
+bareMuon_pt_eta__veto: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(vetoMuons)>0 && minDeltaR2many(Muon_eta[vetoMuons]\,Muon_phi[vetoMuons]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
 bareMuon_pt_eta__trackerOrGlobal: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_trackerOrGlobal)>0 && minDeltaR2many(Muon_eta[goodMuons_trackerOrGlobal]\,Muon_phi[goodMuons_trackerOrGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
 
 bareMuon_pt_eta__trackerOrGlobalAndStandalone: GenPart_pt[bareMuonsCharge][0]\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,110,10,65 ; XTitle='bare muon #eta', YTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_trackerOrGlobalAndStandalone)>0 && minDeltaR2many(Muon_eta[goodMuons_trackerOrGlobalAndStandalone]\,Muon_phi[goodMuons_trackerOrGlobalAndStandalone]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"

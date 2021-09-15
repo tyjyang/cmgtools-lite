@@ -176,11 +176,11 @@ write3DHist(label = "effStatTnP",
 )
 
 
-# prefiring uncertainty, uncorrelated for each eta bin. Here the function is _get_MuonPrefiringSFvariation, which replace _get_MuonPrefiringSF in the nominal weight, using ReplaceWeight
-write3DHist(label = "muonL1Prefire",
+# muon prefiring stat uncertainty, uncorrelated for each eta bin. Here the function is _get_newMuonPrefiringSFvariationStat, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
+write3DHist(label = "muonL1PrefireStat",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 16, # remember to edit weight below if changing this 
+            nsyst = 11, # remember to edit weight below if changing this 
             xylabels = axisNames,
             weight_axis = "Muon L1 prefiring nuisance index",
             etapt_binning = etaptBins,
@@ -188,7 +188,22 @@ write3DHist(label = "muonL1Prefire",
             outfile = outf,
             systBinStart = 0.5,
             indexStart = 1,
-            replaceWeight = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation(16\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+            replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationStat(11\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+)
+
+# muon prefiring syst uncertainty, correlated across eta bins. Here the function is _get_newMuonPrefiringSFvariationSyst, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
+write3DHist(label = "muonL1PrefireSyst",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 3, # remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "Muon L1 prefiring nuisance index",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 3.5,
+            replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationSyst(3\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
 )
 
 

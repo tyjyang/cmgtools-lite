@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--hname", default="bareMuon_pt_eta", help="Root of histogram name inside root file")
     parser.add_argument("-y", "--y-axis-name", dest="yAxisName", default="bare muon p_{T} (GeV)", help="y axis name")
     parser.add_argument("--postfix", default="", help="Postfix for output folder")
-    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit", help="Comma separated list of working points to fetch input histograms")
+    parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit,veto", help="Comma separated list of working points to fetch input histograms")
     parser.add_argument("-e", "--era",    type=str, default="B,C,D,E,F,BToF,G,H,GToH", help="Comma separated list of eras, which identify the input subfolder")
     parser.add_argument("-p", "--process", default="Wmunu_plus", type=str, help="Process to pick histogram")
     parser.add_argument("-r", "--eff-range", dest="effRange", default=(0,-1), type=float, nargs=2, help="Z axis range for efficiency plot")
