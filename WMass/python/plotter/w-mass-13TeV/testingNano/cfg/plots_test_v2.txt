@@ -1,0 +1,21 @@
+# with the goodMuonsCharge RVec object, which is created with appropriate configurations and used as RDataFrame::Define and RDataFrame::Alias, it is no longer needed to distinguish the variable to be plotted between W and Z_wlike analyses
+# Muon_pt[goodMuonsCharge][0] will always be the first muon with the selected charge and passing predefined selection criteria, for W it might be the only muon in the event, for Z it will automatically be the one with desired charge
+# the same is valid for most of the functions
+
+muon_pt_eta: custom_Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55 ; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', Legend='TR'
+
+muon_pt: custom_Muon_pt[goodMuonsCharge][0]: 55,25,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_eta_fine: Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4; XTitle="Muon #eta", Legend='TC', IncludeOverflows=True
+
+muon_pt_other: custom_Muon_pt[goodMuonsOther][0]: 55,25,80; XTitle="Other muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_eta_other: Muon_eta[goodMuonsOther][0]: 24,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
+
+muon_eta_other_fine: Muon_eta[goodMuonsOther][0]: 48,-2.4,2.4; XTitle="Other muon #eta", Legend='TC', IncludeOverflows=True
+
+zpt : transversemomentum(custom_Muon_pt[goodMuons],Muon_phi[goodMuons]): 50,0,100 ; XTitle="reco Z p_{T} (GeV)", Legend='TR',IncludeOverflows=True, RMin=0.9, RMax=1.1
+
+zy : rapidity(custom_Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 48,-2.4,2.4 ; XTitle="reco Z rapidity", Legend='TR',IncludeOverflows=True
+
+zmass  : invariantmass(custom_Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True, RMin=0.9, RMax=1.1

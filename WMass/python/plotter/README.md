@@ -123,7 +123,7 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-si
 ```
 - fit combination
 ```
-python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background [--shape-file-postfix someName] --card-folder
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background [--shape-file-postfix someName] --card-folder aFolderName
 ```
 
 **NOTE**: there is currently an issue with combinetf for which the stat uncertainty from the fit is always 0. To estimate it, one can run the fit removing all systematics (as well as MC stat uncertainty) and checking the total uncertainty. Actually, in order to assess the impacts on mW later, one should keep at least one nuisance parameter other than the mW parameter (one can select a lnN uncertainty applied on a minor background, so that the total uncertainty will still correspond to stat only). This can be achieved running w-mass-13TeV/cardMaker.py adding these options

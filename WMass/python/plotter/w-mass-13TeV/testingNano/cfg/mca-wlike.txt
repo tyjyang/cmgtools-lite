@@ -81,3 +81,15 @@ Top_postVFP   : .* : 365.64; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="
 Diboson_postVFP: .* :  75.8; FillColor=ROOT.kViolet, Label="Diboson", SubPath="WW_inclusive_postVFP/"
 Diboson_postVFP: .* :  27.6; FillColor=ROOT.kViolet, Label="Diboson", SubPath="WZ_inclusive_postVFP/"
 Diboson_postVFP: .* : 0.564; FillColor=ROOT.kViolet, Label="Diboson", SubPath="ZZ_2l2nu_postVFP/"  
+
+
+Zmumu_preVFP_recoPt : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu (recoPt cut\, PU F)", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era_OLD(Pileup_nTrueInt\,F)*(valueInsideRange(Muon_pt[goodMuonsCharge][0]\,26\,55) && valueInsideRange(Muon_pt[goodMuonsOther][0]\,26\,55))/_get_fullMuonMCEfficiencyEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F)"
+
+Zmumu_preVFP_genPt : .* : 1976.1700 ; FillColor=ROOT.kBlack, Label="Z\#rightarrow\#mu\#mu (genPt cut\, PU B)", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era_OLD(Pileup_nTrueInt\,B)*(valueInsideRange(GenPart_pt[bareMuons][0]\,26\,55) && valueInsideRange(GenPart_pt[bareMuons][1]\,26\,55))/_get_fullMuonMCEfficiencyEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,B)"
+
+Zmumu_preVFP_recoPt2 : .* : 1976.1700 ; FillColor=ROOT.kBlack, Label="Z\#rightarrow\#mu\#mu (recoPt cut\, PU B)", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era_OLD(Pileup_nTrueInt\,B)*(valueInsideRange(Muon_pt[goodMuonsCharge][0]\,26\,55) && valueInsideRange(Muon_pt[goodMuonsOther][0]\,26\,55))/_get_fullMuonMCEfficiencyEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,B)"
+
+
+Zmumu_postVFP_smear: .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu (smear 5%)", SubPath="DYJetsToMuMu_postVFP/"
+
+Zmumu_postVFP_shift: .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu (shift 5%)", SubPath="DYJetsToMuMu_postVFP/"

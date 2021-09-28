@@ -34,8 +34,14 @@ if "/pileupWeights_cc.so" not in ROOT.gSystem.GetLibraries():
 if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/jsonManager.cc")
 
-if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
+if "/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functionsWMass.cc")
+
+if "/RoccoR_cc.so" not in ROOT.gSystem.GetLibraries(): 
+    compileMacro("ccFiles/RoccoR.cc")
+
+if "/roccorManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
+    compileMacro("ccFiles/roccorManager.cc")
 
 def setLogging(verbosity):
     verboseLevel = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
@@ -245,8 +251,14 @@ class TreeToYield:
             name = tokens[0]
             define = tokens[1]
             procRegexp = tokens[2] if len(tokens) > 2 else ".*"
-
-            ret[name] = {"define" : define, "procRegexp" : procRegexp}
+            if len(tokens) == 4:
+                altExpr = tokens[3]
+            else:
+                altExpr = None
+                
+            ret[name] = {"define" : define,
+                         "procRegexp" : procRegexp,
+                         "altExpr" : altExpr}
         return ret
 
     def printRdfDefinitions(self):
@@ -559,11 +571,22 @@ class TreeToYield:
                     self._tree = self._tree.Filter(cutexpr,cutname)
             logging.debug('='*30)
                     
+        # this column must be defined according to the process name, which is expected to include pre or postVFP
+        # the eraVFP column will be used in calls to some functions to specify the era (e.g. for scale factors)
+        if "preVFP" in self._cname:
+            self._tree = self._tree.Define("eraVFP", "BToF")
+        elif "postVFP" in self._cname:
+            self._tree = self._tree.Define("eraVFP", "GToH")
+        else:
+            self._tree = self._tree.Define("eraVFP", "BToH")
+
         # defines
         for name, entry in self._rdfDefs.items():
             if re.match(entry["procRegexp"], self._cname):
                 logging.debug("Defining %s as %s" % (name, entry["define"]))
                 self._tree = self._tree.Define(name, entry["define"])
+            elif entry["altExpr"]:
+                self._tree = self._tree.Define(name, entry["altExpr"])
         # aliases
         for name,entry in self._rdfAlias.items():
             if re.match(entry["procRegexp"], self._cname):
@@ -581,15 +604,6 @@ class TreeToYield:
         else:
             fullcut = cut
             self._tree = self._tree.Filter(fullcut)
-
-        # this column must be defined according to the process name, which is expected to include pre or postVFP
-        # the eraVFP column will be used in calls to some functions to specify the era (e.g. for scale factors)
-        if "preVFP" in self._cname:
-            self._tree = self._tree.Define("eraVFP", "BToF")
-        elif "postVFP" in self._cname:
-            self._tree = self._tree.Define("eraVFP", "GToH")
-        else:
-            self._tree = self._tree.Define("eraVFP", "BToH")
             
         # do not call it, or it will trigger the loop now
         #print "sumGenWeights"

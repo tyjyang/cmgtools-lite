@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# charge plus
+# python runFakeRate.py -o plots/testNanoAOD/WmassPlots/Wnnpdf30_noPDFonZ/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3_nnpdf30.txt" --options " --skipPlot " -c plus -s
+# charge minus
+# python runFakeRate.py -o plots/testNanoAOD/WmassPlots/Wnnpdf30_noPDFonZ/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3_nnpdf30.txt" --options " --skipPlot " -c minus -s
+
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
@@ -102,14 +107,13 @@ def main(args):
     # event weight (global one for MC)
     weight = ""
     if subEra != None:
-        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,{subEra})"
+        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,{subEra})"
     else:
-        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
+        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)"
 
-    # gen weight customization
-    # genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax" # options were removed
-    genweight = "" 
-    
+    # SF file
+    sfOpt = " --scale-factor-file './testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root'  "
+        
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
@@ -120,7 +124,7 @@ def main(args):
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} {genweight} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {sfOpt} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
     

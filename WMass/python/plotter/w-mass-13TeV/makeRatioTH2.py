@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file1", type=str, nargs=1, help="First file")
     parser.add_argument("hist1", type=str, nargs=1, help="Histogram name from first file")
-    parser.add_argument("file2", type=str, nargs=1, help="Second file")
+    parser.add_argument("file2", type=str, nargs=1, help="Second file (can use 'SAME' if equal to first file)")
     parser.add_argument("hist2", type=str, nargs=1, help="Histogram name from second file")
     parser.add_argument('-o','--outdir',  default='', type=str, help='output directory to save things')
     parser.add_argument('-f','--outfilename', default='', type=str, help='Name of output file to save results')
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     f1 = args.file1[0]
     h1 = args.hist1[0]
-    f2 = args.file2[0]
+    f2 = f1 if args.file2[0]  == "SAME" else args.file2[0]
     h2 = args.hist2[0]
 
     ROOT.TH1.SetDefaultSumw2()

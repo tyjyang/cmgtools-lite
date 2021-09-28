@@ -82,20 +82,25 @@ if printToFile: outf.write(line+'\n')
 
 # pdf + alphaS in NNPDF3.1, alphaS has 0.002 variations around 0.118, the 1 sigma variation should be 0.0015
 if args.pdfWeights == "nnpdf31":
-    write3DHist(label = "pdf",
+    write3DHist(label = "pdfNNPDF31",
                 pt_expr = args.ptVar,
                 eta_expr = args.etaVar,
                 nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
                 xylabels = axisNames,
                 weight_axis = "PDF/alpha_{S} index",
                 etapt_binning = etaptBins,
-                regex = "W.*|Z.*",
+                regex = "W.*",
                 outfile = outf,
                 systBinStart = 0.5,
                 indexStart = 0,
                 addWeight = "LHEPdfWeight",
                 nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
     )
+    line = f"alphaS0117NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet5[0]', ProcessRegexp='W.*'\n"
+    line += f"alphaS0119NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet6[0]', ProcessRegexp='W.*'\n"
+    print(line)
+    if printToFile: outf.write(line+'\n')
+
 elif args.pdfWeights == "nnpdf30":
     # pdf in NNPDF3.0, alphaS is available in another branch
     write3DHist(label = "pdfNNPDF30",
@@ -109,7 +114,7 @@ elif args.pdfWeights == "nnpdf30":
                 outfile = outf,
                 systBinStart = 0.5,
                 indexStart = 0,
-                addWeight = "LHEPdfWeightAltSet13/LHEPdfWeightAltSet13[0]",  # when running analysis with different PDFs as nominal, the nominal weight LHEPdfWeightAltSet13[0] is alredy applied to the process, so we need to factorize it out here
+                addWeight = "(1.0/LHEPdfWeightAltSet13[0])*LHEPdfWeightAltSet13",  # when running analysis with different PDFs as nominal, the nominal weight LHEPdfWeightAltSet13[0] is alredy applied to the process, so we need to factorize it out here
                 nBinsZaxis = 100 # we want 100,0.5,100.5 (could have been 101,-0.5,100.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
     )
 
@@ -188,7 +193,8 @@ write3DHist(label = "muonL1PrefireStat",
             outfile = outf,
             systBinStart = 0.5,
             indexStart = 1,
-            replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationStat(11\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+            replaceWeight = f"_get_newMuonPrefiringSF(->_get_newMuonPrefiringSFvariationStat(11\," 
+            #replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationStat(11\,Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)" 
 )
 
 # muon prefiring syst uncertainty, correlated across eta bins. Here the function is _get_newMuonPrefiringSFvariationSyst, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
@@ -202,8 +208,9 @@ write3DHist(label = "muonL1PrefireSyst",
             regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
             outfile = outf,
             systBinStart = 0.5,
-            indexStart = 3.5,
-            replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationSyst(3\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+            indexStart = 1,
+            #replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationSyst(3\,Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)" 
+            replaceWeight = f"_get_newMuonPrefiringSF(->_get_newMuonPrefiringSFvariationSyst(" 
 )
 
 

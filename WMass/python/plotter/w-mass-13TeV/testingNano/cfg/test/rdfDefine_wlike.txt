@@ -24,3 +24,5 @@ scetlibWeightsWp : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, true) : W
 scetlibWeightsZUncorr : Numba::correctN3LL_Z_allVars(mVgen, yVgen, ptVgen, false) : Z
 scetlibWeightsWmUncorr : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, false) : W.*minus
 scetlibWeightsWpUncorr : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, false) : W.*plus
+
+bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z

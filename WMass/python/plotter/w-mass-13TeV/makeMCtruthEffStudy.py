@@ -94,6 +94,9 @@ if __name__ == "__main__":
                "idipANDtrigANDiso/idipANDtrig"  : "iso",
                "idipANDisonotrig/idip"  : "isonotrig"
     }
+    wpToTNPproducts = {"isoTrigPlusProdStepOfTnP" : ["isoStepOfTnP",       "triggerStepOfTnP", "idipStepOfTnP"],
+                       "isoNotrigProdStepOfTnP"   : ["isonotrigStepOfTnP",                     "idipStepOfTnP"],
+    }
     
     mcEff = {}
     for era in eras:
@@ -123,11 +126,12 @@ if __name__ == "__main__":
         print()
         if all(x in workingPoints for x in ["trackerOrGlobalAndStandalone", "standalone"]):
             print("Adding new working point (isTracker OR isGlobal | isStandalone)")
-            mcEff[(era,"trackOrGlobGivenStandAlone")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenStandAlone_{era}"))
-            mcEff[(era,"trackOrGlobGivenStandAlone")].Divide(mcEff[(era,"standalone")])
+            mcEff[(era,"trackOrGlobGivenSA")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenStandAlone_{era}"))
+            mcEff[(era,"trackOrGlobGivenSA")].Divide(mcEff[(era,"standalone")])
             print()
         for wp in wpToTNP.keys():
-            if wpToTNP[wp] not in workingPoints:
+            if any(x not in workingPoints for x in wp.split("/")):
+                print(f"{wp}  {wpToTNP[wp]}")
                 continue
             num = str(wp.split('/')[0])
             den = str(wp.split('/')[1])
@@ -141,8 +145,20 @@ if __name__ == "__main__":
             mcEff[(era,f"{tnpStep}StepOfTnP")].SetTitle(f"{args.process}: {era}")
         if rf.IsOpen():    
             rf.Close()
-
+        
+        for prod in wpToTNPproducts.keys():
+            for ih,htomultiply in enumerate(wpToTNPproducts[prod]):
+                if ih == 0:
+                    mcEff[(era,f"{prod}")] = copy.deepcopy(mcEff[(era,f"{htomultiply}")].Clone(f"mcTruthEff_{prod}_{era}"))
+                    mcEff[(era,f"{prod}")].SetTitle(f"{prod}: {era}")
+                else:
+                    mcEff[(era,f"{prod}")].Multiply(mcEff[(era,f"{htomultiply}")])
+            
     workingPoints = [str(wp) for era,wp in mcEff.keys() if era == eras[0]] # add the new ones for the TnP steps
+    print()
+    print("New working points")
+    print(workingPoints)
+    print()
     
     xAxisName = "bare muon #eta"
     yAxisName = args.yAxisName
@@ -165,7 +181,7 @@ if __name__ == "__main__":
     for era in eras:
         for wp in workingPoints: 
             if "StepOfTnP" in wp:
-                zAxisName = f"TnP step: {wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
+                zAxisName = f"{wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
             else:
                 zAxisName = f"{wp} MC efficiency::{minmax[wp][0]},{minmax[wp][1]}"    
             drawCorrelationPlot(mcEff[(era,wp)],
@@ -238,6 +254,10 @@ if __name__ == "__main__":
 
     tnpErasTmp = ["B", "C", "D", "E", "F_preVFP", "G", "H", "BtoF", "GtoH"] # to fetch histograms in TnP file
     tnpEras = [x for x in tnpErasTmp if x.replace("_preVFP","F").replace("to","To") in eras]
+    print()
+    print(tnpEras)
+    print()
+
     if args.tnpFile:
         
         rf = safeOpenFile(args.tnpFile)

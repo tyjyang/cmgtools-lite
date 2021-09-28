@@ -38,19 +38,19 @@ if __name__ == "__main__":
 
     ROOT.TH1.SetDefaultSumw2()
     
-    # productsToMake = {"isoTrigPlus"       : ["iso",           "triggerplus",  "idip"], # "tracking"],
-    #                   "isoTrigMinus"      : ["iso",           "triggerminus", "idip"], # "tracking"],
-    #                   "isoNotrig"         : ["isonotrig",                     "idip"], # "tracking"],
-    #                   "noisoTrigPlus"     : [                 "triggerplus",  "idip"], # "tracking"],
-    #                   "noisoTrigMinus"    : [                 "triggerminus", "idip"], # "tracking"],
-    #                   "noisoNotrig"       : [                                 "idip"], # "tracking"],
-    #                   "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
-    #                   "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
-    #                   "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
-    # }
-
-    productsToMake = {"trackingReco"      : ["reco", "tracking"], # "tracking"],
+    productsToMake = {"isoTrigPlus"       : ["iso",           "triggerplus",  "idip"], # "tracking"],
+                      "isoTrigMinus"      : ["iso",           "triggerminus", "idip"], # "tracking"],
+                      "isoNotrig"         : ["isonotrig",                     "idip"], # "tracking"],
+                      "noisoTrigPlus"     : [                 "triggerplus",  "idip"], # "tracking"],
+                      "noisoTrigMinus"    : [                 "triggerminus", "idip"], # "tracking"],
+                      "noisoNotrig"       : [                                 "idip"], # "tracking"],
+                      "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
+                      "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
+                      "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
     }
+
+    #productsToMake = {"trackingReco"      : ["reco", "tracking"], # "tracking"],
+    #}
     
 
     eras = args.era.split(',')

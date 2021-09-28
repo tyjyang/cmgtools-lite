@@ -139,6 +139,10 @@ for syst in systs:
     print("{: <20}: {p}".format(syst,p=proclist))
 print('-'*30)
 
+hasNNPDF31alphaS0001var = False
+if all(x in systs for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+    hasNNPDF31alphaS0001var = True
+    
 outf = ROOT.TFile.Open(outfilename,'RECREATE')
 if not outf or not outf.IsOpen():
     raise(RuntimeError('Unable to open file {fn}'.format(fn=outfilename)))
@@ -184,9 +188,9 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
-        if "muonL1Prefire" in syst:
-            for ieff in range(1, 16+1):
-                systname = "muonL1Prefire%d" % ieff
+        if "muonL1PrefireStat" in syst:
+            for ieff in range(1, 11+1):
+                systname = "muonL1PrefireStat%d" % ieff
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
@@ -195,6 +199,14 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
+        if "muonL1PrefireSyst" in syst:
+            for ieff in range(2, 3+1):
+                systname = "muonL1PrefireSyst%d" % ieff
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
+                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D.Write()
         if "qcdScale" in syst:
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence
@@ -214,21 +226,31 @@ for syst in systs:
                 h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
                 h2D.Write()
         #if "pdf" in syst: # now we have more PDF sets, so names are more complicated
-        if "pdfNNPDF31" in syst:
-            # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
-            # pdfxx needs mirroring, alphaS already has Up and Down
-            for i in range(1,103):
-                if i <= 100:
-                    name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
-                    h2D = getTH2fromTH3(h3D, name, i, i)
-                    h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                    h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
-                    h2D.Write()
-                    h2D_mirror.Write()
-                else:
-                    name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
-                    h2D = getTH2fromTH3(h3D, name, i, i)
-                    h2D.Write()
+        # some temporary hacks to force using alpha for 0.001 variations if present (those in the pdf histogram are the 0.002 variations)
+        if "NNPDF31" in syst or syst == "pdf":
+            if "pdfNNPDF31" in syst or syst == "pdf":
+                # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
+                # pdfxx needs mirroring, alphaS already has Up and Down
+                for i in range(1,103):
+                    if i <= 100:
+                        name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
+                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                        h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                        h2D.Write()
+                        h2D_mirror.Write()
+                    elif not hasNNPDF31alphaS0001var:
+                        print(">>> Warning: using alphaS variation equal to 0.002")
+                        name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
+                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D.Write()
+            elif "alphaS0117NNPDF31" in syst and hasNNPDF31alphaS0001var:
+                name = "x_" + proc + "_alphaSDown"
+                h3D.Write(name)
+            elif "alphaS0119NNPDF31" in syst and hasNNPDF31alphaS0001var:
+                name = "x_" + proc + "_alphaSUp"
+                h3D.Write(name)
+        
         if "NNPDF30" in syst:
             if "pdfNNPDF30" in syst:
                 # this includes only pdf hessians (bins 1 to 100)

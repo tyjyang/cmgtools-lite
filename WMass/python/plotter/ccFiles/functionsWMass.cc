@@ -565,7 +565,7 @@ std::unordered_map<DataEra, std::string> eraNames = { {BToF, "BtoF"}, {GToH, "Gt
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"} };
 // FOR TESTS WITH EFFICIENCIES (F is preVFP part)
-std::unordered_map<DataEra, std::string> runEraNames = { {BToF, "BtoF"}, {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
+std::unordered_map<DataEra, std::string> runEraNames = { {GToH, "GtoH"}, {BToF, "BtoF"}, {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
   
 struct pair_hash
 {
@@ -641,6 +641,7 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
     }
   }
   hMuonPrefiringNew_hotspot = (dynamic_cast<TH2D*>(_file_prefiringNew.Get("L1prefiring_muonparam_2016_hotspot")));
+  hMuonPrefiringNew_hotspot->SetDirectory(0);
   _file_prefiringNew.Close();
   
   // old prefiring from Dmytro
@@ -671,7 +672,13 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
 ////=====================================================================================
 
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2D, pair_hash> efficiencyMCtruthPerEra = {};
-std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}, {trackingAndReco, "trackerOrGlobal"}};
+std::unordered_map<ScaleFactorType, std::string> efficiencyNames = { {isoTrigPlus, "idipANDtrigANDiso"}, {isoTrigMinus, "idipANDtrigANDiso"}, {isoNotrig, "idipANDisonotrig"}, {noisoTrigPlus, "idipANDtrig"}, {noisoTrigMinus, "idipANDtrig"}, {noisoNotrig, "idip"}, {trackingAndReco, "trackerOrGlobal"}, {isoTrigPlusStepOfTnp, "isoTrigPlusProdStepOfTnP"}, {isoNotrigStepOfTnP, "isoNotrigProdStepOfTnP"} };
+// std::unordered_map<ScaleFactorType, std::string> efficiencyNamesAsTNP = { {isoTrigPlus, {"idipStepOfTnP", "triggerStepOfTnP", "isoStepOfTnP"}},
+// 									  {isoTrigMinus, {"idipStepOfTnP", "triggerStepOfTnP", "isoStepOfTnP"}},
+// 									  {isoNotrig, {"idipStepOfTnP", "isonotrigStepOfTnP"}},
+// 									  {noisoTrigPlus, {"idipStepOfTnP", "triggerStepOfTnP"}},
+// 									  {noisoTrigMinus, {"idipStepOfTnP", "triggerStepOfTnP"}},
+// 									  {noisoNotrig, {"idipStepOfTnP"}} };
 
 // for test, the trigger efficiency is for plus only at the moment, and all are made with no dz cut and using dxybs
 void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/mcTruthEff.root") {
@@ -688,6 +695,9 @@ void initializeEfficiencyMCtruth(const string& _filename_allSF = "./testMuonSF/m
   
     for (auto& dataRunEra : runEraNames) {
       std::string dataRunEraStr = dataRunEra.second;
+      // adjust some names where the convention was not always consistent
+      if (dataRunEraStr.find("GtoH") != std::string::npos) dataRunEraStr = "GToH";
+      if (dataRunEraStr.find("BtoF") != std::string::npos) dataRunEraStr = "BToF";
       std::vector<std::string> vars = {"mcTruthEff", corr.second, dataRunEraStr};
       std::string corrname = boost::algorithm::join(vars, "_");
       auto* histptr = dynamic_cast<TH2D*>(_file_allSF.Get(corrname.c_str()));
@@ -751,6 +761,37 @@ double _get_MCtruthEffPerEra(float pt,      float eta,      int charge,
 
 }
 
+double _get_MCtruthEffAsTnpPerEra(float pt,      float eta,      int charge,
+				  float ptOther, float etaOther,
+				  DataEra dtype = C
+				  ) {
+
+  //std::cout <<  "type " << datatypeNames[dtype] << std::endl;
+  //std::cout << "pt,eta       -> " << pt      << "," << eta      << std::endl;
+  //std::cout << "pt,eta other -> " << ptOther << "," << etaOther << std::endl;
+
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlusStepOfTnp : isoTrigPlusStepOfTnp; // only charge plus available for now
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2D& hcorr = efficiencyMCtruthPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+  if (sf <= 0.0) {
+    std::cout << "MC truth eff = " << sf << " for era " << runEraNames[dtype] << "   pt = " << pt << "    eta = " << eta << "   charge = " << charge << std::endl;
+  }
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (ptOther > 0.0) {
+    sftype = isoNotrig;
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2D& hcorrOther = efficiencyMCtruthPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+
 double _get_MCtruthRecoAndTrackingEffPerEra(float pt,      float eta,      int charge,
 					    float ptOther, float etaOther,
 					    DataEra dtype = C
@@ -772,7 +813,6 @@ double _get_MCtruthRecoAndTrackingEffPerEra(float pt,      float eta,      int c
 
 }
 
-
 //================
 
 //std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorDataPerEra = {};
@@ -783,6 +823,55 @@ std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleF
 std::unordered_map<ScaleFactorType, TH2F> lumiAverageScaleFactorPreVFP = {};
 
 void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra_nodz_dxybs.root") {
+
+  std::string _filename_trackingRecoSF = "./testMuonSF/trackingRecoEffAndSF_tnp_17Sept2021.root";
+  TFile _file_trackingRecoSF = TFile(_filename_trackingRecoSF.c_str(), "read");
+  if (!_file_trackingRecoSF.IsOpen()) {
+    std::cerr << "WARNING: Failed to open scaleFactors file " << _filename_trackingRecoSF << "! No scale factors will be applied\n";
+    exit(EXIT_FAILURE);
+  }
+
+  std::unordered_map<DataEra, std::string> runEraNamesTrackRecoTnp = { {F, "F"}, {G, "G"} }; // until we have all
+  for (auto& dataRunEra : runEraNamesTrackRecoTnp) {
+    DataEra typeVal = dataRunEra.first;
+    ScaleFactorType key = trackingAndReco;
+    auto corrKey = std::make_pair(key, typeVal);
+
+    std::string corrname = "fullEffData2D_trackingReco_" + dataRunEra.second;
+    auto* histptr = dynamic_cast<TH2F*>(_file_trackingRecoSF.Get(corrname.c_str()));
+    if (histptr == nullptr) {
+      std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		<< _filename_trackingRecoSF << "! Will continue neglecting them, but be careful" << std::endl;
+      // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+      continue;
+    }
+    histptr->SetDirectory(0);
+    efficiencyDataPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+
+    corrname = "fullEffMC2D_trackingReco_" + dataRunEra.second;
+    histptr = dynamic_cast<TH2F*>(_file_trackingRecoSF.Get(corrname.c_str()));
+    if (histptr == nullptr) {
+      std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		<< _filename_trackingRecoSF << "! Will continue neglecting them, but be careful" << std::endl;
+      // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+      continue;
+    }
+    histptr->SetDirectory(0);
+    efficiencyMCPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+
+    corrname = "fullSF2D_trackingReco_" + dataRunEra.second;
+    histptr = dynamic_cast<TH2F*>(_file_trackingRecoSF.Get(corrname.c_str()));
+    if (histptr == nullptr) {
+      std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+		<< _filename_trackingRecoSF << "! Will continue neglecting them, but be careful" << std::endl;
+      // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+      continue;
+    }
+    histptr->SetDirectory(0);
+    scaleFactorPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
+  }
+  
+  _file_trackingRecoSF.Close();
 
   TFile _file_allSF = TFile(_filename_allSF.c_str(), "read");
   if (!_file_allSF.IsOpen()) {
@@ -868,6 +957,48 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
     
   }
   
+}
+
+double _get_TnpRecoAndTrackingEffMCPerEra(float pt,      float eta,      int charge,
+					  float ptOther, float etaOther,
+					  DataEra dtype = G
+					  ) {
+
+  ScaleFactorType sftype = trackingAndReco;
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2F& hcorr = efficiencyMCPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+
+  if (ptOther > 0.0) {
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2F& hcorrOther = efficiencyMCPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+double _get_TnpRecoAndTrackingSFPerEra(float pt,      float eta,      int charge,
+				       float ptOther, float etaOther,
+				       DataEra dtype = G
+				       ) {
+
+  ScaleFactorType sftype = trackingAndReco;
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2F& hcorr = scaleFactorPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+
+  if (ptOther > 0.0) {
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2F& hcorrOther = scaleFactorPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
 }
 
 
@@ -1152,7 +1283,7 @@ double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_f& p
   for (unsigned int i = 0; i < eta.size(); ++i) {
     if (not looseId[i]) continue;
     if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
-      prefiringProbability = hMuonPrefiringNew_hotspot.GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
+      prefiringProbability = hMuonPrefiringNew_hotspot->GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot->GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot->GetBinContent(1, 2) ) + 1);
     } else {
       prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
       prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
@@ -1171,10 +1302,11 @@ double _get_newMuonPrefiringSF(const Vec_f& eta, const Vec_f& pt, const Vec_f& p
   
 }
 
-Vec_d _get_newMuonPrefiringSFvariationSyst(int nSystVar, const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
+// Vec_d _get_newMuonPrefiringSFvariationSyst(int nSystVar, const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
+Vec_d _get_newMuonPrefiringSFvariationSyst(const Vec_f& eta, const Vec_f& pt, const Vec_f& phi, const Vec_b& looseId, DataEra era = BToF) {
 
   // should be called with nSystVar = 3 (at least, can codify more variations) representing nominal, Up, Down
-  Vec_d res(nSystVar, 1.0); // initialize to 1
+  Vec_d res(3, 1.0); // initialize to 1
   // std::cout << "PREFIRING FOR: " << eraNames[era] << std::endl;
   const TH2D& hprefire = hMuonPrefiringNew[era];
   int nBins = hprefire.GetNbinsX();
@@ -1184,7 +1316,7 @@ Vec_d _get_newMuonPrefiringSFvariationSyst(int nSystVar, const Vec_f& eta, const
   for (unsigned int i = 0; i < eta.size(); ++i) {
     if (not looseId[i]) continue;
     if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
-      prefiringProbability = hMuonPrefiringNew_hotspot.GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
+      prefiringProbability = hMuonPrefiringNew_hotspot->GetBinContent(1, 3)/(TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot->GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot->GetBinContent(1, 2) ) + 1);
     } else {
       prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
       prefiringProbability = hprefire.GetBinContent(prefireBin, 3)/(TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
@@ -1223,13 +1355,13 @@ Vec_d _get_newMuonPrefiringSFvariationStat(int n_prefireBinNuisance, const Vec_f
   for (unsigned int i = 0; i < eta.size(); ++i) {
 
     if (not looseId[i]) continue;
+    prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
     if (eta[i] > 1.24 and eta[i] < 1.6 and phi[i] > 2.44346 and phi[i] < 2.79253) {
-      tmpval = 1.0 / (TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot.GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot.GetBinContent(1, 2) ) + 1);
-      prefiringProbability    = hMuonPrefiringNew_hotspot.GetBinContent(1, 3);
-      prefiringProbabilityErr = hMuonPrefiringNew_hotspot.GetBinError(1, 3);
+      tmpval = 1.0 / (TMath::Exp( (pt[i] - hMuonPrefiringNew_hotspot->GetBinContent(1, 1)) / hMuonPrefiringNew_hotspot->GetBinContent(1, 2) ) + 1);
+      prefiringProbability    = hMuonPrefiringNew_hotspot->GetBinContent(1, 3);
+      prefiringProbabilityErr = hMuonPrefiringNew_hotspot->GetBinError(1, 3);
       
     } else {
-      prefireBin = std::max(1, std::min(hprefire.GetXaxis()->FindFixBin(fabs(eta[i])), nBins));
       tmpval = 1.0 / (TMath::Exp( (pt[i] - hprefire.GetBinContent(prefireBin, 1)) / hprefire.GetBinContent(prefireBin, 2) ) + 1);
       prefiringProbability    = hprefire.GetBinContent(prefireBin, 3);
       prefiringProbabilityErr = hprefire.GetBinError(prefireBin, 3);

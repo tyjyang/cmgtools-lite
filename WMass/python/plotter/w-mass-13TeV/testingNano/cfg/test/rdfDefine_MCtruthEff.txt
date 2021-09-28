@@ -1,34 +1,23 @@
 # name of new variable/collection : definition : regular expression for processes to apply it to
 #
 # && abs(Muon_dz)< 0.2
-goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
-vetoMuons : Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
-#goodMuons : abs(Muon_eta) < 2.4 && Muon_pt > 26 && Muon_pt < 55 && Muon_mediumId > 0 && abs(Muon_dxybs) < 0.05
-goodMuons_accept : abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
-goodMuons_trackerOrGlobal : Muon_isTracker || Muon_isGlobal
-goodMuons_trackerOrGlobalAndStandalone : (Muon_isTracker || Muon_isGlobal) && Muon_isStandalone
-goodMuons_tracker : Muon_isTracker
-goodMuons_global : Muon_isGlobal
-goodMuons_standalone : Muon_isStandalone
-goodMuons_idip : abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0
-# for trigger can also add trigger bits
-goodMuons_idipANDtrig : goodMuons_idip && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
-goodMuons_idipANDtrigANDiso  : goodMuons_idipANDtrig && Muon_pfRelIso04_all < 0.15
-goodMuons_idipANDisonotrig  : goodMuons_idip && Muon_pfRelIso04_all < 0.15
-goodMuons_trig : hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
-goodMuons_iso  : Muon_pfRelIso04_all < 0.15
-#
-#goodMuonsPlus: goodMuons && Muon_charge > 0
-#goodMuonsMinus: goodMuons && Muon_charge < 0
-#
 #  && GenPart_genPartIdxMother >= 0 # not needed
 bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z
 bareMuonsPlus : bareMuons && GenPart_pdgId < 0 : W|Z
 bareMuonsMinus : bareMuons && GenPart_pdgId > 0 : W|Z
-# Jet_puId = passlooseID * 4 + passmediumID * 2 + passtightID * 1
-#goodCleanJets : Jet_jetId >= 6 && (Jet_pt > 50 || Jet_puId >= 4) && Jet_pt > 30 && abs(Jet_eta) < 2.4 && cleanJetsFromLeptons(Jet_eta,Jet_phi,Muon_eta[vetoMuons],Muon_phi[vetoMuons],Electron_eta[vetoElectrons],Electron_phi[vetoElectrons])
-#
-#genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
-#ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
-#yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
-#mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
+basicMuon : Muon_pt > 15 && Muon_charge > 0
+vetoMuons : basicMuon && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
+goodMuons_accept : basicMuon && abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
+goodMuons_trackerOrGlobal : basicMuon && (Muon_isTracker || Muon_isGlobal)
+goodMuons_trackerOrGlobalAndStandalone : basicMuon &&  (Muon_isTracker || Muon_isGlobal) && Muon_isStandalone
+goodMuons_tracker : basicMuon && Muon_isTracker
+goodMuons_global : basicMuon && Muon_isGlobal
+goodMuons_standalone : basicMuon && Muon_isStandalone
+goodMuons_idip : basicMuon && abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0
+# for trigger can also add trigger bits
+goodMuons_idipANDtrig : goodMuons_idip && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
+goodMuons_idipANDtrigANDiso  : goodMuons_idipANDtrig && Muon_pfRelIso04_all < 0.15
+goodMuons_idipANDisonotrig  : goodMuons_idip && Muon_pfRelIso04_all < 0.15
+goodMuons_trig : basicMuon && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
+goodMuons_iso  : basicMuon && Muon_pfRelIso04_all < 0.15
