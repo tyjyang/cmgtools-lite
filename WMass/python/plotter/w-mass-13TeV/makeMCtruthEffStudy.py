@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--eff-range", dest="effRange", default=(0,-1), type=float, nargs=2, help="Z axis range for efficiency plot")
     parser.add_argument("--pt-range", dest="ptRange", default=(0,-1), type=float, nargs=2, help="Pt axis range for efficiency plot")
     parser.add_argument(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (let it be odd, so the central strip is white if not using --abs-value and the range is symmetric)')
-    parser.add_argument(     '--palette'  , dest='palette',      default=58, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
+    parser.add_argument(     '--palette'  , dest='palette',      default=87, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
     parser.add_argument(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     parser.add_argument(     '--plot-ratio-era', dest='plotRatioToEra', type=str, default=None,   help='Plot ratios with respect to this era')
     parser.add_argument(     '--tnp-file', dest='tnpFile', type=str, default=None,   help='Root file with MC efficiencies from tag-and-probe')

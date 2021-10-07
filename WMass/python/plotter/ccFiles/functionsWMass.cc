@@ -583,7 +583,7 @@ std::unordered_map<DataEra, TH2D> hMuonPrefiringNew = {}; // this has the modell
 TH2D* hMuonPrefiringNew_hotspot = nullptr;
 std::unordered_map<DataEra, TH1F> hMuonPrefiring = {}; // will store pre and post (only BToF and GToH)
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHist = {};
-//std::unordered_map<std::pair<ScaleFactorType, DataType>, TH2F, pair_hash> prePostCorrToHist = {};
+std::unordered_map<DataEra, TH1D> hmuonPOGtrackingSF = {};
 
 void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleFactorProduct_31Mar2021.root") {
 
@@ -617,6 +617,20 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
   
   _file_allSF.Close(); // should work since we used TH1F::SetDirectory(0) to detach histogram from file
 
+  // muon POG tracking SF (to be tested)
+  std::string _filename_muonPOGtrackingSF = "./testMuonSF/muonPOGtrackingSF.root";
+  TFile _file_muonPOGtrackingSF = TFile(_filename_muonPOGtrackingSF.c_str(), "read");
+  if (!_file_muonPOGtrackingSF.IsOpen()) {
+    std::cerr << "WARNING: Failed to open prefiring file " << _filename_muonPOGtrackingSF << "\n";
+    exit(EXIT_FAILURE);
+  }
+  std::cout << "INFO >>> Initializing histograms for muon POG tracking SF from file " << _filename_muonPOGtrackingSF << std::endl;
+  hmuonPOGtrackingSF[BToF] = *(dynamic_cast<TH1D*>(_file_muonPOGtrackingSF.Get("muonPOGtrackingSF_preVFP")));
+  hmuonPOGtrackingSF[BToF].SetDirectory(0);
+  hmuonPOGtrackingSF[GToH] = *(dynamic_cast<TH1D*>(_file_muonPOGtrackingSF.Get("muonPOGtrackingSF_postVFP")));
+  hmuonPOGtrackingSF[GToH].SetDirectory(0);
+  _file_muonPOGtrackingSF.Close();
+  
   // new prefiring from Jan
   std::string _filename_prefiringNew = "./testMuonSF/L1MuonPrefiringParametriations_histograms.root";
   TFile _file_prefiringNew = TFile(_filename_prefiringNew.c_str(), "read");
@@ -1379,6 +1393,22 @@ Vec_d _get_newMuonPrefiringSFvariationStat(int n_prefireBinNuisance, const Vec_f
   return res;
 
 }
+
+
+double _get_muonPOGtrackingSF(float eta, float etaOther, DataEra era = BToF) {
+
+  DataEra vfpEra = (era >= F_postVFP) ? GToH : BToF; // will it work? 
+  int bin = hmuonPOGtrackingSF[vfpEra].GetXaxis()->FindFixBin(eta);
+  double sf = hmuonPOGtrackingSF[vfpEra].GetBinContent(bin);
+  if (etaOther > -2.41) {
+    bin = hmuonPOGtrackingSF[vfpEra].GetXaxis()->FindFixBin(etaOther);
+    sf *= hmuonPOGtrackingSF[vfpEra].GetBinContent(bin);
+  }
+  return sf;
+
+}
+
+
 
 double _get_fullMuonSF(float pt,      float eta,      int charge,
 		       float ptOther, float etaOther,

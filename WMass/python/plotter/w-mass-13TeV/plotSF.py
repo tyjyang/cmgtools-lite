@@ -32,8 +32,10 @@ if __name__ == "__main__":
     parser.add_argument("rootfile", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF,GtoH,B,C,D,E,F,G,H", help="Comma separated list of eras for SF in histogram name; default: %(default)s")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,antiiso,isonotrig,antiisonotrig", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
-    parser.add_argument('--makePreOverPost', action="store_true", help="Make data/data and MC/MC scale factors (in subfolder 'effRatio_preOverPost/')")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,antiiso,isonotrig,antiisonotrig,tracking,reco", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
+    parser.add_argument(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51')
+    parser.add_argument(     '--palette'  , dest='palette',      default=87, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
+    parser.add_argument(     '--invertPalette', dest='invertePalette' , default=False , action='store_true',   help='Inverte color ordering in palette')
     args = parser.parse_args()
 
     ROOT.TH1.SetDefaultSumw2()
@@ -52,20 +54,16 @@ if __name__ == "__main__":
     #productsToMake = {"trackingReco"      : ["reco", "tracking"], # "tracking"],
     #}
     
-
     eras = args.era.split(',')
     fname = args.rootfile[0]
     outdirOriginal = args.outdir[0] # to keep it below
     if not outdirOriginal.endswith('/'):
         outdirOriginal = outdirOriginal + '/'
-    prePostSubfolder = "effRatio_preOverPost/" 
     productSubfolder = "productSF/"
     
     # make folder structure
     foldersToCreate = []
-    foldersToCreate.append(outdirOriginal + prePostSubfolder)
     foldersToCreate.append(outdirOriginal + productSubfolder)
-    foldersToCreate.append(outdirOriginal + productSubfolder + prePostSubfolder)
     for era in eras:
         foldersToCreate.append(outdirOriginal + era + "/")
         foldersToCreate.append(outdirOriginal + productSubfolder + era + "/")
@@ -73,20 +71,7 @@ if __name__ == "__main__":
     for folder in foldersToCreate:
         createPlotDirAndCopyPhp(folder)
         
-    if args.makePreOverPost:
-        command = f"python w-mass-13TeV/makeEffRatioPrePostVFP.py {args.rootfile[0]} {outdirOriginal}{prePostSubfolder}"
-        print("Running following command to make preVFP/postVFP scale factors")
-        print(command)
-        ret = os.system(command)
-        if ret:
-            print("Problem with command. Abort")
-            quit()
-        newfname = os.path.basename(args.rootfile[0]).replace(".root","_NEW.root")
-        fname = outdirOriginal + prePostSubfolder + newfname
-        os.system(f"mv {fname} {outdirOriginal}")
-        fname = outdirOriginal + newfname
-        print(f"Updated file with data/data and MC/MC scale factors moved in {fname}")
-        print()
+    print()
         
     hists = {}
     for era in eras:
@@ -95,6 +80,8 @@ if __name__ == "__main__":
                     "MC"   : {}
     }
 
+    sf_version = ["nominal", "dataAltSig", "MCAltSig", "dataMCAltSig"]
+    
     names = args.sfnames.split(',')
     f = ROOT.TFile.Open(fname)
     if not f or not f.IsOpen():
@@ -103,34 +90,37 @@ if __name__ == "__main__":
         charges = ["plus", "minus"] if n == "trigger" else ["both"]
         for ch in charges:
             for era in eras:
-                tmpEra = "F_preVFP" if era == "F" else era
-                hname = f"SF2D_{n}_{tmpEra}_{ch}"
-                hkey = n + (ch if n == "trigger" else "")
-                hists[era][hkey] = f.Get(hname)
-                if hists[era][hkey] is None:
-                    raise RuntimeError(f"Error when getting histogram {hname}")
-                # print("type(%s) = %s" % (hname,type(hists[era][hkey])))
-                hists[era][hkey].SetDirectory(0)
-            if args.makePreOverPost:
-                for dataType in ["Data", "MC"]:
-                    hname = f"SF2D_{dataType}_preOverPost_{n}_{ch}"
-                    hkey = n + (ch if n == "trigger" else "")
-                    histsPrePost[dataType][hkey] = f.Get(hname)
-                    if histsPrePost[dataType][hkey] is None:
+                for v in sf_version:
+                    tmpEra = "F_preVFP" if era == "F" else era
+                    hname = f"SF2D_{v}_{n}_{tmpEra}_{ch}"
+                    if v == "nominal":
+                        hkey = n
+                    else:
+                        hkey = f"{v}_{n}"
+                    hkey += (ch if n == "trigger" else "")
+                    #print(f"{hkey} -> {hname}")
+                    hists[era][hkey] = f.Get(hname)
+                    if hists[era][hkey] is None:
                         raise RuntimeError(f"Error when getting histogram {hname}")
-                    # print("type(%s) = %s" % (hname,type(hists[hkey])))
-                    # print(hname)
-                    histsPrePost[dataType][hkey].SetDirectory(0)
+                    # print("type(%s) = %s" % (hname,type(hists[era][hkey])))
+                    hists[era][hkey].SetDirectory(0)
     f.Close()
 
     prodHists = {}
     for era in eras:
         prodHists[era] = {}
-    prodHistsPrePost = {"Data" : {},
-                        "MC"   : {}
-    }
-    
+
+    namesForCheck = [x for x in names if x != "trigger"]
+    if "trigger" in names:
+        namesForCheck += ["triggerplus", "triggerminus"]
+        
     for key in list(productsToMake.keys()):
+        if not all(x in namesForCheck for x in productsToMake[key]):
+            print()
+            missingFactors = ",".join([x for x in productsToMake[key] if x not in namesForCheck])
+            print(f"Warning: skipping product {key} because these factors are missing: {missingFactors}")
+            print()
+            continue
         for era in eras:
             prodname = f"fullSF2D_{key}_{era}"
             for i,name in enumerate(productsToMake[key]): 
@@ -144,20 +134,6 @@ if __name__ == "__main__":
                         quit()
             prodHists[era][prodname].SetTitle(f"{stringProduct}")            
 
-        if args.makePreOverPost:
-            for dataType in list(prodHistsPrePost.keys()):
-                prodnamePrePost = f"fullSF2D_{dataType}_preOverPost_{key}"
-                for i,name in enumerate(productsToMake[key]): 
-                    if i == 0:
-                        stringProduct = name
-                        prodHistsPrePost[dataType][prodnamePrePost] = copy.deepcopy(histsPrePost[dataType][name].Clone(prodnamePrePost))
-                    else:
-                        stringProduct = stringProduct + "*" + name
-                        if not prodHistsPrePost[dataType][prodnamePrePost].Multiply(histsPrePost[dataType][name]):
-                            print(f"ERROR in multiplication for prodHistsPrePost[{prodnamePrePost}] with {name}")
-                            quit()
-                prodHistsPrePost[dataType][prodnamePrePost].SetTitle(f"{stringProduct}")
-
     fullout = outdirOriginal + "scaleFactorProduct.root" 
     f = ROOT.TFile.Open(fullout, "RECREATE")
     # put new ones in this files, without copying original histograms
@@ -167,16 +143,18 @@ if __name__ == "__main__":
     for era in eras:
         for n in list(prodHists[era].keys()):
             prodHists[era][n].Write(n)
-    if args.makePreOverPost:
-        for dataType in list(prodHistsPrePost.keys()):
-            for n in list(prodHistsPrePost[dataType].keys()):
-                prodHistsPrePost[dataType][n].Write(n)
     f.Close()
 
                             
     # proceeding to plot these histograms
     canvas = ROOT.TCanvas("canvas","",800,800)
 
+    minmax = {"triggerplus"  : "0.65,1.15",
+              "triggerminus" : "0.65,1.15",
+              "idip"         : "0.98",
+              "iso"          : "0.975,1.025"
+    }
+    
     for era in eras:
 
         outdir = outdirOriginal + era + "/"
@@ -185,17 +163,19 @@ if __name__ == "__main__":
             drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"{n} data/MC scale factor",
                                 f"muonSF_{n}", plotLabel="ForceTitle", outdir=outdir,
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas)
+                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas,
+                                nContours=args.nContours, palette=args.palette, invertePalette=args.invertePalette)
             # abs. uncertainty
             drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"abs. uncertainty on {n} SF",
                                 f"absUnc_muonSF_{n}", plotLabel="ForceTitle", outdir=outdir+"absoluteUncertainty/",
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
-            # rel. uncertainty
-            drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"rel. uncertainty on {n} SF",
-                                f"relUnc_muonSF_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
-                                smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
+                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True,
+                                nContours=args.nContours, palette=args.palette, invertePalette=args.invertePalette)
+            ## rel. uncertainty
+            #drawCorrelationPlot(hists[era][n], "muon #eta", "muon p_{T} (GeV)", f"rel. uncertainty on {n} SF",
+            #                    f"relUnc_muonSF_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
+            #                    smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
+            #                    draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
 
         outdir = outdirOriginal + productSubfolder + era + "/"
 
@@ -203,39 +183,16 @@ if __name__ == "__main__":
             drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "data/MC scale factor product",
                                 f"{n}", plotLabel="ForceTitle", outdir=outdir,
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas)
+                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas,
+                                nContours=args.nContours, palette=args.palette, invertePalette=args.invertePalette)
             # plot absolute error
             drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "abs. uncertainty on SF product",
                                 f"absUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"absoluteUncertainty/",
                                 smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
-            # plot relative error
-            drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product",
-                                f"relUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
-                                smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
-
-    if args.makePreOverPost:
-
-        outdir = outdirOriginal + productSubfolder + prePostSubfolder
-
-        for dataType in list(prodHistsPrePost.keys()):
-
-            for n in list(prodHistsPrePost[dataType].keys()):
-                drawCorrelationPlot(prodHistsPrePost[dataType][n],
-                                    "muon #eta", "muon p_{T} (GeV)", "pre/post scale factor product",
-                                    f"{n}", plotLabel="ForceTitle", outdir=outdir,
-                                    smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                    draw_both0_noLog1_onlyLog2=1, passCanvas=canvas)
-                # plot absolute error
-                drawCorrelationPlot(prodHistsPrePost[dataType][n],
-                                    "muon #eta", "muon p_{T} (GeV)", "abs. uncertainty on SF product",
-                                    f"absUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"absoluteUncertainty/",
-                                    smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                    draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True)
-                # plot relative error
-                drawCorrelationPlot(prodHistsPrePost[dataType][n],
-                                    "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product",
-                                    f"relUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
-                                    smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
-                                    draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)
+                                draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotError=True,
+                                nContours=args.nContours, palette=args.palette, invertePalette=args.invertePalette)
+            ## plot relative error
+            #drawCorrelationPlot(prodHists[era][n], "muon #eta", "muon p_{T} (GeV)", "rel. uncertainty on SF product",
+            #                    f"relUnc_{n}", plotLabel="ForceTitle", outdir=outdir+"relativeUncertainty/",
+            #                    smoothPlot=False, drawProfileX=False, scaleToUnitArea=False,
+            #                    draw_both0_noLog1_onlyLog2=1, passCanvas=canvas, plotRelativeError=True)

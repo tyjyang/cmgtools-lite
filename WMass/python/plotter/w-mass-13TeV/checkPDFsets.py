@@ -5,6 +5,7 @@
 # nominal alphaS should always be 0.118
 
 # example
+# python w-mass-13TeV/checkPDFsets.py plots/testNanoAOD/testNtuplesAltPDF/testCode_TH3_chargePlus/plots_wmass_testPDF.root -o plots/testNanoAOD/testNtuplesAltPDF/testCode_TH3_chargePlus/checkPDFsets/ -c plus -p Wmunu_plus_postVFP
 
 import os, re
 import argparse
@@ -54,6 +55,9 @@ def makeRatioGraphWithHisto(gr, h1):
     for i in range(h1.GetNbinsX()):
         xval = h1.GetBinCenter(i+1)
         yval = h1.GetBinContent(i+1)
+        if yval == 0.0:
+            print(f"In makeRatioGraphWithHisto(): y_graph = {gr.Eval(xval)},  y_histo = {yval}")
+            quit()
         gr.SetPoint(i, xval, gr.Eval(xval)/yval)
         gr.SetPointEYhigh(i, gr.GetErrorYhigh(i)/yval)
         gr.SetPointEYlow(i,  gr.GetErrorYlow(i)/yval)
@@ -239,6 +243,181 @@ def comparePDFandAlpha(hstat, hpdf, halphaUp, halphaDown,
         canvas.SaveAs(f"{outdir}{process}_pdfAndAlphaUncertainty_{PDFsetNoDot}{postfix}.{ext}")
 
 
+def comparePDFhessianAndNomi(hnomi, hpdfUp, hpdfDown,
+                             process, outdir, canvas, hist2DforBins, postfix,
+                             nomiPDFset="NNPDF3.1", hessian=1, xAxisName=None,
+                             leftMargin=0.16, rightMargin=0.05, bottomMargin=0.12, lowerPanelHeight=0.3):
+
+    canvas.cd()
+    yTitleOffset = 0.75
+    yTitleSize = 0.05
+    yLabelSize = 0.04
+    if not hist2DforBins:
+        yTitleOffset = 1.4
+        yTitleSize = 0.05
+        yLabelSize = 0.04
+        
+    hnomi.SetTitle(f"{process},    prefit,    {nomiPDFset} PDFs, Hessian {hessian}")
+    hnomi.GetXaxis().SetLabelSize(0)
+    hnomi.GetXaxis().SetTitle("")  
+    hnomi.GetYaxis().SetTitleSize(yTitleSize)
+    hnomi.GetYaxis().SetLabelSize(yLabelSize)
+    hnomi.GetYaxis().SetTitleOffset(yTitleOffset)
+    hnomi.GetYaxis().SetTitle("Events")
+
+    ########
+    hnomi.SetLineColor(ROOT.kBlack)
+    #hnomi.SetMarkerStyle(20)
+    #hnomi.SetMarkerSize(0.9)
+    if hist2DforBins:
+        hnomi.SetMarkerColor(ROOT.kBlack)
+        hnomi.SetMarkerStyle(1)
+        hnomi.SetFillColor(ROOT.kGray+3)
+        hnomi.SetFillColorAlpha(ROOT.kGray+3, 0.4)
+        hnomi.Draw("E2")
+    else:
+        #hnomi.SetMarkerColor(ROOT.kBlack)
+        #hnomi.SetMarkerStyle(20)
+        hnomi.SetFillColor(ROOT.kWhite)
+        #hnomi.SetFillColorAlpha(ROOT.kGray+3, 0.4)
+        hnomi.Draw("HE")
+    # pdf NNPDF3.1
+    hpdfUp.SetLineColor(ROOT.kRed+2)
+    hpdfUp.SetLineWidth(1)
+    hpdfUp.SetFillColor(0)
+    hpdfUp.SetMarkerStyle(0)
+    #hpdfUp.Draw("HIST SAME")
+    hpdfDown.SetLineColor(ROOT.kBlue)
+    hpdfDown.SetLineWidth(1)
+    hpdfDown.SetFillColor(0)
+    hpdfDown.SetMarkerStyle(0)
+    #hpdfDown.Draw("HIST SAME")
+    if not hist2DforBins:
+        hpdfUp.Draw("HIST SAME")
+        hpdfDown.Draw("HIST SAME")
+
+    miny, maxy = getMinMaxMultiHisto([hnomi, hpdfUp, hpdfDown])
+    diff = maxy - miny
+    miny -= diff * 0.1
+    maxy += diff * 0.25
+    if hist2DforBins:
+        hnomi.GetYaxis().SetRangeUser(miny, maxy)
+    else:
+        hnomi.GetYaxis().SetRangeUser(0.8*miny, 1.2*maxy)
+    hnomi.Draw("PL SAME")
+
+
+    if hist2DforBins:
+        bintext = ROOT.TLatex()
+        textSize = 0.025
+        textAngle = 30
+        bintext.SetTextSize(textSize)
+        bintext.SetTextFont(42)
+        bintext.SetTextAngle(textAngle)
+
+        # to draw panels in the unrolled plots
+        nptBins = int(hist2DforBins.GetNbinsY())
+        etarange = float(hist2DforBins.GetNbinsX())
+
+        vertline = ROOT.TLine(36, 0, 36, canvas.GetUymax())
+        vertline.SetLineColor(ROOT.kBlack)
+        vertline.SetLineStyle(3) # 2 larger hatches
+        for i in range(1, nptBins): # do not need line at canvas borders
+            vertline.DrawLine(etarange*i, 0, etarange*i, maxy)
+
+        ptBinRanges = []
+        for ipt in range(0, nptBins):
+            ptBinRanges.append("#splitline{{[{ptmin},{ptmax}]}}{{GeV}}".format(ptmin=int(hist2DforBins.GetYaxis().GetBinLowEdge(ipt+1)),
+                                                                               ptmax=int(hist2DforBins.GetYaxis().GetBinLowEdge(ipt+2))))
+        offsetText = etarange / 4.0
+        for i in range(0,len(ptBinRanges)): # we need nptBins texts
+            bintext.DrawLatex(etarange*i + offsetText, 0.8*maxy, ptBinRanges[i])        
+
+    canvas.RedrawAxis("sameaxis")
+
+    pad2 = ROOT.TPad("pad2","pad2", 0.0, 0.0, 1, 0.95)
+    pad2.SetTickx(1)
+    pad2.SetTicky(1)
+    pad2.SetTopMargin(1-lowerPanelHeight)
+    pad2.SetRightMargin(rightMargin)
+    pad2.SetLeftMargin(leftMargin)
+    pad2.SetBottomMargin(bottomMargin) 
+    pad2.SetFillColor(0)
+    pad2.SetGridy(1)
+    pad2.SetFillStyle(0)
+    pad2.Draw()
+    pad2.cd()
+    ratio_pdfUp = copy.deepcopy(hpdfUp.Clone("ratio_pdfUp"))
+    ratio_pdfDown = copy.deepcopy(hpdfDown.Clone("ratio_pdfDown"))
+    den_noerr = copy.deepcopy(hnomi.Clone("den_noerr"))
+    den = copy.deepcopy(hnomi.Clone("den"))
+    for iBin in range (1, den_noerr.GetNbinsX()+1):
+        den_noerr.SetBinError(iBin, 0.)
+    ratio_pdfUp.Divide(den_noerr)
+    ratio_pdfDown.Divide(den_noerr)
+    den.Divide(den_noerr)
+    den.SetFillColor(ROOT.kGray)
+    den.SetMarkerColor(0)
+    den.SetMarkerSize(0)
+    miny, maxy = getMinMaxMultiHisto([den, ratio_pdfUp, ratio_pdfDown])
+    den.SetTitle("")
+    den.Draw("E2")
+    den.GetXaxis().SetTitleSize(0.05)
+    den.GetXaxis().SetTitleOffset(1.05)
+    den.GetXaxis().SetLabelSize(0.04)
+    if xAxisName:
+        den.GetXaxis().SetTitle(xAxisName)
+    else:
+        den.GetXaxis().SetTitle("Unrolled muon #eta-p_{T} bin")
+    den.GetYaxis().SetTitleSize(yTitleSize)
+    den.GetYaxis().SetLabelSize(yLabelSize)
+    den.GetYaxis().SetTitleOffset(yTitleOffset)
+    den.GetYaxis().SetTitle(f"pdf/nomi")
+
+    diff = maxy - miny
+    miny -= 0.1 * diff
+    maxy += 0.4 * diff
+    den.GetYaxis().SetRangeUser(miny, maxy)
+    ratio_pdfUp.Draw("HIST SAME")
+    ratio_pdfDown.Draw("HIST SAME")
+
+    if hist2DforBins:
+        vertline2 = ROOT.TLine(36, 0, 36, pad2.GetUymax())
+        vertline2.SetLineColor(ROOT.kBlack)
+        vertline2.SetLineStyle(3) # 2 larger hatches
+        for i in range(1, nptBins): # do not need line at canvas borders
+            vertline2.DrawLine(etarange*i, miny, etarange*i, maxy)
+    else:
+        den.GetYaxis().SetNdivisions(5)
+    
+            
+    ylowLegend = 0.47# 0.40 for 2 columns
+    yhighLegend = 0.54
+    if not hist2DforBins:
+        ylowLegend = 0.83# 0.40 for 2 columns
+        yhighLegend = 0.90
+        
+    leg = ROOT.TLegend(0.18, ylowLegend, 0.92, yhighLegend)
+    #leg.SetFillStyle(0)
+    leg.SetFillColor(0)
+    #leg.SetFillColorAlpha(0,0.6)
+    leg.SetBorderSize(0)
+    #leg.SetTextFont(62)
+    leg.AddEntry(den, f"stat ({nomiPDFset})", "PLF")
+    leg.AddEntry(ratio_pdfUp, f"pdf {hessian} Up","L")
+    leg.AddEntry(ratio_pdfDown, f"pdf {hessian} Dn","L")
+    leg.SetNColumns(3)
+    leg.Draw("same")
+    pad2.RedrawAxis("sameaxis")
+
+    PDFsetNoDot = nomiPDFset.replace(".","")
+    savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kError;
+    for ext in ["png","pdf"]:
+        canvas.SaveAs(f"{outdir}{process}_pdfHessian_{hessian}_{PDFsetNoDot}{postfix}.{ext}")
+    ROOT.gErrorIgnoreLevel = savErrorLevel;
+
+
+        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -248,9 +427,11 @@ if __name__ == "__main__":
     #parser.add_argument('-l','--lumi', default=36.3, type=float, help='Integrated luminosity to print in the plot')
     parser.add_argument('-p','--processes', default="Wmunu_plus_postVFP", type=str, help='Comma-separated list of processes for which the plot is requested')
     parser.add_argument('--postfix', default="", type=str, help='Postfix to be added to plots')
+    # currently alpha is not added, the option is preliminary (it just edits the legend entry for now)
     parser.add_argument(     '--add-alpha', dest="addAlpha", action='store_true', help="Sum alpha in quadrature to PDF bands (default uses PDFs only)")
     # to add postfit shapes (makes sense for a fit to data)
     # check w-mass-13TeV/postFitHistograms.py to see how these works, it is a bit convoluted
+    # these are currently unused, they were taken from w-mass-13TeV/checkTheoryUncertaintyOnShapes.py
     parser.add_argument('--add-postfit-shape', dest="addPostfitShape", default="", type=str, help='Add postfit shapes, taken from the root file passed here as argument')
     parser.add_argument('--fit-charges', dest='fitCharges', choices=['plus', 'minus', 'plus,minus'], default='plus,minus', type=str, help='Charges used in the fit output file')
     parser.add_argument('-m','--n-mask-chan', dest='nMaskedChannel', default=0, type=int, help='Number of masked channels in the fit for each charge (0 if not using masked channels because no signal POIs is used in the fit)')
@@ -272,6 +453,7 @@ if __name__ == "__main__":
     leftMargin = 0.07
     rightMargin = 0.01
     bottomMargin = 0.12
+    lowerPanelHeight = 0.55
     
     #adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas", "", 3000, 1200)
@@ -281,11 +463,21 @@ if __name__ == "__main__":
     canvas.cd()
     canvas.SetLeftMargin(leftMargin)
     canvas.SetRightMargin(rightMargin)
-    canvas.cd()
     #canvas.SetBottomMargin(0.15)
-    lowerPanelHeight = 0.55
     canvas.SetBottomMargin(lowerPanelHeight)
 
+    canvas1D = ROOT.TCanvas("canvas1D", "", 800, 800)
+    #adjustSettings_CMS_lumi()
+    canvas1D.SetTickx(1)
+    canvas1D.SetTicky(1)
+    canvas1D.SetLeftMargin(0.16)
+    canvas1D.SetRightMargin(0.05)
+    #canvas.SetBottomMargin(0.15)
+    canvas1D.SetBottomMargin(0.3)
+
+    canvas.cd()
+
+    
     prefitCharge = args.chargeChannel
     postfixToAdd = "charge" + ("Plus" if prefitCharge == "plus" else "Minus")
     if args.postfix:
@@ -340,7 +532,7 @@ if __name__ == "__main__":
         h2_pdfHessian_CT18Z_Down = [getTH2fromTH3(h3_CT18all, f"etaPt_{p}_hessian{i-62}_CT18Z", i, i) for i in range(64, 121, 2)]
         h2_alphaS0117_CT18Z = getTH2fromTH3(h3_CT18all, f"etaPt_{p}_alphaS0117_CT18Z", 121, 121)
         h2_alphaS0119_CT18Z = getTH2fromTH3(h3_CT18all, f"etaPt_{p}_alphaS0119_CT18Z", 122, 122)
-
+        
         # scale diff by 1.5 since the 1 sigma uncertainty for alpha should be 0.0015, while the variation is 0.001 (nominal is 0.118)
         scaleAlphaHist(h2_alphaS0117_nnpdf31, h2_nomi_nnpdf31, 1.5) 
         scaleAlphaHist(h2_alphaS0119_nnpdf31, h2_nomi_nnpdf31, 1.5) 
@@ -396,6 +588,31 @@ if __name__ == "__main__":
         h1_alphaS0117_CT18 = unroll2Dto1D(h2_alphaS0117_CT18, newname=f"unroll_{h2_alphaS0117_CT18.GetName()}", cropNegativeBins=False)
         h1_alphaS0119_CT18 = unroll2Dto1D(h2_alphaS0119_CT18, newname=f"unroll_{h2_alphaS0119_CT18.GetName()}", cropNegativeBins=False)
         gr1_nomi_CT18 = getGraphAsymmErrorsFromHistograms(h1_nomi_CT18, unroll_pdfUnc_CT18_Up, unroll_pdfUnc_CT18_Down, name=f"unroll_graph_{h2_nomi_CT18.GetName()}")
+        print()
+        print()
+        for ih,h in enumerate(h2_pdfHessian_CT18_Up):
+            diffUp = h2_nomi_CT18.Integral() - h.Integral()
+            diffDown = h2_nomi_CT18.Integral() - h2_pdfHessian_CT18_Down[ih].Integral()
+            # check if variations are on the same side wrt nominal
+            if diffUp * diffDown > 0:
+                outdirHessian = outdir + "debugHessians_CT18/"
+                createPlotDirAndCopyPhp(outdirHessian)
+                where = "above" if diffUp < 0 else "below"
+                print(f">>> CT18: warning with hessian {ih+1}: both variations {where} nominal")
+                unroll_pdfHessian_CT18_Up = unroll2Dto1D(h2_pdfHessian_CT18_Up[ih], newname=f"unroll_pdfHessian{ih+1}_CT18_Up", cropNegativeBins=False)
+                unroll_pdfHessian_CT18_Down = unroll2Dto1D(h2_pdfHessian_CT18_Down[ih], newname=f"unroll_pdfHessian{ih+1}_CT18_Down", cropNegativeBins=False)
+                comparePDFhessianAndNomi(h1_nomi_CT18, unroll_pdfHessian_CT18_Up, unroll_pdfHessian_CT18_Down,
+                                         p, outdirHessian, canvas, h2_nomi_nnpdf31_fromTH2, postfix,
+                                         nomiPDFset="CT18", hessian=int(ih+1),
+                                         leftMargin=leftMargin, rightMargin=rightMargin, bottomMargin=bottomMargin, lowerPanelHeight=lowerPanelHeight)
+                h1eta_nomi_CT18 = h2_nomi_CT18.ProjectionX("px_eta",0,-1,"e")
+                h1eta_pdfHessian_CT18_Up = h2_pdfHessian_CT18_Up[ih].ProjectionX("px_hessianUp_eta",0,-1,"e")
+                h1eta_pdfHessian_CT18_Down = h2_pdfHessian_CT18_Down[ih].ProjectionX("px_hessianDown_eta",0,-1,"e")
+                comparePDFhessianAndNomi(h1eta_nomi_CT18, h1eta_pdfHessian_CT18_Up, h1eta_pdfHessian_CT18_Down,
+                                         p, outdirHessian, canvas1D, None, postfix+"_1Deta",
+                                         nomiPDFset="CT18", hessian=int(ih+1), xAxisName="Muon #eta",
+                                         leftMargin=0.16, rightMargin=0.05, bottomMargin=0.12, lowerPanelHeight=0.3)
+                
         # CT18Z
         pdfUnc_CT18Z_Up = quadSumVariationHisto(h2_nomi_CT18Z, h2_pdfHessian_CT18Z_Up, postfixName="pdfUnc_CT18Z_Up", scale=0.607903)
         pdfUnc_CT18Z_Down = quadSumVariationHisto(h2_nomi_CT18Z, h2_pdfHessian_CT18Z_Down, postfixName="pdfUnc_CT18Z_Down", scale=0.607903)
@@ -405,6 +622,37 @@ if __name__ == "__main__":
         h1_alphaS0117_CT18Z = unroll2Dto1D(h2_alphaS0117_CT18Z, newname=f"unroll_{h2_alphaS0117_CT18Z.GetName()}", cropNegativeBins=False)
         h1_alphaS0119_CT18Z = unroll2Dto1D(h2_alphaS0119_CT18Z, newname=f"unroll_{h2_alphaS0119_CT18Z.GetName()}", cropNegativeBins=False)
         gr1_nomi_CT18Z = getGraphAsymmErrorsFromHistograms(h1_nomi_CT18Z, unroll_pdfUnc_CT18Z_Up, unroll_pdfUnc_CT18Z_Down, name=f"unroll_graph_{h2_nomi_CT18Z.GetName()}")
+        # check for CT18 pdfs
+        print()
+        print()
+        # check for CTZ18 pdfs
+        for ih,h in enumerate(h2_pdfHessian_CT18Z_Up):
+            diffUp = h2_nomi_CT18Z.Integral() - h.Integral()
+            diffDown = h2_nomi_CT18Z.Integral() - h2_pdfHessian_CT18Z_Down[ih].Integral()
+            # check if variations are on the same side wrt nominal
+            if diffUp * diffDown > 0:
+                outdirHessian = outdir + "debugHessians_CT18Z/"
+                createPlotDirAndCopyPhp(outdirHessian)
+                where = "above" if diffUp < 0 else "below"
+                print(f">>> CT18Z: warning with hessian {ih+1}: both variations {where} nominal")
+                unroll_pdfHessian_CT18Z_Up = unroll2Dto1D(h2_pdfHessian_CT18Z_Up[ih], newname=f"unroll_pdfHessian{ih+1}_CT18Z_Up", cropNegativeBins=False)
+                unroll_pdfHessian_CT18Z_Down = unroll2Dto1D(h2_pdfHessian_CT18Z_Down[ih], newname=f"unroll_pdfHessian{ih+1}_CT18Z_Down", cropNegativeBins=False)
+                comparePDFhessianAndNomi(h1_nomi_CT18Z, unroll_pdfHessian_CT18Z_Up, unroll_pdfHessian_CT18Z_Down,
+                                         p, outdirHessian, canvas, h2_nomi_nnpdf31_fromTH2, postfix,
+                                         nomiPDFset="CT18Z", hessian=int(ih+1),
+                                         leftMargin=leftMargin, rightMargin=rightMargin, bottomMargin=bottomMargin, lowerPanelHeight=lowerPanelHeight)
+                h1eta_nomi_CT18Z = h2_nomi_CT18Z.ProjectionX("px_eta",0,-1,"e")
+                h1eta_pdfHessian_CT18Z_Up = h2_pdfHessian_CT18Z_Up[ih].ProjectionX("px_hessianUp_eta",0,-1,"e")
+                h1eta_pdfHessian_CT18Z_Down = h2_pdfHessian_CT18Z_Down[ih].ProjectionX("px_hessianDown_eta",0,-1,"e")
+                comparePDFhessianAndNomi(h1eta_nomi_CT18Z, h1eta_pdfHessian_CT18Z_Up, h1eta_pdfHessian_CT18Z_Down,
+                                         p, outdirHessian, canvas1D, None, postfix+"_1Deta", 
+                                         nomiPDFset="CT18Z", hessian=int(ih+1), xAxisName="Muon #eta",
+                                         leftMargin=0.16, rightMargin=0.05, bottomMargin=0.12, lowerPanelHeight=0.3)
+        print()
+        print()
+
+
+
         
         canvas.cd()
         yTitleOffset = 0.75
