@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1, help="Input file with histograms")
-    parser.add_argument("outdir",   type=str, nargs=1, help="Ouput folder for plots")
+    #parser.add_argument("outdir",   type=str, nargs=1, help="Ouput folder for plots") # now we just use the folder containing the root file adding subfolder "postprocessing/"
     parser.add_argument("-b", "--ptBins", required=True, type=str, help = "Binning for pt in a single region, formatted as in TH1 constructor, e.g. '29,26,55' (uniform binning expected for now)")
     parser.add_argument("-l", "--lumi", type=float, default="1.012", help="Luminosity uncertainty (1 + uncertainty, so e.g. 1.012 for 1.2% uncertainty )")
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
@@ -48,9 +48,10 @@ if __name__ == "__main__":
         quit()
               
     fname = args.rootfile[0]
-    outdir = args.outdir[0]
-    if not outdir.endswith('/'):
-        outdir += '/'
+    #outdir = args.outdir[0]
+    #if not outdir.endswith('/'):
+    #    outdir += '/'
+    outdir = os.path.dirname(fname + "/postprocessing/")
     createPlotDirAndCopyPhp(outdir)
 
     ROOT.TH1.SetDefaultSumw2()

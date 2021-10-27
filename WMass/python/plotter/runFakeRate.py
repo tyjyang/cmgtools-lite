@@ -37,6 +37,7 @@ def main(args):
 
     era = args.era
     subEra = args.subEra
+    folderEra = era if subEra == None else subEra
     postfix = args.postfix
     if len(args.postfix) and not postfix.startswith('_'):
         postfix = "_" + postfix
@@ -48,7 +49,7 @@ def main(args):
     lumi = 16.8 if era == "postVFP" else 19.5 if era == "preVFP" else 36.3
     if subEra != None:
         lumi = lpe[subEra]
-        postfix += f"_2016{subEra}"
+        #postfix += f"_2016{subEra}"
         
     # cfg files
     cfgFolder = args.cfgFolder
@@ -70,7 +71,7 @@ def main(args):
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"{outdir}/fakeRateRegion_{era}_{args.charge}{postfix}/"
+    plotdir = f"{outdir}/fakeRateRegion_{postfix}/{folderEra}/{args.charge}/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables
@@ -112,8 +113,11 @@ def main(args):
         weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)"
 
     # SF file
-    sfOpt = " --scale-factor-file './testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root'  "
-        
+    sfOpt = " --scale-factor-file '{args.sfFile}'  "
+    # the following is needed for SF made before June 2021
+    if args.oldSFname:
+        sfOpt += " --old-sf-name "
+    
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
@@ -149,6 +153,8 @@ if __name__ == "__main__":
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean,deltaPhi_MuMet", help='Histograms to make')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
+    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root", help="File to be used for scale factors")
+    parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig");
     args = parser.parse_args()
 
     if len(args.outdir):

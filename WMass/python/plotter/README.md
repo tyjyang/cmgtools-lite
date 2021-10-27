@@ -181,9 +181,10 @@ Instead of using the general formula to apply the fake rate method, which relies
 Since f=N_passIso/N_tot (evaluated in the fake rate computation region, with low mT and 1 jet), the factor f/(1-f) reduces to N_passIso/N_failIso. At the same time, N(QCD)_highIso can be estimated as data-MC, and we can then directly multiply this template to obtain the QCD template in the signal region. 
 To make these histograms, first you need to use the following command to prepare the MCA file
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)"
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)" [--pdf-weights <nnpdf30|nnpdf31>]
 ```
 This also makes the histograms for the systematic variations on the prompt lepton templates.
+By default the pdfs from NNPDF3.1 are used, also for the central value. We can implement other ones (only NNPDF3.0 works at the moment), but one must make sure the processes are associated to the proper samples with the altenrative pdf branches (at the time of writing these instructions this is possible only for W, in the future we will also have Z)
 
 ### Produce all the histograms for data and MC processes.
 
@@ -198,14 +199,15 @@ One can also make the histograms (and thus the analysis) for a specific sub era 
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
 ```
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/postprocessing/ -b "29,26,55"
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/postprocessing/ -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/plots_fakerate_systTH3.root -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/plots_fakerate_systTH3.root -b "29,26,55"
 ```
 Note that the pt binning passed with __-b__ must be consistent with the one used before (which had a range 4 times larger because including the 4 iso/mT regions).
 
 The command above will also propagate a default 1.2% uncertainty for luminosity on the prompt component, which is also propagated to the fake templates through the subtractions of prompt events from data.
 
-At this point one can continue by running **makeHistogramsWMass.py** as explained in section __Unpack the histograms into TH2 (eta-pt) for combinetf_
+At this point one can continue by running **makeHistogramsWMass.py** as explained in section __Unpack the histograms into TH2 (eta-pt) for combinetf_.
+Note that the input root file passed to option -i of makeHistogramsWMass.py should be the one created by w-mass-13TeV/plotFakesTemplate.py. 
 
 #### Make plots in iso/mT regions for checks
 
