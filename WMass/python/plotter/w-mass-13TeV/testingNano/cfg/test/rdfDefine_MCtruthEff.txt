@@ -6,14 +6,20 @@ bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgI
 bareMuonsPlus : bareMuons && GenPart_pdgId < 0 : W|Z
 bareMuonsMinus : bareMuons && GenPart_pdgId > 0 : W|Z
 goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
+basicTrack : Track_pt > 15 && Track_charge > 0 && Track_trackOriginalAlgo != 13 && Track_trackOriginalAlgo != 14
+basicTrackAnyCharge : Track_pt > 15 && Track_trackOriginalAlgo != 13 && Track_trackOriginalAlgo != 14
 basicMuon : Muon_pt > 15 && Muon_charge > 0
+goodMuons_tracker : basicMuon && Muon_isTracker
+goodMuons_global : basicMuon && Muon_isGlobal
+goodMuons_standalone : Muon_standalonePt > 15 && Muon_isStandalone
 vetoMuons : basicMuon && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
 goodMuons_accept : basicMuon && abs(Muon_eta) <= 2.4 && Muon_pt >= 26 && Muon_pt < 55
 goodMuons_trackerOrGlobal : basicMuon && (Muon_isTracker || Muon_isGlobal)
-goodMuons_trackerOrGlobalAndStandalone : basicMuon &&  (Muon_isTracker || Muon_isGlobal) && Muon_isStandalone
-goodMuons_tracker : basicMuon && Muon_isTracker
-goodMuons_global : basicMuon && Muon_isGlobal
-goodMuons_standalone : basicMuon && Muon_isStandalone
+goodMuons_trackerOrGlobalAnyCharge : Muon_pt > 15 && (Muon_isTracker || Muon_isGlobal)
+goodMuons_trackerOrGlobalAndStandalone : goodMuons_trackerOrGlobal && goodMuons_standalone
+basicTrack_matchedTrackerOrGlobal : basicTrack && matchDeltaR2(Track_eta,Track_phi,Muon_eta[goodMuons_trackerOrGlobal],Muon_phi[goodMuons_trackerOrGlobal],0.0001)
+basicTrack_matchedTrackerOrGlobalAnyCharge : basicTrack && matchDeltaR2(Track_eta,Track_phi,Muon_eta[goodMuons_trackerOrGlobalAnyCharge],Muon_phi[goodMuons_trackerOrGlobalAnyCharge],0.0001)
+basicTrack_matchedStandalone : basicTrack && matchDeltaR2(Track_eta,Track_phi,Muon_standaloneEta[goodMuons_standalone],Muon_standalonePhi[goodMuons_standalone],0.01)
 goodMuons_idip : basicMuon && abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0
 # for trigger can also add trigger bits
 goodMuons_idipANDtrig : goodMuons_idip && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])

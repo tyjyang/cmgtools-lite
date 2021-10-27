@@ -617,6 +617,9 @@ class TreeToYield:
         ## weight has a common part for each plot (lumiWeight applied at the end as a scaling factor
         if self._weight:
             wgtCommon = "(%s)*(%s)" % (self._weightString, self._scaleFactor)
+            if "ReplaceWeight" in self._settings:
+                oldw,neww = self._settings["ReplaceWeight"].split("->")
+                wgtCommon = wgtCommon.replace(oldw,neww) # this is for all plots, so we update the common weight directly
         else:
             wgtCommon = '1.' ## wtf is that marc
         

@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Era for those SF of which we will make the lumi-weighted average")
     parser.add_argument("-r", "--ratio-to", dest="ratioToEra",   type=str, default="H", help="Era used as reference to make ratios")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig,antiiso,antiisonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
     parser.add_argument("--sub-era", dest="subEra", type=str, default="", help="If given, comma-separated list of eras to use, others in main era will be ignored (including the inclusive one). Mainly useful if some pieces are missing")
     args = parser.parse_args()
 

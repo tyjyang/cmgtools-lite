@@ -15,6 +15,9 @@
 # versus phi-eta (no PU weights here, comparing only pre and postVFP)
 # python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W_perEra_noRecoAccept_EtaPhi_noPUweights/plus/ --palette 87 --plot-ratio-era GToH -w 'trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit' -e "BToF,GToH" -y "bare muon #phi" --hname "bareMuon_phi_eta"
 
+# versus pt-eta (with PU weights, Z, CustonNANO, pre and postVFP only)
+# python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/Z_customNano_newPU_ptReco15andSameCharge/plus/ --palette 87 --plot-ratio-era GToH  --rebin-pt 4 -w 'trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit,veto,generalTrack,generalTrackAnyCharge,basicTrackMatchedToTrackerOrGlobal,basicTrackMatchedToTrackerOrGlobalAnyCharge' -e 'BToF,GToH' -p Zmumu
+
 import os, re, array, math
 import time
 import argparse
@@ -92,7 +95,10 @@ if __name__ == "__main__":
     wpToTNP = {"idip/trackerOrGlobal" : "idip",
                "idipANDtrig/idip" : "trigger",
                "idipANDtrigANDiso/idipANDtrig"  : "iso",
-               "idipANDisonotrig/idip"  : "isonotrig"
+               "idipANDisonotrig/idip"  : "isonotrig",
+               "basicTrackMatchedToTrackerOrGlobal/generalTrack"  : "reco",
+               #"standalone/gen"  : "altre",
+               #"basicTrackMatchedToTrackerOrGlobalAnyCharge/generalTrack"  : "recoAnyChargeMatch"
     }
     wpToTNPproducts = {"isoTrigPlusProdStepOfTnP" : ["isoStepOfTnP",       "triggerStepOfTnP", "idipStepOfTnP"],
                        "isoNotrigProdStepOfTnP"   : ["isonotrigStepOfTnP",                     "idipStepOfTnP"],
@@ -126,20 +132,33 @@ if __name__ == "__main__":
         print()
         if all(x in workingPoints for x in ["trackerOrGlobalAndStandalone", "standalone"]):
             print("Adding new working point (isTracker OR isGlobal | isStandalone)")
-            mcEff[(era,"trackOrGlobGivenSA")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenStandAlone_{era}"))
+            mcEff[(era,"trackOrGlobGivenSA")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenSA_{era}"))
             mcEff[(era,"trackOrGlobGivenSA")].Divide(mcEff[(era,"standalone")])
             print()
+        if all(x in workingPoints for x in ["global", "standalone"]):
+            print("Adding new working point (isGlobal | isStandalone)")  # should be global and standalone | standalone, but a global is always standalone apparently
+            mcEff[(era,"globalGivenSA")] = copy.deepcopy(mcEff[(era,"global")].Clone(f"mcTruthEff_globalGivenSA_{era}"))
+            mcEff[(era,"globalGivenSA")].Divide(mcEff[(era,"standalone")])
+            print()
+        if all(x in workingPoints for x in ["basicTrackMatchedToStandalone", "generalTrack"]):
+            print("Adding new working point (standalone | generalTrack)")
+            mcEff[(era,"standaloneGivenTrack")] = copy.deepcopy(mcEff[(era,"basicTrackMatchedToStandalone")].Clone(f"mcTruthEff_standaloneGivenTrack_{era}"))
+            mcEff[(era,"standaloneGivenTrack")].Divide(mcEff[(era,"generalTrack")])
+            print()
         for wp in wpToTNP.keys():
-            if any(x not in workingPoints for x in wp.split("/")):
+            if any((x != "gen" and x not in workingPoints) for x in wp.split("/")):
                 print(f"{wp}  {wpToTNP[wp]}")
                 continue
             num = str(wp.split('/')[0])
             den = str(wp.split('/')[1])
             tnpStep = wpToTNP[wp]
             hnum = safeGetObject(rf, f"{args.hname}__{num}_{args.process}_{eraVFP}")
-            hden = safeGetObject(rf, f"{args.hname}__{den}_{args.process}_{eraVFP}")
             hnum.RebinY(args.rebinPt)
-            hden.RebinY(args.rebinPt)
+            if den == "gen":
+                hden = hnomi # safeGetObject(rf, f"{args.hname}__{args.process}_{eraVFP}")
+            else:
+                hden = safeGetObject(rf, f"{args.hname}__{den}_{args.process}_{eraVFP}")
+                hden.RebinY(args.rebinPt)
             mcEff[(era,f"{tnpStep}StepOfTnP")] = copy.deepcopy(hnum.Clone(f"mcTruthEff_{tnpStep}StepOfTnP_{era}"))
             mcEff[(era,f"{tnpStep}StepOfTnP")].Divide(hden)
             mcEff[(era,f"{tnpStep}StepOfTnP")].SetTitle(f"{args.process}: {era}")
@@ -241,7 +260,7 @@ if __name__ == "__main__":
                 continue
             for wp in workingPoints:                
                 mcEffRatio[(era,wp)].SetTitle(f"{args.process}: {era}/{refEra}")
-                zAxisName = f"{wp} MC eff({era})/eff({refEra})::{minmax[wp][0]},{minmax[wp][1]}"    
+                zAxisName = f"{wp} MC eff. ratio::{minmax[wp][0]},{minmax[wp][1]}"    
                 drawCorrelationPlot(mcEffRatio[(era,wp)],
                                     xAxisName,
                                     yAxisName,

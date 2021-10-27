@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument(     '--h1Dbinning',  default='50,0.9,1.1', type=str, help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_argument('-v','--valBadRatio',  default='0', type=float, help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
     parser.add_argument(     '--buildFakeRate', action="store_true", help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta (obsolete, no longer using pol1 to interpolate)")
+    parser.add_argument(     '--skip1DPlot', action="store_true", help="Do not plot 1D distribution")
     parser.add_argument(     '--xRange',  default=(0,-1), type=float, nargs=2, help='Select range for X axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_argument(     '--yRange', default=(0,-1), type=float, nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_argument('-e', '--divide-error', dest="divideError", action="store_true", help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")
@@ -97,9 +98,9 @@ if __name__ == "__main__":
     else:
         print("Error: you should specify an output folder using option -o <name>. Exit")
         quit()
-    if not args.outfilename:
-        print("Error: you should specify an output file name using option -f <name>. Exit")
-        quit()
+    #if not args.outfilename:
+    #    print("Error: you should specify an output file name using option -f <name>. Exit")
+    #    quit()
     if not args.outhistname:
         print("Error: you should specify an output histogram name using option -n <name>. ")
         print("If FILE is used, take same name as the output file, removing the extension")
@@ -268,14 +269,15 @@ if __name__ == "__main__":
                         args.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=args.palette,passCanvas=canvas2D)
     
     canvas = ROOT.TCanvas("canvas","",800,700)
-    drawTH1(hratioDistr, 
-            hratio.GetZaxis().GetTitle() if args.zAxisTitle else "ratio",
-            "number of events",
-            outname,
-            "ratioDistribution",
-            args.outhistname,
-            passCanvas=canvas
-            )
+    if not args.skip1DPlot:
+        drawTH1(hratioDistr, 
+                hratio.GetZaxis().GetTitle() if args.zAxisTitle else "ratio",
+                "number of events",
+                outname,
+                "ratioDistribution",
+                args.outhistname,
+                passCanvas=canvas
+        )
 
     # making distribution of pulls
     if args.makePulls:
@@ -299,14 +301,15 @@ if __name__ == "__main__":
     ###########################
     # Now save things
     ###########################
-    if not args.outfilename.endswith(".root"):
-        args.outfilename = args.outfilename + ".root"
-    tf = ROOT.TFile.Open(outname+args.outfilename,'recreate')
-    hratio.Write(args.outhistname)
-    tf.Close()
-    print("")
-    print("Created file %s" % (outname+args.outfilename))
-    print("")
+    if args.outfilename:
+        if not args.outfilename.endswith(".root"):
+            args.outfilename = args.outfilename + ".root"
+        tf = ROOT.TFile.Open(outname+args.outfilename,'recreate')
+        hratio.Write(args.outhistname)
+        tf.Close()
+        print("")
+        print("Created file %s" % (outname+args.outfilename))
+        print("")
 
                                
          

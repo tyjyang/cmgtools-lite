@@ -178,7 +178,7 @@ for syst in systs:
                 h2D = getTH2fromTH3(h3D, name, ilumi, ilumi)
                 h2D.Write()
         if "effStatTnP" in syst:
-            for ieff in range(1, 576+1): # need to be kept manually consistent until we save these numbers somewhere
+            for ieff in range(1, 624+1): # need to be kept manually consistent until we save these numbers somewhere
                 systname = "effStatTnP%d" % ieff
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
@@ -188,6 +188,13 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
+        if "effSystTnP" in syst:
+            # here h3D is actually a TH2
+            name = "x_" + proc + "_effSystTnPUp" # define this as Up variation
+            h3D.Write(name)
+            h2D_mirror = h3D.Clone(name.replace("Up", "Down"))
+            h2D_mirror = mirrorShape(hnomi[proc], h3D, h2D_mirror)
+            h2D_mirror.Write()
         if "muonL1PrefireStat" in syst:
             for ieff in range(1, 11+1):
                 systname = "muonL1PrefireStat%d" % ieff

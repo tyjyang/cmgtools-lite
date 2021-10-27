@@ -166,10 +166,13 @@ for ipt in range(1,1+NVTPBINS):
     
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
+# NOTE: from September 2021 we have changed pt binning, now it is 15 pt bins from 24 to 65, the bins are: 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 47, 50, 55, 60, 65
+# for the analysis we may cut between 26 and 55, maybe even in a narrower window, so we would need a way to remove the unnecessary bins
+# for now we can neglect the upper pt bins, for the lowest ones we need some tricks to be implemented, so for now we have 48(eta) * 13(pt) = 624 bins (up to 55)
 write3DHist(label = "effStatTnP",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 576, # remember to edit weight below if changing this 
+            nsyst = 624, # remember to edit weight below if changing this 
             xylabels = axisNames,
             weight_axis = "Eff. stat. nuisance index",
             etapt_binning = etaptBins,
@@ -179,6 +182,15 @@ write3DHist(label = "effStatTnP",
             indexStart = 1,
             replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(576\," 
 )
+
+# eff. syst. nuisance, for now one just nuisance correlating all bins (may decorrelate across eta but for now we keep it simple)
+# so we only need to make a TH2
+# function to use is _get_fullMuonSF_dataAltSig, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
+# this is basically the SF obtained with alternative data efficiency from fit with analytic function (nominal uses MC template for signal instead)
+# this is just one variation, we would make it symmetric later
+line = f"effSystTnP_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, ReplaceWeight='_get_fullMuonSF(->_get_fullMuonSF_dataAltSig(', ProcessRegexp='W.*|Z.*|Top|Diboson'\n"
+print(line)
+if printToFile: outf.write(line+'\n')
 
 
 # muon prefiring stat uncertainty, uncorrelated for each eta bin. Here the function is _get_newMuonPrefiringSFvariationStat, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
