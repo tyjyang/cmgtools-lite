@@ -71,9 +71,10 @@ class MCAnalysis:
         if hasattr(ROOT, "initializeScaleFactors"):
             logging.info("Initializing histograms with scale factors")
             ROOT.initializeScaleFactors(self._options.scaleFactorFile, self._options.oldSFname)
-        if hasattr(ROOT, "initializeScaleFactorsTest"):
-            logging.info("Initializing histograms with test scale factors")
-            ROOT.initializeScaleFactorsTest(self._options.testScaleFactorFile)
+        if self._options.testScaleFactorFile:
+            if hasattr(ROOT, "initializeScaleFactorsTest"):
+                logging.info("Initializing histograms with test scale factors")
+                ROOT.initializeScaleFactorsTest(self._options.testScaleFactorFile)
         if self._options.mcTruthScaleFactorFile:
             if hasattr(ROOT, "initializeEfficiencyMCtruth"):
                 logging.info("Initializing histograms with test MC truth efficiencies")
@@ -850,7 +851,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
     parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root", help="File to be used for scale factors")
-    parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default="./testMuonSF/productEffAndSFperEra_nodz_dxybs_28Oct2021_mcTruthDR01_onlyGlobalMuon.root", help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized)")
+    parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/productEffAndSFperEra_nodz_dxybs_28Oct2021_mcTruthDR01_onlyGlobalMuon.root'")
     parser.add_argument("--mcTruth-scale-factor-file", dest="mcTruthScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/mcTruthEff_Zplus_customNano_trackInfoAndGlobalMuons.root'")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig");
     parser.add_argument("sampleFile", type=str, help="Text file with sample definitions");
