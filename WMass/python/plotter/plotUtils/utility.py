@@ -354,7 +354,15 @@ def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
             h3.SetBinError(ix, iy, zbin, error);
 
 
-            
+def multiplyByHistoWith1ptBin(h, h1bin):
+    # multiply 2D histograms when one has only 1 pt bin
+    # neglect uncertainty on histogram with 1 bin
+    # it is assumed that the number of eta bins is the same
+    for ix in range(1, 1 + h.GetNbinsX()):
+        for iy in range(1, 1 + h.GetNbinsY()):
+            h.SetBinContent(ix, iy, h.GetBinContent(ix, iy) * h1bin.GetBinContent(ix, 1))
+            h.SetBinError(  ix, iy, h.GetBinError(  ix, iy) * h1bin.GetBinContent(ix, 1))
+    
 #########################################################################
 
 def createPlotDirAndCopyPhp(outdir):

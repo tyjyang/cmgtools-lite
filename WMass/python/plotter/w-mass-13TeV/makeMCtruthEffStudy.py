@@ -92,16 +92,24 @@ if __name__ == "__main__":
     # to compare to TNP I need to reproduce P(A|B), while for MC truth I had P(A & B|bareMuon) or P(A|bareMuon)
     # so e.g. for idipANDtrigANDiso I can normalize to idipANDtrig to emulate P(iso|trigger & idip)
     # right hand side is the tnp keyword, left hand side is the way it can be obtained from available MC truth histograms
-    wpToTNP = {"idip/trackerOrGlobal" : "idip",
+    wpToTNP = {#"idip/trackerOrGlobal" : "idip",
+               "idip/global" : "idip", # this is the one to use when only using global muon
                "idipANDtrig/idip" : "trigger",
                "idipANDtrigANDiso/idipANDtrig"  : "iso",
                "idipANDisonotrig/idip"  : "isonotrig",
-               "basicTrackMatchedToTrackerOrGlobal/generalTrack"  : "reco",
+               "standaloneGivenTrack"  : "reco", # defined below
+               #"globalGivenSA"  : "tracking",    # defined below
+               #"standaloneMatchedToGlobal/standalone"  : "tracking", 
+               "standaloneAndGlobal/standalone"  : "tracking", 
+               #"basicTrackMatchedToTrackerOrGlobal/generalTrack"  : "reco",
                #"standalone/gen"  : "altre",
                #"basicTrackMatchedToTrackerOrGlobalAnyCharge/generalTrack"  : "recoAnyChargeMatch"
     }
     wpToTNPproducts = {"isoTrigPlusProdStepOfTnP" : ["isoStepOfTnP",       "triggerStepOfTnP", "idipStepOfTnP"],
+                       "noisoTrigPlusProdStepOfTnP":[                      "triggerStepOfTnP", "idipStepOfTnP"],
                        "isoNotrigProdStepOfTnP"   : ["isonotrigStepOfTnP",                     "idipStepOfTnP"],
+                       "isoTrigPlusTrkRecoProdStepOfTnP" : ["isoStepOfTnP", "triggerStepOfTnP", "idipStepOfTnP", "trackingStepOfTnP", "recoStepOfTnP"],
+                       "isoNotrigTrkRecoProdStepOfTnP" : ["isonotrigStepOfTnP", "idipStepOfTnP", "trackingStepOfTnP", "recoStepOfTnP"]
     }
     
     mcEff = {}
@@ -115,6 +123,7 @@ if __name__ == "__main__":
         #    hnomi.RebinY(len(newBinEdges)-1,"",array('d',newBinEdges))
         hnomi.RebinY(args.rebinPt)
         hwp = {}
+        
         for wp in workingPoints:
             hwp[wp] = safeGetObject(rf, f"{args.hname}__{wp}_{args.process}_{eraVFP}")
             mcEff[(era,wp)] = copy.deepcopy(hwp[wp].Clone(f"mcTruthEff_{wp}_{era}"))
@@ -130,37 +139,60 @@ if __name__ == "__main__":
         # P(iso) means P(iso|trigger&idip)
         # P(idip) means P(idip|global OR tracker)
         print()
+        # add some working points based on existing histograms
         if all(x in workingPoints for x in ["trackerOrGlobalAndStandalone", "standalone"]):
-            print("Adding new working point (isTracker OR isGlobal | isStandalone)")
+            print("Adding new working point trackOrGlobGivenSA = (isTracker OR isGlobal | isStandalone)")
             mcEff[(era,"trackOrGlobGivenSA")] = copy.deepcopy(mcEff[(era,"trackerOrGlobalAndStandalone")].Clone(f"mcTruthEff_trackOrGlobGivenSA_{era}"))
             mcEff[(era,"trackOrGlobGivenSA")].Divide(mcEff[(era,"standalone")])
             print()
-        if all(x in workingPoints for x in ["global", "standalone"]):
-            print("Adding new working point (isGlobal | isStandalone)")  # should be global and standalone | standalone, but a global is always standalone apparently
-            mcEff[(era,"globalGivenSA")] = copy.deepcopy(mcEff[(era,"global")].Clone(f"mcTruthEff_globalGivenSA_{era}"))
-            mcEff[(era,"globalGivenSA")].Divide(mcEff[(era,"standalone")])
+        # if all(x in workingPoints for x in ["global", "standalone"]):
+        #     print("Adding new working point globalGivenSA = (isGlobal | isStandalone)")  # should be global and standalone | standalone, but a global is always standalone apparently (can check comparing to standaloneMatchedToGlobal, which should be the most appropriate definition)
+        #     mcEff[(era,"globalGivenSA")] = copy.deepcopy(mcEff[(era,"global")].Clone(f"mcTruthEff_globalGivenSA_{era}"))
+        #     mcEff[(era,"globalGivenSA")].Divide(mcEff[(era,"standalone")])
+        #     print()
+        if all(x in workingPoints for x in ["standaloneMatchedToGlobal", "standalone"]):
+            print("Adding new working point globalGivenSAwithMatch = (standaloneMatchedToGlobal | isStandalone)")  # should be global and standalone | standalone, but a global is always standalone apparently (can check comparing to standaloneMatchedToGlobal, which should be the most appropriate definition)
+            mcEff[(era,"globalGivenSAwithMatch")] = copy.deepcopy(mcEff[(era,"standaloneMatchedToGlobal")].Clone(f"mcTruthEff_globalGivenSAwithMatch_{era}"))
+            mcEff[(era,"globalGivenSAwithMatch")].Divide(mcEff[(era,"standalone")])
+            print()
+        if all(x in workingPoints for x in ["standaloneAndGlobal", "standalone"]):
+            print("Adding new working point globalGivenSAwithFlag = (standaloneAndGlobal | isStandalone)")  # should be global and standalone | standalone, but a global is always standalone apparently (can check comparing to standaloneMatchedToGlobal, which should be the most appropriate definition)
+            mcEff[(era,"globalGivenSAwithFlag")] = copy.deepcopy(mcEff[(era,"standaloneAndGlobal")].Clone(f"mcTruthEff_globalGivenSAwithFlag_{era}"))
+            mcEff[(era,"globalGivenSAwithFlag")].Divide(mcEff[(era,"standalone")])
             print()
         if all(x in workingPoints for x in ["basicTrackMatchedToStandalone", "generalTrack"]):
-            print("Adding new working point (standalone | generalTrack)")
+            print("Adding new working point standaloneGivenTrack = (standalone | generalTrack)")
             mcEff[(era,"standaloneGivenTrack")] = copy.deepcopy(mcEff[(era,"basicTrackMatchedToStandalone")].Clone(f"mcTruthEff_standaloneGivenTrack_{era}"))
             mcEff[(era,"standaloneGivenTrack")].Divide(mcEff[(era,"generalTrack")])
             print()
+        if all(x in workingPoints for x in ["basicTrackAllMatchedToStandalone", "generalTrackAll"]):
+            print("Adding new working point standaloneGivenTrackAll = (standalone | generalTrackAll)")
+            mcEff[(era,"standaloneGivenTrackAll")] = copy.deepcopy(mcEff[(era,"basicTrackAllMatchedToStandalone")].Clone(f"mcTruthEff_standaloneGivenTrackAll_{era}"))
+            mcEff[(era,"standaloneGivenTrackAll")].Divide(mcEff[(era,"generalTrackAll")])
+            print()
+
         for wp in wpToTNP.keys():
-            if any((x != "gen" and x not in workingPoints) for x in wp.split("/")):
-                print(f"{wp}  {wpToTNP[wp]}")
-                continue
-            num = str(wp.split('/')[0])
-            den = str(wp.split('/')[1])
             tnpStep = wpToTNP[wp]
-            hnum = safeGetObject(rf, f"{args.hname}__{num}_{args.process}_{eraVFP}")
-            hnum.RebinY(args.rebinPt)
-            if den == "gen":
-                hden = hnomi # safeGetObject(rf, f"{args.hname}__{args.process}_{eraVFP}")
+            if "/" in wp:
+                # make the efficiency from ratio of existing histograms in file
+                if any((x != "gen" and x not in workingPoints) for x in wp.split("/")):
+                    print(f"{wp}  {wpToTNP[wp]}")
+                    continue
+                num = str(wp.split('/')[0])
+                den = str(wp.split('/')[1])
+                hnum = safeGetObject(rf, f"{args.hname}__{num}_{args.process}_{eraVFP}")
+                hnum.RebinY(args.rebinPt)
+                if den == "gen":
+                    hden = hnomi # safeGetObject(rf, f"{args.hname}__{args.process}_{eraVFP}")
+                else:
+                    hden = safeGetObject(rf, f"{args.hname}__{den}_{args.process}_{eraVFP}")
+                    hden.RebinY(args.rebinPt)
+                mcEff[(era,f"{tnpStep}StepOfTnP")] = copy.deepcopy(hnum.Clone(f"mcTruthEff_{tnpStep}StepOfTnP_{era}"))
+                mcEff[(era,f"{tnpStep}StepOfTnP")].Divide(hden)
             else:
-                hden = safeGetObject(rf, f"{args.hname}__{den}_{args.process}_{eraVFP}")
-                hden.RebinY(args.rebinPt)
-            mcEff[(era,f"{tnpStep}StepOfTnP")] = copy.deepcopy(hnum.Clone(f"mcTruthEff_{tnpStep}StepOfTnP_{era}"))
-            mcEff[(era,f"{tnpStep}StepOfTnP")].Divide(hden)
+                # just copy the efficiency that already exists
+                num = str(wp)
+                mcEff[(era,f"{tnpStep}StepOfTnP")] = copy.deepcopy(mcEff[(era,f"{wp}")].Clone(f"mcTruthEff_{tnpStep}StepOfTnP_{era}"))
             mcEff[(era,f"{tnpStep}StepOfTnP")].SetTitle(f"{args.process}: {era}")
         if rf.IsOpen():    
             rf.Close()
@@ -178,6 +210,15 @@ if __name__ == "__main__":
     print("New working points")
     print(workingPoints)
     print()
+
+    for era,wp in mcEff.keys():
+        maxEff = mcEff[(era,wp)].GetBinContent(mcEff[(era,wp)].GetMaximumBin())
+        if maxEff > 1:
+            print()
+            print(">>>>>>>>>>")
+            print(f">>>>>>>>>> WARNING: eff[{era},{wp}] > 1 in one or more bins (max = {maxEff})")
+            print(">>>>>>>>>>")
+            print()
     
     xAxisName = "bare muon #eta"
     yAxisName = args.yAxisName
@@ -299,17 +340,7 @@ if __name__ == "__main__":
                 ratioTnpOverMCtruth[(eraName,wp)] = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"ratioTnpOverMCtruth_{wp}_{eraName}"))
                 ratioTnpOverMCtruth[(eraName,wp)].Divide(mcTruth)
                 ratioTnpOverMCtruth[(eraName,wp)].SetTitle(f"TnP / MC truth: {eraName}")
-
-                # if wpnorm != None:
-                #     mcTruthNorm = copy.deepcopy(tnpEff[(eraName,wp)].Clone(f"mcTruth_{wpToTNP[wptmp]}_{tnpera}_{charge}_rebin_norm"))
-                #     for ix in range(1, 1 + mcTruthNorm.GetNbinsX()):
-                #         for iy in range(1, 1 +  mcTruthNorm.GetNbinsY()):
-                #             ptval = tnpEff[(eraName,wp)].GetYaxis().GetBinCenter(iy)
-                #             ybin = mcEff[(eraName,wpnorm)].GetYaxis().FindFixBin(ptval+0.001)
-                #             mcTruthNorm.SetBinContent(ix, iy, mcEff[(eraName,wpnorm)].GetBinContent(ix, ybin))
-                #             # need to transform TnP histograms into new ones with same binning as the MC truth ones
-                #     ratioTnpOverMCtruth[(eraName,wp)].Multiply(mcTruthNorm)
-                
+    
         minmax = getMinMaxForSameWorkingPoint(ratioTnpOverMCtruth, args, excludeMax=2)       
         for wptmp in wpToTNP.keys():
 

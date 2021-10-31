@@ -60,6 +60,15 @@ if __name__ == "__main__":
                       "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
                       "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
                       "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
+                      "reco"              : ["reco"],
+                      "tracking"          : ["tracking"],
+                      "trackingReco"      : ["tracking", "reco"],
+                      "idipTrackingReco"  : ["idip", "tracking", "reco"],
+                      "trigPlusIdipTrackingReco"     : ["triggerplus", "idip", "tracking", "reco"],
+                      "isoTrigPlusIdipTrackingReco"  : ["iso", "triggerplus", "idip", "tracking", "reco"],
+                      "trigMinusIdipTrackingReco"    : ["triggerminus", "idip", "tracking", "reco"],
+                      "isoTrigMinusIdipTrackingReco" : ["iso", "triggerminus", "idip", "tracking", "reco"],
+                      "isoNotrigIdipTrackingReco"    : ["isonotrig", "idip", "tracking", "reco"],
     }
     # productsToMake = {"trackingReco"       : ["reco", "tracking"], # "tracking"],
     # }
@@ -181,12 +190,18 @@ if __name__ == "__main__":
                     prodHistsMC[era][key] = copy.deepcopy(histsMC[era][name].Clone(f"fullEffMC2D_{key}_{era}"))
                 else:
                     stringProduct = stringProduct + "*" + name
-                    if not prodHists[era][key].Multiply(hists[era][name]):
-                        print(f"ERROR in multiplication for prodHists[{era}][{key}] with {name}")
-                        quit()
-                    if not prodHistsMC[era][key].Multiply(histsMC[era][name]):
-                        print(f"ERROR in multiplication for prodHistsMC[{era}][{key}] with {name}")
-                        quit()
+                    if hists[era][name].GetNbinsY() == 1:
+                        multiplyByHistoWith1ptBin(prodHists[era][key], hists[era][name])
+                    else:
+                        if not prodHists[era][key].Multiply(hists[era][name]):
+                            print(f"ERROR in multiplication for prodHists[{era}][{key}] with {name}")
+                            quit()
+                    if histsMC[era][name].GetNbinsY() == 1:
+                        multiplyByHistoWith1ptBin(prodHistsMC[era][key], histsMC[era][name])
+                    else:
+                        if not prodHistsMC[era][key].Multiply(histsMC[era][name]):
+                            print(f"ERROR in multiplication for prodHistsMC[{era}][{key}] with {name}")
+                            quit()
             prodHists[era][key].SetTitle(f"{stringProduct}")            
             prodHistsMC[era][key].SetTitle(f"{stringProduct}")            
             prodHists[era][key].Write(f"fullEffData2D_{key}_{era}")

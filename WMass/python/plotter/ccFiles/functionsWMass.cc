@@ -565,7 +565,8 @@ std::unordered_map<DataEra, std::string> eraNames = { {BToF, "BtoF"}, {GToH, "Gt
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"} };
 //std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"}, {altReco, "altre"} };
-std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"} };
+//std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"} };
+std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {reco, "reco"} };
 // FOR TESTS WITH EFFICIENCIES (F is preVFP part)
 std::unordered_map<DataEra, std::string> runEraNames = { {GToH, "GtoH"}, {BToF, "BtoF"}, {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
   
@@ -588,7 +589,7 @@ std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleF
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHist_dataAltSig = {};
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHistTrackingReco = {};  // tmp, for tracking or reco sf from our tnp
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorHistTrackingReco_dataAltSig = {};  // tmp, for tracking or reco sf from our tnp
-std::unordered_map<DataEra, TH2F> scaleFactorHistRegularizedReco = {};  // tmp, for regularized reco sf from our tnp (best bin between nominal and dataAltSig)
+//std::unordered_map<DataEra, TH2F> scaleFactorHistRegularizedReco = {};  // tmp, for regularized reco sf from our tnp (best bin between nominal and dataAltSig)
 
 std::unordered_map<DataEra, TH1D> hmuonPOGtrackingSF = {};
 
@@ -690,19 +691,19 @@ void initializeScaleFactors(const string& _filename_allSF = "./testMuonSF/scaleF
     }
       
     // regularized reco SF, using best bin between nominal and dataAltSig
-    for (auto& era : eraNames) {
-      std::vector<std::string> vars = {"SF2D_regularized_reco", era.second, "both"};
-      std::string corrname = boost::algorithm::join(vars, "_");
-      auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
-      if (histptr == nullptr) {
-	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-		  << _filename_allSF << "! Aborting" << std::endl;
-	exit(EXIT_FAILURE);
-      }
-      histptr->SetDirectory(0);
-      DataEra eraVal = era.first;
-      scaleFactorHistRegularizedReco[eraVal] = *dynamic_cast<TH2F*>(histptr);
-    }
+    // for (auto& era : eraNames) {
+    //   std::vector<std::string> vars = {"SF2D_regularized_reco", era.second, "both"};
+    //   std::string corrname = boost::algorithm::join(vars, "_");
+    //   auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    //   if (histptr == nullptr) {
+    // 	std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+    // 		  << _filename_allSF << "! Aborting" << std::endl;
+    // 	exit(EXIT_FAILURE);
+    //   }
+    //   histptr->SetDirectory(0);
+    //   DataEra eraVal = era.first;
+    //   scaleFactorHistRegularizedReco[eraVal] = *dynamic_cast<TH2F*>(histptr);
+    // }
 
   }
 
@@ -1607,7 +1608,7 @@ double _get_tnpTrackingSF(float pt,      float eta,      int charge,
 			  float ptOther, float etaOther,
 			  DataEra era = BToF,
 			  bool altSF = false,
-			  ScaleFactorType sftype = altTracking
+			  ScaleFactorType sftype = tracking
 			  ) {
   
   auto const key = std::make_pair(sftype, era);
@@ -1642,19 +1643,19 @@ double _get_tnpRecoSF(float pt,      float eta,      int charge,
   return sf;
 }
 
-// tnp regularized reco scale factors (for tests)
-double _get_tnpRegularizedRecoSF(float pt,      float eta,      int charge,
-				 float ptOther, float etaOther,
-				 DataEra era = BToF
-				 ) {
+// // tnp regularized reco scale factors (for tests)
+// double _get_tnpRegularizedRecoSF(float pt,      float eta,      int charge,
+// 				 float ptOther, float etaOther,
+// 				 DataEra era = BToF
+// 				 ) {
   
-  const TH2F& hsf = scaleFactorHistRegularizedReco.at(era);
-  double sf = getValFromTH2(hsf, eta, pt);
-  if (ptOther > 0.0) {
-    sf *= getValFromTH2(hsf, etaOther, ptOther);
-  }
-  return sf;
-}
+//   const TH2F& hsf = scaleFactorHistRegularizedReco.at(era);
+//   double sf = getValFromTH2(hsf, eta, pt);
+//   if (ptOther > 0.0) {
+//     sf *= getValFromTH2(hsf, etaOther, ptOther);
+//   }
+//   return sf;
+// }
 
 
 Vec_d _get_fullMuonSFvariation(int n_tnpBinNuisance,

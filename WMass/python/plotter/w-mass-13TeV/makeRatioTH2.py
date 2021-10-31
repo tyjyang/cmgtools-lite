@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('-y','--yAxisTitle',  default='', type=str, help='Y axis title. If not given, use the one from hist1')
     parser.add_argument('-z','--zAxisTitle',  default='', type=str, help='Z axis title. If not given, use the one from hist1')
     parser.add_argument('-t','--histTitle',   default='', type=str, help='Title to assign to output histogram. It is used as a label for the canvas')
-    parser.add_argument('-r','--ratioRange',  default=(0, 2),type=float, nargs=2, help="Min and max for the ratio in the plot")
+    parser.add_argument('-r','--ratioRange',  default=(0, -1),type=float, nargs=2, help="Min and max for the ratio in the plot")
     parser.add_argument(     '--h1Dbinning',  default='50,0.9,1.1', type=str, help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_argument('-v','--valBadRatio',  default='0', type=float, help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
     parser.add_argument(     '--buildFakeRate', action="store_true", help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta (obsolete, no longer using pol1 to interpolate)")
@@ -263,7 +263,9 @@ if __name__ == "__main__":
     
     # the axis name can be used to set the range if it is in the format "name::min,maz"
     # if this is not already the case, use the selected range from the input option
-    if not "::" in zAxisTitle:  
+    if not "::" in zAxisTitle:
+        if args.ratioRange[0] > args.ratioRange[1]:
+            args.ratioRange = (hratio.GetBinContent(hratio.GetMinimumBin()), hratio.GetBinContent(hratio.GetMaximumBin()))
         zAxisTitle = zAxisTitle + "::" + str(args.ratioRange[0]) + "," + str(args.ratioRange[1])
     drawCorrelationPlot(hratio,xAxisTitle,yAxisTitle,zAxisTitle,
                         args.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=args.palette,passCanvas=canvas2D)
