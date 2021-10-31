@@ -4,7 +4,7 @@ json       : isGoodRunLS(isData,run,luminosityBlock); BEFOREDEFINE=True
 vetomuon   : Sum(vetoMuons)==1
 onemuon    : Sum(goodMuons)==1 
 accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55)
-muonID     : Muon_mediumId[goodMuons][0] == 1
+muonID     : Muon_mediumId[goodMuons][0] == 1 && Muon_isGlobal[goodMuons][0]
 #awayjet    : Sum(goodCleanJets)>=1
 #pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
 trigMatch  : hasTriggerMatch(Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
