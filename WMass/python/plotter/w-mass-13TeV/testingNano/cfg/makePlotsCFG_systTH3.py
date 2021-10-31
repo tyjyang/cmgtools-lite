@@ -89,7 +89,7 @@ if args.pdfWeights == "nnpdf31":
                 xylabels = axisNames,
                 weight_axis = "PDF/alpha_{S} index",
                 etapt_binning = etaptBins,
-                regex = "W.*",
+                regex = "W.*|Z.*",
                 outfile = outf,
                 systBinStart = 0.5,
                 indexStart = 0,
@@ -180,7 +180,7 @@ write3DHist(label = "effStatTnP",
             outfile = outf,
             systBinStart = 0.5,
             indexStart = 1,
-            replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(576\," 
+            replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(624\," 
 )
 
 # eff. syst. nuisance, for now one just nuisance correlating all bins (may decorrelate across eta but for now we keep it simple)
