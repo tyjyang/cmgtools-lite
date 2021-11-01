@@ -71,7 +71,7 @@ def main(args):
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"{outdir}/fakeRateRegion_{postfix}/{folderEra}/{args.charge}/"
+    plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/{args.charge}/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables

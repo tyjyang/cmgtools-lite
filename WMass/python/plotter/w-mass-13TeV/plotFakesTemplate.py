@@ -51,7 +51,7 @@ if __name__ == "__main__":
     #outdir = args.outdir[0]
     #if not outdir.endswith('/'):
     #    outdir += '/'
-    outdir = os.path.dirname(fname + "/postprocessing/")
+    outdir = os.path.dirname(fname) + "/postprocessing/"
     createPlotDirAndCopyPhp(outdir)
 
     ROOT.TH1.SetDefaultSumw2()

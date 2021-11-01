@@ -951,6 +951,9 @@ std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> effici
 std::unordered_map<std::pair<ScaleFactorType, DataEra>,  TH2F, pair_hash> scaleFactorPerEra = {};
 std::unordered_map<ScaleFactorType, TH2F> lumiAverageScaleFactorPreVFP = {};
 
+std::unordered_map<ScaleFactorType, std::string> scalefactorNamesTest = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"}, {trackingAndReco, "trackingReco"}, {tracking, "tracking"}, {reco, "reco"} };
+
+
 void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/productEffAndSFperEra_nodz_dxybs.root") {
 
   // std::string _filename_trackingRecoSF = "./testMuonSF/trackingRecoEffAndSF_tnp_17Sept2021.root";
@@ -1011,7 +1014,7 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
   std::cout << "INFO >>> Initializing histograms for test SF from file " << _filename_allSF << std::endl;
 
   // data/data
-  for (auto& corr : scalefactorNames) {
+  for (auto& corr : scalefactorNamesTest) {
     
     for (auto& dataRunEra : runEraNames) {
      
@@ -1072,17 +1075,17 @@ void initializeScaleFactorsTest(const string& _filename_allSF = "./testMuonSF/pr
       scaleFactorPerEra[corrKey] = *dynamic_cast<TH2F*>(histptr);
     }
 
-    std::string corrname = Form("lumiAveScaleFactor_%s_BtoF", corr.second.c_str());
-    auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
-    if (histptr == nullptr) {
-      std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
-		<< _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
-      // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
-      continue;
-    }
-    histptr->SetDirectory(0);
-    ScaleFactorType corrKey = corr.first;
-    lumiAverageScaleFactorPreVFP[corrKey] = *dynamic_cast<TH2F*>(histptr);
+    // std::string corrname = Form("lumiAveScaleFactor_%s_BtoF", corr.second.c_str());
+    // auto* histptr = dynamic_cast<TH2F*>(_file_allSF.Get(corrname.c_str()));
+    // if (histptr == nullptr) {
+    //   std::cerr << "WARNING: Failed to load correction " << corrname << " in file "
+    // 		<< _filename_allSF << "! Will continue neglecting them, but be careful" << std::endl;
+    //   // exit(EXIT_FAILURE); // these are test SF and sometimes we miss some of them, but as long as we don't try to use them it is fine
+    //   continue;
+    // }
+    // histptr->SetDirectory(0);
+    // ScaleFactorType corrKey = corr.first;
+    // lumiAverageScaleFactorPreVFP[corrKey] = *dynamic_cast<TH2F*>(histptr);
     
   }
   
@@ -1102,6 +1105,27 @@ double _get_TnpRecoAndTrackingEffMCPerEra(float pt,      float eta,      int cha
   if (ptOther > 0.0) {
     auto const keyOther = std::make_pair(sftype, dtype);
     const TH2F& hcorrOther = efficiencyMCPerEra.at(keyOther);
+    sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
+  }
+
+  return sf;
+
+}
+
+double _get_TnpRecoAndTrackingEffDataPerEra(float pt,      float eta,      int charge,
+					    float ptOther, float etaOther,
+					    DataEra dtype = G
+					    ) {
+
+  ScaleFactorType sftype = trackingAndReco;
+
+  auto const key = std::make_pair(sftype, dtype);
+  const TH2F& hcorr = efficiencyDataPerEra.at(key);
+  double sf = getValFromTH2(hcorr, eta, pt);
+
+  if (ptOther > 0.0) {
+    auto const keyOther = std::make_pair(sftype, dtype);
+    const TH2F& hcorrOther = efficiencyDataPerEra.at(keyOther);
     sf *= getValFromTH2(hcorrOther, etaOther, ptOther);
   }
 
