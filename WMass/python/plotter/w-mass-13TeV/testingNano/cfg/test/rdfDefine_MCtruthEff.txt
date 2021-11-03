@@ -31,3 +31,7 @@ goodMuons_idipANDtrigANDiso  : goodMuons_idipANDtrig && Muon_pfRelIso04_all < 0.
 goodMuons_idipANDisonotrig  : goodMuons_idip && Muon_pfRelIso04_all < 0.15
 goodMuons_trig : basicMuon && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
 goodMuons_iso  : basicMuon && Muon_pfRelIso04_all < 0.15
+
+tagMuons : Muon_pt > 24 && Muon_charge < 0 && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0 && Muon_isGlobal && Muon_pfRelIso04_all < 0.15 && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs]) && minDeltaR2many(Muon_eta,Muon_phi,GenPart_eta[bareMuonsMinus][0],GenPart_phi[bareMuonsMinus][0]) < 0.01 
+
+genTagMuons: bareMuonsMinus && abs(GenPart_eta) < 2.4 && GenPart_pt > 24

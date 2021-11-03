@@ -81,6 +81,7 @@ parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4],
 parser.add_argument("-c", "--charge", type=str, default=None, choices=["plus", "minus"], help="Charge for this channel")
 parser.add_argument("--decorrelate-by-charge", dest="decorrByCharge", type=str, default=None, help="Matching regular expression for nuisances to be decorrelated by charge (or comma-separate list of expressions). The corresponding histograms have to be named according to the charge") 
 parser.add_argument("--wlike", dest="isWlike", action="store_true", help="Flag for W-like analysis (have to change histogram name for signal to include the charge)")
+parser.add_argument("--alpha-from-pdf-histogram", dest="alphaFromPdfHisto", action="store_true", help="Alpha is usually an independent histogram with respect to PDFs, but for NNPDF3.1, if this option is true, it is actually made from the TH3 containing PDFs (last two bins are alpha with 0.002 variation)")
 
 args = parser.parse_args()
 
@@ -114,6 +115,8 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
     if not obj:
         raise(RuntimeError('Unable to read object {n}'.format(n=name)))
     syst,proc = name.split("__")
+    if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+        continue
     if proc == "data":
         proc = "data_obs"
     if proc == "Zmumu" and args.isWlike:
@@ -140,7 +143,7 @@ for syst in systs:
 print('-'*30)
 
 hasNNPDF31alphaS0001var = False
-if all(x in systs for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+if all(x in systs for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]) and not args.alphaFromPdfHisto:
     hasNNPDF31alphaS0001var = True
     
 outf = ROOT.TFile.Open(outfilename,'RECREATE')
@@ -151,6 +154,8 @@ for proc in list(hnomi.keys()):
     hnomi[proc].Write()
 
 for syst in systs:
+    if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+        continue
     print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
@@ -208,7 +213,7 @@ for syst in systs:
                 h2D_mirror.Write()
         if "muonL1PrefireSyst" in syst:
             for ieff in range(2, 3+1):
-                systname = "muonL1PrefireSyst%d" % ieff
+                systname = "muonL1PrefireSyst"
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
@@ -247,7 +252,7 @@ for syst in systs:
                         h2D.Write()
                         h2D_mirror.Write()
                     elif not hasNNPDF31alphaS0001var:
-                        print(">>> Warning: using alphaS variation equal to 0.002")
+                        print(">>> Warning: using alphaS variation equal to 0.002 extracted from pdf TH3")
                         name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
                         h2D = getTH2fromTH3(h3D, name, i, i)
                         h2D.Write()
