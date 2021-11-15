@@ -219,6 +219,14 @@ for syst in systs:
                 name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
                 h2D = getTH2fromTH3(h3D, name, ieff, ieff)
                 h2D.Write()
+        if "muonPtScaleTest" in syst:
+            for iptsyst in range(1, 96+1): # 48 *2, for up and down variations
+                systname = "muonPtScaleTest%d" % (iptsyst if iptsyst <= 48 else (iptsyst-48))
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if iptsyst <=48 else "Down")
+                h2D = getTH2fromTH3(h3D, name, iptsyst, iptsyst)
+                h2D.Write()
         if "qcdScale" in syst:
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence

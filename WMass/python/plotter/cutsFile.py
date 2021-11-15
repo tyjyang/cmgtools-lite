@@ -76,7 +76,7 @@ class CutsFile:
         for setting in [f.replace(';',',').strip() for f in more.replace('\\,',';').split(',')]:
             if "=" in setting:
                 (key,val) = [f.strip() for f in setting.split("=")]
-                retExtra[key] = eval(val)
+                retExtra[key] = eval(val)# if val in ["True", "False"] else str(val) 
             else: retExtra[setting] = True
         return (retline, retExtra)
     

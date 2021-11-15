@@ -6,11 +6,11 @@
 #
 # second field is actually not used for lnN nuisances (might be used to trigger some behaviour, e.g. decorrelating by charge if needed)
 pdfs       : pdf.*                  : Z.*|W.*|.*fakes.*                  : PDFs       : shape
-alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 1.3333333
+alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 0.67
 qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDscaleW_WptBin  : shape
 qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
-muScale    : ptScale.*              : Wmunu.*                            : MUSCALE    : shape
+muScale    : muonPtScaleTest.*      : W.*|Z.*|Diboson.*|Top.*            : muonPtScale: shape
 efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_stat   : shape
 effSyst    : effSyst.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_syst   : shape
 muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonPrefiring  : shape

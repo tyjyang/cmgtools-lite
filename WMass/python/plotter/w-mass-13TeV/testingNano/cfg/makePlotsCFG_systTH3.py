@@ -27,17 +27,22 @@ def wptBinsScales(i):
     return [ptlo, pthi]
 
 # TODO: Use this for other systematics (it needs to be generalized a bit)
-def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, regex, outfile=None, systBinStart=-0.5, indexStart=0, addWeight=None, replaceWeight=None, nBinsZaxis=None):
+def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, regex, outfile=None, systBinStart=-0.5, indexStart=0, addWeight=None, replaceWeight=None, nBinsZaxis=None, replaceCutByName=None, isPtScaleTest=False):
 
     if nBinsZaxis == None:
         nBinsZaxis = nsyst
     syst_binning = "%d,%.1f,%.1f" % (nBinsZaxis, systBinStart, nBinsZaxis+systBinStart)
-    expr_string = f"indices({nsyst},{indexStart})\:scalarToRVec({pt_expr},{nsyst})\:scalarToRVec({eta_expr},{nsyst})"
+    if isPtScaleTest:
+        expr_string = f"indices({nsyst},{indexStart})\:{pt_expr}\:scalarToRVec({eta_expr},{nsyst})"
+    else:
+        expr_string = f"indices({nsyst},{indexStart})\:scalarToRVec({pt_expr},{nsyst})\:scalarToRVec({eta_expr},{nsyst})"
     weight_items = []
     if addWeight:
         weight_items.append(f"AddWeight='{addWeight}'")
     if replaceWeight:
         weight_items.append(f"ReplaceWeight='{replaceWeight}'")
+    if replaceCutByName:
+        weight_items.append(f"ReplaceCutByName='{replaceCutByName}'")
     weight_str = ", ".join(weight_items) if len(weight_items) else ""
 
     line = f"{label}_: {expr_string} : {etapt_binning},{syst_binning};" \
@@ -56,6 +61,7 @@ parser.add_argument('--etaVar', default='Muon_eta[goodMuonsCharge][0]', type=str
 parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31", help='PDF set to use')
+parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str, help='Expression for variable on pt axis, specific for tests about pt scale (it doesn\'t get vectorized)')
 args = parser.parse_args()
 
 ###################################
@@ -261,6 +267,23 @@ write3DHist(label = "massWeight",
 #                 indexStart = 0,
 #                 addWeight = f"scetlibWeights{chan}"
 #     )
+
+# muon momentum scale test
+write3DHist(label = "muonPtScaleTest",
+            pt_expr = args.ptVarScaleTest,
+            eta_expr = args.etaVar,
+            nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "pT scale nuisance index (Up+Down)",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            replaceCutByName = "accept->valueInsideRange(customPtTest\,26\,55)",
+            isPtScaleTest = True
+)
+
 
 print('-'*30)
 print("SUMMARY")

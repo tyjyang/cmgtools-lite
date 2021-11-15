@@ -95,8 +95,10 @@ def main(args):
         processes = ",".join(tmpprocs)
 
     print('-'*30)
-    print("Using these processes")
-    print(processes)
+    processesList = processes.split(',')
+    print(f"Using these processes ({len(processesList)} in total)")
+    for i,p in enumerate(processesList):
+        print(f"{i}) {p}")
     print('-'*30)
         
     procGroups = " ".join([getProcessGroup(p, era, subEra) for p in processes.split(',')])
@@ -138,6 +140,10 @@ def main(args):
     if args.dryRun:
         print(command)
     else:
+        print("Going to run the following mcPlots.py command")
+        print()
+        print(command)
+        print("-"*30)
         os.system(command)
 
 

@@ -54,6 +54,11 @@ muon_dxy: Muon_dxy[goodMuonsCharge][0]: 50,-0.05,0.05; XTitle="Muon dxy (cm)", L
 
 muon_dz_largeyZ: Muon_dz[goodMuonsCharge][0]*if3(std\:\:abs(rapidity(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]))>2.0,1.0,-99999): 100,-10.0,10.0; XTitle="Muon dz (cm)", Legend='TR', Logy=True, RMin=0.2, RMax=2.5
 
+#muon_Z_eta: PV_z+Muon_dz[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,30,-15,15; XTitle='Muon #eta', YTitle="PV_z + Muon dz (cm)", Legend='TR', IncludeOverflows=True, RMin=0.1, RMax=1.6
+
+muon_Z_eta: PV_z+Muon_dz[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,30,-15,15; XTitle='Muon #eta', YTitle="PV_z + Muon dz (cm)", Legend='TR', IncludeOverflows=True, RMin=0.1, RMax=1.6
+
+muon_Z_npv: PV_z+Muon_dz[goodMuonsCharge][0]\:PV_npvsGood: 25,0,50,30,-15,15; XTitle='Number of reconstructed vertices', YTitle="PV_z + Muon dz (cm)", Legend='TR', IncludeOverflows=True, RMin=0.5, RMax=1.5, Logz=True
 
 muon_pt_eta: Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55 ; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', Legend='TR'
 
@@ -126,8 +131,7 @@ dR_jetmu: deltaR(Jet_eta[goodCleanJets][0],Jet_phi[goodCleanJets][0],Muon_eta[go
 
 vertex_z: PV_z: 150,-15.0,15.0; XTitle='primary vertex z (cm)', Legend='TR', IncludeOverflows=True, RMin=0.25, RMax=1.25
 
-muonZ: PV_z + Muon_dz[goodMuonsCharge][0]: 150,-15,15; XTitle="PV_z + Muon dz (cm)", Legend='TR', IncludeOverflows=False, Logy=True, RMin=0.25, RMax=1.25
-
+muonZ: PV_z + Muon_dz[goodMuonsCharge][0]: 150,-15,15; XTitle="PV_z + Muon dz (cm)", Legend='TR', IncludeOverflows=False, Logy=True, RMin=0.1, RMax=1.6
 
 nJet : nJet: 6,-0.5,5.5 ; XTitle="number of jets", Legend='TR'
 
@@ -181,6 +185,7 @@ mt_wlike_ChsMET: mt_wlike(Muon_pt[0],Muon_phi[0],Muon_charge[0],Muon_pt[1],Muon_
 #zy : rapidity_2(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_phi[goodMuons][0],0.1057128,Muon_pt[goodMuons][1],Muon_eta[goodMuons][1],Muon_phi[goodMuons][1],0.1057128): 50,-2.5,2.5 ; XTitle="reco Z rapidity", Legend='TR'
 
 zmass  : invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True, RMin=0.9, RMax=1.1
+testzmass  : invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True, RMin=0.9, RMax=1.1, ReplaceCutByName="mZ->valueInsideRange(invariantmass(Muon_pt[goodMuons]\,Muon_eta[goodMuons]\,Muon_phi[goodMuons]\,Muon_mass[goodMuons])\, 85.\, 95.)"
 
 zmassveto  : invariantmass(Muon_pt[vetoMuons],Muon_eta[vetoMuons],Muon_phi[vetoMuons],Muon_mass[vetoMuons]): 60,60,120; XTitle="reco Z mass (GeV)", Legend='TC', IncludeOverflows=True, RMin=0.9, RMax=1.1
 
@@ -341,3 +346,14 @@ bareMuon_genZ_eta__idipANDtrig: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]: 48,-2
 bareMuon_genZ_eta__idipANDtrigANDiso: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,100,-12.5,12.5 ; XTitle='bare muon #eta', YTitle='Gen vertex Z (cm)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_idipANDtrigANDiso)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrigANDiso]\,Muon_phi[goodMuons_idipANDtrigANDiso]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
 
 bareMuon_genZ_eta__idipANDisonotrig: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,100,-12.5,12.5 ; XTitle='bare muon #eta', YTitle='Gen vertex Z (cm)', Legend='TR', AddWeight="(Sum(goodMuons_idipANDisonotrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDisonotrig]\,Muon_phi[goodMuons_idipANDisonotrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+
+
+#nominal_: Muon_pt[goodMuons][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,33,24,57; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)' 
+
+#muPtScaleTestWmass_: indices(24,1)\:customPtTest\:scalarToRVec(Muon_eta[goodMuonsCharge][0],24) : 48,-2.4,2.4,33,24,57,24,0.5,24.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='pt scale nuisance index', ProcessRegexp='W.*|Z.*|Top|Diboson', ReplaceCutByName="accept->valueInsideRange(customPtTest\,26\,55)"
+
+nominal_: Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,116,26,142; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)' 
+
+muPtScaleTestWmass_: indices(24,1)\:customPtTest+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],24) : 48,-2.4,2.4,116,26,142,24,0.5,24.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='pt scale nuisance index', ProcessRegexp='W.*|Z.*|Top|Diboson', ReplaceCutByName="accept->valueInsideRange(customPtTest\,26\,55)"
+

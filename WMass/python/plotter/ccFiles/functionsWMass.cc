@@ -564,9 +564,10 @@ float getSmearedVar(float var, float smear, ULong64_t eventNumber, int isData, b
 std::unordered_map<DataEra, std::string> eraNames = { {BToF, "BtoF"}, {GToH, "GtoH"} };
 std::unordered_map<DataType, std::string> datatypeNames = { {MC, "MC"}, {Data, "Data"} };
 std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {isoNotrig, "isoNotrig"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"}, {antiisoNotrig, "antiisoNotrig"} };
-//std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"}, {altReco, "altre"} };
-//std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"} };
-std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {reco, "reco"} };
+//<std::unordered_map<ScaleFactorType, std::string> scalefactorNames = { {isoTrigPlus, "isoTrigPlus"}, {isoTrigMinus, "isoTrigMinus"}, {noisoTrigPlus, "noisoTrigPlus"}, {noisoTrigMinus, "noisoTrigMinus"}, {noisoNotrig, "noisoNotrig"}, {antiisoTrigPlus, "antiisoTrigPlus"}, {antiisoTrigMinus, "antiisoTrigMinus"} };
+// //std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"}, {altReco, "altre"} };
+// //std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {altTracking, "alttrack"}, {reco, "reco"} };
+std::unordered_map<ScaleFactorType, std::string> scalefactorTrackingRecoNames = { {tracking, "tracking"}, {reco, "reco"} };  // to be added to previous map once the scale factors are all stored consistently
 // FOR TESTS WITH EFFICIENCIES (F is preVFP part)
 std::unordered_map<DataEra, std::string> runEraNames = { {GToH, "GtoH"}, {BToF, "BtoF"}, {B, "B"}, {C, "C"}, {D, "D"}, {E, "E"}, {F, "F"}, {G, "G"}, {H, "H"} };
   
@@ -1549,6 +1550,36 @@ double _get_muonPOGtrackingSF(float eta, float etaOther, DataEra era = BToF) {
 
 
 
+double _get_fullMuonSF_EtaVsZ(float muonZ,      float eta,      int charge,
+			      float muonZOther, float etaOther,
+			      DataEra era = BToF,
+			      bool altSF = false
+			      ) {
+
+  // similar to _get_fullMuonSF but for SF vs eta and Z (PV_z + Muon_dz).
+  // only the triggering Muon_dz will be used, the other should have the same dz and in any case dz << PV_z
+  // muonZOther is only used to assess whether there are 2 leptons (Z boson) or only one (W bobosn)
+  ScaleFactorType sftype = charge > 0 ? isoTrigPlus : isoTrigMinus;
+
+  auto const key = std::make_pair(sftype, era);
+  // const TH2F& hsf = useDataAltSig ? scaleFactorHist_dataAltSig.at(key) : scaleFactorHist.at(key);
+  const TH2F& hsf = altSF ? scaleFactorHist_dataAltSig.at(key) : scaleFactorHist.at(key);
+  double sf = getValFromTH2(hsf, eta, muonZ);
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (muonZOther > 0.0) {
+    ScaleFactorType sftypeOther = isoNotrig;
+    //ScaleFactorType sftypeOther = noisoNotrig;
+    auto const keyOther = std::make_pair(sftypeOther, era);
+    // const TH2F& hsfOther = useDataAltSig ? scaleFactorHist_dataAltSig.at(keyOther) : scaleFactorHist.at(keyOther);
+    const TH2F& hsfOther = altSF ? scaleFactorHist_dataAltSig.at(keyOther) : scaleFactorHist.at(keyOther);
+    sf *= getValFromTH2(hsfOther, etaOther, muonZ);
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
+
 double _get_fullMuonSF(float pt,      float eta,      int charge,
 		       float ptOther, float etaOther,
 		       DataEra era = BToF,
@@ -1580,6 +1611,7 @@ double _get_fullMuonSF(float pt,      float eta,      int charge,
 
   if (ptOther > 0.0) {
     ScaleFactorType sftypeOther = isoSF2 ? isoNotrig : antiisoNotrig;
+    //ScaleFactorType sftypeOther = isoSF2 ? noisoNotrig : antiisoNotrig;
     auto const keyOther = std::make_pair(sftypeOther, era);
     // const TH2F& hsfOther = useDataAltSig ? scaleFactorHist_dataAltSig.at(keyOther) : scaleFactorHist.at(keyOther);
     const TH2F& hsfOther = scaleFactorHist.at(keyOther);
@@ -1648,6 +1680,31 @@ double _get_tnpTrackingSF(float pt,      float eta,      int charge,
 }
 
 // tnp reco scale factors, not included in the products used above
+double _get_tnpTrackingSF_EtaVsZ(float muonZ,      float eta,      int charge,
+				 float muonZOther, float etaOther,
+				 DataEra era = BToF,
+				 bool altSF = false,
+				 ScaleFactorType sftype = tracking
+				 ) {
+  
+  auto const key = std::make_pair(sftype, era);
+  const TH2F& hsf = altSF ? scaleFactorHistTrackingReco_dataAltSig.at(key) : scaleFactorHistTrackingReco.at(key);
+  double sf = getValFromTH2(hsf, eta, muonZ);
+  double tmp = 0.0;
+  // temporary patch for some unstable bins
+  if (sf < 0.99 or sf > 1.01) sf = 1.0;
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (muonZOther > 0.0) {
+    tmp = getValFromTH2(hsf, etaOther, muonZ);
+    if (tmp > 0.99 and tmp < 1.01) sf *=  tmp;
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
+
+// tnp reco scale factors, not included in the products used above
 double _get_tnpRecoSF(float pt,      float eta,      int charge,
 		      float ptOther, float etaOther,
 		      DataEra era = BToF,
@@ -1662,6 +1719,30 @@ double _get_tnpRecoSF(float pt,      float eta,      int charge,
 
   if (ptOther > 0.0) {
     sf *= getValFromTH2(hsf, etaOther, ptOther);
+  }
+  //std::cout << "final scale factor -> " << sf << std::endl;
+  return sf;
+}
+
+// tnp reco scale factors vs eta-Z, not included in the products used above
+double _get_tnpRecoSF_EtaVsZ(float muonZ,      float eta,      int charge,
+			     float muonZOther, float etaOther,
+			     DataEra era = BToF,
+			     bool altSF = false,
+			     ScaleFactorType sftype = reco
+			     ) {
+  
+  auto const key = std::make_pair(sftype, era);
+  const TH2F& hsf = altSF ? scaleFactorHistTrackingReco_dataAltSig.at(key) : scaleFactorHistTrackingReco.at(key);
+  // temporary path for 1 bin, use value for alternative fit to data rather than nominal
+  double sf = (era == BToF and eta < -2.3 and muonZ < -7.5) ? 0.97740746 : getValFromTH2(hsf, eta, muonZ);
+  //std::cout << "scale factor main leg -> " << sf << std::endl;
+
+  if (muonZOther > 0.0) {
+    if (era == BToF and etaOther < -2.3 and muonZ < -7.5)
+      sf *= 0.97740746;
+    else
+      sf *= getValFromTH2(hsf, etaOther, muonZ);
   }
   //std::cout << "final scale factor -> " << sf << std::endl;
   return sf;
@@ -1731,16 +1812,21 @@ Vec_d _get_fullMuonSFvariation(int n_tnpBinNuisance,
   int ietaTnP = std::min(nEtaBins, std::max(1, hsf.GetXaxis()->FindFixBin(eta)));
   int iptTnP  = std::min(nPtBins,  std::max(1, hsf.GetYaxis()->FindFixBin(pt)));
   int tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
+  // watch out, tnpBinNuisance  must not get larger than n_tnpBinNuisance. If you want to use less tnp bins than the histogram actually has, you need a pt cut accordingly
+  // in case it is larger, we just do not change it, so to avoid reading res[i] at the i-th cell, which would not be within the vector size
+  
    // initialize to nominal SF
   Vec_d res(n_tnpBinNuisance, hsf.GetBinContent(ietaTnP, iptTnP));
   // sum or subtract error in specific bin
   // for isolation, one has to account for anticorrelation between isolation and anti-isolation efficiency
   // here we act on the scale factors, but it should be a reasonable approximation anyway
-  if (isoSF1)
-    res[tnpBinNuisance-1] += hsf.GetBinError(ietaTnP, iptTnP);
-  else
-    res[tnpBinNuisance-1] -= hsf.GetBinError(ietaTnP, iptTnP);
-  
+  if (tnpBinNuisance <= n_tnpBinNuisance) {
+    if (isoSF1)
+      res[tnpBinNuisance-1] += hsf.GetBinError(ietaTnP, iptTnP);
+    else
+      res[tnpBinNuisance-1] -= hsf.GetBinError(ietaTnP, iptTnP);
+  }
+    
   if (ptOther > 0) {
     ScaleFactorType sftypeOther = isoNotrig;
     if (not isoSF2)
@@ -1750,14 +1836,16 @@ Vec_d _get_fullMuonSFvariation(int n_tnpBinNuisance,
     ietaTnP = std::min(nEtaBins, std::max(1, hsfOther.GetXaxis()->FindFixBin(etaOther)));
     iptTnP  = std::min(nPtBins,  std::max(1, hsfOther.GetYaxis()->FindFixBin(ptOther)));
     tnpBinNuisance = ietaTnP + nEtaBins * (iptTnP - 1);
-    double tmp = res[tnpBinNuisance-1];
     double sf = hsf.GetBinContent(ietaTnP, iptTnP);
     res *= sf;
-    // see comment above for isolation part
-    if (isoSF2)
-      res[tnpBinNuisance-1] = tmp * (sf + hsf.GetBinError(ietaTnP, iptTnP));
-    else
-      res[tnpBinNuisance-1] = tmp * (sf - hsf.GetBinError(ietaTnP, iptTnP));
+    if (tnpBinNuisance <= n_tnpBinNuisance) {
+      double tmp = res[tnpBinNuisance-1];
+      // see comment above for isolation part
+      if (isoSF2)
+	res[tnpBinNuisance-1] = tmp * (sf + hsf.GetBinError(ietaTnP, iptTnP));
+      else
+	res[tnpBinNuisance-1] = tmp * (sf - hsf.GetBinError(ietaTnP, iptTnP));
+    }
   }
 
   return res;
@@ -1819,6 +1907,34 @@ int regionIsoMt(bool lowIso, bool lowMt) {
   else if (not lowIso and not lowMt) return 2; // fakes application region
   else if (    lowIso and not lowMt) return 3; // signal region
   return -1;  // should be impossible to get here, but just in case
+  
+}
+
+Vec_f shiftPt_testPtScaleSystWmass(const float& pt, const float& eta, const unsigned int& nEtaBins=48, const double & binSize = 0.1, const double& etaMin = -2.4, const double& ptMin = -1.0, const double& ptMax = -1.0) {
+
+  // return an array of size 2*nEtaBins, which contains pt in all bins except for the one corresponding to the value of eta 
+  // this embeds both positive and negative pt shifts in the same array
+  // one can optionally specify ptMin and ptMax (setting both of them to a positive value) to make sure that the returned value is still in an allowed range
+  Vec_f corPt(2*nEtaBins, pt); // initialize to nominal pT
+  double shift = 0.0001;
+  if      (fabs(eta) > 2.0) shift = 0.0003;
+  else if (fabs(eta) > 1.2) shift = 0.0002; 
+
+  unsigned int binID = 0;
+  for (unsigned int i = 1; i <= nEtaBins; ++i) {
+    if (eta < (etaMin + binSize * i)) {
+      binID = i - 1;
+      if (ptMin > 0 and ptMax > 0) {
+	corPt[binID]            = std::min(ptMax, std::max(ptMin, pt * (1 + shift) ) );
+	corPt[nEtaBins + binID] = std::min(ptMax, std::max(ptMin, pt * (1 - shift) ) );
+      } else {
+	corPt[binID]            = pt * (1 + shift);
+	corPt[nEtaBins + binID] = pt * (1 - shift);
+      }
+      break;
+    }
+  }
+  return corPt;
   
 }
 

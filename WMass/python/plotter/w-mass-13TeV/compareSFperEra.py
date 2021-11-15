@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Era for those SF of which we will make the lumi-weighted average")
     parser.add_argument("-r", "--ratio-to", dest="ratioToEra",   type=str, default="H", help="Era used as reference to make ratios")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig,antiiso,antiisonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig,antiiso,antiisonotrig,tracking,altreco", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
     parser.add_argument("--sub-era", dest="subEra", type=str, default="", help="If given, comma-separated list of eras to use, others in main era will be ignored (including the inclusive one). Mainly useful if some pieces are missing")
     args = parser.parse_args()
 
@@ -60,15 +60,15 @@ if __name__ == "__main__":
                       "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
                       "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
                       "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
-                      "reco"              : ["reco"],
+                      "reco"              : ["altreco"],
                       "tracking"          : ["tracking"],
-                      "trackingReco"      : ["tracking", "reco"],
-                      "idipTrackingReco"  : ["idip", "tracking", "reco"],
-                      "trigPlusIdipTrackingReco"     : ["triggerplus", "idip", "tracking", "reco"],
-                      "isoTrigPlusIdipTrackingReco"  : ["iso", "triggerplus", "idip", "tracking", "reco"],
-                      "trigMinusIdipTrackingReco"    : ["triggerminus", "idip", "tracking", "reco"],
-                      "isoTrigMinusIdipTrackingReco" : ["iso", "triggerminus", "idip", "tracking", "reco"],
-                      "isoNotrigIdipTrackingReco"    : ["isonotrig", "idip", "tracking", "reco"],
+                      "trackingReco"      : ["tracking", "altreco"],
+                      "idipTrackingReco"  : ["idip", "tracking", "altreco"],
+                      "trigPlusIdipTrackingReco"     : ["triggerplus", "idip", "tracking", "altreco"],
+                      "isoTrigPlusIdipTrackingReco"  : ["iso", "triggerplus", "idip", "tracking", "altreco"],
+                      "trigMinusIdipTrackingReco"    : ["triggerminus", "idip", "tracking", "altreco"],
+                      "isoTrigMinusIdipTrackingReco" : ["iso", "triggerminus", "idip", "tracking", "altreco"],
+                      "isoNotrigIdipTrackingReco"    : ["isonotrig", "idip", "tracking", "altreco"],
     }
     # productsToMake = {"trackingReco"       : ["reco", "tracking"], # "tracking"],
     # }

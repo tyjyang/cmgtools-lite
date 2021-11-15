@@ -20,3 +20,6 @@ mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPa
 scetlibWeightsZscalar : Numba::correctN3LL_Z(0,mVgen,yVgen,ptVgen) : W.*|Z.*
 scetlibWeightsWPLUSscalar : Numba::correctN3LL_Wp(0,mVgen,yVgen,ptVgen) : W.*plus
 scetlibWeightsWMINUSscalar : Numba::correctN3LL_Wm(0,mVgen,yVgen,ptVgen) : W.*minus
+
+#customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26.0,55.0)
+customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26,55)

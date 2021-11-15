@@ -54,6 +54,13 @@ Vec_i indices(const int& size, const int& start = 0) {
     return res;
 }
 
+//Vec_i getVarBinInArray(const float& var, const int& nBins = 48, const double& binMin = -2.4, const double& binMax = 2.4, const int& integerBinOffset = 1) {
+
+  // assumes uniform binning, integerBinOffset is 1 when reproducing the numbering convention of ROOT histograms
+  // return array of nBins elements, all set to false except for the one containing the value of var
+ 
+//}
+
 
 Vec_f scalarToRVec(const float& var, const int& size) {
 
@@ -83,11 +90,21 @@ Vec_f scalarToRVec(const float& var, const Vec_i& size) {
 
 TRandom3 *rand_smear = new TRandom3(0);
 
-Vec_f smearAndShiftPt(const Vec_f& pt, float shift = 0.0, float smear = 0.0) {
+Vec_f shiftVar(const Vec_f& var, float shift = 0.0) {
 
-  Vec_f res(pt.size(),0);
+  Vec_f res(var.size(),0);
   for (unsigned int i = 0; i < res.size(); ++i) {
-    res[i] = pt[i] * (1 + shift + smear * rand_smear->Gaus(0.,1.));
+    res[i] = var[i] * (1 + shift);
+  }
+  return res;
+  
+}
+
+Vec_f smearAndShiftVar(const Vec_f& var, float shift = 0.0, float smear = 0.0) {
+
+  Vec_f res(var.size(),0);
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    res[i] = var[i] * (1 + shift + smear * rand_smear->Gaus(0.,1.));
   }
   return res;
   
@@ -480,12 +497,37 @@ bool valueInsideRange(float value, float low, float high) {
 
 }
 
+
+//==================================================
+
+Vec_b valueInsideRange(const Vec_f& value, float low, float high) {
+
+  Vec_b ret(value.size(), false);
+  for (unsigned int i = 0; i < ret.size(); ++i) {
+    if (value[i] >= low and value[i] < high) ret[i] = true;
+  }
+  return ret;
+
+}
+
 //==================================================
 
 bool valueOutsideRange(float value, float low, float high) {
 
   if (value < low or value > high) return true;
   else                             return false;
+
+}
+
+//==================================================
+
+Vec_b valueOutsideRange(const Vec_f& value, float low, float high) {
+
+  Vec_b ret(value.size(), false);
+  for (unsigned int i = 0; i < ret.size(); ++i) {
+    if (value[i] < low or value[i] > high) ret[i] = true;
+  }
+  return ret;
 
 }
 

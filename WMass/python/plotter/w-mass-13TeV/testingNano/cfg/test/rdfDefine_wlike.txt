@@ -27,3 +27,7 @@ scetlibWeightsWmUncorr : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, fal
 scetlibWeightsWpUncorr : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, false) : W.*plus
 
 bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z
+
+#Muon_corPt: smearAndShiftPt(Muon_pt,shift,0.0)
+customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26.0,55.0)
+

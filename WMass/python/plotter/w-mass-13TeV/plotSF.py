@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("rootfile", type=str, nargs=1)
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF,GtoH,B,C,D,E,F,G,H", help="Comma separated list of eras for SF in histogram name; default: %(default)s")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,antiiso,isonotrig,antiisonotrig,tracking,reco", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,antiiso,isonotrig,antiisonotrig,tracking,altreco", help="Comma separated list of SF names inside root file, which will be plotted (trigger uses both plus and minus automatically); default: %(default)s")
     parser.add_argument("--sf-version", dest="sfversions", type=str, default="nominal,dataAltSig", help="SF versions to plot and to use for the products, usually one would use just nominal and dataAltSig to define the systematic variation; default: %(default)s")
     parser.add_argument(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51')
     parser.add_argument(     '--palette'  , dest='palette',      default=87, type=int, help='Set palette: default is a built-in one, 55 is kRainbow')
@@ -49,6 +49,15 @@ if __name__ == "__main__":
                       "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
                       "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
                       "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
+                      "reco"              : ["altreco"],
+                      "tracking"          : ["tracking"],
+                      "trackingReco"      : ["tracking", "altreco"],
+                      "idipTrackingReco"  : ["idip", "tracking", "altreco"],
+                      "trigPlusIdipTrackingReco"     : ["triggerplus", "idip", "tracking", "altreco"],
+                      "isoTrigPlusIdipTrackingReco"  : ["iso", "triggerplus", "idip", "tracking", "altreco"],
+                      "trigMinusIdipTrackingReco"    : ["triggerminus", "idip", "tracking", "altreco"],
+                      "isoTrigMinusIdipTrackingReco" : ["iso", "triggerminus", "idip", "tracking", "altreco"],
+                      "isoNotrigIdipTrackingReco"    : ["isonotrig", "idip", "tracking", "altreco"],
     }
 
     #productsToMake = {"trackingReco"      : ["reco", "tracking"], # "tracking"],
@@ -213,7 +222,7 @@ if __name__ == "__main__":
     f.cd()
     for era in eras:
         # save reco and tracking as they are, if present in the list of histograms
-        for tmp in ["reco", "tracking", "alttrack", "altre"]:
+        for tmp in ["reco", "tracking", "alttrack", "altre", "altreco"]:
             if tmp not in names:
                 continue
             for sfv in sf_version:

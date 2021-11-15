@@ -20,10 +20,10 @@ data_all: .*; SubPath=".*/NanoV8Data/Run2016.*/", Label="Data"
 
 Wmunu_plus_preVFP   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu", SubPath="WplusJetsToMuNu_preVFP/"
 
-#Wmunu_plus_postVFP   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="WplusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
+Wmunu_plus_postVFP   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="WplusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
 # with NNPDF3.0
-Wmunu_plus_postVFP   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="WplusJetsToMuNu_postVFP/", AddWeight="LHEPdfWeightAltSet13[0]", TreePath="/data/shared/originalNANO_newWithAltPDF/"
+#Wmunu_plus_postVFP   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="WplusJetsToMuNu_postVFP/", AddWeight="LHEPdfWeightAltSet13[0]", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
 Wmunu_plus_postVFP_shiftPtUp   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu (post)", SubPath="WplusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
@@ -32,10 +32,10 @@ Wmunu_plus_postVFP_shiftPtDown   : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label=
 
 Wmunu_minus_preVFP   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu", SubPath="WminusJetsToMuNu_preVFP/"
 
-#Wmunu_minus_postVFP   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu (post)", SubPath="WminusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
+Wmunu_minus_postVFP   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu (post)", SubPath="WminusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
 #with NNPDF3.0
-Wmunu_minus_postVFP   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu (post)", SubPath="WminusJetsToMuNu_postVFP/", AddWeight="LHEPdfWeightAltSet13[0]", TreePath="/data/shared/originalNANO_newWithAltPDF/"
+#Wmunu_minus_postVFP   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu (post)", SubPath="WminusJetsToMuNu_postVFP/", AddWeight="LHEPdfWeightAltSet13[0]", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
 Wmunu_minus_postVFP_shiftPtUp   : .* : 8562.66 ; FillColor=ROOT.kRed+1, Label="W^{-}\#rightarrow\#mu\#nu (post)", SubPath="WminusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 
