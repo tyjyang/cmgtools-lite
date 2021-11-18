@@ -106,11 +106,15 @@ Among the main general options:
 - _--exclude-nuisances_: exclude some nuisances when writing the card, using regular expressions
 - _--keep-nuisances_: keep these nuisances (overriding those excluded by _--exclude-nuisances_)
 - _--mass-nuis_: use only this nuisance parameters for mass shift, neglecting all the others
+- _--dataset_: specify histogram to be used as data (default is data_obs), useful for tests with pseudodata (running combinetf.py with _-t 0_)
+- _--card-folder_: specify a name for a subfolder where all cards and fit results are created (default is nominal), it is useful to avoid overwriting cards from previous tests
+- _--shape-file-postfix_: use this postfix to select a different root file with the histograms (usually the name looks like Wmunu_plus_shapes.root, so it gets Wmunu_plus_shapes_{postfix}.root)
 
 Some options to customize fit (check the script for more)
 - _--fit-single-charge_: fit single charge
 - _--postfix_: enable the same option of text2hdf5.py, adding a postfix to output file (to distinguish different files without having to change output folder). This is propagated automatically to combinetf.py
 
+Root files containing pseudodata histograms to be used with option _--dataset_ can be produced from a nominal one using _w-mass-13TeV/makePseudoData.py_
 
 Examples for some realistic fits (Wmass)
 - fit each single charge independently, freezing POIs (to measure mW), selecting mass shift of 100 MeV, and skipping fit to data (thus only doing Asimov)
@@ -119,7 +123,7 @@ python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --fit-si
 ```
 - fit combination
 ```
-python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background
+python w-mass-13TeV/cardMaker.py -i cards/wmass/  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background [--shape-file-postfix someName] --card-folder aFolderName
 ```
 
 **NOTE**: there is currently an issue with combinetf for which the stat uncertainty from the fit is always 0. To estimate it, one can run the fit removing all systematics (as well as MC stat uncertainty) and checking the total uncertainty. Actually, in order to assess the impacts on mW later, one should keep at least one nuisance parameter other than the mW parameter (one can select a lnN uncertainty applied on a minor background, so that the total uncertainty will still correspond to stat only). This can be achieved running w-mass-13TeV/cardMaker.py adding these options
@@ -133,7 +137,7 @@ where the postfix is just not to overwrite the nominal fit outputs, -x removes a
 Once the root file for the fit result is available, one can plot the prefit and postfit shapes, including ratios and projections along eta or pt. This is done with the following command (for only the positive charge and postVFP era in this example)
 
 ```
-python w-mass-13TeV/postFitHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus
+python w-mass-13TeV/postFitHistograms.py /path/to/fitresults.root -o /output/folder/ --suffix postVFP -l 16.8 -c plus [--wlike]
 ```
 By default the script expects that no masked channel was used in the fit, which might be the case when fitting all processes including W as background. Otherwise, option __--n-mask-chan 1__ must be used, specifying how many masked channels were used (usually it would be 1 per lepton channel, so here we used just 1 since we don't fit electrons). This is important because the postfit 1D histograms returned by combinetf.py have a bunch of additional bins with respect to the template bins, but only if masked channels were used.
 
@@ -142,6 +146,15 @@ By default the script expects that no masked channel was used in the fit, which 
 ```
 python w-mass-13TeV/makeImpactsOnMW.py cards/wmass/fit/hessian/fitresults_123456789_Asimov_bbb1_cxs1.root  -o plots/testNanoAOD/fits/test_impacts/ --nuisgroups ALL --prefitUncertainty 100 --scaleToMeV --showTotal
 ```
+
+### Plot pulls and constraints in parameters
+
+This script makes plots and also saves numbers in an html file, for easier inspection of values.
+
+```
+python w-mass-13TeV/diffNuisances.py --infile cards/path/to/fitresults.root --outdir plots/your/favourite/output/folder/ -a --format html --type hessian --suffix Data --pois "pdf.*|alphaS" --uniqueString "pdfsAndAlphaS" --y-setting -3.0 -1.0 0 1.0 3.0
+```
+Can use other options to customize the way pulls are displayed or printed in the html file.
 
 ## Prepare scale factors for the analysis
 
@@ -168,9 +181,10 @@ Instead of using the general formula to apply the fake rate method, which relies
 Since f=N_passIso/N_tot (evaluated in the fake rate computation region, with low mT and 1 jet), the factor f/(1-f) reduces to N_passIso/N_failIso. At the same time, N(QCD)_highIso can be estimated as data-MC, and we can then directly multiply this template to obtain the QCD template in the signal region. 
 To make these histograms, first you need to use the following command to prepare the MCA file
 ```
-python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)"
+python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTH3.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTH3.txt --a wmass -b 48,-2.4,2.4,116,26,142 --ptVar "Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)" [--pdf-weights <nnpdf30|nnpdf31>]
 ```
 This also makes the histograms for the systematic variations on the prompt lepton templates.
+By default the pdfs from NNPDF3.1 are used, also for the central value. We can implement other ones (only NNPDF3.0 works at the moment), but one must make sure the processes are associated to the proper samples with the altenrative pdf branches (at the time of writing these instructions this is possible only for W, in the future we will also have Z)
 
 ### Produce all the histograms for data and MC processes.
 
@@ -185,14 +199,15 @@ One can also make the histograms (and thus the analysis) for a specific sub era 
 
 Once the histograms are available, one has to manipulate them to get the QCD prediction, according to the formula described above. This can be done using this command, where the input file is just the output of the previous command
 ```
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/postprocessing/ -b "29,26,55"
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/plots_fakerate_systTH3.root plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/postprocessing/ -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_plus_systTH3/plots_fakerate_systTH3.root -b "29,26,55"
+python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/fakeRateRegion_postVFP_minus_systTH3/plots_fakerate_systTH3.root -b "29,26,55"
 ```
 Note that the pt binning passed with __-b__ must be consistent with the one used before (which had a range 4 times larger because including the 4 iso/mT regions).
 
 The command above will also propagate a default 1.2% uncertainty for luminosity on the prompt component, which is also propagated to the fake templates through the subtractions of prompt events from data.
 
-At this point one can continue by running **makeHistogramsWMass.py** as explained in section __Unpack the histograms into TH2 (eta-pt) for combinetf_
+At this point one can continue by running **makeHistogramsWMass.py** as explained in section __Unpack the histograms into TH2 (eta-pt) for combinetf_.
+Note that the input root file passed to option -i of makeHistogramsWMass.py should be the one created by w-mass-13TeV/plotFakesTemplate.py. 
 
 #### Make plots in iso/mT regions for checks
 
@@ -228,12 +243,18 @@ python w-mass-13TeV/makeMCtruthEffStudy.py plots/testNanoAOD/MCtruthEfficiency/W
 Currently still using txt file for cuts, as in previous CMGTools versions. Expressions can use standard C++ syntax. Some special character needs to be escaped when they are also used as field separators. For instance, std::abs need to be used as std\\:\\:abs, because ':' is the separator between cut name and expression
 
 Can also add a third field separated from the rest by ';', where a comma-separated list of several options can be passed (format is key=value or just value for bools, the latter case sets the options to True).
-**NEW**: can use BEFOREDEFINE=True to make this filter be defined before other RDataframe Defines are declared. This should speed up things a little bit, but of course those cuts should not require any newly defined column, except for some special ones that are internally defined in tree2yield.py (see inside getManyPlotsRaw() function in the TreeToYield class). Typically it can be used on the trigger bits or json file selection.
+**NEW**: can use BEFOREDEFINE=True or simply BEFOREDEFINE to make this filter be defined before other RDataframe Defines are declared. This should speed up things a little bit, but of course those cuts should not require any newly defined column, except for some special ones that are internally defined in tree2yield.py (see inside getManyPlotsRaw() function in the TreeToYield class). Typically it can be used on the trigger bits or json file selection.
+
+**NEW**: can use EXCLUDEPROCESS="regular expression" to skip this cut for some processes matching the regular expression (it is actually defined as always true to allow for the cutflow report to be made normally). For example, to make the QCD background with the standard fake rate method one would remove the isolation cut and apply an event weight to derive the background shape. In addition, one can specify an alternative expression for the processes being excluded, using ALTEXPR="expression". Note that expression has to be written as one would use AddWeight in the plot file (see below), so for example commas in expression needs to be escaped as '\,'.
+One could achieve the same result as ALTEXPR by using the AddWeight feature in the MCA file for specific processes.
+
+**NEW**: can flag a cut with ASWEIGHT=True or just ASWEIGHT so that this cut is used as a boolean event weight rather than as a filter. This feature allows one to customize the cut flow per histogram, since one can then use ReplaceCutByName in the plot file (see below) to modify a cut specifically for a selected histogram by defining an appropriate event weight. The reason for keeping it in the cut flow is that most of the histograms would use this cut, and it would not be convenient to drop it from the flow and define it as weight for any of them with maybe only one using a different expression. As this customization serves for specific purposes, other flags cannot be used and are ignored if present, so e.g. no EXCLUDEPROCESS for now, although one may easily implement it. If you really need this customization per process and histogram only for some processes you may be doing something wrong and should reconsider what you are doing.
 
 ### plot file
 Added option to customize event weight per histogram.
 - Use **AddWeight="expression"** (just as it was already possible in MCA file per process) to assign an additional weight for those specific histograms (commas in expression needs to be escaped as '\,'). This can be a constant or a function or even a product of functions.
 - use **ReplaceWeight="oldexpr->newexpr"** to replace oldexpr in the nominal weight with newexpr (they are separated by '->'). The format is the same as for AddWeight (e.g. commas need to be escaped). This can be used to replace a part of an expression, e.g. to change name of a function or even its arguments, although it should be used with caution to avoid bugs (regular expressions are not supported, it is simply used within python in the replace() method for strings).
+- use **ReplaceCutByName="name->newexpr"** to replace a cut with given name using the new expression. Requires the cut to be flagged as ASWEIGHT in the cut file, otherwise it has no effect
 
 ### built-in features of mcPlots.py
 By default, the script relies on classes from mcAnalysis and tree2yields. For MC processes, the gen event weight column is defined internally (in mcAnalysis.py). When looping on events with RDF, the filters are created separately for each line in the CUT file, to speed things up a little bit. This splitting is also necessary to print yields for the cutflow, which is the default behaviour now (among other outputs, a *_yields.txt file is created).

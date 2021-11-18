@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# charge plus
+# python runFakeRate.py -o plots/testNanoAOD/WmassPlots/Wnnpdf30_noPDFonZ/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3_nnpdf30.txt" --options " --skipPlot " -c plus -s
+# charge minus
+# python runFakeRate.py -o plots/testNanoAOD/WmassPlots/Wnnpdf30_noPDFonZ/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTH3_nnpdf30.txt" --options " --skipPlot " -c minus -s
+
 from shutil import copyfile
 import re, sys, os, os.path, subprocess, json, ROOT
 import numpy as np
@@ -32,6 +37,7 @@ def main(args):
 
     era = args.era
     subEra = args.subEra
+    folderEra = era if subEra == None else subEra
     postfix = args.postfix
     if len(args.postfix) and not postfix.startswith('_'):
         postfix = "_" + postfix
@@ -43,7 +49,7 @@ def main(args):
     lumi = 16.8 if era == "postVFP" else 19.5 if era == "preVFP" else 36.3
     if subEra != None:
         lumi = lpe[subEra]
-        postfix += f"_2016{subEra}"
+        #postfix += f"_2016{subEra}"
         
     # cfg files
     cfgFolder = args.cfgFolder
@@ -65,7 +71,7 @@ def main(args):
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"{outdir}/fakeRateRegion_{era}_{args.charge}{postfix}/"
+    plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/{args.charge}/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables
@@ -89,8 +95,10 @@ def main(args):
         processes = ",".join(tmpprocs)
 
     print('-'*30)
-    print("Using these processes")
-    print(processes)
+    processesList = processes.split(',')
+    print(f"Using these processes ({len(processesList)} in total)")
+    for i,p in enumerate(processesList):
+        print(f"{i}) {p}")
     print('-'*30)
         
     procGroups = " ".join([getProcessGroup(p, era, subEra) for p in processes.split(',')])
@@ -102,13 +110,18 @@ def main(args):
     # event weight (global one for MC)
     weight = ""
     if subEra != None:
-        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,{subEra})"
+        #
+        # no reco*tracking here for now!
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,{subEra})"
+        ####
     else:
-        weight = f"puw_2016UL_era_OLD(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_MuonPrefiringSF(Muon_eta,Muon_pt,Muon_looseId,eraVFP)"
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)"
 
-    # gen weight customization
-    # genweight = "--max-genWeight-procs 'W|Z' '50118.72' --clip-genWeight-toMax" # options were removed
-    genweight = "" 
+    # SF file
+    sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'  "
+    # the following is needed for SF made before June 2021
+    if args.oldSFname:
+        sfOpt += " --old-sf-name "
     
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
@@ -120,13 +133,17 @@ def main(args):
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} {genweight} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {sfOpt} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
     
     if args.dryRun:
         print(command)
     else:
+        print("Going to run the following mcPlots.py command")
+        print()
+        print(command)
+        print("-"*30)
         os.system(command)
 
 
@@ -137,7 +154,7 @@ if __name__ == "__main__":
     parser.add_argument(      '--vpt-weight', dest="useVptWeight", action='store_true', help='Apply Wpt reweighting to central value using SCETlib correction')
     parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
-    parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF)')
+    parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF and appropriate root file as input)')
     parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
@@ -145,6 +162,8 @@ if __name__ == "__main__":
     parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean,deltaPhi_MuMet", help='Histograms to make')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
+    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
+    parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig (but note that eff.syst requires the new version)");
     args = parser.parse_args()
 
     if len(args.outdir):
@@ -157,8 +176,8 @@ if __name__ == "__main__":
     print("="*40)
     print("="*40)
     print()
-    print("WARNING: using old PU weights (before June 2021, older PU json was used)")
-    print("Please update this script when you have the new ones")
+    #print("WARNING: using old PU weights (before June 2021, older PU json was used)")
+    #print("Please update this script when you have the new ones")
     print()
     print("="*40)
     print("="*40)

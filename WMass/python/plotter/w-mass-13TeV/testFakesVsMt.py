@@ -3,6 +3,9 @@
 # example for 2 mT bins with border at 40 GeV, and validation in signal region (needs existing plots)
 # python w-mass-13TeV/testFakesVsMt.py plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion//fakeRateRegion_postVFP_plus_lowIso//plots_fakerate.root plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion//fakeRateRegion_postVFP_plus_highIso//plots_fakerate.root plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion/testFakesVsMt_0to40to60/ --palette 87 --rebin-x 3 --rebin-y 5 --mt-bin-edges 0,40,60 --test-file plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/fakeRateRegion_postVFP_plus_systTH3/postprocessing/distributions_signalRegion/plots.root
 
+# example with correction from extrapolated linear fit (charge plus)
+# python w-mass-13TeV/testFakesVsMt.py plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion//fakeRateRegion_postVFP_plus_lowIso/plots_fakerate.root plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion//fakeRateRegion_postVFP_plus_highIso/plots_fakerate.root plots/testNanoAOD/WmassPlots_MtPtEta_fakeRegion/testFakesVsMt_chargePlus/ --palette 87 --rebin-x 3 --rebin-y 5 --mt-bin-edges "0,10,20,30,40,50,60" --mt-nominal-range "0,40" --mt-value-correction 55.0 --test-file plots/testNanoAOD/WmassPlots_jetEta2p4_fixMassWeight_splitW/fakeRateRegion_postVFP_plus_systTH3/postprocessing/distributions_signalRegion/plots.root
+
 import os, re, array, math
 import time
 import argparse
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("-z", "--z-axis-name", dest="zAxisName", default="m_{T} (GeV)", help="z axis name")
     parser.add_argument("--mt-bin-edges", dest="mtEdges", default="0,10,20,30,40,50,60", type=str, help="Comma-separated list of bin edges for mT")
     parser.add_argument("--mt-nominal-range", dest="mtNominalRange", default="0,40", type=str, help="Comma-separated list of 2 bin edges for mT, representing the nominal range, used to derive the correction using also option --mt-value-correction")
-    parser.add_argument("--mt-value-correction", dest="mtValueCorrection", default=55.0, type=float, help="alue at high mT where to evaluate correction with respect to nominal range passed with --mt-nominal-range")
+    parser.add_argument("--mt-value-correction", dest="mtValueCorrection", default=55.0, type=float, help="Value at high mT where to evaluate correction with respect to nominal range passed with --mt-nominal-range")
     parser.add_argument(     "--rebin-x", dest="rebinEta", default=1, type=int, help="To rebin x axis (eta)")
     parser.add_argument(     "--rebin-y", dest="rebinPt", default=1, type=int, help="To rebin y axis (pt)")
     parser.add_argument(     '--nContours', dest='nContours',    default=51, type=int, help='Number of contours in palette. Default is 51 (let it be odd, so the central strip is white if not using --abs-value and the range is symmetric)')
@@ -253,7 +256,6 @@ if __name__ == "__main__":
                             invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True, plotRelativeError=True)
 
 
-        # finally the fakerate factor correction, if only 2 mT bins were used
         drawCorrelationPlot(hFakerateFactorCorrection,
                             xAxisName,
                             yAxisName,
@@ -269,8 +271,14 @@ if __name__ == "__main__":
                             draw_both0_noLog1_onlyLog2=1, nContours=args.nContours, palette=args.palette,
                             invertePalette=args.invertePalette, passCanvas=canvas, skipLumi=True, plotRelativeError=True)
 
-
-
+        outFile = outfolder + "fakerateFactorMtBasedCorrection_vsEtaPt.root"
+        fout = safeOpenFile(outFile, mode="RECREATE")
+        hFakerateFactorCorrection.Write()
+        print()
+        print(f"Saving FRF correction vs eta-pt in file {outFile}")
+        print()
+        fout.Close()
+        
         if args.testFile:
 
             outfolderCheck = outfolder + "checkCorrection_signalRegion/"

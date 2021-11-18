@@ -76,12 +76,16 @@ def dressed2DfromFit(h1d, binning, name, title='', shift=0,
 
 def chargeUnrolledBinShifts(infile,channel,nCharges=2,nMaskedCha=2):
     # guess from a signal with charge defined name
-    h1d = infile.Get('expproc_Zmumu_postfit')
+    h1d = infile.Get('expfull_postfit')
     if not h1d:
-        h1d = infile.Get('expproc_Zmumu_plus_postfit')
-        if not h1d:
-            print("Error in chargeUnrolledBinShifts(): histogram expproc_Zmumu_postfit or expproc_Zmumu_plus_postfit  not found, please check")
-            quit()
+        print("Error in chargeUnrolledBinShifts(): histogram expfull_postfit  not found, please check")
+        quit()
+    # h1d = infile.Get('expproc_Zmumu_postfit')
+    # if not h1d:
+    #     h1d = infile.Get('expproc_Zmumu_plus_postfit')
+    #     if not h1d:
+    #         print("Error in chargeUnrolledBinShifts(): histogram expproc_Zmumu_postfit or expproc_Zmumu_plus_postfit  not found, please check")
+    #         quit()
     # shift the 1D to remove the empty bins of the other charge
     nbins = int((h1d.GetNbinsX()-nCharges*nMaskedCha)/2)
     ret = {}
@@ -229,10 +233,13 @@ if __name__ == "__main__":
     parser.add_argument('-o','--outdir', dest='outdir', default='.', type=str, help='output directory to save the matrix')
     parser.add_argument('-m','--n-mask-chan', dest='nMaskedChannel', default=0, type=int, help='Number of masked channels in the fit for each charge (0 if not using masked channels because no signal POIs is used in the fit)')
     parser.add_argument('-c','--charges', dest='charges', choices=['plus', 'minus', 'plus,minus'], default='plus,minus', type=str, help='Charges to process')
-    parser.add_argument(     '--no2Dplot', dest="no2Dplot", action='store_true', help="Do not plot templates (but you can still save them in a root file with option -s)");
-    parser.add_argument('-n','--norm-width', dest="normWidth", action='store_true', help="Normalize histograms by bin area (mainly if non uniform binning is used)");
-    parser.add_argument(     '--suffix', dest="suffix", default='', type=str, help="define suffix for each plot");
+    parser.add_argument(     '--no2Dplot', dest="no2Dplot", action='store_true', help="Do not plot 2D templates")
+    parser.add_argument(     '--wlike', dest="isWlike", action='store_true', help="Analysis is wlike")
+    parser.add_argument('-n','--norm-width', dest="normWidth", action='store_true', help="Normalize histograms by bin area (mainly if non uniform binning is used)")
+    parser.add_argument(     '--suffix', dest="suffix", default='', type=str, help="define suffix for each plot")
     parser.add_argument('-l','--lumi', default=36.3, type=float, help='Integrated luminosity to print in the plot')
+    parser.add_argument('--fp','--filter-processes', dest="filterProcesses", default="", type=str, help='If given, regexp to filter some processes')
+    parser.add_argument('--dt','--data-title', dest="dataTitle", default="Data", type=str, help='Title for data in legend (usually Data but could be Pseudodata)')
     args = parser.parse_args()
 
     setTDRStyle()
@@ -285,7 +292,16 @@ if __name__ == "__main__":
                         'Ztautau'     : {"color" : ROOT.kCyan,     "title" : "Z#rightarrow#tau#tau"},
                         'data_fakes'  : {"color" : ROOT.kGray,     "title" : "QCD multijet"}
     }
-         
+    if args.isWlike:
+        process_features = {'Wmunu'       : {"color" : ROOT.kRed+2,    "title" : "W#rightarrow#mu#nu"},
+                            'Top'         : {"color" : ROOT.kGreen+2,  "title" : "top"},
+                            'Diboson'     : {"color" : ROOT.kViolet+2, "title" : "dibosons"},
+                            'Wtaunu'      : {"color" : ROOT.kSpring+9, "title" : "W#rightarrow#tau#nu"},
+                            'Zmumu_plus'       : {"color" : ROOT.kAzure+2,  "title" : "Z#rightarrow#mu#mu"},
+                            'Zmumu_minus'       : {"color" : ROOT.kAzure+1,  "title" : "Z#rightarrow#mu#mu"},
+                            'Ztautau'     : {"color" : ROOT.kCyan,     "title" : "Z#rightarrow#tau#tau"}
+        }
+
 
     canvas2D = ROOT.TCanvas("canvas2D","",800,700)
 
@@ -326,10 +342,10 @@ if __name__ == "__main__":
             print(f"Doing {prepost}")
             print("-"*30)
 
-            procs = [str(key) for key in process_features.keys()]
+            procs = [str(key) for key in process_features.keys() if (args.filterProcesses == "" or re.match(args.filterProcesses, str(key)) )]
             titles = [process_features[p]["title"] for p in procs]
             procs += ["obs"]
-            titles += ["Data"]
+            titles += [args.dataTitle]
             procsAndTitles = dict(zip(procs,titles))
             for i,p in enumerate(procs):
                 if p == 'obs':
@@ -472,7 +488,7 @@ if __name__ == "__main__":
                     htot.Add(proj1d) 
                     listOfProj.append([proj1d, procsAndTitles[keycolor]])
                     
-                leg.AddEntry(hdata,'data','PE')
+                leg.AddEntry(hdata,args.dataTitle,'PE')
                 for pair in reversed(listOfProj):
                     leg.AddEntry(pair[0], pair[1], 'F')
                                       

@@ -9,6 +9,15 @@
 
 # it was verified that the PU weights modify the MC normalization only by less than a few 1e-7 (where "a few" depends on how high weights are cropped)
 
+
+
+
+#  >>>>>>  NOTE <<<<<<<<<
+
+# THIS SCRIPT IS OBSOLETE, I RECOMMEND USING pileupStuff/makePUweightPerEra.py
+
+# >>>>>>>>>>>>>>>>>>>>>>>
+
 import os, re, array, math
 import time
 import argparse

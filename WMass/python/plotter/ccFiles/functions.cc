@@ -14,6 +14,7 @@
 #include "TVector2.h"
 #include "Math/GenVector/LorentzVector.h"
 #include "Math/GenVector/PtEtaPhiM4D.h"
+#include "TRandom3.h"
 
 #include "defines.h"
 
@@ -53,6 +54,13 @@ Vec_i indices(const int& size, const int& start = 0) {
     return res;
 }
 
+//Vec_i getVarBinInArray(const float& var, const int& nBins = 48, const double& binMin = -2.4, const double& binMax = 2.4, const int& integerBinOffset = 1) {
+
+  // assumes uniform binning, integerBinOffset is 1 when reproducing the numbering convention of ROOT histograms
+  // return array of nBins elements, all set to false except for the one containing the value of var
+ 
+//}
+
 
 Vec_f scalarToRVec(const float& var, const int& size) {
 
@@ -80,10 +88,32 @@ Vec_f scalarToRVec(const float& var, const Vec_i& size) {
   
 }
 
-float deltaPhi(float phi1, float phi2) {
-    float result = phi1 - phi2;
-    while (result > float(M_PI)) result -= float(2*M_PI);
-    while (result <= -float(M_PI)) result += float(2*M_PI);
+TRandom3 *rand_smear = new TRandom3(0);
+
+Vec_f shiftVar(const Vec_f& var, float shift = 0.0) {
+
+  Vec_f res(var.size(),0);
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    res[i] = var[i] * (1 + shift);
+  }
+  return res;
+  
+}
+
+Vec_f smearAndShiftVar(const Vec_f& var, float shift = 0.0, float smear = 0.0) {
+
+  Vec_f res(var.size(),0);
+  for (unsigned int i = 0; i < res.size(); ++i) {
+    res[i] = var[i] * (1 + shift + smear * rand_smear->Gaus(0.,1.));
+  }
+  return res;
+  
+}
+
+double deltaPhi(float phi1, float phi2) {
+    double result = phi1 - phi2;
+    while (result > M_PI) result -= 2.0*M_PI;
+    while (result <= -1.0*M_PI) result += 2.0*M_PI;
     return result;
 }
 
@@ -91,26 +121,58 @@ float if3(bool cond, float iftrue, float iffalse) {
     return cond ? iftrue : iffalse;
 }
 
-float deltaR2(float eta1, float phi1, float eta2, float phi2) {
-    float deta = eta1-eta2;
-    float dphi = deltaPhi(phi1,phi2);
+double deltaR2(float eta1, float phi1, float eta2, float phi2) {
+    double deta = eta1-eta2;
+    double dphi = deltaPhi(phi1,phi2);
     return deta*deta + dphi*dphi;
 }
 
-float deltaR(float eta1, float phi1, float eta2, float phi2) {
+double deltaR(float eta1, float phi1, float eta2, float phi2) {
     return std::sqrt(deltaR2(eta1,phi1,eta2,phi2));
 }
 
-float minDeltaR2many(const Vec_f& eta, const Vec_f& phi, float etaProbe, float phiProbe) {
+double minDeltaR2many(const Vec_f& eta, const Vec_f& phi, float etaProbe, float phiProbe) {
 
-  float retmin = std::numeric_limits<float>::max();
+  double retmin = std::numeric_limits<double>::max();
   if (eta.size() == 0) return retmin;
-  float dr2 = 0.0;
+  double dr2 = 0.0;
   for (unsigned int ij = 0; ij < eta.size(); ++ij) {
     dr2 = deltaR2(eta[ij], phi[ij], etaProbe, phiProbe);
     if (dr2 < retmin) retmin = dr2;
   }
   return retmin;
+}
+
+// returns minimum DR^2 between two vector collections
+double minDeltaR2manyMore(const Vec_f& eta, const Vec_f& phi, const Vec_f& etaProbe, const Vec_f& phiProbe) {
+
+  double retmin = std::numeric_limits<double>::max();
+  if (eta.size() == 0 or etaProbe.size() == 0 ) return retmin;
+  double dr2 = 0.0;
+  for (unsigned int ij = 0; ij < eta.size(); ++ij) {
+    for (unsigned int ik = 0; ik < etaProbe.size(); ++ik) {
+      dr2 = deltaR2(eta[ij], phi[ij], etaProbe[ik], phiProbe[ik]);
+      if (dr2 < retmin) retmin = dr2;
+    }
+  }
+  return retmin;
+}
+
+// returns vector of bools filtering input collection based on DR^2 match with respect to a test collection
+Vec_b matchDeltaR2(const Vec_f& eta, const Vec_f& phi, const Vec_f& etaTest, const Vec_f& phiTest, double dr2match = 0.01) {
+
+  Vec_b res(eta.size(), false); // initialize to 0 (no match)
+  if (eta.size() == 0 or etaTest.size() == 0 ) return res;
+  double dr2 = 0.0;
+  for (unsigned int ij = 0; ij < eta.size(); ++ij) {
+    double retmin = std::numeric_limits<double>::max();
+    for (unsigned int ik = 0; ik < etaTest.size(); ++ik) {
+      dr2 = deltaR2(eta[ij], phi[ij], etaTest[ik], phiTest[ik]);
+      if (dr2 < retmin) retmin = dr2;
+    }
+    if (retmin < dr2match) res[ij] = true;
+  }
+  return res;
 }
 
 
@@ -298,7 +360,6 @@ Vec_i absoluteValue(const Vec_i& val) {
 
 }
 
-#include "TRandom3.h"
 TRandom3 *randy = NULL;
 
 float mass_2_smeared(float pt1, float eta1, float phi1, float m1, float pt2, float eta2, float phi2, float m2, int isData) {
@@ -425,9 +486,6 @@ float met_cal(float met_pt, float met_phi, float lep_pt, float lep_phi, float u_
     return hypot(metcal_px,metcal_py);
 }
 
-float _puw2016_nTrueInt_36fb[100] = {0.3505407355600995, 0.8996968628890968, 1.100322319466069, 0.9562526765089195, 1.0366251229154624, 1.0713954619016586, 0.7593488199769544, 0.47490309461978414, 0.7059895997695581, 0.8447022252423783, 0.9169159386164522, 1.0248924033173097, 1.0848877947714115, 1.1350984224561655, 1.1589888429954602, 1.169048420382294, 1.1650383018054549, 1.1507200023444994, 1.1152571438041776, 1.0739529436969637, 1.0458014000030829, 1.032500407707141, 1.0391236062781293, 1.041283620738903, 1.0412963370894526, 1.0558823002770783, 1.073481674823461, 1.0887053272606795, 1.1041701696801014, 1.123218903738397, 1.1157169321377927, 1.1052520327174429, 1.0697489590429388, 1.0144652740600584, 0.9402657069968621, 0.857142825520793, 0.7527112615290031, 0.6420618248685722, 0.5324755829715156, 0.4306470627563325, 0.33289171600176093, 0.24686361729094983, 0.17781595237914027, 0.12404411884835284, 0.08487088505600057, 0.056447805688061216, 0.03540829360547507, 0.022412461576677457, 0.013970541270658443, 0.008587896629717911, 0.004986410514292661, 0.00305102303701641, 0.001832072556146534, 0.0011570757619737708, 0.0008992999249003301, 0.0008241241729452477, 0.0008825716073180279, 0.001187003960081393, 0.0016454104270429153, 0.0022514113879764414, 0.003683196037880878, 0.005456695951503178, 0.006165248770884191, 0.007552675218762607, 0.008525338219226993, 0.008654690499815343, 0.006289068906974821, 0.00652551838513972, 0.005139581024893171, 0.005115751962934923, 0.004182527768384693, 0.004317593022028565, 0.0035749335962533355, 0.003773660372937113, 0.002618732319396435, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-float puw2016_nTrueInt_36fb(int nTrueInt) { if (nTrueInt<100) return _puw2016_nTrueInt_36fb[nTrueInt]; else return 0; }
-
 
 //==================================================
 
@@ -439,12 +497,37 @@ bool valueInsideRange(float value, float low, float high) {
 
 }
 
+
+//==================================================
+
+Vec_b valueInsideRange(const Vec_f& value, float low, float high) {
+
+  Vec_b ret(value.size(), false);
+  for (unsigned int i = 0; i < ret.size(); ++i) {
+    if (value[i] >= low and value[i] < high) ret[i] = true;
+  }
+  return ret;
+
+}
+
 //==================================================
 
 bool valueOutsideRange(float value, float low, float high) {
 
   if (value < low or value > high) return true;
   else                             return false;
+
+}
+
+//==================================================
+
+Vec_b valueOutsideRange(const Vec_f& value, float low, float high) {
+
+  Vec_b ret(value.size(), false);
+  for (unsigned int i = 0; i < ret.size(); ++i) {
+    if (value[i] < low or value[i] > high) ret[i] = true;
+  }
+  return ret;
 
 }
 

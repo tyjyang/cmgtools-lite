@@ -1,17 +1,24 @@
+# configuration file for systematics and groups to define in the datacard
+# the actual fields might be simplified, this was taken from a previous code
+#
+# this is digested by cardMaker.py
+# first field is a dummy name for user, second one is a regular expression to match the histograms for those systematics (they must exist for shape type, but not for lnN, see later), third field is a regular expression for the processes to assign the syst to (you may also have all histograms but decide to use some systs only for some processes), fourth field is the name of the group appearing in the datacard (the mass one must be declared as SKIPGROUP), fifth field is a keyword for the type of systematics (usually shape or lnN, but shapeNoConstraint for the mass shift), the 6th field is optional, it is used to rescale some systematics in the datacard (when type is shape) or to assign a value (for lnN type, which require no histogram to exist) 
+#
 # second field is actually not used for lnN nuisances (might be used to trigger some behaviour, e.g. decorrelating by charge if needed)
-pdfs       : pdf.*                  : Z.*|W.*|.*fakes.*                  : PDFS       : shape
-alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : PDFS       : shape   : 0.67
-qcdScales  : muR.*|muF.*            : Z.*|W.*|.*fakes.*                  : QCD        : shape
+pdfs       : pdf.*                  : Z.*|W.*|.*fakes.*                  : PDFs       : shape
+alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 0.67
+qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDscaleW_WptBin  : shape
+qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
-muScale    : kalPt.*                : Z.*|W.*|Diboson.*|Top.*|.*fakes.*  : MUSCALE    : shape
-efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : EFFICIENCY : shape
-muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : PREFIRING  : shape
-#luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.* : LUMINOSITY : shape
-luminosity : lumi.*                 : Diboson.*                          : LUMINOSITY : shape
+muScale    : muonPtScaleTest.*      : W.*|Z.*|Diboson.*|Top.*            : muonPtScale: shape
+efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_stat   : shape
+effSyst    : effSyst.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_syst   : shape
+muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonPrefiring  : shape
+luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.*  : luminosity : shape
 mass       : massShift.*            : W.*                                : SKIPGROUP  : shapeNoConstraint
-CMS_Top    : CMS_Top                : Top.*                              : OTHEREXP   : lnN     : 1.06
-CMS_VV     : CMS_VV                 : Diboson.*                          : OTHEREXP   : lnN     : 1.16
-CMS_Fakes  : CMS_Fakes              : .*fakes.*                          : OTHEREXP   : lnN     : 1.05
+CMS_Top    : CMS_Top                : Top.*                              : otherExp   : lnN     : 1.06
+CMS_VV     : CMS_VV                 : Diboson.*                          : otherExp   : lnN     : 1.16
+CMS_Fakes  : CMS_Fakes              : .*fakes.*                          : otherExp   : lnN     : 1.05
 #fakes      : fakes.*|.*lnN30.*      : data_fakes              : OTHEREXP : shape
-#luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.* : LUMINOSITY : lnN     : 1.012
+#luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.* : luminosity : lnN     : 1.012
 #otherbkg   : lepVeto.*              : Z.*|W.*|.*fakes.*                  : OTHEREXP   : shape

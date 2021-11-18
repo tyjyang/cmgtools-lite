@@ -28,7 +28,7 @@ ROOT.gStyle.SetOptStat(0)
 #ROOT.gStyle.SetOptTitle(1)
 ROOT.TH1.SetDefaultSumw2()
 
-def quadSumVariationHisto(hnomi, hvars, hname=None, postfixName="quadSumVar"):
+def quadSumVariationHisto(hnomi, hvars, hname=None, postfixName="quadSumVar", scale=1.0):
     # hlist is supposed to contain a list of histograms for variations, for example pdf_i
     retname = hname if hname != None else f"{hnomi.GetName()}_{postfixName}"
     hret = copy.deepcopy(hnomi.Clone(retname))
@@ -37,7 +37,7 @@ def quadSumVariationHisto(hnomi, hvars, hname=None, postfixName="quadSumVar"):
         for ix in range(1, 1 + hnomi.GetNbinsX()):
             sumSquare = 0 
             for h in hvars:
-                val = h.GetBinContent(ix) - hnomi.GetBinContent(ix)
+                val = scale * (h.GetBinContent(ix) - hnomi.GetBinContent(ix))
                 sumSquare += (val * val)
             hret.SetBinContent(ix, math.sqrt(sumSquare))
 
@@ -46,7 +46,7 @@ def quadSumVariationHisto(hnomi, hvars, hname=None, postfixName="quadSumVar"):
             for iy in range(1, 1 + hnomi.GetNbinsY()):
                 sumSquare = 0 
                 for h in hvars:
-                    val = h.GetBinContent(ix, iy) - hnomi.GetBinContent(ix, iy)
+                    val = scale * (h.GetBinContent(ix, iy) - hnomi.GetBinContent(ix, iy))
                     sumSquare += (val * val)
                 hret.SetBinContent(ix, iy, math.sqrt(sumSquare))
 
@@ -60,7 +60,7 @@ def setHistErrorFromHisto(hnomi, herr):
 
     elif hnomi.GetDimension() == 2:
         for ix in range(1, 1 + hnomi.GetNbinsX()):
-            for iy in range(1, 1 + homi.GetNbinsY()):
+            for iy in range(1, 1 + hnomi.GetNbinsY()):
                 hnomi.SetBinError(ix, iy, herr.GetBinContent(ix, iy))
     
 

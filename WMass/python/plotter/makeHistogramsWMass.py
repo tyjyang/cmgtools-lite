@@ -23,7 +23,7 @@ from cropNegativeTemplateBins import cropNegativeContent
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import getTH2fromTH3, createPlotDirAndCopyPhp
 
-def getQCDScaleIndices():
+def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
     # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
     #  ("1","1"), ("1","2"), ("2", "05"), ("2", "1"), ("2", "2")]):
@@ -38,7 +38,21 @@ def getQCDScaleIndices():
             16 : "muRmuFUp"
     }
     return ret
-    
+
+def getQCDScaleIndices():
+    # branch LHEScaleWeight with 9 elements:                                                   *
+    # [0] is mur=0.5 muf=0.5; [1] is mur=0.5 muf=1; [2] is mur=0.5 muf=2; [3] is mur=1 muf=0.5 ; [4] is mur=1 muf=1; [5] is mur=1 muf=2; [6] is mur=2 muf=0.5; [7] is mur=2 muf=1 ; [8] is mur=2 muf=2)*
+    # we don't use the case where one scale goes up and the other down, so exclude pairs like (0.5,2)    
+    ret = {  0 : "muRmuFDown",
+             1 : "muRDown",
+             3 : "muFDown",
+             5 : "muFUp",
+             7 : "muRUp",
+             8 : "muRmuFUp"
+    }
+    return ret
+
+
 def mirrorShape(nominal,alternate,mirror):
     # assumes any regularization (e.g. cropping negative bin content to make it 0) already  happened outside
     # same for normalization
@@ -67,6 +81,7 @@ parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4],
 parser.add_argument("-c", "--charge", type=str, default=None, choices=["plus", "minus"], help="Charge for this channel")
 parser.add_argument("--decorrelate-by-charge", dest="decorrByCharge", type=str, default=None, help="Matching regular expression for nuisances to be decorrelated by charge (or comma-separate list of expressions). The corresponding histograms have to be named according to the charge") 
 parser.add_argument("--wlike", dest="isWlike", action="store_true", help="Flag for W-like analysis (have to change histogram name for signal to include the charge)")
+parser.add_argument("--alpha-from-pdf-histogram", dest="alphaFromPdfHisto", action="store_true", help="Alpha is usually an independent histogram with respect to PDFs, but for NNPDF3.1, if this option is true, it is actually made from the TH3 containing PDFs (last two bins are alpha with 0.002 variation)")
 
 args = parser.parse_args()
 
@@ -100,6 +115,8 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
     if not obj:
         raise(RuntimeError('Unable to read object {n}'.format(n=name)))
     syst,proc = name.split("__")
+    if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+        continue
     if proc == "data":
         proc = "data_obs"
     if proc == "Zmumu" and args.isWlike:
@@ -125,6 +142,10 @@ for syst in systs:
     print("{: <20}: {p}".format(syst,p=proclist))
 print('-'*30)
 
+hasNNPDF31alphaS0001var = False
+if all(x in systs for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]) and not args.alphaFromPdfHisto:
+    hasNNPDF31alphaS0001var = True
+    
 outf = ROOT.TFile.Open(outfilename,'RECREATE')
 if not outf or not outf.IsOpen():
     raise(RuntimeError('Unable to open file {fn}'.format(fn=outfilename)))
@@ -133,6 +154,8 @@ for proc in list(hnomi.keys()):
     hnomi[proc].Write()
 
 for syst in systs:
+    if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
+        continue
     print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
@@ -160,7 +183,7 @@ for syst in systs:
                 h2D = getTH2fromTH3(h3D, name, ilumi, ilumi)
                 h2D.Write()
         if "effStatTnP" in syst:
-            for ieff in range(1, 576+1): # need to be kept manually consistent until we save these numbers somewhere
+            for ieff in range(1, 624+1): # need to be kept manually consistent until we save these numbers somewhere
                 systname = "effStatTnP%d" % ieff
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
@@ -170,9 +193,16 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
-        if "muonL1Prefire" in syst:
-            for ieff in range(1, 16+1):
-                systname = "muonL1Prefire%d" % ieff
+        if "effSystTnP" in syst:
+            # here h3D is actually a TH2
+            name = "x_" + proc + "_effSystTnPUp" # define this as Up variation
+            h3D.Write(name)
+            h2D_mirror = h3D.Clone(name.replace("Up", "Down"))
+            h2D_mirror = mirrorShape(hnomi[proc], h3D, h2D_mirror)
+            h2D_mirror.Write()
+        if "muonL1PrefireStat" in syst:
+            for ieff in range(1, 11+1):
+                systname = "muonL1PrefireStat%d" % ieff
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
@@ -181,13 +211,30 @@ for syst in systs:
                 h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
+        if "muonL1PrefireSyst" in syst:
+            for ieff in range(2, 3+1):
+                systname = "muonL1PrefireSyst"
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
+                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D.Write()
+        if "muonPtScaleTest" in syst:
+            for iptsyst in range(1, 96+1): # 48 *2, for up and down variations
+                systname = "muonPtScaleTest%d" % (iptsyst if iptsyst <= 48 else (iptsyst-48))
+                if matchDecorr.match(systname):
+                    systname = systname + chargeKey
+                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if iptsyst <=48 else "Down")
+                h2D = getTH2fromTH3(h3D, name, iptsyst, iptsyst)
+                h2D.Write()
         if "qcdScale" in syst:
-            qcdscales = getQCDScaleIndices()
-            indices = sorted(list(qcdscales.keys()))
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence
             else:
                 ptbin = 0 # told you ;)
+                # new ntuples have 9 elements, older had 18
+            qcdscales = getQCDScaleIndices() if h3D.GetNbinsZ() == 9 else getQCDScaleIndicesOldNtuples()
+            indices = sorted(list(qcdscales.keys()))
             for i in indices:
                 systname = qcdscales[i]
                 if ptbin:
@@ -198,22 +245,52 @@ for syst in systs:
                 name = "x_" + proc + "_" + systname
                 h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
                 h2D.Write()
-        if "pdf" in syst:
-            # this includes actual pdf hessians (bins 1 to 100) and alphaSUp and alphaSDown (bin 101 and 102)
-            # pdfxx needs mirroring, alphaS already has Up and Down
-            for i in range(1,103):
-                if i <= 100:
+        #if "pdf" in syst: # now we have more PDF sets, so names are more complicated
+        # some temporary hacks to force using alpha for 0.001 variations if present (those in the pdf histogram are the 0.002 variations)
+        if "NNPDF31" in syst or syst == "pdf":
+            if "pdfNNPDF31" in syst or syst == "pdf":
+                # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
+                # pdfxx needs mirroring, alphaS already has Up and Down
+                for i in range(1,103):
+                    if i <= 100:
+                        name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
+                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
+                        h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                        h2D.Write()
+                        h2D_mirror.Write()
+                    elif not hasNNPDF31alphaS0001var:
+                        print(">>> Warning: using alphaS variation equal to 0.002 extracted from pdf TH3")
+                        name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
+                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D.Write()
+            elif "alphaS0117NNPDF31" in syst and hasNNPDF31alphaS0001var:
+                name = "x_" + proc + "_alphaSDown"
+                h3D.Write(name)
+            elif "alphaS0119NNPDF31" in syst and hasNNPDF31alphaS0001var:
+                name = "x_" + proc + "_alphaSUp"
+                h3D.Write(name)
+        
+        if "NNPDF30" in syst:
+            if "pdfNNPDF30" in syst:
+                # this includes only pdf hessians (bins 1 to 100)
+                # pdfxx needs mirroring
+                for i in range(1,101):
                     name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
                     h2D = getTH2fromTH3(h3D, name, i, i)
                     h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
                     h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
                     h2D.Write()
                     h2D_mirror.Write()
-                else:
-                    name = "x_" + proc + "_alphaS%s" % ("Up" if i == 101 else "Down")
-                    h2D = getTH2fromTH3(h3D, name, i, i)
-                    h2D.Write()
-
+            # the following should already be TH2            
+            elif "alphaS0117NNPDF30" in syst:
+                name = "x_" + proc + "_alphaSDown"
+                h3D.Write(name)
+            elif "alphaS0119NNPDF30" in syst:
+                name = "x_" + proc + "_alphaSUp"
+                h3D.Write(name)
+        #WIP
+                    
 nKeys = outf.GetNkeys()
 outf.Close()
 print(f"{nKeys} histograms saved in file {outfilename}")

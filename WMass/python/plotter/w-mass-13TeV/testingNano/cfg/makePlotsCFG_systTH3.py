@@ -27,17 +27,22 @@ def wptBinsScales(i):
     return [ptlo, pthi]
 
 # TODO: Use this for other systematics (it needs to be generalized a bit)
-def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, regex, outfile=None, systBinStart=-0.5, indexStart=0, addWeight=None, replaceWeight=None, nBinsZaxis=None):
+def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight_axis, regex, outfile=None, systBinStart=-0.5, indexStart=0, addWeight=None, replaceWeight=None, nBinsZaxis=None, replaceCutByName=None, isPtScaleTest=False):
 
     if nBinsZaxis == None:
         nBinsZaxis = nsyst
     syst_binning = "%d,%.1f,%.1f" % (nBinsZaxis, systBinStart, nBinsZaxis+systBinStart)
-    expr_string = f"indices({nsyst},{indexStart})\:scalarToRVec({pt_expr},{nsyst})\:scalarToRVec({eta_expr},{nsyst})"
+    if isPtScaleTest:
+        expr_string = f"indices({nsyst},{indexStart})\:{pt_expr}\:scalarToRVec({eta_expr},{nsyst})"
+    else:
+        expr_string = f"indices({nsyst},{indexStart})\:scalarToRVec({pt_expr},{nsyst})\:scalarToRVec({eta_expr},{nsyst})"
     weight_items = []
     if addWeight:
         weight_items.append(f"AddWeight='{addWeight}'")
     if replaceWeight:
         weight_items.append(f"ReplaceWeight='{replaceWeight}'")
+    if replaceCutByName:
+        weight_items.append(f"ReplaceCutByName='{replaceCutByName}'")
     weight_str = ", ".join(weight_items) if len(weight_items) else ""
 
     line = f"{label}_: {expr_string} : {etapt_binning},{syst_binning};" \
@@ -55,6 +60,8 @@ parser.add_argument('--ptVar', default='Muon_pt[goodMuonsCharge][0]', type=str, 
 parser.add_argument('--etaVar', default='Muon_eta[goodMuonsCharge][0]', type=str, help='Expression for variable on eta axis')
 parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
+parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31", help='PDF set to use')
+parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str, help='Expression for variable on pt axis, specific for tests about pt scale (it doesn\'t get vectorized)')
 args = parser.parse_args()
 
 ###################################
@@ -79,28 +86,58 @@ line = f"nominal_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames} \n"
 print(line)
 if printToFile: outf.write(line+'\n')
 
-# pdf + alphaS
-write3DHist(label = "pdf",
-            pt_expr = args.ptVar,
-            eta_expr = args.etaVar,
-            nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
-            xylabels = axisNames,
-            weight_axis = "PDF/alpha_{S} index",
-            etapt_binning = etaptBins,
-            regex = "W.*|Z.*",
-            outfile = outf,
-            systBinStart = 0.5,
-            indexStart = 0,
-            addWeight = "LHEPdfWeight",
-            nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
-)
+# pdf + alphaS in NNPDF3.1, alphaS has 0.002 variations around 0.118, the 1 sigma variation should be 0.0015
+if args.pdfWeights == "nnpdf31":
+    write3DHist(label = "pdfNNPDF31",
+                pt_expr = args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
+                xylabels = axisNames,
+                weight_axis = "PDF/alpha_{S} index",
+                etapt_binning = etaptBins,
+                regex = "W.*|Z.*",
+                outfile = outf,
+                systBinStart = 0.5,
+                indexStart = 0,
+                addWeight = "LHEPdfWeight",
+                nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
+    )
+    line = f"alphaS0117NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet5[0]', ProcessRegexp='W.*'\n"
+    line += f"alphaS0119NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet6[0]', ProcessRegexp='W.*'\n"
+    print(line)
+    if printToFile: outf.write(line+'\n')
 
+elif args.pdfWeights == "nnpdf30":
+    # pdf in NNPDF3.0, alphaS is available in another branch
+    write3DHist(label = "pdfNNPDF30",
+                pt_expr = args.ptVar,
+                eta_expr = args.etaVar,
+                nsyst = 101, # 1 nominal + 100 symmetric hessians
+                xylabels = axisNames,
+                weight_axis = "NNPDF3.0 PDF index",
+                etapt_binning = etaptBins,
+                regex = "W.*", # FIXME: only W for now
+                outfile = outf,
+                systBinStart = 0.5,
+                indexStart = 0,
+                addWeight = "(1.0/LHEPdfWeightAltSet13[0])*LHEPdfWeightAltSet13",  # when running analysis with different PDFs as nominal, the nominal weight LHEPdfWeightAltSet13[0] is alredy applied to the process, so we need to factorize it out here
+                nBinsZaxis = 100 # we want 100,0.5,100.5 (could have been 101,-0.5,100.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
+    )
+
+    line = f"alphaS0117NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet15[0]', ProcessRegexp='W.*'\n"
+    line += f"alphaS0119NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet16[0]', ProcessRegexp='W.*'\n"
+    print(line)
+    if printToFile: outf.write(line+'\n')
+
+###  END of PDF if statement
+
+### QCD scales should be used according to central PDF set. For now will keep using NNPDF3.1 in all cases
 
 # qcd scales (not Vpt binned, that one comes just afterward)
 write3DHist(label = "qcdScale",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 18,
+            nsyst = 18, #  was 18 on older samples, because had both NNPDF3.0 and NNPDF3.1 together
             xylabels = axisNames,
             weight_axis = "QCD scale index",
             etapt_binning = etaptBins,
@@ -119,7 +156,7 @@ for ipt in range(1,1+NVTPBINS):
     write3DHist(label = "qcdScaleVptBin%d" % ipt,
                 pt_expr = args.ptVar,
                 eta_expr = args.etaVar,
-                nsyst = 18,
+                nsyst = 9, #  was 18 on older samples, because had both NNPDF3.0 and NNPDF3.1 together   
                 xylabels = axisNames,
                 weight_axis = "QCD scale index",
                 etapt_binning = etaptBins,
@@ -130,12 +167,18 @@ for ipt in range(1,1+NVTPBINS):
                 addWeight = f"qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptcut[0]}\,{ptcut[1]})" 
     )
 
+
+## end of QCD scales
+    
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
+# NOTE: from September 2021 we have changed pt binning, now it is 15 pt bins from 24 to 65, the bins are: 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 47, 50, 55, 60, 65
+# for the analysis we may cut between 26 and 55, maybe even in a narrower window, so we would need a way to remove the unnecessary bins
+# for now we can neglect the upper pt bins, for the lowest ones we need some tricks to be implemented, so for now we have 48(eta) * 13(pt) = 624 bins (up to 55)
 write3DHist(label = "effStatTnP",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 576, # remember to edit weight below if changing this 
+            nsyst = 624, # remember to edit weight below if changing this 
             xylabels = axisNames,
             weight_axis = "Eff. stat. nuisance index",
             etapt_binning = etaptBins,
@@ -143,15 +186,24 @@ write3DHist(label = "effStatTnP",
             outfile = outf,
             systBinStart = 0.5,
             indexStart = 1,
-            replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(576\," 
+            replaceWeight = f"_get_fullMuonSF(->_get_fullMuonSFvariation(624\," 
 )
 
+# eff. syst. nuisance, for now one just nuisance correlating all bins (may decorrelate across eta but for now we keep it simple)
+# so we only need to make a TH2
+# function to use is _get_fullMuonSF_dataAltSig, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
+# this is basically the SF obtained with alternative data efficiency from fit with analytic function (nominal uses MC template for signal instead)
+# this is just one variation, we would make it symmetric later
+line = f"effSystTnP_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, ReplaceWeight='_get_fullMuonSF(->_get_fullMuonSF_dataAltSig(', ProcessRegexp='W.*|Z.*|Top|Diboson'\n"
+print(line)
+if printToFile: outf.write(line+'\n')
 
-# prefiring uncertainty, uncorrelated for each eta bin. Here the function is _get_MuonPrefiringSFvariation, which replace _get_MuonPrefiringSF in the nominal weight, using ReplaceWeight
-write3DHist(label = "muonL1Prefire",
+
+# muon prefiring stat uncertainty, uncorrelated for each eta bin. Here the function is _get_newMuonPrefiringSFvariationStat, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
+write3DHist(label = "muonL1PrefireStat",
             pt_expr = args.ptVar,
             eta_expr = args.etaVar,
-            nsyst = 16, # remember to edit weight below if changing this 
+            nsyst = 11, # remember to edit weight below if changing this 
             xylabels = axisNames,
             weight_axis = "Muon L1 prefiring nuisance index",
             etapt_binning = etaptBins,
@@ -159,7 +211,24 @@ write3DHist(label = "muonL1Prefire",
             outfile = outf,
             systBinStart = 0.5,
             indexStart = 1,
-            replaceWeight = f"_get_MuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)->_get_MuonPrefiringSFvariation(16\,Muon_eta\,Muon_pt\,Muon_looseId\,eraVFP)" 
+            replaceWeight = f"_get_newMuonPrefiringSF(->_get_newMuonPrefiringSFvariationStat(11\," 
+            #replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationStat(11\,Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)" 
+)
+
+# muon prefiring syst uncertainty, correlated across eta bins. Here the function is _get_newMuonPrefiringSFvariationSyst, which replace _get_newMuonPrefiringSF in the nominal weight, using ReplaceWeight
+write3DHist(label = "muonL1PrefireSyst",
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = 3, # remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "Muon L1 prefiring nuisance index",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            #replaceWeight = f"_get_newMuonPrefiringSF(Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)->_get_newMuonPrefiringSFvariationSyst(3\,Muon_eta\,Muon_pt\,Muon_phi\,Muon_looseId\,eraVFP)" 
+            replaceWeight = f"_get_newMuonPrefiringSF(->_get_newMuonPrefiringSFvariationSyst(" 
 )
 
 
@@ -175,29 +244,46 @@ write3DHist(label = "massWeight",
             outfile = outf,
             systBinStart = -0.5,
             indexStart = 0,
-            addWeight = "LHEReweightingWeightCorrectMass"
+            addWeight = "MEParamWeight"# is LHEReweightingWeightCorrectMass on older samples
 )
 
 
-for chan in ["Wm", "Wp", "Z"]:
-    process_regexpr = "Z.*" 
-    if "W" in chan:
-        process_regexpr = ".*".join(["W", "minus" if "m" in chan else "plus", ])
-    START = -0.5
-    NWEIGHTS = 45
-    write3DHist(label ="scetlibWeights", # no trailing '_', it is added inside directly (and mcPlots will add another one) 
-                pt_expr =args.ptVar,
-                eta_expr = args.etaVar,
-                nsyst = NWEIGHTS,
-                xylabels = axisNames,
-                weight_axis = "SCETlib variation index",
-                etapt_binning = etaptBins,
-                regex = process_regexpr,
-                outfile = outf,
-                systBinStart = START,
-                indexStart = 0,
-                addWeight = f"scetlibWeights{chan}"
-    )
+# for chan in ["Wm", "Wp", "Z"]:
+#     process_regexpr = "Z.*" 
+#     if "W" in chan:
+#         process_regexpr = ".*".join(["W", "minus" if "m" in chan else "plus", ])
+#     START = -0.5
+#     NWEIGHTS = 45
+#     write3DHist(label ="scetlibWeights", # no trailing '_', it is added inside directly (and mcPlots will add another one) 
+#                 pt_expr =args.ptVar,
+#                 eta_expr = args.etaVar,
+#                 nsyst = NWEIGHTS,
+#                 xylabels = axisNames,
+#                 weight_axis = "SCETlib variation index",
+#                 etapt_binning = etaptBins,
+#                 regex = process_regexpr,
+#                 outfile = outf,
+#                 systBinStart = START,
+#                 indexStart = 0,
+#                 addWeight = f"scetlibWeights{chan}"
+#     )
+
+# muon momentum scale test
+write3DHist(label = "muonPtScaleTest",
+            pt_expr = args.ptVarScaleTest,
+            eta_expr = args.etaVar,
+            nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
+            xylabels = axisNames,
+            weight_axis = "pT scale nuisance index (Up+Down)",
+            etapt_binning = etaptBins,
+            regex = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            replaceCutByName = "accept->valueInsideRange(customPtTest\,26\,55)",
+            isPtScaleTest = True
+)
+
 
 print('-'*30)
 print("SUMMARY")

@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("outdir",   type=str, nargs=1)
     parser.add_argument("-e", "--era",    type=str, default="BtoF", choices=["BtoF"], help="Era for those SF of which we will make the lumi-weighted average")
     parser.add_argument("-r", "--ratio-to", dest="ratioToEra",   type=str, default="H", help="Era used as reference to make ratios")
-    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
+    parser.add_argument("-n", "--sfnames", type=str, default="trigger,idip,iso,isonotrig,antiiso,antiisonotrig,tracking,altreco", help="Comma separated list of efficiency names inside root file, which will be used (trigger uses both plus and minus automatically); default: %(default)s, (antiiso,antiisonotrig have to be made, they are not in the file)")
     parser.add_argument("--sub-era", dest="subEra", type=str, default="", help="If given, comma-separated list of eras to use, others in main era will be ignored (including the inclusive one). Mainly useful if some pieces are missing")
     args = parser.parse_args()
 
@@ -60,8 +60,18 @@ if __name__ == "__main__":
                       "antiisoTrigPlus"   : ["antiiso",       "triggerplus",  "idip"], # "tracking"],
                       "antiisoTrigMinus"  : ["antiiso",       "triggerminus", "idip"], # "tracking"],
                       "antiisoNotrig"     : ["antiisonotrig",                 "idip"], # "tracking"],
+                      "reco"              : ["altreco"],
+                      "tracking"          : ["tracking"],
+                      "trackingReco"      : ["tracking", "altreco"],
+                      "idipTrackingReco"  : ["idip", "tracking", "altreco"],
+                      "trigPlusIdipTrackingReco"     : ["triggerplus", "idip", "tracking", "altreco"],
+                      "isoTrigPlusIdipTrackingReco"  : ["iso", "triggerplus", "idip", "tracking", "altreco"],
+                      "trigMinusIdipTrackingReco"    : ["triggerminus", "idip", "tracking", "altreco"],
+                      "isoTrigMinusIdipTrackingReco" : ["iso", "triggerminus", "idip", "tracking", "altreco"],
+                      "isoNotrigIdipTrackingReco"    : ["isonotrig", "idip", "tracking", "altreco"],
     }
-
+    # productsToMake = {"trackingReco"       : ["reco", "tracking"], # "tracking"],
+    # }
     hists = {}
     histsMC = {}
     # all eras from the tnp file
@@ -116,9 +126,9 @@ if __name__ == "__main__":
 
     addAntiIso = False
     addAntiIsonotrig = False
-    if "antiiso" not in effKeys:
+    if "antiiso" not in effKeys and "iso" in effKeys:
         addAntiIso = True
-    if "antiisonotrig" not in effKeys:
+    if "antiisonotrig" not in effKeys and "isonotrig" in effKeys:
         addAntiIsonotrig = True
         
     for era in eras:
@@ -148,33 +158,62 @@ if __name__ == "__main__":
         raise RuntimeError(f"Error when opening file {fout.name}")
     fout.cd()
 
-        
-    for key in productsToMake.keys():
-        for era in eras:
-            for i,name in enumerate(productsToMake[key]): 
-                if i == 0:
-                    stringProduct = name
-                    prodHists[era][key] = copy.deepcopy(hists[era][name].Clone(key))
-                    prodHistsMC[era][key] = copy.deepcopy(histsMC[era][name].Clone(key))
-                else:
-                    stringProduct = stringProduct + "*" + name
-                    if not prodHists[era][key].Multiply(hists[era][name]):
-                        print(f"ERROR in multiplication for prodHists[{era}][{key}] with {name}")
-                        quit()
-                    if not prodHistsMC[era][key].Multiply(histsMC[era][name]):
-                        print(f"ERROR in multiplication for prodHistsMC[{era}][{key}] with {name}")
-                        quit()
-            prodHists[era][key].SetTitle(f"{stringProduct}")            
-            prodHistsMC[era][key].SetTitle(f"{stringProduct}")            
-            prodHists[era][key].Write(f"fullEffData2D_{key}_{era}")
-            prodHistsMC[era][key].Write(f"fullEffMC2D_{key}_{era}")
-
     # proceeding to plot these histograms
     canvas = ROOT.TCanvas("canvas","",800,700)
     adjustSettings_CMS_lumi()
     canvas1D = ROOT.TCanvas("canvas1D","",700,700)
     adjustSettings_CMS_lumi()
+
+    outdir_n = outdir + f"efficiencies/"
+    createPlotDirAndCopyPhp(outdir_n)
+    for key in effKeys:
+        outdir_n = outdir + f"efficiencies/{key}/"
+        createPlotDirAndCopyPhp(outdir_n)
+        for era in eras:
+            drawCorrelationPlot(hists[era][key], "muon #eta", "muon p_{T} (GeV)", f"{key} data efficiency ({era})",
+                                hists[era][key].GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+            drawCorrelationPlot(histsMC[era][key], "muon #eta", "muon p_{T} (GeV)", f"{key} MC efficiency ({era})",
+                                histsMC[era][key].GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+            
+        
     
+    for key in productsToMake.keys():
+        outdir_n = outdir + f"products/{key}/"
+        createPlotDirAndCopyPhp(outdir_n)
+        for era in eras:
+            for i,name in enumerate(productsToMake[key]): 
+                if i == 0:
+                    stringProduct = name
+                    prodHists[era][key] = copy.deepcopy(hists[era][name].Clone(f"fullEffData2D_{key}_{era}"))
+                    prodHistsMC[era][key] = copy.deepcopy(histsMC[era][name].Clone(f"fullEffMC2D_{key}_{era}"))
+                else:
+                    stringProduct = stringProduct + "*" + name
+                    if hists[era][name].GetNbinsY() == 1:
+                        multiplyByHistoWith1ptBin(prodHists[era][key], hists[era][name])
+                    else:
+                        if not prodHists[era][key].Multiply(hists[era][name]):
+                            print(f"ERROR in multiplication for prodHists[{era}][{key}] with {name}")
+                            quit()
+                    if histsMC[era][name].GetNbinsY() == 1:
+                        multiplyByHistoWith1ptBin(prodHistsMC[era][key], histsMC[era][name])
+                    else:
+                        if not prodHistsMC[era][key].Multiply(histsMC[era][name]):
+                            print(f"ERROR in multiplication for prodHistsMC[{era}][{key}] with {name}")
+                            quit()
+            prodHists[era][key].SetTitle(f"{stringProduct}")            
+            prodHistsMC[era][key].SetTitle(f"{stringProduct}")            
+            prodHists[era][key].Write(f"fullEffData2D_{key}_{era}")
+            prodHistsMC[era][key].Write(f"fullEffMC2D_{key}_{era}")
+            drawCorrelationPlot(prodHists[era][key], "muon #eta", "muon p_{T} (GeV)", f"{key} data efficiency ({era})",
+                                prodHists[era][key].GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+            drawCorrelationPlot(prodHistsMC[era][key], "muon #eta", "muon p_{T} (GeV)", f"{key} MC efficiency ({era})",
+                                prodHistsMC[era][key].GetName(), plotLabel="ForceTitle", outdir=outdir_n,
+                                passCanvas=canvas)
+            
+                
     for n in effKeys:
 
         outdir_n = outdir + n + "/"

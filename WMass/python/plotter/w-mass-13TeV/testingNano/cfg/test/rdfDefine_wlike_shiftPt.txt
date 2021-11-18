@@ -1,0 +1,32 @@
+# name of new variable/collection : definition : regular expression for processes to apply it to
+#
+shift : 0.0002: .*_shiftPtUp: -0.0002
+#custom_Muon_pt: smearAndShiftPt(Muon_pt,shift,0.0)
+#custom_Muon_pt: applyRochester(isData,eraVFP,Muon_pt,Muon_eta,Muon_phi,Muon_charge,Muon_genPartIdx,GenPart_pt,Muon_nTrackerLayers)
+custom_Muon_pt : applyRochesterData(eraVFP,Muon_pt,Muon_eta,Muon_phi,Muon_charge) : data.* : applyRochesterMC(eraVFP,Muon_pt,Muon_eta,Muon_phi,Muon_charge,Muon_genPartIdx,GenPart_pt,Muon_nTrackerLayers)
+vetoMuons : custom_Muon_pt > 10 && Muon_looseId && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05
+# electron cut-based ID Fall17 V2 (0:fail, 1:veto, 2:loose, 3:medium, 4:tight)
+vetoElectrons : Electron_pt > 10 && Electron_cutBased > 0 && abs(Electron_eta) < 2.4 && abs(Electron_dxy) < 0.05 && abs(Electron_dz)< 0.2
+goodMuons : vetoMuons && custom_Muon_pt > 26 && Muon_mediumId > 0
+goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
+goodMuonsPlus: goodMuons && Muon_charge > 0
+goodMuonsMinus: goodMuons && Muon_charge < 0
+#
+ptZ : transversemomentum(custom_Muon_pt[goodMuons],Muon_phi[goodMuons])
+zrapidity : rapidity(custom_Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons])
+#
+genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
+ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+yVgen : rapidity(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+mVgen : invariantmass(GenPart_pt[genPrefsrLeps],GenPart_eta[genPrefsrLeps],GenPart_phi[genPrefsrLeps],GenPart_mass[genPrefsrLeps]) : W|Z
+scetlibWeightsZscalar : Numba::correctN3LL_Z(0,mVgen,yVgen,ptVgen) : Z.*
+#
+scetlibWeightsZ : Numba::correctN3LL_Z_allVars(mVgen, yVgen, ptVgen, true) : Z
+scetlibWeightsWm : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, true) : W.*minus
+scetlibWeightsWp : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, true) : W.*plus
+# For uncorr, assume the correction has not been applied already
+scetlibWeightsZUncorr : Numba::correctN3LL_Z_allVars(mVgen, yVgen, ptVgen, false) : Z
+scetlibWeightsWmUncorr : Numba::correctN3LL_Wm_allVars(mVgen, yVgen, ptVgen, false) : W.*minus
+scetlibWeightsWpUncorr : Numba::correctN3LL_Wp_allVars(mVgen, yVgen, ptVgen, false) : W.*plus
+
+bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z

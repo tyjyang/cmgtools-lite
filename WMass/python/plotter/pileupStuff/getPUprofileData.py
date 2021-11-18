@@ -20,5 +20,5 @@ eras = list(lfe.keys())
 eras.extend(["preVFP", "postVFP"])
 
 for era in eras:
-    cmd = f"pileupCalc.py -i lumiStuff/NanoAOD_json_Run2016{era}_GoldenJsonFilter.txt --inputLumiJSON {pileupFile} --calcMode true --minBiasXsec 69200 --maxPileupBin 100 --numPileupBins 100 pileupStuff/pileupProfileData_2016Legacy_Run{era}_04June2021.root"
+    cmd = f"pileupCalc.py -i lumiStuff/NanoAOD_json_Run2016{era}_GoldenJsonFilter.txt --inputLumiJSON {pileupFile} --calcMode true --minBiasXsec 69200 --maxPileupBin 100 --numPileupBins 100 pileupStuff/pileupProfileData_2016Legacy_Run{era}_04June2021_TEST.root"
     print(cmd)

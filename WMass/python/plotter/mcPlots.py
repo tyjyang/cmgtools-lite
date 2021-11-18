@@ -948,6 +948,10 @@ class PlotMaker:
                         plot = pmap[p]
                         #if plot.Integral() == 0:
                         #    print 'Warning: plotting histo %s with zero integral, there might be problems in the following'%p
+                        if pspec.getOption('NormBinWidth',False):
+                            # I hope it doesn't conflict with anything done below
+                            plot.Scale(1.0, "width")
+                            
                         if plot.Integral() < 0:
                             logging.warning('Plotting histo %s with negative integral (%f), the stack plot will probably be incorrect.'%(p,plot.Integral()))
                         if 'TH1' in plot.ClassName():
@@ -958,11 +962,16 @@ class PlotMaker:
                                 for b2 in range(1,plot.GetNbinsY()+1):
                                     if plot.GetBinContent(b1,b2)<0: logging.warning('histo %s has bin %d,%d with negative content (%f), the stack plot will probably be incorrect.'%(p,b1,b2,plot.GetBinContent(b1,b2)))
 #                        if plot.Integral() <= 0: continue
-                        if mca.isSignal(p): plot.Scale(options.signalPlotScale)
+                        if mca.isSignal(p):
+                            plot.Scale(options.signalPlotScale)
                         if mca.isSignal(p) and options.noStackSig == True: 
                             plot.SetLineWidth(3)
                             plot.SetLineColor(plot.GetFillColor())
                             continue 
+                        #if mca.getProcessOption(p,'UseAsSystematic',False):
+                        #    # will be used to draw an uncertainty band around nominal MC (works only when having a single MC shape)
+                        #    # this is being implemented, check if this feature is ready
+                        #    continue
                         if plotmode == "stack":
                             stack.Add(plot)
                             total.Add(plot)
@@ -1340,8 +1349,13 @@ class PlotMaker:
                                             liner.DrawLine(x2, y1, x2, y2)  # vertical at x=x2, y in [y1,y2]
                                             liner.DrawLine(x1, y1, x2, y1)  # horizontal at y=y1, x in [x1,x2]
                                             liner.DrawLine(x1, y2, x2, y2)  # horizontal at y=y2, x in [x1,x2]
-                                        
+                                        # no log scale for ratio
+                                        if pspec.getOption('Logz',False):
+                                            c1.SetLogz(0) 
                                         c1.Print("%s/%s_%s.%s" % (fdir, outputName, r.GetName(), ext))
+                                        # reset to log scale if modified above, even though at this point the plot is made and for the next one the option is specifically evaluated again
+                                        if pspec.getOption('Logz',False):
+                                            c1.SetLogz() 
                                         r.Write(r.GetName())
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))

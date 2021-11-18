@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--bm', '--bottom-margin' , dest='setBottomMargin'     , default=0.3        , type=float, help='Bottom margin for the canvas')
     parser.add_argument(     '--canvasSize',  default='', type=str, help='Pass canvas dimensions as "width,height". Default is 800,600, but it is automatically adjusted for large number of parameters')
     parser.add_argument(      "--y-title",      dest="ytitle",  default="S+B fit #theta",   type=str,  help="Title for Y axis")
-    parser.add_argument(      "--y-setting",    dest="ysetting",  nargs=5, default="-5.0,-3,0,3,5.0", type=float,  help="Settings to customize y axis: pass list of ymin,yhalfd,ycen,yhalfu,ymax, where horizontal lines are drawn")
+    parser.add_argument(      "--y-setting",    dest="ysetting",  nargs=5, default=[-5.0,-3,0,3,5.0], type=float,  help="Settings to customize y axis: pass list of ymin,yhalfd,ycen,yhalfu,ymax, where horizontal lines are drawn")
     #parser.add_argument(      "--y-setting",    dest="ysetting",  type=lambda s: [float(item) for item in s.split(',')], default="-5.0,-3,0,3,5.0",  help="Settings to customize y axis: comma-separated list of ymin,yhalfd,ycen,yhalfu,ymax, where horizontal lines are drawn")
     parser.add_argument('-R', "--rank-nuisances-by", dest="rankNuisancesBy",  default=None, choices=["", "pull", "sigma"],  type=str,  help="Rank nuisances based on either sigma or pull. It is devised to work with --pois '.*', but of course you can further filter nuisances and/or pois")
     parser.add_argument('-N','--show-N' , dest='showN',    default=0, type=int, help='To be used with -R: it shows only the N nuisances ranked. If not positive, no limit is used')    

@@ -34,8 +34,14 @@ if "/pileupWeights_cc.so" not in ROOT.gSystem.GetLibraries():
 if "/jsonManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/jsonManager.cc")
 
-if "/w-mass-13TeV/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
+if "/functionsWMass_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functionsWMass.cc")
+
+if "/RoccoR_cc.so" not in ROOT.gSystem.GetLibraries(): 
+    compileMacro("ccFiles/RoccoR.cc")
+
+if "/roccorManager_cc.so" not in ROOT.gSystem.GetLibraries(): 
+    compileMacro("ccFiles/roccorManager.cc")
 
 def setLogging(verbosity):
     verboseLevel = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
@@ -245,8 +251,14 @@ class TreeToYield:
             name = tokens[0]
             define = tokens[1]
             procRegexp = tokens[2] if len(tokens) > 2 else ".*"
-
-            ret[name] = {"define" : define, "procRegexp" : procRegexp}
+            if len(tokens) == 4:
+                altExpr = tokens[3]
+            else:
+                altExpr = None
+                
+            ret[name] = {"define" : define,
+                         "procRegexp" : procRegexp,
+                         "altExpr" : altExpr}
         return ret
 
     def printRdfDefinitions(self):
@@ -559,29 +571,6 @@ class TreeToYield:
                     self._tree = self._tree.Filter(cutexpr,cutname)
             logging.debug('='*30)
                     
-        # defines
-        for name, entry in self._rdfDefs.items():
-            if re.match(entry["procRegexp"], self._cname):
-                logging.debug("Defining %s as %s" % (name, entry["define"]))
-                self._tree = self._tree.Define(name, entry["define"])
-        # aliases
-        for name,entry in self._rdfAlias.items():
-            if re.match(entry["procRegexp"], self._cname):
-                self._tree = self._tree.Alias(name, entry["define"])
-            
-        if self._options.printYieldsRDF:
-            logging.debug('='*30)
-            logging.debug(" Selection after defines")
-            logging.debug('-'*30)
-            for (cutname,cutexpr,extra) in cut.cuts():
-                if "BEFOREDEFINE" not in extra:
-                    logging.debug(f" {cutname}: {cutexpr}")
-                    self._tree = self._tree.Filter(cutexpr,cutname)
-            logging.debug('='*30)
-        else:
-            fullcut = cut
-            self._tree = self._tree.Filter(fullcut)
-
         # this column must be defined according to the process name, which is expected to include pre or postVFP
         # the eraVFP column will be used in calls to some functions to specify the era (e.g. for scale factors)
         if "preVFP" in self._cname:
@@ -590,6 +579,56 @@ class TreeToYield:
             self._tree = self._tree.Define("eraVFP", "GToH")
         else:
             self._tree = self._tree.Define("eraVFP", "BToH")
+
+        # defines
+        for name, entry in self._rdfDefs.items():
+            if re.match(entry["procRegexp"], self._cname):
+                logging.debug("Defining %s as %s" % (name, entry["define"]))
+                self._tree = self._tree.Define(name, entry["define"])
+            elif entry["altExpr"]:
+                self._tree = self._tree.Define(name, entry["altExpr"])
+        # aliases
+        for name,entry in self._rdfAlias.items():
+            if re.match(entry["procRegexp"], self._cname):
+                self._tree = self._tree.Alias(name, entry["define"])
+
+        # filters
+        cutsAsWeight = {}
+        if self._options.printYieldsRDF:
+            logging.debug('='*30)
+            logging.debug(" Selection after defines")
+            logging.debug('-'*30)
+            for (cutname,cutexpr,extra) in cut.cuts():
+                if "BEFOREDEFINE" not in extra:
+                    logging.debug(f" {cutname}: {cutexpr}; {extra}")
+                    # in case one cut has to be skipped or overridden, it still need to be added as dummy in the list of filters, or RDF may complain when doing all processes in the same loop
+                    if "EXCLUDEPROCESS" in extra and re.match(extra["EXCLUDEPROCESS"],self._cname):
+                        if "ALTEXPR" in extra:
+                            self._tree = self._tree.Filter(extra["ALTEXPR"],cutname)
+                        else:
+                            self._tree = self._tree.Filter("1>0",cutname)
+                    else:
+                        if "ASWEIGHT" in extra and extra["ASWEIGHT"] == True:
+                            # if it is data, set weight flag to true, it might have been false unless using some scaling from MCA file
+                            # usually one could use ASWEIGHT_MCONLY to enable it only for MC and not data
+                            if self._cname.startswith("data"):
+                                self._weight = True
+                            self._tree = self._tree.Filter("1>0",cutname)
+                            cutsAsWeight[cutname] = cutexpr
+                        elif "ASWEIGHT_MCONLY" in extra and extra["ASWEIGHT_MCONLY"] == True:
+                            if self._cname.startswith("data"):
+                                self._tree = self._tree.Filter(cutexpr,cutname)
+                            else:
+                                self._tree = self._tree.Filter("1>0",cutname)
+                                cutsAsWeight[cutname] = cutexpr
+                        else:
+                            self._tree = self._tree.Filter(cutexpr,cutname)
+
+            logging.debug('='*30)
+        else:
+            # usually we never use this piece, it is faster to have multiple filters rather than a single one, it runs much faster
+            fullcut = cut
+            self._tree = self._tree.Filter(fullcut)
             
         # do not call it, or it will trigger the loop now
         #print "sumGenWeights"
@@ -600,12 +639,26 @@ class TreeToYield:
         # expression multiple times, which may affect performances
         column_expr = {}
 
-        ## weight has a common part for each plot (lumiWeight applied at the end as a scaling factor
+        ## weight has a common part for each plot (lumiWeight applied at the end as a scaling factor)
+        ### Note:
+        ### data is usually unweighted, but one can add a scaling using the 3rd field of the process line in the MCA file, or using AddWeight (which adds it to the 3rd field, creating it if only two fields were present)
+        ### when this happens, the weight is set in mcAnalysis.py as a scalefactor, so it will be included in self._scaleFactor. This also activate self._weight for data as well, but self._weightString
+        ### (which usually is passed as option -W) is set to "1.0" for data, so wgtCommon == (1.0)*self._scaleFactor
         if self._weight:
             wgtCommon = "(%s)*(%s)" % (self._weightString, self._scaleFactor)
+            if "ReplaceWeight" in self._settings:
+                oldw,neww = self._settings["ReplaceWeight"].split("->")
+                if oldw not in wgtCommon:
+                    logging.warning(f"'{oldw}' not found in wgtCommon for process {self._name}. Please check that the weight string is defined as you expect.")
+                    quit()                
+                wgtCommon = wgtCommon.replace(oldw,neww) # this is for all plots, so we update the common weight directly
         else:
-            wgtCommon = '1.' ## wtf is that marc
-        
+            wgtCommon = '1.'
+        for cutname in cutsAsWeight.keys():
+            wgtCommon += f"*({cutsAsWeight[cutname]})"
+        #print(f"Process {self._name}, wgtCommon = {wgtCommon}")
+            
+            
         for plotspec in plotspecs:
 
             # check if histogram has to be done for this process
@@ -624,15 +677,27 @@ class TreeToYield:
             tmp_weight = self._cname+'_weight'
             #print "In getManyPlotsRaw"
             #print(tmp_weight)
-            
+
             if plotspec.getOption('AddWeight', None):
                 wgt = wgtCommon + "*(%s)" % plotspec.getOption('AddWeight','1')
             else:
                 wgt = wgtCommon
             if plotspec.getOption('ReplaceWeight', None):
+                # modify wgt defined just above, even though usually AddWeight and ReplaceWeight are not used together, but it can happen that they are
                 oldw,neww = plotspec.getOption('ReplaceWeight', "1->1").split("->")
-                wgt = wgtCommon.replace(oldw,neww) 
-                
+                if oldw not in wgt:
+                    logging.warning(f"'{oldw}' not found in wgt for plot {plotspec.name} and process {self._name}. Please check that the weight string is defined as you expect.")
+                    quit()
+                wgt = wgt.replace(oldw,neww) 
+            if plotspec.getOption('ReplaceCutByName', None):
+                cutname,neww = plotspec.getOption('ReplaceCutByName', "alwaystrue->1").split("->")
+                if cutname in cutsAsWeight.keys():
+                    if cutsAsWeight[cutname] not in wgt:
+                        logging.warning(f"'{cutsAsWeight[cutname]}' not found in wgt for plot {plotspec.name} and process {self._name}. Please check that all flags are correctly set in the cut file.")
+                        quit()
+                    wgt = wgt.replace(cutsAsWeight[cutname],neww)
+                    #print(f"Replacing weight per plot ({plotspec.name}): wgt = {wgt}")
+                    #print()
             (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
             
             logging.debug("%s weight string = %s " % (tmp_weight, wgt))

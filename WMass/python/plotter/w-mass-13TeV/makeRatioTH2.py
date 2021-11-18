@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file1", type=str, nargs=1, help="First file")
     parser.add_argument("hist1", type=str, nargs=1, help="Histogram name from first file")
-    parser.add_argument("file2", type=str, nargs=1, help="Second file")
+    parser.add_argument("file2", type=str, nargs=1, help="Second file (can use 'SAME' if equal to first file)")
     parser.add_argument("hist2", type=str, nargs=1, help="Histogram name from second file")
     parser.add_argument('-o','--outdir',  default='', type=str, help='output directory to save things')
     parser.add_argument('-f','--outfilename', default='', type=str, help='Name of output file to save results')
@@ -64,10 +64,11 @@ if __name__ == "__main__":
     parser.add_argument('-y','--yAxisTitle',  default='', type=str, help='Y axis title. If not given, use the one from hist1')
     parser.add_argument('-z','--zAxisTitle',  default='', type=str, help='Z axis title. If not given, use the one from hist1')
     parser.add_argument('-t','--histTitle',   default='', type=str, help='Title to assign to output histogram. It is used as a label for the canvas')
-    parser.add_argument('-r','--ratioRange',  default=(0, 2),type=float, nargs=2, help="Min and max for the ratio in the plot")
+    parser.add_argument('-r','--ratioRange',  default=(0, -1),type=float, nargs=2, help="Min and max for the ratio in the plot")
     parser.add_argument(     '--h1Dbinning',  default='50,0.9,1.1', type=str, help='Comma separated list of 3 numbers: nbins,min,max')
     parser.add_argument('-v','--valBadRatio',  default='0', type=float, help='Value to be used in case of bad ratio (division by 0). The 1D histogram is not filled in case of bad ratio')
     parser.add_argument(     '--buildFakeRate', action="store_true", help="The input histograms have the parameters of the linear fits to fake-rate or prompt-rate versus eta: build the histogram with FR (PR) vs pt and eta (obsolete, no longer using pol1 to interpolate)")
+    parser.add_argument(     '--skip1DPlot', action="store_true", help="Do not plot 1D distribution")
     parser.add_argument(     '--xRange',  default=(0,-1), type=float, nargs=2, help='Select range for X axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_argument(     '--yRange', default=(0,-1), type=float, nargs=2, help='Select range for Y axis to plot. Also, bins outside this range are not considered in the 1D histogram. If min > max, the option is neglected')
     parser.add_argument('-e', '--divide-error', dest="divideError", action="store_true", help="Make ratio of uncertainties (the output histogram will have no error assigned to it)")
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     
     f1 = args.file1[0]
     h1 = args.hist1[0]
-    f2 = args.file2[0]
+    f2 = f1 if args.file2[0]  == "SAME" else args.file2[0]
     h2 = args.hist2[0]
 
     ROOT.TH1.SetDefaultSumw2()
@@ -97,9 +98,9 @@ if __name__ == "__main__":
     else:
         print("Error: you should specify an output folder using option -o <name>. Exit")
         quit()
-    if not args.outfilename:
-        print("Error: you should specify an output file name using option -f <name>. Exit")
-        quit()
+    #if not args.outfilename:
+    #    print("Error: you should specify an output file name using option -f <name>. Exit")
+    #    quit()
     if not args.outhistname:
         print("Error: you should specify an output histogram name using option -n <name>. ")
         print("If FILE is used, take same name as the output file, removing the extension")
@@ -262,20 +263,23 @@ if __name__ == "__main__":
     
     # the axis name can be used to set the range if it is in the format "name::min,maz"
     # if this is not already the case, use the selected range from the input option
-    if not "::" in zAxisTitle:  
+    if not "::" in zAxisTitle:
+        if args.ratioRange[0] > args.ratioRange[1]:
+            args.ratioRange = (hratio.GetBinContent(hratio.GetMinimumBin()), hratio.GetBinContent(hratio.GetMaximumBin()))
         zAxisTitle = zAxisTitle + "::" + str(args.ratioRange[0]) + "," + str(args.ratioRange[1])
     drawCorrelationPlot(hratio,xAxisTitle,yAxisTitle,zAxisTitle,
                         args.outhistname,"ForceTitle",outname,0,0,False,False,False,1,palette=args.palette,passCanvas=canvas2D)
     
     canvas = ROOT.TCanvas("canvas","",800,700)
-    drawTH1(hratioDistr, 
-            hratio.GetZaxis().GetTitle() if args.zAxisTitle else "ratio",
-            "number of events",
-            outname,
-            "ratioDistribution",
-            args.outhistname,
-            passCanvas=canvas
-            )
+    if not args.skip1DPlot:
+        drawTH1(hratioDistr, 
+                hratio.GetZaxis().GetTitle() if args.zAxisTitle else "ratio",
+                "number of events",
+                outname,
+                "ratioDistribution",
+                args.outhistname,
+                passCanvas=canvas
+        )
 
     # making distribution of pulls
     if args.makePulls:
@@ -299,14 +303,15 @@ if __name__ == "__main__":
     ###########################
     # Now save things
     ###########################
-    if not args.outfilename.endswith(".root"):
-        args.outfilename = args.outfilename + ".root"
-    tf = ROOT.TFile.Open(outname+args.outfilename,'recreate')
-    hratio.Write(args.outhistname)
-    tf.Close()
-    print("")
-    print("Created file %s" % (outname+args.outfilename))
-    print("")
+    if args.outfilename:
+        if not args.outfilename.endswith(".root"):
+            args.outfilename = args.outfilename + ".root"
+        tf = ROOT.TFile.Open(outname+args.outfilename,'recreate')
+        hratio.Write(args.outhistname)
+        tf.Close()
+        print("")
+        print("Created file %s" % (outname+args.outfilename))
+        print("")
 
                                
          
