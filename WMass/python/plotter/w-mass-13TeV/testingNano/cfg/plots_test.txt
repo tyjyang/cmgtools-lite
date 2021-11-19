@@ -205,6 +205,7 @@ genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRL
 
 genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx2])\:varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx2]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
 
+
 ###
 # for PU profile
 
@@ -214,6 +215,9 @@ PV_npvsGood: PV_npvsGood: 50,0,50; XTitle="PV_npvsGood", Legend='TC', IncludeOve
 
 ####
 # for vertex study
+
+genVertexZ: GenVtx_z : 400,-20,20; XTitle="gen vertex Z (cm)", Legend='TC', IncludeOverflows=True, Logy=True
+
 
 dzVertex_gen_primary__Wpt: (GenVtx_z-PV_z)\:ptVgen : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=False
 

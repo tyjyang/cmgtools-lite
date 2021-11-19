@@ -7,6 +7,9 @@
 # for python 3
 /data/shared/singularity/pythonrootdevf32.sif
 
+# for even better things with root and multi dimensional histograms
+/data/shared/singularity/pythonrootdevarch.sif
+
 # set by hand the CMSSW_BASE variable when you use the code installed as detailed below
 # for me it is
 export CMSSW_BASE=/data/home/mciprian/mycode/CMSSW_10_6_18/
