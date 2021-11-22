@@ -54,13 +54,6 @@ Vec_i indices(const int& size, const int& start = 0) {
     return res;
 }
 
-//Vec_i getVarBinInArray(const float& var, const int& nBins = 48, const double& binMin = -2.4, const double& binMax = 2.4, const int& integerBinOffset = 1) {
-
-  // assumes uniform binning, integerBinOffset is 1 when reproducing the numbering convention of ROOT histograms
-  // return array of nBins elements, all set to false except for the one containing the value of var
- 
-//}
-
 
 Vec_f scalarToRVec(const float& var, const int& size) {
 

@@ -115,7 +115,8 @@ def correctN3LL_Wp(var, mV, yV, ptV):
 
 @ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", ], "RVec<bool>")
 def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
-    leptons = (np.abs(pdgId) >= 11) & (np.abs(pdgId) <= 14) & (motherIdx >= 0)
+    pdgIdcopy = pdgId
+    leptons = (np.abs(pdgId) >= 11) & (np.abs(pdgIdcopy) <= 14) & (motherIdx >= 0)
     status746 = status == 746
     status23 = status == 23
     motherV = (pdgId[motherIdx] == 23) | (np.abs(pdgId[motherIdx]) == 24)
@@ -142,7 +143,8 @@ def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
 
 @ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", "RVec<float>", "RVec<float>", "bool"], "RVec<int>")
 def ewPhotonKinematicsSel(status, statusFlags, pdgId, motherIdx, pts, etas, phis, withISR = False):
-    isLepton = (np.abs(pdgId) >= 11) & (np.abs(pdgId) <= 14) & (motherIdx >= 0)
+    pdgIdcopy = pdgId
+    isLepton = (np.abs(pdgId) >= 11) & (np.abs(pdgIdcopy) <= 14) & (motherIdx >= 0)
     isMuon = isLepton & (np.abs(pdgId) == 13)
     isPhoton = pdgId == 22
     status1 = status == 1
