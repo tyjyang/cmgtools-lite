@@ -33,36 +33,34 @@ from cropNegativeTemplateBins import cropNegativeContent
 logging.basicConfig(level=logging.INFO)
 
 
+## this assumes the dimensions of the THn is eta-pt-charge-isoMt bin
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1, help="Input file with histograms")
     #parser.add_argument("outdir",   type=str, nargs=1, help="Ouput folder for plots") # now we just use the folder containing the root file adding subfolder "postprocessing/"
-    parser.add_argument("-b", "--ptBins", required=True, type=str, help = "Binning for pt in a single region, formatted as in TH1 constructor, e.g. '29,26,55' (uniform binning expected for now)")
+    #parser.add_argument("-b", "--ptBins", required=True, type=str, help = "Binning for pt in a single region, formatted as in TH1 constructor, e.g. '29,26,55' (uniform binning expected for now)")
     parser.add_argument("-l", "--lumi", type=float, default="1.012", help="Luminosity uncertainty (1 + uncertainty, so e.g. 1.012 for 1.2% uncertainty )")
+    # this may not work anymore, and maybe we don't even need it, can plot the syst from final histograms
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
+    #
     parser.add_argument("--pt-range-projection", dest="ptRangeProjection", default=(0,-1), type=float, nargs=2, help="Pt range to select bins to use for 1D projection (for upper range remember that upper bin edge belongs to next bin in ROOT)")
+    parser.add_argument(     '--crop-negative', dest='cropNegativeBin' , default=False , action='store_true',   help='Set negative bins to non negative value (it uses cropNegativeContent), but it might be slow')
     args = parser.parse_args()
-
-    if len(args.ptBins.split(',')) != 3:
-        print("Error: the pt binning is expected to be of the form 'nPt,ptLow,ptHigh'. Abort")
-        quit()
-              
+           
     fname = args.rootfile[0]
-    #outdir = args.outdir[0]
-    #if not outdir.endswith('/'):
-    #    outdir += '/'
     outdir = os.path.dirname(fname) + "/postprocessing/"
     createPlotDirAndCopyPhp(outdir)
 
     ROOT.TH1.SetDefaultSumw2()
 
     plotFakesSyst = {}
-    outdirSystRatio = outdir + "systRatios_allRegions/"
-    if len(args.plotFakesSyst):
-        createPlotDirAndCopyPhp(outdirSystRatio)
-        for x in args.plotFakesSyst:
-            sname,bins = x.split('=')
-            plotFakesSyst[sname] = [int(b) for b in bins.split(',')]
+    # outdirSystRatio = outdir + "systRatios_allRegions/"
+    # if len(args.plotFakesSyst):
+    #     createPlotDirAndCopyPhp(outdirSystRatio)
+    #     for x in args.plotFakesSyst:
+    #         sname,bins = x.split('=')
+    #         plotFakesSyst[sname] = [int(b) for b in bins.split(',')]
 
     
     lumi = float(args.lumi)
@@ -77,168 +75,172 @@ if __name__ == "__main__":
     for k in f.GetListOfKeys():
         name = k.GetName()
         syst,proc = name.split("__")
+        print(f">>> Reading {name}")
+        if any(x in syst for x in ["pdf", "effStat", "qcdScale"]): continue # to test code in a faster way
         if syst == "nominal":
-            nomihists[proc] = f.Get(name)
+            nomihists[proc] = safeGetObject(f, name, detach=False)
             checkNullObj(nomihists[proc], objName=name)
-            nomihists[proc].SetDirectory(0)
-            wasCropped = cropNegativeContent(nomihists[proc], silent=True, cropError=False)
+            if args.cropNegativeBin:
+                wasCropped = cropNegativeContent(nomihists[proc], silent=True, cropError=False)
         else:
             if syst not in systNamesProcsHists:
                 systNamesProcsHists[syst] = {} # this dict will have {proc : hist}
-            systNamesProcsHists[syst][proc] = f.Get(name)
+            systNamesProcsHists[syst][proc] = safeGetObject(f, name, detach=False)
             checkNullObj(systNamesProcsHists[syst][proc], objName=name)
-            systNamesProcsHists[syst][proc].SetDirectory(0)
-            wasCropped = cropNegativeContent(systNamesProcsHists[syst][proc], silent=True, cropError=False)
+            if args.cropNegativeBin:
+                wasCropped = cropNegativeContent(systNamesProcsHists[syst][proc], silent=True, cropError=False)
     f.Close()
+    
+    nNomiDim = nomihists["data"].GetNdimensions()
+    nEtaBins = nomihists["data"].GetAxis(0).GetNbins() # nbins with no underflow/overflow, usually 48 eta bins
+    etaLow   = nomihists["data"].GetAxis(0).GetBinLowEdge(1)
+    etaHigh  = nomihists["data"].GetAxis(0).GetBinLowEdge(1+nEtaBins)
+    nPtBins = nomihists["data"].GetAxis(1).GetNbins()
+    ptLow   = nomihists["data"].GetAxis(1).GetBinLowEdge(1)
+    ptHigh  = nomihists["data"].GetAxis(1).GetBinLowEdge(1+nEtaBins)
 
-    nEtaBins = nomihists["data"].GetNbinsX()
-    etaLow   = nomihists["data"].GetXaxis().GetBinLowEdge(1)
-    etaHigh  = nomihists["data"].GetXaxis().GetBinLowEdge(1+nEtaBins)
-    tokens = args.ptBins.split(',')
-    nPtBins = int(tokens[0])
-    ptLow   = float(tokens[1])
-    ptHigh  = float(tokens[2])
+    nominalNbins = [nomihists["data"].GetAxis(i).GetNbins() for i in range(nNomiDim)]
+    nominalBinMin = [nomihists["data"].GetAxis(i).GetBinLowEdge(1) for i in range(nNomiDim)]
+    nominalBinMax = [nomihists["data"].GetAxis(i).GetBinLowEdge(1+nomihists["data"].GetAxis(i).GetNbins()) for i in range(nNomiDim)]
+    
+    xAxisName = nomihists["data"].GetAxis(0).GetTitle() # "Muon #eta"
+    yAxisName = nomihists["data"].GetAxis(1).GetTitle() # "Muon p_{T} (GeV)"
 
-    xAxisName = "Muon #eta"
-    yAxisName = "Muon p_{T} (GeV)"
-
-    systNamesProcsHists["luminosity"] = {}
-    nPtBins4regions = nomihists["data"].GetNbinsY()
-    ptLow4regions   = nomihists["data"].GetYaxis().GetBinLowEdge(1)
-    ptHigh4regions  = nomihists["data"].GetYaxis().GetBinLowEdge(1+nPtBins4regions)
-
+    ###
+    # will use fillTHNplus1fromTHn() to fill TH5 from TH4, for the opposite one can use projections
+    ###
+    
     # get data-MC for all regions
+    # also use this loop to create the THn for luminosity, stacking both variations in the same histogram
     hDataSubMC = nomihists["data"].Clone("dataSubMC")
     allProcnames = []
+    systNamesProcsHists["luminosity"] = {}
     for k in nomihists.keys():
         if k == "data": continue
         allProcnames.append(k)
-        hDataSubMC.Add(nomihists[k],-1.0)
-        # add luminosity Up and Down
-        systNamesProcsHists["luminosity"][k] = ROOT.TH3D(f"luminosity__{k}", f"luminosity Up/Down by {args.lumi}%",
-                                                         nEtaBins, etaLow, etaHigh,
-                                                         nPtBins4regions, ptLow4regions, ptHigh4regions,
-                                                         2, 0.5, 2.5)
-        fillTH3binFromTH2(systNamesProcsHists["luminosity"][k], nomihists[k], 1, scaleFactor=lumi)
-        fillTH3binFromTH2(systNamesProcsHists["luminosity"][k], nomihists[k], 2, scaleFactor=(1./lumi))
-        systNamesProcsHists["luminosity"][k].GetXaxis().SetTitle(xAxisName)
-        systNamesProcsHists["luminosity"][k].GetYaxis().SetTitle(yAxisName)
-
-    print(f"PROCESSES: {allProcnames}")
+        hDataSubMC.Add(nomihists[k], -1.0)
+        # add luminosity variations in the list of systematics (with Up and Down variations in the same object)
+        systNamesProcsHists["luminosity"][k] = ROOT.THnD("luminosity_{k}", "luminosity_{k}", nNomiDim+1, array('i',nominalNbins+[2]), array('d',nominalBinMin+[0.5]), array('d',nominalBinMax+[2.5]))
+        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 1, 1, scaleFactor=lumi)
+        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 2, 2, scaleFactor=1./lumi)
         
-    hDataSubMC_syst = {} # syst : TH3 (but may have TH2 for some)
+    print(f"PROCESSES: {allProcnames}")
 
+    hDataSubMC_syst = {} # syst : TH5 (but may have TH4 for some, only eta-pt-charge-isoMt)
+    
     canvas = ROOT.TCanvas("canvas", "", 800, 700)
-    canvas4regions = ROOT.TCanvas("canvas4regions", "", 800, 1200)
     adjustSettings_CMS_lumi()
 
-    
+    print()
+    print(">>> Now going to produce histograms for systematic variations of fakes")
+    print()
     for sys in systNamesProcsHists.keys():
+        print(f"   {sys}")
         # get numbr of Z bins from TH3
-        anyKey = list(systNamesProcsHists[sys].keys())[0]
-        hDataSubMC_syst[sys] = copy.deepcopy(systNamesProcsHists[sys][anyKey].Clone(f"{sys}_dataSubMC"))        
-        isTH2 = True if hDataSubMC_syst[sys].GetDimension() == 2 else False
-        hDataSubMC_syst[sys].Reset("ICESM")
-        nZbins = 1 if isTH2 else hDataSubMC_syst[sys].GetNbinsZ()
-        procsWithSyst = list(systNamesProcsHists[sys].keys()) 
-        for iz in range(1, 1+nZbins):
-            tmpTH2dataSubMC = copy.deepcopy(nomihists["data"].Clone(f"tmpTH2dataSubMC_{sys}_{iz}"))
+        procsWithSyst = list(systNamesProcsHists[sys].keys())
+        anyKey = procsWithSyst[0]
+        tmpSystHisto = systNamesProcsHists[sys][anyKey] # just to facilitate usage below
+        systHasSameDimAsNomi = True if tmpSystHisto.GetNdimensions() == nNomiDim else False
+        # Z is a dummy name for last dimension with systematics
+        nZbins = 1
+        zmin = 0
+        zmax = 0
+        nSystDim = nNomiDim
+        if systHasSameDimAsNomi:
+            hDataSubMC_syst[sys] = copy.deepcopy(nomihists["data"].Clone(f"{sys}_dataSubMC"))
             for proc in allProcnames:
                 if proc in procsWithSyst:
-                    #tmpTH2mc = nomihists["data"].Clone("tmpTH2mc")
-                    #fillTH2fromTH3zbin(tmpTH2mc, systNamesProcsHists[sys][proc], iz)
-                    tmpTH2mc = systNamesProcsHists[sys][proc].Clone(f"tmpTH2mc_{sys}_{iz}_{proc}") if isTH2 else getTH2fromTH3(systNamesProcsHists[sys][proc], f"tmpTH2mc_{sys}_{iz}_{proc}", iz)
-                    tmpTH2dataSubMC.Add(tmpTH2mc, -1.0)
-                    if sys in plotFakesSyst.keys() and iz in plotFakesSyst[sys]:
-                        tmpTH2mc.Divide(nomihists[proc])
-                        tmpTH2mc.SetTitle(f"{proc}: {sys}, bin {iz}")
-                        zmin,zmax = getMinMaxHisto(tmpTH2mc, excludeEmpty=True, sumError=False,
-                                                   excludeUnderflow=True, excludeOverflow=True,
-                                                   excludeMin=0, excludeMax=None)
-                        ratioAbsMax = max(abs(1.0 - zmin), abs(1.0 - zmax))
-                        zmin = 1.0 - ratioAbsMax
-                        zmax = 1.0 + ratioAbsMax
-                                          
-                        drawCorrelationPlot(tmpTH2mc,
-                                            xAxisName,
-                                            yAxisName,
-                                            f"ratio: systematics / nominal::{zmin},{zmax}",
-                                            f"ratio_{proc}_{sys}_{iz}",
-                                            plotLabel="ForceTitle",
-                                            outdir=outdirSystRatio,
-                                            passCanvas=canvas4regions,
-                                            drawOption="COLZ0")
+                    hDataSubMC_syst[sys].Add(systNamesProcsHists[sys][proc], -1.0)
                 else:
-                    tmpTH2dataSubMC.Add(nomihists[proc], -1.0)
-            # not worth checking here, since the signal region (quadrant n.3) will always have negative bins
-            #wasCropped = cropNegativeContent(tmpTH2dataSubMC, silent=False, cropError=False)
-            #if wasCropped:
-            #    print(f"Histogram bins cropped to 0 for syst {syst} and iz = {iz}")
-            if isTH2:
-                fillTH2fromTH2part(hDataSubMC_syst[sys], tmpTH2dataSubMC)
-            else:
-                fillTH3binFromTH2(hDataSubMC_syst[sys], tmpTH2dataSubMC, iz)
+                    hDataSubMC_syst[sys].Add(nomihists[proc], -1.0)
+        else:
+            nZbins = tmpSystHisto.GetAxis(nNomiDim).GetNbins()
+            nSystDim = nNomiDim + 1
+            systNbins  = [tmpSystHisto.GetAxis(i).GetNbins() for i in range(nSystDim)]
+            systBinMin = [tmpSystHisto.GetAxis(i).GetBinLowEdge(1) for i in range(nSystDim)]
+            systBinMax = [tmpSystHisto.GetAxis(i).GetBinLowEdge(1+nZbins) for i in range(nSystDim)]
+            # create histogram for data with one more dimension and same bins as systematic histograms
+            # same for other nominal histograms for processes not having this systematic uncertainty
+            nomihistDimNp1 = {}
+            print(f"      Augmenting data in N+1 dimensions")
+            hDataSubMC_syst[sys] = ROOT.THnD(f"{sys}_dataSubMC", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
+            fillTHNplus1fromTHn(hDataSubMC_syst[sys], nomihists["data"], 0, nZbins+1)
+            for proc in allProcnames:
+                print(f"      Subtracting {proc}")
+                if proc in procsWithSyst:
+                    hDataSubMC_syst[sys].Add(systNamesProcsHists[sys][proc], -1.0)
+                else:
+                    nomihistDimNp1 = ROOT.THnD(f"nominal_{proc}_dimNp1", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
+                    print(f"      Augmenting {proc} in N+1 dimensions")
+                    fillTHNplus1fromTHn(nomihistDimNp1, nomihists[proc], 0, nZbins+1)
+                    hDataSubMC_syst[sys].Add(nomihistDimNp1, -1.0)
 
-            
+    
+    print()
+    print(">>> Now building histogram for fakes in signal region")
+    print()
     # now unpack the four regions within the histogram
+
+    ## should be careful about region used at denominator in the fake rate factor, if a bin is close to 0 or negative then cropping it to 0.0001 will result in a huge ratio if numerator is not 0
+    # perhaps in those cases I should set the numerator to 0, or crop to 0 such that THn::Divide sets the ratio to 0 when denominator is 0
+    
     regionId = {0: "highIso_lowMt",
                 1: "lowIso_lowMt",
                 2: "highIso_highMt",
                 3: "lowIso_highMt"}
-
+    # output will be TH3 with eta-pt-charge, not sure if we want to keep that as a TH3 of THn with dimension 3
     hFakes = {}
     
     outdirQCD = outdir + "templatesQCD/"
     createPlotDirAndCopyPhp(outdirQCD)
     
-    # nominal is a TH2, systematics are TH3 (unless they are made with TH2 for single values, but might create TH3 with 1 z bin)
+    axesForProjection = [i for i in range(nNomiDim-1)] # if nNomiDim = 4 we keep 3 axes, so range(3) = 0, 1, 2
     for k in regionId.keys():
-        hFakes[k] = ROOT.TH2D(f"hFakes_{regionId[k]}", f"data-MC: {regionId[k]}",
-                              nEtaBins, etaLow, etaHigh,
-                              nPtBins,  ptLow,  ptHigh)
+        hDataSubMC.GetAxis(nNomiDim-1).SetRange(k+1, k+1) # select only one bin: note that region 0 is bin 1, region 1 is bin 2 and so on
+        #hFakes[k] = hDataSubMC.ProjectionAny(len(axesForProjection), array("i", axesForProjection), False, "E") # protected method
+        hFakes[k] = hDataSubMC.Projection(0, 1, 2, "E")
+        hFakes[k].SetName(f"hFakes_{regionId[k]}")  # here all charges are in the same TH3
+        hFakes[k].SetTitle(f"data-MC: {regionId[k]}")
+        if args.cropNegativeBin:
+            wasCropped = cropNegativeContent(hFakes[k], silent=False, cropError=False)
+            if wasCropped:
+                print(f"Histogram {hFakes[k].GetName()} cropped to 0 in {regionId[k]} region")
 
-        ptBinOffset = k * nPtBins
-        fillTH2fromTH2part(hFakes[k], hDataSubMC,
-                           xbinLow=1, ybinLow=1,
-                           xbinHigh=nEtaBins, ybinHigh=nPtBins,
-                           xoffset=0, yoffset=ptBinOffset)
-        # for ieta in range(1, 1 + nEtaBins):
-        #     for ipt in range(1, 1 + nPtBins):
-        #         content = hDataSubMC.GetBinContent(ieta, ipt + k * nPtBins)
-        #         error   = hDataSubMC.GetBinError(  ieta, ipt + k * nPtBins)
-        #         hFakes[k].SetBinContent(ieta, ipt, content)
-        #         hFakes[k].SetBinError(  ieta, ipt, error)
-
-        # check there are no negative bins
-        wasCropped = cropNegativeContent(hFakes[k], silent=False, cropError=False)
-        if wasCropped:
-            print(f"Histogram cropped to 0 in {regionId[k]} region")
-                
-        drawCorrelationPlot(hFakes[k], nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Events",
-                            f"yields_dataSubMC_{regionId[k]}", plotLabel="ForceTitle", outdir=outdirQCD,
-                            passCanvas=canvas, drawOption="COLZ0")
-
+        for chbin in range(1,3):
+            charge = "plus" if chbin == 2 else "minus"
+            hFakes2D = getTH2fromTH3(hFakes[k], f"hFakes_{regionId[k]}_charge{charge}", chbin, chbin)
+            hFakes2D.SetTitle(f"data-MC ({charge}): {regionId[k]}")
+            drawCorrelationPlot(hFakes2D, xAxisName, yAxisName, "Events",
+                                f"yields_dataSubMC_{regionId[k]}_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                passCanvas=canvas, drawOption="COLZ0")
+        
     templateQCD = copy.deepcopy(hFakes[1].Clone("templateQCD"))
     templateQCD.Divide(hFakes[0])
     fakerateFactor = copy.deepcopy(templateQCD.Clone("fakerateFactor"))
     fakerateFactor.SetTitle("lowIso_lowMt / highIso_lowMt ")
     templateQCD.Multiply(hFakes[2])
     templateQCD.SetTitle("QCD template")
-    drawCorrelationPlot(fakerateFactor,
-                        nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Fakerate factor",
-                        "fakerateFactor", plotLabel="ForceTitle", outdir=outdirQCD,
-                        passCanvas=canvas, drawOption="COLZ0")
-    drawCorrelationPlot(templateQCD, nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Events",
-                        f"yields_templateQCD", plotLabel="ForceTitle", outdir=outdirQCD,
-                        passCanvas=canvas, drawOption="COLZ0")
-    drawCorrelationPlot(templateQCD,
-                        nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Absolute uncertainty",
-                        f"absUncertainty_templateQCD", plotLabel="ForceTitle", outdir=outdirQCD,
-                        passCanvas=canvas, plotError=True, drawOption="COLZ0")
-    drawCorrelationPlot(templateQCD,
-                        nomihists["data"].GetXaxis().GetTitle(), nomihists["data"].GetYaxis().GetTitle(), "Relative uncertainty",
-                        f"relUncertainty_templateQCD", plotLabel="ForceTitle", outdir=outdirQCD,
-                        passCanvas=canvas, plotRelativeError=True, drawOption="COLZ0")
+    for chbin in range(1,3):
+        charge = "plus" if chbin == 2 else "minus"
+        fakerateFactor2D = getTH2fromTH3(fakerateFactor, f"{fakerateFactor.GetName()}_charge{charge}", chbin, chbin)
+        fakerateFactor2D.SetTitle(f"lowIso_lowMt / highIso_lowMt, charge {charge}")
+        templateQCD2D = getTH2fromTH3(templateQCD, f"{templateQCD.GetName()}_charge{charge}", chbin, chbin)
+        templateQCD2D.SetTitle(f"QCD template, charge {charge}")
+        drawCorrelationPlot(fakerateFactor2D,
+                            xAxisName, yAxisName, "Fakerate factor",
+                            f"fakerateFactor_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                            passCanvas=canvas, drawOption="COLZ0")
+        drawCorrelationPlot(templateQCD2D, xAxisName, yAxisName, "Events",
+                            f"yields_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                            passCanvas=canvas, drawOption="COLZ0")
+        drawCorrelationPlot(templateQCD2D,
+                            xAxisName, yAxisName, "Absolute uncertainty",
+                            f"absUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                            passCanvas=canvas, plotError=True, drawOption="COLZ0")
+        drawCorrelationPlot(templateQCD2D,
+                            xAxisName, yAxisName, "Relative uncertainty::0.0,1.0",
+                            f"relUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                            passCanvas=canvas, plotRelativeError=True, drawOption="COLZ0")
 
     # open utility file to save QCD templates in all regions
     fqcdName = outdirQCD + "histogramsQCD.root"
@@ -250,7 +252,9 @@ if __name__ == "__main__":
     templateQCDtoWrite = copy.deepcopy(templateQCD.Clone(f"yields_templateQCD"))
     templateQCDtoWrite.Write(f"yields_templateQCD")
     fqcd.Close()
-
+    
+    #########
+    
     # open file to start saving shapes
     foutname = outdir + "wmass_shapes.root"
     fout = ROOT.TFile.Open(foutname, "RECREATE")
@@ -261,17 +265,12 @@ if __name__ == "__main__":
     # hdata and hmc will be used later for plotting
     hdata = None
     hmc = []
-    # get part of the histogram corresponding to signal region, which is number 3 (4th key)
-    ptBinOffsetSigRegion = 3 * nPtBins
+    # get part of the histogram corresponding to signal region, which is number 3 (4th bin of the 4th axis of the TH4)
     for k in nomihists.keys():
         # nomihists[k].Write(nomihists[k].GetName()) ## no, this has the pt range for all the 4 regions, we don't want it
-        hSigRegion = ROOT.TH2D(f"hSigRegion_{k}", "",
-                               nEtaBins, etaLow, etaHigh,
-                               nPtBins,  ptLow,  ptHigh)
-        fillTH2fromTH2part(hSigRegion, nomihists[k],
-                           xbinLow=1, ybinLow=1,
-                           xbinHigh=nEtaBins, ybinHigh=nPtBins,
-                           xoffset=0, yoffset=ptBinOffsetSigRegion)
+        hSigRegion = nomihists[k].Projection(0, 1, 2, "E")
+        hSigRegion.SetName(f"hSigRegion_{k}")
+        hSigRegion.SetTitle("")
         if k == "data":
             hdata = copy.deepcopy(hSigRegion.Clone("data"))
         else:
@@ -281,8 +280,10 @@ if __name__ == "__main__":
     hmc.append(copy.deepcopy(templateQCD.Clone(f"data_fakes")))
 
     # do not close file here, more histograms saved later
-    
-    print("Now dealing with systematic variations for fakes")
+
+    print()
+    print(">>> Now dealing with systematic variations for fakes")
+    print()
         
     # now for the other systs
     hFakes_syst = {}
@@ -290,59 +291,57 @@ if __name__ == "__main__":
 
         #print(f"Processing {sys} ...")
         hFakes_syst[sys] = {} # regionId : histogram
-        # get numbr of Z bins from TH3
-        isTH2 = True if (hDataSubMC_syst[sys].GetDimension() == 2) else False # do not check it with nZbins
-        if isTH2:
-            nZbins = 1
-            zLow = 0.5
-            zHigh = 1.5
-        else:
-            nZbins = hDataSubMC_syst[sys].GetNbinsZ()
-            zLow   = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1)
-            zHigh  = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1 + nZbins)
+
+        # # get numbr of Z bins from TH3
+        # isTH2 = True if (hDataSubMC_syst[sys].GetDimension() == 2) else False # do not check it with nZbins
+        # if isTH2:
+        #     nZbins = 1
+        #     zLow = 0.5
+        #     zHigh = 1.5
+        # else:
+        #     nZbins = hDataSubMC_syst[sys].GetNbinsZ()
+        #     zLow   = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1)
+        #     zHigh  = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1 + nZbins)
         
         for k in regionId.keys():                
-            ptBinOffset = k * nPtBins
-            if isTH2:
-                hFakes_syst[sys][k] = ROOT.TH2D(f"hFakes_{sys}_{regionId[k]}", regionId[k],
-                                                nEtaBins, etaLow, etaHigh,
-                                                nPtBins,  ptLow,  ptHigh)
-                
-                fillTH2fromTH2part(hFakes_syst[sys][k], hDataSubMC_syst[sys],
-                                   xbinLow=1, ybinLow=1,
-                                   xbinHigh=nEtaBins, ybinHigh=nPtBins,
-                                   xoffset=0, yoffset=ptBinOffset)
+            hDataSubMC_syst[sys].GetAxis(nNomiDim-1).SetRange(k+1, k+1) # select only one bin: note that region 0 is bin 1, region 1 is bin 2 and so on (reminder: axis nNomiDim-1 is the isoMt axis, usually the 4th, so index 3)
+            
+            if hDataSubMC_syst[sys].GetNdimensions() == nNomiDim:     
+                # this is the case where TH4 goes into a TH3, in general we should not assume that, and use ProjectionND to return a THn, and then in case convert to a TH3 when the dimension is correct
+                hFakes_syst[sys][k] = hDataSubMC_syst[sys].Projection(0, 1, 2, "E")
             else:
-                hFakes_syst[sys][k] = ROOT.TH3D(f"hFakes_{sys}_{regionId[k]}", regionId[k],
-                                                nEtaBins, etaLow, etaHigh,
-                                                nPtBins,  ptLow,  ptHigh,
-                                                nZbins,   zLow,   zHigh)
-                fillTH3fromTH3part(hFakes_syst[sys][k], hDataSubMC_syst[sys],
-                                   xbinLow=1, ybinLow=1, zbinLow=1,
-                                   xbinHigh=nEtaBins, ybinHigh=nPtBins, zbinHigh=nZbins,
-                                   xoffset=0, yoffset=ptBinOffset, zoffset=0)
+                # we have the syst axis too here, so need to pick axes 0, 1, 2, 4, while for the isoMt axis (axis index 3) we need to project in the desired isoMt bin, which is the third (by chance, nothing to do with the axis number) 
+                axesIds = array("i", [i for i in range(nNomiDim+1) if i != (nNomiDim-1)]) # isoMt is the last axis of the nominal histograms
+                hFakes_syst[sys][k] = hDataSubMC_syst[sys].ProjectionND(len(axesIds), axesIds, "E")
 
-            if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
-                outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
-                createPlotDirAndCopyPhp(outdirQCDsys)
-                for zbin in plotFakesSyst[sys]:
-                    hfakeSys = hFakes_syst[sys][k].Clone(f"hFakes_{sys}_{regionId[k]}_{zbin}") if isTH2 else getTH2fromTH3(hFakes_syst[sys][k], f"hFakes_{sys}_{regionId[k]}_{zbin}", int(zbin))
-                    hfakeSys.SetTitle(f"{regionId[k]}")
-                    drawCorrelationPlot(hfakeSys,
-                                        hfakeSys.GetXaxis().GetTitle(),
-                                        hfakeSys.GetYaxis().GetTitle(),
-                                        f"Events ({sys} bin {zbin})",
-                                        f"hFakes_{sys}_{regionId[k]}_{zbin}",
-                                        plotLabel="ForceTitle",
-                                        outdir=outdirQCDsys,
-                                        passCanvas=canvas,
-                                        drawOption="COLZ0")
+            hFakes_syst[sys][k].SetName(f"hFakes_{sys}_{regionId[k]}")  # here all charges are in the same TH3
+            hFakes_syst[sys][k].SetTitle(regionId[k])
+
+            ## keep it for now, but would not use it (and need to project TH3 into a TH2 for plotting (not yet implemented below, this was coming from the older setup)
+            ##
+            # if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
+            #     outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
+            #     createPlotDirAndCopyPhp(outdirQCDsys)
+            #     for zbin in plotFakesSyst[sys]:
+            #         hfakeSys = hFakes_syst[sys][k].Clone(f"hFakes_{sys}_{regionId[k]}_{zbin}") if isTH2 else getTH2fromTH3(hFakes_syst[sys][k], f"hFakes_{sys}_{regionId[k]}_{zbin}", int(zbin))
+            #         hfakeSys.SetTitle(f"{regionId[k]}")
+            #         drawCorrelationPlot(hfakeSys,
+            #                             hfakeSys.GetXaxis().GetTitle(),
+            #                             hfakeSys.GetYaxis().GetTitle(),
+            #                             f"Events ({sys} bin {zbin})",
+            #                             f"hFakes_{sys}_{regionId[k]}_{zbin}",
+            #                             plotLabel="ForceTitle",
+            #                             outdir=outdirQCDsys,
+            #                             passCanvas=canvas,
+            #                             drawOption="COLZ0")
 
             
-            # check there are no negative bins
-            wasCropped = cropNegativeContent(hFakes[k], silent=False, cropError=False)
-            if wasCropped:
-                print(f"Histogram cropped to 0 in {regionId[k]} region and syst {sys}")
+            ## do I really need this?
+            ## check there are no negative bins
+            if args.cropNegativeBin:
+                wasCropped = cropNegativeContent(hFakes_syst[sys][k], silent=False, cropError=False)
+                if wasCropped:
+                    print(f"Histogram cropped to 0 in {regionId[k]} region and syst {sys}")
 
         templateQCDsys = copy.deepcopy(hFakes_syst[sys][1].Clone(f"templateQCD_{sys}"))
         templateQCDsys.Divide(hFakes_syst[sys][0])
@@ -351,35 +350,30 @@ if __name__ == "__main__":
         templateQCDsys.Write(f"{sys}__data_fakes")
         print(f"Writing histogram {sys}__data_fakes")
 
+    print()
+    print(">>> Now extracting the signal region for all other histograms with systematics, from the proper iso/mT bin")
+    print()
     # get part of the histogram corresponding to signal region, which is number 3 (4th key)
-    ptBinOffsetSigRegion = 3 * nPtBins # defined above actually
     for sys in systNamesProcsHists.keys():
         for proc in systNamesProcsHists[sys].keys():
-            if systNamesProcsHists[sys][proc].GetDimension() == 2:
-                histRegion3 = ROOT.TH2D(f"{sys}__{proc}_region3", f"{sys}__{proc}",
-                                        nEtaBins, etaLow, etaHigh,
-                                        nPtBins,  ptLow,  ptHigh)
-                fillTH2fromTH2part(histRegion3, systNamesProcsHists[sys][proc],
-                                   xbinLow=1, ybinLow=1,
-                                   xbinHigh=nEtaBins, ybinHigh=nPtBins,
-                                   xoffset=0, yoffset=ptBinOffsetSigRegion)
+
+            systNamesProcsHists[sys][proc].GetAxis(nNomiDim-1).SetRange(3, 3) # select only signal region bin from isoMt axis (reminder: axis nNomiDim-1 is the isoMt axis, usually the 4th)
+            if systNamesProcsHists[sys][proc].GetNdimensions() == nNomiDim:     
+                # this is the case where TH4 goes into a TH3, in general we should not assume that, and use ProjectionND to return a THn, and then in case convert to a TH3 when the dimension is correct
+                histRegion3 = systNamesProcsHists[sys][proc].Projection(0, 1, 2, "E")
             else:
-                nZbins = systNamesProcsHists[sys][proc].GetNbinsZ()
-                zLow = systNamesProcsHists[sys][proc].GetZaxis().GetBinLowEdge(1)
-                zHigh = systNamesProcsHists[sys][proc].GetZaxis().GetBinLowEdge(1 + nZbins)
-                histRegion3 = ROOT.TH3D(f"{sys}__{proc}_region3", f"{sys}__{proc}",
-                                        nEtaBins, etaLow, etaHigh,
-                                        nPtBins,  ptLow,  ptHigh,
-                                        nZbins,   zLow,   zHigh)
-                fillTH3fromTH3part(histRegion3, systNamesProcsHists[sys][proc],
-                                   xbinLow=1, ybinLow=1, zbinLow=1,
-                                   xbinHigh=nEtaBins, ybinHigh=nPtBins, zbinHigh=nZbins,
-                                   xoffset=0, yoffset=ptBinOffsetSigRegion, zoffset=0)
+                # we have the syst axis too here, so need to pick axes 0, 1, 2, 4, while for the isoMt axis (axis index 3) we need to project in the desired isoMt bin, which is the third (by chance, nothing to do with the axis number) 
+                axesIds = array("i", [i for i in range(nNomiDim+1) if i != (nNomiDim-1)]) # isoMt is the last axis of the nominal histograms
+                histRegion3 = systNamesProcsHists[sys][proc].ProjectionND(len(axesIds), axesIds, "E")
 
+            histRegion3.SetName(f"{sys}__{proc}_region3")  # name is just temporary
+            histRegion3.SetTitle(f"{sys}__{proc}")
 
-            wasCropped = cropNegativeContent(histRegion3, silent=False, cropError=False)
-            if wasCropped:
-                print(f"Histogram cropped to 0 in {regionId[3]} region for process {proc} and syst {sys}")
+            if args.cropNegativeBin:
+                wasCropped = cropNegativeContent(histRegion3, silent=False, cropError=False)
+                if wasCropped:
+                    print(f"Histogram cropped to 0 in {regionId[3]} region for process {proc} and syst {sys}")
+
             histRegion3.Write(f"{sys}__{proc}")
             print(f"Writing histogram {sys}__{proc}")
             
@@ -388,6 +382,8 @@ if __name__ == "__main__":
     print(f"Shapes for all processes written in file {foutname}")
     print()
 
+
+    quit()
     
     outdirSR = outdir + "distributions_signalRegion/"
     createPlotDirAndCopyPhp(outdirSR)

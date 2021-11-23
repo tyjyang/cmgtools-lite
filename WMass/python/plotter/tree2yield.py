@@ -73,24 +73,38 @@ class PlotSpec:
         return self.logs.items()
 
 def stylePlot(plot,spec,getOption):
-        ## Sample specific-options, from self
-        if getOption('FillColor',None) != None:
-            plot.SetFillColor(getOption('FillColor',0))
-            plot.SetFillStyle(getOption('FillStyle',1001))
+        if "THn" in plot.ClassName():
+            # to be further implemented
+            nDim = plot.GetNdimensions()
+            defaultTitle = ",".join(f"Dimension {idim}" for idim in range(nDim))
+            titles = spec.getOption('NTitle',defaultTitle).split(",")                
+            logging.debug(f"{plot.GetName()}: {titles}")
+            for idim in range(nDim):
+                if idim < len(titles):
+                    plot.GetAxis(idim).SetTitle(f"{titles[idim]}")
+                else:
+                    plot.GetAxis(idim).SetTitle(f"Dimension {idim}")
         else:
-            plot.SetFillStyle(0)
-            plot.SetLineWidth(getOption('LineWidth',1))
-        plot.SetLineColor(getOption('LineColor',1))
-        plot.SetLineStyle(getOption('LineStyle',1))
-        plot.SetMarkerColor(getOption('MarkerColor',1))
-        plot.SetMarkerStyle(getOption('MarkerStyle',20))
-        plot.SetMarkerSize(getOption('MarkerSize',1.1))
-        ## Plot specific-options, from spec
-        if "TH3" not in plot.ClassName():
+            ## Sample specific-options, from self
+            if getOption('FillColor',None) != None:
+                plot.SetFillColor(getOption('FillColor',0))
+                plot.SetFillStyle(getOption('FillStyle',1001))
+            else:
+                plot.SetFillStyle(0)
+                plot.SetLineWidth(getOption('LineWidth',1))
+            plot.SetLineColor(getOption('LineColor',1))
+            plot.SetLineStyle(getOption('LineStyle',1))
+            plot.SetMarkerColor(getOption('MarkerColor',1))
+            plot.SetMarkerStyle(getOption('MarkerStyle',20))
+            plot.SetMarkerSize(getOption('MarkerSize',1.1))
+            ## Plot specific-options, from spec
             plot.GetYaxis().SetTitle(spec.getOption('YTitle',"Events"))
             plot.GetXaxis().SetTitle(spec.getOption('XTitle',spec.name))
-            plot.GetXaxis().SetNdivisions(spec.getOption('XNDiv',510))
-            plot.GetXaxis().SetMoreLogLabels(True)
+            if "TH3" not in plot.ClassName():
+                plot.GetXaxis().SetNdivisions(spec.getOption('XNDiv',510))
+                plot.GetXaxis().SetMoreLogLabels(True)
+            else:
+                plot.GetZaxis().SetTitle(spec.getOption('ZTitle',"Events"))
 
 def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
         profile1D      = plotspec.getOption('Profile1D',False) if plotspec != None else False
@@ -125,19 +139,48 @@ def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
                 else:
                     histo = ROOT.TH2D(name,name,int(nbx),float(xmin),float(xmax),int(nby),float(ymin),float(ymax))
         elif nvars == 3:
-            ez,ey,ex = [ e.replace("--","::") for e in expr.replace("::","--").split(":") ]
             if bins[0] == "[":
                 xbins, ybins, zbins = bins.split("*")
                 xedges = [ float(f) for f in xbins[1:-1].split(",") ]
                 yedges = [ float(f) for f in ybins[1:-1].split(",") ]
                 zedges = [ float(f) for f in zbins[1:-1].split(",") ]
                 histo = ROOT.TH3D(name,name,len(xedges)-1,array('f',xedges),len(yedges)-1,array('f',yedges),len(zedges)-1,array('f',zedges))
+        elif nvars >= 4:
+            if bins[0] == "[":
+                logging.error("In makeHistFromBinsAndSpec(): only uniform binning currently supported for histograms with dimension > 3.")
+                quit()
             else:
-                (nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax) = bins.split(",")
-                histo = ROOT.TH3D(name,name,int(nbx),float(xmin),float(xmax),int(nby),float(ymin),float(ymax),int(nbz),float(zmin),float(zmax))
-            histo.GetXaxis().SetTitle(ex)
-            histo.GetYaxis().SetTitle(ey)
-            histo.GetZaxis().SetTitle(ez)
+                #(nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax,nbd4,d4min,d4max) = bins.split(",")
+                #nbins = [nbx, nby, nbz, nbd4]
+                #vmin = [xmin,ymin, zmin, d4min]
+                #vmax = [xmax,ymax, zmax, d4max]
+                #histo = ROOT.THnD(name,name, 4, array('i',nbins), array('f',vmin), array('f',vmax))
+                binRanges = bins.split(",")
+                nbins = []
+                vmin = []
+                vmax = []
+                for iv in range(nvars):
+                    trueIndex = 3*iv
+                    nbins.append(int(binRanges[trueIndex]))
+                    vmin.append(float(binRanges[trueIndex+1]))
+                    vmax.append(float(binRanges[trueIndex+2]))
+                #print(f"Defining {nvars}-dimensional histograms")    
+                #print(nbins)
+                #print(vmin)
+                #print(vmax)
+                histo = ROOT.THnD(name, name, nvars, array('i',nbins), array('d',vmin), array('d',vmax))
+                #histo = ROOT.THnD(name, name, nvars, nbins, vmin, vmax)
+                    
+        # elif nvars == 5:
+        #     if bins[0] == "[":
+        #         logging.error("In makeHistFromBinsAndSpec(): only uniform binning supported for histograms with 5 dimensions.")
+        #         quit()
+        #     else:
+        #         (nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax,nbd4,d4min,d4max,nbd5,d5min,d5max) = bins.split(",")
+        #         nbins = [nbx, nby, nbz, nbd4, nbd5]
+        #         vmin = [xmin,ymin, zmin, d4min, d5min]
+        #         vmax = [xmax,ymax, zmax, d4max, d5max]
+        #         histo = ROOT.THnD(name,name, 5, array('i',nbins), array('f',vmin), array('f',vmax))
         else:
             raise RuntimeError("Can't make a plot with %d dimensions" % nvars)
         histo.Sumw2()
@@ -479,17 +522,21 @@ class TreeToYield:
                 # this is going to trigger the loop, but now all histograms exist so it is ok
                 histo.Scale(self._lumiWeight/sumGenWeights)
                 self.negativeCheck(histo)
-                histo.SetDirectory(0)
+                if not histo.ClassName() == 'THnT<double>':
+                    histo.SetDirectory(0)
         else:
             for histo in rets:
-                histo.SetDirectory(0)
-                
-                
+                if not histo.ClassName() == 'THnT<double>':
+                    histo.SetDirectory(0)
+                    
+        # not all histograms are made for all plots, so need to prune the list of pspec to be used below
+        plotspecsPruned = [p for p in plotspecs if re.match(p.getOption('ProcessRegexp', ".*"), self._name)]
+                    
         # fold overflow
         for iret,ret in enumerate(rets):
             if ret.ClassName() in [ "TH1F", "TH1D" ] :
                 n = ret.GetNbinsX()
-                if plotspecs[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
@@ -498,25 +545,25 @@ class TreeToYield:
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(0,0)
-                rebin = plotspecs[iret].getOption('rebinFactor',0)
-                if plotspecs[iret].bins[0] != "[" and rebin > 1 and n > 5:
+                rebin = plotspecsPruned[iret].getOption('rebinFactor',0)
+                if plotspecsPruned[iret].bins[0] != "[" and rebin > 1 and n > 5:
                     while n % rebin != 0: rebin -= 1
                     if rebin != 1: ret.Rebin(rebin)
-                if plotspecs[iret].getOption('Density',False):
+                if plotspecsPruned[iret].getOption('Density',False):
                     for b in range(1,n+1):
                         ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
                         ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
-            self._stylePlot(ret,plotspecs[iret])
+            self._stylePlot(ret,plotspecsPruned[iret])
             ret._cname = self._cname
         return rets
     # apparently not used anywhere
@@ -701,7 +748,9 @@ class TreeToYield:
             (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
             
             logging.debug("%s weight string = %s " % (tmp_weight, wgt))
-            
+
+            # TODO
+            # using THxDModel is not necessary, will change it at some point
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
@@ -726,6 +775,20 @@ class TreeToYield:
                 (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
                 (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
+            elif tmp_histo.ClassName() == 'THnT<double>':
+                tmp_histo_model = ROOT.RDF.THnDModel(tmp_histo)                
+                nDim = tmp_histo.GetNdimensions()
+                #print(f"plotspec.expr = {plotspec.expr}")
+                expr_n = plotspec.expr.split(':')[::-1]
+                #print(f"expr_n = {expr_n}")
+                tmp_varn = []
+                for idim in range(nDim):
+                    tmp_varn.append(f"{self._cname}_{plotspec.name}_var{idim}d")
+                    (tmp_varn[idim], column_expr) = self.defineColumnFromExpression(column_expr, tmp_varn[idim], expr_n[idim])
+                # append weight to list of columns to use, since this is how the constructor works    
+                tmp_varn.append(tmp_weight)
+                tmp_histo  = self._tree.HistoND(tmp_histo_model, tmp_varn)
+                #print(f"Creating RDF object with type {type(tmp_histo)}")
                 
             histos.append(tmp_histo)
 

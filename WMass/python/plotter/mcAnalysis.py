@@ -460,6 +460,8 @@ class MCAnalysis:
         retlist = []
 
         print("Collecting plots for all processes")
+        if not self._options.useRunGraphs:
+            logging.info("Running each process separately, without ROOT.RDF.RunGraphs()")
         for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
@@ -494,9 +496,10 @@ class MCAnalysis:
                 if process != None and key != process: continue
                 for tty in ttys:
                     retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
-            logging.info("Done :)")        
 
-        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging
+        logging.info("Done :)")        
+
+        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging)
         if self._options.printYieldsRDF:
 
             yieldsPerProcess = {}
@@ -850,7 +853,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
-    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root", help="File to be used for scale factors")
+    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
     parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/productEffAndSFperEra_nodz_dxybs_28Oct2021_mcTruthDR01_onlyGlobalMuon.root'")
     parser.add_argument("--mcTruth-scale-factor-file", dest="mcTruthScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/mcTruthEff_Zplus_customNano_trackInfoAndGlobalMuons.root'")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig");
