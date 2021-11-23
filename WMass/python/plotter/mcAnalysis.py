@@ -496,9 +496,10 @@ class MCAnalysis:
                 if process != None and key != process: continue
                 for tty in ttys:
                     retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
-            logging.info("Done :)")        
 
-        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging
+        logging.info("Done :)")        
+
+        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging)
         if self._options.printYieldsRDF:
 
             yieldsPerProcess = {}

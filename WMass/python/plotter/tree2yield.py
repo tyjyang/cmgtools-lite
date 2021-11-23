@@ -78,8 +78,12 @@ def stylePlot(plot,spec,getOption):
             nDim = plot.GetNdimensions()
             defaultTitle = ",".join(f"Dimension {idim}" for idim in range(nDim))
             titles = spec.getOption('NTitle',defaultTitle).split(",")                
-            for idim in range(plot.GetNdimensions()):
-                plot.GetAxis(idim).SetTitle(f"{titles[idim]}")
+            logging.debug(f"{plot.GetName()}: {titles}")
+            for idim in range(nDim):
+                if idim < len(titles):
+                    plot.GetAxis(idim).SetTitle(f"{titles[idim]}")
+                else:
+                    plot.GetAxis(idim).SetTitle(f"Dimension {idim}")
         else:
             ## Sample specific-options, from self
             if getOption('FillColor',None) != None:
@@ -524,13 +528,15 @@ class TreeToYield:
             for histo in rets:
                 if not histo.ClassName() == 'THnT<double>':
                     histo.SetDirectory(0)
-                
-                
+                    
+        # not all histograms are made for all plots, so need to prune the list of pspec to be used below
+        plotspecsPruned = [p for p in plotspecs if re.match(p.getOption('ProcessRegexp', ".*"), self._name)]
+                    
         # fold overflow
         for iret,ret in enumerate(rets):
             if ret.ClassName() in [ "TH1F", "TH1D" ] :
                 n = ret.GetNbinsX()
-                if plotspecs[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
@@ -539,25 +545,25 @@ class TreeToYield:
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(0,0)
-                rebin = plotspecs[iret].getOption('rebinFactor',0)
-                if plotspecs[iret].bins[0] != "[" and rebin > 1 and n > 5:
+                rebin = plotspecsPruned[iret].getOption('rebinFactor',0)
+                if plotspecsPruned[iret].bins[0] != "[" and rebin > 1 and n > 5:
                     while n % rebin != 0: rebin -= 1
                     if rebin != 1: ret.Rebin(rebin)
-                if plotspecs[iret].getOption('Density',False):
+                if plotspecsPruned[iret].getOption('Density',False):
                     for b in range(1,n+1):
                         ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
                         ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
-            self._stylePlot(ret,plotspecs[iret])
+            self._stylePlot(ret,plotspecsPruned[iret])
             ret._cname = self._cname
         return rets
     # apparently not used anywhere
