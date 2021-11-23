@@ -76,7 +76,7 @@ if __name__ == "__main__":
         name = k.GetName()
         syst,proc = name.split("__")
         print(f">>> Reading {name}")
-        if any(x in syst for x in ["pdf", "effStat", "qcdScale"]): continue # to test code in a faster way
+        #if any(x in syst for x in ["pdf", "effStat", "qcdScale"]): continue # to test code in a faster way
         if syst == "nominal":
             nomihists[proc] = safeGetObject(f, name, detach=False)
             checkNullObj(nomihists[proc], objName=name)
@@ -383,7 +383,7 @@ if __name__ == "__main__":
     print()
 
 
-    quit()
+    quit()  # part below still needs to be updated
     
     outdirSR = outdir + "distributions_signalRegion/"
     createPlotDirAndCopyPhp(outdirSR)
