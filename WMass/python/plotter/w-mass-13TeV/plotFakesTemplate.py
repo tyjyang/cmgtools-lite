@@ -38,8 +38,6 @@ logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1, help="Input file with histograms")
-    #parser.add_argument("outdir",   type=str, nargs=1, help="Ouput folder for plots") # now we just use the folder containing the root file adding subfolder "postprocessing/"
-    #parser.add_argument("-b", "--ptBins", required=True, type=str, help = "Binning for pt in a single region, formatted as in TH1 constructor, e.g. '29,26,55' (uniform binning expected for now)")
     parser.add_argument("-l", "--lumi", type=float, default="1.012", help="Luminosity uncertainty (1 + uncertainty, so e.g. 1.012 for 1.2% uncertainty )")
     # this may not work anymore, and maybe we don't even need it, can plot the syst from final histograms
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
@@ -92,12 +90,12 @@ if __name__ == "__main__":
     f.Close()
     
     nNomiDim = nomihists["data"].GetNdimensions()
-    nEtaBins = nomihists["data"].GetAxis(0).GetNbins() # nbins with no underflow/overflow, usually 48 eta bins
-    etaLow   = nomihists["data"].GetAxis(0).GetBinLowEdge(1)
-    etaHigh  = nomihists["data"].GetAxis(0).GetBinLowEdge(1+nEtaBins)
-    nPtBins = nomihists["data"].GetAxis(1).GetNbins()
-    ptLow   = nomihists["data"].GetAxis(1).GetBinLowEdge(1)
-    ptHigh  = nomihists["data"].GetAxis(1).GetBinLowEdge(1+nEtaBins)
+    # nEtaBins = nomihists["data"].GetAxis(0).GetNbins() # nbins with no underflow/overflow, usually 48 eta bins
+    # etaLow   = nomihists["data"].GetAxis(0).GetBinLowEdge(1)
+    # etaHigh  = nomihists["data"].GetAxis(0).GetBinLowEdge(1+nEtaBins)
+    # nPtBins = nomihists["data"].GetAxis(1).GetNbins()
+    # ptLow   = nomihists["data"].GetAxis(1).GetBinLowEdge(1)
+    # ptHigh  = nomihists["data"].GetAxis(1).GetBinLowEdge(1+nPtBins)
 
     nominalNbins = [nomihists["data"].GetAxis(i).GetNbins() for i in range(nNomiDim)]
     nominalBinMin = [nomihists["data"].GetAxis(i).GetBinLowEdge(1) for i in range(nNomiDim)]
@@ -141,11 +139,6 @@ if __name__ == "__main__":
         anyKey = procsWithSyst[0]
         tmpSystHisto = systNamesProcsHists[sys][anyKey] # just to facilitate usage below
         systHasSameDimAsNomi = True if tmpSystHisto.GetNdimensions() == nNomiDim else False
-        # Z is a dummy name for last dimension with systematics
-        nZbins = 1
-        zmin = 0
-        zmax = 0
-        nSystDim = nNomiDim
         if systHasSameDimAsNomi:
             hDataSubMC_syst[sys] = copy.deepcopy(nomihists["data"].Clone(f"{sys}_dataSubMC"))
             for proc in allProcnames:
@@ -154,8 +147,9 @@ if __name__ == "__main__":
                 else:
                     hDataSubMC_syst[sys].Add(nomihists[proc], -1.0)
         else:
-            nZbins = tmpSystHisto.GetAxis(nNomiDim).GetNbins()
-            nSystDim = nNomiDim + 1
+            nZbins = tmpSystHisto.GetAxis(nNomiDim).GetNbins() # number of bins on the axis for systematics
+            nSystDim = nNomiDim + 1  # axis index for the systematic variations (usually 5th dimension)
+            # the following are the number of bins, min, and max, for all axes, the name of the variable starts with syst just because these are the histograms embedding systematics
             systNbins  = [tmpSystHisto.GetAxis(i).GetNbins() for i in range(nSystDim)]
             systBinMin = [tmpSystHisto.GetAxis(i).GetBinLowEdge(1) for i in range(nSystDim)]
             systBinMax = [tmpSystHisto.GetAxis(i).GetBinLowEdge(1+nZbins) for i in range(nSystDim)]
@@ -291,24 +285,13 @@ if __name__ == "__main__":
 
         #print(f"Processing {sys} ...")
         hFakes_syst[sys] = {} # regionId : histogram
-
-        # # get numbr of Z bins from TH3
-        # isTH2 = True if (hDataSubMC_syst[sys].GetDimension() == 2) else False # do not check it with nZbins
-        # if isTH2:
-        #     nZbins = 1
-        #     zLow = 0.5
-        #     zHigh = 1.5
-        # else:
-        #     nZbins = hDataSubMC_syst[sys].GetNbinsZ()
-        #     zLow   = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1)
-        #     zHigh  = hDataSubMC_syst[sys].GetZaxis().GetBinLowEdge(1 + nZbins)
         
         for k in regionId.keys():                
             hDataSubMC_syst[sys].GetAxis(nNomiDim-1).SetRange(k+1, k+1) # select only one bin: note that region 0 is bin 1, region 1 is bin 2 and so on (reminder: axis nNomiDim-1 is the isoMt axis, usually the 4th, so index 3)
             
             if hDataSubMC_syst[sys].GetNdimensions() == nNomiDim:     
-                # this is the case where TH4 goes into a TH3, in general we should not assume that, and use ProjectionND to return a THn, and then in case convert to a TH3 when the dimension is correct
-                hFakes_syst[sys][k] = hDataSubMC_syst[sys].Projection(0, 1, 2, "E")
+                # this is the case where TH4 goes into a TH3, in general we should not assume that, namely we should always use ProjectionND to return a THn, and then in case convert to a TH3 when the dimension is correct
+                hFakes_syst[sys][k] = hDataSubMC_syst[sys].Projection(0, 1, 2, "E") # returns a TH3
             else:
                 # we have the syst axis too here, so need to pick axes 0, 1, 2, 4, while for the isoMt axis (axis index 3) we need to project in the desired isoMt bin, which is the third (by chance, nothing to do with the axis number) 
                 axesIds = array("i", [i for i in range(nNomiDim+1) if i != (nNomiDim-1)]) # isoMt is the last axis of the nominal histograms
@@ -317,7 +300,7 @@ if __name__ == "__main__":
             hFakes_syst[sys][k].SetName(f"hFakes_{sys}_{regionId[k]}")  # here all charges are in the same TH3
             hFakes_syst[sys][k].SetTitle(regionId[k])
 
-            ## keep it for now, but would not use it (and need to project TH3 into a TH2 for plotting (not yet implemented below, this was coming from the older setup)
+            ## keep it for now, but would not use it. It also needs to project TH3 into a TH2 for plotting (not yet implemented below, this was coming from the older setup)
             ##
             # if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
             #     outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
