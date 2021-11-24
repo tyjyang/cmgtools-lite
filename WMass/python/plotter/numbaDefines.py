@@ -119,7 +119,7 @@ def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
     leptons = (np.abs(pdgId) >= 11) & (np.abs(pdgIdcopy) <= 14) & (motherIdx >= 0)
     status746 = status == 746
     status23 = status == 23
-    motherV = (pid[motherIdx] == 23) | (np.abs(pid[motherIdx]) == 24)
+    motherV = (pdgId[motherIdx] == 23) | (np.abs(pdgIdcopy[motherIdx]) == 24)
     fromHardProcess = ((statusFlags >> 8 ) & 1).astype(np.bool_)
 
     # Some leptons in MadGraph have no W/Z in the history, but have status 23
