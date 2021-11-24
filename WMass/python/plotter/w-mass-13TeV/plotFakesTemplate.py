@@ -74,7 +74,7 @@ if __name__ == "__main__":
         name = k.GetName()
         syst,proc = name.split("__")
         print(f">>> Reading {name}")
-        #if any(x in syst for x in ["pdf", "effStat", "qcdScale"]): continue # to test code in a faster way
+        if any(x in syst for x in ["pdf", "effStat", "qcdScale"]): continue # to test code in a faster way
         if syst == "nominal":
             nomihists[proc] = safeGetObject(f, name, detach=False)
             checkNullObj(nomihists[proc], objName=name)
@@ -177,7 +177,10 @@ if __name__ == "__main__":
 
     ## should be careful about region used at denominator in the fake rate factor, if a bin is close to 0 or negative then cropping it to 0.0001 will result in a huge ratio if numerator is not 0
     # perhaps in those cases I should set the numerator to 0, or crop to 0 such that THn::Divide sets the ratio to 0 when denominator is 0
-    
+
+    # the id starts from 0 because it was associated to the bin center (axis defined with 4 bins from -0.5 to 3.5)
+    # but now we have isoMt in a dedicated axis rather than by multiplying the pt axis by 4 as we were doing before
+    # so we have to pick the bin number 4 to get the signal region (root axis has bin number starting from 1)
     regionId = {0: "highIso_lowMt",
                 1: "lowIso_lowMt",
                 2: "highIso_highMt",
@@ -259,9 +262,9 @@ if __name__ == "__main__":
     # hdata and hmc will be used later for plotting
     hdata = None
     hmc = []
-    # get part of the histogram corresponding to signal region, which is number 3 (4th bin of the 4th axis of the TH4)
+    # get part of the histogram corresponding to signal region, which is number 4 (4th bin of the 4th axis of the TH4)
     for k in nomihists.keys():
-        # nomihists[k].Write(nomihists[k].GetName()) ## no, this has the pt range for all the 4 regions, we don't want it
+        nomihists[k].GetAxis(nNomiDim-1).SetRange(4, 4)
         hSigRegion = nomihists[k].Projection(0, 1, 2, "E")
         hSigRegion.SetName(f"hSigRegion_{k}")
         hSigRegion.SetTitle("")
@@ -336,11 +339,11 @@ if __name__ == "__main__":
     print()
     print(">>> Now extracting the signal region for all other histograms with systematics, from the proper iso/mT bin")
     print()
-    # get part of the histogram corresponding to signal region, which is number 3 (4th key)
+    # get part of the histogram corresponding to signal region, which is bin number 4 of the isoMt axis 
     for sys in systNamesProcsHists.keys():
         for proc in systNamesProcsHists[sys].keys():
 
-            systNamesProcsHists[sys][proc].GetAxis(nNomiDim-1).SetRange(3, 3) # select only signal region bin from isoMt axis (reminder: axis nNomiDim-1 is the isoMt axis, usually the 4th)
+            systNamesProcsHists[sys][proc].GetAxis(nNomiDim-1).SetRange(4, 4) # select only signal region bin from isoMt axis (reminder: axis nNomiDim-1 is the isoMt axis, usually the 4th)
             if systNamesProcsHists[sys][proc].GetNdimensions() == nNomiDim:     
                 # this is the case where TH4 goes into a TH3, in general we should not assume that, and use ProjectionND to return a THn, and then in case convert to a TH3 when the dimension is correct
                 histRegion3 = systNamesProcsHists[sys][proc].Projection(0, 1, 2, "E")
@@ -366,127 +369,135 @@ if __name__ == "__main__":
     print()
 
 
-    quit()  # part below still needs to be updated
+    #quit()  # part below still needs to be updated
     
-    outdirSR = outdir + "distributions_signalRegion/"
-    createPlotDirAndCopyPhp(outdirSR)
+    outdirSRcommon = outdir + "distributions_signalRegion/"
+    createPlotDirAndCopyPhp(outdirSRcommon)
 
-    fShapesName = outdirSR + "plots.root"
-    fShapes = ROOT.TFile.Open(fShapesName, "RECREATE")
-    if not fShapes or fShapes.IsZombie():
-        print(f"Error opening file {fShapesName}")
-        quit()
-        
-    # now we may do some more plotting of data and MC in signal region
-    hmc = sorted(hmc, key= lambda x: x.Integral()) # , reverse=True) 
-    stack_eta = ROOT.THStack("stack_eta", "signal and backgrounds")
-    stack_pt = ROOT.THStack("stack_pt", "signal and backgrounds")
-
-    ratio2D = copy.deepcopy(hdata.Clone("dataOverMC2D"))
-    den2D = copy.deepcopy(hdata.Clone("sigAndBkg2D"))
-    den2D.Reset("ICESM")
-    den2Dnofakes = copy.deepcopy(den2D.Clone("sigAndBkgNoFakes2D"))
-    
-    hdata.SetMarkerColor(ROOT.kBlack)
-    hdata.SetLineColor(ROOT.kBlack)
-    #hdata.SetLineWidth(2)
-    hdata.SetMarkerStyle(20)
-    hdata.SetMarkerSize(1)
-    hdata.SetTitle("")
-
-    # for projections along eta
-    ptRange = ""
-    if args.ptRangeProjection[0] < args.ptRangeProjection[1]:
-        lowPtbin = max(1, hdata.GetYaxis().FindFixBin(args.ptRangeProjection[0]))
-        highPtbin = min(hdata.GetNbinsY(), hdata.GetYaxis().FindFixBin(args.ptRangeProjection[1])) # hdata.GetNbinsY()
-        ptRange = "_%gTo%g" % (hdata.GetYaxis().GetBinLowEdge(lowPtbin), hdata.GetYaxis().GetBinLowEdge(1+highPtbin))
-        ptRange = ptRange.replace(".","p")
-    else:
-        lowPtbin = 0
-        highPtbin = -1
-    
-    hdata_eta = hdata.ProjectionX("data_eta",lowPtbin,highPtbin,"e")
-    hdata_pt  = hdata.ProjectionY("data_pt",0,-1,"e")
-
-    legend = ROOT.TLegend(0.2,0.72,0.95,0.92)
-    legend.SetFillColor(0)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetNColumns(3)
-
-    colors = {"Wmunu"      : ROOT.kRed+1,
-              "Wmunu_plus" : ROOT.kRed+2,
-              "Wmunu_minus": ROOT.kRed+1,
-              "Zmumu"      : ROOT.kAzure+2,
-              "Wtaunu"     : ROOT.kCyan+1,
-              "Wtaunu_plus" : ROOT.kCyan+2,
-              "Wtaunu_minus" : ROOT.kCyan+1,
-              "Ztautau"    : ROOT.kSpring+9,
-              "Top"        : ROOT.kGreen+2,
-              "Diboson"    : ROOT.kViolet,
-              "data_fakes" : ROOT.kGray}
-
-    legEntries = {"Wmunu"      : "W#rightarrow#mu#nu",
-                  "Wmunu_plus" : "W^{+}#rightarrow#mu#nu",
-                  "Wmunu_minus": "W^{-}#rightarrow#mu#nu",
-                  "Zmumu"      : "Z#rightarrow#mu#mu",
-                  "Wtaunu"     : "W#rightarrow#tau#nu",
-                  "Wtaunu_plus" : "W^{+}#rightarrow#tau#nu",
-                  "Wtaunu_minus": "W^{-}#rightarrow#tau#nu",
-                  "Ztautau"    : "Z#rightarrow#tau#tau",
-                  "Top"        : "t quark",
-                  "Diboson"    : "Diboson",
-                  "data_fakes" : "QCD"}
-
-    hdata.Write("data2D")
-    hdata_eta.Write()
-    hdata_pt.Write()
-    
-    legend.AddEntry(hdata, "Data", "EP")
-    for h in hmc:
-        h.SetTitle("")
-        h.SetFillColor(colors[h.GetName().replace('_vpt','')])
-        h.SetLineColor(ROOT.kBlack)
-        stack_eta.Add(h.ProjectionX(f"{h.GetName()}_eta",lowPtbin,highPtbin,"e"))
-        stack_pt.Add( h.ProjectionY(f"{h.GetName()}_pt",0,-1,"e"))
-        den2D.Add(h)
-        if h.GetName() != "data_fakes":
-            den2Dnofakes.Add(h)
-        h.Write()
-    for i in range(len(hmc)-1, 0, -1):
-        legend.AddEntry(hmc[i], legEntries[hmc[i].GetName().replace('_vpt','')], "F")
-
-    stack_eta.Write()
-    stack_pt.Write()
-    den2D.Write()
-    den2Dnofakes.Write()
-
-    ratio2D.Divide(den2D)
-    ratio2D.Write()
-    
     canvas1D = ROOT.TCanvas("canvas1D", "", 800, 900)
-    
-    drawTH1dataMCstack(hdata_eta, stack_eta, "Muon #eta", "Events", "muon_eta_signalRegion" + ptRange,
-                       outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
-                       drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
-    )
-    drawTH1dataMCstack(hdata_pt, stack_pt, "Muon p_{T} (GeV)", "Events", "muon_pt_signalRegion",
-                       outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
-                       drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
-    )
 
-    ratio2D.SetTitle("data / (signal + background)")
-    drawCorrelationPlot(ratio2D, xAxisName, yAxisName, "data/MC",
-                        f"muon_eta_pt_dataMCratio", plotLabel="ForceTitle", outdir=outdirSR,
-                        palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True)
-    drawCorrelationPlot(ratio2D, xAxisName, yAxisName, "data/MC",
-                        f"muon_eta_pt_dataMCratio_absUncertainty", plotLabel="ForceTitle", outdir=outdirSR,
-                        palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True, plotError=True)
+    for chbin in range(1,3):
+        charge = "plus" if chbin == 2 else "minus"
 
-    
-    allHists = hmc + [hdata]
-    for h in allHists:
-        h.SetTitle(h.GetName())
-        drawCorrelationPlot(h, xAxisName, yAxisName, "Events",
-                            f"muon_eta_pt_{h.GetName()}", plotLabel="ForceTitle", outdir=outdirSR,
+        outdirSR = outdirSRcommon + f"/{charge}/"
+        createPlotDirAndCopyPhp(outdirSR)
+        
+        fShapesName = outdirSR + "plots.root"
+        fShapes = ROOT.TFile.Open(fShapesName, "RECREATE")
+        if not fShapes or fShapes.IsZombie():
+            print(f"Error opening file {fShapesName}")
+            quit()
+
+        hdata2D = getTH2fromTH3(hdata, f"{hdata.GetName()}", chbin, chbin)
+        # now we may do some more plotting of data and MC in signal region
+        hmc2D = [getTH2fromTH3(h, f"{h.GetName()}", chbin, chbin) for h in hmc]
+        hmc2D = sorted(hmc2D, key= lambda x: x.Integral()) # , reverse=True) 
+        stack_eta = ROOT.THStack("stack_eta", "signal and backgrounds")
+        stack_pt = ROOT.THStack("stack_pt", "signal and backgrounds")
+
+        ratio2D = copy.deepcopy(hdata2D.Clone("dataOverMC2D"))
+        den2D = copy.deepcopy(hdata2D.Clone("sigAndBkg2D"))
+        den2D.Reset("ICESM")
+        den2Dnofakes = copy.deepcopy(den2D.Clone("sigAndBkgNoFakes2D"))
+
+        hdata2D.SetMarkerColor(ROOT.kBlack)
+        hdata2D.SetLineColor(ROOT.kBlack)
+        #hdata2D.SetLineWidth(2)
+        hdata2D.SetMarkerStyle(20)
+        hdata2D.SetMarkerSize(1)
+        hdata2D.SetTitle("")
+
+        # for projections along eta
+        ptRange = ""
+        if args.ptRangeProjection[0] < args.ptRangeProjection[1]:
+            lowPtbin = max(1, hdata2D.GetYaxis().FindFixBin(args.ptRangeProjection[0]))
+            highPtbin = min(hdata2D.GetNbinsY(), hdata2D.GetYaxis().FindFixBin(args.ptRangeProjection[1])) # hdata2D.GetNbinsY()
+            ptRange = "_%gTo%g" % (hdata2D.GetYaxis().GetBinLowEdge(lowPtbin), hdata2D.GetYaxis().GetBinLowEdge(1+highPtbin))
+            ptRange = ptRange.replace(".","p")
+        else:
+            lowPtbin = 0
+            highPtbin = -1
+
+        hdata_eta = hdata2D.ProjectionX("data_eta",lowPtbin,highPtbin,"e")
+        hdata_pt  = hdata2D.ProjectionY("data_pt",0,-1,"e")
+
+        legend = ROOT.TLegend(0.2,0.72,0.95,0.92)
+        legend.SetFillColor(0)
+        legend.SetFillStyle(0)
+        legend.SetBorderSize(0)
+        legend.SetNColumns(3)
+
+        colors = {"Wmunu"      : ROOT.kRed+1,
+                  "Wmunu_plus" : ROOT.kRed+2,
+                  "Wmunu_minus": ROOT.kRed+1,
+                  "Zmumu"      : ROOT.kAzure+2,
+                  "Wtaunu"     : ROOT.kCyan+1,
+                  "Wtaunu_plus" : ROOT.kCyan+2,
+                  "Wtaunu_minus" : ROOT.kCyan+1,
+                  "Ztautau"    : ROOT.kSpring+9,
+                  "Top"        : ROOT.kGreen+2,
+                  "Diboson"    : ROOT.kViolet,
+                  "data_fakes" : ROOT.kGray}
+
+        legEntries = {"Wmunu"      : "W#rightarrow#mu#nu",
+                      "Wmunu_plus" : "W^{+}#rightarrow#mu#nu",
+                      "Wmunu_minus": "W^{-}#rightarrow#mu#nu",
+                      "Zmumu"      : "Z#rightarrow#mu#mu",
+                      "Wtaunu"     : "W#rightarrow#tau#nu",
+                      "Wtaunu_plus" : "W^{+}#rightarrow#tau#nu",
+                      "Wtaunu_minus": "W^{-}#rightarrow#tau#nu",
+                      "Ztautau"    : "Z#rightarrow#tau#tau",
+                      "Top"        : "t quark",
+                      "Diboson"    : "Diboson",
+                      "data_fakes" : "QCD"}
+
+        hdata2D.Write("data2D")
+        hdata_eta.Write()
+        hdata_pt.Write()
+
+        legend.AddEntry(hdata2D, "Data", "EP")
+        for h in hmc2D:
+            h.SetTitle("")
+            h.SetFillColor(colors[h.GetName().replace('_vpt','')])
+            h.SetLineColor(ROOT.kBlack)
+            stack_eta.Add(h.ProjectionX(f"{h.GetName()}_eta",lowPtbin,highPtbin,"e"))
+            stack_pt.Add( h.ProjectionY(f"{h.GetName()}_pt",0,-1,"e"))
+            den2D.Add(h)
+            if h.GetName() != "data_fakes":
+                den2Dnofakes.Add(h)
+            h.Write()
+        for i in range(len(hmc2D)-1, 0, -1):
+            legend.AddEntry(hmc2D[i], legEntries[hmc2D[i].GetName().replace('_vpt','')], "F")
+
+        stack_eta.Write()
+        stack_pt.Write()
+        den2D.Write()
+        den2Dnofakes.Write()
+
+        ratio2D.Divide(den2D)
+        ratio2D.Write()
+
+        drawTH1dataMCstack(hdata_eta, stack_eta, "Muon #eta", "Events", "muon_eta_signalRegion" + ptRange,
+                           outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
+                           drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
+        )
+        drawTH1dataMCstack(hdata_pt, stack_pt, "Muon p_{T} (GeV)", "Events", "muon_pt_signalRegion",
+                           outdirSR, legend, ratioPadYaxisNameTmp="Data/MC::0.92,1.08", passCanvas=canvas1D,
+                           drawLumiLatex=True, xcmsText=0.3, noLegendRatio=True
+        )
+
+        ratio2D.SetTitle("data / (signal + background)")
+        drawCorrelationPlot(ratio2D, xAxisName, yAxisName, "data/MC",
+                            f"muon_eta_pt_dataMCratio", plotLabel="ForceTitle", outdir=outdirSR,
                             palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True)
+        drawCorrelationPlot(ratio2D, xAxisName, yAxisName, "data/MC",
+                            f"muon_eta_pt_dataMCratio_absUncertainty", plotLabel="ForceTitle", outdir=outdirSR,
+                            palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True, plotError=True)
+
+
+        allHists = hmc2D + [hdata2D]
+        for h in allHists:
+            h.SetTitle(h.GetName())
+            drawCorrelationPlot(h, xAxisName, yAxisName, "Events",
+                                f"muon_eta_pt_{h.GetName()}", plotLabel="ForceTitle", outdir=outdirSR,
+                                palette=57, passCanvas=canvas, drawOption="COLZ0", skipLumi=True)
