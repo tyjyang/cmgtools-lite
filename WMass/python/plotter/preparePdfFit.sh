@@ -12,6 +12,7 @@ if [ $runFull -gt 0 ]; then
 fi
 
 python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/plots_fakerate_systTHn_${pdf}.root
+exit 1
 
 for charge in plus minus; do
     python makeHistogramsWMass.py -i plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.root --outdir cards/wmass/W${pdf}_testTHn/ -c plus --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+"

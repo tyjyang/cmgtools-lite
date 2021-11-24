@@ -32,6 +32,8 @@ from cropNegativeTemplateBins import cropNegativeContent
 
 logging.basicConfig(level=logging.INFO)
 
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/thndHelpers.cc"')
 
 ## this assumes the dimensions of the THn is eta-pt-charge-isoMt bin
 
@@ -44,6 +46,7 @@ if __name__ == "__main__":
     #
     parser.add_argument("--pt-range-projection", dest="ptRangeProjection", default=(0,-1), type=float, nargs=2, help="Pt range to select bins to use for 1D projection (for upper range remember that upper bin edge belongs to next bin in ROOT)")
     parser.add_argument(     '--crop-negative', dest='cropNegativeBin' , default=False , action='store_true',   help='Set negative bins to non negative value (it uses cropNegativeContent), but it might be slow')
+    parser.add_argument('--makePlots', action='store_true', help="Output pretty plots")
     args = parser.parse_args()
            
     fname = args.rootfile[0]
@@ -105,7 +108,7 @@ if __name__ == "__main__":
     yAxisName = nomihists["data"].GetAxis(1).GetTitle() # "Muon p_{T} (GeV)"
 
     ###
-    # will use fillTHNplus1fromTHn() to fill TH5 from TH4, for the opposite one can use projections
+    # will use ROOT.fillTHNplus1fromTHn() to fill TH5 from TH4, for the opposite one can use projections
     ###
     
     # get data-MC for all regions
@@ -119,8 +122,10 @@ if __name__ == "__main__":
         hDataSubMC.Add(nomihists[k], -1.0)
         # add luminosity variations in the list of systematics (with Up and Down variations in the same object)
         systNamesProcsHists["luminosity"][k] = ROOT.THnD("luminosity_{k}", "luminosity_{k}", nNomiDim+1, array('i',nominalNbins+[2]), array('d',nominalBinMin+[0.5]), array('d',nominalBinMax+[2.5]))
-        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 1, 1, scaleFactor=lumi)
-        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 2, 2, scaleFactor=1./lumi)
+        print("We're here")
+        ROOT.fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 1, 1)
+        print("We're done here")
+        ROOT.fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 2, 2)
         
     print(f"PROCESSES: {allProcnames}")
 
@@ -158,7 +163,7 @@ if __name__ == "__main__":
             nomihistDimNp1 = {}
             print(f"      Augmenting data in N+1 dimensions")
             hDataSubMC_syst[sys] = ROOT.THnD(f"{sys}_dataSubMC", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
-            fillTHNplus1fromTHn(hDataSubMC_syst[sys], nomihists["data"], 0, nZbins+1)
+            ROOT.fillTHNplus1fromTHn(hDataSubMC_syst[sys], nomihists["data"], 0, nZbins+1)
             for proc in allProcnames:
                 print(f"      Subtracting {proc}")
                 if proc in procsWithSyst:
@@ -166,7 +171,7 @@ if __name__ == "__main__":
                 else:
                     nomihistDimNp1 = ROOT.THnD(f"nominal_{proc}_dimNp1", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
                     print(f"      Augmenting {proc} in N+1 dimensions")
-                    fillTHNplus1fromTHn(nomihistDimNp1, nomihists[proc], 0, nZbins+1)
+                    ROOT.fillTHNplus1fromTHn(nomihistDimNp1, nomihists[proc], 0, nZbins+1)
                     hDataSubMC_syst[sys].Add(nomihistDimNp1, -1.0)
 
     
@@ -369,7 +374,8 @@ if __name__ == "__main__":
     print()
 
 
-    #quit()  # part below still needs to be updated
+    if not args.makePlots:
+        quit()  # part below still needs to be updated
     
     outdirSRcommon = outdir + "distributions_signalRegion/"
     createPlotDirAndCopyPhp(outdirSRcommon)

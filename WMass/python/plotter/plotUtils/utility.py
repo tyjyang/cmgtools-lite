@@ -353,7 +353,7 @@ def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
             h3.SetBinContent(ix, iy, zbin, val)
             h3.SetBinError(ix, iy, zbin, error);
 
-def fillTHNplus1fromTHn(thnp1, thn, nbinLow=-1, nbinHigh=-1, scaleFactor=None):
+def fillTHNplus1fromTHn(thnp1, thn, nbinLow=-1, nbinHigh=-1):
     # we assume the only difference is an additional dimension, which is the( N+1)-th (i.e. not in the middle, and all other axies are exactly the same in terms of range and binning)
     # nbinLow/High here represent the range of bin index for the n+1 dimension to be filled (as for the TH1 convention, 0 is underflow, 1 is first bin, etc...)
     # if nbinLow = nbinHigh and both are larger than -1, only that bin is filled
