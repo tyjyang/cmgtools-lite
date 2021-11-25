@@ -39,9 +39,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("rootfile", type=str, nargs=1, help="Input file with histograms")
     parser.add_argument("-l", "--lumi", type=float, default="1.012", help="Luminosity uncertainty (1 + uncertainty, so e.g. 1.012 for 1.2% uncertainty )")
-    # this may not work anymore, and maybe we don't even need it, can plot the syst from final histograms
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
-    #
     parser.add_argument("--pt-range-projection", dest="ptRangeProjection", default=(0,-1), type=float, nargs=2, help="Pt range to select bins to use for 1D projection (for upper range remember that upper bin edge belongs to next bin in ROOT)")
     parser.add_argument(     '--crop-negative', dest='cropNegativeBin' , default=False , action='store_true',   help='Set negative bins to non negative value (it uses cropNegativeContent), but it might be slow')
     args = parser.parse_args()
@@ -53,12 +51,10 @@ if __name__ == "__main__":
     ROOT.TH1.SetDefaultSumw2()
 
     plotFakesSyst = {}
-    # outdirSystRatio = outdir + "systRatios_allRegions/"
-    # if len(args.plotFakesSyst):
-    #     createPlotDirAndCopyPhp(outdirSystRatio)
-    #     for x in args.plotFakesSyst:
-    #         sname,bins = x.split('=')
-    #         plotFakesSyst[sname] = [int(b) for b in bins.split(',')]
+    if len(args.plotFakesSyst):
+        for x in args.plotFakesSyst:
+            sname,bins = x.split('=')
+            plotFakesSyst[sname] = [int(b) for b in bins.split(',')]
 
     
     lumi = float(args.lumi)
@@ -305,21 +301,34 @@ if __name__ == "__main__":
 
             ## keep it for now, but would not use it. It also needs to project TH3 into a TH2 for plotting (not yet implemented below, this was coming from the older setup)
             ##
-            # if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
-            #     outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
-            #     createPlotDirAndCopyPhp(outdirQCDsys)
-            #     for zbin in plotFakesSyst[sys]:
-            #         hfakeSys = hFakes_syst[sys][k].Clone(f"hFakes_{sys}_{regionId[k]}_{zbin}") if isTH2 else getTH2fromTH3(hFakes_syst[sys][k], f"hFakes_{sys}_{regionId[k]}_{zbin}", int(zbin))
-            #         hfakeSys.SetTitle(f"{regionId[k]}")
-            #         drawCorrelationPlot(hfakeSys,
-            #                             hfakeSys.GetXaxis().GetTitle(),
-            #                             hfakeSys.GetYaxis().GetTitle(),
-            #                             f"Events ({sys} bin {zbin})",
-            #                             f"hFakes_{sys}_{regionId[k]}_{zbin}",
-            #                             plotLabel="ForceTitle",
-            #                             outdir=outdirQCDsys,
-            #                             passCanvas=canvas,
-            #                             drawOption="COLZ0")
+            if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
+                outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
+                createPlotDirAndCopyPhp(outdirQCDsys)
+                isTHn = False
+                if "THn" in hFakes_syst[sys][k].ClassName():
+                    isTHn = True
+                for chbin in range(1,3):
+                    charge = "plus" if chbin == 2 else "minus"
+                    for zbin in plotFakesSyst[sys]:
+                        plotHistName = f"hFakes_{sys}_{regionId[k]}_charge{charge}_{zbin}"
+                        hfakeSys_tmp = hFakes_syst[sys][k].Clone(f"{plotHistName}_TMP")
+                        if isTHn:
+                            hfakeSys_tmp.GetAxis(2).SetRange(chbin, chbin)
+                            hfakeSys_tmp.GetAxis(3).SetRange(zbin, zbin)
+                            hfakeSys = hfakeSys_tmp.Projection(1, 0, "E") # project into a TH2
+                            hfakeSys.SetName(plotHistName)
+                        else:
+                            hfakeSys = getTH2fromTH3(hfakeSys_tmp, plotHistName, chbin) # in this case the histo is a TH3 eta-pt-charge, since there is only one sytematic index, so the 4th axis was not really present
+                        hfakeSys.SetTitle(f"{regionId[k]} charge {charge}")
+                        drawCorrelationPlot(hfakeSys,
+                                            hfakeSys.GetXaxis().GetTitle(),
+                                            hfakeSys.GetYaxis().GetTitle(),
+                                            f"Events ({sys} bin {zbin})",
+                                            plotHistName,
+                                            plotLabel="ForceTitle",
+                                            outdir=outdirQCDsys,
+                                            passCanvas=canvas,
+                                            drawOption="COLZ0")
 
             
             ## do I really need this?
