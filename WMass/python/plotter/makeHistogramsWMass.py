@@ -25,6 +25,10 @@ from cropNegativeTemplateBins import cropNegativeContent
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import getTH2fromTH3, createPlotDirAndCopyPhp
 
+
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
+
 def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
     # [("05","05"), ("05","1"), ("05", "2"), ("1", "05"), \
