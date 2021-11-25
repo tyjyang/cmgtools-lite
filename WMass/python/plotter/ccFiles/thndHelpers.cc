@@ -12,18 +12,18 @@ void fillTHNplus1fromTHn(THnD& thnp1, THnD& thn, int binLow=0, int binHigh=-1) {
     int ndim = thn.GetNdimensions();
 
     if (binHigh < 0)
-        binHigh = thnp1.GetAxis(ndim)->GetNbins();
+        binHigh = thnp1.GetAxis(ndim)->GetNbins() + 1; // up to overflow
 
     if (binLow > binHigh)
         throw std::range_error("Invalid inputs! binLow must be less than binHigh");
 
     std::vector<int> binLookup(ndim+1, 0);
-    for (size_t globalBin = 0; globalBin < thn.GetNbins(); globalBin++) {
-        float binContent = thn.GetBinContent(globalBin, binLookup.data());
-        float binError = thn.GetBinError(globalBin);
-        for (size_t iNewDim = binLow; iNewDim <= binHigh+1; iNewDim++) {
+    for (Long64_t globalBin = 0; globalBin < thn.GetNbins(); globalBin++) {
+        double binContent = thn.GetBinContent(globalBin, binLookup.data());
+        double binError = thn.GetBinError(globalBin);
+        for (int iNewDim = binLow; iNewDim <= binHigh; iNewDim++) {
             binLookup[ndim] = iNewDim;
-            int globalBinTHnP1 = thnp1.GetBin(binLookup.data());
+	    Long64_t globalBinTHnP1 = thnp1.GetBin(binLookup.data());
             thnp1.SetBinContent(globalBinTHnP1, binContent);
             thnp1.SetBinError(globalBinTHnP1, binError);
         }

@@ -29,12 +29,23 @@ from utility import *
 
 sys.path.append(os.getcwd())
 from cropNegativeTemplateBins import cropNegativeContent
+#from fakeRate import compileMacro
 
 logging.basicConfig(level=logging.INFO)
 
 ROOT.gInterpreter.ProcessLine(".O3")
-ROOT.gInterpreter.ProcessLine('#include "ccFiles/thndHelpers.cc"')
+#ROOT.gInterpreter.ProcessLine('#include "ccFiles/thndHelpers.cc"')
 
+def compileMacro(x,basedir=os.environ['PWD']):
+    #ROOT.gROOT.ProcessLine(".L %s/%s+" % (os.environ['CMSSW_BASE'],x))
+    success = ROOT.gSystem.CompileMacro("%s" % (x),"k")
+    if not success:
+        logging.error("Loading and compiling %s failed! Exit" % x)
+        quit()
+
+if "/thndHelpers_cc.so" not in ROOT.gSystem.GetLibraries():
+   compileMacro("ccFiles/thndHelpers.cc")
+   
 ## this assumes the dimensions of the THn is eta-pt-charge-isoMt bin
 
 if __name__ == "__main__":
@@ -272,9 +283,9 @@ if __name__ == "__main__":
         hSigRegion.SetTitle("")
         hSigRegion.SetName(k)
         if k == "data":
-            hdata = hSigRegion
+            hdata = copy.deepcopy(hSigRegion.Clone("data"))
         else:
-            hmc.append(hSigRegion)
+            hmc.append(copy.deepcopy(hSigRegion.Clone(k)))
         hSigRegion.Write(f"nominal__{k}")
     # add also data_fakes to array
     templateQCD.SetName("data_fakes")
@@ -307,8 +318,6 @@ if __name__ == "__main__":
             hFakes_syst[sys][k].SetName(f"hFakes_{sys}_{regionId[k]}")  # here all charges are in the same TH3
             hFakes_syst[sys][k].SetTitle(regionId[k])
 
-            ## keep it for now, but would not use it. It also needs to project TH3 into a TH2 for plotting (not yet implemented below, this was coming from the older setup)
-            ##
             if sys in plotFakesSyst.keys() and k != 3:  # no need to plot signal region here, it is not used
                 outdirQCDsys = f"{outdirQCD}systematics/{sys}/"
                 createPlotDirAndCopyPhp(outdirQCDsys)
@@ -413,10 +422,10 @@ if __name__ == "__main__":
         stack_eta = ROOT.THStack("stack_eta", "signal and backgrounds")
         stack_pt = ROOT.THStack("stack_pt", "signal and backgrounds")
 
-        ratio2D = copy.deepcopy(hdata2D.Clone("dataOverMC2D"))
-        den2D = copy.deepcopy(hdata2D.Clone("sigAndBkg2D"))
+        ratio2D = hdata2D.Clone("dataOverMC2D")
+        den2D = hdata2D.Clone("sigAndBkg2D")
         den2D.Reset("ICESM")
-        den2Dnofakes = copy.deepcopy(den2D.Clone("sigAndBkgNoFakes2D"))
+        den2Dnofakes = den2D.Clone("sigAndBkgNoFakes2D")
 
         hdata2D.SetMarkerColor(ROOT.kBlack)
         hdata2D.SetLineColor(ROOT.kBlack)
