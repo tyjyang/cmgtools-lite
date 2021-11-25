@@ -44,13 +44,13 @@ if __name__ == "__main__":
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
     parser.add_argument("--pt-range-projection", dest="ptRangeProjection", default=(0,-1), type=float, nargs=2, help="Pt range to select bins to use for 1D projection (for upper range remember that upper bin edge belongs to next bin in ROOT)")
     parser.add_argument(     '--crop-negative', dest='cropNegativeBin' , default=False , action='store_true',   help='Set negative bins to non negative value (it uses cropNegativeContent), but it might be slow')
-    parser.add_argument('--makePlots', action='store_true', help="Output pretty plots")
+    parser.add_argument('--skip-plots', dest="skipPlots", action='store_true', help="Disable production of pretty plots")
     args = parser.parse_args()
            
     fname = args.rootfile[0]
     outdir = os.path.dirname(fname) + "/postprocessing/"
     createPlotDirAndCopyPhp(outdir)
-
+    
     ROOT.TH1.SetDefaultSumw2()
 
     plotFakesSyst = {}
@@ -202,11 +202,11 @@ if __name__ == "__main__":
             if wasCropped:
                 print(f"Histogram {hFakes[k].GetName()} cropped to 0 in {regionId[k]} region")
 
-        for chbin in range(1,3):
-            charge = "plus" if chbin == 2 else "minus"
-            hFakes2D = getTH2fromTH3(hFakes[k], f"hFakes_{regionId[k]}_charge{charge}", chbin, chbin)
-            hFakes2D.SetTitle(f"data-MC ({charge}): {regionId[k]}")
-            if args.makePlots:
+        if not args.skipPlots:
+            for chbin in range(1,3):
+                charge = "plus" if chbin == 2 else "minus"
+                hFakes2D = getTH2fromTH3(hFakes[k], f"hFakes_{regionId[k]}_charge{charge}", chbin, chbin)
+                hFakes2D.SetTitle(f"data-MC ({charge}): {regionId[k]}")
                 drawCorrelationPlot(hFakes2D, xAxisName, yAxisName, "Events",
                                     f"yields_dataSubMC_{regionId[k]}_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
                                     passCanvas=canvas, drawOption="COLZ0")
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     templateQCD.Multiply(hFakes[2])
     templateQCD.SetTitle("QCD template")
 
-    if args.makePlots:
+    if not args.skipPlots:
         for chbin in range(1,3):
             charge = "plus" if chbin == 2 else "minus"
             fakerateFactor2D = getTH2fromTH3(fakerateFactor, f"{fakerateFactor.GetName()}_charge{charge}", chbin, chbin)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     for k in nomihists.keys():
         nomihists[k].GetAxis(nNomiDim-1).SetRange(4, 4)
         hSigRegion = nomihists[k].Projection(0, 1, 2, "E")
-        hSigRegion.SetName(f"hSigRegion_{k}")
+        #hSigRegion.SetName(f"hSigRegion_{k}")
         hSigRegion.SetTitle("")
         hSigRegion.SetName(k)
         if k == "data":
@@ -386,8 +386,8 @@ if __name__ == "__main__":
     print()
 
 
-    if not args.makePlots:
-        quit()  # part below still needs to be updated
+    if args.skipPlots:
+        quit()
     
     outdirSRcommon = outdir + "distributions_signalRegion/"
     createPlotDirAndCopyPhp(outdirSRcommon)
