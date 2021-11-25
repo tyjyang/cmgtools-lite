@@ -17,7 +17,7 @@ fi
 
 loadSingularity=false
 usePython2=false
-defaultSingularity="/data/shared/singularity/pythonrootdevf32.sif" # for python 3
+defaultSingularity="/data/shared/singularity/pythonrootdevarch.sif"
 python2Singularity=${defaultSingularity/pythonroot/python2root}
 
 

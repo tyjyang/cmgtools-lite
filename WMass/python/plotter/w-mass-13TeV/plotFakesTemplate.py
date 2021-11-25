@@ -32,6 +32,8 @@ from cropNegativeTemplateBins import cropNegativeContent
 
 logging.basicConfig(level=logging.INFO)
 
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/thndHelpers.cc"')
 
 ## this assumes the dimensions of the THn is eta-pt-charge-isoMt bin
 
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot-fakes-syst", dest="plotFakesSyst", action="append", default=[], help="Plot this syst for fakes, passing it as 'systname=zbin1,zbin2,...'. Can specify multiple times")
     parser.add_argument("--pt-range-projection", dest="ptRangeProjection", default=(0,-1), type=float, nargs=2, help="Pt range to select bins to use for 1D projection (for upper range remember that upper bin edge belongs to next bin in ROOT)")
     parser.add_argument(     '--crop-negative', dest='cropNegativeBin' , default=False , action='store_true',   help='Set negative bins to non negative value (it uses cropNegativeContent), but it might be slow')
+    parser.add_argument('--makePlots', action='store_true', help="Output pretty plots")
     args = parser.parse_args()
            
     fname = args.rootfile[0]
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     yAxisName = nomihists["data"].GetAxis(1).GetTitle() # "Muon p_{T} (GeV)"
 
     ###
-    # will use fillTHNplus1fromTHn() to fill TH5 from TH4, for the opposite one can use projections
+    # will use ROOT.fillTHNplus1fromTHn() to fill TH5 from TH4, for the opposite one can use projections
     ###
     
     # get data-MC for all regions
@@ -115,8 +118,8 @@ if __name__ == "__main__":
         hDataSubMC.Add(nomihists[k], -1.0)
         # add luminosity variations in the list of systematics (with Up and Down variations in the same object)
         systNamesProcsHists["luminosity"][k] = ROOT.THnD("luminosity_{k}", "luminosity_{k}", nNomiDim+1, array('i',nominalNbins+[2]), array('d',nominalBinMin+[0.5]), array('d',nominalBinMax+[2.5]))
-        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 1, 1, scaleFactor=lumi)
-        fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 2, 2, scaleFactor=1./lumi)
+        ROOT.fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 1, 1)
+        ROOT.fillTHNplus1fromTHn(systNamesProcsHists["luminosity"][k], nomihists[k], 2, 2)
         
     print(f"PROCESSES: {allProcnames}")
 
@@ -136,7 +139,7 @@ if __name__ == "__main__":
         tmpSystHisto = systNamesProcsHists[sys][anyKey] # just to facilitate usage below
         systHasSameDimAsNomi = True if tmpSystHisto.GetNdimensions() == nNomiDim else False
         if systHasSameDimAsNomi:
-            hDataSubMC_syst[sys] = copy.deepcopy(nomihists["data"].Clone(f"{sys}_dataSubMC"))
+            hDataSubMC_syst[sys] = nomihists["data"].Clone(f"{sys}_dataSubMC")
             for proc in allProcnames:
                 if proc in procsWithSyst:
                     hDataSubMC_syst[sys].Add(systNamesProcsHists[sys][proc], -1.0)
@@ -154,7 +157,7 @@ if __name__ == "__main__":
             nomihistDimNp1 = {}
             print(f"      Augmenting data in N+1 dimensions")
             hDataSubMC_syst[sys] = ROOT.THnD(f"{sys}_dataSubMC", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
-            fillTHNplus1fromTHn(hDataSubMC_syst[sys], nomihists["data"], 0, nZbins+1)
+            ROOT.fillTHNplus1fromTHn(hDataSubMC_syst[sys], nomihists["data"], 0, nZbins+1)
             for proc in allProcnames:
                 print(f"      Subtracting {proc}")
                 if proc in procsWithSyst:
@@ -162,7 +165,7 @@ if __name__ == "__main__":
                 else:
                     nomihistDimNp1 = ROOT.THnD(f"nominal_{proc}_dimNp1", "", nSystDim, array('i',systNbins), array('d',systBinMin), array('d',systBinMax))
                     print(f"      Augmenting {proc} in N+1 dimensions")
-                    fillTHNplus1fromTHn(nomihistDimNp1, nomihists[proc], 0, nZbins+1)
+                    ROOT.fillTHNplus1fromTHn(nomihistDimNp1, nomihists[proc], 0, nZbins+1)
                     hDataSubMC_syst[sys].Add(nomihistDimNp1, -1.0)
 
     
@@ -203,48 +206,51 @@ if __name__ == "__main__":
             charge = "plus" if chbin == 2 else "minus"
             hFakes2D = getTH2fromTH3(hFakes[k], f"hFakes_{regionId[k]}_charge{charge}", chbin, chbin)
             hFakes2D.SetTitle(f"data-MC ({charge}): {regionId[k]}")
-            drawCorrelationPlot(hFakes2D, xAxisName, yAxisName, "Events",
-                                f"yields_dataSubMC_{regionId[k]}_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
-                                passCanvas=canvas, drawOption="COLZ0")
+            if args.makePlots:
+                drawCorrelationPlot(hFakes2D, xAxisName, yAxisName, "Events",
+                                    f"yields_dataSubMC_{regionId[k]}_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                    passCanvas=canvas, drawOption="COLZ0")
         
-    templateQCD = copy.deepcopy(hFakes[1].Clone("templateQCD"))
+    templateQCD = hFakes[1].Clone("templateQCD")
     templateQCD.Divide(hFakes[0])
-    fakerateFactor = copy.deepcopy(templateQCD.Clone("fakerateFactor"))
+    fakerateFactor = templateQCD.Clone("fakerateFactor")
     fakerateFactor.SetTitle("lowIso_lowMt / highIso_lowMt ")
     templateQCD.Multiply(hFakes[2])
     templateQCD.SetTitle("QCD template")
-    for chbin in range(1,3):
-        charge = "plus" if chbin == 2 else "minus"
-        fakerateFactor2D = getTH2fromTH3(fakerateFactor, f"{fakerateFactor.GetName()}_charge{charge}", chbin, chbin)
-        fakerateFactor2D.SetTitle(f"lowIso_lowMt / highIso_lowMt, charge {charge}")
-        templateQCD2D = getTH2fromTH3(templateQCD, f"{templateQCD.GetName()}_charge{charge}", chbin, chbin)
-        templateQCD2D.SetTitle(f"QCD template, charge {charge}")
-        drawCorrelationPlot(fakerateFactor2D,
-                            xAxisName, yAxisName, "Fakerate factor",
-                            f"fakerateFactor_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
-                            passCanvas=canvas, drawOption="COLZ0")
-        drawCorrelationPlot(templateQCD2D, xAxisName, yAxisName, "Events",
-                            f"yields_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
-                            passCanvas=canvas, drawOption="COLZ0")
-        drawCorrelationPlot(templateQCD2D,
-                            xAxisName, yAxisName, "Absolute uncertainty",
-                            f"absUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
-                            passCanvas=canvas, plotError=True, drawOption="COLZ0")
-        drawCorrelationPlot(templateQCD2D,
-                            xAxisName, yAxisName, "Relative uncertainty::0.0,1.0",
-                            f"relUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
-                            passCanvas=canvas, plotRelativeError=True, drawOption="COLZ0")
 
-    # open utility file to save QCD templates in all regions
-    fqcdName = outdirQCD + "histogramsQCD.root"
-    fqcd = safeOpenFile(fqcdName, mode="RECREATE")
-    for k in regionId.keys():
-        hFakesTmp = copy.deepcopy(hFakes[k].Clone(f"tmp{k}"))
-        hFakesTmp.Write(f"yields_dataSubMC_{regionId[k]}")
-    fakerateFactor.Write()
-    templateQCDtoWrite = copy.deepcopy(templateQCD.Clone(f"yields_templateQCD"))
-    templateQCDtoWrite.Write(f"yields_templateQCD")
-    fqcd.Close()
+    if args.makePlots:
+        for chbin in range(1,3):
+            charge = "plus" if chbin == 2 else "minus"
+            fakerateFactor2D = getTH2fromTH3(fakerateFactor, f"{fakerateFactor.GetName()}_charge{charge}", chbin, chbin)
+            fakerateFactor2D.SetTitle(f"lowIso_lowMt / highIso_lowMt, charge {charge}")
+            templateQCD2D = getTH2fromTH3(templateQCD, f"{templateQCD.GetName()}_charge{charge}", chbin, chbin)
+            templateQCD2D.SetTitle(f"QCD template, charge {charge}")
+            drawCorrelationPlot(fakerateFactor2D,
+                                xAxisName, yAxisName, "Fakerate factor",
+                                f"fakerateFactor_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                passCanvas=canvas, drawOption="COLZ0")
+            drawCorrelationPlot(templateQCD2D, xAxisName, yAxisName, "Events",
+                                f"yields_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                passCanvas=canvas, drawOption="COLZ0")
+            drawCorrelationPlot(templateQCD2D,
+                                xAxisName, yAxisName, "Absolute uncertainty",
+                                f"absUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                passCanvas=canvas, plotError=True, drawOption="COLZ0")
+            drawCorrelationPlot(templateQCD2D,
+                                xAxisName, yAxisName, "Relative uncertainty::0.0,1.0",
+                                f"relUncertainty_templateQCD_charge{charge}", plotLabel="ForceTitle", outdir=outdirQCD,
+                                passCanvas=canvas, plotRelativeError=True, drawOption="COLZ0")
+
+        # open utility file to save QCD templates in all regions
+        fqcdName = outdirQCD + "histogramsQCD.root"
+        fqcd = safeOpenFile(fqcdName, mode="RECREATE")
+        for k in regionId.keys():
+            hFakesTmp = hFakes[k].Clone(f"tmp{k}")
+            hFakesTmp.Write(f"yields_dataSubMC_{regionId[k]}")
+        fakerateFactor.Write()
+        templateQCDtoWrite = templateQCD.Clone(f"yields_templateQCD")
+        templateQCDtoWrite.Write(f"yields_templateQCD")
+        fqcd.Close()
     
     #########
     
@@ -264,13 +270,15 @@ if __name__ == "__main__":
         hSigRegion = nomihists[k].Projection(0, 1, 2, "E")
         hSigRegion.SetName(f"hSigRegion_{k}")
         hSigRegion.SetTitle("")
+        hSigRegion.SetName(k)
         if k == "data":
-            hdata = copy.deepcopy(hSigRegion.Clone("data"))
+            hdata = hSigRegion
         else:
-            hmc.append(copy.deepcopy(hSigRegion.Clone(f"{k}")))
+            hmc.append(hSigRegion)
         hSigRegion.Write(f"nominal__{k}")
     # add also data_fakes to array
-    hmc.append(copy.deepcopy(templateQCD.Clone(f"data_fakes")))
+    templateQCD.SetName("data_fakes")
+    hmc.append(templateQCD)
 
     # do not close file here, more histograms saved later
 
@@ -338,7 +346,7 @@ if __name__ == "__main__":
                 if wasCropped:
                     print(f"Histogram cropped to 0 in {regionId[k]} region and syst {sys}")
 
-        templateQCDsys = copy.deepcopy(hFakes_syst[sys][1].Clone(f"templateQCD_{sys}"))
+        templateQCDsys = hFakes_syst[sys][1].Clone(f"templateQCD_{sys}")
         templateQCDsys.Divide(hFakes_syst[sys][0])
         templateQCDsys.Multiply(hFakes_syst[sys][2])
         templateQCDsys.SetTitle(f"QCD template: {sys}")
@@ -378,7 +386,8 @@ if __name__ == "__main__":
     print()
 
 
-    #quit()  # part below still needs to be updated
+    if not args.makePlots:
+        quit()  # part below still needs to be updated
     
     outdirSRcommon = outdir + "distributions_signalRegion/"
     createPlotDirAndCopyPhp(outdirSRcommon)
