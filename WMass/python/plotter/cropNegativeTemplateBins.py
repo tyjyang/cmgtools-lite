@@ -12,11 +12,11 @@ import argparse
 # nominal templates (no need to touch the alternate as well)
 # note that, by default, this function modify the original input file
 
-def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.0001):
+def cropNegativeContent(h, silent=False, cropError=False, cropValue=0.0001):
     
     hasCroppedBins = False
     if "THn" in h.ClassName():
-        nbins = h.GetNbins()
+        nbins = h.GetNbins() + 1
         for i in range(nbins):
             nom  = h.GetBinContent(i, 0) # apparently I need to pass 0 explicitly for the second argument when using THn, might be a bug
             if nom<0.0:
@@ -25,7 +25,7 @@ def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.0001):
                 if cropError:
                     h.SetBinError(i, cropValue)
     else:
-        nbins = h.GetNcells()
+        nbins = h.GetNcells() + 1
         integral = h.Integral()
         for i in range(nbins):
             nom  = h.GetBinContent(i)
@@ -36,10 +36,9 @@ def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.0001):
                     h.SetBinError(i, cropValue)
         if not silent and hasCroppedBins:
             integralNonNeg = h.Integral()
-            print("{n}: original integral = {i} changed by {r}".format(n=h.GetName(),
-                                                                       i=str(integral),
-                                                                       r=str(integralNonNeg/integral)))
-
+            print("{n}: original integral = {i} changed by {r} (new(old)".format(n=h.GetName(),
+                                                                                 i=str(integral),
+                                                                                 r=str(integralNonNeg/integral)))       
     return hasCroppedBins
 
 if __name__ == "__main__":

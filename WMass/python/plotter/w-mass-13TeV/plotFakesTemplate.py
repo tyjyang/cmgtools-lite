@@ -28,8 +28,8 @@ from utility import *
 #from plotUtils.utility import *
 
 sys.path.append(os.getcwd())
-from cropNegativeTemplateBins import cropNegativeContent
-#from fakeRate import compileMacro
+# now using the C++ version, it is much faster
+#from cropNegativeTemplateBins import cropNegativeContent
 
 logging.basicConfig(level=logging.INFO)
 
@@ -89,14 +89,14 @@ if __name__ == "__main__":
             nomihists[proc] = safeGetObject(f, name, detach=False)
             checkNullObj(nomihists[proc], objName=name)
             if args.cropNegativeBin:
-                wasCropped = cropNegativeContent(nomihists[proc], silent=True, cropError=False)
+                wasCropped = ROOT.cropNegativeContent(nomihists[proc], True)
         else:
             if syst not in systNamesProcsHists:
                 systNamesProcsHists[syst] = {} # this dict will have {proc : hist}
             systNamesProcsHists[syst][proc] = safeGetObject(f, name, detach=False)
             checkNullObj(systNamesProcsHists[syst][proc], objName=name)
             if args.cropNegativeBin:
-                wasCropped = cropNegativeContent(systNamesProcsHists[syst][proc], silent=True, cropError=False)
+                wasCropped = ROOT.cropNegativeContent(systNamesProcsHists[syst][proc], True)
     f.Close()
     
     nNomiDim = nomihists["data"].GetNdimensions()
@@ -209,9 +209,10 @@ if __name__ == "__main__":
         hFakes[k].SetName(f"hFakes_{regionId[k]}")  # here all charges are in the same TH3
         hFakes[k].SetTitle(f"data-MC: {regionId[k]}")
         if args.cropNegativeBin:
-            wasCropped = cropNegativeContent(hFakes[k], silent=False, cropError=False)
-            if wasCropped:
-                print(f"Histogram {hFakes[k].GetName()} cropped to 0 in {regionId[k]} region")
+            # for k=0 (will be used at denominator) needs to crop to 0, or if cropping to 0.0001 the ratio will get huge
+            wasCropped = ROOT.cropNegativeContent(hFakes[k]) if k else ROOT.cropNegativeContent(hFakes[k], False, False, 0.0)
+            #if wasCropped:
+            #    print(f"Histogram {hFakes[k].GetName()} cropped to 0 in {regionId[k]} region")
 
         if not args.skipPlots:
             for chbin in range(1,3):
@@ -351,9 +352,10 @@ if __name__ == "__main__":
             ## do I really need this?
             ## check there are no negative bins
             if args.cropNegativeBin:
-                wasCropped = cropNegativeContent(hFakes_syst[sys][k], silent=False, cropError=False)
-                if wasCropped:
-                    print(f"Histogram cropped to 0 in {regionId[k]} region and syst {sys}")
+                # for k=0 (will be used at denominator) needs to crop to 0, or if cropping to 0.0001 the ratio will get huge
+                wasCropped = ROOT.cropNegativeContent(hFakes_syst[sys][k]) if k else ROOT.cropNegativeContent(hFakes_syst[sys][k], False, False, 0.0)
+                #if wasCropped:
+                #    print(f"Histogram cropped to 0 in {regionId[k]} region and syst {sys}")
 
         templateQCDsys = hFakes_syst[sys][1].Clone(f"templateQCD_{sys}")
         templateQCDsys.Divide(hFakes_syst[sys][0])
@@ -382,9 +384,9 @@ if __name__ == "__main__":
             histRegion3.SetTitle(f"{sys}__{proc}")
 
             if args.cropNegativeBin:
-                wasCropped = cropNegativeContent(histRegion3, silent=False, cropError=False)
-                if wasCropped:
-                    print(f"Histogram cropped to 0 in {regionId[3]} region for process {proc} and syst {sys}")
+                wasCropped = ROOT.cropNegativeContent(histRegion3)
+                #if wasCropped:
+                #    print(f"Histogram cropped to 0 in {regionId[3]} region for process {proc} and syst {sys}")
 
             histRegion3.Write(f"{sys}__{proc}")
             print(f"Writing histogram {sys}__{proc}")
