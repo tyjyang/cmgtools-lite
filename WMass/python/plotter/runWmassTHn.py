@@ -113,7 +113,7 @@ def main(args):
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
     # general options not in a specific group
-    general = "-f  -j 8  --nanoaod-tree -v 3"
+    general = "-f --nanoaod-tree -v 3"
 
     ######################################################################
     ## Finally the command
