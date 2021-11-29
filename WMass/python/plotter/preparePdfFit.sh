@@ -11,10 +11,10 @@ if [ $runFull -gt 0 ]; then
     python runWmassTHn.py -o plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTHn_${pdf}.txt" --options " --skipPlot --no-rdf-runGraphs "
 fi
 
-python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/plots_fakerate_systTHn_${pdf}.root
-
+#python w-mass-13TeV/plotFakesTemplate.py plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/plots_fakerate_systTHn_${pdf}.root
+#
 for charge in plus minus; do
-    python makeHistogramsWMass.py -i plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.root --outdir cards/wmass/W${pdf}_testTHn/ -c plus --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+"
+    python makeHistogramsWMass.py -i plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.root --outdir cards/wmass/W${pdf}_testTHn/ -c $charge --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+"
 done
 
-python w-mass-13TeV/cardMaker.py -i plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.rootwmass_shapes.root  -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background 
+python w-mass-13TeV/cardMaker.py -i cards/wmass/W${pdf}_testTHn/ -f mu -c "plus,minus" --comb --freezePOIs --mass-nuis massShift100MeV --impacts-mW --skip-fit-data --all-proc-background 

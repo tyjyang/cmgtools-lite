@@ -39,13 +39,11 @@ void fillTHNplus1fromTHn(THnD& thnp1, THnD& thn, int binLow=0, int binHigh=-1) {
     //return thnp1;
 }
 
-bool cropNegativeContent(THnD& h, bool silent = false, bool cropError = false, double cropValue = 0.0001) {
-
+template <typename T>
+bool cropNegatives(T& h, size_t nbins, float cropValue, bool cropError) {
     bool hasCroppedBins = false;
-    Long64_t nbins = h.GetNbins();
-    double binContent = 0.0;
-    for (Long64_t globalBin = 0; globalBin <= nbins; globalBin++) {
-        binContent = h.GetBinContent(globalBin, 0);
+    for (size_t globalBin = 0; globalBin <= nbins; globalBin++) {
+        float binContent = h.GetBinContent(globalBin);
         if (binContent < 0.0) {
             hasCroppedBins = true;
             h.SetBinContent(globalBin, cropValue);
@@ -53,6 +51,13 @@ bool cropNegativeContent(THnD& h, bool silent = false, bool cropError = false, d
                 h.SetBinError(globalBin, cropValue);
         }
     }
+    return hasCroppedBins;
+}
+
+bool cropNegativeContent(THnD& h, bool silent = false, bool cropError = false, double cropValue = 0.0001) {
+
+    Long64_t nbins = h.GetNbins();
+    bool hasCroppedBins = cropNegatives<THnD>(h, nbins, cropValue, cropError);
     if (not silent and hasCroppedBins)
         std::cout << "Cropping negative bins for histogram " << h.GetName() << std::endl;
 
@@ -63,21 +68,11 @@ bool cropNegativeContent(THnD& h, bool silent = false, bool cropError = false, d
 
 bool cropNegativeContent(TH1& h, bool silent = false, bool cropError = false, double cropValue = 0.0001) {
 
-    bool hasCroppedBins = false;
     Long64_t nbins = h.GetNcells();
-    double binContent = 0.0;
     double integral = h.Integral();
     double integralNonNeg = 0.0;
 
-    for (Long64_t globalBin = 0; globalBin <= nbins; globalBin++) {
-        binContent = h.GetBinContent(globalBin);
-        if (binContent < 0.0) {
-            hasCroppedBins = true;
-            h.SetBinContent(globalBin, cropValue);
-            if (cropError)
-                h.SetBinError(globalBin, cropValue);
-        }
-    }
+    bool hasCroppedBins = cropNegatives<TH1>(h, nbins, cropValue, cropError);
     if (not silent and hasCroppedBins) {
         integralNonNeg = h.Integral();
         std::cout << h.GetName() << ": original integral = " << integral << " changed by " << integralNonNeg/integral << " (new/old)" << std::endl;
