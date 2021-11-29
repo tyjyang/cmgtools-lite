@@ -9,6 +9,9 @@ from array import array
 import shutil
 from CMS_lumi import *
     
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
+
 _canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
@@ -374,7 +377,7 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 #             # hout = ROOT.THn(newname, "", ndim, array("i", axisNbins), array('d', axisBinMin), array('d', axisBinMax))
 #             for i in range(ndim):
 #                 hin.GetAxis(i).SetRange(axesNewMin[i], axesNewMax[i])
-#             hout = hin.ProjectionND(ndim, array("i", [i for i in range(ndim)]))
+#             hout = hin.rojectionND(ndim, array("i", [i for i in range(ndim)]))
 #             hout.SetName(newname)
 #             hout.SetTitle(newname)
 #             return hout
@@ -408,6 +411,54 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
         
 #########################################################################
 
+def projectChargeHist(histnd, charge, name):
+    charges = ["plus", "minus"]
+    chargeBin = charges.index(charge)+1
+    if "THn" in histnd.ClassName() and histnd.GetNdimensions() == 4:
+        # charge is on the 3rd axis, so axis number 2 (starts from 0)
+        dims = list(range(4))
+        chargeDim = 2
+        dims.remove(chargeDim)
+        histnd.GetAxis(chargeDim).SetRange(chargeBin, chargeBin)  
+        htmp = histnd.Projection(*dims, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
+        htmp.SetName(name)
+    elif "TH3" in histnd.ClassName():
+        htmp = ROOT.projectTH2FromTH3(histnd, name, chargeBin, chargeBin)
+
+    htmp.SetDirectory(0)
+    return htmp
+
+def mirrorGroups(histnd):
+    allentries = range(histnd.GetNbinsZ()*2)
+    return zip(allentries[::2], allentries[1::2])
+
+# For now things this steps are separated, don't really need to be
+def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
+    chargeHist = projectChargeHist(histnd, charge, "tmp"+name)
+    makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
+
+def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
+    varHists = ROOT.allProjectedSystHists(chargeHist, name)
+    if addMirror:
+        if not histnom:
+            raise ValueError("Must pass nominal histogram in order to mirror shape")
+        mirrors = ROOT.mirroredHists(histnom, varHists)
+        varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
+
+    systHists = []
+    for i,g in enumerate(groups):
+        if len(g) < 2:
+            raise ValueError("Syst index groups must have length > 2")
+        if len(g) == 2:
+            systHists.append(varHists[g[0]])
+            systHists.append(varHists[g[1]])
+        else:
+            systHists.extend(ROOT.envelopeHists([x[i] for i in g]))
+
+        systHists[-2].SetName(name+"%iUp" % i)
+        systHists[-1].SetName(name+"%iDown" % i)
+
+    return systHists
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:

@@ -23,11 +23,7 @@ from tree2yield import setLogging
 from cropNegativeTemplateBins import cropNegativeContent
 
 sys.path.append(os.getcwd() + "/plotUtils/")
-from utility import getTH2fromTH3, createPlotDirAndCopyPhp
-
-
-ROOT.gInterpreter.ProcessLine(".O3")
-ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
+import utility 
 
 def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
@@ -76,13 +72,17 @@ def mirrorShape(nominal,alternate,mirror):
             mirror.SetBinError(bx, by, alternate.GetBinError(bx, by))
     return mirror
 
+def writeAndRemove(hists):
+    for h in hists:
+        h.Write()
+        h.Delete()
 
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read histos from")
 # changing this part: select output folder, rather than output file: the file will be created and named automatically for W or Z analysis based on --wlike, adding also the charge as appropriate: usually Wmunu_{charge}_shapes_{postfx}.root
 #parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
-parser.add_argument("--outdir", type=str, default=None, help="output folder")
+parser.add_argument("--outdir", required=True, type=str, default=None, help="output folder")
 parser.add_argument("-p",   "--postfix", type=str, default="", help="Postfix added to output file name, to avoid overwriting an existing one in case of tests");
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
@@ -98,12 +98,8 @@ setLogging(args.verbose)
 infilename = args.infile 
 #outfilename = args.outfile
 
-if not args.outdir:
-    logging.warning("Please specify an output folder where to store the final root files, using option --outdir <folder>")
-    quit()
-
 outdir = args.outdir + "/"
-createPlotDirAndCopyPhp(outdir)
+utility.createPlotDirAndCopyPhp(outdir)
 
 channelKeyword = "Zmumu" if args.isWlike else "Wmunu"
 postfix = "" if not args.postfix else f"_{args.postfix}"
@@ -141,28 +137,9 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
     if proc == "Zmumu" and args.isWlike:
         proc = proc + "_" + args.charge 
     newname = "x_" + proc
-    if name.startswith("nominal"):
-        htmp = obj.Clone(f"tmp_{newname}")
-        if "THn" in htmp.ClassName():
-            htmp.GetAxis(2).SetRange(chargeBin, chargeBin)  # charge is on the 3rd axis, so axis number 2 (starts from 0)
-            hnomi[proc] = htmp.Projection(0, 1, 3, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
-        else:
-            # in this case we have a TH3 already
-            htmp.SetDirectory(0)
-            hnomi[proc] = getTH2fromTH3(htmp, newname, chargeBin, chargeBin)
-        hnomi[proc].SetDirectory(0)
-    else:
-        if syst not in hsyst:
-            hsyst[syst] = {}
-        htmp = obj.Clone(f"tmp_{newname}_{syst}")
-        if "THn" in htmp.ClassName():
-            htmp.GetAxis(2).SetRange(chargeBin, chargeBin)  # charge is on the 3rd axis, so axis number 2 (starts from 0)
-            hsyst[syst][proc] = htmp.Projection(0, 1, 3, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
-        else:
-            # in this case we have a TH3 already
-            htmp.SetDirectory(0)
-            hsyst[syst][proc] = getTH2fromTH3(htmp, f"{newname}_{syst}", chargeBin, chargeBin)
-        hsyst[syst][proc].SetDirectory(0)
+    if not name.startswith("nominal"):
+        newname += f"_{syst}"
+    hnomi[proc] = utility.projectChargeHist(obj, args.charge, newname)
 
 fin.Close()
 
@@ -211,34 +188,25 @@ for syst in systs:
                 massShift = i * massGrid
                 ibinUp = cenMassWgt + i # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
                 name = "x_" + proc + "_massShift%dMeVUp" % massShift
-                h2DUp = getTH2fromTH3(h3D, name, ibinUp, ibinUp)
+                h2DUp = ROOT.projectTH2FromTH3(h3D, name, ibinUp, ibinUp)
                 ibinDown = cenMassWgt - i # minimum will be 1, i.e. first histogram bin 
                 name = "x_" + proc + "_massShift%dMeVDown" % massShift
-                h2DDown = getTH2fromTH3(h3D, name, ibinDown, ibinDown)
+                h2DDown = ROOT.projectTH2FromTH3(h3D, name, ibinDown, ibinDown)
                 h2DUp.Write()
                 h2DDown.Write()           
         if "luminosity" in syst:
             for ilumi in range(1, 2+1): # only 2 bins, one for each Up/Down
                 name = "x_{p}_lumi{idir}".format(p=proc, idir="Up" if ilumi==1 else "Down") 
-                h2D = getTH2fromTH3(h3D, name, ilumi, ilumi)
+                h2D = ROOT.projectTH2FromTH3(h3D, name, ilumi, ilumi)
                 h2D.Write()
         if "effStatTnP" in syst:
-            for ieff in range(1, 624+1): # need to be kept manually consistent until we save these numbers somewhere
-                systname = "effStatTnP%d" % ieff
-                if matchDecorr.match(systname):
-                    systname = systname + chargeKey
-                name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
-                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
-                h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
-                h2D.Write()
-                h2D_mirror.Write()
+            writeAndRemove(utilty.makeVariationHistsForCharge(h3d, "effStatTnP", mirrorGroups(h3d), hnomi[proc], True))
         if "effSystTnP" in syst:
             # here h3D is actually a TH2
             name = "x_" + proc + "_effSystTnPUp" # define this as Up variation
             h3D.Write(name)
             h2D_mirror = h3D.Clone(name.replace("Up", "Down"))
-            h2D_mirror = mirrorShape(hnomi[proc], h3D, h2D_mirror)
+            h2D_mirror = ROOT.mirrorShape(hnomi[proc], h3D, h2D_mirror)
             h2D_mirror.Write()
         if "muonL1PrefireStat" in syst:
             for ieff in range(1, 11+1):
@@ -246,9 +214,9 @@ for syst in systs:
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
-                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D = ROOT.projectTH2FromTH3(h3D, name, ieff, ieff)
                 h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
         if "muonL1PrefireSyst" in syst:
@@ -257,7 +225,7 @@ for syst in systs:
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
-                h2D = getTH2fromTH3(h3D, name, ieff, ieff)
+                h2D = ROOT.projectTH2FromTH3(h3D, name, ieff, ieff)
                 h2D.Write()
         if "muonPtScaleTest" in syst:
             for iptsyst in range(1, 96+1): # 48 *2, for up and down variations
@@ -265,7 +233,7 @@ for syst in systs:
                 if matchDecorr.match(systname):
                     systname = systname + chargeKey
                 name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if iptsyst <=48 else "Down")
-                h2D = getTH2fromTH3(h3D, name, iptsyst, iptsyst)
+                h2D = ROOT.projectTH2FromTH3(h3D, name, iptsyst, iptsyst)
                 h2D.Write()
         if "qcdScale" in syst:
             if "qcdScaleVptBin" in syst:
@@ -283,7 +251,7 @@ for syst in systs:
                 if matchDecorr.match(systname):
                     systname = systname.replace("Up", chargeKey + "Up") if systname.endswith("Up") else systname.replace("Down", chargeKey + "Down")
                 name = "x_" + proc + "_" + systname
-                h2D = getTH2fromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
+                h2D = ROOT.projectTH2FromTH3(h3D, name, i+1, i+1) # root histogram bin number starts from 1
                 h2D.Write()
         #if "pdf" in syst: # now we have more PDF sets, so names are more complicated
         # some temporary hacks to force using alpha for 0.001 variations if present (those in the pdf histogram are the 0.002 variations)
@@ -294,15 +262,15 @@ for syst in systs:
                 for i in range(1,103):
                     if i <= 100:
                         name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
-                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
                         h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                        h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                        h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
                         h2D.Write()
                         h2D_mirror.Write()
                     elif not hasNNPDF31alphaS0001var:
                         print(">>> Warning: using alphaS variation equal to 0.002 extracted from pdf TH3")
                         name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
-                        h2D = getTH2fromTH3(h3D, name, i, i)
+                        h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
                         h2D.Write()
             elif "alphaS0117NNPDF31" in syst and hasNNPDF31alphaS0001var:
                 name = "x_" + proc + "_alphaSDown"
@@ -317,9 +285,9 @@ for syst in systs:
                 # pdfxx needs mirroring
                 for i in range(1,101):
                     name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
-                    h2D = getTH2fromTH3(h3D, name, i, i)
+                    h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
                     h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                    h2D_mirror = mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                    h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
                     h2D.Write()
                     h2D_mirror.Write()
             # the following should already be TH2            
