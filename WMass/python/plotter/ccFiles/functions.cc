@@ -54,13 +54,6 @@ Vec_i indices(const int& size, const int& start = 0) {
     return res;
 }
 
-//Vec_i getVarBinInArray(const float& var, const int& nBins = 48, const double& binMin = -2.4, const double& binMax = 2.4, const int& integerBinOffset = 1) {
-
-  // assumes uniform binning, integerBinOffset is 1 when reproducing the numbering convention of ROOT histograms
-  // return array of nBins elements, all set to false except for the one containing the value of var
- 
-//}
-
 
 Vec_f scalarToRVec(const float& var, const int& size) {
 
@@ -238,10 +231,17 @@ float invMLepPhotons(const Vec_f& pt1, const Vec_f& eta1, const Vec_f& phi1, flo
 
 float rapidity(const Vec_f& pt, const Vec_f& eta, const Vec_f& phi, const Vec_f& m) {
   //typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > PtEtaPhiMVector;
-  PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);;
+  PtEtaPhiMVector p1(pt[0], eta[0], phi[0], m[0]);
   PtEtaPhiMVector p2(pt[1], eta[1], phi[1], m[1]);
   return (p1 + p2).Rapidity();
 }
+
+float phi_pair(const Vec_f& pt, const Vec_f& phi) {
+    TVector2 p1(pt[0]*std::cos(phi[0]), pt[0]*std::sin(phi[0]));
+    TVector2 p2(pt[1]*std::cos(phi[1]), pt[1]*std::sin(phi[1]));
+    return TVector2::Phi_mpi_pi((p1+p2).Phi()); // in the ntuples phi is defined between -pi and pi, but TVector2::Phi returns in 0,2pi
+}
+
 
 float transversemomentum(const Vec_f& pt, const Vec_f& phi) {
   float phidiff = phi[1] - phi[0];
@@ -476,6 +476,41 @@ float u2_2(float met_pt, float met_phi, float ref_pt, float ref_phi)
     float ux = - met_px + ref_px, uy = - met_py + ref_py;
     return (ux*ref_py - uy*ref_px)/ref_pt;
 }
+
+
+double parallelProjection(float phi, float ptRef, float phiRef) {
+    // return u = a*ref/|a| where * is the scalar product
+    // the magnitude of a is not necessary
+    return ptRef * std::cos(phiRef - phi);
+}
+
+double parallelProjectionLepBoson(const Vec_f& pt, const Vec_f& phi, bool useSecondElement = true) {
+    // special case of function above where reference is W/Z and a lepton is used
+    // the boson is lep+lep2, so it is more convenient to pass the two leptons rather than the precooked boson
+    
+    int id1 = 0;
+    int id2 = 1;
+    if (useSecondElement) {
+        id1 = 1;
+        id2 = 0;
+    }
+    TVector2 lep_unity(std::cos(phi[id1]), std::sin(phi[id1]));
+    TVector2 boson(pt[id2]*std::cos(phi[id2]), pt[id2]*std::sin(phi[id2])); // start defining boson as the pther lepton
+    boson += (pt[id1]*lep_unity); // before summing get lepton with actual magnitude
+    return (lep_unity*boson);
+
+}
+
+double parallelProjectionLepBoson(const float pt1, const float phi1, const float pt2, const float phi2) {
+    // as above, but passing explicitly the components, so no ambiguity to select the lepton to project on the Z 
+    
+    TVector2 lep_unity(std::cos(phi1), std::sin(phi2));
+    TVector2 boson(pt2*std::cos(phi2), pt2*std::sin(phi2)); // start defining boson as the pther lepton
+    boson += (pt1*lep_unity); // before summing get lepton with actual magnitude
+    return (lep_unity*boson);
+
+}
+
 
 float met_cal(float met_pt, float met_phi, float lep_pt, float lep_phi, float u_coeff, float u_syst)
 {

@@ -58,32 +58,18 @@ def main(args):
     plot   = cfgFolder + args.plotFile
     define = cfgFolder + "test/rdfDefine_fakerate.txt"
 
-    # additional cuts
-    addcut = ""
-    if args.charge != "all":
-        chsign = ">" if args.charge == "plus" else "<"
-        addcut = f"-A onemuon charge{args.charge} 'Muon_charge[goodMuons][0] {chsign} 0'"
-
-    # additional defines and aliases
-    otherDefines = " --rdf-alias 'goodMuonsCharge: goodMuons:.*'"
-
     # input samples
     samples = "/data/shared/originalNANO/"
 
     # output
-    plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/{args.charge}/"
+    plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/allTHn/"
 
     # histograms to make (use .* to activate all those in plot file)
     hists = args.variables
     #hists = "muon_pt_eta_isoMtRegions"
     
     # processes and related options (also for ratio plots when customizing names)
-    processes = "data,Zmumu,Ztautau,Top,Diboson"
-    if args.charge != "all":
-        anticharge = "plus" if args.charge == "minus" else "minus"
-        processes += f",Wmunu_{args.charge},Wtaunu_{args.charge},Wmunu_{anticharge},Wtaunu_{anticharge}"
-    else:
-        processes += ",Wmunu,Wtaunu"
+    processes = "data,Zmumu,Ztautau,Top,Diboson,Wmunu_plus,Wtaunu_plus,Wmunu_minus,Wtaunu_minus"
     if args.useVptWeight:
         originalprocs = [str(x) for x in processes.split(',')]
         tmpprocs = []
@@ -112,10 +98,10 @@ def main(args):
     if subEra != None:
         #
         # no reco*tracking here for now!
-        weight = f"puw_2016UL_era(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,{subEra})"
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,{subEra})*_get_fullMuonSF_perDataEra(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,{subEra},Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,{subEra})"
         ####
     else:
-        weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuonsCharge][0],Muon_eta[goodMuonsCharge][0],Muon_charge[goodMuonsCharge][0],-1,-1,eraVFP)"
+        weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP)"
 
     # SF file
     sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'  "
@@ -133,10 +119,13 @@ def main(args):
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {otherDefines} {addcut} {ratio} {general} {sfOpt} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
-    
+
+    if args.checkTime:
+        command = "/usr/bin/time -v " + command
+        
     if args.dryRun:
         print(command)
     else:
@@ -152,20 +141,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dry-run', dest="dryRun", action='store_true', help='Print, but do not execute')
     parser.add_argument(      '--vpt-weight', dest="useVptWeight", action='store_true', help='Apply Wpt reweighting to central value using SCETlib correction')
-    parser.add_argument('-s', '--run-systs',   dest="systs",  action='store_true', help='Special config for analysis, using all systematics on other processes, otherwise make plots in all the 4 regions separately')
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
     parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF and appropriate root file as input)')
-    parser.add_argument('-c', '--charge',  type=str, default="all", choices=["all","plus","minus"], help='Charge (all stands for inclusive in charge)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
     parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
-    parser.add_argument(      '--variables', type=str, default="muon_pt_eta,muon_pt,muon_eta_fine,mt_MET,MET_pt,nJetClean,deltaPhi_MuMet", help='Histograms to make')
+    parser.add_argument(      '--variables', type=str, default=".*", help='Histograms to make from the configuration txt file (.* for all)')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
     parser.add_argument(      '--plot-file', dest="plotFile", type=str, default="plots_fakerate.txt", help='File with histogram definition (inside cfgFolder)')
     parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig (but note that eff.syst requires the new version)");
+    parser.add_argument("-t", "--time", dest="checkTime", action="store_true", help="Check time of execution using /usr/bin/time -v");
     args = parser.parse_args()
-
+    
     if len(args.outdir):
         createPlotDirAndCopyPhp(args.outdir)
     else:
@@ -186,29 +174,10 @@ if __name__ == "__main__":
     if args.useVptWeight:
         args.postfix += "_vptWeight"
         
-    if args.systs:
-        args.postfix += "_systTH3"
-        regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
-        args.options += f" -A trigMatch regionCut '{regionCut}' "
-        print("")
-        main(args)
-        print('-'*30)
-        print("")
-    else:
-        mT_expr = "transverseMass" #"mt_2(Muon_pt[goodMuons][0],Muon_phi[goodMuons][0],MET_pt,MET_phi)"
-        iso_expr = "Muon_pfRelIso04_all[goodMuons][0]"
-        regionIsoMt_cuts = {"lowIso_lowMt"   : f"{iso_expr} < 0.15 && {mT_expr} < 40 && Sum(goodCleanJets)>=1",
-                            "highIso_lowMt"  : f"{iso_expr} > 0.15 && {mT_expr} < 40 && Sum(goodCleanJets)>=1",
-                            "lowIso_highMt"   : f"{iso_expr} < 0.15 && {mT_expr} > 40",
-                            "highIso_highMt"  : f"{iso_expr} > 0.15 && {mT_expr} > 40"
-        }
-        postfix_backup = args.postfix
-        options_backup = args.options
-        for k in regionIsoMt_cuts.keys():
-            args.postfix = f"{postfix_backup}_{k}" 
-            args.options = options_backup + f" -A trigMatch regionCut '{regionIsoMt_cuts[k]}' "
-            print("")
-            main(args)
-            print('-'*30)
-            print("")
-
+    args.postfix += "_systTHn"
+    regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
+    args.options += f" -A trigMatch regionCut '{regionCut}' "
+    print("")
+    main(args)
+    print('-'*30)
+    print("")

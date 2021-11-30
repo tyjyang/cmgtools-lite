@@ -7,8 +7,10 @@
 # for python 3
 /data/shared/singularity/pythonrootdevf32.sif
 
-# for even better things with root and multi dimensional histograms
+# for special root things with THn (on old cmswmass2 machine)
 /data/shared/singularity/pythonrootdevarch.sif
+# on new machine it is instead
+singularity run /scratch/singularity/pythonrootarchdev
 
 # set by hand the CMSSW_BASE variable when you use the code installed as detailed below
 # for me it is

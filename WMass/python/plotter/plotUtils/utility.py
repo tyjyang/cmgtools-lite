@@ -265,8 +265,8 @@ def getMaximumTH(h, excludeMax=None):
 
     return retmax
 
-#########################################################################
-
+#########################################################################    
+    
 def fillTH2fromTH2part(h2out, h2in,
                        xbinLow=1, ybinLow=1,
                        xbinHigh=None, ybinHigh=None,
@@ -329,6 +329,86 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 
 #########################################################################
 
+# experimental code, mostly what I need can be done using THn::ProjectionND
+
+# def getTHnPart(hin,
+#                newname=None,
+#                axesNewNbins=[], # list of number of bins for each axis (can be inferred from the next arrays, but only if they are not values but bin indices, so let's pass it explicitly)
+#                axesNewMin=[], # list of new starting bins for axes (can be 1 to keep same as original)
+#                axesNewMax=[], # ditto for end bins (using the last one if one wants to keep the full axis)
+#                useAxisValues=False): # arrays contain bin edges rather than bin numbers
+
+#     # return a new THn cropping axes from original one passed as input. For example, one can select a narrower pt range
+#     # if the input is a standard TH1,2,3, the same type is returned
+#     # for simplicity, use bin number rather than actual values to convert to bins (this can be done outside this function)
+
+#     if newname == None:
+#         newname = f"{hin.getName()}_pruned"
+
+#     if useAxisValue:
+#         return None # to implement
+#     #     nDimension = len(axesNewMin)
+#     #     axisNbins = []
+#     #     newAxes = []
+#     #     for i in range(nDimension):
+#     #         axisNbins.append(axesNewMax[i] - axesNewMin[i] + 1) # e.g. if passing bins 3 and 7 we have 5 bins 
+#     #         newAxes.append(ROOT.TAxis(axisNbins[-1], axesNewMin[i], axesNewMax[i]))
+
+#         # if nDimension > 3:
+#         #     hout = hin.CloneEmpty(newname, "", newAxes)
+#         # else:
+#         #     htmp = ROOT.THn.CreateHn(f"{newname}_tmp", "", hin)
+#         #     hout = htmp.CloneEmpty(newname, "", newAxes)
+#     else:
+
+#         if "THn" in hin.ClassName():
+#             ndim = hin.GetNdimensions()
+#             axisNbins = []
+#             axisBinMin = []
+#             axisBinMax = []
+#             # for i in range(ndim):
+#             #     axisNbins.append(axesNewNbins[i]) # e.g. if passing bins 3 and 7 we have 5 bins 
+#             #     #axisNbins.append(axesNewMax[i] - axesNewMin[i] + 1) # e.g. if passing bins 3 and 7 we have 5 bins 
+#             #     axisBinMin.append(hin.GetAxis(i).GetBinLowEdge(axesNewMin[i]))
+#             #     axisBinMax.append(hin.GetAxis(i).GetBinUpEdge( axisBinMax[i]))
+#             # hout = ROOT.THn(newname, "", ndim, array("i", axisNbins), array('d', axisBinMin), array('d', axisBinMax))
+#             for i in range(ndim):
+#                 hin.GetAxis(i).SetRange(axesNewMin[i], axesNewMax[i])
+#             hout = hin.ProjectionND(ndim, array("i", [i for i in range(ndim)]))
+#             hout.SetName(newname)
+#             hout.SetTitle(newname)
+#             return hout
+        
+#         else:
+#             ndim = hin.GetDimension()
+#             if ndim == 1:
+#                 nbinsX = axesNewNbins[0]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 hout = ROOT.TH1D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]))
+#             elif ndim == 2:
+#                 nbinsX = axesNewNbins[0]
+#                 nbinsY = axesNewNbins[1]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 #nbinsY = axesNewMax[1] - axesNewMin[1] + 1
+#                 hout = ROOT.TH2D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]),
+#                                  nbinsY,  hin.GetYaxis().GetBinLowEdge(axesNewMin[1]), hin.GetYaxis().GetBinUpEdge(axesNewMin[1]))
+#             elif ndim == 3:
+#                 nbinsX = axesNewNbins[0]
+#                 nbinsY = axesNewNbins[1]
+#                 nbinsZ = axesNewNbins[2]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 #nbinsY = axesNewMax[1] - axesNewMin[1] + 1
+#                 #nbinsZ = axesNewMax[2] - axesNewMin[2] + 1
+#                 hout = ROOT.TH3D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]),
+#                                  nbinsY,  hin.GetYaxis().GetBinLowEdge(axesNewMin[1]), hin.GetYaxis().GetBinUpEdge(axesNewMin[1]),
+#                                  nbinsZ,  hin.GetZaxis().GetBinLowEdge(axesNewMin[2]), hin.GetZaxis().GetBinUpEdge(axesNewMin[2]))
+        
+#########################################################################
+
+
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:
         binEnd = binStart
@@ -353,7 +433,42 @@ def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
             h3.SetBinContent(ix, iy, zbin, val)
             h3.SetBinError(ix, iy, zbin, error);
 
+def fillTHNplus1fromTHn(thnp1, thn, nbinLow=-1, nbinHigh=-1):
+    # we assume the only difference is an additional dimension, which is the( N+1)-th (i.e. not in the middle, and all other axies are exactly the same in terms of range and binning)
+    # nbinLow/High here represent the range of bin index for the n+1 dimension to be filled (as for the TH1 convention, 0 is underflow, 1 is first bin, etc...)
+    # if nbinLow = nbinHigh and both are larger than -1, only that bin is filled
+    # if both are negative the full range including under/overflow is filled
+    # if only one of them is negative all the bins up to nbinHigh or from nbinLow are filled
+    ndim = thn.GetNdimensions()
+    #ndimp1 = ndim + 1
+    nbinsThnp1 = thnp1.GetAxis(ndim).GetNbins() # would have used ndimp1 - 1
+    if (nbinLow < 0 and nbinHigh < 0) or nbinLow > nbinHigh:
+        nBinStart = 0
+        nBinEnd = nbinsThnp1 + 1
+    elif nbinLow < 0:
+        nBinStart = 0
+        nBinEnd = nbinHigh
+    elif nbinHigh < 0:
+        nBinStart = nbinLow
+        nBinEnd   = nbinsThnp1+1
+    else:
+        nBinStart = max(0, nbinLow)
+        nBinEnd   = min(nbinsThnp1 + 1, nbinHigh)
 
+    nbinsTHn = thn.GetNbins() # for TH3 or lower one should use GetNcells() to emulate this, but one can get a proper THn from a TH3 to use consistent methods
+    myArray = array("i", [0 for i in range(ndim)])
+    for globalBin in range(nbinsTHn):
+        # get content and also the array with single bin ids corresponding to iglobalBin
+        binContent = thn.GetBinContent(globalBin, myArray)
+        binError = thn.GetBinError(globalBin)
+        for iNewDim in range(nBinStart, nBinEnd+1):
+            newArray = array("i", [x for x in myArray] + [iNewDim])
+            #array = numpy.append(array, value)            
+            globalBinTHnP1 = thnp1.GetBin(newArray)
+            thnp1.SetBinContent(globalBinTHnP1, binContent)
+            thnp1.SetBinError(globalBinTHnP1, binError)
+
+            
 def multiplyByHistoWith1ptBin(h, h1bin):
     # multiply 2D histograms when one has only 1 pt bin
     # neglect uncertainty on histogram with 1 bin

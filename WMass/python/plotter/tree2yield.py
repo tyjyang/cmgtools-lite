@@ -23,7 +23,7 @@ from copy import *
 
 from cutsFile import *
 from fakeRate import *
-from mcCorrections import *
+#from mcCorrections import *
 
 if "/functions_cc.so" not in ROOT.gSystem.GetLibraries(): 
     compileMacro("ccFiles/functions.cc")
@@ -47,13 +47,6 @@ def setLogging(verbosity):
     verboseLevel = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
     logging.basicConfig(format='%(levelname)s: %(message)s', level=verboseLevel[min(4,verbosity)])
 
-# not sure we still need it for RDF
-def scalarToVector(x):
-    x0 = x
-    x = re.sub(r"(LepGood|LepCorr|JetFwd|Jet|JetClean|Jet_Clean|GenTop|SV|PhoGood|TauGood|Tau)(\d)_(\w+)", lambda m : "%s_%s[%d]" % (m.group(1),m.group(3),int(m.group(2))-1), x)
-    x = re.sub(r"\bmet\b", "met_pt", x)
-    return x
-
 class PlotSpec:
     def __init__(self,name,expr,bins,opts):
         self.name = name
@@ -73,24 +66,38 @@ class PlotSpec:
         return self.logs.items()
 
 def stylePlot(plot,spec,getOption):
-        ## Sample specific-options, from self
-        if getOption('FillColor',None) != None:
-            plot.SetFillColor(getOption('FillColor',0))
-            plot.SetFillStyle(getOption('FillStyle',1001))
+        if "THn" in plot.ClassName():
+            # to be further implemented
+            nDim = plot.GetNdimensions()
+            defaultTitle = ",".join(f"Dimension {idim}" for idim in range(nDim))
+            titles = spec.getOption('NTitle',defaultTitle).split(",")                
+            logging.debug(f"{plot.GetName()}: {titles}")
+            for idim in range(nDim):
+                if idim < len(titles):
+                    plot.GetAxis(idim).SetTitle(f"{titles[idim]}")
+                else:
+                    plot.GetAxis(idim).SetTitle(f"Dimension {idim}")
         else:
-            plot.SetFillStyle(0)
-            plot.SetLineWidth(getOption('LineWidth',1))
-        plot.SetLineColor(getOption('LineColor',1))
-        plot.SetLineStyle(getOption('LineStyle',1))
-        plot.SetMarkerColor(getOption('MarkerColor',1))
-        plot.SetMarkerStyle(getOption('MarkerStyle',20))
-        plot.SetMarkerSize(getOption('MarkerSize',1.1))
-        ## Plot specific-options, from spec
-        if "TH3" not in plot.ClassName():
+            ## Sample specific-options, from self
+            if getOption('FillColor',None) != None:
+                plot.SetFillColor(getOption('FillColor',0))
+                plot.SetFillStyle(getOption('FillStyle',1001))
+            else:
+                plot.SetFillStyle(0)
+                plot.SetLineWidth(getOption('LineWidth',1))
+            plot.SetLineColor(getOption('LineColor',1))
+            plot.SetLineStyle(getOption('LineStyle',1))
+            plot.SetMarkerColor(getOption('MarkerColor',1))
+            plot.SetMarkerStyle(getOption('MarkerStyle',20))
+            plot.SetMarkerSize(getOption('MarkerSize',1.1))
+            ## Plot specific-options, from spec
             plot.GetYaxis().SetTitle(spec.getOption('YTitle',"Events"))
             plot.GetXaxis().SetTitle(spec.getOption('XTitle',spec.name))
-            plot.GetXaxis().SetNdivisions(spec.getOption('XNDiv',510))
-            plot.GetXaxis().SetMoreLogLabels(True)
+            if "TH3" not in plot.ClassName():
+                plot.GetXaxis().SetNdivisions(spec.getOption('XNDiv',510))
+                plot.GetXaxis().SetMoreLogLabels(True)
+            else:
+                plot.GetZaxis().SetTitle(spec.getOption('ZTitle',"Events"))
 
 def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
         profile1D      = plotspec.getOption('Profile1D',False) if plotspec != None else False
@@ -125,19 +132,48 @@ def makeHistFromBinsAndSpec(name,expr,bins,plotspec):
                 else:
                     histo = ROOT.TH2D(name,name,int(nbx),float(xmin),float(xmax),int(nby),float(ymin),float(ymax))
         elif nvars == 3:
-            ez,ey,ex = [ e.replace("--","::") for e in expr.replace("::","--").split(":") ]
             if bins[0] == "[":
                 xbins, ybins, zbins = bins.split("*")
                 xedges = [ float(f) for f in xbins[1:-1].split(",") ]
                 yedges = [ float(f) for f in ybins[1:-1].split(",") ]
                 zedges = [ float(f) for f in zbins[1:-1].split(",") ]
                 histo = ROOT.TH3D(name,name,len(xedges)-1,array('f',xedges),len(yedges)-1,array('f',yedges),len(zedges)-1,array('f',zedges))
+        elif nvars >= 4:
+            if bins[0] == "[":
+                logging.error("In makeHistFromBinsAndSpec(): only uniform binning currently supported for histograms with dimension > 3.")
+                quit()
             else:
-                (nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax) = bins.split(",")
-                histo = ROOT.TH3D(name,name,int(nbx),float(xmin),float(xmax),int(nby),float(ymin),float(ymax),int(nbz),float(zmin),float(zmax))
-            histo.GetXaxis().SetTitle(ex)
-            histo.GetYaxis().SetTitle(ey)
-            histo.GetZaxis().SetTitle(ez)
+                #(nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax,nbd4,d4min,d4max) = bins.split(",")
+                #nbins = [nbx, nby, nbz, nbd4]
+                #vmin = [xmin,ymin, zmin, d4min]
+                #vmax = [xmax,ymax, zmax, d4max]
+                #histo = ROOT.THnD(name,name, 4, array('i',nbins), array('f',vmin), array('f',vmax))
+                binRanges = bins.split(",")
+                nbins = []
+                vmin = []
+                vmax = []
+                for iv in range(nvars):
+                    trueIndex = 3*iv
+                    nbins.append(int(binRanges[trueIndex]))
+                    vmin.append(float(binRanges[trueIndex+1]))
+                    vmax.append(float(binRanges[trueIndex+2]))
+                #print(f"Defining {nvars}-dimensional histograms")    
+                #print(nbins)
+                #print(vmin)
+                #print(vmax)
+                histo = ROOT.THnD(name, name, nvars, array('i',nbins), array('d',vmin), array('d',vmax))
+                #histo = ROOT.THnD(name, name, nvars, nbins, vmin, vmax)
+                    
+        # elif nvars == 5:
+        #     if bins[0] == "[":
+        #         logging.error("In makeHistFromBinsAndSpec(): only uniform binning supported for histograms with 5 dimensions.")
+        #         quit()
+        #     else:
+        #         (nbx,xmin,xmax,nby,ymin,ymax,nbz,zmin,zmax,nbd4,d4min,d4max,nbd5,d5min,d5max) = bins.split(",")
+        #         nbins = [nbx, nby, nbz, nbd4, nbd5]
+        #         vmin = [xmin,ymin, zmin, d4min, d5min]
+        #         vmax = [xmax,ymax, zmax, d4max, d5max]
+        #         histo = ROOT.THnD(name,name, 5, array('i',nbins), array('f',vmin), array('f',vmax))
         else:
             raise RuntimeError("Can't make a plot with %d dimensions" % nvars)
         histo.Sumw2()
@@ -178,38 +214,15 @@ class TreeToYield:
         else:
             self._weightString = "*".join("("+str(w)+")" for w in options.weightString)
         self._scaleFactor = scaleFactor
-        self._fullYield = 0 # yield of the full sample, as if it passed the full skim and all cuts
-        self._fullNevt = 0 # number of events of the full sample, as if it passed the full skim and all cuts
         self._settings = settings
-        loadMCCorrections(options)            ## make sure this is loaded
-        self._mcCorrs = globalMCCorrections() ##  get defaults
-        if 'SkipDefaultMCCorrections' in settings: ## unless requested to 
-            self._mcCorrs = []                     ##  skip them
-        if self._isdata: 
-# bug: does not work
-#            self._mcCorrs = [c for c in self._mcCorrs if c.alsoData] ## most don't apply to data, some do 
-            newcorrs=[]
-            for corr in self._mcCorrs:
-                newcorr = copy(corr)
-                newlist = copy(newcorr._corrections)
-                newlist = [icorr for icorr in newlist if icorr.alsoData]
-                newcorr._corrections = newlist
-                newcorrs.append(newcorr)
-            self._mcCorrs=newcorrs
-        if 'MCCorrections' in settings:
-            self._mcCorrs = self._mcCorrs[:] # make copy
-            for cfile in settings['MCCorrections'].split(','): 
-                self._mcCorrs.append( MCCorrections(cfile) )
-        if self._mcCorrs and self._scaleFactor and self._scaleFactor != 1.0:
-            # apply MC corrections to the scale factor
-            self._scaleFactor = self.adaptExpr(self._scaleFactor, cut=True)
+        # for fake rate we may not need the older method, now that we have RDF    
         if 'FakeRate' in settings:
             self._FR = FakeRate(settings['FakeRate'],self._lumiWeight)
             ## add additional weight correction.
             ## note that the weight receives the other mcCorrections, but not itself
             frweight = self.adaptExpr(self._FR.weight(), cut=True)
             ## modify cuts to get to control region. order is important
-            self._mcCorrs = self._mcCorrs + self._FR.cutMods()  + self._FR.mods()
+            #self._mcCorrs = self._mcCorrs + self._FR.cutMods()  + self._FR.mods()
             self._weightString = self.adaptExpr(self._weightString, cut=True) + "* (" + frweight + ")"
             self._weight = True
         else:
@@ -219,10 +232,7 @@ class TreeToYield:
             libname = macro.replace(".cc","_cc.so").replace(".cxx","_cxx.so")
             if libname not in ROOT.gSystem.GetLibraries():
                 ROOT.gROOT.ProcessLine(".L %s+" % macro);
-        self._appliedCut = None
         self._cutReport = None
-        self._elist = None
-        self._entries = None
         self._rdfDefs = OrderedDict()
         self._rdfAlias = {}
         if self._options.rdfDefineFile:
@@ -272,22 +282,13 @@ class TreeToYield:
     def getCutReport(self):
         return self._cutReport
     
-        #print "Done creation  %s for task %s in pid %d " % (self._fname, self._name, os.getpid())
-    def setScaleFactor(self,scaleFactor,mcCorrs=True):
+    def setScaleFactor(self,scaleFactor):
         if (not self._options.forceunweight) and scaleFactor != 1: self._weight = True
-        if mcCorrs and self._mcCorrs and scaleFactor and scaleFactor != 1.0:
-            # apply MC corrections to the scale factor
-            self._scaleFactor = self.adaptExpr(scaleFactor, cut=True)
-        else:
-            self._scaleFactor = scaleFactor
+        self._scaleFactor = scaleFactor
     def getScaleFactor(self):
         return self._scaleFactor
     def setRDF(self, rdf):
         self._fname = rdf
-    def setFullYield(self,fullYield):
-        self._fullYield = fullYield
-    def setFullNevt(self,fullNevt):
-        self._fullNevt = fullNevt
     def name(self):
         return self._name
     def cname(self):
@@ -308,39 +309,9 @@ class TreeToYield:
         return ret
     def adaptExpr(self,expr,cut=False):
         ret = self.adaptDataMCExpr(expr)
-        for mcc in self._mcCorrs:
-            ret = mcc(ret,self._name,self._cname,cut)
         return ret
     def _init(self):
         self._tree  = self._fname ## just set the tree to the rdataframe
-
-        # all the part below for friends might be removed
-        self._friends = []
-        friendOpts = self._options.friendTrees[:]
-        friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._options.friendTreesSimple]
-        friendOpts += (self._options.friendTreesData if self._isdata else self._options.friendTreesMC)
-        friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in (self._options.friendTreesDataSimple if self._isdata else self._options.friendTreesMCSimple) ]
-        if 'Friends' in self._settings: friendOpts += self._settings['Friends']
-        if 'FriendsSimple' in self._settings: friendOpts += [ ('sf/t', d+"/evVarFriend_{cname}.root") for d in self._settings['FriendsSimple'] ]
-        for tf_tree,tf_file in friendOpts:
-            # print 'Adding friend',tf_tree,tf_file
-            basepath = None
-            if self._options.nanoaodTree:
-                friend_cname = os.path.basename(self._cname)
-            else:
-                for treepath in getattr(self._options, 'path', []):
-                    if self._cname in os.listdir(treepath):
-                        basepath = treepath
-                        break
-                if not basepath:
-                    raise RuntimeError("%s -- ERROR: %s process not found in paths (%s)" % (__name__, cname, repr(options.path)))
-                friend_cname = self._cname
-            tf_filename = tf_file.format(name=self._name, cname=friend_cname, P=basepath, fd=self._frienddir)
-            if os.path.exists(tf_filename+".url"):
-                tf_filename = open(tf_filename+".url","r").readline().strip()
-            # print 'Adding friend',tf_tree,tf_filename
-            tf = self._tree.AddFriend(tf_tree, tf_filename),
-            self._friends.append(tf)
         #print 'done with init'
         self._isInit = True
         
@@ -348,52 +319,6 @@ class TreeToYield:
         if not self._isInit: self._init()
         return self._tree
 
-    def getEntries(self,useEList=True,closeFileAfterwards=True):
-        if useEList and self._elist: 
-            return self._elist.GetN()
-        if self._entries is None:
-            if closeFileAfterwards and (not self._isInit):
-                if "root://" in self._fname: ROOT.gEnv.SetValue("XNet.Debug", -1); # suppress output about opening connections
-                tfile = ROOT.TFile.Open(self._fname)
-                if not tfile: raise RuntimeError("Cannot open %s\n" % self._fname)
-                t = tfile.Get(self._objname)
-                if not t: raise RuntimeError("Cannot find tree %s in file %s\n" % (self._objname, self._fname))
-                self._entries = t.GetEntries()
-            else:
-                self._entries = self.getTree().GetEntries()
-        return self._entries
-    def hasEntries(self,useEList=True):
-        if useEList and self._elist:
-            return True
-        return (self._entries != None)
-    def setEntries(self,entries):
-        self._entries = entries
-    def getYields(self,cuts,noEntryLine=False,fsplit=None):
-        if not self._isInit: self._init()
-        report = []; cut = ""
-        cutseq = [ ['entry point','1'] ]
-        if noEntryLine: cutseq = []
-        sequential = False
-        if self._options.nMinusOne or self._options.nMinusOneInverted: 
-            if self._options.nMinusOneSelection:
-                cutseq = cuts.nMinusOneSelectedCuts(self._options.nMinusOneSelection,inverted=self._options.nMinusOneInverted)
-            else:
-                cutseq = cuts.nMinusOneCuts(inverted=self._options.nMinusOneInverted)
-            cutseq += [ ['all',cuts.allCuts()] ]
-            sequential = False
-        elif self._options.final:
-            cutseq = [ ['all', cuts.allCuts()] ]
-        else:
-            cutseq += cuts.cuts();
-            sequential = True
-        for cn,cv in cutseq:
-            if sequential:
-                if cut: cut += " && "
-                cut += "(%s)" % cv
-            else:
-                cut = cv
-            report.append((cn,self._getYield(self._tree,cut,fsplit=fsplit)))
-        return report
     def prettyPrint(self,report):
         # maximum length of the cut descriptions
         clen = max([len(cut) for cut,yields in report]) + 3
@@ -418,41 +343,12 @@ class TreeToYield:
             logging.info(cfmt % cut,)
             den = report[i-1][1][0] if i>0 else 0
             fraction = nev/float(den) if den > 0 else 1
-            if self._options.nMinusOne or self._options.nMinusOneInverted: 
-                fraction = report[-1][1][0]/nev if nev > 0 else 1
             toPrint = (nev,)
             if self._options.errors:    toPrint+=(err,)
             if self._options.fractions: toPrint+=(fraction*100,)
             if self._weight and nev < 1000: logging.info(nfmtS % toPrint,)
             else                          : logging.info(nfmtL % toPrint,)
             logging.info("")
-    def _getCut(self,cut,noweight=False):
-        if self._weight and not noweight:
-            cut = "(%s)*(%s)*(%s)" % (self._weightString, self._scaleFactor, self.adaptExpr(cut,cut=True))
-        else: 
-            cut = self.adaptExpr(cut,cut=True)
-        if self._options.doS2V:
-            cut  = scalarToVector(cut)
-        return cut
-    def _getYield(self,tree,cut,fsplit=None,cutNeedsPreprocessing=True):
-        cut = self._getCut(cut) if cutNeedsPreprocessing else cut
-        if self._weight:
-#            print cut
-            ROOT.gROOT.cd()
-            if ROOT.gROOT.FindObject("dummy") != None: ROOT.gROOT.FindObject("dummy").Delete()
-            histo = ROOT.TH1D("dummy","dummy",1,0.0,1.0); histo.Sumw2()
-            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            nev = tree.Draw("0.5>>dummy", cut, "goff", maxEntries, firstEntry)
-            self.negativeCheck(histo)
-            return [ histo.GetBinContent(1), histo.GetBinError(1), nev ]
-        else:
-            print("HERE FOR _getYield()")
-            quit()
-            if self._options.doS2V:
-                cut  = scalarToVector(cut)
-            (firstEntry, maxEntries) = self._rangeToProcess(fsplit)
-            npass = tree.Draw("1",self.adaptExpr(cut,cut=True),"goff", maxEntries, firstEntry);
-            return [ npass, sqrt(npass), npass ]
     def _stylePlot(self,plot,spec):
         return stylePlot(plot,spec,self.getOption)
     def getManyPlots(self,plotspecs,cut,fsplit=None,closeTreeAfter=False):
@@ -479,17 +375,21 @@ class TreeToYield:
                 # this is going to trigger the loop, but now all histograms exist so it is ok
                 histo.Scale(self._lumiWeight/sumGenWeights)
                 self.negativeCheck(histo)
-                histo.SetDirectory(0)
+                if not histo.ClassName() == 'THnT<double>':
+                    histo.SetDirectory(0)
         else:
             for histo in rets:
-                histo.SetDirectory(0)
-                
-                
+                if not histo.ClassName() == 'THnT<double>':
+                    histo.SetDirectory(0)
+                    
+        # not all histograms are made for all plots, so need to prune the list of pspec to be used below
+        plotspecsPruned = [p for p in plotspecs if re.match(p.getOption('ProcessRegexp', ".*"), self._name)]
+                    
         # fold overflow
         for iret,ret in enumerate(rets):
             if ret.ClassName() in [ "TH1F", "TH1D" ] :
                 n = ret.GetNbinsX()
-                if plotspecs[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflows',True) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
@@ -498,25 +398,25 @@ class TreeToYield:
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeOverflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(n,ret.GetBinContent(n+1)+ret.GetBinContent(n))
                     ret.SetBinError(n,hypot(ret.GetBinError(n+1),ret.GetBinError(n)))
                     ret.SetBinContent(n+1,0)
                     ret.SetBinContent(n+1,0)
-                if plotspecs[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
+                if plotspecsPruned[iret].getOption('IncludeUnderflow',False) and ("TProfile" not in ret.ClassName()):
                     ret.SetBinContent(1,ret.GetBinContent(0)+ret.GetBinContent(1))
                     ret.SetBinError(1,hypot(ret.GetBinError(0),ret.GetBinError(1)))
                     ret.SetBinContent(0,0)
                     ret.SetBinContent(0,0)
-                rebin = plotspecs[iret].getOption('rebinFactor',0)
-                if plotspecs[iret].bins[0] != "[" and rebin > 1 and n > 5:
+                rebin = plotspecsPruned[iret].getOption('rebinFactor',0)
+                if plotspecsPruned[iret].bins[0] != "[" and rebin > 1 and n > 5:
                     while n % rebin != 0: rebin -= 1
                     if rebin != 1: ret.Rebin(rebin)
-                if plotspecs[iret].getOption('Density',False):
+                if plotspecsPruned[iret].getOption('Density',False):
                     for b in range(1,n+1):
                         ret.SetBinContent( b, ret.GetBinContent(b) / ret.GetXaxis().GetBinWidth(b) )
                         ret.SetBinError(   b, ret.GetBinError(b) / ret.GetXaxis().GetBinWidth(b) )
-            self._stylePlot(ret,plotspecs[iret])
+            self._stylePlot(ret,plotspecsPruned[iret])
             ret._cname = self._cname
         return rets
     # apparently not used anywhere
@@ -701,7 +601,9 @@ class TreeToYield:
             (tmp_weight, self._rdfDefsWeightColumns) = self.defineColumnFromExpression(self._rdfDefsWeightColumns, tmp_weight, wgt)
             
             logging.debug("%s weight string = %s " % (tmp_weight, wgt))
-            
+
+            # TODO
+            # using THxDModel is not necessary, will change it at some point
             if tmp_histo.ClassName() == 'TH1D':
                 tmp_histo_model = ROOT.RDF.TH1DModel(tmp_histo)
                 expr_x = plotspec.expr
@@ -726,6 +628,20 @@ class TreeToYield:
                 (tmp_vary, column_expr) = self.defineColumnFromExpression(column_expr, tmp_vary, expr_y)
                 (tmp_varz, column_expr) = self.defineColumnFromExpression(column_expr, tmp_varz, expr_z)
                 tmp_histo  = self._tree.Histo3D(tmp_histo_model, tmp_varx, tmp_vary, tmp_varz, tmp_weight)
+            elif tmp_histo.ClassName() == 'THnT<double>':
+                tmp_histo_model = ROOT.RDF.THnDModel(tmp_histo)                
+                nDim = tmp_histo.GetNdimensions()
+                #print(f"plotspec.expr = {plotspec.expr}")
+                expr_n = plotspec.expr.split(':')[::-1]
+                #print(f"expr_n = {expr_n}")
+                tmp_varn = []
+                for idim in range(nDim):
+                    tmp_varn.append(f"{self._cname}_{plotspec.name}_var{idim}d")
+                    (tmp_varn[idim], column_expr) = self.defineColumnFromExpression(column_expr, tmp_varn[idim], expr_n[idim])
+                # append weight to list of columns to use, since this is how the constructor works    
+                tmp_varn.append(tmp_weight)
+                tmp_histo  = self._tree.HistoND(tmp_histo_model, tmp_varn)
+                #print(f"Creating RDF object with type {type(tmp_histo)}")
                 
             histos.append(tmp_histo)
 
@@ -749,37 +665,6 @@ class TreeToYield:
         mystr += str(self._weight) + '\n'
         mystr += str(self._scaleFactor)
         return mystr
-    def processEvents(self,eventLoop,cut):
-        logging.info("In processEvents in tree2yield.py")
-        if not self._isInit: self._init()
-        cut = self.adaptExpr(cut,cut=True)
-        if self._options.doS2V:
-            cut  = scalarToVector(cut)
-            self._tree.vectorTree = True 
-        eventLoop.beginComponent(self)
-        eventLoop.loop(self._tree, getattr(self._options, 'maxEvents', -1), cut=cut)
-        eventLoop.endComponent(self)
-    def applyCutAndElist(self,cut,elist):
-        if self._appliedCut != None and self._appliedCut != cut: 
-            logging.warning("changing applied cut from %s to %s\n" % (self._appliedCut, cut))
-        self._appliedCut = cut
-        self._elist = elist
-    def _rangeToProcess(self,fsplit):
-        if fsplit != None and fsplit != (0,1):
-            if self._options.maxEntriesNotData and self._isdata:
-                allEntries = self.getEntries()
-            else:
-                allEntries = min(self.getEntries(), self._options.maxEntries)
-            chunkSize = int(ceil(allEntries/float(fsplit[1])))
-            firstEntry = chunkSize * fsplit[0]
-            maxEntries = chunkSize # the last chunk may go beyond the end of the tree, but ROOT stops anyway so we don't care
-        else:
-            firstEntry = 0
-            if (self._options.maxEntriesNotData and self._isdata):
-                maxEntries = self.getEntries() 
-            else:
-                maxEntries = self._options.maxEntries 
-        return (firstEntry, maxEntries)
 def _copyPlotStyle(self,plotfrom,plotto):
         plotto.SetFillStyle(plotfrom.GetFillStyle())
         plotto.SetFillColor(plotfrom.GetFillColor())
@@ -812,20 +697,9 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("-I", "--invert-cut", dest="cutsToInvert", action="append", default=[], help="Cuts to invert (regexp matching cut name), can specify multiple times.") 
     parser.add_argument("-R", "--replace-cut", dest="cutsToReplace", action="append", default=[], nargs=3, help="Cuts to invert (regexp of old cut name, new name, new cut); can specify multiple times.") 
     parser.add_argument("-A", "--add-cut", dest="cutsToAdd", action="append", default=[], nargs=3, help="Cuts to insert (regexp of cut name after which this cut should go, new name, new cut); can specify multiple times.") 
-    parser.add_argument("-N", "--n-minus-one", dest="nMinusOne", action="store_true", help="Compute n-minus-one yields and plots")
-    parser.add_argument("--select-n-minus-one", dest="nMinusOneSelection", type=str, help="Select which cuts to do N-1 for (comma separated list of regexps)")
-    parser.add_argument("--NI", "--inv-n-minus-one", dest="nMinusOneInverted", action="store_true", help="Compute n-minus-one yields and plots")
-    parser.add_argument("--obj", "--objname", dest="obj", default='Events', help="Pattern for the name of the TTree inside the file");
     parser.add_argument("--RV", "--replace-var", dest="varsToReplace", action="append", default=[], nargs=2, help="Variable to replace(old var name, new var name); can specify multiple times.")
+    parser.add_argument("--obj", "--objname", dest="obj", default='Events', help="Pattern for the name of the TTree inside the file");
     parser.add_argument("-G", "--no-fractions", dest="fractions", action="store_false", default=True, help="Don't print the fractions");
-    parser.add_argument("-F", "--add-friend", dest="friendTrees", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename). Can use {name}, {cname} patterns in the treename") 
-    parser.add_argument("--Fs", "--add-friend-simple", dest="friendTreesSimple", action="append", default=[], nargs=1, help="Add friends in a directory. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_argument("--FMC", "--add-friend-mc", dest="friendTreesMC", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to MC only. Can use {name}, {cname} patterns in the treename") 
-    parser.add_argument("--FD", "--add-friend-data", dest="friendTreesData", action="append", default=[], nargs=2, help="Add a friend tree (treename, filename) to data trees only. Can use {name}, {cname} patterns in the treename") 
-    parser.add_argument("--FMCs", "--add-friend-mc-simple", dest="friendTreesMCSimple", action="append", default=[], nargs=1, help="Add friends in a directory to MC only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_argument("--FDs", "--add-friend-data-simple", dest="friendTreesDataSimple", action="append", default=[], nargs=1, help="Add friends in a directory to data only. The rootfile must be called evVarFriend_{cname}.root and tree must be called 't' in a subdir 'sf' inside the rootfile.") 
-    parser.add_argument("--mcc", "--mc-corrections", dest="mcCorrs", action="append", default=[], nargs=1, help="Load the following file of mc to data corrections") 
-    parser.add_argument("--s2v", "--scalar2vector", dest="doS2V", action="store_true", help="Do scalar to vector conversion") 
     parser.add_argument("--neg", "--allow-negative-results", dest="allowNegative", action="store_true", default=False, help="If the total yield is negative, keep it so rather than truncating it to zero") 
     parser.add_argument("--neglist", dest="negAllowed", action="append", default=[], help="Give process names where negative values are allowed")
     parser.add_argument("--max-entries", dest="maxEntries", default=1000000000000, type=int, help="Max entries to process in each tree") 

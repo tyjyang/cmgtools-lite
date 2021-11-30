@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-#from mcPlots import *
+# unpack histograms produce by mcPlots.py (or plotFakesTemplate.py in the case of Wmass analysis)
+# The usually have TH3 with eta-pt-charge, or a 4th dimension with systematics, but we eventually save TH2 eta-pt for each charge separately, because it is easier to deal with the fit
+
 import re, os, os.path
 import math
 import copy
@@ -22,6 +24,10 @@ from cropNegativeTemplateBins import cropNegativeContent
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import getTH2fromTH3, createPlotDirAndCopyPhp
+
+
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
 
 def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
@@ -74,8 +80,10 @@ def mirrorShape(nominal,alternate,mirror):
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--infile",  type=str, default=None, help="File to read histos from")
-parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
-#parser.add_argument("--od", "--outdir", type=str, default=None, help="output folder") 
+# changing this part: select output folder, rather than output file: the file will be created and named automatically for W or Z analysis based on --wlike, adding also the charge as appropriate: usually Wmunu_{charge}_shapes_{postfx}.root
+#parser.add_argument("-o", "--outfile", type=str, default=None, help="output file name") 
+parser.add_argument("--outdir", type=str, default=None, help="output folder")
+parser.add_argument("-p",   "--postfix", type=str, default="", help="Postfix added to output file name, to avoid overwriting an existing one in case of tests");
 parser.add_argument("--crop-negative-bin", dest="cropNegativeBin", action="store_true", help="Set negative bins to 0")
 parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
 parser.add_argument("-c", "--charge", type=str, default=None, choices=["plus", "minus"], help="Charge for this channel")
@@ -88,15 +96,25 @@ args = parser.parse_args()
 setLogging(args.verbose)
 
 infilename = args.infile 
-outfilename = args.outfile
+#outfilename = args.outfile
 
-outdir = os.path.dirname(outfilename) + "/"
+if not args.outdir:
+    logging.warning("Please specify an output folder where to store the final root files, using option --outdir <folder>")
+    quit()
+
+outdir = args.outdir + "/"
 createPlotDirAndCopyPhp(outdir)
+
+channelKeyword = "Zmumu" if args.isWlike else "Wmunu"
+postfix = "" if not args.postfix else f"_{args.postfix}"
+outfilename = outdir + f"{channelKeyword}_{args.charge}_shapes{postfix}.root"
 
 if os.path.abspath(infilename) == os.path.abspath(outfilename):
     logging.warning(" input and output file names are the same. Abort")
     quit()
 
+chargeBin = 1 if args.charge == "minus" else 2
+    
 if args.decorrByCharge:
     regexp = args.decorrByCharge.replace(',','|')
     matchDecorr = re.compile(regexp)
@@ -106,6 +124,7 @@ hnomi = {} # {process name : histo}
 hsyst = {} # {syst name : {process name : histo}}
 
 # read input files to get all histograms, but do not append Up/Down in names yet
+# project them already to select the desired charge
 fin = ROOT.TFile.Open(infilename)
 if not fin or not fin.IsOpen():
     raise(RuntimeError('Unable to open file {fn}'.format(fn=infilename)))
@@ -123,13 +142,28 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
         proc = proc + "_" + args.charge 
     newname = "x_" + proc
     if name.startswith("nominal"):
-        hnomi[proc] = obj.Clone(newname)
+        htmp = obj.Clone(f"tmp_{newname}")
+        if "THn" in htmp.ClassName():
+            htmp.GetAxis(2).SetRange(chargeBin, chargeBin)  # charge is on the 3rd axis, so axis number 2 (starts from 0)
+            hnomi[proc] = htmp.Projection(0, 1, 3, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
+        else:
+            # in this case we have a TH3 already
+            htmp.SetDirectory(0)
+            hnomi[proc] = getTH2fromTH3(htmp, newname, chargeBin, chargeBin)
         hnomi[proc].SetDirectory(0)
     else:
         if syst not in hsyst:
             hsyst[syst] = {}
-        hsyst[syst][proc] = obj.Clone(newname+"_"+syst)
+        htmp = obj.Clone(f"tmp_{newname}_{syst}")
+        if "THn" in htmp.ClassName():
+            htmp.GetAxis(2).SetRange(chargeBin, chargeBin)  # charge is on the 3rd axis, so axis number 2 (starts from 0)
+            hsyst[syst][proc] = htmp.Projection(0, 1, 3, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
+        else:
+            # in this case we have a TH3 already
+            htmp.SetDirectory(0)
+            hsyst[syst][proc] = getTH2fromTH3(htmp, f"{newname}_{syst}", chargeBin, chargeBin)
         hsyst[syst][proc].SetDirectory(0)
+
 fin.Close()
 
 print('-'*30)
@@ -153,13 +187,19 @@ outf.cd()
 for proc in list(hnomi.keys()):
     hnomi[proc].Write()
 
+# histograms are TH3 eta-pt-charge or THn with dimension 4 embedding systematic variations
+# we need tosplit charges
+    
 for syst in systs:
     if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
         continue
     print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
-        h3D = hsyst[syst][proc]
+        h3D = hsyst[syst][proc] # this might actually be a THn with n=4
+        #isTHn = False
+        #if "THn" in h3D.ClassName():
+        #    isTHn = True
         if "massWeight" in syst:
             # note, we are now using weights from LHEReweightingWeightCorrectMass
             # it has 21 elements for W and 23 for Z, where the last two values for Z should not be mass shift weights (maybe they are for width)
