@@ -134,12 +134,21 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
         continue
     if proc == "data":
         proc = "data_obs"
-    if proc == "Zmumu" and args.isWlike:
+    elif proc == "Zmumu" and args.isWlike:
         proc = proc + "_" + args.charge 
+
     newname = "x_" + proc
-    if not name.startswith("nominal"):
+    if name.startswith("nominal"):
+        tracker = hnomi
+    else:
         newname += f"_{syst}"
-    hnomi[proc] = utility.projectChargeHist(obj, args.charge, newname)
+        if syst not in hsyst:
+            hsyst[syst] = {}
+        tracker = hsyst[syst]
+    tracker[proc] = utility.projectChargeHist(obj, args.charge, newname)
+
+print("-*80")
+print(hnomi)
 
 fin.Close()
 
@@ -200,13 +209,13 @@ for syst in systs:
                 h2D = ROOT.projectTH2FromTH3(h3D, name, ilumi, ilumi)
                 h2D.Write()
         if "effStatTnP" in syst:
-            writeAndRemove(utilty.makeVariationHistsForCharge(h3d, "effStatTnP", mirrorGroups(h3d), hnomi[proc], True))
+            writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_effStatTnP", utility.mirrorGroups(h3D), hnomi[proc], True))
         if "effSystTnP" in syst:
             # here h3D is actually a TH2
             name = "x_" + proc + "_effSystTnPUp" # define this as Up variation
             h3D.Write(name)
             h2D_mirror = h3D.Clone(name.replace("Up", "Down"))
-            h2D_mirror = ROOT.mirrorShape(hnomi[proc], h3D, h2D_mirror)
+            h2D_mirror = ROOT.mirrorHist(hnomi[proc], h3D, h2D_mirror)
             h2D_mirror.Write()
         if "muonL1PrefireStat" in syst:
             for ieff in range(1, 11+1):
@@ -216,7 +225,7 @@ for syst in systs:
                 name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
                 h2D = ROOT.projectTH2FromTH3(h3D, name, ieff, ieff)
                 h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
+                h2D_mirror = ROOT.mirrorHist(hnomi[proc], h2D, h2D_mirror)
                 h2D.Write()
                 h2D_mirror.Write()
         if "muonL1PrefireSyst" in syst:
@@ -258,38 +267,19 @@ for syst in systs:
         if "NNPDF31" in syst or syst == "pdf":
             if "pdfNNPDF31" in syst or syst == "pdf":
                 # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
-                # pdfxx needs mirroring, alphaS already has Up and Down
-                for i in range(1,103):
-                    if i <= 100:
-                        name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
-                        h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
-                        h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                        h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
-                        h2D.Write()
-                        h2D_mirror.Write()
-                    elif not hasNNPDF31alphaS0001var:
-                        print(">>> Warning: using alphaS variation equal to 0.002 extracted from pdf TH3")
-                        name = "x_" + proc + "_alphaS%s" % ("Down" if i == 101 else "Up")
-                        h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
-                        h2D.Write()
+                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", utility.mirrorGroups(100), hnomi[proc], True))
             elif "alphaS0117NNPDF31" in syst and hasNNPDF31alphaS0001var:
                 name = "x_" + proc + "_alphaSDown"
                 h3D.Write(name)
             elif "alphaS0119NNPDF31" in syst and hasNNPDF31alphaS0001var:
                 name = "x_" + proc + "_alphaSUp"
                 h3D.Write(name)
+            elif "pdfCT18" in syst:
+                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}NNPDF31", utility.pairGroups(58), hnomi[proc], True))
         
         if "NNPDF30" in syst:
             if "pdfNNPDF30" in syst:
-                # this includes only pdf hessians (bins 1 to 100)
-                # pdfxx needs mirroring
-                for i in range(1,101):
-                    name = "x_" + proc + "_pdf%dUp" % i # define this as Up variation 
-                    h2D = ROOT.projectTH2FromTH3(h3D, name, i, i)
-                    h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                    h2D_mirror = ROOT.mirrorShape(hnomi[proc], h2D, h2D_mirror)
-                    h2D.Write()
-                    h2D_mirror.Write()
+                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}"+"_pdf{i}NNPDF31", utility.mirrorGroups(100), hnomi[proc], True))
             # the following should already be TH2            
             elif "alphaS0117NNPDF30" in syst:
                 name = "x_" + proc + "_alphaSDown"

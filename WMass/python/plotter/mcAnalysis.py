@@ -7,7 +7,7 @@ import pickle, re, random, time, glob, math
 import argparse
 import json
 
-ROOT.ROOT.EnableImplicitMT()
+ROOT.ROOT.EnableImplicitMT(128)
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
 
 #_T0 = long(ROOT.gSystem.Now())

@@ -59,7 +59,7 @@ def main(args):
     define = cfgFolder + "test/rdfDefine_fakerate.txt"
 
     # input samples
-    samples = "/data/shared/originalNANO/"
+    samples = "/scratch/shared/originalNANO/"
 
     # output
     plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/allTHn/"

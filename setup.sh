@@ -17,32 +17,15 @@ fi
 
 loadSingularity=false
 usePython2=false
-defaultSingularity="/data/shared/singularity/pythonrootdevarch.sif"
-python2Singularity=${defaultSingularity/pythonroot/python2root}
-
+defaultSingularity="/scratch/singularity/pythonrootarchdev"
 
 for i in "$@" ; do
     if [[ $i == "-s" ]] ; then
         loadSingularity=true
     fi
-    if [[ $i == "--p2" ]] ; then
-        usePython2=true
-    fi
 done
 
-if [[ $HOSTNAME == "cmswmass2.cern.ch" ]]; then
-    if [[ "$loadSingularity" = "true" ]]; then
-	if [[ "$usePython2" = "true" ]]; then
-	    echo "Setting up singularity for python 2!"
-	    ${python2Singularity}
-	else
-	    echo "Setting up singularity for python 3!"
-	    ${defaultSingularity}
-	fi
-    else
-	echo "Singularity not set! Can call it with any of the following"
-	echo "${defaultSingularity} (for python3, recommended)"
-	echo "${python2Singularity} (for python2)"
-    fi
+if [[ "$loadSingularity" = "true" ]]; then
+    echo "Setting up singularity for python 3!"
+    singularity run ${defaultSingularity}
 fi
-

@@ -34,7 +34,7 @@ def safeSystem(cmd, dryRun=False, quitOnFail=True):
         
 def sortSystsForDatacard(params):
 
-    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 101 if 'alphaS' in x else 0)
+    params = sorted(params, key= lambda x: int(re.match("pdf(\d+)", x)[1]) if 'pdf' in x else 101 if 'alphaS' in x else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)

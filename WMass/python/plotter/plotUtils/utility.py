@@ -411,32 +411,63 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
         
 #########################################################################
 
-def projectChargeHist(histnd, charge, name):
-    charges = ["plus", "minus"]
+def projectChargeHist(histnd, charge, name=""):
+    charges = ["minus", "plus"]
     chargeBin = charges.index(charge)+1
-    if "THn" in histnd.ClassName() and histnd.GetNdimensions() == 4:
+    if "THn" in histnd.ClassName():
+        dim = histnd.GetNdimensions()
         # charge is on the 3rd axis, so axis number 2 (starts from 0)
-        dims = list(range(4))
         chargeDim = 2
-        dims.remove(chargeDim)
+        dims = np.array(range(dim), dtype=np.intc)
+        dims = np.delete(dims, chargeDim)
         histnd.GetAxis(chargeDim).SetRange(chargeBin, chargeBin)  
-        htmp = histnd.Projection(*dims, "E") # project the axes other than charge in a new TH3, using axes numbers 0,1,3 for first,second,and fourth axes (i.e. all excluding the one for charge)
+        htmp = histnd.Projection(0, 1, 3, "E") if dim == 4 else histnd.ProjectionND(dim-1, dims, "E")
+        if not name:
+            name = "_".join([histnd.GetName(), charge[0]])
         htmp.SetName(name)
     elif "TH3" in histnd.ClassName():
         htmp = ROOT.projectTH2FromTH3(histnd, name, chargeBin, chargeBin)
+    else:
+        raise RuntimeError("Charge hist must be a TH3 or THn. Was %s" % histnd.ClassName())
 
-    htmp.SetDirectory(0)
+    if htmp.InheritsFrom("TH1"):
+        htmp.SetDirectory(0)
+    ROOT.SetOwnership(htmp, False)
     return htmp
 
-def mirrorGroups(histnd):
-    allentries = range(histnd.GetNbinsZ()*2)
-    return zip(allentries[::2], allentries[1::2])
+def getEntries(inp, mirror=False):
+    nentries = inp
+    if hasattr(inp, "GetNbinsZ"):
+        nentries = inp.GetNbinsZ()
+    # Include last bin
+    if mirror:
+        nentries *= 2
+    allentries = range(1, nentries+2)
+    return allentries
+
+def mirrorGroups(inp):
+    allentries = getEntries(inp, True)
+    mid = int(len(allentries)/2)+1
+    return list(zip(allentries[:mid:], allentries[mid::]))
+
+def pairGroups(inp):
+    allentries = getEntries(inp)
+    return (zip(allentries[::2], allentries[1::2]))
 
 # For now things this steps are separated, don't really need to be
 def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
     chargeHist = projectChargeHist(histnd, charge, "tmp"+name)
     makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
 
+def systName(label, entry):
+    if entry < 0:
+        return label
+    if "{i}" in label:
+        return label.format(i=entry)
+    else:
+        return label+str(entry)
+
+# Should add an option to limit the range
 def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
     varHists = ROOT.allProjectedSystHists(chargeHist, name)
     if addMirror:
@@ -446,6 +477,7 @@ def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirro
         varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
 
     systHists = []
+    print("The groups have length", len(groups))
     for i,g in enumerate(groups):
         if len(g) < 2:
             raise ValueError("Syst index groups must have length > 2")
@@ -455,8 +487,9 @@ def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirro
         else:
             systHists.extend(ROOT.envelopeHists([x[i] for i in g]))
 
-        systHists[-2].SetName(name+"%iUp" % i)
-        systHists[-1].SetName(name+"%iDown" % i)
+        label = systName(name, i if len(groups) > 1 else -1)
+        systHists[-2].SetName(f"{label}Up")
+        systHists[-1].SetName(f"{label}Down")
 
     return systHists
 
