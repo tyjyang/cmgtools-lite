@@ -23,7 +23,7 @@ from tree2yield import setLogging
 from cropNegativeTemplateBins import cropNegativeContent
 
 sys.path.append(os.getcwd() + "/plotUtils/")
-import utility 
+import utility as util
 
 def getQCDScaleIndicesOldNtuples():
     # first number is for renormalization scale, the other is for factorization scale
@@ -99,7 +99,7 @@ infilename = args.infile
 #outfilename = args.outfile
 
 outdir = args.outdir + "/"
-utility.createPlotDirAndCopyPhp(outdir)
+util.createPlotDirAndCopyPhp(outdir)
 
 channelKeyword = "Zmumu" if args.isWlike else "Wmunu"
 postfix = "" if not args.postfix else f"_{args.postfix}"
@@ -145,7 +145,7 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
         if syst not in hsyst:
             hsyst[syst] = {}
         tracker = hsyst[syst]
-    tracker[proc] = utility.projectChargeHist(obj, args.charge, newname)
+    tracker[proc] = util.projectChargeHist(obj, args.charge, newname)
 
 print("-*80")
 print(hnomi)
@@ -179,6 +179,7 @@ for proc in list(hnomi.keys()):
 for syst in systs:
     if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
         continue
+    clabel = "" if not matchDecorr.match(syst) else (syst+chargeKey)
     print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
@@ -195,47 +196,21 @@ for syst in systs:
             massGrid = 10
             for i in range(1, 1 + int(maxMassShift/massGrid)): # start from 1 to skip the nominal weight
                 massShift = i * massGrid
-                ibinUp = cenMassWgt + i # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
-                name = "x_" + proc + "_massShift%dMeVUp" % massShift
-                h2DUp = ROOT.projectTH2FromTH3(h3D, name, ibinUp, ibinUp)
-                ibinDown = cenMassWgt - i # minimum will be 1, i.e. first histogram bin 
-                name = "x_" + proc + "_massShift%dMeVDown" % massShift
-                h2DDown = ROOT.projectTH2FromTH3(h3D, name, ibinDown, ibinDown)
-                h2DUp.Write()
-                h2DDown.Write()           
+                bins = [cenMassWgt-i, cenMassWgt + i] # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
+                writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_massShift%sMeV" % i*massGrid, [(0,1)]))
         if "luminosity" in syst:
-            for ilumi in range(1, 2+1): # only 2 bins, one for each Up/Down
-                name = "x_{p}_lumi{idir}".format(p=proc, idir="Up" if ilumi==1 else "Down") 
-                h2D = ROOT.projectTH2FromTH3(h3D, name, ilumi, ilumi)
-                h2D.Write()
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_lumi", [(0,1)]))
         if "effStatTnP" in syst:
-            writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_effStatTnP", utility.mirrorGroups(h3D), hnomi[proc], True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}{clabel}_effStatTnP", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "effSystTnP" in syst:
             # here h3D is actually a TH2
-            name = "x_" + proc + "_effSystTnPUp" # define this as Up variation
-            h3D.Write(name)
-            h2D_mirror = h3D.Clone(name.replace("Up", "Down"))
-            h2D_mirror = ROOT.mirrorHist(hnomi[proc], h3D, h2D_mirror)
-            h2D_mirror.Write()
+            vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone())]
+            writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
         if "muonL1PrefireStat" in syst:
-            for ieff in range(1, 11+1):
-                systname = "muonL1PrefireStat%d" % ieff
-                if matchDecorr.match(systname):
-                    systname = systname + chargeKey
-                name = "x_{p}_{s}Up".format(p=proc, s=systname)  # define this as Up variation 
-                h2D = ROOT.projectTH2FromTH3(h3D, name, ieff, ieff)
-                h2D_mirror = h2D.Clone(name.replace("Up", "Down"))
-                h2D_mirror = ROOT.mirrorHist(hnomi[proc], h2D, h2D_mirror)
-                h2D.Write()
-                h2D_mirror.Write()
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}{clabel}_muonL1PrefireStat", util.mirrorGroups(11), hnomi[proc], addMirror=True))
         if "muonL1PrefireSyst" in syst:
-            for ieff in range(2, 3+1):
-                systname = "muonL1PrefireSyst"
-                if matchDecorr.match(systname):
-                    systname = systname + chargeKey
-                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if ieff == 2 else "Down")  # define this as Up variation 
-                h2D = ROOT.projectTH2FromTH3(h3D, name, ieff, ieff)
-                h2D.Write()
+            # In this case the nominal is in bin 1
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireSyst", [(1,2)]))
         if "muonPtScaleTest" in syst:
             for iptsyst in range(1, 96+1): # 48 *2, for up and down variations
                 systname = "muonPtScaleTest%d" % (iptsyst if iptsyst <= 48 else (iptsyst-48))
@@ -264,33 +239,16 @@ for syst in systs:
                 h2D.Write()
         #if "pdf" in syst: # now we have more PDF sets, so names are more complicated
         # some temporary hacks to force using alpha for 0.001 variations if present (those in the pdf histogram are the 0.002 variations)
-        if "NNPDF31" in syst or syst == "pdf":
-            if "pdfNNPDF31" in syst or syst == "pdf":
-                # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
-                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", utility.mirrorGroups(100), hnomi[proc], True))
-            elif "alphaS0117NNPDF31" in syst and hasNNPDF31alphaS0001var:
-                name = "x_" + proc + "_alphaSDown"
-                h3D.Write(name)
-            elif "alphaS0119NNPDF31" in syst and hasNNPDF31alphaS0001var:
-                name = "x_" + proc + "_alphaSUp"
-                h3D.Write(name)
-            elif "pdfCT18" in syst:
-                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}NNPDF31", utility.pairGroups(58), hnomi[proc], True))
-        
-        if "NNPDF30" in syst:
-            if "pdfNNPDF30" in syst:
-                writeAndRemove(utility.makeVariationHistsForCharge(h3D, f"x_{proc}"+"_pdf{i}NNPDF31", utility.mirrorGroups(100), hnomi[proc], True))
-            # the following should already be TH2            
-            elif "alphaS0117NNPDF30" in syst:
-                name = "x_" + proc + "_alphaSDown"
-                h3D.Write(name)
-            elif "alphaS0119NNPDF30" in syst:
-                name = "x_" + proc + "_alphaSUp"
-                h3D.Write(name)
-        #WIP
+        if "pdfNNPDF31" in syst:
+            # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", util.mirrorGroups(100), hnomi[proc], True))
+        elif "pdfCT18" in syst:
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}NNPDF31", util.pairGroups(58), hnomi[proc], True))
+        if "alphaS" in syst:
+            # At some point need to scale these, I guess in the cardmaker
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdfAlphaS", [(0,1)]))
                     
 nKeys = outf.GetNkeys()
 outf.Close()
 print(f"{nKeys} histograms saved in file {outfilename}")
-
 

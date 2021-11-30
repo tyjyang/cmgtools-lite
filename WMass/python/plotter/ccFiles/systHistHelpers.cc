@@ -29,7 +29,7 @@ TH2D projectTH2FromTH3(TH3& hist3D, const char* name, size_t binStart, size_t bi
     return hist2D;
 }
 
-std::vector<TH2D> allProjectedSystHists(TH3& hist3d, std::string name, int binStart=0, size_t binEnd=0) {
+std::vector<TH2D> allProjectedSystHists(TH3& hist3d, std::string name, int binStart=1, size_t binEnd=0) {
     if (binEnd == 0)
         binEnd = hist3d.GetNbinsZ()+1;
 

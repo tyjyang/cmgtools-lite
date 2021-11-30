@@ -57,6 +57,7 @@ pdfMap = {
         "onlyW" : False,
         "weight" : "LHEPdfWeight",
         "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],
+        "alphaRange" : "001",
     },
     "nnpdf30" : {
         "name" : "NNPDF30",
@@ -65,6 +66,7 @@ pdfMap = {
         "onlyW" : True,
         "weight" : "LHEPdfWeightAltSet13",
         "alphas" : ["LHEPdfWeightAltSet15[0]", "LHEPdfWeightAltSet16[0]"],
+        "alphaRange" : "001",
     },
     "ct18" : {
         "name" : "CT18",
@@ -73,6 +75,7 @@ pdfMap = {
         "truncate" : True,
         "weight" : "LHEPdfWeightAltSet18",
         "alphas" : ["LHEPdfWeightAltSet18[59]", "LHEPdfWeightAltSet18[60]"],
+        "alphaRange" : "001",
     },
     "mmht" : {
         "name" : "MMHT",
@@ -81,6 +84,7 @@ pdfMap = {
         "truncate" : False,
         "weight" : "LHEPdfWeightAltSet19",
         "alphas" : ["LHEPdfWeightAltSet20[1]", "LHEPdfWeightAltSet20[2]"],
+        "alphaRange" : "001",
     },
 }
 
@@ -95,7 +99,6 @@ parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmas
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str,
                     help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=pdfMap.keys(), default="nnpdf31", help='PDF set to use')
-                    help='PDF set to use')
 #parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str,
 #                    help='Expression for variable on pt axis, specific for tests about pt scale')
 args = parser.parse_args()
@@ -181,8 +184,19 @@ writeNDHist(label = "pdf"+pdfInfo["name"],
             addWeight = weightexpr,
             nBinsSystAxis = pdfInfo["entries"]-1
 )
-line = f"alphaS0117%s_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='%s', ProcessRegexp='W.*'\n" % (pdfInfo["name"], pdfInfo["alphas"][0])
-line += f"alphaS0119%s_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='%s', ProcessRegexp='W.*'\n" % (pdfInfo["name"], pdfInfo["alphas"][1])
+
+writeNDHist(label="alphaS{arange}{name}_".format(arange=pdfInfo["alphaRange"], name=pdfInfo["name"]),
+    varExpr = expression,
+    nsyst = 2,
+    axisLabels = axisNames,
+    weightAxisLabel = "alpha_s index",
+    binning = binning,
+    procRegexp = "W.*",
+    outfile = outf,
+    systBinStart = -0.5,
+    indexStart = 1,
+    addWeight = "ROOT::VecOps::RVec<float>{{{0}\,{1}}}".format(*pdfInfo["alphas"])
+)
 
 ### QCD scales should be used according to central PDF set. For now will keep using NNPDF3.1 in all cases
 

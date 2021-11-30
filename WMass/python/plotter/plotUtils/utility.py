@@ -435,6 +435,7 @@ def projectChargeHist(histnd, charge, name=""):
     ROOT.SetOwnership(htmp, False)
     return htmp
 
+# These are zero indexed, the bins for the projection start at 1 (0 is overflow)
 def getEntries(inp, mirror=False):
     nentries = inp
     if hasattr(inp, "GetNbinsZ"):
@@ -442,12 +443,12 @@ def getEntries(inp, mirror=False):
     # Include last bin
     if mirror:
         nentries *= 2
-    allentries = range(1, nentries+2)
+    allentries = range(nentries)
     return allentries
 
 def mirrorGroups(inp):
     allentries = getEntries(inp, True)
-    mid = int(len(allentries)/2)+1
+    mid = int(len(allentries)/2)
     return list(zip(allentries[:mid:], allentries[mid::]))
 
 def pairGroups(inp):
@@ -469,29 +470,35 @@ def systName(label, entry):
 
 # Should add an option to limit the range
 def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
-    varHists = ROOT.allProjectedSystHists(chargeHist, name)
+    varHists = ROOT.allProjectedSystHists(chargeHist, name) 
     if addMirror:
+        print("Adding mirrors")
         if not histnom:
             raise ValueError("Must pass nominal histogram in order to mirror shape")
         mirrors = ROOT.mirroredHists(histnom, varHists)
         varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
+    return buildVariationHistsForCharge(varHists, name, groups)
 
+def buildVariationHistsForCharge(varHists, name, groups):
     systHists = []
     print("The groups have length", len(groups))
     for i,g in enumerate(groups):
         if len(g) < 2:
             raise ValueError("Syst index groups must have length > 2")
         if len(g) == 2:
-            systHists.append(varHists[g[0]])
-            systHists.append(varHists[g[1]])
+            # Clone needed because vector owns and will delete
+            systHists.append(varHists[g[0]].Clone())
+            systHists.append(varHists[g[1]].Clone())
         else:
             systHists.extend(ROOT.envelopeHists([x[i] for i in g]))
 
         label = systName(name, i if len(groups) > 1 else -1)
         systHists[-2].SetName(f"{label}Up")
         systHists[-1].SetName(f"{label}Down")
+        systHists[-2].SetDirectory(0)
 
     return systHists
+    #return [x.Clone() for x in systHists]
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:
