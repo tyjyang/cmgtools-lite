@@ -185,7 +185,7 @@ writeNDHist(label = "pdf"+pdfInfo["name"],
             nBinsSystAxis = pdfInfo["entries"]-1
 )
 
-writeNDHist(label="alphaS{arange}{name}_".format(arange=pdfInfo["alphaRange"], name=pdfInfo["name"]),
+writeNDHist(label="alphaS{arange}{name}".format(arange=pdfInfo["alphaRange"], name=pdfInfo["name"]),
     varExpr = expression,
     nsyst = 2,
     axisLabels = axisNames,

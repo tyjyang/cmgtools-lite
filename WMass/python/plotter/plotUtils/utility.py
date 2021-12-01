@@ -453,7 +453,7 @@ def mirrorGroups(inp):
 
 def pairGroups(inp):
     allentries = getEntries(inp)
-    return (zip(allentries[::2], allentries[1::2]))
+    return list(zip(allentries[::2], allentries[1::2]))
 
 # For now things this steps are separated, don't really need to be
 def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
@@ -479,26 +479,28 @@ def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirro
         varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
     return buildVariationHistsForCharge(varHists, name, groups)
 
-def buildVariationHistsForCharge(varHists, name, groups):
+def loadSystsFromGroups(group, varHists, name, i):
     systHists = []
-    print("The groups have length", len(groups))
-    for i,g in enumerate(groups):
-        if len(g) < 2:
-            raise ValueError("Syst index groups must have length > 2")
-        if len(g) == 2:
-            # Clone needed because vector owns and will delete
-            systHists.append(varHists[g[0]].Clone())
-            systHists.append(varHists[g[1]].Clone())
-        else:
-            systHists.extend(ROOT.envelopeHists([x[i] for i in g]))
+    if len(group) < 2:
+        raise ValueError("Syst index groups must have length > 2")
+    if len(group) == 2:
+        # Clone needed because vector owns and will delete
+        systHists = (varHists[group[0]].Clone(), varHists[group[1]].Clone())
+    else:
+        systHists = ROOT.envelopeHists([varHists[e] for e in group])
 
-        label = systName(name, i if len(groups) > 1 else -1)
-        systHists[-2].SetName(f"{label}Up")
-        systHists[-1].SetName(f"{label}Down")
-        systHists[-2].SetDirectory(0)
-
+    label = systName(name, i)
+    systHists[0].SetName(f"{label}Up")
+    systHists[1].SetName(f"{label}Down")
     return systHists
-    #return [x.Clone() for x in systHists]
+
+
+def buildVariationHistsForCharge(varHists, name, groups):
+    print("The groups have length", len(groups))
+    systHists = []
+    for i,g in enumerate(groups):
+        systHists.extend(loadSystsFromGroups(g, varHists, name, i if len(groups) > 1 else -1))
+    return systHists
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:

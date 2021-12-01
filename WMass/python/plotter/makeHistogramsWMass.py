@@ -179,7 +179,7 @@ for proc in list(hnomi.keys()):
 for syst in systs:
     if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
         continue
-    clabel = "" if not matchDecorr.match(syst) else (syst+chargeKey)
+    clabel = "" if not matchDecorr.match(syst) else chargeKey
     print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
@@ -197,17 +197,17 @@ for syst in systs:
             for i in range(1, 1 + int(maxMassShift/massGrid)): # start from 1 to skip the nominal weight
                 massShift = i * massGrid
                 bins = [cenMassWgt-i, cenMassWgt + i] # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
-                writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_massShift%sMeV" % i*massGrid, [(0,1)]))
+                writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_massShift{massShift}MeV", [(0,1)]))
         if "luminosity" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_lumi", [(0,1)]))
         if "effStatTnP" in syst:
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}{clabel}_effStatTnP", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_effStatTnP{clabel}", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "effSystTnP" in syst:
             # here h3D is actually a TH2
             vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone())]
             writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
         if "muonL1PrefireStat" in syst:
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}{clabel}_muonL1PrefireStat", util.mirrorGroups(11), hnomi[proc], addMirror=True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireStat{clabel}", util.mirrorGroups(11), hnomi[proc], addMirror=True))
         if "muonL1PrefireSyst" in syst:
             # In this case the nominal is in bin 1
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireSyst", [(1,2)]))
@@ -243,7 +243,7 @@ for syst in systs:
             # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", util.mirrorGroups(100), hnomi[proc], True))
         elif "pdfCT18" in syst:
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}NNPDF31", util.pairGroups(58), hnomi[proc], True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}CT18", util.pairGroups(58)))
         if "alphaS" in syst:
             # At some point need to scale these, I guess in the cardmaker
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdfAlphaS", [(0,1)]))
