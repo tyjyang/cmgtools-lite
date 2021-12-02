@@ -191,23 +191,21 @@ for syst in systs:
             # note, we are now using weights from LHEReweightingWeightCorrectMass
             # it has 21 elements for W and 23 for Z, where the last two values for Z should not be mass shift weights (maybe they are for width)
             # the sorting is based on increasing weight value, where the nominal==1 and is the 11th elements of the array 
-            cenMassWgt = 11 # element xx=10 of LHEReweightingWeight[xx] is the 11th of array, so it is bin 11 of histogram
-            maxMassShift = 100
-            massGrid = 10
-            for i in range(1, 1 + int(maxMassShift/massGrid)): # start from 1 to skip the nominal weight
-                massShift = i * massGrid
-                bins = [cenMassWgt-i, cenMassWgt + i] # maximum will be 21, i.e. last histogrma bin for W (for Z there are two more bins) 
-                writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_massShift{massShift}MeV", [(0,1)]))
+            cenMassWgt = 10 # element xx=10 of LHEReweightingWeight[xx] is the 11th bin of the hist and the 10th entry of the projected array
+            # 10 steps to 100 MeV
+            groups = [[cenMassWgt-i, cenMassWgt+i] for i in range(1,11)]
+            # This is a somewhat hacky way to get it to display the names properly (taking advantage of the indexing)
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_massShift"+"{i}0MeV", groups))
         if "luminosity" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_lumi", [(0,1)]))
         if "effStatTnP" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_effStatTnP{clabel}", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "effSystTnP" in syst:
             # here h3D is actually a TH2
-            vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone())]
+            vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone("tmp"+syst))]
             writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
         if "muonL1PrefireStat" in syst:
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireStat{clabel}", util.mirrorGroups(11), hnomi[proc], addMirror=True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireStat{clabel}", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "muonL1PrefireSyst" in syst:
             # In this case the nominal is in bin 1
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireSyst", [(1,2)]))
@@ -241,7 +239,7 @@ for syst in systs:
         # some temporary hacks to force using alpha for 0.001 variations if present (those in the pdf histogram are the 0.002 variations)
         if "pdfNNPDF31" in syst:
             # this includes actual pdf hessians (bins 1 to 100) and alphaSDown and alphaSUp by 0.002 (bin 101 and 102)
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", util.mirrorGroups(100), hnomi[proc], True))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdf"+"{i}NNPDF31", util.mirrorGroups(h3D)[:100], hnomi[proc], True))
         elif "pdfCT18" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}CT18", util.pairGroups(58)))
         if "alphaS" in syst:

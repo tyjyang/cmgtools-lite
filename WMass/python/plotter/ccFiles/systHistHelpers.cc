@@ -10,11 +10,12 @@
 template <typename T>
 T mirrorHist(T& nominal, T& alternate, T& mirrored) {
     for (size_t b = 0; b <= nominal.GetNcells(); b++) {
-        float y0 = nominal.GetBinContent(b);
-        float yA = alternate.GetBinContent(b);
-        float yM = (yA > 0 && y0 > 0) ? y0*y0/yA : 0;
+        double y0 = nominal.GetBinContent(b);
+        double yA = alternate.GetBinContent(b);
+        double yM = (yA > 0 && y0 > 0) ? y0*y0/yA : 0;
+        //std::cout << "Here yM is " << yM << " y0 is " << y0 << " ratio is " << y0/yA << std::endl;
         mirrored.SetBinContent(b, yM);
-        mirrored.SetBinError(b, alternate.GetBinError(b));
+        mirrored.SetBinError(b, alternate.GetBinError(b)*y0/yA);
     }
     return mirrored;
 }
@@ -51,8 +52,9 @@ std::vector<T> mirroredHists(T& nominal, std::vector<T>& hists) {
     std::vector<T> allHists;
     allHists.reserve(hists.size());
     for (auto& h : hists) {
+        int i = 0;
         std::string name = h.GetName()+std::string("_mirror");
-        T newh = *static_cast<T*>(h.Clone(name.c_str()));
+        T newh = *static_cast<T*>(h.Clone((name+std::to_string(i++)).c_str()));
         allHists.emplace_back(mirrorHist(nominal, h, newh));
     }
     return allHists;

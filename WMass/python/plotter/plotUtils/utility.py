@@ -472,7 +472,6 @@ def systName(label, entry):
 def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
     varHists = ROOT.allProjectedSystHists(chargeHist, name) 
     if addMirror:
-        print("Adding mirrors")
         if not histnom:
             raise ValueError("Must pass nominal histogram in order to mirror shape")
         mirrors = ROOT.mirroredHists(histnom, varHists)
@@ -485,9 +484,9 @@ def loadSystsFromGroups(group, varHists, name, i):
         raise ValueError("Syst index groups must have length > 2")
     if len(group) == 2:
         # Clone needed because vector owns and will delete
-        systHists = (varHists[group[0]].Clone(), varHists[group[1]].Clone())
+        systHists = (varHists[group[0]].Clone(f"{name}{i}tmpup"), varHists[group[1]].Clone(f"{name}{i}tmpdown"))
     else:
-        systHists = ROOT.envelopeHists([varHists[e] for e in group])
+        systHists = ROOT.envelopeHists(ROOT.std.vector([varHists[e] for e in group]))
 
     label = systName(name, i)
     systHists[0].SetName(f"{label}Up")
@@ -496,10 +495,9 @@ def loadSystsFromGroups(group, varHists, name, i):
 
 
 def buildVariationHistsForCharge(varHists, name, groups):
-    print("The groups have length", len(groups))
     systHists = []
     for i,g in enumerate(groups):
-        systHists.extend(loadSystsFromGroups(g, varHists, name, i if len(groups) > 1 else -1))
+        systHists.extend(loadSystsFromGroups(g, varHists, name, i+1 if len(groups) > 1 else -1))
     return systHists
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
