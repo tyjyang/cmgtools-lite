@@ -28,7 +28,7 @@ def wptBinsScales(i):
 
 def writeNDHist(label, varExpr, nsyst, binning, axisLabels, weightAxisLabel, procRegexp,
                 outfile=None, systBinStart=-0.5, indexStart=0,
-                addWeight=None, replaceWeight=None, nBinsSystAxis=None, replaceCutByName=None, isPtScaleTest=False):
+                addWeight=None, replaceWeight=None, nBinsSystAxis=None, replaceCutByName=None):
 
     if nBinsSystAxis == None:
         nBinsSystAxis = nsyst
@@ -61,8 +61,8 @@ parser.add_argument('-o', '--output', dest="outputFile", default='', type=str,
                     help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31",
                     help='PDF set to use')
-#parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str,
-#                    help='Expression for variable on pt axis, specific for tests about pt scale')
+parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str,
+                    help='Expression for variable on pt axis, specific for tests about pt scale')
 args = parser.parse_args()
 
 ###################################
@@ -93,7 +93,19 @@ print(f"Expression: {expression}")
 print(f"Axis names: {axisNames}")
 print(f"Binning   : {binning}")
 print("-"*30)
-#quit()
+
+# for pt scale variations (dummy definitions for now)
+# assume pt is the second variable
+ptDim = 1
+variables_alt = variables[:]
+ptTokens = args.dimension[ptDim].split(";")
+#print(ptTokens)
+ptVar = ptTokens[0]
+ptMin = ptTokens[3] 
+ptMax = ptTokens[4] 
+variables_alt[ptDim] = variables[ptDim].replace(ptVar, args.ptVarScaleTest)
+expression_muonPtScale = "\:".join(variables_alt[::-1])
+
 
 isWlike = args.analysis == "wlike"
 ####################################
@@ -282,19 +294,18 @@ writeNDHist(label = "massWeight",
 #     )
 
 # muon momentum scale test
-# writeNDHist(label = "muonPtScaleTest",
-#             varExpr = expression,  # FIXME
-#             nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
-#             axisLabels = axisNames,
-#             weightAxisLabel = "pT scale nuisance index (Up+Down)",
-#             binning = binning,
-#             procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
-#             outfile = outf,
-#             systBinStart = 0.5,
-#             indexStart = 1,
-#             replaceCutByName = "accept->valueInsideRange(customPtTest\,26\,55)",
-#             isPtScaleTest = True
-# )
+writeNDHist(label = "muonPtScaleTest",
+            varExpr = expression_muonPtScale,  # FIXME
+            nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
+            axisLabels = axisNames,
+            weightAxisLabel = "pT scale nuisance index (Up+Down)",
+            binning = binning,
+            procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            replaceCutByName = f"accept->valueInsideRange({args.ptVarScaleTest}\,{ptMin}\,{ptMax})"
+)
 
 
 print('-'*30)
