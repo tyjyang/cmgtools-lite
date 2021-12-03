@@ -650,7 +650,8 @@ class TreeToYield:
             #print("Preparing yields for %s" % self._cname)
             #print("-"*30)
             self._cutReport = self._tree.Report()
-            #cutReport.Print()
+            #logging.info(f"Printing cut report for {self._cname} (will trigger loop here)")
+            #self._cutReport.Print()
             #print("="*30)
         if closeTreeAfter: self._tfile.Close()
         return histos

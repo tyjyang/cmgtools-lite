@@ -12,9 +12,9 @@ data_G: .* ; SubPath=".*/NanoV8Data/Run2016G/", FillColor=ROOT.kPink+2, Label="D
 
 data_H: .* ; SubPath=".*/NanoV8Data/Run2016H/", FillColor=ROOT.kSpring+9, Label="Data H"
 
-data_preVFP: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, Label="Data"
+data_preVFP: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, Label="Data preVFP"
 
-data_postVFP: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kRed+2, Label="Data"
+data_postVFP: .*; SubPath=".*/NanoV8Data/Run2016(F_postVFP|G|H)/", FillColor=ROOT.kRed+2, Label="Data postVFP"
 
 data_all: .*; SubPath=".*/NanoV8Data/Run2016.*/", Label="Data"
 
