@@ -1354,6 +1354,7 @@ def drawNTH1(hists=[],
              drawErrorAll=False, # default draws error only on first histogram
              yAxisExtendConstant=1.2,
              markerStyleFirstHistogram=20,
+             useLineFirstHistogram=False,
              fillStyleSecondHistogram=3004,
              colorVec=None,
              setRatioRangeFromHisto=False, # currently only for 2 histograms in hists
@@ -1419,9 +1420,12 @@ def drawNTH1(hists=[],
     frame.SetStats(0)
 
     h1.SetLineColor(ROOT.kBlack)
-    h1.SetMarkerColor(ROOT.kBlack)
-    h1.SetMarkerStyle(markerStyleFirstHistogram)
-    #h1.SetMarkerSize(0)
+    if useLineFirstHistogram:
+        h1.SetMarkerSize(0)
+        h1.SetLineWidth(2) 
+    else:
+        h1.SetMarkerColor(ROOT.kBlack)
+        h1.SetMarkerStyle(markerStyleFirstHistogram)
 
     if colorVec != None:
         colors = colorVec
@@ -1483,10 +1487,10 @@ def drawNTH1(hists=[],
     h1.GetYaxis().SetRangeUser(ymin, ymax)
     h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
-    h1.Draw("PE")
+    h1.Draw("HE" if useLineFirstHistogram else "PE")
     for h in hnums:
         h.Draw("HE SAME" if drawErrorAll else "HIST SAME")
-    h1.Draw("PE SAME")
+    h1.Draw("HE SAME" if useLineFirstHistogram else "PE SAME")
 
     nColumnsLeg = 1
     if ";" in legendCoords: 
@@ -1500,8 +1504,9 @@ def drawNTH1(hists=[],
     leg.SetShadowColor(0)
     leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
+    firstHistogramStyle = "L" if useLineFirstHistogram else "PE"
     for il,le in enumerate(legEntries):
-        leg.AddEntry(hists[il],le,"PE" if il == 0 else "L" if onlyLineColor else "FL")
+        leg.AddEntry(hists[il],le,firstHistogramStyle if il == 0 else "L" if onlyLineColor else "FL")
     leg.Draw("same")
     canvas.RedrawAxis("sameaxis")
 

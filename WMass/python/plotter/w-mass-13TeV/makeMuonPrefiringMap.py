@@ -92,7 +92,9 @@ if __name__ == "__main__":
              passCanvas=canvas,
              lumi=35.9,
              onlyLineColor=True,
-             drawErrorAll=True
+             drawErrorAll=True,
+             #markerStyleFirstHistogram=25,
+             useLineFirstHistogram=True
     )
 
     
@@ -106,7 +108,9 @@ if __name__ == "__main__":
              passCanvas=canvas,
              lumi=36.3,
              onlyLineColor=True,
-             drawErrorAll=True
+             drawErrorAll=True,
+             #markerStyleFirstHistogram=25,
+             useLineFirstHistogram=True
     )
 
     fname = args.rootfile[0]
