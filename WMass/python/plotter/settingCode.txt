@@ -9,8 +9,10 @@
 
 # for special root things with THn (on old cmswmass2 machine)
 /data/shared/singularity/pythonrootdevarch.sif
-# on new machine it is instead
+
+# on new machine it is instead (logging in lxplus8s10.cern.ch)
 singularity run /scratch/singularity/pythonrootarchdev
+
 
 # set by hand the CMSSW_BASE variable when you use the code installed as detailed below
 # for me it is
