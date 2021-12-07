@@ -1,0 +1,28 @@
+# name of new variable/collection : definition : regular expression for processes to apply it to
+#
+# && abs(Muon_dz)< 0.2
+#  && GenPart_genPartIdxMother >= 0 # not needed
+bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgId) == 13 : W|Z
+bareMuonsPlus : bareMuons && GenPart_pdgId < 0 : W|Z
+bareMuonsMinus : bareMuons && GenPart_pdgId > 0 : W|Z
+goodTrigObjs : goodMuonTriggerCandidate(TrigObj_id,TrigObj_pt,TrigObj_l1pt,TrigObj_l2pt,TrigObj_filterBits)
+
+tagMuons : Muon_pt > 24 && Muon_charge < 0 && abs(Muon_eta) < 2.4 && abs(Muon_dxybs) < 0.05 && Muon_mediumId > 0 && Muon_isGlobal && Muon_pfRelIso04_all < 0.15 && hasTriggerMatch(Muon_eta,Muon_phi,TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs]) && minDeltaR2many(Muon_eta,Muon_phi,GenPart_eta[bareMuonsMinus][0],GenPart_phi[bareMuonsMinus][0]) < 0.01 
+
+bareMuonsCharge : bareMuonsPlus: Zmumu_plus|Wmunu_plus : bareMuonsMinus
+bareMuonsOther : bareMuonsMinus: Zmumu_plus|Wmunu_plus : bareMuonsPlus
+
+genTagMuons: bareMuonsOther && GenPart_pt > 24
+genTagMuons2p4: genTagMuons && abs(GenPart_eta) < 2.4
+genTagMuons2p1: genTagMuons && abs(GenPart_eta) < 2.1
+
+genPrefsrLeps : Numba::prefsrLeptons(GenPart_status, GenPart_statusFlags, GenPart_pdgId, GenPart_genPartIdxMother, GenPart_pt) : W|Z
+#genPrefsrLepsPlus: genPrefsrLeps && GenPart_pdgId < 0
+#genPrefsrLepsMinus: genPrefsrLeps && GenPart_pdgId > 0
+
+
+ptVgen : transversemomentum(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps]) : W|Z
+phiVgen: phi_pair(GenPart_pt[genPrefsrLeps],GenPart_phi[genPrefsrLeps])
+recoilProjection: parallelProjection(GenPart_phi[bareMuonsCharge][0], ptVgen, phiVgen)
+#recoilProjection: parallelProjectionLepBoson(GenPart_pt[genPrefsrLepsPlus][0], GenPart_phi[genPrefsrLepsPlus][0], GenPart_pt[genPrefsrLepsMinus][0], GenPart_phi[genPrefsrLepsMinus][0])
+#recoilProjection: parallelProjection(GenPart_phi[bareMuonsPlus][0], ptVgen, phiVgen)

@@ -1,0 +1,12 @@
+PR by Josh with new ROOT things
+https://github.com/root-project/root/pull/7499
+
+
+THn documentation
+https://root.cern.ch/doc/v608/classTHnBase.html#af022d7f3e00d3c06fa07aa216b808c29
+
+Other RDF stuff
+https://root.cern/doc/master/classROOT_1_1RDF_1_1RInterface.html#a0a29727f2ceca107e39cbff8b7cb3a1a
+
+THModel things
+https://root.cern/doc/master/structROOT_1_1RDF_1_1TH3DModel.html

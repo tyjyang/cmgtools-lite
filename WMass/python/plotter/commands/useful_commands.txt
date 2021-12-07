@@ -1,0 +1,2 @@
+# Check space on machine
+df -Th | grep "/dev/md0"

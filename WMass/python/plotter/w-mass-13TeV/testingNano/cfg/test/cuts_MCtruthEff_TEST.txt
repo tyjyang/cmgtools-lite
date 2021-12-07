@@ -1,0 +1,4 @@
+alwaystrue : 1 ; BEFOREDEFINE=True
+nGenMuons  : Sum(bareMuonsCharge) == 1
+genaccept  : valueInsideRange(GenPart_pt[bareMuonsCharge][0],20,65) && abs(GenPart_eta[bareMuonsCharge][0]) < 2.4
+

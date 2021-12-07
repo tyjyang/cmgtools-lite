@@ -15,4 +15,8 @@ Zmumu_postVFP: .* : 1976.1700 ; FillColor=ROOT.kAzure+1, Label="Z\#rightarrow\#m
 Wmunu_plus_nomi_postVFP   : .* : 11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu", SubPath="WplusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 Wmunu_minus_nomi_postVFP   : .* : 8562.66 ; FillColor=ROOT.kGray+2, Label="W^{-}\#rightarrow\#mu\#nu", SubPath="WminusJetsToMuNu_postVFP/", TreePath="/data/shared/originalNANO_newWithAltPDF/"
 Zmumu_postVFP_nomi: .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu (no tag)", SubPath="DYJetsToMuMu_postVFP/"
-Zmumu_postVFP_genTag2p4: .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu (gen tag \#eta 2.4)", SubPath="DYJetsToMuMu_postVFP/", AddWeight="Sum(genTagMuons2p4)>0"
+Zmumu_minus_postVFP_nomi: .* : 1976.1700 ; FillColor=ROOT.kAzure+2, Label="Z^{-}\#rightarrow\#mu\#mu (no tag)", SubPath="DYJetsToMuMu_postVFP/"
+Zmumu_plus_postVFP_nomi: .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z^{+}\#rightarrow\#mu\#mu (no tag)", SubPath="DYJetsToMuMu_postVFP/"
+Zmumu_plus_postVFP_genTag2p4: .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z^{+}\#rightarrow\#mu\#mu (gen tag \#eta 2.4)", SubPath="DYJetsToMuMu_postVFP/", AddWeight="Sum(genTagMuons2p4)>0"
+
+Zmumu_minus_postVFP_genTag2p4: .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z^{-}\#rightarrow\#mu\#mu (gen tag \#eta 2.4)", SubPath="DYJetsToMuMu_postVFP/", AddWeight="Sum(genTagMuons2p4)>0"
