@@ -244,7 +244,7 @@ for syst in systs:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_"+"pdf{i}CT18", util.pairGroups(58)))
         if "alphaS" in syst:
             # At some point need to scale these, I guess in the cardmaker
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdfAlphaS", [(0,1)]))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_pdfAlphaS002", [(0,1)]))
                     
 nKeys = outf.GetNkeys()
 outf.Close()

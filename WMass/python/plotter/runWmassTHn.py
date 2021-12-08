@@ -103,6 +103,9 @@ def main(args):
     else:
         weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP)"
 
+    if args.pdf != "nnpdf31":
+        weight = f"{weight}*nominalWeight"
+        
     # SF file
     sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'  "
     # the following is needed for SF made before June 2021
@@ -115,11 +118,15 @@ def main(args):
     # general options not in a specific group
     general = "-f --nanoaod-tree -v 3"
 
+    pdfMod = ""
+    if args.pdf == "ct18":
+        pdfMod = '--rdf-define "nominalWeight : LHEPdfWeightAltSet18[0] : W.* : 1.0"'
+
     ######################################################################
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {pdfMod} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
 
@@ -144,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--era',     type=str, default="all", choices=["all","preVFP","postVFP"], help='Era')
     parser.add_argument('--sub-era', dest="subEra",  type=str, default=None, choices=["B","C","D","E","F","G","H"], help='Optional, sub era (needs dedicated SF and appropriate root file as input)')
     parser.add_argument('-p', '--postfix', type=str, default="", help='Postfix to output folder name')
-    parser.add_argument('-o', '--outdir', type=str, default="", help='Output folder')
+    parser.add_argument('-o', '--outdir', required=True, type=str, default="", help='Output folder')
     parser.add_argument(      '--options', type=str, default="", help='Other options to pass to command, if not already present')
     parser.add_argument(      '--variables', type=str, default=".*", help='Histograms to make from the configuration txt file (.* for all)')
     parser.add_argument(      '--cfg-folder', dest="cfgFolder", type=str, default="w-mass-13TeV/testingNano/cfg/", help='Folder where cfg files are taken. Can leave this default')
@@ -152,13 +159,10 @@ if __name__ == "__main__":
     parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig (but note that eff.syst requires the new version)");
     parser.add_argument("-t", "--time", dest="checkTime", action="store_true", help="Check time of execution using /usr/bin/time -v");
+    parser.add_argument("--pdf", default="nnpdf31", type=str, help="PDF set to use");
     args = parser.parse_args()
     
-    if len(args.outdir):
-        createPlotDirAndCopyPhp(args.outdir)
-    else:
-        print("Error: must provide an output folder with option -o")
-        quit()
+    createPlotDirAndCopyPhp(args.outdir)
 
     print("="*40)
     print("="*40)

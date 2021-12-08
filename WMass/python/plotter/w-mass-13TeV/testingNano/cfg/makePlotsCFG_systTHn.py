@@ -57,7 +57,7 @@ pdfMap = {
         "onlyW" : False,
         "weight" : "LHEPdfWeight",
         "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],
-        "alphaRange" : "001",
+        "alphaRange" : "002",
     },
     "nnpdf30" : {
         "name" : "NNPDF30",
@@ -66,7 +66,7 @@ pdfMap = {
         "onlyW" : True,
         "weight" : "LHEPdfWeightAltSet13",
         "alphas" : ["LHEPdfWeightAltSet15[0]", "LHEPdfWeightAltSet16[0]"],
-        "alphaRange" : "001",
+        "alphaRange" : "002",
     },
     "ct18" : {
         "name" : "CT18",
@@ -75,7 +75,7 @@ pdfMap = {
         "truncate" : True,
         "weight" : "LHEPdfWeightAltSet18",
         "alphas" : ["LHEPdfWeightAltSet18[59]", "LHEPdfWeightAltSet18[60]"],
-        "alphaRange" : "001",
+        "alphaRange" : "002",
     },
     "mmht" : {
         "name" : "MMHT",
@@ -84,7 +84,7 @@ pdfMap = {
         "truncate" : False,
         "weight" : "LHEPdfWeightAltSet19",
         "alphas" : ["LHEPdfWeightAltSet20[1]", "LHEPdfWeightAltSet20[2]"],
-        "alphaRange" : "001",
+        "alphaRange" : "002",
     },
 }
 
@@ -146,21 +146,6 @@ if args.outputFile != "":
 line = f"nominal_: {expression}: {binning}; {axisNames} \n"
 print(line)
 if printToFile: outf.write(line+'\n')
-
-if args.pdfWeights == "nnpdf31":
-    writeNDHist(label = "pdfNNPDF31",
-                varExpr = expression,
-                nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
-                axisLabels = axisNames,
-                weightAxisLabel = "PDF/alpha_{S} index",
-                binning = binning,
-                procRegexp = "W.*|Z.*",
-                outfile = outf,
-                systBinStart = 0.5,
-                indexStart = 0,
-                addWeight = "LHEPdfWeight",
-                nBinsSystAxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
-    )
 
 pdfInfo = pdfMap[args.pdfWeights]
 # Needed if you don't want to use all the PDF weights in the vector (mostly needed for CT18, which didn't get parsed correctly)

@@ -5,8 +5,10 @@
 # first field is a dummy name for user, second one is a regular expression to match the histograms for those systematics (they must exist for shape type, but not for lnN, see later), third field is a regular expression for the processes to assign the syst to (you may also have all histograms but decide to use some systs only for some processes), fourth field is the name of the group appearing in the datacard (the mass one must be declared as SKIPGROUP), fifth field is a keyword for the type of systematics (usually shape or lnN, but shapeNoConstraint for the mass shift), the 6th field is optional, it is used to rescale some systematics in the datacard (when type is shape) or to assign a value (for lnN type, which require no histogram to exist) 
 #
 # second field is actually not used for lnN nuisances (might be used to trigger some behaviour, e.g. decorrelating by charge if needed)
-pdfs       : pdf.*                  : Z.*|W.*|.*fakes.*                  : PDFs       : shape
-alphaS     : alphaS                 : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 0.67
+NNPDF      : pdf\d+NNPDF31.*        : Z.*|W.*|.*fakes.*                  : pdfNNPDF      : shape
+CT18       : pdf\d+CT18.*           : Z.*|W.*|.*fakes.*                  : pdfCT18       : shape : 0.6079
+alphaS001  : .*AlphaS001            : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 0.67
+alphaS002  : .*AlphaS002            : Z.*|W.*|.*fakes.*                  : AlphaS     : shape   : 0.67
 qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDscaleW_WptBin  : shape
 qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
