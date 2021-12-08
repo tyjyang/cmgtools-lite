@@ -1493,8 +1493,12 @@ def drawNTH1(hists=[],
     h1.Draw("HE SAME" if useLineFirstHistogram else "PE SAME")
 
     nColumnsLeg = 1
+    legHeader = ""
     if ";" in legendCoords: 
-        nColumnsLeg = int(legendCoords.split(";")[1])
+        tokens = legendCoords.split(";")
+        nColumnsLeg = int(tokens[1])
+        if len(tokens) > 2:
+            legHeader = tokens[2]
     legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
@@ -1504,6 +1508,8 @@ def drawNTH1(hists=[],
     leg.SetShadowColor(0)
     leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
+    if legHeader:
+        leg.SetHeader(legHeader)
     firstHistogramStyle = "L" if useLineFirstHistogram else "PE"
     for il,le in enumerate(legEntries):
         leg.AddEntry(hists[il],le,firstHistogramStyle if il == 0 else "L" if onlyLineColor else "FL")

@@ -13,6 +13,9 @@
 # on new machine it is instead (logging in lxplus8s10.cern.ch)
 singularity run /scratch/singularity/pythonrootarchdev
 
+# how to use podman on new machine
+https://cern.service-now.com/service-portal?id=kb_article&n=KB0006874&kb_category=1bb5e7f11bbc9494c91765b0ab4bcb18
+
 
 # set by hand the CMSSW_BASE variable when you use the code installed as detailed below
 # for me it is

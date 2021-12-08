@@ -153,7 +153,6 @@ PV_z: PV_z: 100,-20,20; XTitle="Primary vertex z (cm)", Legend='TC', IncludeOver
 
 OtherPV_z: OtherPV_z: 100,-20,20; XTitle="Other primary vertex z (cm)", Legend='TC', IncludeOverflows=True
 
-
 ## W like variables
 # should be no longer needed, but kept for reference for the moment (definition might be outdated)
 
