@@ -5,7 +5,7 @@ import os, os.path
 from array import array
 import logging
 from collections import OrderedDict
-import numbaDefines
+import numbaIncludes
 import json
 
 ## safe batch mode

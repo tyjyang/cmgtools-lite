@@ -446,8 +446,8 @@ def getEntries(inp, mirror=False):
     allentries = range(nentries)
     return allentries
 
-def mirrorGroups(inp):
-    allentries = getEntries(inp, True)
+def mirrorGroups(inp, addMirror=True):
+    allentries = getEntries(inp, addMirror)
     mid = int(len(allentries)/2)
     return list(zip(allentries[:mid:], allentries[mid::]))
 
@@ -723,6 +723,7 @@ def drawCorrelationPlot(h2D_tmp,
                         ):
 
 
+    print("Inside here at least")
     ROOT.TH1.SetDefaultSumw2()
     adjustSettings_CMS_lumi()
 

@@ -218,7 +218,19 @@ for ipt in range(1,1+NVTPBINS):
 
 
 ## end of QCD scales
-    
+
+writeNDHist(label = "CMS_scale_m",
+            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvars"),
+            nsyst = 288*2, 
+            axisLabels = axisNames,
+            weightAxisLabel = "Muon scale nuisance index",
+            binning = binning,
+            procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+)
+
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
 # NOTE: from September 2021 we have changed pt binning, now it is 15 pt bins from 24 to 65, the bins are: 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 47, 50, 55, 60, 65

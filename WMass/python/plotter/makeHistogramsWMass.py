@@ -147,9 +147,6 @@ for ikey,e in enumerate(fin.GetListOfKeys()):
         tracker = hsyst[syst]
     tracker[proc] = util.projectChargeHist(obj, args.charge, newname)
 
-print("-*80")
-print(hnomi)
-
 fin.Close()
 
 print('-'*30)
@@ -180,7 +177,6 @@ for syst in systs:
     if args.alphaFromPdfHisto and any(x in syst for x in ["alphaS0117NNPDF31", "alphaS0119NNPDF31"]):
         continue
     clabel = "" if not matchDecorr.match(syst) else chargeKey
-    print(f"Processing {syst}")
     procs = list(hsyst[syst].keys())
     for proc in procs:
         h3D = hsyst[syst][proc] # this might actually be a THn with n=4
@@ -204,6 +200,9 @@ for syst in systs:
             # here h3D is actually a TH2
             vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone("tmp"+syst))]
             writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
+        if "CMS_scale_m" in syst:
+            # Already has the mirrored hists
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonScale{clabel}", util.mirrorGroups(h3D, addMirror=False)))
         if "muonL1PrefireStat" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireStat{clabel}", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "muonL1PrefireSyst" in syst:

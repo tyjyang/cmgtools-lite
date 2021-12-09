@@ -15,8 +15,12 @@ custom_muon_pt: custom_Muon_pt[goodMuonsCharge][0]: 40,20,60; XTitle="Muon p_{T}
 
 custom_muon_pt_eta: custom_Muon_pt[goodMuonsCharge][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,29,26,55 ; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', Legend='TR'
 
+muon_pt_scalevars: indices(576, 0)\:Muon_ptvars: 29,26,55,576,-0.5,575.5 ; XTitle='Muon p_{T} (GeV)', YTitle='Muon scale nuisance index', 'Legend='TR', ProcessRegexp='Z.*'
 
-muon_pt: Muon_pt[goodMuonsCharge][0]: 55,25,80; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+muon_pt: Muon_pt[goodMuonsCharge][0]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+
+muon_pt_scale1up: Muon_ptvars[0]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
+muon_pt_scale2up: Muon_ptvars[1]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
 muon_pt_all: Muon_pt[goodMuons]: 55,25,80; XTitle="Both muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
