@@ -9,6 +9,9 @@ from array import array
 import shutil
 from CMS_lumi import *
     
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
+
 _canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
@@ -374,7 +377,7 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 #             # hout = ROOT.THn(newname, "", ndim, array("i", axisNbins), array('d', axisBinMin), array('d', axisBinMax))
 #             for i in range(ndim):
 #                 hin.GetAxis(i).SetRange(axesNewMin[i], axesNewMax[i])
-#             hout = hin.ProjectionND(ndim, array("i", [i for i in range(ndim)]))
+#             hout = hin.rojectionND(ndim, array("i", [i for i in range(ndim)]))
 #             hout.SetName(newname)
 #             hout.SetTitle(newname)
 #             return hout
@@ -408,6 +411,99 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
         
 #########################################################################
 
+def projectChargeHist(histnd, charge, name=""):
+    charges = ["minus", "plus"]
+    chargeBin = charges.index(charge)+1
+    if not name:
+        name = "_".join([histnd.GetName(), charge[0]])
+
+    if "THn" in histnd.ClassName():
+        dim = histnd.GetNdimensions()
+        # charge is on the 3rd axis, so axis number 2 (starts from 0)
+        chargeDim = 2
+        dims = np.array(range(dim), dtype=np.intc)
+        dims = np.delete(dims, chargeDim)
+        histnd.GetAxis(chargeDim).SetRange(chargeBin, chargeBin)  
+        htmp = histnd.Projection(0, 1, 3, "E") if dim == 4 else histnd.ProjectionND(dim-1, dims, "E")
+        htmp.SetName(name)
+    elif "TH3" in histnd.ClassName():
+        htmp = ROOT.projectTH2FromTH3(histnd, name, chargeBin, chargeBin)
+    else:
+        raise RuntimeError("Charge hist must be a TH3 or THn. Was %s" % histnd.ClassName())
+
+    if htmp.InheritsFrom("TH1"):
+        htmp.SetDirectory(0)
+    ROOT.SetOwnership(htmp, False)
+    return htmp
+
+# These are zero indexed, the bins for the projection start at 1 (0 is overflow)
+def getEntries(inp, mirror=False):
+    nentries = inp
+    if hasattr(inp, "GetNbinsZ"):
+        nentries = inp.GetNbinsZ()
+    # Include last bin
+    if mirror:
+        nentries *= 2
+    allentries = range(nentries)
+    return allentries
+
+def mirrorGroups(inp, addMirror=True):
+    allentries = getEntries(inp, addMirror)
+    mid = int(len(allentries)/2)
+    return list(zip(allentries[:mid:], allentries[mid::]))
+
+def pairGroups(inp):
+    allentries = getEntries(inp)
+    return list(zip(allentries[::2], allentries[1::2]))
+
+# For now things this steps are separated, don't really need to be
+def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
+    chargeHist = projectChargeHist(histnd, charge, "tmp"+name)
+    return makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
+
+def systName(label, entry):
+    if entry < 0:
+        return label
+    if "{i}" in label:
+        return label.format(i=entry)
+    else:
+        return label+str(entry)
+
+# Should add an option to limit the range
+def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
+    histType = chargeHist.ClassName()
+    outType = histType.replace("2", "1").replace("3", "2")
+    if "TH2" not in histType and "TH3" not in histType:
+        raise ValueError("Can only make variation hists from a TH2 or TH3")
+    varHists = ROOT.allProjectedSystHists[outType, histType](chargeHist, name) 
+    if addMirror:
+        if not histnom:
+            raise ValueError("Must pass nominal histogram in order to mirror shape")
+        mirrors = ROOT.mirroredHists(histnom, varHists)
+        varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
+    return buildVariationHistsForCharge(varHists, name, groups)
+
+def loadSystsFromGroups(group, varHists, name, i):
+    systHists = []
+    if len(group) < 2:
+        raise ValueError("Syst index groups must have length > 2")
+    if len(group) == 2:
+        # Clone needed because vector owns and will delete
+        systHists = (varHists[group[0]].Clone(f"{name}{i}tmpup"), varHists[group[1]].Clone(f"{name}{i}tmpdown"))
+    else:
+        systHists = ROOT.envelopeHists(ROOT.std.vector([varHists[e] for e in group]))
+
+    label = systName(name, i)
+    systHists[0].SetName(f"{label}Up")
+    systHists[1].SetName(f"{label}Down")
+    return systHists
+
+
+def buildVariationHistsForCharge(varHists, name, groups):
+    systHists = []
+    for i,g in enumerate(groups):
+        systHists.extend(loadSystsFromGroups(g, varHists, name, i+1 if len(groups) > 1 else -1))
+    return systHists
 
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:
@@ -632,6 +728,7 @@ def drawCorrelationPlot(h2D_tmp,
                         ):
 
 
+    print("Inside here at least")
     ROOT.TH1.SetDefaultSumw2()
     adjustSettings_CMS_lumi()
 

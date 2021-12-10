@@ -31,3 +31,6 @@ bareMuons : GenPart_status == 1 && (GenPart_statusFlags & 1) && abs(GenPart_pdgI
 #Muon_corPt: smearAndShiftPt(Muon_pt,shift,0.0)
 customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26.0,55.0)
 
+muonPtVarUp : Numba::calibratedPtUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
+muonPtVarDown : Numba::calibratedPtDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
+Muon_ptvars : concatRVecsToArray<double, 288, 288>(muonPtVarUp, muonPtVarDown)

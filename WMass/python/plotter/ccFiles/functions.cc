@@ -42,43 +42,28 @@ double genWeightLargeRemoved(const double& wgt, const double& max) {
   
 }
 
-Vec_i indices(const Vec_f& vec, const int& start = 0) {
-    Vec_i res(vec.size(), 0);
+template <typename T>
+ROOT::VecOps::RVec<int> indices(const ROOT::VecOps::RVec<T>& vec, const int start = 0) {
+    ROOT::VecOps::RVec<int> res(vec.size(), 0);
     std::iota(std::begin(res), std::end(res), start);
     return res;
 }
 
-Vec_i indices(const int& size, const int& start = 0) {
-    Vec_i res(size, 0);
+// Can return a std::array
+ROOT::VecOps::RVec<int> indices(const size_t size, const int start = 0) {
+    ROOT::VecOps::RVec<int> res(size, 0);
     std::iota(std::begin(res), std::end(res), start);
     return res;
 }
 
-
-Vec_f scalarToRVec(const float& var, const int& size) {
-
-  Vec_f res(size,var); // initialize to var
-  return res;
-  
-}
-
-Vec_f scalarToRVec(const float var, const Vec_d& size) {
-  Vec_f res(size.size(), var); // initialize to var
-  return res;
-}
-
-Vec_f scalarToRVec(const float& var, const Vec_f& size) {
-
-  Vec_f res(size.size(),var); // initialize to var
-  return res;
-  
-}
-
-Vec_f scalarToRVec(const float& var, const Vec_i& size) {
-
-  Vec_f res(size.size(),var); // initialize to var
-  return res;
-  
+// Thanks stack overflow https://stackoverflow.com/questions/42749032/concatenating-a-sequence-of-stdarrays
+template<typename T, int N, int M>
+auto concatRVecsToArray(const ROOT::VecOps::RVec<T>& vec1, ROOT::VecOps::RVec<T>& vec2)
+{
+    std::array<T, N+M> result;
+    std::copy (vec1.cbegin(), vec1.cend(), result.begin());
+    std::copy (vec2.cbegin(), vec2.cend(), result.begin() + N);
+    return result;
 }
 
 TRandom3 *rand_smear = new TRandom3(0);

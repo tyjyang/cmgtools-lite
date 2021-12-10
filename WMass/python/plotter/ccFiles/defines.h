@@ -2,7 +2,6 @@
 #define DEFINES_H
 
 #include <ROOT/RVec.hxx>
-#include <ROOT/RVec.hxx>
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RDF/RInterface.hxx>
 
