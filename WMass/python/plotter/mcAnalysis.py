@@ -7,7 +7,8 @@ import pickle, re, random, time, glob, math
 import argparse
 import json
 
-ROOT.ROOT.EnableImplicitMT()
+# EnableImplicitMT is now called inside the MCAnalysis class before creating the Dataframe, where the number of threads can be chosen with an option (by default all are used)
+#ROOT.ROOT.EnableImplicitMT(128)  
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
 
 #_T0 = long(ROOT.gSystem.Now())
@@ -248,6 +249,8 @@ class MCAnalysis:
                 field[0] = f"{field[0]}__ext{cnindex}" # add number to component to distinguish it from other ones
             if self._options.rdfRange:
                 ROOT.ROOT.DisableImplicitMT() # to be called before creating the RDataFrame
+            else:
+                ROOT.ROOT.EnableImplicitMT(self._options.nThreads)
             self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
             #tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
             if self._options.rdfRange:
@@ -688,6 +691,7 @@ class MCAnalysis:
 
 def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     if addTreeToYieldOnesToo: addTreeToYieldOptions(parser)
+    parser.add_argument(      "--n-thread", dest="nThreads", type=int, default=0, help="Number of threads to use for RDF, if 0 the maximum available is used");
     parser.add_argument("-P", "--path", action="append", type=str, default=[], help="Path to directory with input trees and pickle files. Can supply multiple paths which will be searched in order. (default: ./") 
     parser.add_argument("--RP", "--remote-path", dest="remotePath", type=str, help="path to remote directory with trees, but not other metadata (default: same as path)") 
     parser.add_argument("-p", "--process", dest="processes", type=str, default=[], action="append", help="Processes to print (comma-separated list of regexp, can specify multiple ones)");

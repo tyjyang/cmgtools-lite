@@ -59,7 +59,7 @@ def main(args):
     define = cfgFolder + "test/rdfDefine_fakerate.txt"
 
     # input samples
-    samples = "/data/shared/originalNANO/"
+    samples = "/scratch/shared/originalNANO/"
 
     # output
     plotdir = f"{outdir}/fakeRateRegion{postfix}/{folderEra}/allTHn/"
@@ -104,22 +104,22 @@ def main(args):
         weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP)"
 
     # SF file
-    sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'  "
+    sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'"
     # the following is needed for SF made before June 2021
     if args.oldSFname:
-        sfOpt += " --old-sf-name "
+        sfOpt += " --old-sf-name"
     
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
     # general options not in a specific group
-    general = "-f --nanoaod-tree -v 3"
+    general = "--nanoaod-tree -v 3"
 
     ######################################################################
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}' -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
 
