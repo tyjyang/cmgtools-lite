@@ -414,6 +414,9 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 def projectChargeHist(histnd, charge, name=""):
     charges = ["minus", "plus"]
     chargeBin = charges.index(charge)+1
+    if not name:
+        name = "_".join([histnd.GetName(), charge[0]])
+
     if "THn" in histnd.ClassName():
         dim = histnd.GetNdimensions()
         # charge is on the 3rd axis, so axis number 2 (starts from 0)
@@ -422,8 +425,6 @@ def projectChargeHist(histnd, charge, name=""):
         dims = np.delete(dims, chargeDim)
         histnd.GetAxis(chargeDim).SetRange(chargeBin, chargeBin)  
         htmp = histnd.Projection(0, 1, 3, "E") if dim == 4 else histnd.ProjectionND(dim-1, dims, "E")
-        if not name:
-            name = "_".join([histnd.GetName(), charge[0]])
         htmp.SetName(name)
     elif "TH3" in histnd.ClassName():
         htmp = ROOT.projectTH2FromTH3(histnd, name, chargeBin, chargeBin)
@@ -458,7 +459,7 @@ def pairGroups(inp):
 # For now things this steps are separated, don't really need to be
 def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
     chargeHist = projectChargeHist(histnd, charge, "tmp"+name)
-    makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
+    return makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
 
 def systName(label, entry):
     if entry < 0:
@@ -470,7 +471,11 @@ def systName(label, entry):
 
 # Should add an option to limit the range
 def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
-    varHists = ROOT.allProjectedSystHists(chargeHist, name) 
+    histType = chargeHist.ClassName()
+    outType = histType.replace("2", "1").replace("3", "2")
+    if "TH2" not in histType and "TH3" not in histType:
+        raise ValueError("Can only make variation hists from a TH2 or TH3")
+    varHists = ROOT.allProjectedSystHists[outType, histType](chargeHist, name) 
     if addMirror:
         if not histnom:
             raise ValueError("Must pass nominal histogram in order to mirror shape")

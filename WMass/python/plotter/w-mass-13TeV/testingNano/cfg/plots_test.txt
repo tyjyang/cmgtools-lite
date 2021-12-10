@@ -19,6 +19,7 @@ muon_pt_scalevars: indices(576, 0)\:Muon_ptvars: 29,26,55,576,-0.5,575.5 ; XTitl
 
 muon_pt: Muon_pt[goodMuonsCharge][0]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 
+muon_pt_allscale: Muon_ptvars: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 muon_pt_scale1up: Muon_ptvars[0]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 muon_pt_scale2up: Muon_ptvars[1]: 29,26,55; XTitle="Muon p_{T} (GeV)", Legend='TR', IncludeOverflows=True
 

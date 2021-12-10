@@ -202,7 +202,9 @@ for syst in systs:
             writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
         if "CMS_scale_m" in syst:
             # Already has the mirrored hists
-            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonScale{clabel}", util.mirrorGroups(h3D, addMirror=False)))
+            writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonScale", util.mirrorGroups(h3D, addMirror=False)))
+            # As a cross check
+            #writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonScaleMirror", [(i,i+576) for i in range(288)], hnomi[proc], addMirror=True))
         if "muonL1PrefireStat" in syst:
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireStat{clabel}", util.mirrorGroups(h3D), hnomi[proc], addMirror=True))
         if "muonL1PrefireSyst" in syst:

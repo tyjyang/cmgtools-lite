@@ -49,6 +49,7 @@ ROOT::VecOps::RVec<int> indices(const ROOT::VecOps::RVec<T>& vec, const int star
     return res;
 }
 
+// Can return a std::array
 ROOT::VecOps::RVec<int> indices(const size_t size, const int start = 0) {
     ROOT::VecOps::RVec<int> res(size, 0);
     std::iota(std::begin(res), std::end(res), start);
@@ -63,34 +64,6 @@ auto concatRVecsToArray(const ROOT::VecOps::RVec<T>& vec1, ROOT::VecOps::RVec<T>
     std::copy (vec1.cbegin(), vec1.cend(), result.begin());
     std::copy (vec2.cbegin(), vec2.cend(), result.begin() + N);
     return result;
-}
-
-
-
-Vec_f scalarToRVec(const float& var, const int& size) {
-
-  Vec_f res(size,var); // initialize to var
-  return res;
-  
-}
-
-Vec_f scalarToRVec(const float var, const Vec_d& size) {
-  Vec_f res(size.size(), var); // initialize to var
-  return res;
-}
-
-Vec_f scalarToRVec(const float& var, const Vec_f& size) {
-
-  Vec_f res(size.size(),var); // initialize to var
-  return res;
-  
-}
-
-Vec_f scalarToRVec(const float& var, const Vec_i& size) {
-
-  Vec_f res(size.size(),var); // initialize to var
-  return res;
-  
 }
 
 TRandom3 *rand_smear = new TRandom3(0);

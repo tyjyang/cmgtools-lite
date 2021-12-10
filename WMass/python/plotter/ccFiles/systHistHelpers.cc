@@ -30,18 +30,34 @@ TH2D projectTH2FromTH3(TH3& hist3D, const char* name, size_t binStart, size_t bi
     return hist2D;
 }
 
-std::vector<TH2D> allProjectedSystHists(TH3& hist3d, std::string name, int binStart=1, size_t binEnd=0) {
+TH2D projectSystHist(TH3& hist3D, const char* name, size_t systIdx) {
+    return projectTH2FromTH3(hist3D, name, systIdx, systIdx);
+}
+
+TH1D projectSystHist(TH2& hist2D, const char* name, size_t systIdx) {
+    return *static_cast<TH1D*>(hist2D.ProjectionX(name, systIdx, systIdx, "e"));
+}
+
+int systBins(TH3& hist3d) {
+    return hist3d.GetNbinsZ()+1;
+}
+
+int systBins(TH2& hist2d) {
+    return hist2d.GetNbinsY()+1;
+}
+template <typename T, typename P>
+std::vector<T> allProjectedSystHists(P& systhist, std::string name, int binStart=1, size_t binEnd=0) {
     if (binEnd == 0)
-        binEnd = hist3d.GetNbinsZ()+1;
+        binEnd = systBins(systhist);
 
     if (binStart >= binEnd)
         throw std::range_error("Invalid range specified. binStart must be less than binEnd");
 
-    std::vector<TH2D> allHists;
+    std::vector<T> allHists;
     allHists.reserve(binEnd-binStart);
     for (size_t i = binStart; i < binEnd; i++) {
         std::string newName = name+to_string(i);
-        allHists.emplace_back(projectTH2FromTH3(hist3d, newName.c_str(), i, i));
+        allHists.emplace_back(projectSystHist(systhist, newName.c_str(), i));
     }
 
     return allHists;

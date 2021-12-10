@@ -9,7 +9,7 @@ cov,binsx,binsy = f["covariance_matrix"].to_numpy()
 
 w,v = np.linalg.eigh(cov)
 
-@numba.jit(nopython=True, nogil=True)
+@numba.jit('float64[:](float64, float64, float64, boolean)', nopython=True, nogil=True, debug=True)
 def calibratedPt(pt, eta, charge, isUp):
     netabins = 48
     nparams = 6
