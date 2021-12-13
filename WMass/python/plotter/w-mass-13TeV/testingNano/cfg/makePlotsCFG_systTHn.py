@@ -16,6 +16,8 @@ ROOT.gROOT.SetBatch(True)
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from copy import *
+sys.path.append(os.getcwd())
+from wmassUtilities.theory import pdfMap
 
 def wptBinsScales(i):
     # 5% quantiles (to be redone on the new MC)
@@ -49,44 +51,6 @@ def writeNDHist(label, varExpr, nsyst, binning, axisLabels, weightAxisLabel, pro
     if outfile:
         outfile.write(line+'\n')
 
-pdfMap = {
-    "nnpdf31" : {
-        "name" : "NNPDF31",
-        "entries" : 103,
-        "onlyW" : False,
-        "truncate" : False,
-        "weight" : "LHEPdfWeight",
-        "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],
-        "alphaRange" : "001",
-    },
-    "nnpdf30" : {
-        "name" : "NNPDF30",
-        "entries" : 101,
-        "onlyW" : True,
-        "truncate" : False,
-        "weight" : "LHEPdfWeightAltSet13",
-        "alphas" : ["LHEPdfWeightAltSet15[0]", "LHEPdfWeightAltSet16[0]"],
-        "alphaRange" : "001",
-    },
-    "ct18" : {
-        "name" : "CT18",
-        "entries" : 59,
-        "onlyW" : True,
-        "truncate" : True,
-        "weight" : "LHEPdfWeightAltSet18",
-        "alphas" : ["LHEPdfWeightAltSet18[59]", "LHEPdfWeightAltSet18[60]"],
-        "alphaRange" : "002",
-    },
-    "mmht" : {
-        "name" : "MMHT",
-        "entries" : 51,
-        "onlyW" : True,
-        "truncate" : False,
-        "weight" : "LHEPdfWeightAltSet19",
-        "alphas" : ["LHEPdfWeightAltSet20[1]", "LHEPdfWeightAltSet20[2]"],
-        "alphaRange" : "002",
-    },
-}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dimension", nargs="+", default=['Muon_eta[goodMuons][0];Muon #eta;48;-2.4;2.4',
@@ -163,6 +127,7 @@ pdfInfo = pdfMap[args.pdfWeights]
 # Needed if you don't want to use all the PDF weights in the vector (mostly needed for CT18, which didn't get parsed correctly)
 weight = pdfInfo["weight"]
 entries=pdfInfo["entries"]
+# for pdfs other than NNPDF3.1 (which is the default set in the ntuples) we will need to add the nominal pdf weight in the global weight expression, so to get pdf variations correctly we need to divide by it here 
 weightexpr = weight if "Alt" not in weight else f"(1.0/{weight}[0])*" + (str(weight) if not pdfInfo["truncate"] else
     f" ROOT::VecOps::RVec<float>(std::begin({weight})\, std::begin({weight})+{entries})")
 print(weightexpr)
@@ -190,7 +155,7 @@ writeNDHist(label="alphaS{arange}{name}".format(arange=pdfInfo["alphaRange"], na
             binning = binning,
             procRegexp = regex,
             outfile = outf,
-            systBinStart = -0.5,
+            systBinStart = 0.5,
             indexStart = 1,
             addWeight = "ROOT::VecOps::RVec<float>{{{0}\,{1}}}".format(*pdfInfo["alphas"])
 )
