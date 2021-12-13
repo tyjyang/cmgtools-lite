@@ -6,6 +6,7 @@ from array import array
 import logging
 from collections import OrderedDict
 import numbaIncludes
+#import numbaDefines
 import json
 
 ## safe batch mode
