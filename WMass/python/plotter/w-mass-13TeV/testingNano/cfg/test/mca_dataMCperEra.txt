@@ -1,0 +1,146 @@
+data_B: .* ; SubPath=".*/NanoV8Data/Run2016B/", FillColor=ROOT.kBlack, Label="Data B"
+
+data_C: .* ; SubPath=".*/NanoV8Data/Run2016C/", FillColor=ROOT.kBlue, Label="Data C"
+
+data_D: .* ; SubPath=".*/NanoV8Data/Run2016D/", FillColor=ROOT.kOrange+2, Label="Data D"
+
+data_E: .* ; SubPath=".*/NanoV8Data/Run2016E/", FillColor=ROOT.kRed+2, Label="Data E"
+
+data_F: .* ; SubPath=".*/NanoV8Data/Run2016F/", FillColor=ROOT.kGreen+2, Label="Data F"
+
+data_new_B: .* ; SubPath=".*/NanoV8Data_Mar2021/Run2016B/", FillColor=ROOT.kGray+2, Label="Data B (new)"
+
+data_new_C: .* ; SubPath=".*/NanoV8Data_Mar2021/Run2016C/", FillColor=ROOT.kBlue, Label="Data C (new)"
+
+data_new_D: .* ; SubPath=".*/NanoV8Data_Mar2021/Run2016D/", FillColor=ROOT.kOrange+2, Label="Data D (new)"
+
+data_new_E: .* ; SubPath=".*/NanoV8Data_Mar2021/Run2016E/", FillColor=ROOT.kRed+2, Label="Data E (new)"
+
+data_new_F: .* ; SubPath=".*/NanoV8Data_Mar2021/Run2016F/", FillColor=ROOT.kGreen+2, Label="Data F (new)"
+
+
+data_preVFP_v1: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kBlue, Label="Data v1"
+
+data_preVFP_v2: .*; SubPath=".*/NanoV8Data/Run2016(B|C|D|E|F)/", FillColor=ROOT.kRed+2, Label="Data v2", AddWeight="_get_fullMuonDataEfficiencyEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,BToF)"
+
+
+Zmumu_preVFP : .* : 1976.1700 ; FillColor=ROOT.kAzure+2, Label="Z\#rightarrow\#mu\#mu", SubPath="DYJetsToMuMu_preVFP/"
+
+Ztautau_preVFP   : .* : 1146.5738 ; FillColor=ROOT.kSpring+9, Label="Z\#rightarrow\#tau\#tau", SubPath="DYJetsToTauTau_preVFP/"
+
+Top_preVFP   : .* :   3.74; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="SingleTop_schan_lepDecays_preVFP/"
+Top_preVFP   : .* :  19.55; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="SingleTop_tW_antitop_noFullyHadronic_preVFP/"
+Top_preVFP   : .* :  70.79; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="SingleTop_tchan_antitop_inclusive_preVFP/"
+Top_preVFP   : .* : 119.71; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="SingleTop_tchan_top_inclusive_preVFP/"
+Top_preVFP   : .* :  88.29; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="TTbar_2l2nu_preVFP/"
+Top_preVFP   : .* : 365.64; FillColor=ROOT.kGreen+2, Label="t quark", SubPath="TTbar_SemiLeptonic_preVFP/"
+
+Diboson_preVFP: .* :  75.8; FillColor=ROOT.kViolet, Label="Diboson", SubPath="WW_inclusive_preVFP/"
+Diboson_preVFP: .* :  27.6; FillColor=ROOT.kViolet, Label="Diboson", SubPath="WZ_inclusive_preVFP/"
+Diboson_preVFP: .* : 0.564; FillColor=ROOT.kViolet, Label="Diboson", SubPath="ZZ_2l2nu_preVFP/"  
+
+
+Zmumu_B_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlack, Label="Z\#rightarrow\#mu\#mu PU_B", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)"
+
+Zmumu_C_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu PU_C", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)"
+
+Zmumu_D_preVFP : .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z\#rightarrow\#mu\#mu PU_D", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)"
+
+Zmumu_E_preVFP : .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu PU_E", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)"
+
+Zmumu_F_preVFP : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu PU_F", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)"
+
+##
+## Eff corr in MC
+##
+
+Zmumu_C_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu PU_C", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,C)"
+
+Zmumu_D_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z\#rightarrow\#mu\#mu PU_D", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,D)"
+
+Zmumu_E_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu PU_E", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,E)"
+
+Zmumu_F_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu PU_F", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F)"
+
+# eff corr from tnp and tracking+reco efficiency from MC truth
+
+Zmumu_B_TEST_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlack, Label="Z\#rightarrow\#mu\#mu PU_B", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,B)"
+
+Zmumu_C_TEST_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu PU_C", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,C)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,C)"
+
+Zmumu_D_TEST_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z\#rightarrow\#mu\#mu PU_D", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,D)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,D)"
+
+Zmumu_E_TEST_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu PU_E", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,E)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,E)"
+
+Zmumu_F_TEST_effCor_preVFP : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu PU_F", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F)"
+
+
+## no iso SF
+Zmumu_C_effCorNoIso_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu PU_C", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,C\,true\,true\,true)"
+
+Zmumu_D_effCorNoIso_preVFP : .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z\#rightarrow\#mu\#mu PU_D", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,D\,true\,true\,true)"
+
+Zmumu_E_effCorNoIso_preVFP : .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu PU_E", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,E\,true\,true\,true)"
+
+Zmumu_F_effCorNoIso_preVFP : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu PU_F", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F\,true\,true\,true)"
+
+
+
+##
+## Eff corr in MC from MC truth efficiency (divide by efficiency when comparing different eras)
+##
+
+## Zmumu
+
+Zmumu_B_mcTruthEff_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlack, Label="Z\#rightarrow\#mu\#mu PU_B", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,B)"
+
+Zmumu_C_mcTruthEff_preVFP : .* : 1976.1700 ; FillColor=ROOT.kBlue, Label="Z\#rightarrow\#mu\#mu PU_C", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,C)"
+
+Zmumu_D_mcTruthEff_preVFP : .* : 1976.1700 ; FillColor=ROOT.kOrange+2, Label="Z\#rightarrow\#mu\#mu PU_D", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,D)"
+
+Zmumu_E_mcTruthEff_preVFP : .* : 1976.1700 ; FillColor=ROOT.kGreen+2, Label="Z\#rightarrow\#mu\#mu PU_E", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,E)"
+
+Zmumu_F_mcTruthEff_preVFP : .* : 1976.1700 ; FillColor=ROOT.kRed+2, Label="Z\#rightarrow\#mu\#mu PU_F", SubPath="DYJetsToMuMu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,Muon_pt[goodMuonsOther][0]\,Muon_eta[goodMuonsOther][0]\,F)"
+
+## Wmunu
+
+Wmunu_plus_B_mcTruthEff_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu PU_B", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,B)"
+
+Wmunu_plus_C_mcTruthEff_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlue, Label="W^{+}\#rightarrow\#mu\#nu PU_C", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,C)"
+
+Wmunu_plus_D_mcTruthEff_preVFP : .* : 11572.19 ; FillColor=ROOT.kOrange+2, Label="W^{+}\#rightarrow\#mu\#nu PU_D", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,D)"
+
+Wmunu_plus_E_mcTruthEff_preVFP : .* : 11572.19 ; FillColor=ROOT.kGreen+2, Label="W^{+}\#rightarrow\#mu\#nu PU_E", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,E)"
+
+Wmunu_plus_F_mcTruthEff_preVFP : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu PU_F", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)/_get_MCtruthEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,F)"
+
+##
+
+Wmunu_plus_B_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu PU_B", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)"
+
+Wmunu_plus_C_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlue, Label="W^{+}\#rightarrow\#mu\#nu PU_C", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,C)"
+
+Wmunu_plus_D_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kOrange+2, Label="W^{+}\#rightarrow\#mu\#nu PU_D", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,D)"
+
+Wmunu_plus_E_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kGreen+2, Label="W^{+}\#rightarrow\#mu\#nu PU_E", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,E)"
+
+Wmunu_plus_F_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu PU_F", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,F)"
+
+## as above adding tracking and Reco efficiency from MC truth
+
+Wmunu_plus_B_TEST_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu PU_B", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,B)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,B)"
+
+Wmunu_plus_C_TEST_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlue, Label="W^{+}\#rightarrow\#mu\#nu PU_C", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,C)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,C)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,C)"
+
+Wmunu_plus_D_TEST_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kOrange+2, Label="W^{+}\#rightarrow\#mu\#nu PU_D", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,D)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,D)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,D)"
+
+Wmunu_plus_E_TEST_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kGreen+2, Label="W^{+}\#rightarrow\#mu\#nu PU_E", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,E)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,E)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,E)"
+
+Wmunu_plus_F_TEST_effCor_preVFP : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu PU_F", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="puw_2016UL_era(Pileup_nTrueInt\,F)*_get_fullMuonSF_BoverEraMC(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,F)/_get_MCtruthRecoAndTrackingEffPerEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,F)"
+
+
+
+
+Wmunu_plus_TESTV1_preVFP : .* : 11572.19 ; FillColor=ROOT.kBlack, Label="W^{+}\#rightarrow\#mu\#nu preVFP", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="_get_fullMuonSF_perDataEra(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1\,BToF)"
+
+Wmunu_plus_TESTV2_preVFP : .* : 11572.19 ; FillColor=ROOT.kRed+2, Label="W^{+}\#rightarrow\#mu\#nu preVFP (aveSF)", SubPath="WplusJetsToMuNu_preVFP/", AddWeight="_get_lumiAverageScaleFactorPreVFP(Muon_pt[goodMuonsCharge][0]\,Muon_eta[goodMuonsCharge][0]\,Muon_charge[goodMuonsCharge][0]\,-1\,-1)"

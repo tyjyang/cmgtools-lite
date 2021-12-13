@@ -1,0 +1,10 @@
+# Wmunu postVFP
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/MCPostVFPWeightFix/210701_234251/ /data/shared/originalNANO_newWithAltPDF/WplusJetsToMuNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/MCPostVFPWeightFix/210701_234131/ /data/shared/originalNANO_newWithAltPDF/WminusJetsToMuNu_postVFP/
+
+# Wtaunu postVFP
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos_MCPostVFPWeightFix/210701_234212/ /data/shared/originalNANO_newWithAltPDF/WminusJetsToTauNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos_MCPostVFPWeightFix/210701_234330/ /data/shared/originalNANO_newWithAltPDF/WplusJetsToTauNu_postVFP/

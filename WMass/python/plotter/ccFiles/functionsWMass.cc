@@ -1155,7 +1155,6 @@ double _get_TnpRecoAndTrackingSFPerEra(float pt,      float eta,      int charge
 
 }
 
-
 double _get_fullMuonDataEfficiencyEra(float pt,      float eta,      int charge,
 				      float ptOther, float etaOther,
 				      DataEra dtype = C,
@@ -1234,6 +1233,18 @@ double _get_fullMuonMCEfficiencyEra(float pt,      float eta,      int charge,
 
 }
 
+
+double _get_fullMuonDataEfficiencyEraWithTrackingReco(float pt,      float eta,      int charge,
+				    float ptOther, float etaOther,
+				    DataEra dtype = C,
+				    bool isoSF1 = true, // to use SF for iso or antiiso
+				    bool isoSF2 = true,
+				    bool neglectIso = false // to neglect iso on both legs, overriding isoSF1 and isoSF2
+				    ) {
+
+    return _get_fullMuonDataEfficiencyEra(pt, eta, charge, ptOther, etaOther, dtype, isoSF1, isoSF2, neglectIso) *_get_TnpRecoAndTrackingEffDataPerEra(pt, eta, charge, ptOther, etaOther, dtype);
+
+}
  
 double _get_fullMuonSF_perDataEra(float pt,      float eta,      int charge,
 				  float ptOther, float etaOther,

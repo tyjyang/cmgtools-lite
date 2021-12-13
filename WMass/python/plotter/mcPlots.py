@@ -806,16 +806,6 @@ class PlotMaker:
     def run(self,mca,cuts,plots,makeStack=True,makeCanvas=True):
         if self._options.wideplot: ROOT.gStyle.SetTitleYOffset(0.55)
         sets = [ (None, 'all cuts', cuts.allCuts()) ]
-        if not self._options.final:
-            allcuts = cuts.sequentialCuts()
-            if self._options.nMinusOne or self._options.nMinusOneInverted: 
-                if not self._options.nMinusOneSelection:
-                    allcuts = cuts.nMinusOneCuts(inverted=self._options.nMinusOneInverted)+[None] # add a dummy entry since we use allcuts[:-1] below
-                else:
-                    allcuts = cuts.nMinusOneSelectedCuts(self._options.nMinusOneSelection,inverted=self._options.nMinusOneInverted)+[None]
-            for i,(cn,cv) in enumerate(allcuts[:-1]): # skip the last one which is equal to all cuts
-                cnsafe = "cut_%02d_%s" % (i, re.sub("[^a-zA-Z0-9_.]","",cn.replace(" ","_")))
-                sets.append((cnsafe,cn,cv))
         for subname, title, cut in sets:
             logging.info(" cut set: %s" % title)
             cdir = self._dir

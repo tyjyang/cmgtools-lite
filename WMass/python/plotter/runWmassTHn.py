@@ -107,16 +107,16 @@ def main(args):
         weight = f"{weight}*nominalWeight"
         
     # SF file
-    sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'  "
+    sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'"
     # the following is needed for SF made before June 2021
     if args.oldSFname:
-        sfOpt += " --old-sf-name "
+        sfOpt += " --old-sf-name"
     
     # whatever with legend
     legOptions = "--legendFontSize 0.042 --allProcInLegend --n-column-legend 2 --setLegendCoordinates 0.2,0.76,0.9,0.92"
 
     # general options not in a specific group
-    general = "-f --nanoaod-tree -v 3"
+    general = "--nanoaod-tree -v 3"
 
     pdfMod = ""
     if args.pdf == "ct18":
@@ -126,7 +126,7 @@ def main(args):
     ## Finally the command
     ######################################################################
     
-    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}'   -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {pdfMod} {args.options}"
+    command = f"python mcPlots.py -l {lumi} {mca} {cut} {plot} --noCms -P {samples} --sP '{hists}' -W '{weight}' --pdir {plotdir} {procOptions} {legOptions} --rdf-define-file {define} {ratio} {general} {sfOpt} {pdfMod} {args.options}"
     if args.subEra:
         command += f" --lumi-weight {lumi} "
 

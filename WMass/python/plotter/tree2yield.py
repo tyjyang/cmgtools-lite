@@ -650,7 +650,8 @@ class TreeToYield:
             #print("Preparing yields for %s" % self._cname)
             #print("-"*30)
             self._cutReport = self._tree.Report()
-            #cutReport.Print()
+            #logging.info(f"Printing cut report for {self._cname} (will trigger loop here)")
+            #self._cutReport.Print()
             #print("="*30)
         if closeTreeAfter: self._tfile.Close()
         return histos
@@ -687,7 +688,6 @@ def addTreeToYieldOptions(parser):
     parser.add_argument("-u", "--unweight", dest="weight", action="store_false", help="Don't use weights (in MC events), note weights are still used if a fake rate file is given");
     parser.add_argument("--uf", "--unweight-forced", dest="forceunweight", action="store_true", help="Do not use weight even if a fake rate file is given.");
     parser.add_argument("-W", "--weightString", dest="weightString", action="append", default=[], help="Use weight (in MC events), can specify multiple times");
-    parser.add_argument("-f", "--final", action="store_true", help="Just compute final yield after all cuts (no longer active with RDF)");
     parser.add_argument("-e", "--errors", action="store_true", help="Include uncertainties in the reports");
     parser.add_argument("--tf", "--text-format", dest="txtfmt", type=str, default="txt", choices=["txt","tsv","csv","dsv","ssv"], help="Output format: txt,tsv,csv,dsv,ssv");
     parser.add_argument("-S", "--start-at-cut", dest="startCut", type=str, help="Run selection starting at the cut matched by this regexp, included.") 

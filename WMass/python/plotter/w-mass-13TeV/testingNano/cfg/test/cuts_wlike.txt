@@ -7,7 +7,7 @@ accept     : valueInsideRange(Muon_pt[goodMuonsCharge][0],26,55) && valueInsideR
 #accept     : Muon_pt[goodMuonsCharge][0] > 26
 oppositecharge : (Muon_charge[goodMuons][0] + Muon_charge[goodMuons][1]) == 0
 mZ         : valueInsideRange(invariantmass(Muon_pt[goodMuons],Muon_eta[goodMuons],Muon_phi[goodMuons],Muon_mass[goodMuons]), 60., 120.)
-muonID     : Muon_mediumId[goodMuonsCharge][0] == 1 && Muon_mediumId[goodMuonsOther][0] == 1
+muonID     : Muon_mediumId[goodMuonsCharge][0] == 1 && Muon_mediumId[goodMuonsOther][0] == 1 && Muon_isGlobal[goodMuonsCharge][0] && Muon_isGlobal[goodMuonsOther][0]
 pfRelIso04 : Muon_pfRelIso04_all[goodMuonsCharge][0] < 0.15 && Muon_pfRelIso04_all[goodMuonsOther][0] < 0.15
 trigMatch : hasTriggerMatch(Muon_eta[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],TrigObj_eta[goodTrigObjs],TrigObj_phi[goodTrigObjs])
 mtl1pf40   : mt_wlike_nano(Muon_pt[goodMuonsCharge][0],Muon_phi[goodMuonsCharge][0],Muon_pt[goodMuonsOther][0],Muon_phi[goodMuonsOther][0],MET_pt,MET_phi) > 40.

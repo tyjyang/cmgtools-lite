@@ -1,0 +1,20 @@
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016B/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016B/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016C/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016C/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016D/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016D/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016E/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016E/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016F/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016F/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016F_PostVFP/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016F_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016G/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DATA_NANOV8/Run2016G/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/NanoV8Data/Run2016H/ /data/shared/originalNANORecompressed_mciprian/lz4_4/NanoV8Data/Run2016H
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/DYJetsToMuMu_preVFP/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DYJetsToMuMu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/postNANO/originalRecompressed/lz4_4/DYJetsToMuMu_postVFP/ /data/shared/originalNANORecompressed_mciprian/lz4_4/DYJetsToMuMu_postVFP/
+

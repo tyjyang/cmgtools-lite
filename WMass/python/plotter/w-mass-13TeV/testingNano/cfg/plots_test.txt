@@ -158,7 +158,6 @@ PV_z: PV_z: 100,-20,20; XTitle="Primary vertex z (cm)", Legend='TC', IncludeOver
 
 OtherPV_z: OtherPV_z: 100,-20,20; XTitle="Other primary vertex z (cm)", Legend='TC', IncludeOverflows=True
 
-
 ## W like variables
 # should be no longer needed, but kept for reference for the moment (definition might be outdated)
 
@@ -210,6 +209,7 @@ genMuFailReco_pt: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRL
 
 genMuFailReco_pt_eta: varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx1], GenPart_pt[GenPart_preFSRLepIdx2])\:varGenLepFailReco(Muon_pdgId[0], GenPart_pdgId[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx1], GenPart_eta[GenPart_preFSRLepIdx2]) : 80,-4.0,4.0,35,20,80; XTitle="gen muon #eta (failed reco)", YTitle="gen muon p_{T} (GeV) (failed reco)", Legend='TC', IncludeOverflows=True
 
+
 ###
 # for PU profile
 
@@ -219,6 +219,9 @@ PV_npvsGood: PV_npvsGood: 50,0,50; XTitle="PV_npvsGood", Legend='TC', IncludeOve
 
 ####
 # for vertex study
+
+genVertexZ: GenVtx_z : 400,-20,20; XTitle="gen vertex Z (cm)", Legend='TC', IncludeOverflows=True, Logy=True
+
 
 dzVertex_gen_primary__Wpt: (GenVtx_z-PV_z)\:ptVgen : 50,0,100,200,-1.0,1.0; YTitle="vertex #Deltaz (gen-reco) [cm]",XTitle="W-p_{T} (preFSR) [GeV]", Legend='TC', IncludeOverflows=False
 
@@ -353,6 +356,53 @@ bareMuon_genZ_eta__idipANDtrigANDiso: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]:
 bareMuon_genZ_eta__idipANDisonotrig: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,100,-12.5,12.5 ; XTitle='bare muon #eta', YTitle='Gen vertex Z (cm)', Legend='TR', AddWeight="(Sum(goodMuons_idipANDisonotrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDisonotrig]\,Muon_phi[goodMuons_idipANDisonotrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
 
 
+#### upar vs pt
+
+bareMuon_upar_pt: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR'
+
+bareMuon_upar_eta: recoilProjection\:GenPart_eta[bareMuonsCharge][0]: 48,-2.4,2.4,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon #eta', Legend='TR'
+
+bareMuon_upar_pt__veto: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(vetoMuons)>0 && minDeltaR2many(Muon_eta[vetoMuons]\,Muon_phi[vetoMuons]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__trackerOrGlobal: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_trackerOrGlobal)>0 && minDeltaR2many(Muon_eta[goodMuons_trackerOrGlobal]\,Muon_phi[goodMuons_trackerOrGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__trackerOrGlobalAndStandalone: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_trackerOrGlobalAndStandalone)>0 && minDeltaR2many(Muon_standaloneEta[goodMuons_trackerOrGlobalAndStandalone]\,Muon_standalonePhi[goodMuons_trackerOrGlobalAndStandalone]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__basicTrackMatchedToTrackerOrGlobal: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(basicTrack_matchedTrackerOrGlobal)>0 && minDeltaR2many(Track_eta[basicTrack_matchedTrackerOrGlobal]\,Track_phi[basicTrack_matchedTrackerOrGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__basicTrackMatchedToStandalone: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(basicTrack_matchedStandalone)>0 && minDeltaR2many(Track_eta[basicTrack_matchedStandalone]\,Track_phi[basicTrack_matchedStandalone]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__basicTrackAllMatchedToStandalone: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(basicTrackAll_matchedStandalone)>0 && minDeltaR2many(Track_eta[basicTrackAll_matchedStandalone]\,Track_phi[basicTrackAll_matchedStandalone]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__standaloneMatchedToGlobal: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(standalone_matchedGlobal)>0 && minDeltaR2many(Muon_standaloneEta[standalone_matchedGlobal]\,Muon_standalonePhi[standalone_matchedGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__standaloneAndGlobal: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(standalone_isGlobal)>0 && minDeltaR2many(Muon_standaloneEta[standalone_isGlobal]\,Muon_standalonePhi[standalone_isGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__generalTrack: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(basicTrack)>0 && minDeltaR2many(Track_eta[basicTrack]\,Track_phi[basicTrack]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__generalTrackAll: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(basicTrackAll)>0 && minDeltaR2many(Track_eta[basicTrackAll]\,Track_phi[basicTrackAll]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__tracker: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(Muon_isTracker)>0 && minDeltaR2many(Muon_eta[Muon_isTracker]\,Muon_phi[Muon_isTracker]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__global: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(Muon_isGlobal)>0 && minDeltaR2many(Muon_eta[Muon_isGlobal]\,Muon_phi[Muon_isGlobal]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__standalone: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(Muon_isStandalone)>0 && minDeltaR2many(Muon_standaloneEta[Muon_isStandalone]\,Muon_standalonePhi[Muon_isStandalone]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__idip: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_idip)>0 && minDeltaR2many(Muon_eta[goodMuons_idip]\,Muon_phi[goodMuons_idip]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__trig: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_trig)>0 && minDeltaR2many(Muon_eta[goodMuons_trig]\,Muon_phi[goodMuons_trig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__iso: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_iso)>0 && minDeltaR2many(Muon_eta[goodMuons_iso]\,Muon_phi[goodMuons_iso]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__idipANDtrig: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_idipANDtrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrig]\,Muon_phi[goodMuons_idipANDtrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__idipANDtrigANDiso: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="((HLT_IsoTkMu24 || HLT_IsoMu24) && Sum(goodMuons_idipANDtrigANDiso)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDtrigANDiso]\,Muon_phi[goodMuons_idipANDtrigANDiso]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+bareMuon_upar_pt__idipANDisonotrig: recoilProjection\:GenPart_pt[bareMuonsCharge][0]: 45,20,65,100,-60,140 ; YTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)', XTitle='bare muon p_{T} (GeV)', Legend='TR', AddWeight="(Sum(goodMuons_idipANDisonotrig)>0 && minDeltaR2many(Muon_eta[goodMuons_idipANDisonotrig]\,Muon_phi[goodMuons_idipANDisonotrig]\,GenPart_eta[bareMuonsCharge][0]\,GenPart_phi[bareMuonsCharge][0]) < 0.01)"
+
+
+
+
 
 #nominal_: Muon_pt[goodMuons][0]\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,33,24,57; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)' 
 
@@ -361,4 +411,11 @@ bareMuon_genZ_eta__idipANDisonotrig: GenVtx_z\:GenPart_eta[bareMuonsCharge][0]: 
 nominal_: Muon_pt[goodMuons][0]+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)\:Muon_eta[goodMuonsCharge][0]: 48,-2.4,2.4,116,26,142; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)' 
 
 muPtScaleTestWmass_: indices(24,1)\:customPtTest+29.0*regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40)\:scalarToRVec(Muon_eta[goodMuonsCharge][0],24) : 48,-2.4,2.4,116,26,142,24,0.5,24.5; XTitle='Muon #eta', YTitle='Muon p_{T} (GeV)', ZTitle='pt scale nuisance index', ProcessRegexp='W.*|Z.*|Top|Diboson', ReplaceCutByName="accept->valueInsideRange(customPtTest\,26\,55)"
+
+
+uPar: recoilProjection: 100,-60,140; XTitle='u_{par}[Z_{preFSR}*lep_{bare}] (GeV)'
+ZphiPreFSR: phiVgen: 64,-3.2,3.2; XTitle='Z_{preFSR} #phi'
+ZbareMuonDeltaphi: deltaPhi(GenPart_phi[bareMuonsCharge][0],phiVgen): 64,-3.2,3.2; XTitle='#Delta#phi(Z_{preFSR}\,bare muon)'
+VbareMuonDeltaphi: deltaPhi(GenPart_phi[bareMuonsCharge][0],phiVgen): 64,-3.2,3.2; XTitle='#Delta#phi(V_{preFSR}\,bare muon)'
+bareMuonPhi: GenPart_phi[bareMuonsCharge][0]: 64,-3.2,3.2; XTitle='Bare muon #phi'
 
