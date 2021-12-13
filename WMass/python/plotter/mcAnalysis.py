@@ -7,32 +7,11 @@ import pickle, re, random, time, glob, math
 import argparse
 import json
 
-ROOT.ROOT.EnableImplicitMT()
+# EnableImplicitMT is now called inside the MCAnalysis class before creating the Dataframe, where the number of threads can be chosen with an option (by default all are used)
+#ROOT.ROOT.EnableImplicitMT(128)  
 #ROOT.ROOT.TTreeProcessorMT.SetMaxTasksPerFilePerWorker(1)
 
 #_T0 = long(ROOT.gSystem.Now())
-
-## These must be defined as standalone functions, to allow running them in parallel
-## these might actually be no longer needed with RDF
-def _runYields(args):
-    key,tty,cuts,noEntryLine,fsplit = args
-    return (key, tty.getYields(cuts,noEntryLine=noEntryLine,fsplit=fsplit))
-
-def _runPlot(args):
-    key,tty,plotspec,cut,fsplit,closeTree = args
-    timer = ROOT.TStopwatch()
-    #print "Starting plot %s for %s, %s" % (plotspec.name,key,tty._cname)
-    ret = (key,tty.getPlot(plotspec,cut,fsplit=fsplit,closeTreeAfter=closeTree))
-    #print "Done plot %s for %s, %s, fsplit %s in %s s, at %.2f; entries = %d, time/entry = %.3f ms" % (plotspec.name,key,tty._cname,fsplit,timer.RealTime(), 0.001*(long(ROOT.gSystem.Now()) - _T0), ret[1].GetEntries(), (long(ROOT.gSystem.Now()) - _T0)/float(ret[1].GetEntries()))
-    return ret
-
-# def _runApplyCut(args):
-#     key,tty,cut,fsplit = args
-#     return (key, tty.cutToElist(cut,fsplit=fsplit))
-
-def _runGetEntries(args):
-    key,tty = args
-    return (key, tty.getEntries())
 
 def initializeJson(jsonMap, jsonFile):
     if not os.path.isfile(jsonFile):
@@ -270,6 +249,8 @@ class MCAnalysis:
                 field[0] = f"{field[0]}__ext{cnindex}" # add number to component to distinguish it from other ones
             if self._options.rdfRange:
                 ROOT.ROOT.DisableImplicitMT() # to be called before creating the RDataFrame
+            else:
+                ROOT.ROOT.EnableImplicitMT(self._options.nThreads)
             self.allRDF[field[0]] = ROOT.RDataFrame(objname, tmp_names)
             #tmp_rdf = ROOT.RDataFrame(objname, tmp_names)
             if self._options.rdfRange:
@@ -292,6 +273,7 @@ class MCAnalysis:
             if "data" not in pname:
                 total_w = 1.0 
                 if options.noHeppyTree:
+                    # not sure if this is updated
                     if options.weight:
                         if (is_w==0): raise RuntimeError("Can't put together a weighted and an unweighted component (%s)" % cnames)
                         is_w = 1
@@ -403,55 +385,10 @@ class MCAnalysis:
         elif process in self._optionsOnlyProcesses:
             self._optionsOnlyProcesses[process][name] = value
         else: raise RuntimeError("Can't set option %s for undefined process %s" % (name,process))
-    def getScales(self,process):
-        return [ tty.getScaleFactor() for tty in self._allData[process] ] 
-    def setScales(self,process,scales):
-        for (tty,factor) in zip(self._allData[process],scales): tty.setScaleFactor(factor,mcCorrs=False)
-    def getYields(self,cuts,process=None,nodata=False,makeSummary=False,noEntryLine=False):
-        ## first figure out what we want to do
-        tasks = []
-        for key,ttys in self._allData.items():
-            if key == 'data' and nodata: continue
-            if process != None and key != process: continue
-            for tty in ttys:
-                tasks.append((key,tty,cuts,noEntryLine,None))
-        ## then do the work
-        if self._options.splitFactor > 1 or  self._options.splitFactor == -1:
-            tasks = self._splitTasks(tasks)
-        retlist = self._processTasks(_runYields, tasks,name="yields")
-        ## then gather results with the same process
-        mergemap = {}
-        for (k,v) in retlist: 
-            if k not in mergemap: mergemap[k] = []
-            mergemap[k].append(v)
-        ## and finally merge them
-        ret = dict([ (k,mergeReports(v)) for k,v in mergemap.items() ])
-
-        rescales = []
-        self.compilePlotScaleMap(self._options.plotscalemap,rescales)
-        for p,v in ret.items():
-            for regexp in rescales:
-                if re.match(regexp[0],p): ret[p]=[v[0], [x*regexp[1] for x in v[1]]]
-
-        regroups = [] # [(compiled regexp,target)]
-        self.compilePlotMergeMap(self._options.plotmergemap,regroups)
-        for regexp in regroups: ret = self.regroupReports(ret,regexp)
-
-        # if necessary project to different lumi, energy,
-        if self._projection:
-            self._projection.scaleReport(ret)
-        # and comute totals
-        if makeSummary:
-            allSig = []; allBg = []
-            for (key,val) in ret.items():
-                if key != 'data':
-                    if self._isSignal[key]: allSig.append(ret[key])
-                    else: allBg.append(ret[key])
-            if self._signals and 'signal' not in ret and len(allSig) > 0:
-                ret['signal'] = mergeReports(allSig)
-            if self._backgrounds and 'background' not in ret and len(allBg) > 0:
-                ret['background'] = mergeReports(allBg)
-        return ret
+    # def getScales(self,process):
+    #     return [ tty.getScaleFactor() for tty in self._allData[process] ] 
+    # def setScales(self,process,scales):
+    #     for (tty,factor) in zip(self._allData[process],scales): tty.setScaleFactor(factor)
     def getPlotsRaw(self,name,expr,bins,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
         return self.getPlots(PlotSpec(name,expr,bins,{}),cut,process,nodata,makeSummary,closeTreeAfter)
     def getPlots(self,plotspecs,cut,process=None,nodata=False,makeSummary=False,closeTreeAfter=False):
@@ -460,6 +397,8 @@ class MCAnalysis:
         retlist = []
 
         print("Collecting plots for all processes")
+        if not self._options.useRunGraphs:
+            logging.info("Running each process separately, without ROOT.RDF.RunGraphs()")
         for key,ttys in self._allData.items():
             if key == 'data' and nodata: continue
             if process != None and key != process: continue
@@ -494,9 +433,10 @@ class MCAnalysis:
                 if process != None and key != process: continue
                 for tty in ttys:
                     retlist.append( (key, tty.refineManyPlots(self.allHistos[tty.cname()], plotspecs)) )
-            logging.info("Done :)")        
 
-        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging
+        logging.info("Done :)")        
+
+        # manage yields (a repetition of the part below for plots, but for now let's keep them separate for debugging)
         if self._options.printYieldsRDF:
 
             yieldsPerProcess = {}
@@ -598,18 +538,6 @@ class MCAnalysis:
 
             rets.append(ret)
         return rets
-    ## CANDIDATE FOR REMOVAL
-    def prepareForSplit(self):
-        ttymap = {}
-        for key,ttys in self._allData.items():
-            for tty in ttys:
-                if not tty.hasEntries(): 
-                    #print "For tty %s/%s, I don't have the number of entries" % (tty._name, tty._cname)
-                    ttymap[id(tty)] = tty
-        if len(ttymap):
-            retlist = self._processTasks(_runGetEntries, ttymap.items(), name="GetEntries")
-            for ttid, entries in retlist:
-                ttymap[ttid].setEntries(entries)
     def prettyPrint(self,reports,makeSummary=True):
         allSig = []; allBg = []
         for key in reports:
@@ -679,10 +607,6 @@ class MCAnalysis:
                     (nev,err,nev_run_upon) = report[i][1]
                     den = report[i-1][1][0] if i>0 else 0
                     fraction = nev/float(den) if den > 0 else 1
-                    if self._options.nMinusOne: 
-                        fraction = report[-1][1][0]/float(nev) if nev > 0 else 1
-                    elif self._options.nMinusOneInverted: 
-                        fraction = float(nev)/report[-1][1][0] if report[-1][1][0] > 0 else 1
                     toPrint = (nev,)
                     if self._options.errors:    toPrint+=(err,)
                     if self._options.fractions: toPrint+=(fraction*100,)
@@ -711,9 +635,6 @@ class MCAnalysis:
         sys.stdout = stdoutBackup
         logging.info(f"Yields saved in file {self._options.yieldsOutfile}")
                 
-    # apparently used nowhere
-    #def _getYields(self,ttylist,cuts):
-    #    return mergeReports([tty.getYields(cuts) for tty in ttylist])
     def __str__(self):
         mystr = ""
         for a in self._allData:
@@ -725,10 +646,6 @@ class MCAnalysis:
         for a in self._backgrounds:
             mystr += str(a) + '\n'
         return mystr[:-1]
-    def processEvents(self,eventLoop,cut):
-        for p in self.listProcesses():
-            for tty in self._allData[p]:
-                tty.processEvents(eventLoop,cut)
     def compilePlotMergeMap(self,inlist,relist):
         for m in inlist:
             to,fro = m.split("=")
@@ -771,59 +688,10 @@ class MCAnalysis:
             stylePlot(plot, pspec, lambda x: opts[x[0]] if key in opts else default)
         elif not mayBeMissing:
             raise KeyError("Process %r not found" % process)
-    def _processTasks(self,func,tasks,name=None):
-        #timer = ROOT.TStopwatch()
-        #print "Starting job %s with %d tasks, %d threads" % (name,len(tasks),self._options.jobs)
-        logging.info('self._options.jobs', self._options.jobs)
-        if self._options.jobs == 0: 
-            retlist = map(func, tasks)
-        else:
-            from multiprocessing import Pool
-            pool = Pool(self._options.jobs)
-            retlist = pool.map(func, tasks, 1)
-            pool.close()
-            pool.join()
-        #print "Done %s in %s s at %.2f " % (name,timer.RealTime(),0.001*(long(ROOT.gSystem.Now()) - _T0))
-        return retlist
-    def _splitTasks(self,tasks):
-        nsplit = self._options.splitFactor
-        if nsplit == -1: nsplit = self._options.jobs
-        if nsplit <= 1: return tasks
-        newtasks = []
-        if not self._options.splitDynamic:
-            for task in tasks:
-                for fsplit in [ (i,nsplit) for i in xrange(nsplit) ]:
-                    newtasks.append( tuple( (list(task)[:-1]) + [fsplit] ) )
-        else:
-            self.prepareForSplit() 
-            #print "Original task list has %d entries; split factor %d." % (len(tasks), nsplit)
-            maxent = max( task[1].getEntries() for task in tasks )
-            grain  = maxent / nsplit / 1 # factor 2 may be optimized
-            #print "Largest task has %d entries. Will use %d as grain " % (maxent, grain)
-            if grain < 10: return tasks # sanity check
-            newtasks_wsize = []
-            for task in tasks:
-                tty = task[1]; 
-                entries = tty.getEntries()
-                chunks  = min(max(1, int(round(entries/grain))), nsplit)
-                fsplits = [ (i,chunks) for i in xrange(chunks) ]
-                #print "    task %s/%s has %d entries. N/g = %.1f, chunks = %d" % (tty._name, tty._cname, entries, entries/float(grain), chunks)
-                for fsplit in fsplits:
-                    newtasks_wsize.append( (entries/float(chunks), tuple( (list(task)[:-1]) + [fsplit] ) ) )
-            if self._options.splitSort:
-                newtasks_wsize.sort(key = lambda x : x[0], reverse = True)
-                #for s,t in newtasks_wsize: print "\t%9d %s/%s %s" % (s,t[1]._name, t[1]._cname, t[-1])
-            newtasks = [ task for (size,task) in newtasks_wsize ]
-        #print "New task list has %d entries; actual split factor %.2f" % (len(newtasks), len(newtasks)/float(len(tasks)))
-        return newtasks
-
 
 def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     if addTreeToYieldOnesToo: addTreeToYieldOptions(parser)
-    parser.add_argument("-j", "--jobs", type=int, default=0, help="Use N threads");
-    parser.add_argument("--split-factor", dest="splitFactor", type=int, default=0, help="Use N chunks per sample (-1 means to use the same as what passed to -j, which appears to work well in the average case)");
-    parser.add_argument("--split-static", dest="splitDynamic", action="store_false", help="Make the splitting dynamic (reduce the chunks for small samples)");
-    parser.add_argument("--split-nosort", dest="splitSort", action="store_false", help="Make the splitting dynamic (reduce the chunks for small samples)");
+    parser.add_argument(      "--n-thread", dest="nThreads", type=int, default=0, help="Number of threads to use for RDF, if 0 the maximum available is used");
     parser.add_argument("-P", "--path", action="append", type=str, default=[], help="Path to directory with input trees and pickle files. Can supply multiple paths which will be searched in order. (default: ./") 
     parser.add_argument("--RP", "--remote-path", dest="remotePath", type=str, help="path to remote directory with trees, but not other metadata (default: same as path)") 
     parser.add_argument("-p", "--process", dest="processes", type=str, default=[], action="append", help="Processes to print (comma-separated list of regexp, can specify multiple ones)");
@@ -850,7 +718,7 @@ def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     parser.add_argument("--no-rdf-runGraphs", dest="useRunGraphs", action="store_false", help="If True, use RDF::RunGraphs to make all histograms for all processes at once");
     parser.add_argument("-v", "--verbose", type=int, default=3, choices=[0,1,2,3,4], help="Set verbosity level with logging, the larger the more verbose");
     parser.add_argument("--json", type=str, default="pileupStuff/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt", help="json file to filter data. Default is the one for UL2016") 
-    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_31May2021_nodz_dxybs.root", help="File to be used for scale factors")
+    parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
     parser.add_argument("--test-scale-factor-file", dest="testScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/productEffAndSFperEra_nodz_dxybs_28Oct2021_mcTruthDR01_onlyGlobalMuon.root'")
     parser.add_argument("--mcTruth-scale-factor-file", dest="mcTruthScaleFactorFile", type=str, default=None, help="File to be used for tests with scale factors (it enables additional histograms that may often need to be customized). Suggested root file is './testMuonSF/mcTruthEff_Zplus_customNano_trackInfoAndGlobalMuons.root'")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig");
@@ -872,5 +740,7 @@ if __name__ == "__main__":
         temp = CutsFile(cutFile,options)
         for cut in temp.cuts():
             cf.add(cut[0],cut[1])
-    report = tty.getYields(cf)#, process=options.process)
-    tty.prettyPrint(report)
+    logging.warning("mcAnalysis.py no longer work as standalone to make yields at the moment. It needs to be reimplemented")
+    quit()
+    #report = tty.getYields(cf)#, process=options.process)
+    #tty.prettyPrint(report)

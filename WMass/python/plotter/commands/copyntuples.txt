@@ -1,0 +1,74 @@
+# note, these following paths were moved into /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/DefaultPtPassthrough
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016B_201210_121231/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016B/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016C_201210_183642/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016C/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016D_201210_115504/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016D/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016E_201210_121246/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016E/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016F_201210_183843/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016F/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016F_PostVFP_201210_115521/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016F_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016G_201210_121304/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016G/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016H_201210_184015/0000/ /data/shared/originalNANO/DATA_NANOV8/Run2016H/
+
+#############
+# Z mumu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2/ /data/shared/originalNANO/DYJetsToMuMu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2/ /data/shared/originalNANO/DYJetsToMuMu_postVFP/
+
+#############
+# Z tautau
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/DYJetsToTauTau_M-50_AtLeastOneEorMuDecay_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoWMassULRereco/preVFP/0000/ /data/shared/originalNANO/DYJetsToTauTau_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/DYJetsToTauTau_M-50_AtLeastOneEorMuDecay_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoWMassULRereco/postVFP/0000/ /data/shared/originalNANO/DYJetsToTauTau_postVFP/
+
+#############
+# Wminus taunu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/NanoAODv8_PreCentralConfig/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv8_preVFP/201204_174040/0000/ /data/shared/originalNANO/WminusJetsToTauNu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/NanoAODv8_PreCentralConfig/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv8_postVFP/201206_184821/0000/ /data/shared/originalNANO/WminusJetsToTauNu_postVFP/
+
+#############
+# Wminus munu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/NanoAODv8_PreCentralConfig/WminusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoAODv8_preVFP/201207_133741/0000/ /data/shared/originalNANO/WminusJetsToMuNu_preVFP/
+
+#############
+# Wplus taunu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoWMassULRereco/preVFP/0000/ /data/shared/originalNANO/WplusJetsToTauNu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/sroychow/nanov8/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoWMassULRereco/postVFP/0000/ /data/shared/originalNANO/WplusJetsToTauNu_postVFP/
+
+#############
+# Wplus munu copied by Marc
+
+#############
+
+
+New data March 2021 (isStandalone flag, isoTracks with charge and other things)
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016B_210302_203000/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016B/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016C_210302_213443/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016C/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016D_210302_203007/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016D/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016E_210302_213459/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016E/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016F_PreVFP_210302_203016/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016F/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016F_PostVFP_210302_213515/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016F_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016G_210302_203023/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016G/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/SingleMuon/NanoV8Data/Run2016H_210302_213533/0000/ /data/shared/originalNANO/NanoV8Data_Mar2021/Run2016H/

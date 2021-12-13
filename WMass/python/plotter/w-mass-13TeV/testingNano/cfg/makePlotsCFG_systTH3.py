@@ -51,6 +51,43 @@ def write3DHist(label, pt_expr, eta_expr, nsyst, etapt_binning, xylabels, weight
     if outfile:
         outfile.write(line+'\n')
 
+pdfMap = {
+    "nnpdf31" : {
+        "name" : "NNPDF31",
+        "entries" : 103,
+        "truncate" : False,
+        "onlyW" : False,
+        "weight" : "LHEPdfWeight",
+        "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],
+    },
+    "nnpdf30" : {
+        "name" : "NNPDF30",
+        "entries" : 101,
+        "truncate" : False,
+        "onlyW" : True,
+        "weight" : "LHEPdfWeightAltSet13",
+        "alphas" : ["LHEPdfWeightAltSet15[0]", "LHEPdfWeightAltSet16[0]"],
+    },
+    "ct18" : {
+        "name" : "CT18",
+        "entries" : 59,
+        "onlyW" : True,
+        "truncate" : True,
+        "weight" : "LHEPdfWeightAltSet18",
+        "alphas" : ["LHEPdfWeightAltSet18[59]", "LHEPdfWeightAltSet18[60]"],
+    },
+    "mmht" : {
+        "name" : "MMHT",
+        "entries" : 51,
+        "onlyW" : True,
+        "truncate" : False,
+        "weight" : "LHEPdfWeightAltSet19",
+        "alphas" : ["LHEPdfWeightAltSet20[1]", "LHEPdfWeightAltSet20[2]"],
+    },
+}
+
+
+
 parser = argparse.ArgumentParser()
 #parser.add_argument('-n', '--name', dest='baseHistName', default='muon_eta_pt', type=str, help='Base name for histograms')
 parser.add_argument('-x', '--xAxisName', default='Muon #eta', type=str, help='x axis name')
@@ -60,7 +97,7 @@ parser.add_argument('--ptVar', default='Muon_pt[goodMuonsCharge][0]', type=str, 
 parser.add_argument('--etaVar', default='Muon_eta[goodMuonsCharge][0]', type=str, help='Expression for variable on eta axis')
 parser.add_argument('-a', '--analysis', choices=["wlike","wmass"], default="wmass", help='Analysis type (some settings are customized accordingly)')
 parser.add_argument('-o', '--output', dest="outputFile", default='', type=str, help='Output file to store lines (they are also printed on stdout anyway)')
-parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31", help='PDF set to use')
+parser.add_argument('--pdf-weights', dest='pdfWeights', choices=pdfMap.keys(), default="nnpdf31", help='PDF set to use')
 parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str, help='Expression for variable on pt axis, specific for tests about pt scale (it doesn\'t get vectorized)')
 args = parser.parse_args()
 
@@ -85,51 +122,37 @@ line = f"nominal_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames} \n"
 
 print(line)
 if printToFile: outf.write(line+'\n')
-
 # pdf + alphaS in NNPDF3.1, alphaS has 0.002 variations around 0.118, the 1 sigma variation should be 0.0015
-if args.pdfWeights == "nnpdf31":
-    write3DHist(label = "pdfNNPDF31",
-                pt_expr = args.ptVar,
-                eta_expr = args.etaVar,
-                nsyst = 103, # for PDFs, len(LHEPdfWeight) == 103 because it has nominal + 102 weights (100 pdf + 2 alphaS)
-                xylabels = axisNames,
-                weight_axis = "PDF/alpha_{S} index",
-                etapt_binning = etaptBins,
-                regex = "W.*|Z.*",
-                outfile = outf,
-                systBinStart = 0.5,
-                indexStart = 0,
-                addWeight = "LHEPdfWeight",
-                nBinsZaxis = 102 # we want 102,0.5,102.5 (could have been 103,-0.5,102.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
-    )
-    line = f"alphaS0117NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet5[0]', ProcessRegexp='W.*'\n"
-    line += f"alphaS0119NNPDF31_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet6[0]', ProcessRegexp='W.*'\n"
-    print(line)
-    if printToFile: outf.write(line+'\n')
 
-elif args.pdfWeights == "nnpdf30":
-    # pdf in NNPDF3.0, alphaS is available in another branch
-    write3DHist(label = "pdfNNPDF30",
-                pt_expr = args.ptVar,
-                eta_expr = args.etaVar,
-                nsyst = 101, # 1 nominal + 100 symmetric hessians
-                xylabels = axisNames,
-                weight_axis = "NNPDF3.0 PDF index",
-                etapt_binning = etaptBins,
-                regex = "W.*", # FIXME: only W for now
-                outfile = outf,
-                systBinStart = 0.5,
-                indexStart = 0,
-                addWeight = "(1.0/LHEPdfWeightAltSet13[0])*LHEPdfWeightAltSet13",  # when running analysis with different PDFs as nominal, the nominal weight LHEPdfWeightAltSet13[0] is alredy applied to the process, so we need to factorize it out here
-                nBinsZaxis = 100 # we want 100,0.5,100.5 (could have been 101,-0.5,100.5, but then histogram bin 1 would not be pdf1 but nominal, histgram bin 2 would not be pdf2 but pdf1 and so on)
-    )
+pdfInfo = pdfMap[args.pdfWeights]
+# Needed if you don't want to use all the PDF weights in the vector (mostly needed for CT18, which didn't get parsed correctly)
+weight = pdfInfo["weight"]
+entries=pdfInfo["entries"]
+weightexpr = weight if "Alt" not in weight else f"1.0/{weight}[0]*" + (str(weight) if not pdfInfo["truncate"] else
+    f" ROOT::VecOps::RVec<float>(std::begin({weight})\, std::begin({weight})+{entries})")
+print(weightexpr)
+#exit(1)
 
-    line = f"alphaS0117NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet15[0]', ProcessRegexp='W.*'\n"
-    line += f"alphaS0119NNPDF30_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='LHEPdfWeightAltSet16[0]', ProcessRegexp='W.*'\n"
-    print(line)
-    if printToFile: outf.write(line+'\n')
+regex = "W.*|Z.*" if not pdfInfo["onlyW"] else "W.*"
+write3DHist(label = "pdf"+pdfInfo["name"],
+            pt_expr = args.ptVar,
+            eta_expr = args.etaVar,
+            nsyst = pdfInfo["entries"], 
+            xylabels = axisNames,
+            weight_axis = "PDF index",
+            etapt_binning = etaptBins,
+            regex = regex,
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 0,
+            addWeight = weightexpr,
+            nBinsZaxis = pdfInfo["entries"]-1
+)
+line = f"alphaS0117%s_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='%s', ProcessRegexp='W.*'\n" % (pdfInfo["name"], pdfInfo["alphas"][0])
+line += f"alphaS0119%s_: {args.ptVar}\:{args.etaVar}: {etaptBins}; {axisNames}, AddWeight='%s', ProcessRegexp='W.*'\n" % (pdfInfo["name"], pdfInfo["alphas"][1])
 
-###  END of PDF if statement
+print(line)
+if printToFile: outf.write(line+'\n')
 
 ### QCD scales should be used according to central PDF set. For now will keep using NNPDF3.1 in all cases
 

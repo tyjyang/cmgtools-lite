@@ -1,19 +1,19 @@
 import ROOT
-from uproot3_methods import TLorentzVectorArray
 import numpy as np
 import numba
 import os
 script_dir = os.path.dirname(os.path.realpath(__file__))
+data_dir = f"{script_dir}/../../postprocessing/data"
 
-correctionsWp_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Wp_pT.npz", allow_pickle=True)
+correctionsWp_file = np.load(f"{data_dir}/gen/inclusive_Wp_pT.npz", allow_pickle=True)
 binsWp = correctionsWp_file['bins']
 correctionsWp = correctionsWp_file['scetlibCorr3D_Wp']
 
-correctionsWm_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Wm_pT.npz", allow_pickle=True)
+correctionsWm_file = np.load(f"{data_dir}/gen/inclusive_Wm_pT.npz", allow_pickle=True)
 binsWm = correctionsWm_file['bins']
 correctionsWm = correctionsWm_file['scetlibCorr3D_Wm']
 
-correctionsZ_file = np.load(f"{script_dir}/../postprocessing/data/gen/inclusive_Z_pT.npz", allow_pickle=True)
+correctionsZ_file = np.load(f"{data_dir}/gen/inclusive_Z_pT.npz", allow_pickle=True)
 binsZ = correctionsZ_file['bins']
 correctionsZ = correctionsZ_file['scetlibCorr3D_Z']
 
@@ -35,7 +35,7 @@ binsWp_m = binsWp[im].astype(np.float64)
 binsWp_y = binsWp[iy].astype(np.float64) 
 binsWp_pt = binsWp[ipt].astype(np.float64) 
 
-@numba.jit('float64[:](float64[:], float64[:], float64[:], boolean, int64)', nopython=True, debug=True)
+@numba.jit('float64[:](float64[:], float64[:], float64[:], boolean, int64)', nopython=True, nogil=True, debug=True)
 def correctN3LL_allVars(mV, yV, ptV, norm, chan):
     if chan == 0:
         bins_m = binsZ_m
@@ -63,7 +63,7 @@ def correctN3LL_allVars(mV, yV, ptV, norm, chan):
     # Normalize by central value if you're applying variations to a sample weighted by the central weight
     return varcorr/varcorr[0] if norm else varcorr
 
-@numba.jit('float64(int64, float64[:], float64[:], float64[:], int64)', nopython=True, debug=True)
+@numba.jit('float64(int64, float64[:], float64[:], float64[:], int64)', nopython=True, nogil=True, debug=True)
 def correctN3LL(var, mV, yV, ptV, chan):
     if chan == 0:
         bins_m = binsZ_m
@@ -115,10 +115,11 @@ def correctN3LL_Wp(var, mV, yV, ptV):
 
 @ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", ], "RVec<bool>")
 def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
-    leptons = (np.abs(pdgId) >= 11) & (np.abs(pdgId) <= 14) & (motherIdx >= 0)
+    pdgIdcopy = pdgId
+    leptons = (np.abs(pdgId) >= 11) & (np.abs(pdgIdcopy) <= 14) & (motherIdx >= 0)
     status746 = status == 746
     status23 = status == 23
-    motherV = (pdgId[motherIdx] == 23) | (np.abs(pdgId[motherIdx]) == 24)
+    motherV = (pdgId[motherIdx] == 23) | (np.abs(pdgIdcopy[motherIdx]) == 24)
     fromHardProcess = ((statusFlags >> 8 ) & 1).astype(np.bool_)
 
     # Some leptons in MadGraph have no W/Z in the history, but have status 23
@@ -140,9 +141,11 @@ def prefsrLeptons(status, statusFlags, pdgId, motherIdx, pts):
     return others
 
 
-@ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", "RVec<float>", "RVec<float>", "bool"], "RVec<int>")
+#@ROOT.Numba.Declare(["RVec<int>","RVec<int>","RVec<int>","RVec<int>", "RVec<float>", "RVec<float>", "RVec<float>", "bool"], "RVec<int>")
+@numba.jit(nopython=True, nogil=True)
 def ewPhotonKinematicsSel(status, statusFlags, pdgId, motherIdx, pts, etas, phis, withISR = False):
-    isLepton = (np.abs(pdgId) >= 11) & (np.abs(pdgId) <= 14) & (motherIdx >= 0)
+    pdgIdcopy = pdgId
+    isLepton = (np.abs(pdgId) >= 11) & (np.abs(pdgIdcopy) <= 14) & (motherIdx >= 0)
     isMuon = isLepton & (np.abs(pdgId) == 13)
     isPhoton = pdgId == 22
     status1 = status == 1

@@ -9,6 +9,9 @@ from array import array
 import shutil
 from CMS_lumi import *
     
+ROOT.gInterpreter.ProcessLine(".O3")
+ROOT.gInterpreter.ProcessLine('#include "ccFiles/systHistHelpers.cc"')
+
 _canvas_pull = ROOT.TCanvas("_canvas_pull","",800,800)
 
 #########################################################################
@@ -265,8 +268,8 @@ def getMaximumTH(h, excludeMax=None):
 
     return retmax
 
-#########################################################################
-
+#########################################################################    
+    
 def fillTH2fromTH2part(h2out, h2in,
                        xbinLow=1, ybinLow=1,
                        xbinHigh=None, ybinHigh=None,
@@ -329,6 +332,179 @@ def fillTH2fromTH3zbin(h2, h3, zbin=1):
 
 #########################################################################
 
+# experimental code, mostly what I need can be done using THn::ProjectionND
+
+# def getTHnPart(hin,
+#                newname=None,
+#                axesNewNbins=[], # list of number of bins for each axis (can be inferred from the next arrays, but only if they are not values but bin indices, so let's pass it explicitly)
+#                axesNewMin=[], # list of new starting bins for axes (can be 1 to keep same as original)
+#                axesNewMax=[], # ditto for end bins (using the last one if one wants to keep the full axis)
+#                useAxisValues=False): # arrays contain bin edges rather than bin numbers
+
+#     # return a new THn cropping axes from original one passed as input. For example, one can select a narrower pt range
+#     # if the input is a standard TH1,2,3, the same type is returned
+#     # for simplicity, use bin number rather than actual values to convert to bins (this can be done outside this function)
+
+#     if newname == None:
+#         newname = f"{hin.getName()}_pruned"
+
+#     if useAxisValue:
+#         return None # to implement
+#     #     nDimension = len(axesNewMin)
+#     #     axisNbins = []
+#     #     newAxes = []
+#     #     for i in range(nDimension):
+#     #         axisNbins.append(axesNewMax[i] - axesNewMin[i] + 1) # e.g. if passing bins 3 and 7 we have 5 bins 
+#     #         newAxes.append(ROOT.TAxis(axisNbins[-1], axesNewMin[i], axesNewMax[i]))
+
+#         # if nDimension > 3:
+#         #     hout = hin.CloneEmpty(newname, "", newAxes)
+#         # else:
+#         #     htmp = ROOT.THn.CreateHn(f"{newname}_tmp", "", hin)
+#         #     hout = htmp.CloneEmpty(newname, "", newAxes)
+#     else:
+
+#         if "THn" in hin.ClassName():
+#             ndim = hin.GetNdimensions()
+#             axisNbins = []
+#             axisBinMin = []
+#             axisBinMax = []
+#             # for i in range(ndim):
+#             #     axisNbins.append(axesNewNbins[i]) # e.g. if passing bins 3 and 7 we have 5 bins 
+#             #     #axisNbins.append(axesNewMax[i] - axesNewMin[i] + 1) # e.g. if passing bins 3 and 7 we have 5 bins 
+#             #     axisBinMin.append(hin.GetAxis(i).GetBinLowEdge(axesNewMin[i]))
+#             #     axisBinMax.append(hin.GetAxis(i).GetBinUpEdge( axisBinMax[i]))
+#             # hout = ROOT.THn(newname, "", ndim, array("i", axisNbins), array('d', axisBinMin), array('d', axisBinMax))
+#             for i in range(ndim):
+#                 hin.GetAxis(i).SetRange(axesNewMin[i], axesNewMax[i])
+#             hout = hin.rojectionND(ndim, array("i", [i for i in range(ndim)]))
+#             hout.SetName(newname)
+#             hout.SetTitle(newname)
+#             return hout
+        
+#         else:
+#             ndim = hin.GetDimension()
+#             if ndim == 1:
+#                 nbinsX = axesNewNbins[0]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 hout = ROOT.TH1D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]))
+#             elif ndim == 2:
+#                 nbinsX = axesNewNbins[0]
+#                 nbinsY = axesNewNbins[1]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 #nbinsY = axesNewMax[1] - axesNewMin[1] + 1
+#                 hout = ROOT.TH2D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]),
+#                                  nbinsY,  hin.GetYaxis().GetBinLowEdge(axesNewMin[1]), hin.GetYaxis().GetBinUpEdge(axesNewMin[1]))
+#             elif ndim == 3:
+#                 nbinsX = axesNewNbins[0]
+#                 nbinsY = axesNewNbins[1]
+#                 nbinsZ = axesNewNbins[2]
+#                 #nbinsX = axesNewMax[0] - axesNewMin[0] + 1
+#                 #nbinsY = axesNewMax[1] - axesNewMin[1] + 1
+#                 #nbinsZ = axesNewMax[2] - axesNewMin[2] + 1
+#                 hout = ROOT.TH3D(newname, "",
+#                                  nbinsX,  hin.GetXaxis().GetBinLowEdge(axesNewMin[0]), hin.GetXaxis().GetBinUpEdge(axesNewMin[0]),
+#                                  nbinsY,  hin.GetYaxis().GetBinLowEdge(axesNewMin[1]), hin.GetYaxis().GetBinUpEdge(axesNewMin[1]),
+#                                  nbinsZ,  hin.GetZaxis().GetBinLowEdge(axesNewMin[2]), hin.GetZaxis().GetBinUpEdge(axesNewMin[2]))
+        
+#########################################################################
+
+def projectChargeHist(histnd, charge, name=""):
+    charges = ["minus", "plus"]
+    chargeBin = charges.index(charge)+1
+    if not name:
+        name = "_".join([histnd.GetName(), charge[0]])
+
+    if "THn" in histnd.ClassName():
+        dim = histnd.GetNdimensions()
+        # charge is on the 3rd axis, so axis number 2 (starts from 0)
+        chargeDim = 2
+        dims = np.array(range(dim), dtype=np.intc)
+        dims = np.delete(dims, chargeDim)
+        histnd.GetAxis(chargeDim).SetRange(chargeBin, chargeBin)  
+        htmp = histnd.Projection(0, 1, 3, "E") if dim == 4 else histnd.ProjectionND(dim-1, dims, "E")
+        htmp.SetName(name)
+    elif "TH3" in histnd.ClassName():
+        htmp = ROOT.projectTH2FromTH3(histnd, name, chargeBin, chargeBin)
+    else:
+        raise RuntimeError("Charge hist must be a TH3 or THn. Was %s" % histnd.ClassName())
+
+    if htmp.InheritsFrom("TH1"):
+        htmp.SetDirectory(0)
+    ROOT.SetOwnership(htmp, False)
+    return htmp
+
+# These are zero indexed, the bins for the projection start at 1 (0 is overflow)
+def getEntries(inp, mirror=False):
+    nentries = inp
+    if hasattr(inp, "GetNbinsZ"):
+        nentries = inp.GetNbinsZ()
+    # Include last bin
+    if mirror:
+        nentries *= 2
+    allentries = range(nentries)
+    return allentries
+
+def mirrorGroups(inp, addMirror=True):
+    allentries = getEntries(inp, addMirror)
+    mid = int(len(allentries)/2)
+    return list(zip(allentries[:mid:], allentries[mid::]))
+
+def pairGroups(inp):
+    allentries = getEntries(inp)
+    return list(zip(allentries[::2], allentries[1::2]))
+
+# For now things this steps are separated, don't really need to be
+def makeVariationHists(histnd, charge, name, groups, histnom=None, addMirror=False):
+    chargeHist = projectChargeHist(histnd, charge, "tmp"+name)
+    return makeVariationHistsForCharge(chargeHist, name, groups, histnom, addMirror)
+
+def systName(label, entry):
+    if entry < 0:
+        return label
+    if "{i}" in label:
+        return label.format(i=entry)
+    else:
+        return label+str(entry)
+
+# Should add an option to limit the range
+def makeVariationHistsForCharge(chargeHist, name, groups, histnom=None, addMirror=False):
+    histType = chargeHist.ClassName()
+    outType = histType.replace("2", "1").replace("3", "2")
+    if "TH2" not in histType and "TH3" not in histType:
+        raise ValueError("Can only make variation hists from a TH2 or TH3")
+    varHists = ROOT.allProjectedSystHists[outType, histType](chargeHist, name) 
+    if addMirror:
+        if not histnom:
+            raise ValueError("Must pass nominal histogram in order to mirror shape")
+        mirrors = ROOT.mirroredHists(histnom, varHists)
+        varHists.insert(varHists.end(), mirrors.begin(), mirrors.end())
+    return buildVariationHistsForCharge(varHists, name, groups)
+
+def loadSystsFromGroups(group, varHists, name, i):
+    systHists = []
+    if len(group) < 2:
+        raise ValueError("Syst index groups must have length > 2")
+    if len(group) == 2:
+        # Clone needed because vector owns and will delete
+        systHists = (varHists[group[0]].Clone(f"{name}{i}tmpup"), varHists[group[1]].Clone(f"{name}{i}tmpdown"))
+    else:
+        systHists = ROOT.envelopeHists(ROOT.std.vector([varHists[e] for e in group]))
+
+    label = systName(name, i)
+    systHists[0].SetName(f"{label}Up")
+    systHists[1].SetName(f"{label}Down")
+    return systHists
+
+
+def buildVariationHistsForCharge(varHists, name, groups):
+    systHists = []
+    for i,g in enumerate(groups):
+        systHists.extend(loadSystsFromGroups(g, varHists, name, i+1 if len(groups) > 1 else -1))
+    return systHists
+
 def getTH2fromTH3(hist3D, name, binStart, binEnd=None):
     if binEnd == None:
         binEnd = binStart
@@ -353,7 +529,42 @@ def fillTH3binFromTH2(h3, h2, zbin, scaleFactor=None):
             h3.SetBinContent(ix, iy, zbin, val)
             h3.SetBinError(ix, iy, zbin, error);
 
+def fillTHNplus1fromTHn(thnp1, thn, nbinLow=-1, nbinHigh=-1):
+    # we assume the only difference is an additional dimension, which is the( N+1)-th (i.e. not in the middle, and all other axies are exactly the same in terms of range and binning)
+    # nbinLow/High here represent the range of bin index for the n+1 dimension to be filled (as for the TH1 convention, 0 is underflow, 1 is first bin, etc...)
+    # if nbinLow = nbinHigh and both are larger than -1, only that bin is filled
+    # if both are negative the full range including under/overflow is filled
+    # if only one of them is negative all the bins up to nbinHigh or from nbinLow are filled
+    ndim = thn.GetNdimensions()
+    #ndimp1 = ndim + 1
+    nbinsThnp1 = thnp1.GetAxis(ndim).GetNbins() # would have used ndimp1 - 1
+    if (nbinLow < 0 and nbinHigh < 0) or nbinLow > nbinHigh:
+        nBinStart = 0
+        nBinEnd = nbinsThnp1 + 1
+    elif nbinLow < 0:
+        nBinStart = 0
+        nBinEnd = nbinHigh
+    elif nbinHigh < 0:
+        nBinStart = nbinLow
+        nBinEnd   = nbinsThnp1+1
+    else:
+        nBinStart = max(0, nbinLow)
+        nBinEnd   = min(nbinsThnp1 + 1, nbinHigh)
 
+    nbinsTHn = thn.GetNbins() # for TH3 or lower one should use GetNcells() to emulate this, but one can get a proper THn from a TH3 to use consistent methods
+    myArray = array("i", [0 for i in range(ndim)])
+    for globalBin in range(nbinsTHn):
+        # get content and also the array with single bin ids corresponding to iglobalBin
+        binContent = thn.GetBinContent(globalBin, myArray)
+        binError = thn.GetBinError(globalBin)
+        for iNewDim in range(nBinStart, nBinEnd+1):
+            newArray = array("i", [x for x in myArray] + [iNewDim])
+            #array = numpy.append(array, value)            
+            globalBinTHnP1 = thnp1.GetBin(newArray)
+            thnp1.SetBinContent(globalBinTHnP1, binContent)
+            thnp1.SetBinError(globalBinTHnP1, binError)
+
+            
 def multiplyByHistoWith1ptBin(h, h1bin):
     # multiply 2D histograms when one has only 1 pt bin
     # neglect uncertainty on histogram with 1 bin
@@ -517,6 +728,7 @@ def drawCorrelationPlot(h2D_tmp,
                         ):
 
 
+    print("Inside here at least")
     ROOT.TH1.SetDefaultSumw2()
     adjustSettings_CMS_lumi()
 
@@ -1239,6 +1451,7 @@ def drawNTH1(hists=[],
              drawErrorAll=False, # default draws error only on first histogram
              yAxisExtendConstant=1.2,
              markerStyleFirstHistogram=20,
+             useLineFirstHistogram=False,
              fillStyleSecondHistogram=3004,
              colorVec=None,
              setRatioRangeFromHisto=False, # currently only for 2 histograms in hists
@@ -1304,9 +1517,12 @@ def drawNTH1(hists=[],
     frame.SetStats(0)
 
     h1.SetLineColor(ROOT.kBlack)
-    h1.SetMarkerColor(ROOT.kBlack)
-    h1.SetMarkerStyle(markerStyleFirstHistogram)
-    #h1.SetMarkerSize(0)
+    if useLineFirstHistogram:
+        h1.SetMarkerSize(0)
+        h1.SetLineWidth(2) 
+    else:
+        h1.SetMarkerColor(ROOT.kBlack)
+        h1.SetMarkerStyle(markerStyleFirstHistogram)
 
     if colorVec != None:
         colors = colorVec
@@ -1368,14 +1584,18 @@ def drawNTH1(hists=[],
     h1.GetYaxis().SetRangeUser(ymin, ymax)
     h1.GetYaxis().SetTickSize(0.01)
     if setXAxisRangeFromUser: h1.GetXaxis().SetRangeUser(xmin,xmax)
-    h1.Draw("PE")
+    h1.Draw("HE" if useLineFirstHistogram else "PE")
     for h in hnums:
         h.Draw("HE SAME" if drawErrorAll else "HIST SAME")
-    h1.Draw("PE SAME")
+    h1.Draw("HE SAME" if useLineFirstHistogram else "PE SAME")
 
     nColumnsLeg = 1
+    legHeader = ""
     if ";" in legendCoords: 
-        nColumnsLeg = int(legendCoords.split(";")[1])
+        tokens = legendCoords.split(";")
+        nColumnsLeg = int(tokens[1])
+        if len(tokens) > 2:
+            legHeader = tokens[2]
     legcoords = [float(x) for x in (legendCoords.split(";")[0]).split(',')]
     lx1,lx2,ly1,ly2 = legcoords[0],legcoords[1],legcoords[2],legcoords[3]
     leg = ROOT.TLegend(lx1,ly1,lx2,ly2)
@@ -1385,8 +1605,11 @@ def drawNTH1(hists=[],
     leg.SetShadowColor(0)
     leg.SetBorderSize(0)
     leg.SetNColumns(nColumnsLeg)
+    if legHeader:
+        leg.SetHeader(legHeader)
+    firstHistogramStyle = "L" if useLineFirstHistogram else "PE"
     for il,le in enumerate(legEntries):
-        leg.AddEntry(hists[il],le,"PE" if il == 0 else "L" if onlyLineColor else "FL")
+        leg.AddEntry(hists[il],le,firstHistogramStyle if il == 0 else "L" if onlyLineColor else "FL")
     leg.Draw("same")
     canvas.RedrawAxis("sameaxis")
 

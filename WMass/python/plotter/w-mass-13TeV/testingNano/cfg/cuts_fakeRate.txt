@@ -1,7 +1,7 @@
 alwaystrue : 1
 onemuon    : nMuon == 1 && nVetoElectrons == 0
 trigger    : HLT_SingleMu24 > 0 && Muon_hasTriggerMatch[0] != 0
-accept     : abs(Muon_eta[0]) < 2.4 && Muon_pt[0] > 26 && Muon_pt[0] < 65
+accept     : abs(Muon_eta[0]) < 2.4 && Muon_pt[0] > 24 && Muon_pt[0] < 60
 muonID     : Muon_mediumId[0] == 1
 jets       : nJet_MuonClean >=1 && Jet_pt[Jet_MuonClean_jetIdx[0]] > 30 && Jet_jetId[Jet_MuonClean_jetIdx[0]]>=6 && (Jet_pt[Jet_MuonClean_jetIdx[0]] > 50 || Jet_puId[Jet_MuonClean_jetIdx[0]]>=4)
 dxy        : abs(Muon_dxy[0]) < 0.05

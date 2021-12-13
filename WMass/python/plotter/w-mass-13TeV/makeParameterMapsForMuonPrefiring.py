@@ -45,6 +45,7 @@ if __name__ == "__main__":
     outfile = safeOpenFile(output_muonprefiringfile, mode="RECREATE")
 
     hplot = ROOT.TH2D("hplot", "", len(etabinsfloat)-1, array('d', etabinsfloat), 100, 10, 60)
+    adjustSettings_CMS_lumi()
     canvas = ROOT.TCanvas("canvas", "", 800, 800) 
 
     fhotspot = safeGetObject(infile, "L1prefiring_muonparam_HotSpot_2016", quitOnFail=True, silent=True, detach=False)
@@ -72,6 +73,8 @@ if __name__ == "__main__":
                         passCanvas=canvas, skipLumi=True)
     
     
+    hPrefVsEta_pt40 = {}
+    
     for era in eras:
         hplot.SetTitle(f"2016{era}")
         h = copy.deepcopy(htemplate.Clone(f"L1prefiring_muonparam_2016{era}"))
@@ -89,7 +92,12 @@ if __name__ == "__main__":
             h.SetBinError(ibin, 3, ftmp.GetParError(2))
             for ipt in range(1, hplot.GetNbinsY()+1):
                 hplot.SetBinContent(ibin, ipt, ftmp.Eval(hplot.GetYaxis().GetBinCenter(ipt)))
+                hplot.SetBinError(ibin, ipt, ftmp.GetParError(2)) # just use uncertainty on the plateau
         h.Write()
+
+        ptBin = hplot.GetYaxis().FindFixBin(40.1)
+        hPrefVsEta_pt40[era] = hplot.ProjectionX(f"muonPrefiringVsEta_pt40GeV_{era}", ptBin, ptBin, "e")
+        
         drawCorrelationPlot(hplot,
                             "Muon |#eta|",
                             "Muon p_{T} (GeV)",
@@ -97,6 +105,26 @@ if __name__ == "__main__":
                             f"muonPrefiringProbability_2016{era}", plotLabel="ForceTitle", outdir=plotFolder,
                             draw_both0_noLog1_onlyLog2=1, nContours=51, palette=87,
                             passCanvas=canvas, skipLumi=True)
+
+    hlist = [hPrefVsEta_pt40[era] for era in ["BG", "postVFP", "H"]]
+    adjustSettings_CMS_lumi()
+    drawNTH1(hlist, ["preVFP", "postVFP", "H"],
+             "Muon |#eta|", "Muon L1 prefiring probability",
+             "muonPrefiringProbability_prePostVFP",
+             plotFolder,
+             draw_both0_noLog1_onlyLog2=1,
+             #legendCoords="0.18,0.9,0.82,0.9;3",
+             legendCoords="0.18,0.48,0.63,0.9;1;Data 2016",
+             lowerPanelHeight=0,
+             passCanvas=canvas,
+             lumi=36.3,
+             onlyLineColor=True,
+             drawErrorAll=True,
+             #markerStyleFirstHistogram=25,
+             useLineFirstHistogram=True,
+             #moreTextLatex="25 < p_{T}^{#mu} < 60 GeV::0.18,0.65,0.08,0.05"  # if legend has 3 columns
+             moreTextLatex="25 < p_{T}^{#mu} < 60 GeV::0.55,0.85,0.08,0.05"
+    )
 
 
     print(f"Writing histograms in {output_muonprefiringfile}")

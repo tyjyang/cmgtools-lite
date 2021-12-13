@@ -1,0 +1,10 @@
+p(generalTrack | standalone) is the tracking efficiency (we call it alternativeTracking), close to what POG does (but not exactly, as they do some things, like charge matching or other wonky selections)
+
+p(tracker or global | generalTrack) is the reco (actually reco+matching) efficiency
+
+
+now we changed and use
+
+tracking: P(global | standalone)
+reco: P(standalone | track-seeded track)
+this requires that we use only global muons

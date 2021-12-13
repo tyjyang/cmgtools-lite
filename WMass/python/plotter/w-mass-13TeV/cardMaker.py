@@ -34,7 +34,7 @@ def safeSystem(cmd, dryRun=False, quitOnFail=True):
         
 def sortSystsForDatacard(params):
 
-    params = sorted(params, key= lambda x: int(x.replace('pdf','')) if 'pdf' in x else 101 if 'alphaS' in x else 0)
+    params = sorted(params, key= lambda x: int(re.match("pdf(\d+)", x)[1]) if re.match("pdf\d+", x)  else 101 if 'alphaS' in x else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if ('muRmuF' in x and x != "muRmuF")  else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muR' and x != "muR") else 0)
     params = sorted(params, key= lambda x: int(re.sub('\D','',x)) if (''.join([j for j in x if not j.isdigit()]) == 'muF' and x != "muF") else 0)
@@ -306,7 +306,6 @@ class CardMaker:
                 if systName not in systGroups[group]: 
                     systGroups[group].append(systName)
                                 
-        #if options.mergeRoot or options.remakeMultipliers:
         if self._options.remakeMultipliers:
             safeSystem('hadd -f {of} {of}.baseSystematics {of}.multiplierSystematics'.format(of=self.shapesfile), dryRun=self._options.dryRun)
 
@@ -528,7 +527,6 @@ def makeAllSystematicMultipliers(indir):
 if __name__ == "__main__":    
 
     parser = argparse.ArgumentParser()
-    #parser.add_argument('-m','--merge-root', dest='mergeRoot', default=False, action='store_true', help='Merge the root files with the inputs also')
     parser.add_argument('-i','--input', dest='inputdir', default='', type=str, help='input directory with all the cards inside')
     parser.add_argument('--cf','--card-folder', dest='cardFolder', default='nominal', type=str, help='Subfolder created inside inputdir to store all cards and fit results in a given configuration, for better bookkeeping when doing tests')
     parser.add_argument('-f','--flavor', dest='flavor', default='mu', type=str, choices=["mu","el"], help='lepton flavor (mu,el)')
@@ -559,7 +557,8 @@ if __name__ == "__main__":
     parser.add_argument(      '--fit-single-charge', dest='fitSingleCharge', default=False, action='store_true', help='Prepare datacard for single-charge fit. For each charge, a postfix is appended to option --postfix, so no need to add the charge explicitly')
     # --impacts-mW might not be needed or might not work, to be checked
     parser.add_argument(      '--impacts-mW', dest='doImpactsOnMW', default=False, action='store_true', help='Set up cards to make impacts of nuisances on mW')
-    parser.add_argument(     '--mass-nuis',    dest='massNuisance', type=str, default="massShift50MeV", help="Use only this mass nuisance in the datacard and to define noiGroup. It overrides exclusion from option --exclude-nuisances");     parser.add_argument(      '--all-proc-background', dest='allProcessesBackground', default=False, action='store_true', help='Set all processes as backgrounds (e.g. when running the fit with fixed poi)')
+    parser.add_argument(     '--mass-nuis',    dest='massNuisance', type=str, default="massShift50MeV", help="Use only this mass nuisance in the datacard and to define noiGroup. It overrides exclusion from option --exclude-nuisances")
+    parser.add_argument(      '--all-proc-background', dest='allProcessesBackground', default=False, action='store_true', help='Set all processes as backgrounds (e.g. when running the fit with fixed poi)')
     parser.add_argument("-D", "--dataset",  dest="dataname", default="data_obs",  type=str,  help="Name of the observed dataset (pass name without x_ in the beginning). Useful to fit another pseudodata histogram")
     parser.add_argument("--combinetf-option",  dest="combinetfOption", default="",  type=str,  help="Pass other options to combinetf")
     args = parser.parse_args()
@@ -627,8 +626,6 @@ if __name__ == "__main__":
     for charge in charges:
         if not options.justFit:
             cm = CardMaker(options, charge)
-            #if options.mergeRoot:
-            #    cm.mergeChunks()
             cm.writeDatacard()
         if options.fitSingleCharge:
             prepareChargeFit(options, charges=[charge])

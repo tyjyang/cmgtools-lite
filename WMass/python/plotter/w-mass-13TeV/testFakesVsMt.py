@@ -27,17 +27,18 @@ from utility import *
 sys.path.append(os.getcwd())
 from cropNegativeTemplateBins import cropNegativeContent
 
+# will use as input histograms with eta-pt-mt-charge-iso, where mT is the full distribution and iso is only low/iso
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputfileLowIso", type=str, nargs=1)
-    parser.add_argument("inputfileHighIso", type=str, nargs=1)
+    parser.add_argument("inputfile", type=str, nargs=1)
     parser.add_argument("outputfolder",   type=str, nargs=1)
     #parser.add_argument("--hname", default="mt_pt_eta", help="Root of histogram name inside root file")
     parser.add_argument("-x", "--x-axis-name", dest="xAxisName", default="Muon #eta", help="x axis name")
     parser.add_argument("-y", "--y-axis-name", dest="yAxisName", default="Muon p_{T} (GeV)", help="y axis name")
     parser.add_argument("-z", "--z-axis-name", dest="zAxisName", default="m_{T} (GeV)", help="z axis name")
+    parser.add_argument("-c", "--charge", default="plus", choices=["plus", "minus"], help="charge")
     parser.add_argument("--mt-bin-edges", dest="mtEdges", default="0,10,20,30,40,50,60", type=str, help="Comma-separated list of bin edges for mT")
     parser.add_argument("--mt-nominal-range", dest="mtNominalRange", default="0,40", type=str, help="Comma-separated list of 2 bin edges for mT, representing the nominal range, used to derive the correction using also option --mt-value-correction")
     parser.add_argument("--mt-value-correction", dest="mtValueCorrection", default=55.0, type=float, help="Value at high mT where to evaluate correction with respect to nominal range passed with --mt-nominal-range")
@@ -59,35 +60,35 @@ if __name__ == "__main__":
     yAxisName = args.yAxisName
     zAxisName = args.zAxisName
     
-    histoLowIso = None
-    fileLowIso = safeOpenFile(args.inputfileLowIso[0])
-    datakey = [key.GetName() for key in fileLowIso.GetListOfKeys() if "data" in key.GetName()][0]
-    histoLowIso = safeGetObject(fileLowIso, datakey)
+    histo = None
+    inputfile = safeOpenFile(args.inputfile[0])
+    datakey = [key.GetName() for key in inputfile.GetListOfKeys() if "data" in key.GetName()][0]
+    histo = safeGetObject(inputfile, datakey, detach=False)
     #dataLowIso1D = histoLowIso.ProjectionZ("data_mt_lowIso", 0, -1, 0, -1, "e")
     #mcLowIso1D = []
-    for key in fileLowIso.GetListOfKeys():
+    for key in inputfile.GetListOfKeys():
         name = key.GetName()
         if "data" in name: continue
         obj = key.ReadObj()
         obj.SetDirectory(0)
-        histoLowIso.Add(obj, -1.0)
-        #mcLowIso1D.append(obj.ProjectionZ(f"{key}_mt_lowIso", 0, -1, 0, -1, "e"))
-    fileLowIso.Close()
-    
-    fileHighIso = safeOpenFile(args.inputfileHighIso[0])
-    datakey = [key.GetName() for key in fileHighIso.GetListOfKeys() if "data" in key.GetName()][0]
-    histoHighIso = safeGetObject(fileHighIso, datakey)
-    #dataHighIso1D = histoHighIso.ProjectionZ("data_mt_HighIso", 0, -1, 0, -1, "e")
-    #mcHighIso1D = []
-    for key in fileHighIso.GetListOfKeys():
-        name = key.GetName()
-        if "data" in name: continue
-        obj = key.ReadObj()
-        obj.SetDirectory(0)
-        histoHighIso.Add(obj, -1.0)
-        #mcHighIso1D.append(obj.ProjectionZ(f"{key}_mt_highIso", 0, -1, 0, -1, "e"))
-    fileHighIso.Close()
+        histo.Add(obj, -1.0)
+    inputfile.Close()
 
+    # bin number from root histogram
+    chargeBin = 1 if args.charge == "minus" else 2
+
+    # set charge from charge axis
+    histo.GetAxis(3).SetRange(chargeBin, chargeBin)
+    # now get a TH3, setting isolation bin before projecting
+    histo.GetAxis(4).SetRange(1, 1)
+    histoLowIso = histo.Projection(0, 1, 2, "E")
+    histoLowIso.SetName("fakes_lowIso")
+    histoLowIso.SetTitle("fakes_lowIso")
+    histo.GetAxis(4).SetRange(2, 2)
+    histoHighIso = histo.Projection(0, 1, 2, "E")
+    histoHighIso.SetName("fakes_highIso")
+    histoHighIso.SetTitle("fakes_highIso")
+    
     histoLowIso.Rebin3D(args.rebinEta, args.rebinPt)
     histoHighIso.Rebin3D(args.rebinEta, args.rebinPt)
 

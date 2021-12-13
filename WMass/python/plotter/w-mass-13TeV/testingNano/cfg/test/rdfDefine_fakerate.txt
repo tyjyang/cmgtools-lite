@@ -23,3 +23,7 @@ scetlibWeightsWMINUSscalar : Numba::correctN3LL_Wm(0,mVgen,yVgen,ptVgen) : W.*mi
 
 #customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26.0,55.0)
 customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26,55)
+
+muonPtVarUp : Numba::calibratedPtUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
+muonPtVarDown : Numba::calibratedPtDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
+Muon_ptvars : concatRVecsToArray<double, 288, 288>(muonPtVarUp, muonPtVarDown)

@@ -57,7 +57,8 @@ if __name__ == "__main__":
     # output folder is better chosen as input plus a subfolder
     #parser.add_argument("outputfolder",   type=str, nargs=1)
     parser.add_argument("--hname", default="bareMuon_pt_eta", help="Root of histogram name inside root file")
-    parser.add_argument("-y", "--y-axis-name", dest="yAxisName", default="bare muon p_{T} (GeV)", help="y axis name")
+    parser.add_argument("-x", "--x-axis-name", dest="xAxisName", default="Bare muon #eta", help="x axis name")
+    parser.add_argument("-y", "--y-axis-name", dest="yAxisName", default="Bare muon p_{T} (GeV)", help="y axis name")
     parser.add_argument("--postfix", default="", help="Postfix for output folder")
     parser.add_argument("-w", "--working-points", dest="workingPoints", type=str, default="trackerOrGlobalAndStandalone,trackerOrGlobal,tracker,standalone,global,accept,idip,trig,trigNoBit,iso,idipANDtrig,idipANDisonotrig,idipANDtrigANDiso,idipANDtrigNoBit,veto", help="Comma separated list of working points to fetch input histograms")
     parser.add_argument("-e", "--era",    type=str, default="B,C,D,E,F,BToF,G,H,GToH", help="Comma separated list of eras, which identify the input subfolder")
@@ -220,7 +221,7 @@ if __name__ == "__main__":
             print(">>>>>>>>>>")
             print()
     
-    xAxisName = "bare muon #eta"
+    xAxisName = args.xAxisName
     yAxisName = args.yAxisName
     if args.ptRange[0] < args.ptRange[1]: 
         ymin = args.ptRange[0]
@@ -230,6 +231,9 @@ if __name__ == "__main__":
     minmax = getMinMaxForSameWorkingPoint(mcEff, args, excludeMax=1.0)       
     if "isoStepOfTnP" in minmax:
         minmax["isoStepOfTnP"] = (0.85, minmax["isoStepOfTnP"][1]) # customize some working points
+    for key in minmax.keys():
+        if "idipANDtrig" in key:
+            minmax[key] = (0.5, minmax[key][1]) # customize some working points
 
     rfoutname = f"{outfolder}/mcTruthEff.root"
     rfout = safeOpenFile(rfoutname, mode="RECREATE")

@@ -4,7 +4,7 @@
 import re, sys, os, os.path, ROOT, copy, math
 from array import array
 #import numpy as np
-import root_numpy
+#import root_numpy
 import argparse
 
 # in the fit, bins with 0 content in the nominal are ignored.
@@ -12,28 +12,33 @@ import argparse
 # nominal templates (no need to touch the alternate as well)
 # note that, by default, this function modify the original input file
 
-def cropNegativeContent(h, silent=True, cropError=False, cropValue=0.001):
-
-    dim = h.GetDimension()
-    nbins = 0
-    if   dim == 1: nbins = h.GetNbinsX() + 2
-    elif dim == 2: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2)
-    elif dim == 3: nbins = (h.GetNbinsX() + 2) * (h.GetNbinsY() + 2) * (h.GetNbinsZ() + 2)
-
+def cropNegativeContent(h, silent=False, cropError=False, cropValue=0.0001):
+    
     hasCroppedBins = False
-    integral = h.Integral()
-    for i in range(nbins):
-        nom  = h.GetBinContent(i)
-        if nom<0.0:
-            hasCroppedBins = True
-            h.SetBinContent(i, cropValue)
-            if cropError:
-                h.SetBinError(i, cropValue)
-    integralNonNeg = h.Integral()
-    if not silent and hasCroppedBins:
-        print("{n}: original integral = {i} changed by {r}".format(n=h.GetName(),
-                                                                   i=str(integral),
-                                                                   r=str(integralNonNeg/integral)))
+    if "THn" in h.ClassName():
+        nbins = h.GetNbins() + 1
+        for i in range(nbins):
+            nom  = h.GetBinContent(i, 0) # apparently I need to pass 0 explicitly for the second argument when using THn, might be a bug
+            if nom<0.0:
+                hasCroppedBins = True
+                h.SetBinContent(i, cropValue)
+                if cropError:
+                    h.SetBinError(i, cropValue)
+    else:
+        nbins = h.GetNcells() + 1
+        integral = h.Integral()
+        for i in range(nbins):
+            nom  = h.GetBinContent(i)
+            if nom<0.0:
+                hasCroppedBins = True
+                h.SetBinContent(i, cropValue)
+                if cropError:
+                    h.SetBinError(i, cropValue)
+        if not silent and hasCroppedBins:
+            integralNonNeg = h.Integral()
+            print("{n}: original integral = {i} changed by {r} (new(old)".format(n=h.GetName(),
+                                                                                 i=str(integral),
+                                                                                 r=str(integralNonNeg/integral)))       
     return hasCroppedBins
 
 if __name__ == "__main__":

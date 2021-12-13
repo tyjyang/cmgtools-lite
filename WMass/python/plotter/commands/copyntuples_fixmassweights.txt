@@ -1,0 +1,33 @@
+# Zmumu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210319_190436/ /data/shared/originalNANO/DYJetsToMuMu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/DYJetsToMuMu_M-50_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210319_193015/ /data/shared/originalNANO/DYJetsToMuMu_preVFP/
+
+# Ztautau
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/DYJetsToTauTau_M-50_AtLeastOneEorMuDecay_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210319_193022/ /data/shared/originalNANO/DYJetsToTauTau_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/DYJetsToTauTau_M-50_AtLeastOneEorMuDecay_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210319_190445/ /data/shared/originalNANO/DYJetsToTauTau_preVFP/
+
+# Wmunu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210325_221655/ /data/shared/originalNANO/WplusJetsToMuNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210325_221703/ /data/shared/originalNANO/WplusJetsToMuNu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210430_145543/ /data/shared/originalNANO/WminusJetsToMuNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToMuNu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210430_145557/ /data/shared/originalNANO/WminusJetsToMuNu_preVFP/
+
+# Wtaunu
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210325_221712/ /data/shared/originalNANO/WplusJetsToTauNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WplusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210325_221720/ /data/shared/originalNANO/WplusJetsToTauNu_preVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPostVFP/210325_221639/ /data/shared/originalNANO/WminusJetsToTauNu_postVFP/
+
+python /data/shared/utils/pllxrdcp.py -r /eos/cms/store/cmst3/group/wmass/w-mass-13TeV/NanoAOD/WminusJetsToTauNu_TauToMu_TuneCP5_13TeV-powhegMiNNLO-pythia8-photos/NanoV8MCPreVFP/210325_221132/ /data/shared/originalNANO/WminusJetsToTauNu_preVFP/
+
+

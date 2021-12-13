@@ -18,8 +18,10 @@ if "/fakeRate_cc.so" not in ROOT.gSystem.GetLibraries():
 SAFE_COLOR_LIST=[
 ROOT.kBlack, ROOT.kRed, ROOT.kGreen+2, ROOT.kBlue, ROOT.kMagenta+1, ROOT.kOrange+7, ROOT.kCyan+1, ROOT.kGray+2, ROOT.kViolet+5, ROOT.kSpring+5, ROOT.kAzure+1, ROOT.kPink+7, ROOT.kOrange+3, ROOT.kBlue+3, ROOT.kMagenta+3, ROOT.kRed+2,
 ]+list(range(11,40))
+
 def _unTLatex(string):
     return string.replace("#chi","x").replace("#mu","m").replace("#rightarrow","->")
+
 class PlotFile:
     def __init__(self,fileName,options):
         self._options = options
@@ -804,16 +806,6 @@ class PlotMaker:
     def run(self,mca,cuts,plots,makeStack=True,makeCanvas=True):
         if self._options.wideplot: ROOT.gStyle.SetTitleYOffset(0.55)
         sets = [ (None, 'all cuts', cuts.allCuts()) ]
-        if not self._options.final:
-            allcuts = cuts.sequentialCuts()
-            if self._options.nMinusOne or self._options.nMinusOneInverted: 
-                if not self._options.nMinusOneSelection:
-                    allcuts = cuts.nMinusOneCuts(inverted=self._options.nMinusOneInverted)+[None] # add a dummy entry since we use allcuts[:-1] below
-                else:
-                    allcuts = cuts.nMinusOneSelectedCuts(self._options.nMinusOneSelection,inverted=self._options.nMinusOneInverted)+[None]
-            for i,(cn,cv) in enumerate(allcuts[:-1]): # skip the last one which is equal to all cuts
-                cnsafe = "cut_%02d_%s" % (i, re.sub("[^a-zA-Z0-9_.]","",cn.replace(" ","_")))
-                sets.append((cnsafe,cn,cv))
         for subname, title, cut in sets:
             logging.info(" cut set: %s" % title)
             cdir = self._dir
