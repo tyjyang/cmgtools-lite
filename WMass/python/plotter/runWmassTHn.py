@@ -182,8 +182,9 @@ if __name__ == "__main__":
         args.postfix += "_vptWeight"
         
     args.postfix += "_systTHn"
-    regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
-    args.options += f" -A trigMatch regionCut '{regionCut}' "
+    # added back to cut file
+    #regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
+    #args.options += f" -A trigMatch regionCut '{regionCut}' "
     print("")
     main(args)
     print('-'*30)
