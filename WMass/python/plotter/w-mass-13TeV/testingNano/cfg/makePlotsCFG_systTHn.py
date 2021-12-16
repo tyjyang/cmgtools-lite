@@ -90,7 +90,7 @@ pdfMap = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dimension", nargs="+", default=['Muon_eta[goodMuons][0];Muon #eta;48;-2.4;2.4',
-                                                             'Muon_pt[goodMuons][0];Muon p_{T} (GeV);29;26;55',
+                                                             'Muon_pt[goodMuons][0];Muon p_{T} (GeV);25;30;55',
                                                              'Muon_charge[goodMuons][0];Muon charge;2;-2;2',
                                                              'regionIsoMt(Muon_pfRelIso04_all[goodMuons][0]<0.15,transverseMass<40);isolation-mT bin;4;-0.5;3.5'],
                     help="Add dimension to fill new axis. Can pass multiple arguments as ';'-separated list of 5 elements (variable, title, number of bins, minimum, maximum)")
@@ -229,16 +229,51 @@ for ipt in range(1,1+NVTPBINS):
                 addWeight = f"qcdScaleWeight_VptBinned(LHEScaleWeight\,ptVgen\,{ptcut[0]}\,{ptcut[1]})" 
     )
 
-
 ## end of QCD scales
 
-writeNDHist(label = "CMS_scale_m",
+writeNDHist(label = "muonScale",
             varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvars"),
             nsyst = 288*2, 
             axisLabels = axisNames,
             weightAxisLabel = "Muon scale nuisance index",
             binning = binning,
-            procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
+            procRegexp = "W.*|Z.*", # no fakes here yet
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+)
+
+writeNDHist(label = "muonScaleDummyFlat",
+            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat"),
+            nsyst = 24*2, 
+            axisLabels = axisNames,
+            weightAxisLabel = "Muon scale nuisance index",
+            binning = binning,
+            procRegexp = "W.*|Z.*", # no fakes here yet
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+)
+
+writeNDHist(label = "muonScaleDummyFlat1Bin",
+            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat1Bin"),
+            nsyst = 2, 
+            axisLabels = axisNames,
+            weightAxisLabel = "Muon scale nuisance index",
+            binning = binning,
+            procRegexp = "W.*|Z.*", # no fakes here yet
+            outfile = outf,
+            systBinStart = -0.5,
+            indexStart = 0,
+)
+
+writeNDHist(label = "muonScaleApproxBField",
+            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsApproxBField"),
+            nsyst = 48*2, 
+            axisLabels = axisNames,
+            weightAxisLabel = "Muon scale nuisance index",
+            binning = binning,
+            procRegexp = "W.*|Z.*", # no fakes here yet
             outfile = outf,
             systBinStart = -0.5,
             indexStart = 0,

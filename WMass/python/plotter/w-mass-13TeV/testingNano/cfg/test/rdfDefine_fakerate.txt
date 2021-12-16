@@ -24,6 +24,10 @@ scetlibWeightsWMINUSscalar : Numba::correctN3LL_Wm(0,mVgen,yVgen,ptVgen) : W.*mi
 #customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26.0,55.0)
 customPtTest: shiftPt_testPtScaleSystWmass(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],48,0.1,-2.4,26,55)
 
-muonPtVarUp : Numba::calibratedPtUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
-muonPtVarDown : Numba::calibratedPtDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0])
+muonPtVarUp : Numba::calibratedPtUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0], 10.)
+muonPtVarDown : Numba::calibratedPtDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0], 10.)
 Muon_ptvars : concatRVecsToArray<double, 288, 288>(muonPtVarUp, muonPtVarDown)
+
+Muon_ptvarsDummyFlat : Numba::dummyCalibratedPtFlat(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], 1.E-3, 24)
+Muon_ptvarsDummyFlat1Bin : Numba::dummyCalibratedPtFlat(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], 1.E-3, 1)
+Muon_ptvarsApproxBField : Numba::dummyCalibratedPtApproxBField(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0])

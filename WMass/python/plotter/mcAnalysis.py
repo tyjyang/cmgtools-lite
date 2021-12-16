@@ -691,7 +691,7 @@ class MCAnalysis:
 
 def addMCAnalysisOptions(parser,addTreeToYieldOnesToo=True):
     if addTreeToYieldOnesToo: addTreeToYieldOptions(parser)
-    parser.add_argument(      "--n-thread", dest="nThreads", type=int, default=0, help="Number of threads to use for RDF, if 0 the maximum available is used");
+    parser.add_argument(      "--n-thread", dest="nThreads", type=int, default=128, help="Number of threads to use for RDF, if 0 the maximum available is used");
     parser.add_argument("-P", "--path", action="append", type=str, default=[], help="Path to directory with input trees and pickle files. Can supply multiple paths which will be searched in order. (default: ./") 
     parser.add_argument("--RP", "--remote-path", dest="remotePath", type=str, help="path to remote directory with trees, but not other metadata (default: same as path)") 
     parser.add_argument("-p", "--process", dest="processes", type=str, default=[], action="append", help="Processes to print (comma-separated list of regexp, can specify multiple ones)");

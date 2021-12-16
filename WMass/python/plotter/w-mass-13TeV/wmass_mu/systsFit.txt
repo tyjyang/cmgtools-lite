@@ -12,8 +12,9 @@ alphaS002  : .*AlphaS002            : Z.*|W.*|.*fakes.*                  : Alpha
 qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDscaleW_WptBin  : shape
 qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
-muonScale  : muonScale.*        : W.*|Z.*|Diboson.*|Top.*                : muonScale : shape
-#muScale    : muonPtScaleTest.*      : W.*|Z.*|Diboson.*|Top.*            : muonPtScale: shape
+#muonScale  : muonScaleDummyFlat1Bin.*        : W.*|Z.*|Diboson.*|Top.*   : muonScale : shape : 0.2
+muonScale  : muonScaleDummyFlat.*        : W.*|Z.*|Diboson.*|Top.*      : muonScale : shape : 0.2
+#muonScale  : muonScale\d+.*        : W.*|Z.*|Diboson.*|Top.*            : muonScale : shape : 0.1
 efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_stat   : shape
 effSyst    : effSyst.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_syst   : shape
 muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonPrefiring  : shape
