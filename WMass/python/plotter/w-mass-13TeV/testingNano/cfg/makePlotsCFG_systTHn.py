@@ -16,6 +16,8 @@ ROOT.gROOT.SetBatch(True)
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from copy import *
+sys.path.append(os.getcwd())
+from wmassUtilities.theory import pdfMap
 
 def wptBinsScales(i):
     # 5% quantiles (to be redone on the new MC)
@@ -49,44 +51,6 @@ def writeNDHist(label, varExpr, nsyst, binning, axisLabels, weightAxisLabel, pro
     if outfile:
         outfile.write(line+'\n')
 
-pdfMap = {
-    "nnpdf31" : {
-        "name" : "NNPDF31",
-        "entries" : 103,
-        "truncate" : False,
-        "onlyW" : False,
-        "weight" : "LHEPdfWeight",
-        "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],
-        "alphaRange" : "002",
-    },
-    "nnpdf30" : {
-        "name" : "NNPDF30",
-        "entries" : 101,
-        "truncate" : False,
-        "onlyW" : True,
-        "weight" : "LHEPdfWeightAltSet13",
-        "alphas" : ["LHEPdfWeightAltSet15[0]", "LHEPdfWeightAltSet16[0]"],
-        "alphaRange" : "002",
-    },
-    "ct18" : {
-        "name" : "CT18",
-        "entries" : 59,
-        "onlyW" : True,
-        "truncate" : True,
-        "weight" : "LHEPdfWeightAltSet18",
-        "alphas" : ["LHEPdfWeightAltSet18[59]", "LHEPdfWeightAltSet18[60]"],
-        "alphaRange" : "002",
-    },
-    "mmht" : {
-        "name" : "MMHT",
-        "entries" : 51,
-        "onlyW" : True,
-        "truncate" : False,
-        "weight" : "LHEPdfWeightAltSet19",
-        "alphas" : ["LHEPdfWeightAltSet20[1]", "LHEPdfWeightAltSet20[2]"],
-        "alphaRange" : "002",
-    },
-}
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dimension", nargs="+", default=['Muon_eta[goodMuons][0];Muon #eta;48;-2.4;2.4',
@@ -135,16 +99,16 @@ print("-"*30)
 
 # for pt scale variations (dummy definitions for now)
 # assume pt is the second variable
-ptDim = 1
-variables_alt = variables[:]
-ptTokens = args.dimension[ptDim].split(";")
-#print(ptTokens)
-ptVar = ptTokens[0]
-ptMin = ptTokens[3] 
-ptMax = ptTokens[4] 
-variables_alt[ptDim] = variables[ptDim].replace(ptVar, args.ptVarScaleTest)
-expression_muonPtScale = "\:".join(variables_alt[::-1])
-
+if len(args.ptVarScaleTest):
+    ptDim = 1
+    variables_alt = variables[:]
+    ptTokens = args.dimension[ptDim].split(";")
+    #print(ptTokens)
+    ptVar = ptTokens[0]
+    ptMin = ptTokens[3] 
+    ptMax = ptTokens[4] 
+    variables_alt[ptDim] = variables[ptDim].replace(ptVar, args.ptVarScaleTest)
+    expression_muonPtScale = "\:".join(variables_alt[::-1])
 
 isWlike = args.analysis == "wlike"
 ####################################
@@ -164,7 +128,8 @@ pdfInfo = pdfMap[args.pdfWeights]
 # Needed if you don't want to use all the PDF weights in the vector (mostly needed for CT18, which didn't get parsed correctly)
 weight = pdfInfo["weight"]
 entries=pdfInfo["entries"]
-weightexpr = weight if "Alt" not in weight else f"1.0/{weight}[0]*" + (str(weight) if not pdfInfo["truncate"] else
+# for pdfs other than NNPDF3.1 (which is the default set in the ntuples) we will need to add the nominal pdf weight in the global weight expression, so to get pdf variations correctly we need to divide by it here 
+weightexpr = weight if "Alt" not in weight else f"(1.0/{weight}[0])*" + (str(weight) if not pdfInfo["truncate"] else
     f" ROOT::VecOps::RVec<float>(std::begin({weight})\, std::begin({weight})+{entries})")
 print(weightexpr)
 
@@ -184,16 +149,16 @@ writeNDHist(label = "pdf"+pdfInfo["name"],
 )
 
 writeNDHist(label="alphaS{arange}{name}".format(arange=pdfInfo["alphaRange"], name=pdfInfo["name"]),
-    varExpr = expression,
-    nsyst = 2,
-    axisLabels = axisNames,
-    weightAxisLabel = "alpha_s index",
-    binning = binning,
-    procRegexp = "W.*",
-    outfile = outf,
-    systBinStart = -0.5,
-    indexStart = 1,
-    addWeight = "ROOT::VecOps::RVec<float>{{{0}\,{1}}}".format(*pdfInfo["alphas"])
+            varExpr = expression,
+            nsyst = 2,
+            axisLabels = axisNames,
+            weightAxisLabel = "alpha_s index",
+            binning = binning,
+            procRegexp = regex,
+            outfile = outf,
+            systBinStart = 0.5,
+            indexStart = 1,
+            addWeight = "ROOT::VecOps::RVec<float>{{{0}\,{1}}}".format(*pdfInfo["alphas"])
 )
 
 ### QCD scales should be used according to central PDF set. For now will keep using NNPDF3.1 in all cases
@@ -373,18 +338,19 @@ writeNDHist(label = "massWeight",
 #     )
 
 # muon momentum scale test
-writeNDHist(label = "muonPtScaleTest",
-            varExpr = expression_muonPtScale,  # FIXME
-            nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
-            axisLabels = axisNames,
-            weightAxisLabel = "pT scale nuisance index (Up+Down)",
-            binning = binning,
-            procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
-            outfile = outf,
-            systBinStart = 0.5,
-            indexStart = 1,
-            replaceCutByName = f"accept->valueInsideRange({args.ptVarScaleTest}\,{ptMin}\,{ptMax})"
-)
+if len(args.ptVarScaleTest):
+    writeNDHist(label = "muonPtScaleTest",
+                varExpr = expression_muonPtScale,  # FIXME
+                nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
+                axisLabels = axisNames,
+                weightAxisLabel = "pT scale nuisance index (Up+Down)",
+                binning = binning,
+                procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
+                outfile = outf,
+                systBinStart = 0.5,
+                indexStart = 1,
+                replaceCutByName = f"accept->valueInsideRange({args.ptVarScaleTest}\,{ptMin}\,{ptMax})"
+    )
 
 
 print('-'*30)

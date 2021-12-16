@@ -11,6 +11,7 @@ import numpy as np
 import argparse
 
 from lumiStuff.runPerEra import lumiForEra_UL_new as lpe
+from wmassUtilities.theory import pdfMap
 
 sys.path.append(os.getcwd() + "/plotUtils/")
 from utility import createPlotDirAndCopyPhp
@@ -103,9 +104,15 @@ def main(args):
     else:
         weight = f"puw_2016UL_era(Pileup_nTrueInt,eraVFP)*_get_fullMuonSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,Muon_pfRelIso04_all[goodMuons][0]<0.15)*_get_newMuonPrefiringSF(Muon_eta,Muon_pt,Muon_phi,Muon_looseId,eraVFP)*_get_tnpRecoSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP,0,reco)*_get_tnpTrackingSF(Muon_pt[goodMuons][0],Muon_eta[goodMuons][0],Muon_charge[goodMuons][0],-1,-1,eraVFP)"
 
+
+    pdfInfo = pdfMap[args.pdf]
+    
+    pdfMod = ""    
+    processesWithPDFs = "W.*" if pdfInfo["onlyW"] else "W.*|Z.*"
     if args.pdf != "nnpdf31":
+        pdfMod = f"--rdf-define 'nominalWeight : {pdfInfo['weight']}[0] : {processesWithPDFs} : 1.0'"
         weight = f"{weight}*nominalWeight"
-        
+
     # SF file
     sfOpt = f" --scale-factor-file '{args.scaleFactorFile}'"
     # the following is needed for SF made before June 2021
@@ -117,10 +124,6 @@ def main(args):
 
     # general options not in a specific group
     general = "--nanoaod-tree -v 3"
-
-    pdfMod = ""
-    if args.pdf == "ct18":
-        pdfMod = '--rdf-define "nominalWeight : LHEPdfWeightAltSet18[0] : W.* : 1.0"'
 
     ######################################################################
     ## Finally the command
@@ -159,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--scale-factor-file", dest="scaleFactorFile", type=str, default="./testMuonSF/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root", help="File to be used for scale factors")
     parser.add_argument("--old-sf-name", dest="oldSFname", action="store_true", help="To use old SF in file, whose names did not have nominal or dataAltSig (but note that eff.syst requires the new version)");
     parser.add_argument("-t", "--time", dest="checkTime", action="store_true", help="Check time of execution using /usr/bin/time -v");
-    parser.add_argument("--pdf", default="nnpdf31", type=str, help="PDF set to use");
+    parser.add_argument('--pdf', default="nnpdf31", choices=pdfMap.keys(), help='PDF set to use')
     args = parser.parse_args()
     
     createPlotDirAndCopyPhp(args.outdir)
@@ -179,8 +182,9 @@ if __name__ == "__main__":
         args.postfix += "_vptWeight"
         
     args.postfix += "_systTHn"
-    regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
-    args.options += f" -A trigMatch regionCut '{regionCut}' "
+    # added back to cut file
+    #regionCut = "transverseMass >= 40.0 || Sum(goodCleanJets)>=1"
+    #args.options += f" -A trigMatch regionCut '{regionCut}' "
     print("")
     main(args)
     print('-'*30)
