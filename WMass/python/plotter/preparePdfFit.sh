@@ -27,7 +27,7 @@ cardInputs=cards/wmass/W${pdf}_${fitLabel}
 echo "first step is $firstStep"
 
 if [ $firstStep -le 2 ]; then
-    python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTHn.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTHn_${pdf}.txt --a wmass --pdf-weights $pdf
+    python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTHn.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTHn_${pdf}.txt --a wmass --pdf-weights $pdf --muonScaleUnc dummy1Bin
     python runWmassTHn.py -o plots/testNanoAOD/WmassPlots/W${pdf}/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTHn_${pdf}.txt" --options " --skipPlot " --pdf $pdf
 fi
 

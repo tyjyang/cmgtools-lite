@@ -607,16 +607,6 @@ if __name__ == "__main__":
             print("Error: --comb requires two charges, use -C 'plus,minus' and try again")
             quit()
             
-    if args.massNuisance:
-        if not args.excludeNuisances:
-            args.excludeNuisances = "massShift.*"
-        else:
-            args.excludeNuisances = "{orig},massShift.*".format(orig=args.excludeNuisances)
-        if not args.keepNuisances:
-            args.keepNuisances = args.massNuisance
-        elif not re.match(args.massNuisance, args.keepNuisances):
-            args.keepNuisances = "{orig},{m}".format(orig=args.keepNuisances, m=args.massNuisance)
-        
     # skip for now, to be tested
     if options.remakeMultipliers:
         print('making all the systematic multipliers')

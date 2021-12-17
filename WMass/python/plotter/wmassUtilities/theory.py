@@ -2,7 +2,7 @@ pdfMap = {
     "nnpdf31" : {
         "name" : "NNPDF31",
         "entries" : 103,
-        "onlyW" : False,
+        "onlyW" : True, # Because the alpha_s sets are missing
         "truncate" : False,
         "weight" : "LHEPdfWeight",
         "alphas" : ["LHEPdfWeightAltSet5[0]", "LHEPdfWeightAltSet6[0]"],

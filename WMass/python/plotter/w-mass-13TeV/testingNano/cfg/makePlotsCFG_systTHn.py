@@ -64,8 +64,8 @@ parser.add_argument('-o', '--output', dest="outputFile", default='', type=str,
                     help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31",
                     help='PDF set to use')
-parser.add_argument('--ptVarScaleTest', default='customPtTest', type=str,
-                    help='Expression for variable on pt axis, specific for tests about pt scale')
+parser.add_argument('--muonScaleUnc', default='dummy1Bin', type=str, choices=["none", "dummy1Bin", "dummy48Bins", "full", "approxBField"],
+                    help='Type of muon scale uncertainties to include')
 args = parser.parse_args()
 
 ###################################
@@ -96,19 +96,6 @@ print(f"Expression: {expression}")
 print(f"Axis names: {axisNames}")
 print(f"Binning   : {binning}")
 print("-"*30)
-
-# for pt scale variations (dummy definitions for now)
-# assume pt is the second variable
-if len(args.ptVarScaleTest):
-    ptDim = 1
-    variables_alt = variables[:]
-    ptTokens = args.dimension[ptDim].split(";")
-    #print(ptTokens)
-    ptVar = ptTokens[0]
-    ptMin = ptTokens[3] 
-    ptMax = ptTokens[4] 
-    variables_alt[ptDim] = variables[ptDim].replace(ptVar, args.ptVarScaleTest)
-    expression_muonPtScale = "\:".join(variables_alt[::-1])
 
 isWlike = args.analysis == "wlike"
 ####################################
@@ -196,53 +183,54 @@ for ipt in range(1,1+NVTPBINS):
 
 ## end of QCD scales
 
-writeNDHist(label = "muonScale",
-            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvars"),
-            nsyst = 288*2, 
-            axisLabels = axisNames,
-            weightAxisLabel = "Muon scale nuisance index",
-            binning = binning,
-            procRegexp = "W.*|Z.*", # no fakes here yet
-            outfile = outf,
-            systBinStart = -0.5,
-            indexStart = 0,
-)
-
-writeNDHist(label = "muonScaleDummyFlat",
-            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat"),
-            nsyst = 24*2, 
-            axisLabels = axisNames,
-            weightAxisLabel = "Muon scale nuisance index",
-            binning = binning,
-            procRegexp = "W.*|Z.*", # no fakes here yet
-            outfile = outf,
-            systBinStart = -0.5,
-            indexStart = 0,
-)
-
-writeNDHist(label = "muonScaleDummyFlat1Bin",
-            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat1Bin"),
-            nsyst = 2, 
-            axisLabels = axisNames,
-            weightAxisLabel = "Muon scale nuisance index",
-            binning = binning,
-            procRegexp = "W.*|Z.*", # no fakes here yet
-            outfile = outf,
-            systBinStart = -0.5,
-            indexStart = 0,
-)
-
-writeNDHist(label = "muonScaleApproxBField",
-            varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsApproxBField"),
-            nsyst = 48*2, 
-            axisLabels = axisNames,
-            weightAxisLabel = "Muon scale nuisance index",
-            binning = binning,
-            procRegexp = "W.*|Z.*", # no fakes here yet
-            outfile = outf,
-            systBinStart = -0.5,
-            indexStart = 0,
-)
+if args.muonScaleUnc == "full":
+    writeNDHist(label = "muonScale",
+                varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvars"),
+                nsyst = 288*2, 
+                axisLabels = axisNames,
+                weightAxisLabel = "Muon scale nuisance index",
+                binning = binning,
+                procRegexp = "W.*|Z.*", # no fakes here yet
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+    )
+elif args.muonScaleUnc == "dummy48Bins":
+    writeNDHist(label = "muonScaleDummyFlat",
+                varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat"),
+                nsyst = 24*2, 
+                axisLabels = axisNames,
+                weightAxisLabel = "Muon scale nuisance index",
+                binning = binning,
+                procRegexp = "W.*|Z.*", # no fakes here yet
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+    )
+elif args.muonScaleUnc == "dummy1Bin":
+    writeNDHist(label = "muonScaleDummyFlat1Bin",
+                varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat1Bin"),
+                nsyst = 2, 
+                axisLabels = axisNames,
+                weightAxisLabel = "Muon scale nuisance index",
+                binning = binning,
+                procRegexp = "W.*|Z.*", # no fakes here yet
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+    )
+elif args.muonScaleUnc == "approxBField":
+    writeNDHist(label = "muonScaleApproxBField",
+                varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsApproxBField"),
+                nsyst = 48*2, 
+                axisLabels = axisNames,
+                weightAxisLabel = "Muon scale nuisance index",
+                binning = binning,
+                procRegexp = "W.*|Z.*", # no fakes here yet
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+    )
 
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
@@ -336,22 +324,6 @@ writeNDHist(label = "massWeight",
 #                 indexStart = 0,
 #                 addWeight = f"scetlibWeights{chan}"
 #     )
-
-# muon momentum scale test
-if len(args.ptVarScaleTest):
-    writeNDHist(label = "muonPtScaleTest",
-                varExpr = expression_muonPtScale,  # FIXME
-                nsyst = 96, # 48 etaBins*2 as we do also up/down together, remember to edit weight below if changing this 
-                axisLabels = axisNames,
-                weightAxisLabel = "pT scale nuisance index (Up+Down)",
-                binning = binning,
-                procRegexp = "W.*|Z.*|Top|Diboson", # no fakes here yet
-                outfile = outf,
-                systBinStart = 0.5,
-                indexStart = 1,
-                replaceCutByName = f"accept->valueInsideRange({args.ptVarScaleTest}\,{ptMin}\,{ptMax})"
-    )
-
 
 print('-'*30)
 print("SUMMARY")
