@@ -12,13 +12,13 @@ alphaS002  : .*AlphaS002            : Z.*|W.*|.*fakes.*                  : Alpha
 qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDscaleW_WptBin  : shape
 qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
-muonScale  : muonScale.*        : W.*|Z.*|Diboson.*|Top.*                : muonScale : shape
-#muScale    : muonPtScaleTest.*      : W.*|Z.*|Diboson.*|Top.*            : muonPtScale: shape
+#muonScale  : muonScale.*           : W.*|Z.                             : muonScale : shape : 0.1
+muonScale  : massShift10MeV.*       : W.*|Z.                             : muonScale : shape : 1
 efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_stat   : shape
 effSyst    : effSyst.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_syst   : shape
 muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonPrefiring  : shape
 luminosity : lumi.*                 : Z.*|W.*|Diboson.*|Top.*|.*fakes.*  : luminosity : shape
-mass       : massShift.*            : W.*                                : SKIPGROUP  : shapeNoConstraint
+mass       : massShift100MeV.*      : W.*                                : SKIPGROUP  : shapeNoConstraint
 CMS_Top    : CMS_Top                : Top.*                              : otherExp   : lnN     : 1.06
 CMS_VV     : CMS_VV                 : Diboson.*                          : otherExp   : lnN     : 1.16
 CMS_Fakes  : CMS_Fakes              : .*fakes.*                          : otherExp   : lnN     : 1.05

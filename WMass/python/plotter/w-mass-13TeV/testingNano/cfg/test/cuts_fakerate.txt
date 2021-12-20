@@ -3,8 +3,8 @@ trigger    : HLT_IsoTkMu24 || HLT_IsoMu24; BEFOREDEFINE=True
 json       : isGoodRunLS(isData,run,luminosityBlock); BEFOREDEFINE=True
 vetomuon   : Sum(vetoMuons)==1
 onemuon    : Sum(goodMuons)==1 
-#accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55); ASWEIGHT_MCONLY=True
-accept     : valueInsideRange(Muon_pt[goodMuons][0],26,55)
+#accept     : valueInsideRange(Muon_pt[goodMuons][0],25,56); ASWEIGHT_MCONLY=True
+accept     : valueInsideRange(Muon_pt[goodMuons][0],25,56)
 muonID     : Muon_mediumId[goodMuons][0] == 1 && Muon_isGlobal[goodMuons][0]
 #awayjet    : Sum(goodCleanJets)>=1
 #pfRelIso04 : Muon_pfRelIso04_all[goodMuons][0] < 0.15
