@@ -78,3 +78,13 @@ bnorms[zeroidxs] = (bnorms[zeroidxs+1]+bnorms[zeroidxs-1])/2
 def dummyCalibratedPtApproxBField(pt, eta):
     ieta = etaBin(eta, netabins)
     return dummyCalibratedPt(pt, ieta, bnorms[ieta], netabins)
+
+@ROOT.Numba.Declare(["float", "float", "RVec<float>", "int", "int"], "RVec<float>")
+def dummyScaleFromMassWeights(pt, eta, massWeights, scale, bins):
+    upWeight = massWeights[10+1]
+    downWeight = massWeights[10-1]
+    weightsPerEta = np.ones(bins*2, dtype='float32')
+    ieta = etaBin(eta, bins)
+    weightsPerEta[ieta] = upWeight*scale
+    weightsPerEta[ieta+bins] = downWeight*scale
+    return weightsPerEta

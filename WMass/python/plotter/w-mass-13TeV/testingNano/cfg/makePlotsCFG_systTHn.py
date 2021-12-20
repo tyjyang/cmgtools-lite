@@ -64,7 +64,8 @@ parser.add_argument('-o', '--output', dest="outputFile", default='', type=str,
                     help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31",
                     help='PDF set to use')
-parser.add_argument('--muonScaleUnc', default='dummy1Bin', type=str, choices=["none", "dummy1Bin", "dummy48Bins", "full", "approxBField"],
+parser.add_argument('--muonScaleUnc', default='dummy1Bin', type=str, choices=["none", "dummy1Bin", "dummy48Bins", "full", 
+                        "approxBField", "dummyScaleFromMassWeights10MeV12Bins", "dummyScaleFromMassWeights10MeV24Bins", "dummyScaleFromMassWeights10MeV"],
                     help='Type of muon scale uncertainties to include')
 args = parser.parse_args()
 
@@ -230,6 +231,20 @@ elif args.muonScaleUnc == "approxBField":
                 outfile = outf,
                 systBinStart = -0.5,
                 indexStart = 0,
+    )
+elif "dummyScaleFromMassWeights10MeV" in args.muonScaleUnc:
+    nbins = 24 if "24Bins" in args.muonScaleUnc else (12 if "12Bins" in args.muonScaleUnc else 48)
+    writeNDHist(label = "muonScaleFromWeights10MeV",
+                varExpr = expression,
+                nsyst = nbins*2, 
+                axisLabels = axisNames,
+                weightAxisLabel = "Muon scale nuisance index",
+                binning = binning,
+                procRegexp = "W.*",
+                outfile = outf,
+                systBinStart = -0.5,
+                indexStart = 0,
+                addWeight = f"scaleFromMassWeights10MeV{nbins}Bins"
     )
 
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
