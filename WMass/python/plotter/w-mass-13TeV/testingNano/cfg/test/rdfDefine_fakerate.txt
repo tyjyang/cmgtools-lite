@@ -28,9 +28,15 @@ muonPtVarUp : Numba::calibratedPtUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons
 muonPtVarDown : Numba::calibratedPtDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0], 10.) : W|Z
 Muon_ptvars : concatRVecsToArray<double, 288, 288>(muonPtVarUp, muonPtVarDown) : W|Z
 
+muonScaleFromMassWeightsProxyUp : Numba::calibratedPtMassWeightsProxyUpVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0], MEParamWeight) : W.*
+muonScaleFromMassWeightsProxyDown : Numba::calibratedPtMassWeightsProxyDownVar(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], Muon_charge[goodMuons][0], MEParamWeight) : W.*
+muonScaleFromMassWeightsProxy : concatRVecs<double>(muonScaleFromMassWeightsProxyUp, muonScaleFromMassWeightsProxyDown) : W.*
+
 Muon_ptvarsDummyFlat : Numba::dummyCalibratedPtFlat(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], 1.E-3, 24) : W|Z
 Muon_ptvarsDummyFlat1Bin : Numba::dummyCalibratedPtFlat(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], 1.E-3, 1) : W|Z
 Muon_ptvarsApproxBField : Numba::dummyCalibratedPtApproxBField(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0]) : W|Z
-scaleFromMassWeights10MeV : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 48) : W.*
-scaleFromMassWeights10MeV24Bins : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 24) : W.*
-scaleFromMassWeights10MeV12Bins : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 12) : W.*
+muonScaleFromMassWeights4MeV : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 0.4, 1) : W.*
+muonScaleFromMassWeights10MeV : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 1) : W.*
+muonScaleFromMassWeights13MeV : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1.3, 1) : W.*
+muonScaleFromMassWeights10MeV24Bins : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 24) : W.*
+muonScaleFromMassWeights10MeV12Bins : Numba::dummyScaleFromMassWeights(Muon_pt[goodMuons][0], Muon_eta[goodMuons][0], MEParamWeight, 1., 12) : W.*

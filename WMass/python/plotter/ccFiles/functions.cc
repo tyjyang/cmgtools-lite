@@ -66,6 +66,15 @@ auto concatRVecsToArray(const ROOT::VecOps::RVec<T>& vec1, ROOT::VecOps::RVec<T>
     return result;
 }
 
+template<typename T>
+auto concatRVecs(const ROOT::VecOps::RVec<T>& vec1, ROOT::VecOps::RVec<T>& vec2)
+{
+    ROOT::VecOps::RVec<T> result(vec1.size()+vec2.size());
+    std::copy (vec1.cbegin(), vec1.cend(), result.begin());
+    std::copy (vec2.cbegin(), vec2.cend(), result.begin()+vec1.size());
+    return result;
+}
+
 TRandom3 *rand_smear = new TRandom3(0);
 
 Vec_f shiftVar(const Vec_f& var, float shift = 0.0) {

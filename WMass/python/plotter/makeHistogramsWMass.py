@@ -200,7 +200,7 @@ for syst in systs:
             # here h3D is actually a TH2
             vars2d = [h3D, ROOT.mirrorHist(h3D, hnomi[proc], h3D.Clone("tmp"+syst))]
             writeAndRemove(util.buildVariationHistsForCharge(vars2d, f"x_{proc}_effSystTnP", [(0,1)]))
-        if "muonScale" in syst:
+        if "muonScale":
             # Already has the mirrored hists
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_{syst}", util.mirrorGroups(h3D, addMirror=False)))
         if "muonL1PrefireStat" in syst:
@@ -208,14 +208,6 @@ for syst in systs:
         if "muonL1PrefireSyst" in syst:
             # In this case the nominal is in bin 1
             writeAndRemove(util.makeVariationHistsForCharge(h3D, f"x_{proc}_muonL1PrefireSyst", [(1,2)]))
-        if "muonPtScaleTest" in syst:
-            for iptsyst in range(1, 96+1): # 48 *2, for up and down variations
-                systname = "muonPtScaleTest%d" % (iptsyst if iptsyst <= 48 else (iptsyst-48))
-                if matchDecorr.match(systname):
-                    systname = systname + chargeKey
-                name = "x_{p}_{s}{updown}".format(p=proc, s=systname, updown="Up" if iptsyst <=48 else "Down")
-                h2D = ROOT.projectTH2FromTH3(h3D, name, iptsyst, iptsyst)
-                h2D.Write()
         if "qcdScale" in syst:
             if "qcdScaleVptBin" in syst:
                 ptbin = syst.split("VptBin")[1] # value starts from 1, so can use 0 to signal its absence

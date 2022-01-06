@@ -24,7 +24,7 @@ def etaBin(eta, nbins):
     ieta = int(np.floor((eta-etamin)/etastep))
     return ieta
 
-@numba.jit('float64[:](float64, float64, float64, float64, boolean)', nopython=True, nogil=True, debug=True)
+@numba.jit('float64[:](float64, float64, int32, float64, boolean)', nopython=True, nogil=True, debug=True)
 def calibratedPt(pt, eta, charge, scale, isUp):
     ieta = etaBin(eta, netabins)
     binlow = nparams*ieta
@@ -79,12 +79,32 @@ def dummyCalibratedPtApproxBField(pt, eta):
     ieta = etaBin(eta, netabins)
     return dummyCalibratedPt(pt, ieta, bnorms[ieta], netabins)
 
-@ROOT.Numba.Declare(["float", "float", "RVec<float>", "int", "int"], "RVec<float>")
+@ROOT.Numba.Declare(["float", "float", "RVec<float>", "float", "int"], "RVec<float>")
 def dummyScaleFromMassWeights(pt, eta, massWeights, scale, bins):
     upWeight = massWeights[10+1]
     downWeight = massWeights[10-1]
     weightsPerEta = np.ones(bins*2, dtype='float32')
     ieta = etaBin(eta, bins)
-    weightsPerEta[ieta] = upWeight*scale
-    weightsPerEta[ieta+bins] = downWeight*scale
+    weightsPerEta[ieta] = np.exp(scale*np.log(upWeight))
+    weightsPerEta[ieta+bins] = np.exp(scale*np.log(downWeight))
     return weightsPerEta
+
+@numba.jit("float64[:](float64, float64, int32, float32[:], boolean)", nopython=True, nogil=True, debug=True)
+def calibratedPtMassWeightsProxy(pt, eta, charge, massWeights, isUp):
+    relptcorr = (calibratedPt(pt, eta, charge, 1., isUp)-pt)/pt
+    # Up-like weight if it increases pt, down otherwise
+    upweight = massWeights[10+1]
+    downweight = massWeights[10-1]
+    weight = np.full_like(relptcorr, upweight)
+    weight[relptcorr < 0] = downweight
+    # Scale factor of 10 MeV mass shift --> pt percent unc.
+    corrfac = np.abs(relptcorr)/1.2482e-4
+    return np.exp(corrfac*np.log(np.abs(weight)))*np.sign(weight)
+
+@ROOT.Numba.Declare(["double", "double", "int", "RVec<float>"], "RVec<double>")
+def calibratedPtMassWeightsProxyUpVar(pt, eta, charge, massWeights):
+    return calibratedPtMassWeightsProxy(pt, eta, charge, massWeights, True)
+
+@ROOT.Numba.Declare(["double", "double", "int", "RVec<float>"], "RVec<double>")
+def calibratedPtMassWeightsProxyDownVar(pt, eta, charge, massWeights):
+    return calibratedPtMassWeightsProxy(pt, eta, charge, massWeights, False)

@@ -64,8 +64,8 @@ parser.add_argument('-o', '--output', dest="outputFile", default='', type=str,
                     help='Output file to store lines (they are also printed on stdout anyway)')
 parser.add_argument('--pdf-weights', dest='pdfWeights', choices=["nnpdf30","nnpdf31"], default="nnpdf31",
                     help='PDF set to use')
-parser.add_argument('--muonScaleUnc', default='dummy1Bin', type=str, choices=["none", "dummy1Bin", "dummy48Bins", "full", 
-                        "approxBField", "dummyScaleFromMassWeights10MeV12Bins", "dummyScaleFromMassWeights10MeV24Bins", "dummyScaleFromMassWeights10MeV"],
+parser.add_argument('--muonScaleUnc', default='dummy1Bin', type=str, nargs='*', choices=["none", "dummy1Bin", "dummy48Bins", "full", 
+                        "massWeightsProxy", "dummyScaleFromMassWeights4MeV", "dummyScaleFromMassWeights10MeV", "dummyScaleFromMassWeights13MeV"],
                     help='Type of muon scale uncertainties to include')
 args = parser.parse_args()
 
@@ -184,7 +184,7 @@ for ipt in range(1,1+NVTPBINS):
 
 ## end of QCD scales
 
-if args.muonScaleUnc == "full":
+if "full" in args.muonScaleUnc:
     writeNDHist(label = "muonScale",
                 varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvars"),
                 nsyst = 288*2, 
@@ -196,7 +196,7 @@ if args.muonScaleUnc == "full":
                 systBinStart = -0.5,
                 indexStart = 0,
     )
-elif args.muonScaleUnc == "dummy48Bins":
+if "dummy48Bins" in args.muonScaleUnc:
     writeNDHist(label = "muonScaleDummyFlat",
                 varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat"),
                 nsyst = 24*2, 
@@ -208,7 +208,7 @@ elif args.muonScaleUnc == "dummy48Bins":
                 systBinStart = -0.5,
                 indexStart = 0,
     )
-elif args.muonScaleUnc == "dummy1Bin":
+if "dummy1Bin" in args.muonScaleUnc:
     writeNDHist(label = "muonScaleDummyFlat1Bin",
                 varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsDummyFlat1Bin"),
                 nsyst = 2, 
@@ -220,23 +220,11 @@ elif args.muonScaleUnc == "dummy1Bin":
                 systBinStart = -0.5,
                 indexStart = 0,
     )
-elif args.muonScaleUnc == "approxBField":
-    writeNDHist(label = "muonScaleApproxBField",
-                varExpr = expression.replace("Muon_pt[goodMuons][0]", "Muon_ptvarsApproxBField"),
-                nsyst = 48*2, 
-                axisLabels = axisNames,
-                weightAxisLabel = "Muon scale nuisance index",
-                binning = binning,
-                procRegexp = "W.*|Z.*", # no fakes here yet
-                outfile = outf,
-                systBinStart = -0.5,
-                indexStart = 0,
-    )
-elif "dummyScaleFromMassWeights10MeV" in args.muonScaleUnc:
-    nbins = 24 if "24Bins" in args.muonScaleUnc else (12 if "12Bins" in args.muonScaleUnc else 48)
-    writeNDHist(label = "muonScaleFromWeights10MeV",
+if "massWeightsProxy" in args.muonScaleUnc:
+    name = "muonScaleFromMassWeightsProxy"
+    writeNDHist(label = name,
                 varExpr = expression,
-                nsyst = nbins*2, 
+                nsyst = 288*2, 
                 axisLabels = axisNames,
                 weightAxisLabel = "Muon scale nuisance index",
                 binning = binning,
@@ -244,9 +232,24 @@ elif "dummyScaleFromMassWeights10MeV" in args.muonScaleUnc:
                 outfile = outf,
                 systBinStart = -0.5,
                 indexStart = 0,
-                addWeight = f"scaleFromMassWeights10MeV{nbins}Bins"
+                addWeight = name,
     )
-
+for unc in args.muonScaleUnc:
+    if "dummyScaleFromMassWeights" in unc:
+        name = unc.replace("dummyScale", "muonScale")
+        writeNDHist(label = name,
+                    varExpr = expression,
+                    nsyst = 2, 
+                    axisLabels = axisNames,
+                    weightAxisLabel = "Muon scale nuisance index",
+                    binning = binning,
+                    procRegexp = "W.*",
+                    outfile = outf,
+                    systBinStart = -0.5,
+                    indexStart = 0,
+                    addWeight = name
+    )
+#
 # eff. stat. nuisances, one nuisance per TnP bin, treated as uncorrelated
 # function to use is _get_fullMuonSFvariation, which replace _get_fullMuonSF in the nominal weight, using ReplaceWeight
 # NOTE: from September 2021 we have changed pt binning, now it is 15 pt bins from 24 to 65, the bins are: 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 47, 50, 55, 60, 65
