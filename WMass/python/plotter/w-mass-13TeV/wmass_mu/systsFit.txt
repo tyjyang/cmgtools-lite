@@ -13,7 +13,7 @@ qcdScalesW : muR.*|muF.*            : W.*|.*fakes.*                      : QCDsc
 qcdScalesZ : muR.*|muF.*            : Z.*|.*fakes.*                      : QCDscaleZ_unbin  : shape
 fsr        : fsr.*                  : W.*|.*fakes.*                      : QED        : shape
 #muonScale  : muonScale.*           : W.*|Z.                             : muonScale : shape : 0.1
-muonScale  : massShift10MeV.*       : W.*|Z.                             : muonScale : shape : 1
+muonScale  : muonScaleFromMassWeightsProxy.* : W.*|Z.                             : muonScale : shape : 1.
 efficiency : effStat.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_stat   : shape
 effSyst    : effSyst.*              : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonEfficiency_syst   : shape
 muPrefiring: muonL1Prefire.*        : W.*|Z.*|Diboson.*|Top.*|.*fakes.*  : muonPrefiring  : shape

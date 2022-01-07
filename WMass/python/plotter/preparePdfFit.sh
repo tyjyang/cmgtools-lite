@@ -21,21 +21,22 @@ if [ $# -gt 3 ]; then
 fi
 
 #plots/testNanoAOD/WmassPlots/W${pdf}/postVFP/${label}/wmass_shapes.root 
-fakeFile=plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/plots_fakerate_systTHn_${pdf}.root 
-histFile=plots/testNanoAOD/WmassPlots/W${pdf}_testTHn/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.root
+baseFolder=plots/testNanoAOD/WmassPlots/W${pdf}_${fitLabel}
+fakeFile=$baseFolder/fakeRateRegion_systTHn/postVFP/allTHn/plots_fakerate_systTHn_${pdf}.root 
+histFile=$baseFolder/fakeRateRegion_systTHn/postVFP/allTHn/postprocessing/wmass_shapes.root
 cardInputs=cards/wmass/W${pdf}_${fitLabel} 
 echo "first step is $firstStep"
 
-if [ $firstStep -le 2 ]; then
-    python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTHn.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTHn_${pdf}.txt --a wmass --pdf-weights $pdf --muonScaleUnc dummy1Bin
-    python runWmassTHn.py -o plots/testNanoAOD/WmassPlots/W${pdf}/ -e postVFP --variables ".*" --plot-file "plots_fakerate_systTHn_${pdf}.txt" --options " --skipPlot " --pdf $pdf
+if [ $firstStep -le 1 ]; then
+    python w-mass-13TeV/testingNano/cfg/makePlotsCFG_systTHn.py -o w-mass-13TeV/testingNano/cfg/plots_fakerate_systTHn_${pdf}.txt --a wmass --pdf-weights $pdf --muonScaleUnc dummyScaleFromMassWeights10MeV massWeightsProxy
+    python runWmassTHn.py -o $baseFolder -e postVFP --variables ".*" --plot-file "plots_fakerate_systTHn_${pdf}.txt" --options " --skipPlot " --pdf $pdf
 fi
 
-if [ $firstStep -le 3 ]; then
+if [ $firstStep -le 2 ]; then
     python w-mass-13TeV/plotFakesTemplate.py $fakeFile --skip-plots
 fi
 
-if [ $firstStep -le 4 ]; then
+if [ $firstStep -le 3 ]; then
     for charge in plus minus; do
         python makeHistogramsWMass.py -i $histFile --outdir $cardInputs -c $charge --decorrelate-by-charge ".*effStatTnP|.*muR\d+|.*muF\d+"
     done
